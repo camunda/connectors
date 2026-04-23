@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-aws-parent</artifactId>
-    <version>8.9.0-SNAPSHOT</version>
+    <version>8.10.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -37,6 +37,31 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>connector-aws-base</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sns</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>aws-core</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>regions</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>auth</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sdk-core</artifactId>
+    </dependency>
+    <!-- v1 SDK kept for SnsMessageManager used in inbound webhook (no v2 equivalent).
+         See: https://github.com/aws/aws-sdk-java-v2/issues/1302 -->
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-sns</artifactId>

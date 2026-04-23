@@ -3,9 +3,7 @@
   "name" : "SQL Database Connector",
   "id" : "io.camunda.connectors.Jdbc.v1",
   "description" : "Read and write data from a Camunda process directly to a SQL database (e.g., Microsoft SQL Server, MySQL, PostgreSQL)",
-  "metadata" : {
-    "keywords" : [ "relational", "database" ]
-  },
+  "keywords" : [ "relational", "database", "SQL", "query database", "execute SQL", "relational database", "MySQL", "PostgreSQL", "SQL Server", "Oracle", "MariaDB", "select", "insert", "update", "delete" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql",
   "version" : 3,
   "category" : {
@@ -51,7 +49,7 @@
   }, {
     "id" : "database",
     "label" : "Select a database",
-    "description" : "Select the database you want to connect to. If you choose Oracle, make sure the Oracle JDBC driver is included. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/sql/#database\">Learn how to set it up.</a>",
+    "description" : "Select the database you want to connect to. If you choose Oracle, make sure the Oracle JDBC driver is included. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Learn how to set it up.</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

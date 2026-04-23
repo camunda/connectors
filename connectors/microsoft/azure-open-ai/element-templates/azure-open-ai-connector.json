@@ -3,6 +3,18 @@
   "name": "Azure OpenAI Connector",
   "id": "io.camunda.connectors.AzureOpenAI.outbound.v1",
   "description": "Interact with Azure OpenAI from your BPMN process",
+  "keywords": [
+    "completion",
+    "chat completion",
+    "generate text",
+    "AI",
+    "LLM",
+    "language model",
+    "GPT",
+    "generative AI",
+    "prompt",
+    "text generation"
+  ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/azure-open-ai/",
   "version": 2,
   "engines": {

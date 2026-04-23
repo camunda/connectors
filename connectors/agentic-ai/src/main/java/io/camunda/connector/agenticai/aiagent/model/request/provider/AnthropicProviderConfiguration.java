@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.ANTHROPIC_ID;
 
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -25,7 +26,8 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
   public static final String ANTHROPIC_ID = "anthropic";
 
   public record AnthropicConnection(
-      @TemplateProperty(
+      @HttpUrl
+          @TemplateProperty(
               group = "provider",
               description = "Optional custom API endpoint",
               type = TemplateProperty.PropertyType.String,
@@ -61,8 +63,9 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
                   "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
-              defaultValue = "claude-3-5-sonnet-20240620",
+              defaultValue = "",
               defaultValueType = TemplateProperty.DefaultValueType.String,
+              placeholder = "claude-sonnet-4-6",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
       @Valid AnthropicModel.AnthropicModelParameters parameters) {

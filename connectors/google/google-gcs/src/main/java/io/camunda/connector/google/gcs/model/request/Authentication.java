@@ -17,7 +17,7 @@ public class Authentication {
       group = "authentication",
       label = "JSON key of the service account",
       description =
-          "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
+          "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
       feel = FeelMode.optional)
   @NotBlank
   private String jsonKey;

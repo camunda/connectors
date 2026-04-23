@@ -141,6 +141,7 @@ public class OperationBasedConnectorUtil {
               !templateProperty.group().isBlank() ? templateProperty.group() : OPERATION_GROUP_ID)
           .label(templateProperty.label())
           .tooltip(templateProperty.tooltip())
+          .placeholder(templateProperty.placeholder())
           .description(templateProperty.description())
           .feel(templateProperty.feel());
 

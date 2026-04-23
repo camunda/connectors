@@ -205,9 +205,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                           : null)
                   .elementType(elementType.elementType())
                   .icon(icon)
-                  .metadata(
-                      new io.camunda.connector.generator.dsl.ElementTemplate.Metadata(
-                          template.metadata().keywords()))
+                  .keywords(template.keywords().length == 0 ? null : template.keywords())
                   .documentationRef(
                       template.documentationRef().isEmpty() ? null : template.documentationRef())
                   .description(template.description().isEmpty() ? null : template.description())

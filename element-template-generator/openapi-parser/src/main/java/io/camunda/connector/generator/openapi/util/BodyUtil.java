@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.generator.openapi.util;
 
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.generator.dsl.http.HttpFeelBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
@@ -46,10 +46,18 @@ public class BodyUtil {
       return new Raw("");
     }
     if (requestBody.get$ref() != null) {
+      var ref = requestBody.get$ref();
+      if (!ref.startsWith("#/")) {
+        throw new IllegalArgumentException(
+            "External $ref '"
+                + ref
+                + "' cannot be resolved: the spec contains a reference to an external file or URL "
+                + "that was not inlined during parsing. Either remove '--no-resolve-refs' so the "
+                + "parser can follow the reference, or replace the external $ref with an inline "
+                + "schema definition.");
+      }
       requestBody =
-          components
-              .getRequestBodies()
-              .get(requestBody.get$ref().replace("#/components/requestBodies/", ""));
+          components.getRequestBodies().get(ref.replace("#/components/requestBodies/", ""));
     }
     Schema<?> schema = null;
     var content = requestBody.getContent();
@@ -85,13 +93,13 @@ public class BodyUtil {
     if (schema.getProperties() == null) {
       return false;
     }
-    FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+    var feelEngine = new LocalFeelExpressionEvaluator();
     return schema.getProperties().keySet().stream()
         .anyMatch(
             property -> {
               try {
                 Map<String, String> mockPropertyContext = Map.of(property, "mock");
-                String result = feelEngineWrapper.evaluate(property, mockPropertyContext);
+                String result = feelEngine.evaluate(property, mockPropertyContext);
                 return result == null;
               } catch (FeelEngineWrapperException e) {
                 return true;

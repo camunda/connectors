@@ -8,7 +8,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>element-template-generator-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>8.9.0-SNAPSHOT</version>
+    <version>8.10.0-SNAPSHOT</version>
   </parent>
 
   <name>Uniquet</name>
@@ -49,7 +49,7 @@
     <dependency>
       <groupId>org.eclipse.jgit</groupId>
       <artifactId>org.eclipse.jgit</artifactId>
-      <version>7.5.0.202512021534-r</version>
+      <version>7.6.0.202603022253-r</version>
     </dependency>
 
     <dependency>

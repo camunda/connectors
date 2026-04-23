@@ -122,6 +122,16 @@ public class HttpCommonRequest {
               oneOf = {"POST", "PUT", "PATCH"}))
   private boolean ignoreNullValues;
 
+  @TemplateProperty(
+      group = "endpoint",
+      type = PropertyType.Boolean,
+      label = "Follow redirects",
+      description =
+          "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
+      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+      defaultValue = "false")
+  private boolean followRedirects;
+
   // write getters for all attributes of this class
   public HttpMethod getMethod() {
     return method;
@@ -217,5 +227,13 @@ public class HttpCommonRequest {
 
   public void setIgnoreNullValues(final boolean ignoreNullValues) {
     this.ignoreNullValues = ignoreNullValues;
+  }
+
+  public boolean isFollowRedirects() {
+    return followRedirects;
+  }
+
+  public void setFollowRedirects(final boolean followRedirects) {
+    this.followRedirects = followRedirects;
   }
 }

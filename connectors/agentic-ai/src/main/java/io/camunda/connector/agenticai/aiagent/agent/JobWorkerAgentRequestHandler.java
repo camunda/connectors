@@ -7,26 +7,29 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse;
+import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentCompletion;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class JobWorkerAgentRequestHandler
-    extends BaseAgentRequestHandler<JobWorkerAgentExecutionContext, JobWorkerAgentCompletion> {
+    extends BaseAgentRequestHandler<
+        JobWorkerAgentExecutionContext, AiAgentSubProcessConnectorResponse> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JobWorkerAgentRequestHandler.class);
 
@@ -80,18 +83,16 @@ public class JobWorkerAgentRequestHandler
   }
 
   @Override
-  public JobWorkerAgentCompletion completeJob(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentResponse agentResponse,
-      ConversationStore conversationStore) {
+  public AiAgentSubProcessConnectorResponse buildConnectorResponse(
+      JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
     if (agentResponse == null) {
       LOGGER.debug(
           "No agent response provided, completing job {} without response",
-          executionContext.job().getKey());
+          executionContext.jobContext().getJobKey());
 
       // no-op (do not activate elements, do not complete agent process) -> wait for next job to
       // proceed (e.g. by adding user messages or to complete tool call results)
-      return JobWorkerAgentCompletion.builder()
+      return AiAgentSubProcessConnectorResponse.builder()
           .completionConditionFulfilled(false)
           .cancelRemainingInstances(false)
           .build();
@@ -99,18 +100,16 @@ public class JobWorkerAgentRequestHandler
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
             "Agent response provided, completing job {} with response and tool calls: {}",
-            executionContext.job().getKey(),
+            executionContext.jobContext().getJobKey(),
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
-      return completeWithResponse(executionContext, agentResponse, conversationStore);
+      return buildResponse(executionContext, agentResponse);
     }
   }
 
-  private JobWorkerAgentCompletion completeWithResponse(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentResponse agentResponse,
-      ConversationStore conversationStore) {
+  private AiAgentSubProcessConnectorResponse buildResponse(
+      JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
     boolean cancelRemainingInstances = executionContext.cancelRemainingInstances();
 
@@ -133,21 +132,12 @@ public class JobWorkerAgentRequestHandler
       variables.put(AiAgentJobWorker.TOOL_CALL_RESULTS_VARIABLE, List.of());
     }
 
-    return JobWorkerAgentCompletion.builder()
-        .agentResponse(agentResponse)
+    return AiAgentSubProcessConnectorResponse.builder()
+        .responseValue(agentResponse)
+        .variables(variables)
+        .elementActivations(buildElementActivations(agentResponse))
         .completionConditionFulfilled(completionConditionFulfilled)
         .cancelRemainingInstances(cancelRemainingInstances)
-        .variables(variables)
-        .onCompletionError(
-            throwable -> {
-              if (conversationStore != null) {
-                LOGGER.debug("Allowing conversation store to compensate job failure");
-
-                // allow storage to compensate for failed job completion
-                conversationStore.compensateFailedJobCompletion(
-                    executionContext, agentResponse.context(), throwable);
-              }
-            })
         .build();
   }
 
@@ -166,5 +156,28 @@ public class JobWorkerAgentRequestHandler
     }
 
     return builder.build();
+  }
+
+  private List<ElementActivation> buildElementActivations(AgentResponse agentResponse) {
+    return agentResponse.toolCalls().stream()
+        .map(
+            toolCall -> {
+              if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Activating tool {}: {}", toolCall.metadata().name(), toolCall);
+              } else {
+                LOGGER.debug("Activating tool {}", toolCall.metadata().name());
+              }
+
+              return (ElementActivation)
+                  new ToolCallElementActivation(
+                      toolCall.metadata().name(),
+                      Map.ofEntries(
+                          Map.entry(AiAgentJobWorker.TOOL_CALL_VARIABLE, toolCall),
+                          // Creating empty toolCallResult variable to avoid variable
+                          // to bubble up in the upper scopes while merging variables on
+                          // ad-hoc sub-process inner instance completion.
+                          Map.entry(AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE, "")));
+            })
+        .toList();
   }
 }

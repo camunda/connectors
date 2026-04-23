@@ -5,7 +5,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-runtime-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>8.9.0-SNAPSHOT</version>
+    <version>8.10.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>jackson-datatype-feel</artifactId>
@@ -15,7 +15,7 @@
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-feel-wrapper</artifactId>
+      <artifactId>connector-feel</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -24,6 +24,11 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-core</artifactId>
+    </dependency>
+    <!-- to get the default mapper with basic modules registered -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
     </dependency>
 
     <dependency>

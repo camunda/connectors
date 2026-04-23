@@ -120,8 +120,8 @@ jobs:
           path: '**/target/surefire-reports/*.xml'
 
       - name: Send Slack notification on failure
-        if: failure()
-        uses: slackapi/slack-github-action@v2.1.1
+        if: failure() && (matrix.branch == 'main' || startsWith(matrix.branch, 'stable/'))
+        uses: slackapi/slack-github-action@v3.0.1
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           method: chat.postMessage

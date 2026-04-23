@@ -3,9 +3,7 @@
   "name" : "Hybrid AWS Bedrock Outbound Connector",
   "id" : "io.camunda.connectors.aws.bedrock.v1-hybrid",
   "description" : "Invoke models and converse using AWS Bedrock.",
-  "metadata" : {
-    "keywords" : [ "invoke model", "run inference", "invokemodel API", "converse API" ]
-  },
+  "keywords" : [ "invoke model", "run inference", "invokemodel API", "converse API", "converse", "AI", "LLM", "machine learning", "language model", "generative AI" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/",
   "version" : 3,
   "category" : {

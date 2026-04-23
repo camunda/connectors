@@ -3,10 +3,7 @@
   "name" : "Hybrid Ad-hoc tools schema",
   "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v1-hybrid",
   "description" : "Connector to fetch tools schema information from an ad-hoc sub-process.",
-  "metadata" : {
-    "keywords" : [ ]
-  },
-  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/",
   "version" : 2,
   "category" : {
     "id" : "connectors",

@@ -17,10 +17,11 @@
 package io.camunda.connector.http.client.authentication;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpMethod;
@@ -101,18 +102,17 @@ public class OAuthServiceTest {
   class ExtractTokenFromResponseTests {
 
     @Test
-    public void shouldReturnNull_whenExtractingTokenFromJsonWithoutAccessToken() {
+    public void shouldThrowException_whenExtractingTokenFromJsonWithoutAccessToken() {
       // Given
       String body = "{\"scope\":\"read:clients\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
 
-      // When
-      String token =
-          oAuthService.extractTokenFromResponse(
-              new StreamingHttpResponse(
-                  200, null, null, new ByteArrayInputStream(body.getBytes())));
-
-      // Then
-      assertNull(token);
+      // When / Then
+      assertThrows(
+          ConnectorException.class,
+          () ->
+              oAuthService.extractTokenFromResponse(
+                  new StreamingHttpResponse(
+                      200, null, null, new ByteArrayInputStream(body.getBytes()))));
     }
 
     @Test
@@ -134,10 +134,12 @@ public class OAuthServiceTest {
           new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(s.getBytes()));
 
       // When
-      String token = oAuthService.extractTokenFromResponse(response);
+      TokenResponse tokenResponse = oAuthService.extractTokenFromResponse(response);
 
       // Then
-      assertThat(token).isEqualTo("abcd");
+      assertThat(tokenResponse).isNotNull();
+      assertThat(tokenResponse.accessToken()).isEqualTo("abcd");
+      assertThat(tokenResponse.expiresInSeconds()).hasValue(86400);
     }
 
     @Test
@@ -149,10 +151,12 @@ public class OAuthServiceTest {
           new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(body.getBytes()));
 
       // When
-      String token = oAuthService.extractTokenFromResponse(response);
+      TokenResponse tokenResponse = oAuthService.extractTokenFromResponse(response);
 
       // Then
-      assertThat(token).isEqualTo("abcd");
+      assertThat(tokenResponse).isNotNull();
+      assertThat(tokenResponse.accessToken()).isEqualTo("abcd");
+      assertThat(tokenResponse.expiresInSeconds()).hasValue(86400);
     }
 
     @Test
@@ -163,10 +167,28 @@ public class OAuthServiceTest {
           new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(body.getBytes()));
 
       // When
-      String token = oAuthService.extractTokenFromResponse(response);
+      TokenResponse tokenResponse = oAuthService.extractTokenFromResponse(response);
 
       // Then
-      assertThat(token).isEqualTo("abcd");
+      assertThat(tokenResponse).isNotNull();
+      assertThat(tokenResponse.accessToken()).isEqualTo("abcd");
+      assertThat(tokenResponse.expiresInSeconds()).hasValue(86400);
+    }
+
+    @Test
+    public void shouldReturnTokenWithoutExpiry_whenExtractingTokenFromJsonWithoutExpiresIn() {
+      // Given
+      String body = "{\"access_token\": \"abcd\", \"token_type\":\"Bearer\"}";
+      var response =
+          new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(body.getBytes()));
+
+      // When
+      TokenResponse tokenResponse = oAuthService.extractTokenFromResponse(response);
+
+      // Then
+      assertThat(tokenResponse).isNotNull();
+      assertThat(tokenResponse.accessToken()).isEqualTo("abcd");
+      assertThat(tokenResponse.expiresInSeconds()).isEmpty();
     }
   }
 }

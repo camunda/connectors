@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.Process
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -36,11 +35,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     id = "io.camunda.connectors.agenticai.aiagent.v1",
     name = "AI Agent Task",
     description = "Execute a single AI-powered action with tool calling capabilities",
-    metadata = @ElementTemplate.Metadata(keywords = {"AI", "AI Agent", "agentic orchestration"}),
+    keywords = {"AI", "AI Agent", "agentic orchestration"},
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-    engineVersion = "^8.9",
-    version = 6,
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
+    engineVersion = "^8.10",
+    version = 10,
     inputDataClass = OutboundConnectorAgentRequest.class,
     outputDataClass = AgentResponse.class,
     defaultResultVariable = "agent",
@@ -96,13 +95,11 @@ public class AiAgentFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public AgentResponse execute(OutboundConnectorContext context) {
-    final OutboundConnectorAgentRequest request =
-        context.bindVariables(OutboundConnectorAgentRequest.class);
-    final OutboundConnectorAgentExecutionContext executionContext =
+  public AiAgentTaskConnectorResponse execute(OutboundConnectorContext context) {
+    var request = context.bindVariables(OutboundConnectorAgentRequest.class);
+    var executionContext =
         new OutboundConnectorAgentExecutionContext(
-            new OutboundConnectorAgentJobContext(context), request, toolElementsResolver);
-
+            context.getJobContext(), request, toolElementsResolver);
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

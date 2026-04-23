@@ -37,14 +37,19 @@ import java.util.function.Function;
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "additionalProperties", label = "Additional properties")
     },
-    metadata =
-        @ElementTemplate.Metadata(
-            keywords = {
-              "download file from azure blob storage",
-              "upload file to azure blob storage"
-            }),
+    keywords = {
+      "download file from azure blob storage",
+      "upload file to azure blob storage",
+      "download blob",
+      "upload blob",
+      "download file",
+      "upload file",
+      "blob storage",
+      "file storage",
+      "cloud storage"
+    },
     documentationRef =
-        "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
+        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
     icon = "icon.svg")
 public class BlobStorageConnectorFunction implements OutboundConnectorFunction {
 

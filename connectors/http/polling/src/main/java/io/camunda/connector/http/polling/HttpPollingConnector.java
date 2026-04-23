@@ -17,14 +17,30 @@ import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
 
 @ElementTemplate(
-    engineVersion = "^8.8",
+    engineVersion = "^8.9",
     id = "io.camunda:http-polling:1",
     name = "Polling Connector",
     icon = "icon.svg",
-    version = 4,
+    version = 5,
     inputDataClass = PollingRequest.class,
     description = "Polls endpoint at regular intervals",
+    keywords = {
+      "poll",
+      "polling",
+      "HTTP",
+      "REST",
+      "wait for response",
+      "check status",
+      "periodic request",
+      "HTTP callback"
+    },
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
+    defaultResultExpression =
+        "{\n"
+            + "  myResponseBody: response.body\n"
+            + "  // Use FEEL to extract values, e.g.,:\n"
+            + "  // myUserId: response.body.post.userId\n"
+            + "}",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Polling configuration"),

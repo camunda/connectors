@@ -1,12 +1,9 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid MCP Client (early access)",
+  "name" : "Hybrid MCP Client",
   "id" : "io.camunda.connectors.agenticai.mcp.client.v0-hybrid",
   "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime.",
-  "metadata" : {
-    "keywords" : [ ]
-  },
-  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/early-access/alpha/mcp-client/mcp-client-connector/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client-connector/",
   "version" : 2,
   "category" : {
     "id" : "connectors",

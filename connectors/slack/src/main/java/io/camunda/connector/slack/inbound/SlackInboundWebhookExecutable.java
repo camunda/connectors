@@ -41,11 +41,25 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.inbound.Slack.v1",
     name = "Slack Webhook Boundary Event Connector",
     icon = "icon.svg",
-    version = 7,
+    version = 8,
     inputDataClass = SlackConnectorPropertiesWrapper.class,
     description = "Receive events from Slack",
+    keywords = {
+      "message received",
+      "event received",
+      "channel event",
+      "webhook",
+      "messaging",
+      "new message"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
+    defaultResultExpression =
+        "{\n"
+            + "  myRequestBody: request.body\n"
+            + "  // Use FEEL to extract values, e.g.,:\n"
+            + "  // myUserId: request.body.event.user\n"
+            + "}",
     propertyGroups = {@PropertyGroup(id = "endpoint", label = "Webhook configuration")},
     elementTypes = {
       @ConnectorElementType(

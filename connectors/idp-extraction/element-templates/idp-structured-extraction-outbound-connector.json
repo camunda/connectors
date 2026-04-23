@@ -3,9 +3,6 @@
   "name" : "IDP Structured Extraction Outbound Connector",
   "id" : "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1",
   "description" : "Execute IDP Structured Extraction requests",
-  "metadata" : {
-    "keywords" : [ ]
-  },
   "documentationRef" : "https://docs.camunda.io/docs/guides/",
   "version" : 2,
   "category" : {
@@ -122,6 +119,9 @@
     }, {
       "name" : "AWS Textract extractor",
       "value" : "textract"
+    }, {
+      "name" : "ABBYY Vantage extractor",
+      "value" : "abbyy"
     } ]
   }, {
     "id" : "extractor.endpoint",
@@ -493,6 +493,86 @@
     "condition" : {
       "property" : "extractor.type",
       "equals" : "textract",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "extractor.abbyyBaseUrl",
+    "label" : "ABBYY Vantage Base URL",
+    "description" : "Base URL of the ABBYY Vantage instance (e.g., https://vantage-us.abbyy.com)",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.baseUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "abbyy",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "extractor.abbyyClientId",
+    "label" : "Client ID",
+    "description" : "OAuth2 Client ID from ABBYY Vantage Public API Client settings",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "abbyy",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "extractor.abbyyClientSecret",
+    "label" : "Client Secret",
+    "description" : "OAuth2 Client Secret from ABBYY Vantage Public API Client settings",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "abbyy",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "extractor.abbyySkillId",
+    "label" : "Skill ID",
+    "description" : "The ABBYY Vantage OCR skill ID (skill must be configured to output Text format)",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.skillId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "abbyy",
       "type" : "simple"
     },
     "type" : "Text"

@@ -49,6 +49,7 @@ public final class NumberProperty extends Property {
         binding,
         condition,
         tooltip,
+        null,
         exampleValue,
         TYPE);
   }

@@ -11,8 +11,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.ConnectorResponse;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
@@ -29,7 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
 
-public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R>
+public abstract class BaseAgentRequestHandler<
+        C extends AgentExecutionContext, R extends ConnectorResponse>
     implements AgentRequestHandler<C, R> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseAgentRequestHandler.class);
@@ -71,14 +73,14 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
         LOGGER.debug(
             "AI Agent initialization returned direct response including {} tool calls. Completing job without further processing.",
             agentResponse.toolCalls().size());
-        yield completeJob(executionContext, agentResponse, null);
+        yield buildConnectorResponse(executionContext, agentResponse);
       }
 
       // discovery still in progress (not all tool call results present)
       case AgentDiscoveryInProgressInitializationResult ignored -> {
         LOGGER.debug(
             "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
-        yield completeJob(executionContext, null, null);
+        yield buildConnectorResponse(executionContext, null);
       }
 
       case AgentContextInitializationResult(
@@ -94,28 +96,28 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
 
   private R handleRequest(
       final C executionContext,
-      final AgentContext agentContext,
+      AgentContext agentContext,
       final List<ToolCallResult> toolCallResults) {
-    final var conversationStore =
+    final var store =
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
-    final var agentResponse =
-        conversationStore.executeInSession(
-            executionContext,
-            agentContext,
-            session -> handleRequest(executionContext, agentContext, toolCallResults, session));
 
-    LOGGER.debug(
-        "Request processing completed {} agent response, completing job",
-        agentResponse == null ? "without" : "with");
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var agentResponse =
+          processConversation(executionContext, agentContext, toolCallResults, session);
 
-    return completeJob(executionContext, agentResponse, conversationStore);
+      LOGGER.debug(
+          "Request processing completed {} agent response, completing job",
+          agentResponse == null ? "without" : "with");
+
+      return buildConnectorResponse(executionContext, agentResponse);
+    }
   }
 
-  private AgentResponse handleRequest(
+  private AgentResponse processConversation(
       final C executionContext,
       AgentContext agentContext,
-      List<ToolCallResult> toolCallResults,
-      ConversationSession session) {
+      final List<ToolCallResult> toolCallResults,
+      final ConversationSession session) {
     // set up memory and load from context if available
     final var runtimeMemory =
         new MessageWindowRuntimeMemory(
@@ -124,7 +126,8 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
                 .orElse(DEFAULT_CONTEXT_WINDOW_SIZE));
 
     LOGGER.trace("Loading previous conversation (if any) into runtime memory");
-    session.loadIntoRuntimeMemory(agentContext, runtimeMemory);
+    var loadResult = session.loadMessages(agentContext);
+    runtimeMemory.addMessages(loadResult.messages());
 
     // validate configured limits
     LOGGER.trace("Validating configured limits for agent execution");
@@ -180,7 +183,10 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
 
     // store memory reference to context
     LOGGER.debug("Storing runtime memory to conversation session");
-    agentContext = session.storeFromRuntimeMemory(agentContext, runtimeMemory);
+    var updatedConversation =
+        session.storeMessages(
+            agentContext, ConversationStoreRequest.of(runtimeMemory.allMessages()));
+    agentContext = agentContext.withConversation(updatedConversation);
 
     return responseHandler.createResponse(
         executionContext, agentContext, assistantMessage, processVariableToolCalls);
@@ -194,9 +200,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
     // no-op by default
   }
 
-  /** Handles job completion if needed. Agent response and conversation store may be null. */
-  protected abstract R completeJob(
-      final C executionContext,
-      @Nullable final AgentResponse agentResponse,
-      @Nullable final ConversationStore conversationStore);
+  /** Builds the connector response from the agent response. Agent response may be null. */
+  protected abstract R buildConnectorResponse(
+      final C executionContext, @Nullable final AgentResponse agentResponse);
 }

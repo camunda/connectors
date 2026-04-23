@@ -18,8 +18,8 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
 import org.slf4j.Logger;
@@ -33,10 +33,10 @@ public class ActivationConditionEvaluator {
 
   private static final Logger LOG = LoggerFactory.getLogger(ActivationConditionEvaluator.class);
 
-  private final FeelEngineWrapper feelEngine;
+  private final FeelExpressionEvaluator feelExpressionEvaluator;
 
-  public ActivationConditionEvaluator(FeelEngineWrapper feelEngine) {
-    this.feelEngine = feelEngine;
+  public ActivationConditionEvaluator(FeelExpressionEvaluator feelExpressionEvaluator) {
+    this.feelExpressionEvaluator = feelExpressionEvaluator;
   }
 
   /**
@@ -87,7 +87,7 @@ public class ActivationConditionEvaluator {
     }
     LOG.debug("Evaluating activation condition: {}", maybeCondition);
     try {
-      Object shouldActivate = feelEngine.evaluate(maybeCondition, context);
+      Object shouldActivate = feelExpressionEvaluator.evaluate(maybeCondition, context);
       LOG.debug("Activation condition evaluated to: {}", shouldActivate);
       return Boolean.TRUE.equals(shouldActivate);
     } catch (FeelEngineWrapperException e) {

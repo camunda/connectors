@@ -6,16 +6,13 @@
  */
 package io.camunda.connector.inbound;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.QueueAttributeName;
-import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.aws.AwsUtils;
-import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
 import io.camunda.connector.generator.java.annotation.BpmnType;
@@ -23,12 +20,15 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
+import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
 
 @InboundConnector(name = "AWS SQS Inbound", type = "io.camunda:aws-sqs-inbound:1")
 @ElementTemplate(
@@ -39,14 +39,15 @@ import org.slf4j.LoggerFactory;
     version = 10,
     inputDataClass = SqsInboundProperties.class,
     description = "Receive messages from Amazon SQS.",
-    metadata =
-        @ElementTemplate.Metadata(
-            keywords = {
-              "receive message",
-              "receive event",
-              "receive message from queue",
-              "receive event from queue"
-            }),
+    keywords = {
+      "receive message",
+      "receive event",
+      "receive message from queue",
+      "receive event from queue",
+      "event driven",
+      "queue",
+      "dequeue"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
     propertyGroups = {
@@ -83,7 +84,7 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsExecutable.class);
   private final AmazonSQSClientSupplier sqsClientSupplier;
   private final ExecutorService executorService;
-  private AmazonSQS amazonSQS;
+  private SqsClient sqsClient;
   private SqsQueueConsumer sqsQueueConsumer;
   private InboundConnectorContext context;
 
@@ -116,14 +117,16 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
     var region =
         AwsUtils.extractRegionOrDefault(
             properties.getConfiguration(), properties.getQueue().region());
-    amazonSQS =
+    sqsClient =
         sqsClientSupplier.sqsClient(
-            CredentialsProviderSupport.credentialsProvider(properties), region);
+            CredentialsProviderSupportV2.credentialsProvider(properties), region);
 
     try {
-      amazonSQS.getQueueAttributes(
-          properties.getQueue().url(),
-          List.of(QueueAttributeName.ApproximateNumberOfMessages.toString()));
+      sqsClient.getQueueAttributes(
+          GetQueueAttributesRequest.builder()
+              .queueUrl(properties.getQueue().url())
+              .attributeNames(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES)
+              .build());
     } catch (QueueDoesNotExistException e) {
       LOGGER.error("Queue does not exist, failing subscription activation");
       throw new RuntimeException("Queue does not exist: " + properties.getQueue().url());
@@ -131,7 +134,7 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
 
     LOGGER.debug("SQS client created successfully");
     if (sqsQueueConsumer == null) {
-      sqsQueueConsumer = new SqsQueueConsumer(amazonSQS, properties, context);
+      sqsQueueConsumer = new SqsQueueConsumer(sqsClient, properties, context);
     }
     executorService.execute(sqsQueueConsumer);
     LOGGER.debug("SQS queue consumer started successfully");
@@ -162,9 +165,9 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
         executorService.shutdownNow();
       }
     }
-    if (amazonSQS != null) {
+    if (sqsClient != null) {
       LOGGER.debug("Shutting down SQS client");
-      amazonSQS.shutdown();
+      sqsClient.close();
       LOGGER.debug("SQS client shut down successfully");
     }
   }

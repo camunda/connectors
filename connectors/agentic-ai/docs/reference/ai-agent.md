@@ -57,7 +57,16 @@ A **job worker** is a lower-level construct. While connectors use the job worker
 - Whether to auto-complete (`autoComplete = false`)
 - The exact `CompleteJobCommand` sent back to Zeebe, including ad-hoc sub-process control commands
 
-The AI Agent Sub-process (job worker flavor) uses `autoComplete = false` because it needs to send custom completion commands that include ad-hoc sub-process element activation instructions.
+### AdHocSubProcessConnectorResponse — Custom Job Completion via the SDK
+
+The AI Agent Sub-process flavor needs custom job completion (ad-hoc sub-process directives) but is implemented as a standard `OutboundConnectorFunction`. This is enabled by the `ConnectorResponse` sealed interface hierarchy in the Connectors SDK:
+
+- The connector returns an `AdHocSubProcessConnectorResponse` from `execute()`
+- The runtime translates the response's `elementActivations()`, `completionConditionFulfilled()`, and `cancelRemainingInstances()` into the Zeebe complete command with `.withResult().forAdHocSubProcess()` configuration
+- Completion variables are provided via `variables()`, and result expression evaluation is skipped by the runtime for `AdHocSubProcessConnectorResponse`
+- The SDK continues to handle error expressions, retries, and metrics
+
+This avoids duplicating SDK concerns in the connector. See [ADR 002](../adr/002-consolidate-job-worker-into-sdk.md) for the decision rationale.
 
 ### What is an Ad-Hoc Sub-Process?
 
@@ -108,7 +117,7 @@ Variables inside an ad-hoc sub-process have their own scope:
 ### AI Agent Sub-process (Job Worker)
 
 - **BPMN element**: Ad-hoc sub-process with job worker element template applied
-- **Class**: `AiAgentJobWorker` with `@JobWorker(autoComplete = false)`
+- **Class**: `AiAgentJobWorker` with `@OutboundConnector`
 - **Type**: `io.camunda.agenticai:aiagent-job-worker:1`
 - **Execution context**: `JobWorkerAgentExecutionContext`
 - **Request handler**: `JobWorkerAgentRequestHandler`
@@ -129,7 +138,7 @@ Variables inside an ad-hoc sub-process have their own scope:
 | Event sub-process support            | No                                       | Yes (non-interrupting)                              |
 | Config re-evaluation per iteration   | Yes (input mappings per task execution)  | No (input mappings evaluated once on AHSP entry)    |
 | Process migration config changes     | Supported                                | Not supported (frozen at entry)                     |
-| Job completion                       | Auto (connector runtime)                 | Manual (custom command)                             |
+| Job completion                       | Auto (connector runtime)                 | Custom (`AdHocSubProcessConnectorResponse`)         |
 
 ---
 
@@ -185,7 +194,7 @@ The loop operates as a distributed state machine between the connector runtime a
    - Store updated conversation back to memory store (via `ConversationSession`)
    - Transform tool calls and create response
 
-5. **Job completion** (`AiAgentJobWorkerHandlerImpl.prepareCompleteCommand`):
+5. **Job completion** (`AiAgentSubProcessConnectorResponse`):
    - Sets `agentContext` variable with updated state
    - If tool calls present:
      - `completionConditionFulfilled = false`
@@ -294,16 +303,15 @@ record AgentResponse(
 )
 ```
 
-### JobWorkerAgentCompletion (job worker specific)
+### AiAgentSubProcessConnectorResponse (job worker specific)
 
-Wraps the response with job completion control:
+Implements `AdHocSubProcessConnectorResponse` with job completion control:
 ```java
-record JobWorkerAgentCompletion(
+record AiAgentSubProcessConnectorResponse(
     AgentResponse agentResponse,
     boolean completionConditionFulfilled,   // true = AHSP done
     boolean cancelRemainingInstances,        // true = cancel active tools
-    Map<String, Object> variables,           // variables to set
-    Consumer<Throwable> onCompletionError   // compensateFailedJobCompletion
+    Map<String, Object> variables            // variables to set
 )
 ```
 
@@ -330,15 +338,16 @@ Memory is managed through a layered architecture:
 
 ```
 RuntimeMemory (in-process, transient)
-    ▲ loadIntoRuntimeMemory  │ storeFromRuntimeMemory
+    ▲ loadMessages           │ storeMessages
     │                        ▼
-ConversationSession (per-invocation, managed by store callback)
-    ▲ executeInSession       │ persist
+ConversationSession (per-invocation, AutoCloseable)
+    ▲ createSession          │ persist
     │                        ▼
 ConversationStore (registered backend)
     │
     ├── InProcessConversationStore
     ├── CamundaDocumentConversationStore
+    ├── AwsAgentCoreConversationStore
     └── Custom implementations
 ```
 
@@ -370,34 +379,75 @@ ConversationStore (registered backend)
 - Supports configurable TTL and custom properties
 - Supports transparent migration from `InProcessConversationContext`: if the context is in-process, it reads messages directly (no document to load)
 
+**AwsAgentCoreConversationStore** (`type = "aws-agentcore"`):
+- Stores messages as events in AWS Bedrock AgentCore Memory
+- Uses a **branch-per-turn** strategy for isolation: each agent turn writes to a fresh branch, so failed job completions leave orphaned branches that are invisible on retry
+- `AgentContext.conversation` contains `AwsAgentCoreConversationContext` with branch pointer (`branchName`, `lastEventId`) and system message
+- On load: `ListEvents` with branch filter + `includeParentBranches=true` returns the full conversation chain
+- On store: new messages written to a new branch forked from the previous turn's last event
+- Conversational payloads feed AWS long-term memory extraction; structured data (tool calls, results) stored as versioned blob envelopes
+- System messages preserved in context (AgentCore has no SYSTEM role)
+- See [AWS AgentCore Memory reference](aws-agentcore-memory.md) for full details
+
 **Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
-1. Implementing `ConversationStore` (with `executeInSession` callback), `ConversationSession`, and `ConversationContext`
+1. Implementing `ConversationStore` (with `createSession` factory method), `ConversationSession` (with `loadMessages`/`storeMessages`), and `ConversationContext`
 2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and registering the subtype with the runtime `ObjectMapper` (e.g., via a Spring `Jackson2ObjectMapperBuilderCustomizer` calling `registerSubtypes()`)
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
 
 See the [`CustomMemoryStorageConfiguration`](../../src/main/java/io/camunda/connector/agenticai/aiagent/model/request/MemoryStorageConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
 
+### Storage Contract
+
+Every `ConversationStore` implementation must follow the **write-ahead with pointer-based visibility** pattern to guarantee correctness across retries.
+
+#### The fundamental invariant
+
+The `AgentContext` stored in Zeebe is the **sole source of truth** for which conversation data to read. The `ConversationContext` inside it acts as a pointer (storage cursor) to the data. The conversation store may write data ahead of Zeebe — but that data only becomes "committed" when Zeebe accepts the job completion containing the updated `AgentContext`.
+
+If job completion fails (e.g., the job was superseded), Zeebe retries with the **old** `AgentContext`, which contains the **old** pointer. The newly written data is invisible to the retry and becomes an orphan.
+
+#### Rules for implementations
+
+1. **`storeMessages` must always write to a new location.** Never mutate or overwrite the data that the current `ConversationContext` points to. Create a new version, snapshot, branch, or record — then return a new `ConversationContext` pointing to it. This ensures the old pointer always resolves to the old data.
+
+2. **`loadMessages` must be guided by the pointer.** Load only the data that the `ConversationContext` (from `agentContext.conversation()`) references. Do not load "latest" or "most recent" — that would break retry safety.
+
+3. **Orphaned writes are expected.** When job completion fails after `storeMessages`, the written data is never pointed to. Implementations should tolerate orphans and may clean them up via background processes or future completion callbacks.
+
+4. **`ConversationContext` must be serializable and self-contained.** It is persisted as part of the `agentContext` process variable in Zeebe. It must contain everything needed to locate the conversation data (e.g., a document reference, a version number, a branch pointer) — without relying on external state that could change between turns.
+
+#### How each built-in store satisfies this contract
+
+| Store | Write target | Pointer | Orphan on failure |
+|-------|-------------|---------|-------------------|
+| **InProcess** | `agentContext` variable itself (messages in `ConversationContext`) | The variable *is* the data | No orphan — variable update and job completion fail together |
+| **CamundaDocument** | New immutable document per turn | `document` reference in context | Orphaned document (tracked in `previousDocuments` for cleanup) |
+| **AwsAgentCore** | New branch per turn (events forked from previous turn's last event) | `branchName` + `lastEventId` | Orphaned branch (invisible without pointer, no parent-chain traversal reaches it) |
+
 ### ConversationSession Lifecycle
 
-`ConversationStore.executeInSession()` wraps the agent processing in a callback that manages session lifecycle:
+`ConversationStore.createSession()` returns an `AutoCloseable` session. The handler manages it via try-with-resources:
 
 ```java
-conversationStore.executeInSession(executionContext, agentContext, session -> {
-    session.loadIntoRuntimeMemory(agentContext, runtimeMemory);   // load history
+try (var session = store.createSession(executionContext, agentContext)) {
+    var loadResult = session.loadMessages(agentContext);          // load history
+    runtimeMemory.addMessages(loadResult.messages());
     // [add messages, call LLM, etc.]
-    return session.storeFromRuntimeMemory(agentContext, runtimeMemory);  // persist
-});
+    var cursor = session.storeMessages(agentContext, request);    // persist
+    agentContext = agentContext.withConversation(cursor);          // assemble
+}
 ```
 
-1. `ConversationStore.executeInSession()` creates a session and invokes the callback
-2. `session.loadIntoRuntimeMemory(agentContext, runtimeMemory)` populates `RuntimeMemory` with stored history
+1. `ConversationStore.createSession()` creates and returns a session (the caller owns its lifecycle)
+2. `session.loadMessages(agentContext)` returns a `ConversationLoadResult` containing the stored message history
 3. Agent logic adds messages to `RuntimeMemory`, calls LLM, gets response
-4. `session.storeFromRuntimeMemory(agentContext, runtimeMemory)` persists and returns updated `AgentContext`
-5. The store manages session cleanup (resource deallocation) within the callback scope
-6. Job completion sends the updated `AgentContext` back to Zeebe
+4. `session.storeMessages(agentContext, request)` persists and returns only the `ConversationContext` (storage cursor)
+5. The caller assembles the updated `AgentContext` via `agentContext.withConversation(cursor)`
+6. `session.close()` handles resource cleanup (e.g., closing AWS clients)
+7. Job completion sends the updated `AgentContext` back to Zeebe
 
-**Critical insight**: The conversation is stored **before** job completion. If job completion fails (e.g., job was superseded), the stored conversation state may be ahead of what Zeebe knows. On retry, the agent uses the old `agentContext` (with old document reference) — safe, just re-does the work. The `compensateFailedJobCompletion()` hook on the store is available for recovery if needed (default is a no-op).
+**Critical insight**: The conversation is stored **before** job completion. This is safe because all stores follow the write-ahead with pointer-based visibility contract — see [Storage Contract](#storage-contract) above.
 
 ---
 
@@ -459,21 +509,22 @@ The `ProcessDefinitionAdHocToolElementsResolver` fetches the BPMN XML from Camun
 
 ### Job Worker Completion Flow
 
-`AiAgentJobWorkerHandlerImpl` handles the complete flow:
+`AiAgentJobWorker` is an `OutboundConnectorFunction` wrapped by `SpringConnectorJobHandler` at runtime. The flow:
 
 ```
-handle(jobClient, job)
+SpringConnectorJobHandler.handle(jobClient, job)
   │
-  ├─ executionContextFactory.createExecutionContext(jobClient, job)
-  │    └─ Binds job variables to JobWorkerAgentRequest
+  ├─ Creates OutboundConnectorContext from job variables
   │
-  ├─ agentRequestHandler.handleRequest(executionContext)
-  │    └─ Returns JobWorkerAgentCompletion
+  ├─ AiAgentJobWorker.execute(context)
+  │    ├─ Binds variables to JobWorkerAgentRequest
+  │    └─ agentRequestHandler.handleRequest(executionContext)
+  │         └─ Returns AiAgentSubProcessConnectorResponse (AdHocSubProcessConnectorResponse)
   │
-  ├─ connectorResultHandler.examineErrorExpression(...)
+  ├─ SpringConnectorJobHandler examines error expression
   │    └─ Checks for error expressions (BPMN error handling)
   │
-  └─ completeJob / failJob / throwBpmnError
+  └─ SpringConnectorJobHandler builds Zeebe command from response / failJob / throwBpmnError
        └─ Asynchronous command execution via CommandWrapper
 ```
 
@@ -508,19 +559,18 @@ jobClient.newCompleteCommand(job)
 
 3. **`completionConditionFulfilled`**: Directly controls whether the AHSP terminates. When `true`, the AHSP completes and output mappings propagate results to the parent process.
 
-4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances.
+4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Currently determined via a mutable flag on `JobWorkerAgentExecutionContext`, set as a side effect in `handleAddedUserMessages()`. **Future improvement**: move detection into `buildResponse()` by inspecting `executionContext.initialToolCallResults()` directly for interrupted results, eliminating the mutable state.
 
 5. **Async execution**: The complete command is sent asynchronously via `CommandWrapper` with up to 3 retries. This is important because:
    - The job may have been superseded (NOT_FOUND)
    - Network issues may occur
-   - The `onCompletionError` callback calls `conversationStore.compensateFailedJobCompletion()`
 
 ### No-Op Completion (Waiting for More Results)
 
 When the agent cannot proceed (e.g., not all tool call results are present yet, or discovery is in progress):
 
 ```java
-return JobWorkerAgentCompletion.builder()
+return AiAgentSubProcessConnectorResponse.builder()
     .completionConditionFulfilled(false)
     .cancelRemainingInstances(false)
     .build();
@@ -615,7 +665,7 @@ The method checks each tool call from the last assistant message against the ava
 // BaseAgentRequestHandler.handleRequest()
 var addedUserMessages = messagesHandler.addUserMessages(...);
 if (!modelCallPrerequisitesFulfilled(addedUserMessages)) {
-    return completeJob(executionContext, null, session);
+    return buildConnectorResponse(executionContext, null);
 }
 ```
 
@@ -633,19 +683,14 @@ This is the key gate: if no user messages were added (because tool results were 
 
 **Mitigation**:
 - The `CommandWrapper` retries up to 3 times via `CommandExceptionHandlingStrategy`
-- The `onCompletionError` callback on `JobWorkerAgentCompletion` calls `conversationStore.compensateFailedJobCompletion()` (default no-op)
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
+- Completion callbacks for conversation stores are planned for a follow-up (not yet implemented)
 
 ### Challenge 2: Conversation Store Ahead of Zeebe
 
-**Problem**: The conversation is written to storage (document store or in-process context) **before** the job completion command is sent. If the job completion fails:
-- In-process store: The updated `agentContext` (including conversation) is in the completion variables that failed to send — so both fail together. Safe.
-- Document store: The document was already written. The `agentContext` variable in the completion command references this new document. If completion fails, the next job will use the OLD `agentContext` which references the OLD document. The new document becomes an orphan, but the agent state is consistent because it re-uses the old context.
+**Problem**: The conversation is written to storage **before** the job completion command is sent to Zeebe. If job completion fails, the store has data that Zeebe doesn't know about.
 
-**Mitigation**:
-- The `compensateFailedJobCompletion()` hook is available for custom stores to perform recovery (default no-op)
-- The "document ahead of Zeebe" scenario is benign for correctness: the old conversation is a valid subset, the agent simply re-does the LLM call
-- Document references accumulate in `previousDocuments` but old documents are harmless
+**Mitigation**: This is safe by design. All stores follow the [Storage Contract](#storage-contract): they write to a new location each turn, and the `ConversationContext` pointer in the old `AgentContext` still resolves to the old data. The newly written data becomes an orphan — harmless to correctness, and cleanable via future completion callbacks.
 
 ### Challenge 3: Duplicate LLM Calls on Rapid Tool Completion
 
@@ -969,7 +1014,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 ### Entry Points
 - `AiAgentFunction.execute()` → Connector (Task) entry point
 - `AiAgentJobWorker.execute()` → Job worker (Sub-process) entry point
-- `AiAgentJobWorkerHandlerImpl.handle()` → Job worker processing logic
+- `AiAgentJobWorker.execute()` wraps into `AiAgentSubProcessConnectorResponse` → handled by `SpringConnectorJobHandler`
 
 ### Core Agent Logic
 - `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → memory → messages → LLM → response → complete
@@ -979,14 +1024,13 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting
 
 ### Job Completion
-- `AiAgentJobWorkerHandlerImpl.prepareCompleteCommand()` → AHSP completion command with tool activations
-- `JobWorkerAgentRequestHandler.completeJob()` → Job worker completion logic (no-op vs response)
-- `JobWorkerAgentCompletion.onCompletionError()` → Failure compensation via store
+- `AiAgentSubProcessConnectorResponse.elementActivations()` → AHSP element activations from tool calls
+- `JobWorkerAgentRequestHandler.buildConnectorResponse()` → Job worker response assembly (no-op vs response)
 
 ### Memory
 - `ConversationStoreRegistryImpl.getConversationStore()` → Store resolution
-- `InProcessConversationSession.loadIntoRuntimeMemory()` / `storeFromRuntimeMemory()` → In-process persistence
-- `CamundaDocumentConversationSession.loadIntoRuntimeMemory()` / `storeFromRuntimeMemory()` → Document persistence
+- `InProcessConversationSession.loadMessages()` / `storeMessages()` → In-process persistence
+- `CamundaDocumentConversationSession.loadMessages()` / `storeMessages()` → Document persistence
 - `MessageWindowRuntimeMemory.filteredMessages()` → Context window sliding (used by BaseAgentRequestHandler)
 
 ### Tool Resolution
@@ -1008,7 +1052,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
-- `AiAgentJobWorkerValueCustomizer` → Job worker type/timeout overrides
+- `ConnectorConfigurationOverrides` (connector-runtime-core) → Type/timeout overrides via env vars
 
 ### Class Diagram
 
@@ -1021,7 +1065,7 @@ classDiagram
         <<OutboundConnectorFunction>>
     }
     class AiAgentJobWorker {
-        <<JobWorker>>
+        <<OutboundConnectorFunction>>
     }
 
     %% --- Request handling ---

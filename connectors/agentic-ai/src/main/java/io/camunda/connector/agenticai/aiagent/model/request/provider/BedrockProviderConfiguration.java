@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.provider.Bedr
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.util.ConnectorUtils;
 import io.camunda.connector.api.annotation.FEEL;
@@ -37,10 +38,12 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
               description = "Specify the AWS region (example: <code>eu-west-1</code>)",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String region,
-      @FEEL
+      @HttpUrl
+          @FEEL
           @TemplateProperty(
               group = "provider",
-              description = "Optional custom API endpoint",
+              description =
+                  "Custom API endpoint for VPC/PrivateLink configurations, AWS GovCloud, or other non-standard deployments.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               optional = true)
@@ -88,8 +91,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
         @TemplateProperty(
                 group = "provider",
                 label = "Secret key",
-                description =
-                    "Provide a secret key of a user with permissions to invoke specified AWS Lambda function")
+                description = "Provide the secret key for the IAM access key")
             @NotBlank
             String secretKey)
         implements AwsAuthentication {
@@ -129,11 +131,12 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
               group = "model",
               label = "Model",
               description =
-                  "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>.",
+                  "Specify an inference profile ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
-              defaultValue = "anthropic.claude-3-5-sonnet-20240620-v1:0",
+              defaultValue = "",
               defaultValueType = TemplateProperty.DefaultValueType.String,
+              placeholder = "global.anthropic.claude-sonnet-4-6",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
       @Valid BedrockModel.BedrockModelParameters parameters) {

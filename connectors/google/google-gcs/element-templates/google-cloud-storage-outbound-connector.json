@@ -3,10 +3,8 @@
   "name" : "Google Cloud Storage Outbound Connector",
   "id" : "io.camunda.connectors.google.gcp.v1",
   "description" : "Upload and download files from Google Cloud Storage.",
-  "metadata" : {
-    "keywords" : [ "download file from google cloud storage", "upload file to google cloud storage", "download file from gcs", "upload file to gcs", "gcs" ]
-  },
-  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage",
+  "keywords" : [ "download file from google cloud storage", "upload file to google cloud storage", "download file from gcs", "upload file to gcs", "gcs", "download file", "upload file", "download object", "upload object", "cloud storage", "object storage", "file storage" ],
+  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage",
   "version" : 1,
   "category" : {
     "id" : "connectors",
@@ -51,7 +49,7 @@
   }, {
     "id" : "authentication.jsonKey",
     "label" : "JSON key of the service account",
-    "description" : "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
+    "description" : "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

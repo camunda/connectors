@@ -10,12 +10,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static io.camunda.connector.http.graphql.GraphQLFunction.GRAPHQL_ERROR_CODE;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchException;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -41,6 +44,8 @@ public class GraphQLFunctionTest extends BaseTest {
       "src/test/resources/requests/success-test-cases.json";
   private static final String FAIL_CASES_RESOURCE_PATH =
       "src/test/resources/requests/fail-test-cases.json";
+  private static final String GRAPHQL_200_WITH_ERRORS_CASES_RESOURCE_PATH =
+      "src/test/resources/requests/graphql-200-with-errors-test-cases.json";
 
   private GraphQLFunction functionUnderTest;
 
@@ -50,6 +55,10 @@ public class GraphQLFunctionTest extends BaseTest {
 
   private static Stream<String> failCases() throws IOException {
     return loadTestCasesFromResourceFile(FAIL_CASES_RESOURCE_PATH);
+  }
+
+  private static Stream<String> graphql200WithErrorsCases() throws IOException {
+    return loadTestCasesFromResourceFile(GRAPHQL_200_WITH_ERRORS_CASES_RESOURCE_PATH);
   }
 
   @BeforeEach
@@ -112,6 +121,60 @@ public class GraphQLFunctionTest extends BaseTest {
         graphQLRequestMapper.toHttpCommonRequest(context.bindVariables(GraphQLRequest.class));
     // then
     assertThat(request.getConnectionTimeoutInSeconds()).isEqualTo(expectedTimeInSeconds);
+  }
+
+  @ParameterizedTest(name = "Executing test case: {0}")
+  @MethodSource("graphql200WithErrorsCases")
+  void shouldThrowConnectorException_WhenResponseContains200WithErrors(final String input) {
+    stubFor(
+        any(urlPathEqualTo("/http-endpoint"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        "{\"data\":null,\"errors\":[{\"message\":\"Cannot query field 'unknownField' on type 'Query'\"}]}")));
+
+    final var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .secrets(new StaticSecretProvider("foo"))
+            .build();
+
+    assertThatThrownBy(() -> functionUnderTest.execute(context))
+        .isInstanceOf(ConnectorException.class)
+        .satisfies(
+            ex -> {
+              var ce = (ConnectorException) ex;
+              assertThat(ce.getErrorCode()).isEqualTo(GRAPHQL_ERROR_CODE);
+              assertThat(ce.getMessage())
+                  .isEqualTo("Cannot query field 'unknownField' on type 'Query'");
+              @SuppressWarnings("unchecked")
+              var response = (java.util.Map<String, Object>) ce.getErrorVariables().get("response");
+              assertThat(response).containsKey("body");
+              assertThat(response).containsKey("headers");
+            });
+  }
+
+  @ParameterizedTest(name = "Executing test case: {0}")
+  @MethodSource("graphql200WithErrorsCases")
+  void shouldReturnResult_WhenResponseContains200WithOnlyData(final String input) {
+    stubFor(
+        any(urlPathEqualTo("/http-endpoint"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\"data\":{\"user\":{\"id\":\"1\",\"name\":\"Alice\"}}}")));
+
+    final var context =
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .secrets(new StaticSecretProvider("foo"))
+            .build();
+
+    var result = functionUnderTest.execute(context);
+    assertThat(result).isInstanceOf(HttpCommonResult.class);
   }
 
   private HttpCommonResult arrange(String input) throws Exception {

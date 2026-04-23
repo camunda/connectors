@@ -3,10 +3,7 @@
   "name" : "Embeddings Vector DB Outbound Connector",
   "id" : "io.camunda.connectors.EmbeddingsVectorDB.v1",
   "description" : "Embed and download documents with vector databases",
-  "metadata" : {
-    "keywords" : [ ]
-  },
-  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
   "version" : 2,
   "category" : {
     "id" : "connectors",

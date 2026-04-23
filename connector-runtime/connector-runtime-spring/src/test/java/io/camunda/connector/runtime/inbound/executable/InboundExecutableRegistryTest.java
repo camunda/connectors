@@ -52,6 +52,7 @@ public class InboundExecutableRegistryTest {
   private InboundConnectorFactory factory;
   private InboundConnectorContextFactory contextFactory;
   private BatchExecutableProcessor batchProcessor;
+  private ActivityLogRegistry activityLogRegistry = new ActivityLogRegistry();
   private InboundExecutableRegistryImpl registry;
 
   @BeforeEach
@@ -62,8 +63,8 @@ public class InboundExecutableRegistryTest {
     var inboundMetrics = mock(ConnectorsInboundMetrics.class);
     batchProcessor =
         new BatchExecutableProcessor(
-            factory, contextFactory, inboundMetrics, null, new ActivityLogRegistry());
-    registry = new InboundExecutableRegistryImpl(factory, batchProcessor);
+            factory, contextFactory, inboundMetrics, null, activityLogRegistry);
+    registry = new InboundExecutableRegistryImpl(factory, batchProcessor, activityLogRegistry);
   }
 
   @Test
@@ -522,5 +523,161 @@ public class InboundExecutableRegistryTest {
     // then
     verify(executable).deactivate();
     verify(executable, timeout(5000).times(3)).activate(any());
+  }
+
+  // -------------------------------------------------------------------------
+  // Activity log tests
+  // -------------------------------------------------------------------------
+
+  @Test
+  public void activityLog_successfulActivation_shouldContainLifecycleEntry() throws Exception {
+    // given
+    var elementId = "elementId";
+    var element =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
+    var executable = mock(InboundConnectorExecutable.class);
+    var context = mock(InboundConnectorManagementContext.class);
+    // Required so matchesQuery can match on elementId/bpmnProcessId/type/tenantId
+    when(context.connectorElements()).thenReturn(List.of(element));
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+    when(factory.getInstance(any())).thenReturn(executable);
+
+    // when
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+
+    // then
+    var result = registry.query(new ActiveExecutableQuery("id", elementId, "type1", "tenant"));
+    assertThat(result.getFirst().logs())
+        .hasSize(1)
+        .first()
+        .satisfies(
+            log -> {
+              assertThat(log.severity()).isEqualTo(Severity.INFO);
+              assertThat(log.tag()).isEqualTo(ActivityLogTag.LIFECYCLE);
+              assertThat(log.message()).contains("Activated inbound connector");
+              assertThat(log.message()).contains("type1");
+            });
+  }
+
+  @Test
+  public void activityLog_activationFailure_shouldNotContainAnyEntries() throws Exception {
+    // given
+    var elementId = "elementId";
+    var element =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
+    var executable = mock(InboundConnectorExecutable.class);
+    var context = mock(InboundConnectorManagementContext.class);
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+    when(factory.getInstance(any())).thenReturn(executable);
+    doThrow(new RuntimeException("activation failed")).when(executable).activate(any());
+
+    // when
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+
+    // then
+    var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
+    assertThat(result.getFirst().logs()).isEmpty();
+  }
+
+  @Test
+  public void activityLog_deactivation_shouldContainBothActivationAndDeactivationEntries()
+      throws Exception {
+    // given
+    var elementId = "elementId";
+    var element =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
+    var executable = mock(InboundConnectorExecutable.class);
+    var context = mock(InboundConnectorManagementContext.class);
+    when(context.getDefinition())
+        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null));
+    when(context.connectorElements()).thenReturn(List.of(element));
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+    when(factory.getInstance(any())).thenReturn(executable);
+
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    var executableId =
+        registry
+            .query(new ActiveExecutableQuery(null, elementId, null, null))
+            .getFirst()
+            .executableId();
+
+    // when - send empty process state to trigger deactivation of all connectors in this process
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of()));
+
+    // then
+    var logs = activityLogRegistry.getLogs(executableId);
+    assertThat(logs).hasSize(2);
+    assertThat(logs)
+        .extracting(Activity::message)
+        .anySatisfy(msg -> assertThat(msg).contains("Activated"))
+        .anySatisfy(msg -> assertThat(msg).contains("Deactivated"));
+    assertThat(logs).extracting(Activity::tag).containsOnly(ActivityLogTag.LIFECYCLE);
+  }
+
+  @Test
+  public void activityLog_connectorWritesLog_shouldAppearAlongsideRuntimeLogs() throws Exception {
+    // given
+    var elementId = "elementId";
+    var element =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
+    var executable = mock(InboundConnectorExecutable.class);
+
+    // The deduplication ID in legacy mode is: tenantId + "-" + processDefinitionKey + "-" +
+    // elementId
+    var connectorDetails = mock(ValidInboundConnectorDetails.class);
+    when(connectorDetails.deduplicationId()).thenReturn("tenant-0-elementId");
+    when(connectorDetails.rawPropertiesWithoutKeywords()).thenReturn(Map.of());
+    when(connectorDetails.connectorElements()).thenReturn(List.of(element));
+
+    var realContext =
+        new InboundConnectorContextImpl(
+            mock(SecretProvider.class),
+            mock(ValidationProvider.class),
+            connectorDetails,
+            null,
+            t -> {},
+            new ObjectMapper(),
+            activityLogRegistry);
+
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(realContext);
+    when(factory.getInstance(any())).thenReturn(executable);
+    doAnswer(
+            invocation -> {
+              realContext.log(
+                  a ->
+                      a.withSeverity(Severity.DEBUG)
+                          .withTag(ActivityLogTag.CONSUMER)
+                          .withMessage("Custom connector log entry"));
+              return null;
+            })
+        .when(executable)
+        .activate(any());
+
+    // when
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+
+    // then
+    var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
+    var logs = result.getFirst().logs();
+    assertThat(logs).hasSize(2);
+    assertThat(logs)
+        .extracting(Activity::tag)
+        .containsExactlyInAnyOrder(ActivityLogTag.LIFECYCLE, ActivityLogTag.CONSUMER);
+    assertThat(logs)
+        .extracting(Activity::message)
+        .anySatisfy(msg -> assertThat(msg).contains("Activated inbound connector"))
+        .anySatisfy(msg -> assertThat(msg).isEqualTo("Custom connector log entry"));
   }
 }

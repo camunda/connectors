@@ -648,6 +648,68 @@ public class InboundConnectorMultiVersionTests {
                     .isEqualTo(keyV1);
               });
     }
+
+    @Test
+    void deployV1StartInstance_deployV2WithoutConnector_afterCorrelation_v1ShouldBeDeactivated() {
+      // This test verifies that the messageSubscriptionState(CREATED) filter correctly excludes
+      // subscriptions that are no longer in CREATED state. Once all CREATED subscriptions for a
+      // process version are gone (e.g., after message correlation), the old version should no
+      // longer be considered "active" and its connector should be deactivated.
+
+      // Given: v1 deployed with connector using Intermediate Catch Event
+      var model1 = createInboundConnectorProcess("config-a");
+      long keyV1 = deploy(model1);
+      waitForProcessDefinitionIndexed(keyV1);
+      awaitHealthyExecutable(testProcessId);
+
+      // Start an instance on v1 - it will wait at the intermediate catch event,
+      // creating a message subscription in CREATED state (makes v1 "active")
+      camundaClient
+          .newCreateInstanceCommand()
+          .processDefinitionKey(keyV1)
+          .variable("correlationKey", "test-correlation-key")
+          .send()
+          .join();
+
+      // Deploy v2 WITHOUT connector (plain process) - v1's connector would normally be deactivated
+      // but is kept alive because v1 has an active CREATED message subscription
+      var model2 = createPlainProcessWithIntermediateEvent();
+      long keyV2 = deploy(model2);
+      waitForProcessDefinitionIndexed(keyV2);
+
+      // Verify v1 connector is still active (protected by the CREATED subscription)
+      Awaitility.await("v1 connector should still be active before message correlation")
+          .atMost(AWAIT_TIMEOUT)
+          .untilAsserted(
+              () -> {
+                var executables = queryExecutables(testProcessId);
+                assertThat(executables).hasSize(1);
+                assertThat(
+                        executables
+                            .getFirst()
+                            .elements()
+                            .getFirst()
+                            .element()
+                            .processDefinitionKey())
+                    .isEqualTo(keyV1);
+              });
+
+      // When: Publish the Zeebe message that correlates with v1's waiting instance.
+      // This transitions the message subscription away from the CREATED state,
+      // so the statistics query (filtered by CREATED state) will no longer count
+      // it as an active subscription for v1.
+      camundaClient
+          .newPublishMessageCommand()
+          .messageName("test-inbound-message")
+          .correlationKey("test-correlation-key")
+          .send()
+          .join();
+
+      // Then: With no remaining CREATED subscriptions, v1 is no longer "active".
+      // The connector runtime should deactivate v1's element and, since v2 has no connector,
+      // the entire executable should be removed.
+      awaitExecutableCount(testProcessId, 0);
+    }
   }
 
   @Nested
@@ -1006,6 +1068,79 @@ public class InboundConnectorMultiVersionTests {
                             .element()
                             .processDefinitionKey())
                     .isEqualTo(keyV2);
+              });
+    }
+  }
+
+  @Nested
+  class ClusterVariableResolution {
+
+    @Test
+    void deployProcessWithClusterVariableInConfig_shouldResolveAndActivate() {
+      // Given: Create a cluster variable
+      String variableName =
+          "testConfigVar_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+      String variableValue = "cluster-config-value-" + UUID.randomUUID().toString().substring(0, 8);
+
+      camundaClient
+          .newGloballyScopedClusterVariableCreateRequest()
+          .create(variableName, variableValue)
+          .send()
+          .join();
+
+      // Wait for cluster variable to be available
+      awaitClusterVariableAvailable(variableName);
+
+      // When: Deploy a process with connector that uses the cluster variable in configValue
+      String deduplicationId = "cluster-var-test-" + UUID.randomUUID().toString().substring(0, 8);
+      var model =
+          createInboundConnectorProcess("=camunda.vars.env." + variableName, deduplicationId);
+      long processDefKey = deploy(model);
+      waitForProcessDefinitionIndexed(processDefKey);
+
+      // Then: Connector should be activated with healthy status
+      awaitHealthyExecutable(testProcessId);
+
+      var executables = queryExecutables(testProcessId);
+      assertThat(executables).hasSize(1);
+      assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+      assertThat(executables.getFirst().elements()).hasSize(1);
+      assertThat(executables.getFirst().elements().getFirst().element().processDefinitionKey())
+          .isEqualTo(processDefKey);
+
+      // Verify that the cluster variable was actually resolved to the expected value
+      // The TestInboundConnector captures bound properties when activated
+      var boundProperties = TestInboundConnector.getBoundProperties();
+      assertThat(boundProperties)
+          .as("Bound properties should be captured by the test connector")
+          .isNotNull();
+      assertThat(boundProperties.configValue())
+          .as("Cluster variable should be resolved to the actual value, not the FEEL expression")
+          .isEqualTo(variableValue);
+    }
+
+    /**
+     * Waits until a cluster variable is available (not returning 404). There is a delay between
+     * creating a cluster variable and it being ready to use.
+     */
+    private void awaitClusterVariableAvailable(String variableName) {
+      Awaitility.await("cluster variable " + variableName + " should be available")
+          .atMost(AWAIT_TIMEOUT)
+          .pollInterval(Duration.ofMillis(500))
+          .ignoreExceptions()
+          .until(
+              () -> {
+                try {
+                  var result =
+                      camundaClient
+                          .newEvaluateExpressionCommand()
+                          .expression("=camunda.vars.env." + variableName)
+                          .send()
+                          .join();
+                  return result.getResult() != null;
+                } catch (Exception e) {
+                  return false;
+                }
               });
     }
   }

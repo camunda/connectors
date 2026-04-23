@@ -3,9 +3,7 @@
   "name" : "Hybrid Microsoft O365 Email Message Start Event Connector",
   "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailMessageStart.v1-hybrid",
   "description" : "Poll M365 Outlook emails",
-  "metadata" : {
-    "keywords" : [ "email", "Office365", "Outlook" ]
-  },
+  "keywords" : [ "email", "Office365", "Outlook", "email received", "receive email", "new email", "incoming email", "email notification", "inbox", "poll email" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/",
   "version" : 1,
   "category" : {
@@ -585,6 +583,18 @@
     },
     "type" : "String"
   }, {
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageIdExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
     "id" : "messageTtl",
     "label" : "Message TTL",
     "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
@@ -604,28 +614,19 @@
     },
     "type" : "String"
   }, {
-    "id" : "messageIdExpression",
-    "label" : "Message ID expression",
-    "description" : "Expression to extract unique identifier of a message",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "messageIdExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
     "id" : "messageNameUuid",
+    "label" : "Message name",
     "generatedValue" : {
       "type" : "uuid"
     },
+    "feel" : "optional",
     "group" : "correlation",
     "binding" : {
       "name" : "name",
       "type" : "bpmn:Message#property"
     },
-    "type" : "Hidden"
+    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
+    "type" : "String"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

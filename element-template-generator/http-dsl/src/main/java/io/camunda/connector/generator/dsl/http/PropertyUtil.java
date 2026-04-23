@@ -35,10 +35,10 @@ import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class PropertyUtil {
 
@@ -47,14 +47,14 @@ public class PropertyUtil {
   static final String OPERATION_PATH_INPUT_NAME = "operationPath";
 
   /**
-   * Create a pre-configured property builder for the auth type discriminator. Add a condition if
-   * necessary.
+   * Create a pre-configured property builder for the auth type discriminator. The caller is
+   * responsible for setting the final {@code id} on the returned builder. {@code availableTypes}
+   * must be a {@link List} so that the default selection (first element) is deterministic.
    */
-  static PropertyBuilder authDiscriminatorPropertyPrefab(
-      Collection<HttpAuthentication> availableTypes) {
+  static PropertyBuilder authDiscriminatorPropertyPrefab(List<HttpAuthentication> availableTypes) {
 
     if (availableTypes.isEmpty()) {
-      throw new RuntimeException("No auth types, expected at least one");
+      throw new IllegalArgumentException("No auth types, expected at least one");
     }
     var choices =
         availableTypes.stream()
@@ -65,8 +65,8 @@ public class PropertyUtil {
                     label += " (" + apiKey.key() + ")";
                   }
                   if (type instanceof HttpAuthentication.BasicAuth basicAuth
-                      && !basicAuth.key.isEmpty()) {
-                    label += " (" + basicAuth.key + ")";
+                      && !basicAuth.key().isEmpty()) {
+                    label += " (" + basicAuth.key() + ")";
                   }
                   return new DropdownProperty.DropdownChoice(label, type.id());
                 })
@@ -74,7 +74,6 @@ public class PropertyUtil {
 
     return DropdownProperty.builder()
         .choices(choices)
-        .id("authType")
         .group("authentication")
         .label("Authentication")
         .optional(false)
@@ -103,7 +102,7 @@ public class PropertyUtil {
                 .choices(
                     operations.stream()
                         .map(operation -> new DropdownChoice(operation.label(), operation.id()))
-                        .collect(Collectors.toList()))
+                        .toList())
                 .id(OPERATION_DISCRIMINATOR_PROPERTY_ID)
                 .group("operation")
                 .value(operations.iterator().next().id())
@@ -113,9 +112,10 @@ public class PropertyUtil {
   }
 
   static PropertyGroup serverDiscriminatorPropertyGroup(Collection<HttpServerData> servers) {
+    Collection<HttpServerData> configuredServers = servers == null ? List.of() : servers;
     List<Property> properties = new ArrayList<>();
 
-    if (servers == null || servers.isEmpty()) {
+    if (configuredServers.isEmpty()) {
       // add a visible property for base URL, no servers configured
       properties.add(
           StringProperty.builder()
@@ -126,25 +126,28 @@ public class PropertyUtil {
               .constraints(PropertyConstraints.builder().notEmpty(true).build())
               .feel(FeelMode.optional)
               .build());
-    } else if (servers.size() == 1) {
-      // invisible but hard-coded, as there is only one server
+    } else if (configuredServers.size() == 1) {
+      // single server: visible and pre-filled, but editable
       properties.add(
-          HiddenProperty.builder()
+          StringProperty.builder()
               .id("baseUrl")
               .group("server")
-              .value(servers.iterator().next().baseUrl())
+              .label("Base URL")
+              .value(configuredServers.iterator().next().baseUrl())
               .binding(new ZeebeInput("baseUrl"))
+              .constraints(PropertyConstraints.builder().notEmpty(true).build())
+              .feel(FeelMode.optional)
               .build());
     } else {
       // multiple servers, add a dropdown
       properties.add(
           DropdownProperty.builder()
               .choices(
-                  servers.stream()
+                  configuredServers.stream()
                       .map(server -> new DropdownChoice(server.label(), server.baseUrl()))
-                      .collect(Collectors.toList()))
+                      .toList())
               .id("baseUrl")
-              .value(servers.iterator().next().baseUrl())
+              .value(configuredServers.iterator().next().baseUrl())
               .label("Server")
               .group("server")
               .binding(new ZeebeInput("baseUrl"))
@@ -153,101 +156,144 @@ public class PropertyUtil {
     return PropertyGroup.builder().id("server").label("Server").properties(properties).build();
   }
 
-  static PropertyGroup authPropertyGroup(
+  /**
+   * Result of {@link #authPropertyGroup}. Carries both the generated group and whether all auth
+   * properties are unconditional, so callers do not have to re-derive that fact.
+   */
+  record AuthGroupResult(PropertyGroup group, boolean unconditional) {}
+
+  static AuthGroupResult authPropertyGroup(
       Collection<HttpAuthentication> authentications, Collection<HttpOperation> operations) {
+    Collection<HttpAuthentication> configuredAuthentications =
+        authentications == null ? List.of() : authentications;
 
-    var operationsWithoutCustomAuth =
-        operations.stream()
-            .filter(
-                op -> op.authenticationOverride() == null || op.authenticationOverride().isEmpty())
-            .map(HttpOperation::id)
-            .toList();
+    // Group operations by their effective auth configuration.
+    // Order of first appearance is preserved via LinkedHashMap.
+    LinkedHashMap<List<AuthFingerprint>, List<HttpAuthentication>> authKeyToTypes =
+        new LinkedHashMap<>();
+    LinkedHashMap<List<AuthFingerprint>, List<String>> authKeyToOpIds = new LinkedHashMap<>();
 
-    List<Property> properties = new ArrayList<>();
-    if (authentications.size() > 1) {
-      var discriminator =
-          authDiscriminatorPropertyPrefab(authentications)
-              .condition(
-                  new OneOf(OPERATION_DISCRIMINATOR_PROPERTY_ID, operationsWithoutCustomAuth))
-              .build();
-      properties.add(discriminator);
-    } else if (!authentications.isEmpty()) {
-      // only one auth type, no need for discriminator
-      properties.add(
-          HiddenProperty.builder()
-              .id(AUTH_DISCRIMINATOR_PROPERTY_ID)
-              .group("authentication")
-              .value(authentications.iterator().next().id())
-              .binding(new ZeebeInput(AUTH_DISCRIMINATOR_PROPERTY_ID))
-              .condition(
-                  new OneOf(OPERATION_DISCRIMINATOR_PROPERTY_ID, operationsWithoutCustomAuth))
-              .build());
-    }
-
-    // handle default auth types
-    for (var authentication : authentications) {
-      var authProperties =
-          HttpAuthentication.getPropertyPrefabs(authentication).stream()
-              .map(
-                  builder ->
-                      builder
-                          .condition(
-                              new AllMatch(
-                                  new Equals(AUTH_DISCRIMINATOR_PROPERTY_ID, authentication.id()),
-                                  new OneOf(
-                                      OPERATION_DISCRIMINATOR_PROPERTY_ID,
-                                      operationsWithoutCustomAuth)))
-                          .build())
-              .toList();
-
-      properties.addAll(authProperties);
-    }
-
-    // handle operation-specific auth types
     for (var operation : operations) {
-      if (operation.authenticationOverride() == null) {
+      List<HttpAuthentication> effectiveAuth =
+          (operation.authenticationOverride() != null
+                  && !operation.authenticationOverride().isEmpty())
+              ? operation.authenticationOverride()
+              : new ArrayList<>(configuredAuthentications);
+
+      // Skip operations with no effective auth (caller passed empty authentications and this
+      // operation has no override; the resulting template simply has no auth section).
+      if (effectiveAuth.isEmpty()) {
         continue;
       }
-      var authDiscriminator = operation.id() + "_" + "authType";
-      final boolean addedDiscriminator;
-      if (operation.authenticationOverride().size() > 1) {
-        addedDiscriminator = true;
-        properties.add(
-            authDiscriminatorPropertyPrefab(operation.authenticationOverride())
-                .id(authDiscriminator)
-                .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
-                .build());
+
+      List<AuthFingerprint> key = effectiveAuth.stream().map(AuthFingerprint::from).toList();
+      authKeyToTypes.putIfAbsent(key, effectiveAuth);
+      authKeyToOpIds.computeIfAbsent(key, k -> new ArrayList<>()).add(operation.id());
+    }
+
+    boolean unconditional = authKeyToTypes.size() == 1;
+
+    List<Property> properties = new ArrayList<>();
+
+    for (var entry : authKeyToTypes.entrySet()) {
+      List<AuthFingerprint> key = entry.getKey();
+      List<HttpAuthentication> auths = entry.getValue();
+      // Sort op IDs so the prefix is the lexicographically smallest ID in the group,
+      // independent of the order in which operations were registered.
+      List<String> opIds = authKeyToOpIds.get(key).stream().sorted().toList();
+
+      // In the conditional (multi-group) case each group gets a scoped discriminator ID to avoid
+      // duplicate property IDs across groups. The prefix is the sorted-first op ID of the group.
+      String discriminatorId =
+          unconditional ? AUTH_DISCRIMINATOR_PROPERTY_ID : opIds.getFirst() + "_authType";
+
+      // --- discriminator property ---
+      if (auths.size() > 1) {
+        var discriminatorBuilder = authDiscriminatorPropertyPrefab(auths).id(discriminatorId);
+        if (!unconditional) {
+          discriminatorBuilder.condition(new OneOf(OPERATION_DISCRIMINATOR_PROPERTY_ID, opIds));
+        }
+        properties.add(discriminatorBuilder.build());
       } else {
-        addedDiscriminator = false;
+        // single auth type — hidden discriminator
+        var discriminatorBuilder =
+            HiddenProperty.builder()
+                .id(discriminatorId)
+                .group("authentication")
+                .value(auths.getFirst().id())
+                .binding(new ZeebeInput(AUTH_DISCRIMINATOR_PROPERTY_ID));
+        if (!unconditional) {
+          discriminatorBuilder.condition(new OneOf(OPERATION_DISCRIMINATOR_PROPERTY_ID, opIds));
+        }
+        properties.add(discriminatorBuilder.build());
       }
-      for (var authentication : operation.authenticationOverride()) {
+
+      // --- auth field properties ---
+      for (var authentication : auths) {
         var authProperties =
-            HttpAuthentication.getPropertyPrefabs(authentication).stream() // size1 = 4
+            HttpAuthentication.getPropertyPrefabs(authentication).stream()
                 .map(
                     builder -> {
-                      String id = operation.id() + "_" + builder.getId();
-                      builder.id(id); // shade property ids
-                      if (addedDiscriminator) {
-                        builder.condition(
-                            new AllMatch(
-                                new Equals(authDiscriminator, authentication.id()),
-                                new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id())));
+                      if (unconditional && auths.size() == 1) {
+                        // single auth for all ops — no condition at all
+                        return builder.build();
+                      } else if (unconditional) {
+                        // multiple auth types but unconditional (all ops share same multi-auth set)
+                        return builder
+                            .condition(new Equals(discriminatorId, authentication.id()))
+                            .build();
                       } else {
-                        builder.condition(
-                            new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()));
+                        // conditional — scope to the ops in this group
+                        // prefix field IDs with the sorted-first op ID to avoid duplicates
+                        String fieldId = opIds.getFirst() + "_" + builder.getId();
+                        return builder
+                            .id(fieldId)
+                            .condition(
+                                new AllMatch(
+                                    new Equals(discriminatorId, authentication.id()),
+                                    new OneOf(OPERATION_DISCRIMINATOR_PROPERTY_ID, opIds)))
+                            .build();
                       }
-                      return builder.build();
                     })
                 .toList();
-        properties.addAll(authProperties); // here the duplicated are generated
+        properties.addAll(authProperties);
       }
     }
 
-    return PropertyGroup.builder()
-        .id("authentication")
-        .label("Authentication")
-        .properties(properties)
-        .build();
+    PropertyGroup group =
+        PropertyGroup.builder()
+            .id("authentication")
+            .label("Authentication")
+            .properties(properties)
+            .build();
+    return new AuthGroupResult(group, unconditional);
+  }
+
+  private record AuthFingerprint(String id, List<String> details) {
+
+    private static AuthFingerprint from(HttpAuthentication authentication) {
+      return switch (authentication) {
+        case HttpAuthentication.BasicAuth basicAuth ->
+            new AuthFingerprint(authentication.id(), List.of(basicAuth.key()));
+        case HttpAuthentication.ApiKey apiKey ->
+            new AuthFingerprint(
+                authentication.id(),
+                List.of(
+                    apiKey.in() == null ? "" : apiKey.in(),
+                    apiKey.key() == null ? "" : apiKey.key(),
+                    apiKey.value() == null ? "" : apiKey.value()));
+        case HttpAuthentication.OAuth2 oauth2 ->
+            new AuthFingerprint(
+                authentication.id(),
+                List.of(
+                    oauth2.tokenUrl() == null ? "" : oauth2.tokenUrl(),
+                    oauth2.scopes().stream()
+                        .sorted()
+                        .reduce((left, right) -> left + "\u0000" + right)
+                        .orElse("")));
+        default -> new AuthFingerprint(authentication.id(), List.of());
+      };
+    }
   }
 
   static PropertyGroup parametersPropertyGroup(Collection<HttpOperation> operations) {

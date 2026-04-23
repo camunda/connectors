@@ -106,6 +106,18 @@ public class PollingRuntimeProperties {
   @FEEL
   private Integer readTimeoutInSeconds;
 
+  @TemplateProperty(
+      group = "endpoint",
+      type = TemplateProperty.PropertyType.Boolean,
+      label = "Follow redirects",
+      description =
+          "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
+      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+      defaultValue = "false",
+      optional = true)
+  @FEEL
+  private boolean followRedirects;
+
   public Authentication getAuthentication() {
     return authentication;
   }
@@ -176,5 +188,13 @@ public class PollingRuntimeProperties {
 
   public void setReadTimeoutInSeconds(Integer readTimeoutInSeconds) {
     this.readTimeoutInSeconds = readTimeoutInSeconds;
+  }
+
+  public boolean isFollowRedirects() {
+    return followRedirects;
+  }
+
+  public void setFollowRedirects(boolean followRedirects) {
+    this.followRedirects = followRedirects;
   }
 }

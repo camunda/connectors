@@ -24,7 +24,14 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     version = 2,
     inputDataClass = EmailInboundConnectorProperties.class,
     description = "Consume emails",
-    metadata = @ElementTemplate.Metadata(keywords = {"email received"}),
+    keywords = {
+      "email received",
+      "receive email",
+      "incoming email",
+      "poll emails",
+      "new email",
+      "email notification"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
     propertyGroups = {

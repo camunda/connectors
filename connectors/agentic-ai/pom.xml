@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-parent</artifactId>
-    <version>8.9.0-SNAPSHOT</version>
+    <version>8.10.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -19,7 +19,7 @@
 
   <properties>
     <version.record-builder>52</version.record-builder>
-    <version.groovy>5.0.4</version.groovy>
+    <version.groovy>5.0.5</version.groovy>
     <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
   </properties>
@@ -61,6 +61,7 @@
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-spring-boot-starter</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda</groupId>
@@ -97,12 +98,6 @@
     </dependency>
 
     <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-core</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
       <groupId>io.soabase.record-builder</groupId>
       <artifactId>record-builder-core</artifactId>
       <version>${version.record-builder}</version>
@@ -132,6 +127,14 @@
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-vertex-ai-gemini</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-http-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-http-client-jdk</artifactId>
     </dependency>
 
     <!-- Native MCP Java SDK -->
@@ -166,6 +169,10 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>bedrockagentcore</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
     </dependency>
     <dependency>
@@ -182,6 +189,16 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>apache-client</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>http-client-spi</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-auth-spi</artifactId>
     </dependency>
     <dependency>
@@ -191,7 +208,27 @@
 
     <dependency>
       <groupId>io.github.a2asdk</groupId>
+      <artifactId>a2a-java-sdk-common</artifactId>
+      <version>${version.a2asdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.a2asdk</groupId>
+      <artifactId>a2a-java-sdk-spec</artifactId>
+      <version>${version.a2asdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.a2asdk</groupId>
+      <artifactId>a2a-java-sdk-http-client</artifactId>
+      <version>${version.a2asdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.a2asdk</groupId>
       <artifactId>a2a-java-sdk-client</artifactId>
+      <version>${version.a2asdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.a2asdk</groupId>
+      <artifactId>a2a-java-sdk-client-transport-spi</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
@@ -202,16 +239,6 @@
     <dependency>
       <groupId>io.github.a2asdk</groupId>
       <artifactId>a2a-java-sdk-client-transport-rest</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-spec</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-client-transport-spi</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
@@ -277,17 +304,22 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-feel-wrapper</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-http-client</artifactId>
+      <artifactId>connector-feel</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-feel</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

@@ -9,11 +9,14 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -77,24 +80,25 @@ public class CamundaDocumentConversationSession implements ConversationSession {
   }
 
   @Override
-  public void loadIntoRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
+  public ConversationLoadResult loadMessages(AgentContext agentContext) {
     previousConversationContext =
         loadConversationContext(agentContext, CamundaDocumentConversationContext.class);
     if (previousConversationContext == null) {
-      return;
+      return ConversationLoadResult.empty();
     }
 
     try {
       final var content =
           conversationSerializer.readDocumentContent(previousConversationContext.document());
-      memory.addMessages(content.messages());
+      return ConversationLoadResult.of(content.messages());
     } catch (IOException e) {
       throw new RuntimeException("Failed to load conversation from documentReference", e);
     }
   }
 
   @Override
-  public AgentContext storeFromRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
+  public ConversationContext storeMessages(
+      AgentContext agentContext, ConversationStoreRequest request) {
     final var conversationContextBuilder =
         previousConversationContext != null
             ? previousConversationContext.with()
@@ -102,7 +106,7 @@ public class CamundaDocumentConversationSession implements ConversationSession {
                 .conversationId(UUID.randomUUID().toString());
 
     final var updatedDocument =
-        createUpdatedDocument(memory, conversationContextBuilder.conversationId());
+        createUpdatedDocument(request.messages(), conversationContextBuilder.conversationId());
     conversationContextBuilder.document(updatedDocument);
 
     // after write succeeded, try to purge previous documents, but keep at least the last
@@ -115,12 +119,11 @@ public class CamundaDocumentConversationSession implements ConversationSession {
       conversationContextBuilder.previousDocuments(purgePreviousDocuments(previousDocuments));
     }
 
-    return agentContext.withConversation(conversationContextBuilder.build());
+    return conversationContextBuilder.build();
   }
 
-  private Document createUpdatedDocument(RuntimeMemory memory, String conversationId) {
-    final var content =
-        new CamundaDocumentConversationContext.DocumentContent(memory.allMessages());
+  private Document createUpdatedDocument(List<Message> messages, String conversationId) {
+    final var content = new CamundaDocumentConversationContext.DocumentContent(messages);
 
     String serialized;
     try {
@@ -137,10 +140,10 @@ public class CamundaDocumentConversationSession implements ConversationSession {
     final var documentCreationRequestBuilder =
         DocumentCreationRequest.from(
                 new ByteArrayInputStream(serialized.getBytes(StandardCharsets.UTF_8)))
-            .processDefinitionId(jobContext.bpmnProcessId())
-            .processInstanceKey(jobContext.processInstanceKey())
+            .processDefinitionId(jobContext.getBpmnProcessId())
+            .processInstanceKey(jobContext.getProcessInstanceKey())
             .contentType("application/json")
-            .fileName("%s_conversation.json".formatted(jobContext.elementId()))
+            .fileName("%s_conversation.json".formatted(jobContext.getElementId()))
             .customProperties(properties);
 
     Optional.ofNullable(config.timeToLive()).ifPresent(documentCreationRequestBuilder::timeToLive);

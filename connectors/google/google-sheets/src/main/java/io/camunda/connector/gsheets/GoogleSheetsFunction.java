@@ -24,19 +24,20 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.GoogleSheets.v1",
     name = "Google Sheets Outbound Connector",
     description = "Manage spreadsheets with Google Sheets",
-    metadata =
-        @ElementTemplate.Metadata(
-            keywords = {
-              "create spreadsheet",
-              "add values to spreadsheet",
-              "create row",
-              "create column",
-              "create worksheet",
-              "delete worksheet",
-              "get row",
-              "get spreadsheet details",
-              "get worksheet data"
-            }),
+    keywords = {
+      "create spreadsheet",
+      "add values to spreadsheet",
+      "create row",
+      "create column",
+      "create worksheet",
+      "delete worksheet",
+      "get row",
+      "get spreadsheet details",
+      "get worksheet data",
+      "delete column",
+      "spreadsheet",
+      "excel"
+    },
     inputDataClass = GoogleSheetsRequest.class,
     version = 5,
     propertyGroups = {

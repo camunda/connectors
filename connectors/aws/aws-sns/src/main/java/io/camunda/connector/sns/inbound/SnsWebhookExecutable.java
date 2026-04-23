@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.sns.inbound;
 
+// TODO: These v1 imports are required because AWS SDK v2 has no equivalent of SnsMessageManager
+//  for parsing and verifying SNS HTTP webhook messages (signature verification).
+//  Migrate once resolved: https://github.com/aws/aws-sdk-java-v2/issues/1302
 import com.amazonaws.services.sns.message.SnsMessage;
 import com.amazonaws.services.sns.message.SnsMessageManager;
 import com.amazonaws.services.sns.message.SnsNotification;
@@ -42,7 +45,13 @@ import java.util.Optional;
     version = 6,
     inputDataClass = SnsWebhookConnectorPropertiesWrapper.class,
     description = "Receive messages from AWS SNS via HTTPS.",
-    metadata = @ElementTemplate.Metadata(keywords = {"receive event", "receive message"}),
+    keywords = {
+      "receive event",
+      "receive message",
+      "notification",
+      "subscribe to topic",
+      "event driven"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
     propertyGroups = {@PropertyGroup(id = "subscription", label = "Subscription Configuration")},

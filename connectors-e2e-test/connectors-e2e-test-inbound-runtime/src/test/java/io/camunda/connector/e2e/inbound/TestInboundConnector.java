@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.inbound;
 
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -25,7 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * A simple test inbound connector for e2e testing of the inbound connector runtime.
  *
- * <p>This connector does nothing but track activations and deactivations.
+ * <p>This connector does nothing but track activations and deactivations, and captures the resolved
+ * properties for verification in tests.
  */
 @InboundConnector(name = "Test Inbound Connector", type = "io.camunda:test-inbound-connector:1")
 public class TestInboundConnector implements InboundConnectorExecutable<InboundConnectorContext> {
@@ -33,12 +35,18 @@ public class TestInboundConnector implements InboundConnectorExecutable<InboundC
   private static final AtomicInteger activationCount = new AtomicInteger(0);
   private static final AtomicInteger deactivationCount = new AtomicInteger(0);
 
+  private static TestConnectorProperties props;
+
   private InboundConnectorContext context;
 
   @Override
   public void activate(InboundConnectorContext context) throws Exception {
     this.context = context;
     activationCount.incrementAndGet();
+
+    // Bind properties to capture the resolved values (FEEL expressions are evaluated here)
+    props = context.bindProperties(TestConnectorProperties.class);
+
     context.reportHealth(Health.up());
     System.out.println("I am active!! Dedup id: " + context.getDefinition().deduplicationId());
   }
@@ -56,8 +64,20 @@ public class TestInboundConnector implements InboundConnectorExecutable<InboundC
     return deactivationCount.get();
   }
 
+  public static TestConnectorProperties getBoundProperties() {
+    return props;
+  }
+
   public static void resetCounters() {
     activationCount.set(0);
     deactivationCount.set(0);
+    props = null;
   }
+
+  /** Properties class for the test connector. */
+  public record TestConnectorProperties(
+      @FEEL String configValue,
+      String correlationKeyExpression,
+      String deduplicationMode,
+      String deduplicationId) {}
 }

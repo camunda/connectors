@@ -54,8 +54,24 @@ public class OpenApiOutboundTemplateGenerator
   private static final ConnectorElementType DEFAULT_ELEMENT_TYPE =
       new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null);
 
+  private final boolean resolveExternalRefs;
+
+  /**
+   * Default constructor. External {@code $ref} resolution is <strong>enabled</strong> to preserve
+   * backward compatibility.
+   */
   public OpenApiOutboundTemplateGenerator() {
+    this(true);
+  }
+
+  /**
+   * @param resolveExternalRefs When {@code false}, the parser will not follow external {@code $ref}
+   *     references (remote URLs or local files). Set to {@code false} when processing untrusted
+   *     specs to prevent unintended network or filesystem access.
+   */
+  public OpenApiOutboundTemplateGenerator(boolean resolveExternalRefs) {
     super();
+    this.resolveExternalRefs = resolveExternalRefs;
     // workaround for https://github.com/swagger-api/swagger-parser/issues/1857 (large yaml files)
     System.setProperty("maxYamlCodePoints", String.valueOf(Integer.MAX_VALUE));
   }
@@ -69,7 +85,11 @@ public class OpenApiOutboundTemplateGenerator
 
   @Override
   public OpenApiGenerationSource prepareInput(List<String> parameters) {
-    return new OpenApiGenerationSource(parameters);
+    var params = new ArrayList<>(parameters);
+    if (!resolveExternalRefs && !params.contains("--no-resolve-refs")) {
+      params.add("--no-resolve-refs");
+    }
+    return new OpenApiGenerationSource(params);
   }
 
   public String getUsage() {

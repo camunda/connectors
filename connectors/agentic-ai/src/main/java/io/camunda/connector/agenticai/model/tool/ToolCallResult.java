@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import java.util.HashMap;
 import java.util.Map;
 import org.springframework.lang.Nullable;
 
@@ -43,6 +44,39 @@ public record ToolCallResult(
     return ToolCallResultBuilder.builder();
   }
 
+  /**
+   * Custom proxy builder that fixes round-tripping of the {@code properties} map.
+   *
+   * <p>The generated {@link ToolCallResultBuilder} inherits {@code @JsonAnyGetter} on the {@code
+   * properties()} getter, which flattens map entries as top-level JSON fields during serialization.
+   * However, the same getter returns an immutable {@code Map.copyOf()}, so Jackson cannot add
+   * unknown fields back into it during deserialization. Combined with
+   * {@code @JsonIgnoreProperties(ignoreUnknown = true)} from {@link AgenticAiRecord}, unknown
+   * fields are silently dropped instead of being collected into {@code properties}.
+   *
+   * <p>This builder provides a proper {@code @JsonAnySetter} method that collects unknown fields
+   * and merges them into {@code properties} at build time.
+   */
   @JsonPOJOBuilder(withPrefix = "")
-  public static class ToolCallResultJacksonProxyBuilder extends ToolCallResultBuilder {}
+  public static class ToolCallResultJacksonProxyBuilder extends ToolCallResultBuilder {
+    private final Map<String, Object> unknownProperties = new HashMap<>();
+
+    @JsonAnySetter
+    public void set(String key, Object value) {
+      unknownProperties.put(key, value);
+    }
+
+    @Override
+    public ToolCallResult build() {
+      if (!unknownProperties.isEmpty()) {
+        Map<String, Object> merged = new HashMap<>(unknownProperties);
+        Map<String, Object> explicit = super.properties();
+        if (explicit != null && !explicit.isEmpty()) {
+          merged.putAll(explicit);
+        }
+        super.properties(merged);
+      }
+      return super.build();
+    }
+  }
 }

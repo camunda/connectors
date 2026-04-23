@@ -18,19 +18,20 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.JobContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 public class OutboundConnectorAgentExecutionContext implements AgentExecutionContext {
 
-  private final OutboundConnectorAgentJobContext jobContext;
+  private final JobContext jobContext;
   private final OutboundConnectorAgentRequest request;
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private List<AdHocToolElement> toolElements;
 
   public OutboundConnectorAgentExecutionContext(
-      OutboundConnectorAgentJobContext jobContext,
+      JobContext jobContext,
       OutboundConnectorAgentRequest request,
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
     this.jobContext = jobContext;
@@ -39,7 +40,7 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
   }
 
   @Override
-  public AgentJobContext jobContext() {
+  public JobContext jobContext() {
     return jobContext;
   }
 
@@ -76,7 +77,7 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
     }
 
     return toolElementsResolver.resolveToolElements(
-        jobContext.processDefinitionKey(), toolsContainerElementId);
+        jobContext.getProcessDefinitionKey(), toolsContainerElementId);
   }
 
   @Override

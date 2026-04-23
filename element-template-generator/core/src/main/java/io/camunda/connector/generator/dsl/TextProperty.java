@@ -35,6 +35,7 @@ public final class TextProperty extends Property {
       PropertyBinding binding,
       PropertyCondition condition,
       String tooltip,
+      String placeholder,
       Object exampleValue) {
     super(
         name,
@@ -49,6 +50,7 @@ public final class TextProperty extends Property {
         binding,
         condition,
         tooltip,
+        placeholder,
         exampleValue,
         TYPE);
   }
@@ -82,6 +84,7 @@ public final class TextProperty extends Property {
           binding,
           condition,
           tooltip,
+          placeholder,
           exampleValue);
     }
   }

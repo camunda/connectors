@@ -3,9 +3,6 @@
   "name" : "A2A Client Polling Receive Task Connector (early access)",
   "id" : "io.camunda.connectors.agenticai.a2a.client.polling.receive.v0",
   "description" : "Agent-to-Agent (A2A) polling inbound connector. Supports polling asynchronous tasks, but can also directly correlate messages and synchronously completed tasks.",
-  "metadata" : {
-    "keywords" : [ ]
-  },
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-polling-connector/",
   "version" : 0,
   "category" : {
@@ -210,15 +207,18 @@
     "type" : "String"
   }, {
     "id" : "messageNameUuid",
+    "label" : "Message name",
     "generatedValue" : {
       "type" : "uuid"
     },
+    "feel" : "optional",
     "group" : "correlation",
     "binding" : {
       "name" : "name",
       "type" : "bpmn:Message#property"
     },
-    "type" : "Hidden"
+    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
+    "type" : "String"
   }, {
     "id" : "deduplicationModeManualFlag",
     "label" : "Manual mode",

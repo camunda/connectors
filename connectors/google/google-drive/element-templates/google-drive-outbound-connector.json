@@ -3,9 +3,7 @@
   "name" : "Google Drive Outbound Connector",
   "id" : "io.camunda.connectors.GoogleDrive.v1",
   "description" : "Manage Google Drive files and folders",
-  "metadata" : {
-    "keywords" : [ "create file", "create file from template", "create folder" ]
-  },
+  "keywords" : [ "create file", "create file from template", "create folder", "upload file", "download file", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
   "version" : 5,
   "category" : {

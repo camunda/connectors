@@ -3,9 +3,7 @@
   "name" : "Hybrid Kafka Outbound Connector",
   "id" : "io.camunda.connectors.KAFKA.v1-hybrid",
   "description" : "Produce Kafka message",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [ "publish message", "send message", "message queue", "event streaming", "produce event", "stream data", "kafka topic" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
   "version" : 6,
   "category" : {

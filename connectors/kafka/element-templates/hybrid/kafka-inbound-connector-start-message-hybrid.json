@@ -3,9 +3,7 @@
   "name" : "Hybrid Kafka Message Start Event Connector",
   "id" : "io.camunda.connectors.inbound.KafkaMessageStart.v1-hybrid",
   "description" : "Consume Kafka messages",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [ "receive message", "consume message", "event streaming", "subscribe to topic", "message queue", "stream data" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
   "version" : 7,
   "category" : {
@@ -138,6 +136,7 @@
       "name" : "groupId",
       "type" : "zeebe:property"
     },
+    "tooltip" : "It is strongly recommended to provide an explicit consumer group ID. Use a stable, application-specific identifier that represents the logical consumer group in your application (for example, <code>my-app-order-processor</code>). Leaving this empty auto-generates an ID that may change across connector upgrades, causing message replay.",
     "type" : "String"
   }, {
     "id" : "additionalProperties",
@@ -351,6 +350,18 @@
     },
     "type" : "String"
   }, {
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageIdExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
     "id" : "messageTtl",
     "label" : "Message TTL",
     "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
@@ -370,28 +381,19 @@
     },
     "type" : "String"
   }, {
-    "id" : "messageIdExpression",
-    "label" : "Message ID expression",
-    "description" : "Expression to extract unique identifier of a message",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "messageIdExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
     "id" : "messageNameUuid",
+    "label" : "Message name",
     "generatedValue" : {
       "type" : "uuid"
     },
+    "feel" : "optional",
     "group" : "correlation",
     "binding" : {
       "name" : "name",
       "type" : "bpmn:Message#property"
     },
-    "type" : "Hidden"
+    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
+    "type" : "String"
   }, {
     "id" : "deduplicationModeManualFlag",
     "label" : "Manual mode",

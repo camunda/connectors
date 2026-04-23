@@ -3,9 +3,7 @@
   "name" : "Amazon SQS Boundary Event Connector",
   "id" : "io.camunda.connectors.AWSSQS.boundary.v1",
   "description" : "Receive messages from Amazon SQS.",
-  "metadata" : {
-    "keywords" : [ "receive message", "receive event", "receive message from queue", "receive event from queue" ]
-  },
+  "keywords" : [ "receive message", "receive event", "receive message from queue", "receive event from queue", "event driven", "queue", "dequeue" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
   "version" : 10,
   "category" : {
@@ -278,15 +276,18 @@
     "type" : "String"
   }, {
     "id" : "messageNameUuid",
+    "label" : "Message name",
     "generatedValue" : {
       "type" : "uuid"
     },
+    "feel" : "optional",
     "group" : "correlation",
     "binding" : {
       "name" : "name",
       "type" : "bpmn:Message#property"
     },
-    "type" : "Hidden"
+    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
+    "type" : "String"
   }, {
     "id" : "deduplicationModeManualFlag",
     "label" : "Manual mode",

@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-parent</artifactId>
-    <version>8.9.0-SNAPSHOT</version>
+    <version>8.10.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -29,7 +29,7 @@
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>libraries-bom</artifactId>
-        <version>26.77.0</version>
+        <version>26.80.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

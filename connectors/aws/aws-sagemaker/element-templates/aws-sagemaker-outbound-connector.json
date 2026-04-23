@@ -3,9 +3,7 @@
   "name" : "AWS SageMaker Outbound Connector",
   "id" : "io.camunda.connectors.AWSSAGEMAKER.v1",
   "description" : "Run inferences using AWS SageMaker.",
-  "metadata" : {
-    "keywords" : [ "run inference", "perform asynchronous inference", "perform real-time inference" ]
-  },
+  "keywords" : [ "run inference", "perform asynchronous inference", "perform real-time inference", "real-time inference", "asynchronous inference", "machine learning", "ML model", "predict", "AI" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-sagemaker/",
   "version" : 2,
   "category" : {

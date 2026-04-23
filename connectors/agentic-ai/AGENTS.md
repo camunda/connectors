@@ -27,7 +27,7 @@ infrastructure for tool calling, conversation memory, and event handling.
 | Agent context        | Wired via process variables by modeler | Scoped within sub-process                    |
 | Event support        | No                                   | Yes (non-interrupting only)                    |
 | Config per iteration | Yes (input mappings re-evaluated)    | No (frozen on AHSP entry)                      |
-| Job completion       | Auto (connector runtime)             | Manual (`autoComplete = false`)                |
+| Job completion       | Auto (connector runtime)             | Custom (`AdHocSubProcessConnectorResponse`)    |
 
 ### Ad-Hoc Sub-Process (AHSP)
 
@@ -74,19 +74,14 @@ framework/
 
 memory/
 ├── conversation/
-│   ├── ConversationStore       # Pluggable storage: executeInSession() callback pattern
-│   ├── ConversationSession     # Per-invocation: loadIntoRuntimeMemory/storeFromRuntimeMemory
+│   ├── ConversationStore       # Pluggable storage: createSession() factory pattern
+│   ├── ConversationSession     # Per-invocation: loadMessages/storeMessages (AutoCloseable)
 │   ├── ConversationContext     # Persistent reference (conversationId)
 │   ├── inprocess/              # In-process store (messages in agentContext variable)
 │   └── document/               # Camunda Document Storage backend
 └── runtime/
     ├── RuntimeMemory           # Transient working memory for single execution
     └── MessageWindowRuntimeMemory  # Sliding window filter (keeps last N messages)
-
-jobworker/
-├── AiAgentJobWorkerHandlerImpl # Job lifecycle: execute → complete/fail/throwBpmnError
-├── JobWorkerAgentExecutionContextFactoryImpl  # Binds job variables to request
-└── AiAgentJobWorkerValueCustomizer  # Environment variable overrides for type/timeout
 
 tool/
 ├── GatewayToolHandler          # Interface for gateway tools (MCP, A2A)
@@ -107,7 +102,9 @@ tool/
 
 **`ToolCallProcessVariable`** — flattened tool call for process variables: `{_meta: {id, name}, ...args}`.
 
-**`JobWorkerAgentCompletion`** — job completion directives: AHSP done/continue, cancel flags, variables, error callback.
+**`AiAgentSubProcessConnectorResponse`** — job completion directives: AHSP done/continue, cancel flags, element activations, variables. Implements `AdHocSubProcessConnectorResponse` — the runtime translates it into the Zeebe complete command with ad-hoc sub-process result configuration.
+
+**`AiAgentTaskConnectorResponse`** — wraps `AgentResponse` as a `StandardConnectorResponse` for the task connector flavor. The runtime evaluates result expressions against the wrapped response value.
 
 For full record definitions, see [ai-agent.md §5](docs/reference/ai-agent.md#5-data-model).
 
@@ -129,20 +126,21 @@ For full record definitions, see [ai-agent.md §5](docs/reference/ai-agent.md#5-
 ## Critical Behaviors
 
 Partial tool results trigger no-op completions until all expected results arrive. Jobs may be superseded when tools
-complete — handled via `CommandWrapper` retries and `onCompletionError` callbacks. For detailed mechanics, see
+complete — handled via `CommandWrapper` retries. For detailed mechanics, see
 [ai-agent.md §9 (tool completion)](docs/reference/ai-agent.md#9-tool-completion) and
 [§10 (concurrency)](docs/reference/ai-agent.md#10-concurrency).
 
 ### Conversation Session Lifecycle
 
-`ConversationStore.executeInSession()` wraps agent processing in a callback:
+`ConversationStore.createSession()` returns an `AutoCloseable` session used via try-with-resources:
 
 ```
-executeInSession(ctx, agentContext, session -> {
-    session.loadIntoRuntimeMemory(agentContext, runtimeMemory)
-    [add messages, call LLM, etc.]
-    session.storeFromRuntimeMemory(agentContext, runtimeMemory)
-}) → completeJob
+try (var session = store.createSession(ctx, agentContext)) {
+    var loaded = session.loadMessages(agentContext)
+    [add messages to runtime memory, call LLM, etc.]
+    var cursor = session.storeMessages(agentContext, request)
+    agentContext = agentContext.withConversation(cursor)
+} → buildConnectorResponse
 ```
 
 For backend-specific behavior and failure handling, see [ai-agent.md §6](docs/reference/ai-agent.md#6-conversation-memory).
@@ -275,6 +273,33 @@ Tool naming: `A2A_<elementName>` — one A2A element = one tool (an entire remot
 The job worker template is auto-generated from the outbound template via
 `bin/transform-ai-agent-job-worker-template.groovy` (gmavenplus-plugin, `process-classes` phase).
 
+### Version index README
+
+[`element-templates/README.md`](element-templates/README.md) is a user-facing
+index (linked from the Camunda Marketplace) that maps each connector to the
+latest template version per Camunda minor release. It must stay in sync with the
+JSON files every time a template version is bumped or a new connector is added.
+
+When `versionHistoryEnabled` moves a superseded template into
+`element-templates/versioned/`, update the README as follows:
+
+1. **Identify the new minimum Camunda version** — check the `engines.camunda`
+   field of the new template (e.g. `^8.10`).
+2. **Same minimum as the current top row** → replace the top row: update the
+   template version and the file link (the link now points at the file in
+   `versioned/`, since the newest template in the main folder replaced it).
+3. **Higher minimum than the current top row** → insert a new row at the top
+   with the new minimum Camunda version and template version, and move the
+   previous top row's link under `versioned/`.
+4. **AI Agent has two tables** (Task + Sub-process). They share the same
+   template version numbers, so update both.
+5. **New connector** → add a new section in the same order as the existing
+   ones (AI Agent, MCP Client, A2A, Ad-hoc tools schema) with an intro
+   paragraph linking to the `docs.camunda.io` overview page for that connector.
+
+Do not list `element-templates/hybrid/` templates in the README — they are
+intentionally omitted.
+
 ## Key Entry Points
 
 | File                                          | Purpose                                      |
@@ -315,6 +340,8 @@ When making code changes to this module, update the relevant documentation to re
 
 - **This file (`AGENTS.md`)**: Update if the change affects high-level architecture, key concepts, build commands, or
   entry points.
+- **`element-templates/README.md`**: Update whenever an element template version is bumped, a template is moved into
+  `versioned/`, or a new connector is added. See [Version index README](#version-index-readme) for the update rules.
 - **`docs/reference/ai-agent.md`**: Update for changes to the core agent framework — orchestration, memory, tool
   resolution, converters, configuration, error handling.
 - **`docs/reference/mcp.md`**: Update for changes to MCP client integration — data model, client lifecycle, transport,

@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,12 +35,10 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
 
   private static final TypeReference<Map<String, Object>> MAP_TYPE_REF = new TypeReference<>() {};
 
-  public FeelFunctionDeserializer(JavaType outputType, FeelEngineWrapper feelEngineWrapper) {
-    super(feelEngineWrapper, false);
+  public FeelFunctionDeserializer(JavaType outputType, FeelExpressionEvaluator evaluator) {
+    super(evaluator, false);
     this.outputType = outputType;
   }
-
-  private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
 
   @Override
   @SuppressWarnings("unchecked")
@@ -48,12 +46,13 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
       JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext) {
     return (input) -> {
       JsonNode jsonNode =
-          feelEngineWrapper.evaluate(
-              deserializationContext,
-              node.textValue(),
-              deserializationContext.getTypeFactory().constructType(JsonNode.class),
-              input,
-              feelContext);
+          BLANK_OBJECT_MAPPER.valueToTree(
+              evaluateFeelExpression(
+                  deserializationContext,
+                  node.textValue(),
+                  deserializationContext.getTypeFactory().constructType(JsonNode.class),
+                  input,
+                  feelContext));
       try {
         if (jsonNode == null || jsonNode.isNull()) {
           return null;
@@ -74,11 +73,11 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
     if (property != null) {
       if (property.getType().containedTypeCount() == 2) {
         var outputType = property.getType().containedType(1);
-        return new FeelFunctionDeserializer<>(outputType, feelEngineWrapper);
+        return new FeelFunctionDeserializer<>(outputType, evaluator);
       }
     }
 
-    return new FeelFunctionDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper);
+    return new FeelFunctionDeserializer<>(TypeFactory.unknownType(), evaluator);
   }
 
   private static class MergedContext {

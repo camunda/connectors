@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-bundle-parent</artifactId>
-    <version>8.9.0-SNAPSHOT</version>
+    <version>8.10.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -22,7 +22,7 @@
     <module>connector-runtime-spring</module>
     <module>spring-boot-starter-camunda-connectors</module>
     <module>connector-runtime-application</module>
-    <module>feel-wrapper</module>
+    <module>connector-feel</module>
     <module>jackson-datatype-feel</module>
     <module>jackson-datatype-document</module>
     <module>connector-runtime-test</module>

@@ -116,7 +116,17 @@ public class ParameterUtil {
 
   public static Schema<?> getSchemaOrFromComponents(Schema<?> schema, Components components) {
     if (schema.get$ref() != null) {
-      return components.getSchemas().get(schema.get$ref().replace("#/components/schemas/", ""));
+      var ref = schema.get$ref();
+      if (!ref.startsWith("#/")) {
+        throw new IllegalArgumentException(
+            "External $ref '"
+                + ref
+                + "' cannot be resolved: the spec contains a reference to an external file or URL "
+                + "that was not inlined during parsing. Either remove '--no-resolve-refs' so the "
+                + "parser can follow the reference, or replace the external $ref with an inline "
+                + "schema definition.");
+      }
+      return components.getSchemas().get(ref.replace("#/components/schemas/", ""));
     }
     return schema;
   }
