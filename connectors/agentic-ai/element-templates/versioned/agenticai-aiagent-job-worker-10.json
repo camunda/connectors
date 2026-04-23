@@ -1,18 +1,18 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "AI Agent Task",
-  "id" : "io.camunda.connectors.agenticai.aiagent.v1",
-  "description" : "Execute a single AI-powered action with tool calling capabilities",
+  "name" : "AI Agent Sub-process",
+  "id" : "io.camunda.connectors.agenticai.aiagent.jobworker.v1",
+  "description" : "Run a multi-step AI reasoning loop with dynamic tool selection",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
-  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-  "version" : 11,
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/",
+  "version" : 10,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:Task" ],
+  "appliesTo" : [ "bpmn:SubProcess" ],
   "elementType" : {
-    "value" : "bpmn:ServiceTask"
+    "value" : "bpmn:AdHocSubProcess"
   },
   "engines" : {
     "camunda" : "^8.10"
@@ -50,9 +50,14 @@
     "label" : "Limits",
     "openByDefault" : false
   }, {
+    "id" : "events",
+    "label" : "Event handling",
+    "tooltip" : "Configure how event sub-process results are handled. Results are added as user messages to the running agent.",
+    "openByDefault" : false
+  }, {
     "id" : "response",
     "label" : "Response",
-    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/#response\">documentation</a> for details.",
+    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/#response\">documentation</a> for details.",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -68,11 +73,27 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda.agenticai:aiagent:1",
+    "value" : "io.camunda.agenticai:aiagent-job-worker:1",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
+    "type" : "Hidden"
+  }, {
+    "id" : "outputCollection",
+    "binding" : {
+      "property" : "outputCollection",
+      "type" : "zeebe:adHoc"
+    },
+    "value" : "toolCallResults",
+    "type" : "Hidden"
+  }, {
+    "id" : "outputElement",
+    "binding" : {
+      "property" : "outputElement",
+      "type" : "zeebe:adHoc"
+    },
+    "value" : "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult\n}",
     "type" : "Hidden"
   }, {
     "id" : "provider.type",
@@ -94,9 +115,6 @@
     }, {
       "name" : "Azure OpenAI",
       "value" : "azureOpenAi"
-    }, {
-      "name" : "Azure AI Foundry",
-      "value" : "azureAiFoundry"
     }, {
       "name" : "Google Vertex AI",
       "value" : "google-vertex-ai"
@@ -341,7 +359,7 @@
   }, {
     "id" : "provider.azureOpenAi.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the Azure authentication strategy.",
+    "description" : "Specify the Azure OpenAI authentication strategy.",
     "value" : "apiKey",
     "group" : "provider",
     "binding" : {
@@ -501,192 +519,6 @@
     "condition" : {
       "property" : "provider.type",
       "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureAiFoundry.endpoint",
-    "label" : "Endpoint",
-    "description" : "Azure AI Foundry resource endpoint, e.g. <code>https://&lt;resource&gt;.services.ai.azure.com</code>. Anthropic models require the <code>services.ai.azure.com</code> FQDN. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/foundry/\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.endpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureAiFoundry",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureAiFoundry.authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify the Azure authentication strategy.",
-    "value" : "apiKey",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.authentication.type",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureAiFoundry",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "API key",
-      "value" : "apiKey"
-    }, {
-      "name" : "Client credentials",
-      "value" : "clientCredentials"
-    } ]
-  }, {
-    "id" : "provider.azureAiFoundry.authentication.apiKey",
-    "label" : "API key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureAiFoundry.authentication.clientId",
-    "label" : "Client ID",
-    "description" : "ID of a Microsoft Entra application",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureAiFoundry.authentication.clientSecret",
-    "label" : "Client secret",
-    "description" : "Secret of a Microsoft Entra application",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureAiFoundry.authentication.tenantId",
-    "label" : "Tenant ID",
-    "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.authentication.tenantId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureAiFoundry.authentication.authorityHost",
-    "label" : "Authority host",
-    "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.authentication.authorityHost",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureAiFoundry.timeouts.timeout",
-    "label" : "Timeout",
-    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.timeouts.timeout",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureAiFoundry",
       "type" : "simple"
     },
     "type" : "String"
@@ -1170,243 +1002,6 @@
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "provider.azureAiFoundry.model.family",
-    "label" : "Model family",
-    "description" : "Select which model family is deployed behind this Foundry endpoint.",
-    "value" : "anthropic",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.model.family",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureAiFoundry",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Anthropic (Claude)",
-      "value" : "anthropic"
-    }, {
-      "name" : "OpenAI (GPT)",
-      "value" : "openai"
-    } ]
-  }, {
-    "id" : "provider.azureAiFoundry.model.anthropic.deploymentName",
-    "label" : "Deployment name",
-    "description" : "The Azure Foundry deployment name (defaults to the Claude model ID like <code>claude-sonnet-4-6</code> unless customized).",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.model.deploymentName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.model.family",
-        "equals" : "anthropic",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "placeholder" : "claude-sonnet-4-6",
-    "type" : "String"
-  }, {
-    "id" : "provider.azureAiFoundry.model.parameters.anthropic.maxTokens",
-    "label" : "Maximum tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.model.parameters.maxTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.model.family",
-        "equals" : "anthropic",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.azureAiFoundry.model.parameters.anthropic.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.model.family",
-        "equals" : "anthropic",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.azureAiFoundry.model.parameters.anthropic.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.model.parameters.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.model.family",
-        "equals" : "anthropic",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature).",
-    "type" : "Number"
-  }, {
-    "id" : "provider.azureAiFoundry.model.parameters.topK",
-    "label" : "top K",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.model.parameters.topK",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.model.family",
-        "equals" : "anthropic",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Integer greater than 0. Recommended for advanced use cases only.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.azureAiFoundry.model.openai.deploymentName",
-    "label" : "Deployment name",
-    "description" : "The Azure Foundry deployment name for your OpenAI model.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.model.deploymentName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.model.family",
-        "equals" : "openai",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureAiFoundry.model.parameters.openai.maxTokens",
-    "label" : "Maximum tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.model.parameters.maxTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.model.family",
-        "equals" : "openai",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.azureAiFoundry.model.parameters.openai.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.model.family",
-        "equals" : "openai",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.azureAiFoundry.model.parameters.openai.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureAiFoundry.model.parameters.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureAiFoundry.model.family",
-        "equals" : "openai",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureAiFoundry",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Recommended for advanced use cases only.",
-    "type" : "Number"
-  }, {
     "id" : "provider.googleVertexAi.model.model",
     "label" : "Model",
     "description" : "Specify the model ID. Details in the <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/models\" target=\"_blank\">documentation</a>.",
@@ -1695,50 +1290,20 @@
       "name" : "data.userPrompt.documents",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details and supported file types.",
+    "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/\" target=\"_blank\">See documentation</a> for details and supported file types.",
     "type" : "String"
   }, {
-    "id" : "data.tools.containerElementId",
-    "label" : "Ad-hoc sub-process ID",
-    "description" : "ID of the sub-process that contains the tools the AI agent can use.",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "tools",
-    "binding" : {
-      "name" : "data.tools.containerElementId",
-      "type" : "zeebe:input"
-    },
-    "tooltip" : "Add an ad-hoc sub-process ID to attach the AI agent to the tools. Ensure your process includes a tools feedback loop routing into the ad-hoc sub-process and back to the AI agent connector. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
-    "type" : "String"
-  }, {
-    "id" : "data.tools.toolCallResults",
-    "label" : "Tool call results",
-    "description" : "Tool call results as returned by the sub-process.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "tools",
-    "binding" : {
-      "name" : "data.tools.toolCallResults",
-      "type" : "zeebe:input"
-    },
-    "tooltip" : "This defines where to handle tool call results returned by the ad-hoc sub-process. Model this as part of your process and route it into the tools feedback loop. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
-    "type" : "Text"
-  }, {
-    "id" : "data.agentContext",
+    "id" : "agentContext",
     "label" : "Agent context",
-    "description" : "Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
+    "description" : "Initial agent context from previous interactions. Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
     "optional" : false,
-    "value" : "=agent.context",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "required",
     "group" : "memory",
     "binding" : {
-      "name" : "data.context",
+      "name" : "agentContext",
       "type" : "zeebe:input"
     },
-    "tooltip" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Text"
   }, {
     "id" : "data.memory.storage.type",
@@ -1999,7 +1564,7 @@
       "name" : "data.memory.contextWindowSize",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM. Older messages will be kept in the conversation store, but not sent to the model. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM. Older messages will be kept in the conversation store, but not sent to the model. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Number"
   }, {
     "id" : "data.limits.maxModelCalls",
@@ -2014,6 +1579,28 @@
       "type" : "zeebe:input"
     },
     "type" : "Number"
+  }, {
+    "id" : "data.events.behavior",
+    "label" : "Event handling behavior",
+    "description" : "Behavior on completing an event sub-process.",
+    "optional" : false,
+    "value" : "WAIT_FOR_TOOL_CALL_RESULTS",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "events",
+    "binding" : {
+      "name" : "data.events.behavior",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Wait for tool call results",
+      "value" : "WAIT_FOR_TOOL_CALL_RESULTS"
+    }, {
+      "name" : "Cancel tool calls",
+      "value" : "INTERRUPT_TOOL_CALLS"
+    } ]
   }, {
     "id" : "data.response.format.type",
     "label" : "Response format",
@@ -2100,10 +1687,23 @@
     "tooltip" : "In addition to the text content, the assistant message may include multiple additional content blocks and metadata (such as token usage). The message will be available as <code>response.responseMessage</code>.",
     "type" : "Boolean"
   }, {
+    "id" : "data.response.includeAgentContext",
+    "label" : "Include agent context",
+    "description" : "Include the agent context as part of the result object.",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.includeAgentContext",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Use this option if you need to re-inject the previous agent context into a future agent execution, for example when modeling a user feedback loop between an agent and a user task.",
+    "type" : "Boolean"
+  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "11",
+    "value" : "10",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -2114,7 +1714,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.agenticai.aiagent.v1",
+    "value" : "io.camunda.connectors.agenticai.aiagent.jobworker.v1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",
@@ -2124,25 +1724,14 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "description" : "Name of variable to store the response in",
     "value" : "agent",
     "group" : "output",
     "binding" : {
-      "key" : "resultVariable",
-      "type" : "zeebe:taskHeader"
+      "source" : "=agent",
+      "type" : "zeebe:output"
     },
     "type" : "String"
-  }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
-    "feel" : "required",
-    "group" : "output",
-    "binding" : {
-      "key" : "resultExpression",
-      "type" : "zeebe:taskHeader"
-    },
-    "type" : "Text"
   }, {
     "id" : "errorExpression",
     "label" : "Error expression",
@@ -2177,6 +1766,12 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
+  }, {
+    "binding" : {
+      "name" : "agent",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNBNTZFRkYiLz4KPG1hc2sgaWQ9InBhdGgtMi1vdXRzaWRlLTFfMTg1XzYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjQiIHk9IjQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iYmxhY2siPgo8cmVjdCBmaWxsPSJ3aGl0ZSIgeD0iNCIgeT0iNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIvPgo8L21hc2s+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTA1IDEyLjA5ODdDMTguNDkgMTAuNTg5NCAxNy4xNTk0IDguMTA4MTQgMTYuMTc5OSA2LjAxMTAzQzE2LjE1MiA2LjAwNDUxIDE2LjExNzYgNiAxNi4wNzk0IDZDMTYuMDQxMSA2IDE2LjAwNjYgNi4wMDQ1MSAxNS45Nzg4IDYuMDExMDRDMTQuOTk5NCA4LjEwODE0IDEzLjY2OTcgMTAuNTg4OSAxMi4xNDgxIDEyLjA5ODFDMTAuNjI2OSAxMy42MDcxIDguMTI1NjggMTQuOTI2NCA2LjAxMTU3IDE1Ljg5ODFDNi4wMDQ3NCAxNS45MjYxIDYgMTUuOTYxMSA2IDE2QzYgMTYuMDM4NyA2LjAwNDY4IDE2LjA3MzYgNi4wMTE0NCAxNi4xMDE0QzguMTI1MTkgMTcuMDcyOSAxMC42MjYyIDE4LjM5MTkgMTIuMTQ3NyAxOS45MDE2QzEzLjY2OTcgMjEuNDEwNyAxNC45OTk2IDIzLjg5MiAxNS45NzkxIDI1Ljk4OUMxNi4wMDY4IDI1Ljk5NTYgMTYuMDQxMSAyNiAxNi4wNzkzIDI2QzE2LjExNzUgMjYgMTYuMTUxOSAyNS45OTU0IDE2LjE3OTYgMjUuOTg5QzE3LjE1OTEgMjMuODkyIDE4LjQ4ODggMjEuNDExIDIwLjAwOTkgMTkuOTAyMU0yMC4wMDk5IDE5LjkwMjFDMjEuNTI1MyAxOC4zOTg3IDIzLjk0NjUgMTcuMDY2OSAyNS45OTE1IDE2LjA4MjRDMjUuOTk2NSAxNi4wNTkzIDI2IDE2LjAzMSAyNiAxNS45OTk3QzI2IDE1Ljk2ODQgMjUuOTk2NSAxNS45NDAzIDI1Ljk5MTUgMTUuOTE3MUMyMy45NDc0IDE0LjkzMjcgMjEuNTI1OSAxMy42MDEgMjAuMDEwNSAxMi4wOTg3IiBzdHJva2U9IiM0OTFEOEIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgbWFzaz0idXJsKCNwYXRoLTItb3V0c2lkZS0xXzE4NV82KSIvPgo8L3N2Zz4K"
