@@ -9,6 +9,7 @@
 /connectors/aws/aws-bedrock-codeinterpreter @camunda/connectors-agentic-ai @camunda/connectors
 /connectors/aws/aws-bedrock-knowledgebase @camunda/connectors-agentic-ai @camunda/connectors
 /connectors/aws/aws-bedrock-agentcore-runtime @camunda/connectors-agentic-ai @camunda/connectors
+/connectors/aws/aws-bedrock-agentcore-long-term-memory @camunda/connectors-agentic-ai @camunda/connectors
 
 # These files are excluded so that Renovate can automatically merge dependency upgrades
 renovate.json
