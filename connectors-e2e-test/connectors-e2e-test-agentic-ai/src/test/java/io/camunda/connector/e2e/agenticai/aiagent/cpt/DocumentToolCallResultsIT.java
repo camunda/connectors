@@ -141,8 +141,7 @@ class DocumentToolCallResultsIT {
             provider,
             "Use the Analyze_Single_Document tool to retrieve a document, then tell me "
                 + "what project it mentions and when it launched.",
-            List.of(wireMock.getHttpBaseUrl() + "/cpt-doc1.pdf"),
-            wireMock);
+            List.of(wireMock.getHttpBaseUrl() + "/cpt-doc1.pdf"));
 
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
@@ -170,8 +169,7 @@ class DocumentToolCallResultsIT {
             "Use the Search_Documents tool to find documents and summarize what each one says.",
             List.of(
                 wireMock.getHttpBaseUrl() + "/cpt-doc1.pdf",
-                wireMock.getHttpBaseUrl() + "/cpt-doc2.pdf"),
-            wireMock);
+                wireMock.getHttpBaseUrl() + "/cpt-doc2.pdf"));
 
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
@@ -202,8 +200,7 @@ class DocumentToolCallResultsIT {
             List.of(
                 wireMock.getHttpBaseUrl() + "/cpt-doc1.pdf",
                 wireMock.getHttpBaseUrl() + "/cpt-doc2.pdf",
-                wireMock.getHttpBaseUrl() + "/cpt-doc3.pdf"),
-            wireMock);
+                wireMock.getHttpBaseUrl() + "/cpt-doc3.pdf"));
 
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
@@ -336,17 +333,11 @@ class DocumentToolCallResultsIT {
   // ---------------------------------------------------------------------------
 
   private io.camunda.client.api.response.ProcessInstanceEvent startProcess(
-      ProviderConfig provider,
-      String userPrompt,
-      List<String> downloadUrls,
-      WireMockRuntimeInfo wireMock) {
+      ProviderConfig provider, String userPrompt, List<String> downloadUrls) {
     var model = buildModel(provider);
 
     // deploy and wait for process definition to be available
-    var zeebeTest =
-        io.camunda.connector.e2e.ZeebeTest.with(camundaClient)
-            .awaitCompleteTopology()
-            .deploy(model);
+    io.camunda.connector.e2e.ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
 
     return camundaClient
         .newCreateInstanceCommand()
