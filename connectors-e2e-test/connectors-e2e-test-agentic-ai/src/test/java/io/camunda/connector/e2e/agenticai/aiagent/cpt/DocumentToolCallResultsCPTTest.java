@@ -34,8 +34,10 @@ import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -65,6 +67,7 @@ import org.springframework.core.io.ResourceLoader;
  *       (also used for the judge LLM)
  *   <li>{@code DOCKER_MODEL_RUNNER_URL} - OpenAI-compatible endpoint (default:
  *       http://localhost:12434/engines/llama.cpp/v1)
+ *   <li>{@code OLLAMA_URL} - Ollama OpenAI-compatible endpoint (default: http://localhost:11434/v1)
  * </ul>
  */
 @SpringBootTest(
@@ -222,6 +225,9 @@ class DocumentToolCallResultsCPTTest {
   // ---------------------------------------------------------------------------
 
   static Stream<ProviderConfig> providers() {
+    List<Predicate<ProviderConfig>> modelFilters = new ArrayList<>();
+    modelFilters.add(p -> p.label().contains("gpt-4.1"));
+
     return Stream.of(
             // OpenAI
             openai("gpt-4.1"),
@@ -234,7 +240,15 @@ class DocumentToolCallResultsCPTTest {
             bedrock("global.anthropic.claude-sonnet-4-6"),
             bedrock("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
             // Docker Model Runner (OpenAI-compatible)
-            dockerModelRunner("ai/gemma4:latest"))
+            dockerModelRunner("ai/gemma4:latest").disabled(),
+            dockerModelRunner("ai/qwen3.6:latest").disabled(),
+            // Ollama (OpenAI-compatible)
+            ollama("qwen3.5:latest").disabled(),
+            ollama("llama3.1:8b").disabled())
+        .filter(
+            providerConfig ->
+                modelFilters.isEmpty()
+                    || modelFilters.stream().anyMatch(f -> f.test(providerConfig)))
         .filter(ProviderConfig::isEnabled);
   }
 
@@ -298,6 +312,19 @@ class DocumentToolCallResultsCPTTest {
     return new ProviderConfig(
         "docker-model-runner/" + model,
         "DOCKER_MODEL_RUNNER_URL",
+        Map.of(
+            "provider.type", "openaiCompatible",
+            "provider.openaiCompatible.endpoint", url,
+            "provider.openaiCompatible.model.model", model));
+  }
+
+  // -- Ollama (OpenAI-compatible) --
+
+  static ProviderConfig ollama(String model) {
+    var url = System.getenv().getOrDefault("OLLAMA_URL", "http://localhost:11434/v1");
+    return new ProviderConfig(
+        "ollama/" + model,
+        "OLLAMA_URL",
         Map.of(
             "provider.type", "openaiCompatible",
             "provider.openaiCompatible.endpoint", url,
@@ -382,11 +409,23 @@ class DocumentToolCallResultsCPTTest {
   // Provider config record
   // ---------------------------------------------------------------------------
 
-  record ProviderConfig(String label, String requiredEnvVar, Map<String, String> properties) {
+  record ProviderConfig(
+      String label, String requiredEnvVar, Map<String, String> properties, boolean enabled) {
+
+    ProviderConfig(String label, String requiredEnvVar, Map<String, String> properties) {
+      this(label, requiredEnvVar, properties, true);
+    }
+
+    ProviderConfig disabled() {
+      return new ProviderConfig(label, requiredEnvVar, properties, false);
+    }
 
     boolean isEnabled() {
-      // Docker Model Runner doesn't need an API key env var, just the URL
-      if (requiredEnvVar.equals("DOCKER_MODEL_RUNNER_URL")) {
+      if (!enabled) {
+        return false;
+      }
+      // Local providers don't need an API key env var, just the URL
+      if (requiredEnvVar.equals("DOCKER_MODEL_RUNNER_URL") || requiredEnvVar.equals("OLLAMA_URL")) {
         return true;
       }
       return System.getenv(requiredEnvVar) != null;
