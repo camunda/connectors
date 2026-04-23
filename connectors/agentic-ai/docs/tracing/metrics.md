@@ -3,7 +3,7 @@
 * Authors: Agentic AI Team
 * Date: April 23, 2026
 * Status: **Proposed** (PoC)
-* Related: [Agent-Side Design](agent-execution-tracing-design.md), [API Provider Guide](agent-execution-tracing-api.md), [Metrics Reference](https://github.com/camunda/camunda-hub-design-prototype/blob/main/docs/drafts/agent-visibility-metrics-reference.md)
+* Related: [Design Document](design.md), [Metrics Reference](https://github.com/camunda/camunda-hub-design-prototype/blob/main/docs/drafts/agent-visibility-metrics-reference.md)
 
 ---
 
@@ -12,8 +12,7 @@ and the agent execution tracing event stream. For each metric, this document cla
 **data source** (event stream, BPMN execution, or combined) and describes exactly how the server
 derives the metric value.
 
-For the event model and API contract, see [agent-execution-tracing-api.md](agent-execution-tracing-api.md).
-For agent-side implementation, see [agent-execution-tracing-design.md](agent-execution-tracing-design.md).
+For the event model, API contract, and examples, see [design.md](design.md).
 
 ---
 
