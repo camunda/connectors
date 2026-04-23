@@ -5,7 +5,7 @@
 
 ## Status
 
-**Proposed**.
+**Implemented** (PR #6999).
 
 ## Context and Problem Statement
 
