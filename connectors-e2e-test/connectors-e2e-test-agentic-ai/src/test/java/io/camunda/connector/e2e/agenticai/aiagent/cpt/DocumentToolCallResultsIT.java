@@ -90,9 +90,9 @@ import org.springframework.core.io.ResourceLoader;
 @WireMockTest
 @Import(CamundaDocumentTestConfiguration.class)
 @Disabled("Manual viability test - requires real LLM API keys via environment variables")
-class DocumentToolCallResultsCPTTest {
+class DocumentToolCallResultsIT {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DocumentToolCallResultsCPTTest.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DocumentToolCallResultsIT.class);
 
   private static final String ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/element-templates/agenticai-aiagent-job-worker.json";
