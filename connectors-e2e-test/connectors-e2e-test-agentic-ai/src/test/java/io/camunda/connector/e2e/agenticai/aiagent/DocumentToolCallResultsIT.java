@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.cpt;
+package io.camunda.connector.e2e.agenticai.aiagent;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -97,7 +97,12 @@ class DocumentToolCallResultsIT {
   private static final String ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/element-templates/agenticai-aiagent-job-worker.json";
 
-  private static final String BPMN_RESOURCE = "classpath:cpt-document-tool-call-results.bpmn";
+  private static final String BPMN_RESOURCE = "classpath:document-tool-call-results.bpmn";
+
+  private static final String DOC_DIR = "document-tool-call-results/";
+  private static final String DOC_PROJECT_LAUNCH = DOC_DIR + "project-launch.pdf";
+  private static final String DOC_HEADCOUNT_REPORT = DOC_DIR + "headcount-report.pdf";
+  private static final String DOC_AUTHOR_INFO = DOC_DIR + "author-info.pdf";
 
   private static final String SYSTEM_PROMPT =
       "You are a document analyst. Use the available tools to retrieve and analyze documents. "
@@ -117,14 +122,11 @@ class DocumentToolCallResultsIT {
 
   @BeforeEach
   void setupPdfStubs() {
-    for (int i = 1; i <= 3; i++) {
-      String filename = "cpt-doc" + i + ".pdf";
+    for (var doc : List.of(DOC_PROJECT_LAUNCH, DOC_HEADCOUNT_REPORT, DOC_AUTHOR_INFO)) {
       stubFor(
-          get(urlPathEqualTo("/" + filename))
+          get(urlPathEqualTo("/" + doc))
               .willReturn(
-                  aResponse()
-                      .withBodyFile(filename)
-                      .withHeader("Content-Type", "application/pdf")));
+                  aResponse().withBodyFile(doc).withHeader("Content-Type", "application/pdf")));
     }
   }
 
@@ -141,7 +143,7 @@ class DocumentToolCallResultsIT {
             provider,
             "Use the Analyze_Single_Document tool to retrieve a document, then tell me "
                 + "what project it mentions and when it launched.",
-            List.of(wireMock.getHttpBaseUrl() + "/cpt-doc1.pdf"));
+            List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH));
 
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
@@ -168,8 +170,8 @@ class DocumentToolCallResultsIT {
             provider,
             "Use the Search_Documents tool to find documents and summarize what each one says.",
             List.of(
-                wireMock.getHttpBaseUrl() + "/cpt-doc1.pdf",
-                wireMock.getHttpBaseUrl() + "/cpt-doc2.pdf"));
+                wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH,
+                wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT));
 
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
@@ -198,9 +200,9 @@ class DocumentToolCallResultsIT {
             "Use the Fetch_Report tool to get the full report and describe the content "
                 + "of every document in it, including attachments and the cover page.",
             List.of(
-                wireMock.getHttpBaseUrl() + "/cpt-doc1.pdf",
-                wireMock.getHttpBaseUrl() + "/cpt-doc2.pdf",
-                wireMock.getHttpBaseUrl() + "/cpt-doc3.pdf"));
+                wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH,
+                wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT,
+                wireMock.getHttpBaseUrl() + "/" + DOC_AUTHOR_INFO));
 
     assertThat(processInstance)
         .withAssertionTimeout(PROCESS_TIMEOUT)
@@ -223,7 +225,7 @@ class DocumentToolCallResultsIT {
 
   static Stream<ProviderConfig> providers() {
     List<Predicate<ProviderConfig>> modelFilters = new ArrayList<>();
-    modelFilters.add(p -> p.label().contains("gpt-4.1"));
+    // modelFilters.add(p -> p.label().contains("gpt-4.1"));
 
     return Stream.of(
             // OpenAI
@@ -240,7 +242,7 @@ class DocumentToolCallResultsIT {
             dockerModelRunner("ai/gemma4:latest").disabled(),
             dockerModelRunner("ai/qwen3.6:latest").disabled(),
             // Ollama (OpenAI-compatible)
-            ollama("qwen3.5:latest").disabled(),
+            ollama("qwen3.6:latest").disabled(),
             ollama("llama3.1:8b").disabled())
         .filter(
             providerConfig ->
