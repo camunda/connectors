@@ -27,9 +27,12 @@ import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
+import io.camunda.connector.generator.java.annotation.TemplateLinkedResources;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -102,17 +105,77 @@ public class OperationBasedConnectorUtil {
                 List<PropertyBuilder> properties =
                     TemplatePropertiesUtil.extractTemplatePropertiesFromParameter(
                         parameter, context);
-                return properties.stream()
-                    .map(
-                        property ->
-                            mapProperty(property, operation, variable, shouldMapParameterBindings))
-                    .toList();
+                var mapped =
+                    new ArrayList<>(
+                        properties.stream()
+                            .map(
+                                property ->
+                                    mapProperty(
+                                        property, operation, variable, shouldMapParameterBindings))
+                            .toList());
+                mapped.addAll(buildLinkedResourceProperties(parameter.getType(), operation));
+                return mapped;
               } else {
                 return List.of(buildHeaderProperty(operation, parameter));
               }
             })
         .flatMap(List::stream)
         .toList();
+  }
+
+  private static List<PropertyBuilder> buildLinkedResourceProperties(
+      Class<?> type, Operation operation) {
+    TemplateLinkedResources container = type.getAnnotation(TemplateLinkedResources.class);
+    TemplateLinkedResource single = type.getAnnotation(TemplateLinkedResource.class);
+
+    TemplateLinkedResource[] annotations;
+    if (container != null) {
+      annotations = container.value();
+    } else if (single != null) {
+      annotations = new TemplateLinkedResource[] {single};
+    } else {
+      return List.of();
+    }
+
+    String operationId = getOperationId(operation);
+    PropertyCondition operationCondition =
+        new PropertyCondition.AllMatch(
+            List.of(new PropertyCondition.Equals(OPERATION_PROPERTY_ID, operationId)));
+
+    List<PropertyBuilder> result = new ArrayList<>();
+    for (TemplateLinkedResource lr : annotations) {
+      String group = lr.group().isBlank() ? OPERATION_GROUP_ID : lr.group();
+
+      result.add(
+          HiddenProperty.builder()
+              .value(lr.resourceType())
+              .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "resourceType"))
+              .condition(operationCondition));
+
+      result.add(
+          new DropdownProperty.DropdownPropertyBuilder()
+              .choices(
+                  List.of(
+                      new DropdownProperty.DropdownChoice("Latest", "latest"),
+                      new DropdownProperty.DropdownChoice("Deployment", "deployment"),
+                      new DropdownProperty.DropdownChoice("Version tag", "versionTag")))
+              .id(concatenateOperationIdAndPropertyId(operationId, lr.linkName() + ".bindingType"))
+              .label(lr.bindingTypeLabel().isBlank() ? "Form binding" : lr.bindingTypeLabel())
+              .value("latest")
+              .group(group)
+              .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "bindingType"))
+              .condition(operationCondition));
+
+      result.add(
+          StringProperty.builder()
+              .id(concatenateOperationIdAndPropertyId(operationId, lr.linkName() + ".resourceId"))
+              .label(lr.resourceIdLabel().isBlank() ? "Form ID" : lr.resourceIdLabel())
+              .description(lr.resourceIdDescription().isBlank() ? null : lr.resourceIdDescription())
+              .group(group)
+              .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "resourceId"))
+              .condition(operationCondition));
+    }
+    return result;
   }
 
   private static PropertyBuilder buildHeaderProperty(Operation operation, Parameter parameter) {

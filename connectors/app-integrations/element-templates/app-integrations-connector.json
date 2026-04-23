@@ -28,6 +28,12 @@
     "id" : "message",
     "label" : "Message"
   }, {
+    "id" : "form",
+    "label" : "Form"
+  }, {
+    "id" : "channel",
+    "label" : "Channel"
+  }, {
     "id" : "connector",
     "label" : "Connector"
   }, {
@@ -57,7 +63,14 @@
       "key" : "operation",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "Hidden"
+    "choices" : [ {
+      "name" : "Send Message",
+      "value" : "sendMessage"
+    }, {
+      "name" : "Create Channel",
+      "value" : "createChannel"
+    } ],
+    "type" : "Dropdown"
   }, {
     "id" : "sendMessage:configuration.baseUrl",
     "label" : "Base URL",
@@ -103,6 +116,50 @@
     },
     "type" : "String"
   }, {
+    "id" : "createChannel:configuration.baseUrl",
+    "label" : "Base URL",
+    "description" : "App Integrations backend URL. Use secrets.APP_INTEGRATIONS_BASE_URL.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.baseUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:configuration.token",
+    "label" : "Token",
+    "description" : "Bearer token for authentication. Use secrets.APP_INTEGRATIONS_TOKEN.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.token",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
     "id" : "sendMessage:email",
     "label" : "User Email",
     "description" : "Email address of the recipient. Use a FEEL expression to reference a process variable, e.g. =assigneeEmail.",
@@ -143,11 +200,8 @@
   }, {
     "id" : "sendMessage:message",
     "label" : "Message",
-    "description" : "Text content to send.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "description" : "Plain text content to send. Provide either this, an adaptive card, or link a form.",
+    "optional" : true,
     "feel" : "optional",
     "group" : "message",
     "binding" : {
@@ -162,6 +216,177 @@
       } ]
     },
     "type" : "Text"
+  }, {
+    "id" : "sendMessage:adaptiveCardJson",
+    "label" : "Adaptive card",
+    "description" : "JSON payload for a custom Teams adaptive card. Provide either this, a plain text message, or link a form.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "adaptiveCardJson",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "type" : "Hidden",
+    "binding" : {
+      "type" : "zeebe:linkedResource",
+      "property" : "resourceType",
+      "linkName" : "formDefinition"
+    },
+    "value" : "form",
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    }
+  }, {
+    "id" : "sendMessage:formDefinition.bindingType",
+    "label" : "Form binding",
+    "group" : "form",
+    "value" : "latest",
+    "binding" : {
+      "type" : "zeebe:linkedResource",
+      "linkName" : "formDefinition",
+      "property" : "bindingType"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "choices" : [ {
+      "name" : "Latest",
+      "value" : "latest"
+    }, {
+      "name" : "Deployment",
+      "value" : "deployment"
+    }, {
+      "name" : "Version tag",
+      "value" : "versionTag"
+    } ],
+    "type" : "Dropdown"
+  }, {
+    "id" : "sendMessage:formDefinition.resourceId",
+    "label" : "Form ID",
+    "description" : "Optional. ID of the Camunda form to render as an adaptive card in the Teams message. Leave blank to send a plain text message or adaptive card.",
+    "group" : "form",
+    "binding" : {
+      "type" : "zeebe:linkedResource",
+      "linkName" : "formDefinition",
+      "property" : "resourceId"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:teamId",
+    "label" : "Team ID",
+    "description" : "ID of the Microsoft Teams team to create the channel in.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "teamId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:displayName",
+    "label" : "Channel name",
+    "description" : "Display name for the new channel (max 50 characters).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "displayName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:description",
+    "label" : "Description",
+    "description" : "Optional description for the channel.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "description",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:membershipType",
+    "label" : "Channel type",
+    "description" : "Standard channels are visible to all team members. Private channels are invite-only.",
+    "value" : "standard",
+    "group" : "channel",
+    "binding" : {
+      "name" : "membershipType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "choices" : [ {
+      "name" : "Standard",
+      "value" : "standard"
+    }, {
+      "name" : "Private",
+      "value" : "private"
+    }, {
+      "name" : "Shared",
+      "value" : "shared"
+    } ],
+    "type" : "Dropdown"
   }, {
     "id" : "version",
     "label" : "Version",
