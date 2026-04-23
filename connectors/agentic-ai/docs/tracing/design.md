@@ -69,7 +69,11 @@ visualization, and auditability.
   mirroring the agent runtime model — this isolates the API contract from agent-internal
   evolution, anticipating that a future Camunda API will own these types long-term. The mirror
   types use the same canonical names as the runtime (`Message`, `Content`, `ToolCall`,
-  `ToolDefinition`, etc.); separation is achieved by package, not by name prefix.
+  `ToolDefinition`, etc.); separation is achieved by package, not by name prefix. The mirror is
+  a **metrics-driven subset** of the runtime shape, not a mandated 1:1 copy: the runtime may
+  carry additional fields (internal state, debug metadata, in-progress features) that are
+  intentionally not part of the API contract. Extending the contract is a deliberate action
+  driven by new metric requirements; the absence of a runtime field in the mirror is not drift.
 
 ### Non-Goals
 
@@ -104,9 +108,9 @@ both attempts must be visible.
 |----------|----------------------|----------------|
 | **Job fails after LLM call, retried** | Retry overwrites first attempt's data. Tokens from the failed attempt are lost. | Both attempts produce separate events with unique deduplication keys. Server records both. Total token usage is accurate. |
 | **Job superseded** | Superseded job's update may race with the new job's update. Last-write-wins destroys data. | Both jobs push events independently. No conflict — events are append-only. |
-| **Partial tool results (no-op turn)** | Entity would need a read-modify-write cycle to "append" a tool result. Concurrent no-op jobs (from rapid tool completions) would race. | Each no-op turn emits `TOOL_CALL_RESULT_RECEIVED` events. Server deduplicates by `toolCallId`. No coordination needed. |
+| **Partial tool results (no-op turn)** | Entity would need a read-modify-write cycle to "append" a tool result. Concurrent no-op jobs (from rapid tool completions) would race. | Each no-op turn emits `TOOL_CALL_RESULT_RECEIVED` events. Server deduplicates by `traceId` (§8.3). No coordination needed. |
 | **Conversation reconstruction** | Entity stores "current conversation" — previous states are lost. No way to see what the LLM saw at iteration 3 vs iteration 7. | Events carry per-turn deltas. Server can reconstruct the conversation at any point in time by replaying events up to that turn. |
-| **Network failure on push** | A failed PUT leaves the entity in an unknown state. Was the update applied? Do we retry? Idempotency requires careful version tracking. | A failed push is retried via `flushAll()` on job completion. Same events, same deduplication keys — server ignores duplicates. Naturally idempotent. |
+| **Network failure on push** | A failed PUT leaves the entity in an unknown state. Was the update applied? Do we retry? Idempotency requires careful version tracking. | A failed push leaves events pending; the next `flush()` re-pushes them with the same deduplication keys — server ignores duplicates. Naturally idempotent. |
 
 ### Events as an audit log
 
@@ -191,10 +195,14 @@ stateDiagram-v2
     READY --> [*]: No tool calls → agent response returned
 ```
 
-An agent is **never "formally completed"** from the tracing perspective. After returning a final
-response, the user (or upstream process) can re-trigger the agent at any time with more input.
-The final iteration of an agent response round is marked by
-`ITERATION_COMPLETED { hasToolCalls: false }`; there is no dedicated "execution ended" event.
+**Execution activity is determined by BPMN state, not by tracing events.** The agent is active
+iff a corresponding AHSP or task instance is live in Zeebe; it becomes inactive when that
+instance completes, and active again if the process re-enters the AHSP or re-invokes the task.
+The event stream records *what the agent did during its activations*; it does not assert when
+the agent is or is not running. Consumers wanting to know "is this execution currently running?"
+should query BPMN state, not infer from the last event timestamp. The final iteration of an
+agent response round is marked by `ITERATION_COMPLETED { hasToolCalls: false }`; there is no
+dedicated "execution ended" event.
 
 ---
 
@@ -204,7 +212,7 @@ The final iteration of an agent response round is marked by
 flowchart TD
     subgraph Connector Runtime
         H[BaseAgentRequestHandler] --> S[AgentExecutionTraceSession]
-        S --> |flush / flushAll| CL[AgentExecutionTraceClient]
+        S --> |flush| CL[AgentExecutionTraceClient]
         CL --> |Solution doc| MEM[InMemoryAgentExecutionTraceClient]
         CL -.-> |Future| HTTP[HTTP Client → Backend API]
     end
@@ -227,11 +235,11 @@ flowchart TD
 
 | Component | Responsibility |
 |-----------|---------------|
-| `AgentExecutionTraceSession` | Per-request stateful wrapper. Created in `BaseAgentRequestHandler`, attached to `AgentExecutionContext`. Tracks which events have been flushed. Provides `emit()`, `flush()` (push new events) and `flushAll()` (re-push all events for reliability). |
+| `AgentExecutionTraceSession` | Per-request stateful wrapper. Created in `BaseAgentRequestHandler`, attached to `AgentExecutionContext`. Tracks acknowledged delivery per event. Provides `emit()` and `flush()` — `flush()` pushes all events not yet acknowledged by the server and leaves events pending on any failure for the next flush to retry. |
 | `AgentExecutionTraceClient` | Stateless transport interface for pushing events to the backend. `createExecution()` creates the parent entity and returns an `agentExecutionKey` (Long). `pushEvents()` pushes a batch of events. |
 | `InMemoryAgentExecutionTraceClient` | Initial implementation. Stores events in memory and logs structured JSON. Replaced by a real HTTP client in later iterations. |
-| `AgentContext.agentExecutionKey` | Server-assigned stable identifier for the agent execution. `null` on first activation, populated after `createExecution()`, persisted across turns via Zeebe process variables. |
-| `AgentContext.schemaVersion` | Data format version. `0` = pre-tracing (legacy). `1` = tracing-enabled. Used to trigger migration logic on upgrade. |
+| `agentExecutionKey` (on `AgentContext`) | Server-assigned stable identifier for the agent execution. `null` on first activation, populated after `createExecution()`, persisted across turns via the Zeebe process variables that carry `AgentContext`. Persistence location on `AgentContext` is an implementation detail (see §13.2). |
+| `schemaVersion` (on `AgentContext`) | Data format version. `0` = pre-tracing (legacy). `1` = tracing-enabled. Used to trigger migration logic on upgrade. Persistence location on `AgentContext` is an implementation detail (see §13.2). |
 | `Message.id` | UUIDv7 identifier assigned at message creation time. Used for conversation windowing references (`firstIncludedMessageId`). |
 
 ---
@@ -260,7 +268,8 @@ Twelve event types are defined, grouped by lifecycle phase.
 | Phase | Event type | Emitted when |
 |-------|-----------|--------------|
 | **Discovery** | `TOOL_DISCOVERY_STARTED` | Agent detects gateway tool elements on first activation |
-| **Tool registry** | `TOOL_DEFINITIONS_CHANGED` | Tool set is established or updated (after init, after discovery completes, after process migration). **Also the signal that discovery has completed.** |
+| **Tool registry** | `TOOL_DEFINITIONS_CHANGED` | Tool set is established (once at the end of init: immediately if no discovery, after discovery if present) or updated mid-execution on process migration |
+| **Init lifecycle** | `AGENT_INITIALIZED` | Agent completed initialization and transitions to READY; paired with (immediately follows) the init `TOOL_DEFINITIONS_CHANGED` |
 | **Tool results** | `TOOL_CALL_RESULT_RECEIVED` | Each tool call result is received (including partial-result no-op turns) |
 | **Model interaction** | `MODEL_CALL_STARTED` | Agent is about to call the LLM; carries the delta input |
 | | `MODEL_CALL_COMPLETED` | LLM call returned successfully; carries response + tokens + duration |
@@ -275,6 +284,7 @@ Twelve event types are defined, grouped by lifecycle phase.
 public enum AgentTraceEventType {
     TOOL_DISCOVERY_STARTED,
     TOOL_DEFINITIONS_CHANGED,
+    AGENT_INITIALIZED,
     TOOL_CALL_RESULT_RECEIVED,
     MODEL_CALL_STARTED,
     MODEL_CALL_COMPLETED,
@@ -306,16 +316,26 @@ public sealed interface AgentTraceEventPayload {
 
     /**
      * The current set of tool definitions has been established or updated.
-     * Emitted after initialization (static tools), after discovery completes
-     * (discovered tools merged), and after process migration (tools updated).
-     * Always carries the full current tool definition list.
+     * Emitted once at the end of initialization (immediately if no gateway
+     * discovery is involved, after discovery completes if it is) and on each
+     * mid-execution process migration. Always carries the full current tool
+     * definition list.
      *
-     * This event also serves as the "discovery complete" signal — no separate
-     * TOOL_DISCOVERY_COMPLETED event is emitted.
+     * Consumers distinguish init from migration via the presence (init) or
+     * absence (migration) of an immediately-following AGENT_INITIALIZED event.
      */
     record ToolDefinitionsChanged(
         List<ToolDefinition> toolDefinitions
     ) implements AgentTraceEventPayload {}
+
+    /**
+     * The agent has completed initialization and transitions to READY state.
+     * Emitted once per execution, paired with (immediately following) the
+     * init TOOL_DEFINITIONS_CHANGED. Empty payload — all relevant context
+     * is carried on CreateAgentExecutionRequest (provider, limits, system
+     * prompt) and on the paired TOOL_DEFINITIONS_CHANGED (tool set).
+     */
+    record AgentInitialized() implements AgentTraceEventPayload {}
 
     /**
      * A single tool call result has been received. Emitted per result,
@@ -332,13 +352,16 @@ public sealed interface AgentTraceEventPayload {
     /**
      * A model call is starting. Carries the delta messages added in this turn
      * (excluding tool call results, which have their own events), the list of
-     * tool call IDs whose results fed this call, and a reference to the
-     * message window boundary.
+     * tool call IDs whose results fed this call, a reference to the message
+     * window boundary, and an explicit flag indicating whether any history
+     * was evicted when building the context window (disambiguates the
+     * firstIncludedMessageId = null case — see §9.4).
      */
     record ModelCallStarted(
         List<Message> messages,
         List<String> toolCallResultIds,
-        @Nullable UUID firstIncludedMessageId
+        @Nullable UUID firstIncludedMessageId,
+        boolean historyTruncated
     ) implements AgentTraceEventPayload {}
 
     /**
@@ -564,12 +587,20 @@ public record DocumentMetadata(
  *
  * For regular BPMN tools, name and elementId are identical. For gateway tools
  * (MCP, A2A), they differ — name: "MCP_Files___readFile", elementId: "MCP_Files".
+ *
+ * traceId is a UUIDv7 stamped at process-variable-serialization time in the
+ * agent runtime and propagated through Zeebe (via ToolCallProcessVariable._meta
+ * and the element template's outputElement expression). It provides a stable,
+ * agent-controlled identifier used as the dedup key for TOOL_CALL_RESULT_RECEIVED,
+ * independent of the LLM-assigned id. Null on messages deserialized from
+ * pre-traceId data (see §13.3).
  */
 public record ToolCall(
     String id,
     String name,
     Map<String, Object> arguments,
-    @Nullable String elementId
+    @Nullable String elementId,
+    @Nullable UUID traceId
 ) {}
 
 /** A single tool call result. Used inside ToolCallResultMessage. */
@@ -631,22 +662,26 @@ scenarios where the same logical event can be pushed more than once.
 ### 8.1 Client idempotency
 
 **Client idempotency is a core requirement of this system.** Every event push must be safely
-re-pushable — the server is the single source of truth for uniqueness. This enables `flushAll()`
-to retry the entire event stream on completion without risk of duplicate counting, and makes
-best-effort `flush()` pushes during processing safe against transient failures.
+re-pushable — the server is the single source of truth for uniqueness. This enables the client
+to retry unacknowledged pushes without risk of duplicate counting, and makes best-effort pushes
+during processing safe against transient failures.
 
-The agent does not track "did this push succeed?" at event granularity. It just re-pushes on
-job completion. Server-side deduplication absorbs the noise.
+The agent tracks **acknowledged delivery, not attempted push**. A batch push marks events as
+delivered only on a 2xx response from the server; any failure (exception, non-2xx, timeout)
+leaves the batch pending, and the next `flush()` call retries it. Combined with server-side
+deduplication, this means re-emission is always safe (false positives cost one dedup lookup;
+false negatives would lose the event — so the client always prefers to re-emit on ambiguity).
 
 ### 8.2 Why deduplication is needed
 
 ```mermaid
 flowchart TD
-    subgraph "Scenario 1: Re-push on completion"
-        A1[Events emitted during processing] --> F1[flush — events pushed]
-        F1 --> C1[Job completes]
-        C1 --> FA1[flushAll — same events re-pushed]
-        FA1 --> D1[Server deduplicates by deduplicationKey]
+    subgraph "Scenario 1: Retry of a pending batch"
+        A1[Events emitted during processing] --> F1[flush — push attempted]
+        F1 --> X1[Transport fails / non-2xx / timeout]
+        X1 --> P1[Events remain pending]
+        P1 --> F1b[Next flush — same events re-pushed]
+        F1b --> D1[Server deduplicates by deduplicationKey]
     end
 
     subgraph "Scenario 2: Job retry after failure"
@@ -671,8 +706,8 @@ flowchart TD
 
 | Event type | Deduplication key | Rationale |
 |-----------|-------------------|-----------|
-| `TOOL_CALL_RESULT_RECEIVED` | `toolCallId` (stable) | The same tool result may arrive in multiple job activations (no-op turn → real turn). The `toolCallId` is unique per tool call within an execution. First-write-wins: the server records the first event and ignores subsequent pushes with the same key. |
-| All other event types | UUIDv7 (per emission) | Each emission is a unique event. On `flushAll()`, the same events are re-pushed with the same UUIDs → server deduplicates. On a job retry, new emissions get new UUIDs → server records both attempts. This is critical for auditability: if a job calls the LLM, fails, and retries, both LLM calls (and their token costs) must be visible. UUIDv7 is used throughout the tracing system (consistent with `Message.id`) and is time-sortable for server-side ordering. |
+| `TOOL_CALL_RESULT_RECEIVED` | `"tcr:" + traceId` | The same tool result may arrive across multiple job activations (no-op turn → real turn). `traceId` is a UUIDv7 stamped by the agent runtime at tool-call emission (§11.6) and propagated through Zeebe via the process variable and the element template's `outputElement`. It is uniqueness-guaranteed by construction, not by provider contract on the LLM-assigned tool-call id. Legacy fallback: on tool call results from pre-upgrade element templates that don't stamp `traceId`, the key falls back to `"tcr:legacy:" + toolCallId` and a WARN is logged once per execution. |
+| All other event types | UUIDv7 (per emission) | Each emission is a unique event. On re-push of a pending batch, the same events are re-pushed with the same UUIDs → server deduplicates. On a job retry, new emissions get new UUIDs → server records both attempts. This is critical for auditability: if a job calls the LLM, fails, and retries, both LLM calls (and their token costs) must be visible. UUIDv7 is used throughout the tracing system (consistent with `Message.id`) and is time-sortable for server-side ordering. |
 
 ### 8.4 Server-side deduplication contract
 
@@ -681,10 +716,36 @@ The server deduplicates by `(agentExecutionKey, deduplicationKey)`:
 - Subsequent pushes with the same `deduplicationKey` → ignored (idempotent)
 
 This means:
-- `flush()` + `flushAll()` = safe (same UUIDs, deduplicated)
+- Pending-batch retry = safe (same UUIDs, deduplicated)
 - Job retry = visible (new UUIDs, both stored)
-- Tool result replay = safe (same `toolCallId`, deduplicated)
+- Tool result replay = safe (same `traceId`, deduplicated)
 - Superseded job events = visible (different job, different UUIDs, stored)
+
+### 8.5 Event application for state derivation
+
+Consumers computing **message state, agent status, or iteration boundaries** must filter the
+event stream; consumers computing **token or cost aggregates** do not.
+
+**Filter for state**: state derivation (conversation reconstruction, agent status per D4,
+iteration counting per #11) operates on events from **completed jobs only**. The server joins
+on `jobKey` against Zeebe job-completion data and discards events from failed or superseded
+jobs for these derivations. The audit log retains all events regardless of job outcome.
+
+**Ordering rule**: within the completed-job subset, events are applied in **job completion
+order across jobs, and emission order within a job**. Emission order within a job is preserved
+by the batch payload (`events[]` is an ordered list) and across batches by envelope timestamp;
+since all events for a single job are emitted on the same request thread, timestamps are
+monotonic within a job and an explicit sort is cheap.
+
+**Token and cost aggregates**: sum across *all* events for the execution regardless of job
+state. Failed attempts that consumed tokens before failing contribute to true token spend (see
+§15.3). Order-independent.
+
+> **Load-bearing invariant — AHSP one-at-a-time completion.** The AHSP execution model
+> guarantees that at most one inner job completes per AHSP instance at any time; therefore,
+> job completion order defines a strict total order of iterations within an agent execution.
+> This property is load-bearing for the ordering rule above. If the AI Agent is adapted to a
+> non-AHSP execution model in the future, the ordering rule must be re-derived.
 
 ---
 
@@ -735,29 +796,40 @@ After replaying all events for all turns, the server has the full, unfiltered co
 
 ### 9.4 Message windowing signal
 
-The `MODEL_CALL_STARTED` event includes `firstIncludedMessageId` — the UUID of the oldest
-non-system message that was included in the model call's context window. This tells the server
-**where the window boundary is** without requiring the server to understand the eviction algorithm.
+The `MODEL_CALL_STARTED` event includes two fields that together tell the server where the
+window boundary is — without requiring the server to understand the eviction algorithm:
 
-- `firstIncludedMessageId` = ID of the first non-system message → messages before it were evicted
-- `firstIncludedMessageId` = `null` → the boundary falls on a pre-upgrade message with no ID, or
-  no eviction occurred
+- `firstIncludedMessageId` — the UUID of the oldest non-system message included in the model
+  call's context window, when that message has an assigned ID.
+- `historyTruncated` — `true` iff the agent dropped any non-system messages when building the
+  context window for this call.
 
-The server knows the full history (from replayed deltas). The `firstIncludedMessageId` tells it
-which subset the LLM actually saw. This is decoupled from the agent's windowing implementation.
+The combination disambiguates the null-ID case:
+
+| `historyTruncated` | `firstIncludedMessageId` | Meaning |
+|---|---|---|
+| `false` | `null` | No eviction. LLM saw all non-system messages. |
+| `true` | UUID | Eviction occurred. Precise boundary at this message. |
+| `true` | `null` | Eviction occurred. Boundary is on a pre-upgrade message (ID not available). |
+
+The server knows the full history (from replayed deltas). `firstIncludedMessageId` tells it
+which subset the LLM actually saw; `historyTruncated` disambiguates "no eviction" from
+"boundary unknown." Both fields are O(1) for the server — no history reconstruction needed.
+This is decoupled from the agent's windowing implementation.
 
 ### 9.5 Conversation snapshots
 
-A `CONVERSATION_SNAPSHOT` event carries the full conversation state at a point in time. It serves
-as a **reset point** — the server replaces its reconstructed history with the snapshot content and
-continues appending deltas from subsequent events.
+A `CONVERSATION_SNAPSHOT` event carries the **full conversation state as the UI should display
+it from this point forward**. It serves as a **reset point** — the server replaces its
+reconstructed history with the snapshot content and continues appending deltas from subsequent
+events.
 
 Emitted in two scenarios:
 
-| Scenario | Trigger | Purpose |
-|----------|---------|---------|
-| **Mid-flight upgrade** | `schemaVersion` migration (0 → 1) with existing conversation | Catches the server up on conversation history from before tracing was enabled |
-| **Conversation compaction** (future) | Explicit compaction action removes/summarizes messages | Records the new ground truth after messages are dropped |
+| Scenario | Trigger | Snapshot content |
+|----------|---------|-------------------|
+| **Mid-flight upgrade** | `schemaVersion` migration (0 → 1) with existing conversation | The conversation loaded from the store — the agent's view of history from before tracing was enabled |
+| **Conversation compaction** (future) | Explicit compaction action removes/summarizes messages | The post-compaction message set (e.g., 3 messages where there were 20) |
 
 Compaction is an explicit action controlled by the agent runtime (not an implicit side effect), so
 the snapshot event is emitted by the compaction code — no detection heuristics needed.
@@ -825,8 +897,9 @@ Called to push a batch of events. Best-effort — failures are logged but do not
 Events are deduplicated server-side by `(agentExecutionKey, deduplicationKey)`.
 
 **Clients MUST assume pushes may be retried with identical payloads** — deduplication is enforced
-server-side (see §8). The agent re-pushes the full event stream on job completion via
-`flushAll()`, relying on the server to reject duplicates.
+server-side (see §8). When a push fails, the client retains the events in its pending buffer
+and the next `flush()` call retries them with the same deduplication keys, relying on the
+server to reject duplicates.
 
 ```java
 public record PushEventsRequest(
@@ -857,23 +930,22 @@ public interface AgentExecutionTraceClient {
 
 ### 10.4 Session interface
 
-The session is a **per-request stateful wrapper** over the client. It accumulates emitted events,
-tracks which have been flushed, and provides the `flushAll()` safety net for completion callbacks.
+The session is a **per-request stateful wrapper** over the client. It accumulates emitted events
+and tracks acknowledged delivery per event.
 
 ```java
 public interface AgentExecutionTraceSession {
     /** Records an event. Does not push immediately. */
     void emit(AgentTraceEventPayload payload);
 
-    /** Pushes only events that haven't been flushed yet. */
-    void flush();
-
     /**
-     * Re-pushes ALL events, including previously flushed ones.
-     * Called from the job completion callback. Server deduplicates
-     * by (agentExecutionKey, deduplicationKey).
+     * Pushes all events not yet acknowledged by the server. On 2xx, marks
+     * events as delivered. On any failure (exception, non-2xx, timeout),
+     * leaves events pending so the next flush retries them.
+     *
+     * Safe to call multiple times; no-op if nothing is pending.
      */
-    void flushAll();
+    void flush();
 
     /** No-op session for when tracing is disabled. */
     AgentExecutionTraceSession NO_OP = new NoOpTraceSession();
@@ -883,13 +955,18 @@ public interface AgentExecutionTraceSession {
 The `NO_OP` session lets all call sites (emit/flush) operate without null checks. When tracing
 is disabled, `AgentExecutionContext.traceSession()` returns `NO_OP` instead of `null`.
 
+**Threading**: the request thread calls `emit()` and `flush()` during processing; the job
+completion listener thread may call `flush()` after the request thread returns. A simple
+monitor on the session (synchronized methods) serializes them — per-job event counts are
+small and the operations are quick.
+
 ### 10.5 Why two classes
 
 | Concern | Client (stateless) | Session (stateful) |
 |---------|-------------------|--------------------|
 | Transport details (HTTP client, auth, connection pool) | ✓ | |
 | Event list accumulation | | ✓ |
-| "Which events are new vs flushed" bookkeeping | | ✓ |
+| Per-event acknowledged-delivery bookkeeping | | ✓ |
 | Deduplication-key derivation | | ✓ |
 | Reusable by non-agent consumers (e.g., server-side replay tooling) | ✓ | |
 | Test seam: mock the transport, exercise the real session | mock client | real session + mock client |
@@ -907,9 +984,9 @@ client.
 ```mermaid
 flowchart TD
     START[handleRequest] --> INIT[AgentInitializer.initializeAgent]
-    INIT --> |INITIALIZING, gateway tools| TD_S["emit: TOOL_DISCOVERY_STARTED"]
-    INIT --> |TOOL_DISCOVERY, results complete| TD_C["emit: TOOL_DEFINITIONS_CHANGED"]
-    INIT --> |INITIALIZING, no gateway| TDC_INIT["emit: TOOL_DEFINITIONS_CHANGED"]
+    INIT --> |INITIALIZING, gateway tools detected| TD_S["emit: TOOL_DISCOVERY_STARTED"]
+    INIT --> |TOOL_DISCOVERY, results complete| INIT_DONE_DISC["emit: TOOL_DEFINITIONS_CHANGED + AGENT_INITIALIZED"]
+    INIT --> |INITIALIZING, no gateway| INIT_DONE_STATIC["emit: TOOL_DEFINITIONS_CHANGED + AGENT_INITIALIZED"]
     INIT --> |READY, migration detected| TDC_MIG["emit: TOOL_DEFINITIONS_CHANGED"]
 
     INIT --> |AgentContextInitializationResult| PROC[processConversation]
@@ -926,18 +1003,29 @@ flowchart TD
     TC --> |no| NOOP[skip]
     TCE --> ITER["emit: ITERATION_COMPLETED {hasToolCalls: true}"]
     NOOP --> ITER_END["emit: ITERATION_COMPLETED {hasToolCalls: false}"]
-    ITER --> FLUSH2["flush()"]
+    ITER --> FLUSH2["flush() — inline, primary delivery"]
     ITER_END --> FLUSH2
     FLUSH2 --> COMPLETE[buildConnectorResponse]
-    COMPLETE --> |onJobCompleted| FLUSH_ALL["flushAll()"]
-    COMPLETE --> |onJobCompletionFailed| FLUSH_ALL
+    COMPLETE --> |onJobCompleted / onJobCompletionFailed| FLUSH_SAFETY["flush() — safety net"]
 ```
+
+**Init lifecycle signal.** `TOOL_DEFINITIONS_CHANGED` is emitted **once per init** — immediately
+if no gateway discovery is involved, or once after discovery completes. It is paired with (and
+immediately followed by) an `AGENT_INITIALIZED` marker signaling the READY transition.
+Subsequent `TOOL_DEFINITIONS_CHANGED` emissions are for mid-execution process migrations and
+are **not** followed by `AGENT_INITIALIZED`. Consumers classify a TDC as init vs migration by
+the presence of an immediately-following `AGENT_INITIALIZED`.
+
+**Flush model.** `flush()` pushes all pending (unacknowledged) events. The primary delivery
+barrier is the inline `flush()` after `ITERATION_COMPLETED`; the completion listener's `flush()`
+is a safety net that catches anything the inline call didn't manage to deliver. See §11.3.
 
 **Discovery tool calls are NOT emitted as `TOOL_CALLS_EMITTED` / `TOOL_CALL_RESULT_RECEIVED`.**
 Those emit sites run inside `processConversation()`, which only executes in READY mode. Discovery
 tool calls are created and consumed by `AgentInitializer` in the INITIALIZING → TOOL_DISCOVERY
 state transition, never reaching the LLM-processing path. Discovery is represented in the trace
-solely by `TOOL_DISCOVERY_STARTED` (start) and `TOOL_DEFINITIONS_CHANGED` (complete).
+solely by `TOOL_DISCOVERY_STARTED` (start) and the init `TOOL_DEFINITIONS_CHANGED + AGENT_INITIALIZED`
+pair (end).
 
 ### 11.2 Where the session lives
 
@@ -964,16 +1052,21 @@ Created in `BaseAgentRequestHandler.handleRequest()`:
 
 ### 11.3 Flush points
 
-| Flush point | Method | Purpose |
-|-------------|--------|---------|
-| Before LLM call | `flush()` | Push tool results + `MODEL_CALL_STARTED` so the server shows the agent is "thinking." Everything before the LLM call runs in milliseconds; the LLM call is the expensive wait. |
-| After processing | `flush()` | Push `MODEL_CALL_COMPLETED`, `TOOL_CALLS_EMITTED` / `ITERATION_COMPLETED`. |
-| Job completion callback | `flushAll()` | Re-push all events for reliability. If a prior `flush()` failed silently, this recovers. Server deduplicates. |
-| Job completion failure callback | `flushAll()` | Same — ensure events from failed completions are recorded. |
+| Flush point | Purpose |
+|-------------|---------|
+| Before LLM call | Push tool results + `MODEL_CALL_STARTED` so the server can show the agent is "thinking." Everything before the LLM call runs in milliseconds; the LLM call is the expensive wait. |
+| Inline, after `ITERATION_COMPLETED` (primary delivery) | Push `MODEL_CALL_COMPLETED` (or `MODEL_CALL_FAILED`), `TOOL_CALLS_EMITTED` if any, and `ITERATION_COMPLETED`. Runs before `buildConnectorResponse()`; failures are logged and do not affect job completion. This is the primary delivery barrier for post-LLM events. |
+| Job completion callback (`onJobCompleted` / `onJobCompletionFailed`) | Safety net — calls `flush()` once more to catch any events the inline flush failed to deliver. Relies on the session's pending-events buffer; already-acknowledged events are not re-sent. |
+
+All flush points call the same `flush()` method (see §10.4). Events that fail to push remain
+pending and are retried at the next flush point; events with the same deduplication key that
+have already been acknowledged by the server are never re-sent by the client.
 
 ### 11.4 Completion callback wiring
 
-The session is attached to the `JobCompletionListener` created in `BaseAgentRequestHandler`:
+The session is attached to the `JobCompletionListener` created in `BaseAgentRequestHandler`.
+The listener's role is to invoke `flush()` as a safety net — the primary delivery happens
+inline in the handler (§11.3):
 
 ```java
 private JobCompletionListener createCompletionListener(
@@ -984,14 +1077,14 @@ private JobCompletionListener createCompletionListener(
     return new JobCompletionListener() {
         @Override
         public void onJobCompleted() {
-            traceSession.flushAll();
+            traceSession.flush();
             if (store != null && agentResponse != null)
                 store.onJobCompleted(executionContext, agentResponse.context());
         }
 
         @Override
         public void onJobCompletionFailed(JobCompletionFailure failure) {
-            traceSession.flushAll();
+            traceSession.flush();
             if (store != null && agentResponse != null)
                 store.onJobCompletionFailed(executionContext, agentResponse.context(), failure);
         }
@@ -999,29 +1092,36 @@ private JobCompletionListener createCompletionListener(
 }
 ```
 
-### 11.5 Tool call timing via element template
+### 11.5 Tool call timing and trace ID via element template
 
 Tool call durations are not measurable from the connector side when tools execute in parallel.
 The element template stamps `completedAt` into the tool call result via the `outputElement`
-expression:
+expression, and propagates a `traceId` (a UUIDv7 stamped by the runtime when the tool call is
+serialized into the process variable — see §11.6):
 
 ```
 outputElement: ={
   id: toolCall._meta.id,
+  traceId: toolCall._meta.traceId,
   name: toolCall._meta.name,
   content: toolCallResult,
   completedAt: now()
 }
 ```
 
-The `completedAt` value flows into `ToolCallResult.properties()` via `@JsonAnySetter`. The
-`TOOL_CALL_RESULT_RECEIVED` event reads it and includes it in the payload. If missing (pre-upgrade
-element templates), the event uses the current timestamp as a fallback.
+Both `traceId` and `completedAt` flow into `ToolCallResult.properties()` via `@JsonAnySetter`.
+The `TOOL_CALL_RESULT_RECEIVED` event reads them and includes them in the payload — `traceId`
+is also used as the event's deduplication key (see §8.3).
+
+Backwards compatibility: on tool call results from pre-upgrade element templates that do not
+stamp these fields, the connector falls back to the tool call result message's timestamp for
+`completedAt` and to `"tcr:legacy:" + toolCallId` for the dedup key, logging a WARN once per
+execution so operators know a template refresh is due.
 
 The `TOOL_CALLS_EMITTED` event timestamp serves as the approximate `startedAt` — it marks when
 the connector instructed Zeebe to activate the tool elements.
 
-### 11.6 Gateway tool name mapping
+### 11.6 Gateway tool name mapping, trace ID, and the tool-call consistency invariant
 
 For gateway tools (MCP, A2A), the LLM-visible name differs from the BPMN element ID:
 
@@ -1031,14 +1131,16 @@ BPMN element:     MCP_Files
 ```
 
 The `TOOL_CALLS_EMITTED` event captures **both** via the `ToolCall` record — the `name` field
-carries the LLM-visible name, `elementId` the BPMN element ID:
+carries the LLM-visible name, `elementId` the BPMN element ID, and `traceId` the agent-stamped
+UUIDv7:
 
 ```java
 record ToolCall(
-    String id,
-    String name,            // e.g., "MCP_Files___readFile"
+    String id,                   // LLM-assigned id (required for LLM API round-trip)
+    String name,                 // e.g., "MCP_Files___readFile"
     Map<String, Object> arguments,
-    @Nullable String elementId   // e.g., "MCP_Files" — populated for emitted tool calls
+    @Nullable String elementId,  // e.g., "MCP_Files" — populated for emitted tool calls
+    @Nullable UUID traceId       // UUIDv7 stamped by the runtime for trace correlation
 )
 ```
 
@@ -1051,6 +1153,21 @@ both the pre-transform (`assistantMessage.toolCalls()`) and post-transform
 Similarly, `TOOL_CALL_RESULT_RECEIVED` carries both the LLM-visible `toolName` and the `elementId`
 so the server can link results back to their originating tool calls and to their BPMN elements
 without having to join against `TOOL_CALLS_EMITTED`.
+
+**`traceId` propagation.** The agent assigns a UUIDv7 `traceId` at tool-call process-variable
+serialization time (in the tool-call converter that builds `ToolCallProcessVariable._meta`).
+The id flows through Zeebe via the process variable → through the element template's
+`outputElement` (§11.5) → back into `ToolCallResult.properties.traceId` on the next job
+activation. It is stamped on both `AssistantMessage.toolCalls` and `TOOL_CALLS_EMITTED.toolCalls`
+at emit time. The LLM-assigned `id` is preserved unchanged for API round-trip correlation
+with subsequent tool-result messages.
+
+**Tool-call consistency invariant.** `TOOL_CALLS_EMITTED.toolCalls[i]` is element-wise derived
+from `MODEL_CALL_COMPLETED.assistantMessage.toolCalls[i]` by applying the gateway transform
+(which populates `elementId`) and stamping `traceId` on both. The two lists are the same
+length, in the same order, and differ **only in the `elementId` field**. Consumers may treat
+`TOOL_CALLS_EMITTED` as authoritative for rendering (it has the BPMN mapping);
+`AssistantMessage.toolCalls` is preserved on the wire for raw-LLM-response fidelity.
 
 ---
 
@@ -1088,12 +1205,12 @@ The agent detects an MCP gateway tool element and initiates tool discovery.
 > The agent completes the job with tool discovery tool calls. No LLM call yet. Discovery tool
 > calls and their results are handled by `AgentInitializer` and are not emitted as trace events.
 
-### 12.2 Iteration 1: discovery results → tools registered → first LLM call → tool calls
+### 12.2 Iteration 1: discovery results → tools registered → agent ready → first LLM call → tool calls
 
 The MCP server responded with its tool list. The agent merges the discovered tools with the
-static tools, emits the full tool definition set (`TOOL_DEFINITIONS_CHANGED` — which also
-serves as the discovery-complete signal), and proceeds to the first LLM call with the user's
-prompt.
+static tools, emits the full tool definition set (`TOOL_DEFINITIONS_CHANGED`) paired with
+`AGENT_INITIALIZED` to signal the init-complete / READY transition, and proceeds to the first
+LLM call with the user's prompt.
 
 **Batch 1** (pushed before LLM call):
 
@@ -1114,6 +1231,13 @@ prompt.
   },
   {
     "jobKey": 2251799813685305,
+    "deduplicationKey": "019078a1-0a0c-7c1d-9e2f-3a4b5c6d7e90",
+    "type": "AGENT_INITIALIZED",
+    "timestamp": "2026-04-23T14:29:58.201Z",
+    "payload": {}
+  },
+  {
+    "jobKey": 2251799813685305,
     "deduplicationKey": "019078a1-0b1c-7d2e-0f3a-4b5c6d7e8f9a",
     "type": "MODEL_CALL_STARTED",
     "timestamp": "2026-04-23T14:29:58.210Z",
@@ -1131,14 +1255,19 @@ prompt.
         }
       ],
       "toolCallResultIds": [],
-      "firstIncludedMessageId": null
+      "firstIncludedMessageId": null,
+      "historyTruncated": false
     }
   }
 ]
 ```
 
-> `firstIncludedMessageId` is `null` — all messages fit in the context window (no eviction).
-> `toolCallResultIds` is empty — this is the first call, no prior tool results.
+> The `TOOL_DEFINITIONS_CHANGED` + `AGENT_INITIALIZED` pair marks the end of initialization.
+> Subsequent `TOOL_DEFINITIONS_CHANGED` events (for process migration) are emitted **without**
+> a following `AGENT_INITIALIZED` — that's how consumers distinguish init from migration.
+>
+> `historyTruncated` is `false` and `firstIncludedMessageId` is `null` — no eviction, LLM saw
+> every non-system message. `toolCallResultIds` is empty — first call, no prior tool results.
 
 **Batch 2** (pushed after LLM response):
 
@@ -1157,8 +1286,8 @@ prompt.
           {"type": "text", "text": "Let me look up your account and check for open issues."}
         ],
         "toolCalls": [
-          {"id": "tc_01", "name": "getCustomerInfo", "arguments": {"customerId": "C-5678"}},
-          {"id": "tc_02", "name": "MCP_Jira___getOpenTickets", "arguments": {"customerId": "C-5678"}}
+          {"id": "tc_01", "name": "getCustomerInfo", "arguments": {"customerId": "C-5678"}, "traceId": "019078a2-0000-7001-8000-000000000001"},
+          {"id": "tc_02", "name": "MCP_Jira___getOpenTickets", "arguments": {"customerId": "C-5678"}, "traceId": "019078a2-0000-7002-8000-000000000002"}
         ]
       },
       "tokenUsage": {"inputTokenCount": 1250, "outputTokenCount": 89},
@@ -1172,8 +1301,8 @@ prompt.
     "timestamp": "2026-04-23T14:30:00.555Z",
     "payload": {
       "toolCalls": [
-        {"id": "tc_01", "name": "getCustomerInfo", "arguments": {"customerId": "C-5678"}, "elementId": "getCustomerInfo"},
-        {"id": "tc_02", "name": "MCP_Jira___getOpenTickets", "arguments": {"customerId": "C-5678"}, "elementId": "MCP_Jira"}
+        {"id": "tc_01", "name": "getCustomerInfo", "arguments": {"customerId": "C-5678"}, "elementId": "getCustomerInfo", "traceId": "019078a2-0000-7001-8000-000000000001"},
+        {"id": "tc_02", "name": "MCP_Jira___getOpenTickets", "arguments": {"customerId": "C-5678"}, "elementId": "MCP_Jira", "traceId": "019078a2-0000-7002-8000-000000000002"}
       ]
     }
   },
@@ -1188,9 +1317,11 @@ prompt.
 ```
 
 > The tool calls appear in **both** `MODEL_CALL_COMPLETED.assistantMessage.toolCalls` and
-> `TOOL_CALLS_EMITTED.toolCalls`. The key difference: `TOOL_CALLS_EMITTED` carries `elementId`.
-> For `MCP_Jira___getOpenTickets`, the element ID is `MCP_Jira` (one MCP server element handling
-> multiple tools). For `getCustomerInfo`, the names are identical (regular BPMN element).
+> `TOOL_CALLS_EMITTED.toolCalls`, carrying the **same `traceId`** on both. The lists differ
+> only in `elementId` (§11.6 invariant): `TOOL_CALLS_EMITTED` is post-gateway-transform so it
+> has the BPMN element ID. For `MCP_Jira___getOpenTickets`, the element ID is `MCP_Jira` (one
+> MCP server element handling multiple tools). For `getCustomerInfo`, name and element ID are
+> identical (regular BPMN element).
 >
 > `ITERATION_COMPLETED.hasToolCalls: true` — this iteration requested more tools; the agent loop
 > will continue once results arrive.
@@ -1208,11 +1339,12 @@ completed and show its result, even before the next iteration runs.
 [
   {
     "jobKey": 2251799813685310,
-    "deduplicationKey": "tc_01",
+    "deduplicationKey": "tcr:019078a2-0000-7001-8000-000000000001",
     "type": "TOOL_CALL_RESULT_RECEIVED",
     "timestamp": "2026-04-23T14:30:01.100Z",
     "payload": {
       "toolCallId": "tc_01",
+      "traceId": "019078a2-0000-7001-8000-000000000001",
       "toolName": "getCustomerInfo",
       "elementId": "getCustomerInfo",
       "content": "{\"name\": \"Alice\", \"plan\": \"Enterprise\", \"accountId\": \"A-1234\"}",
@@ -1223,9 +1355,9 @@ completed and show its result, even before the next iteration runs.
 ```
 
 > No `MODEL_CALL_STARTED`, `MODEL_CALL_COMPLETED`, or `ITERATION_COMPLETED` — the agent is
-> waiting for tc_02. When the next iteration arrives with both results, `TOOL_CALL_RESULT_RECEIVED`
-> for tc_01 will be emitted again with the same `deduplicationKey` = `"tc_01"` — the server
-> deduplicates it.
+> waiting for tc_02. When the next iteration arrives with both results,
+> `TOOL_CALL_RESULT_RECEIVED` for tc_01 will be emitted again with the same
+> `deduplicationKey = "tcr:" + traceId` — the server deduplicates it.
 
 ### 12.4 Iteration 2: all tool results → LLM call → final response
 
@@ -1238,11 +1370,12 @@ text answer (no tool calls).
 [
   {
     "jobKey": 2251799813685315,
-    "deduplicationKey": "tc_01",
+    "deduplicationKey": "tcr:019078a2-0000-7001-8000-000000000001",
     "type": "TOOL_CALL_RESULT_RECEIVED",
     "timestamp": "2026-04-23T14:30:05.100Z",
     "payload": {
       "toolCallId": "tc_01",
+      "traceId": "019078a2-0000-7001-8000-000000000001",
       "toolName": "getCustomerInfo",
       "elementId": "getCustomerInfo",
       "content": "{\"name\": \"Alice\", \"plan\": \"Enterprise\", \"accountId\": \"A-1234\"}",
@@ -1251,11 +1384,12 @@ text answer (no tool calls).
   },
   {
     "jobKey": 2251799813685315,
-    "deduplicationKey": "tc_02",
+    "deduplicationKey": "tcr:019078a2-0000-7002-8000-000000000002",
     "type": "TOOL_CALL_RESULT_RECEIVED",
     "timestamp": "2026-04-23T14:30:05.101Z",
     "payload": {
       "toolCallId": "tc_02",
+      "traceId": "019078a2-0000-7002-8000-000000000002",
       "toolName": "MCP_Jira___getOpenTickets",
       "elementId": "MCP_Jira",
       "content": "[{\"id\": \"JIRA-456\", \"summary\": \"Login fails on mobile\"}]",
@@ -1270,15 +1404,17 @@ text answer (no tool calls).
     "payload": {
       "messages": [],
       "toolCallResultIds": ["tc_01", "tc_02"],
-      "firstIncludedMessageId": null
+      "firstIncludedMessageId": null,
+      "historyTruncated": false
     }
   }
 ]
 ```
 
-> tc_01 appears again (same `deduplicationKey` = `"tc_01"`) — the server deduplicates it.
-> tc_02 is new. `MODEL_CALL_STARTED.messages` is empty because the only new non-tool-result
-> inputs are zero; `toolCallResultIds` lists both tool call IDs whose results fed this call.
+> tc_01 appears again with the same `deduplicationKey = "tcr:" + traceId` — the server
+> deduplicates it. tc_02 is new. `MODEL_CALL_STARTED.messages` is empty because the only
+> new non-tool-result inputs are zero; `toolCallResultIds` lists both tool call IDs whose
+> results fed this call.
 
 **Batch 2** (LLM response + iteration end):
 
@@ -1355,16 +1491,28 @@ sequenceDiagram
 
 | New field | Old data behavior | Migration |
 |-----------|------------------|-----------|
-| `AgentContext.schemaVersion` (int) | Missing → defaults to `0` via Jackson | Bumped to `CURRENT_SCHEMA_VERSION` on first post-upgrade activation |
-| `AgentContext.agentExecutionKey` (@Nullable Long) | Missing → `null` via Jackson | Set after `createExecution()` call |
+| `schemaVersion` on `AgentContext` (int) | Missing → defaults to `0` | Bumped to `CURRENT_SCHEMA_VERSION` on first post-upgrade activation |
+| `agentExecutionKey` on `AgentContext` (@Nullable Long) | Missing → `null` | Set after `createExecution()` call |
 | `Message.id` (@Nullable UUID) | Missing → `null` via Jackson | **Not backfilled** — append-only stores (AWS AgentCore) cannot be rewritten. New messages get IDs; old messages keep `null`. |
+| `ToolCall.traceId` (@Nullable UUID) | Missing → `null` via Jackson | Stamped for all new tool calls at process-variable serialization time (§11.6); legacy tool calls that predate the field keep `null`. |
+| `ToolCallResult.properties.traceId` (propagated from element template) | Missing → falls back to `"tcr:legacy:" + toolCallId` dedup key | Element templates refresh required for full trace-id propagation; WARN logged once per execution when fallback triggers. |
+| `MODEL_CALL_STARTED.historyTruncated` (boolean) | Greenfield (no old events) | Always set at emit time — `false` when no eviction occurred this turn, `true` otherwise. |
+
+> **Persistence location on `AgentContext` is an implementation detail, TBD.** The design doc
+> describes `schemaVersion` and `agentExecutionKey` as fields tracked on `AgentContext`; the
+> PoC may stash them inside the existing `properties` map (which old runtime versions preserve
+> verbatim through round-trip) or add them as top-level record fields. This choice affects
+> resilience to mixed-version clusters during staged upgrades but does not affect the API
+> contract described in this document.
 
 ### 13.3 Element template BC
 
-Pre-upgrade element templates do not produce `completedAt` in the `outputElement` expression.
-When `ToolCallResult.properties()` does not contain `completedAt`, the `TOOL_CALL_RESULT_RECEIVED`
-event falls back to using the tool call result message's timestamp (the time the result was
-processed by the connector).
+Pre-upgrade element templates do not produce `completedAt` or `traceId` in the `outputElement`
+expression. When `ToolCallResult.properties()` does not contain `completedAt`, the
+`TOOL_CALL_RESULT_RECEIVED` event falls back to using the tool call result message's timestamp
+(the time the result was processed by the connector). When it does not contain `traceId`, the
+event falls back to `"tcr:legacy:" + toolCallId` for the dedup key and logs a WARN once per
+execution.
 
 ---
 
@@ -1429,25 +1577,32 @@ all senses; the followup should explicitly choose and document the tradeoff.
 
 ### Included in this solution doc
 
-- `AgentContext` schema changes: `schemaVersion` (int), `agentExecutionKey` (@Nullable Long)
+- `AgentContext` tracking of `schemaVersion` (int) and `agentExecutionKey` (@Nullable Long);
+  persistence location on `AgentContext` is an implementation detail (see §13.2)
 - `Message` hierarchy: `id` field (UUIDv7) on all four message types
+- `ToolCall` / `ToolCallProcessVariable` / `ToolCallResult`: `traceId` (UUIDv7) field for stable
+  tracing correlation, propagated through Zeebe via process variable and element template
 - `tracing` package with all DTOs: `AgentTraceEvent`, `AgentTraceEventPayload` (sealed interface
-  with all payload records), `AgentTraceEventType`, `TokenUsageInfo`,
+  with all payload records including `AgentInitialized`), `AgentTraceEventType`, `TokenUsageInfo`,
   `CreateAgentExecutionRequest`, and the API contract types mirrored from the runtime
   (`Message` family, `Content` family including `TextContent` / `DocumentContent` / `ObjectContent`,
-  `Document`, `DocumentReference`, `DocumentMetadata`, `ToolCall` (carries optional `elementId`),
-  `ToolCallResult`, `ToolDefinition`)
+  `Document`, `DocumentReference`, `DocumentMetadata`, `ToolCall` (carries optional `elementId`
+  and `traceId`), `ToolCallResult`, `ToolDefinition`)
 - `AgentExecutionTraceClient` interface + `InMemoryAgentExecutionTraceClient` (logs structured JSON)
-- `AgentExecutionTraceSession` interface + implementation with `emit()`, `flush()`, `flushAll()`,
-  and `NO_OP` singleton
+- `AgentExecutionTraceSession` interface + implementation with `emit()` and a single `flush()`
+  that tracks acknowledged delivery, plus `NO_OP` singleton
 - Integration in `BaseAgentRequestHandler`: session creation, event emission at all points,
-  flush calls, completion callback wiring
+  flush calls (inline after `ITERATION_COMPLETED`, safety net in completion callback),
+  `AGENT_INITIALIZED` paired with the init `TOOL_DEFINITIONS_CHANGED`
+- `MODEL_CALL_STARTED.historyTruncated` boolean for window-boundary disambiguation
 - Model call duration timing (`System.nanoTime()` around `executeChatRequest()`)
-- Element template change: `completedAt: now()` in `outputElement` expression
+- Element template change: `completedAt: now()` and `traceId: toolCall._meta.traceId` in
+  `outputElement` expression
 - Schema version migration logic in `AgentInitializerImpl`
 - `LIMIT_HIT` emission in `AgentLimitsValidatorImpl`
 - `CONVERSATION_SNAPSHOT` emission on mid-flight upgrade
-- Backwards compatibility for all field additions
+- Backwards compatibility for all field additions, including legacy-fallback dedup key for
+  tool results without `traceId`
 
 ### Deferred to follow-up work
 
