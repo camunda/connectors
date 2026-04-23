@@ -6,13 +6,21 @@
  */
 package io.camunda.connector.appintegrations.model;
 
+import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
+@TemplateLinkedResource(
+    linkName = "formDefinition",
+    resourceType = "form",
+    group = "form",
+    resourceIdLabel = "Form ID",
+    resourceIdDescription =
+        "Optional. ID of the Camunda form to render as an adaptive card in the Teams message. Leave blank to send a plain text message or adaptive card.",
+    bindingTypeLabel = "Form binding")
 public record SendMessageRequest(
     @NotNull @Valid AppIntegrationsConfiguration configuration,
     @TemplateProperty(
@@ -29,18 +37,34 @@ public record SendMessageRequest(
                 "Microsoft Teams channel ID to send to directly, e.g. 19:xxx@thread.tacv2. Use when sending to a channel rather than a user.",
             optional = true)
         String channelId,
-    @NotEmpty
-        @TemplateProperty(
+    @TemplateProperty(
             group = "message",
             label = "Message",
-            description = "Text content to send.",
-            type = PropertyType.Text)
-        String message) {
+            description =
+                "Plain text content to send. Provide either this, an adaptive card, or link a form.",
+            type = PropertyType.Text,
+            optional = true)
+        String message,
+    @TemplateProperty(
+            group = "message",
+            label = "Adaptive card",
+            description =
+                "JSON payload for a custom Teams adaptive card. Provide either this, a plain text message, or link a form.",
+            type = PropertyType.Text,
+            optional = true)
+        String adaptiveCardJson) {
 
   @AssertTrue(message = "Exactly one of 'email' or 'channelId' must be provided")
   public boolean isRecipientValid() {
     boolean hasEmail = email != null && !email.isBlank();
     boolean hasChannelId = channelId != null && !channelId.isBlank();
     return hasEmail ^ hasChannelId;
+  }
+
+  @AssertTrue(message = "'message' and 'adaptiveCardJson' cannot both be provided")
+  public boolean isContentValid() {
+    boolean hasMessage = message != null && !message.isBlank();
+    boolean hasAdaptiveCard = adaptiveCardJson != null && !adaptiveCardJson.isBlank();
+    return !(hasMessage && hasAdaptiveCard);
   }
 }
