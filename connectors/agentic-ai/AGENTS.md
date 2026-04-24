@@ -71,6 +71,16 @@ agent/
 framework/
 ├── AiFrameworkAdapter          # Abstract LLM interface (RuntimeMemory → response)
 └── langchain4j/                # LangChain4J implementation
+    ├── ChatModelFactoryImpl    # Dispatches provider config → LangChain4J ChatModel
+    └── provider/               # Per-provider builder helpers
+
+azurefoundry/                   # Azure AI Foundry runtime (langchain4j-free SDK layer)
+├── AnthropicOnFoundryClientFactory     # Builds AnthropicClient for Foundry endpoint
+├── http/
+│   ├── JdkAnthropicHttpClient          # anthropic-java HttpClient SPI over JDK HTTP
+│   └── BackendAwareAnthropicHttpClient # Injects FoundryBackend URL/auth per-request
+└── langchain4j/
+    └── AnthropicOnFoundryChatModel     # LangChain4J ChatModel adapter (only langchain4j import)
 
 memory/
 ├── conversation/
@@ -87,6 +97,34 @@ tool/
 ├── GatewayToolHandler          # Interface for gateway tools (MCP, A2A)
 └── GatewayToolHandlerRegistry  # Registry of gateway tool handlers
 ```
+
+### LLM Providers
+
+`ChatModelFactoryImpl` dispatches on `ProviderConfiguration` subtypes to create a LangChain4J `ChatModel`:
+
+| Provider            | Config record                        | Notes                                                              |
+|---------------------|--------------------------------------|--------------------------------------------------------------------|
+| Anthropic           | `AnthropicProviderConfiguration`     | Direct Anthropic API                                               |
+| OpenAI              | `OpenAiProviderConfiguration`        | Direct OpenAI API                                                  |
+| OpenAI Compatible   | `OpenAiCompatibleProviderConfiguration` | Custom endpoint, OpenAI wire protocol                           |
+| AWS Bedrock         | `BedrockProviderConfiguration`       | AWS SDK; IAM or static credentials                                 |
+| Google Vertex AI    | `GoogleVertexAiProviderConfiguration`| Service account or ADC credentials                                 |
+| Azure OpenAI        | `AzureOpenAiProviderConfiguration`   | Azure-hosted OpenAI; API key or Entra ID                           |
+| **Azure AI Foundry**| `AzureFoundryProviderConfiguration`  | Unified Foundry resource; dispatches on `modelFamily` (see below)  |
+
+**Azure AI Foundry** (`azureAiFoundry` provider id) gives access to both Anthropic (Claude) and OpenAI (GPT) model
+families from a single Azure AI Foundry resource endpoint:
+
+- `AnthropicModel` → `AnthropicOnFoundryClientFactory.create(...)` builds an `anthropic-java` client using the
+  `anthropic-java-foundry` backend with a custom JDK-backed HttpClient SPI (`JdkAnthropicHttpClient` +
+  `BackendAwareAnthropicHttpClient`). This avoids OkHttp and preserves authenticated-proxy support.
+- `OpenAiModel` → reuses the `buildAzureOpenAiChatModel(...)` helper already used for Azure OpenAI.
+
+ArchUnit rules in `azurefoundry/ArchitectureTest.java` enforce that only the `azurefoundry.langchain4j` subpackage
+may import `dev.langchain4j.*`, keeping the anthropic-java SDK layer framework-agnostic.
+
+For full details, see [docs/reference/ai-agent.md §22](docs/reference/ai-agent.md#22-azure-ai-foundry-provider) and
+[ADR 004](docs/adr/004-azure-ai-foundry-provider.md).
 
 ### Data Model
 
@@ -348,6 +386,8 @@ When making code changes to this module, update the relevant documentation to re
   discovery, Spring configuration.
 - **`docs/reference/a2a.md`**: Update for changes to A2A integration — data model, SDK client layer, async patterns,
   connectors, Spring configuration.
+- **`docs/reference/ai-agent.md §22`**: Update for changes to the Azure AI Foundry runtime — `AnthropicOnFoundryClientFactory`,
+  HttpClient SPI layer, `AnthropicOnFoundryChatModel` adapter, `ChatModelFactoryImpl` dispatch, or ArchUnit rules.
 
 Documentation should stay accurate with the code. If a change adds, removes, or modifies classes, interfaces, data
 model records, configuration properties, error codes, or behavioral contracts documented in the reference files, update
