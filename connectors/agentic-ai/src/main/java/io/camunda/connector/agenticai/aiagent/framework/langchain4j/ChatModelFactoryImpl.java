@@ -13,6 +13,7 @@ import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.mistralai.MistralAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
@@ -24,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.MistralProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
@@ -69,6 +71,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       case BedrockProviderConfiguration bedrock -> createBedrockChatModelBuilder(bedrock).build();
       case GoogleVertexAiProviderConfiguration vertexAi ->
           createGoogleVertexAiChatModelBuilder(vertexAi).build();
+      case MistralProviderConfiguration mistral -> createMistralChatModelBuilder(mistral).build();
       case OpenAiProviderConfiguration openai -> createOpenaiChatModelBuilder(openai).build();
       case OpenAiCompatibleProviderConfiguration openaiCompatible ->
           createOpenaiCompatibleChatModelBuilder(openaiCompatible).build();
@@ -255,6 +258,31 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
 
       builder.defaultRequestParameters(requestParametersBuilder.build());
+    }
+
+    return builder;
+  }
+
+  protected MistralAiChatModel.MistralAiChatModelBuilder createMistralChatModelBuilder(
+      MistralProviderConfiguration configuration) {
+    final var connection = configuration.mistral();
+
+    final var builder =
+        MistralAiChatModel.builder()
+            .apiKey(connection.authentication().apiKey())
+            .modelName(connection.model().model())
+            .timeout(deriveTimeoutSetting(connection.timeouts()))
+            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
+
+    Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
+
+    final var modelParameters = connection.model().parameters();
+    if (modelParameters != null) {
+      Optional.ofNullable(modelParameters.maxTokens()).ifPresent(builder::maxTokens);
+      Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
+      Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
+      Optional.ofNullable(modelParameters.safePrompt()).ifPresent(builder::safePrompt);
+      Optional.ofNullable(modelParameters.randomSeed()).ifPresent(builder::randomSeed);
     }
 
     return builder;
