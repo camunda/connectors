@@ -14,9 +14,11 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistry;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.CustomProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,7 +32,12 @@ class ChatModelFactoryTest {
   @Test
   void delegatesToProviderResolvedFromRegistry() {
     final ProviderConfiguration providerConfig =
-        new CustomProviderConfiguration("my-custom-provider", Map.of("key", "value"));
+        new AnthropicProviderConfiguration(
+            new AnthropicConnection(
+                null,
+                new AnthropicAuthentication("api-key"),
+                null,
+                new AnthropicModel("claude", null)));
     final var expectedChatModel = mock(ChatModel.class);
     final var provider = mock(ChatModelProvider.class);
     when(registry.getChatModelProvider(providerConfig)).thenReturn(provider);

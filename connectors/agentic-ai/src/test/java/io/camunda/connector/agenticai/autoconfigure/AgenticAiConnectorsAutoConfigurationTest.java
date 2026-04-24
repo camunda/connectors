@@ -36,7 +36,6 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.J
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AnthropicChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureOpenAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.BedrockChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
@@ -48,12 +47,10 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.A
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -268,24 +265,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
   }
 
   @Test
-  void customChatModelProviderBeanIsResolvedByRegistry() {
-    contextRunner
-        .withUserConfiguration(CustomChatModelProviderConfig.class)
-        .run(
-            context -> {
-              assertHasAllBeansOf(context, ALL_BEANS);
-
-              final var registry = context.getBean(ChatModelProviderRegistry.class);
-              final var customProvider =
-                  context.getBean("customChatModelProvider", ChatModelProvider.class);
-
-              final var config = new CustomProviderConfiguration("my-custom", Map.of());
-
-              assertThat(registry.getChatModelProvider(config)).isSameAs(customProvider);
-            });
-  }
-
-  @Test
   void userProvidedAnthropicProviderBeanOverridesDefault() {
     new ApplicationContextRunner()
         .withUserConfiguration(TestConfig.class, OverridingAnthropicProviderConfig.class)
@@ -296,15 +275,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
               assertThat(context.getBean(AnthropicChatModelProvider.class))
                   .isSameAs(context.getBean("overridingAnthropicProvider"));
             });
-  }
-
-  static class CustomChatModelProviderConfig {
-    @Bean
-    ChatModelProvider customChatModelProvider() {
-      final var provider = Mockito.mock(ChatModelProvider.class);
-      Mockito.when(provider.type()).thenReturn("my-custom");
-      return provider;
-    }
   }
 
   static class OverridingAnthropicProviderConfig {

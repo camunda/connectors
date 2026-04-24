@@ -108,9 +108,6 @@
     }, {
       "name" : "OpenAI Compatible",
       "value" : "openaiCompatible"
-    }, {
-      "name" : "Custom Implementation (Hybrid/Self-Managed only)",
-      "value" : "custom"
     } ]
   }, {
     "id" : "provider.anthropic.endpoint",
@@ -753,42 +750,6 @@
     "condition" : {
       "property" : "provider.type",
       "equals" : "openaiCompatible",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.providerType",
-    "label" : "Implementation type",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.providerType",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "custom",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.parameters",
-    "label" : "Parameters",
-    "description" : "Parameters for the custom model provider implementation.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.parameters",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "custom",
       "type" : "simple"
     },
     "type" : "String"

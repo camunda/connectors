@@ -11,12 +11,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderCon
 
 /**
  * Factory for a single LLM provider implementation. Implementations are registered in the {@link
- * ChatModelProviderRegistry} by their {@link #type()}.
- *
- * <p>Built-in providers are registered with the same id as the corresponding {@link
- * ProviderConfiguration} discriminator (e.g. {@code anthropic}). Custom providers can be registered
- * under an arbitrary id and resolved through {@link
- * io.camunda.connector.agenticai.aiagent.model.request.provider.CustomProviderConfiguration}.
+ * ChatModelProviderRegistry} by their {@link #type()}, which matches the corresponding {@link
+ * ProviderConfiguration} discriminator (e.g. {@code anthropic}).
  */
 public interface ChatModelProvider {
 

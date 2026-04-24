@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.ANTHROPIC_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BEDROCK_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.CustomProviderConfiguration.CUSTOM_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OPENAI_ID;
@@ -27,8 +26,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
   @JsonSubTypes.Type(value = OpenAiProviderConfiguration.class, name = OPENAI_ID),
   @JsonSubTypes.Type(
       value = OpenAiCompatibleProviderConfiguration.class,
-      name = OPENAI_COMPATIBLE_ID),
-  @JsonSubTypes.Type(value = CustomProviderConfiguration.class, name = CUSTOM_ID)
+      name = OPENAI_COMPATIBLE_ID)
 })
 @TemplateDiscriminatorProperty(
     label = "Provider",
@@ -42,16 +40,8 @@ public sealed interface ProviderConfiguration
         AzureOpenAiProviderConfiguration,
         GoogleVertexAiProviderConfiguration,
         OpenAiProviderConfiguration,
-        OpenAiCompatibleProviderConfiguration,
-        CustomProviderConfiguration {
+        OpenAiCompatibleProviderConfiguration {
 
-  /**
-   * The identifier of the chat model provider responsible for handling this configuration.
-   *
-   * <p>Built-in providers return their discriminator id (e.g. {@code anthropic}). Custom
-   * configurations return the user-defined implementation type so custom {@link
-   * io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider} beans
-   * can be resolved from the registry.
-   */
+  /** Identifier of the provider implementation used to resolve the backing chat model. */
   String providerId();
 }

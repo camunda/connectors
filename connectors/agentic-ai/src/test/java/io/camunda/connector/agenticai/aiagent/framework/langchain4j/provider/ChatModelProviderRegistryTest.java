@@ -11,43 +11,46 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.model.request.provider.CustomProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ChatModelProviderRegistryTest {
 
   @Test
   void resolvesProviderByType() {
-    final var customProvider = providerFor("my-custom");
+    final var anthropicProvider = providerFor(AnthropicProviderConfiguration.ANTHROPIC_ID);
     final var otherProvider = providerFor("other");
 
-    final var registry = new ChatModelProviderRegistry(List.of(customProvider, otherProvider));
+    final var registry = new ChatModelProviderRegistry(List.of(anthropicProvider, otherProvider));
 
-    final var config = new CustomProviderConfiguration("my-custom", Map.of("key", "value"));
+    final ProviderConfiguration config = validAnthropicConfig();
 
-    assertThat(registry.getChatModelProvider(config)).isSameAs(customProvider);
+    assertThat(registry.getChatModelProvider(config)).isSameAs(anthropicProvider);
   }
 
   @Test
   void resolvesProviderRegisteredViaRegisterMethod() {
     final var registry = new ChatModelProviderRegistry();
-    final var provider = providerFor("my-custom");
+    final var provider = providerFor(AnthropicProviderConfiguration.ANTHROPIC_ID);
     registry.registerChatModelProvider(provider);
 
-    assertThat(registry.getChatModelProvider(new CustomProviderConfiguration("my-custom", null)))
-        .isSameAs(provider);
+    assertThat(registry.getChatModelProvider(validAnthropicConfig())).isSameAs(provider);
   }
 
   @Test
   void throwsWhenNoProviderRegisteredForType() {
     final var registry = new ChatModelProviderRegistry();
-    final var config = new CustomProviderConfiguration("unknown", null);
 
-    assertThatThrownBy(() -> registry.getChatModelProvider(config))
+    assertThatThrownBy(() -> registry.getChatModelProvider(validAnthropicConfig()))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("No chat model provider registered for provider type: unknown");
+        .hasMessageContaining(
+            "No chat model provider registered for provider type: "
+                + AnthropicProviderConfiguration.ANTHROPIC_ID);
   }
 
   @Test
@@ -83,5 +86,14 @@ class ChatModelProviderRegistryTest {
     final var provider = mock(ChatModelProvider.class);
     when(provider.type()).thenReturn(type);
     return provider;
+  }
+
+  private static AnthropicProviderConfiguration validAnthropicConfig() {
+    return new AnthropicProviderConfiguration(
+        new AnthropicConnection(
+            null,
+            new AnthropicAuthentication("api-key"),
+            null,
+            new AnthropicModel("claude", null)));
   }
 }
