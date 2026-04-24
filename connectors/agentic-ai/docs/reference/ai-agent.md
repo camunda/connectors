@@ -32,7 +32,8 @@ For A2A integration details, see [`a2a.md`](a2a.md).
 19. [Gateway Tool Pattern](#19-gateway-tool-pattern)
 20. [MCP Integration](#20-mcp-integration)
 21. [A2A Integration](#21-a2a-integration)
-22. [Examples Directory Reference](#22-examples)
+22. [Azure AI Foundry Provider](#22-azure-ai-foundry-provider)
+23. [Examples Directory Reference](#23-examples)
 
 ---
 
@@ -802,8 +803,10 @@ The agent core is framework-agnostic. `AiFrameworkAdapter` abstracts:
 
 The current (and only) implementation uses LangChain4J:
 - Configured via `AgenticAiLangchain4JFrameworkConfiguration`
-- Supports multiple providers: Anthropic, OpenAI, AWS Bedrock, Google Vertex AI, Azure OpenAI, OpenAI Compatible
+- Supports multiple providers: Anthropic, OpenAI, AWS Bedrock, Google Vertex AI, Azure OpenAI, OpenAI Compatible, Azure AI Foundry
 - **Does NOT use LangChain4J's built-in tool execution** — tool calls are returned as data, execution happens via BPMN
+
+For the Azure AI Foundry provider specifically, see [§22 Azure AI Foundry Provider](#22-azure-ai-foundry-provider).
 
 ### Converter Chain Architecture
 
@@ -1048,7 +1051,9 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `Langchain4JAiFrameworkAdapter.executeChatRequest()` → Main LLM call path
 - `ChatMessageConverterImpl` → Message conversion chain
 - `ToolSpecificationConverterImpl` → Tool definition conversion
-- `ChatModelFactoryImpl` → Provider-specific ChatModel creation
+- `ChatModelFactoryImpl` → Provider-specific ChatModel creation (see [§22](#22-azure-ai-foundry-provider) for Azure AI Foundry)
+- `AnthropicOnFoundryClientFactory` → Builds Foundry Anthropic client (custom JDK HttpClient SPI)
+- `AnthropicOnFoundryChatModel` → LangChain4J `ChatModel` adapter for Foundry Anthropic
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
@@ -1350,9 +1355,65 @@ For the complete A2A reference including data model, connector modes, SDK client
 
 ---
 
-<a id="22-examples"></a>
+<a id="22-azure-ai-foundry-provider"></a>
 
-## 22. Examples Directory Reference
+## 22. Azure AI Foundry Provider
+
+The Azure AI Foundry provider (`azureAiFoundry`) gives the AI Agent access to both Anthropic (Claude) and OpenAI
+(GPT) model families deployed behind a single Azure AI Foundry resource endpoint. It was introduced in Milestone 2
+of the Foundry integration — see [ADR 004](../adr/004-azure-ai-foundry-provider.md) for decision context.
+
+### Dispatch by model family
+
+`ChatModelFactoryImpl.createChatModel(AzureFoundryProviderConfiguration)` switches on the sealed
+`AzureAiFoundryModel` discriminator (`family` JSON field):
+
+| `family`    | Route                                                                                                     |
+|-------------|-----------------------------------------------------------------------------------------------------------|
+| `anthropic` | `AnthropicOnFoundryClientFactory.create(...)` → `AnthropicOnFoundryChatModel`                            |
+| `openai`    | Shared `buildAzureOpenAiChatModel(...)` helper → `AzureOpenAiChatModel` (reuses Azure OpenAI code path)  |
+
+### Anthropic path: custom HttpClient SPI
+
+The Anthropic on Foundry path uses the `anthropic-java-core` + `anthropic-java-foundry` SDK
+(v2.26.0) without OkHttp, so that JDK-level authenticated proxies are preserved.
+
+**Package layout:**
+
+| Package                                                            | Contents                                                             |
+|--------------------------------------------------------------------|----------------------------------------------------------------------|
+| `io.camunda.connector.agenticai.azurefoundry`                      | `AnthropicOnFoundryClientFactory` — builds `AnthropicClient`         |
+| `io.camunda.connector.agenticai.azurefoundry.http`                 | `JdkAnthropicHttpClient` (SPI impl over `java.net.http.HttpClient`); `BackendAwareAnthropicHttpClient` (injects `FoundryBackend` URL/auth per-request) |
+| `io.camunda.connector.agenticai.azurefoundry.langchain4j`          | `AnthropicOnFoundryChatModel` — LangChain4J `ChatModel` adapter      |
+
+`AnthropicOnFoundryClientFactory` wires the chain: `JdkAnthropicHttpClient` →
+`BackendAwareAnthropicHttpClient` → `AnthropicClientImpl` (with `FoundryBackend` as the URL/auth
+source) → `AnthropicOnFoundryChatModel`.
+
+### ArchUnit boundary enforcement
+
+`azurefoundry/ArchitectureTest.java` contains two rules:
+
+1. **`sdk_layer_must_not_depend_on_langchain4j`** — only `azurefoundry.langchain4j` may import
+   `dev.langchain4j.*`. The factory and HTTP SPI layers must survive a future framework swap unchanged.
+2. **`azurefoundry_must_not_depend_on_agent_framework_internals`** — the Foundry packages must not
+   import `aiagent.agent`, `aiagent.memory`, or `adhoctoolsschema`; the sole integration point is
+   the `ChatModel` interface.
+
+### Key classes
+
+| Class                           | Package                   | Purpose                                                   |
+|---------------------------------|---------------------------|-----------------------------------------------------------|
+| `AnthropicOnFoundryClientFactory` | `azurefoundry`          | Builds `AnthropicClient` from endpoint + auth config      |
+| `JdkAnthropicHttpClient`        | `azurefoundry.http`       | anthropic-java `HttpClient` SPI backed by JDK HTTP client |
+| `BackendAwareAnthropicHttpClient` | `azurefoundry.http`     | Wraps `JdkAnthropicHttpClient`; sets backend URL and auth |
+| `AnthropicOnFoundryChatModel`   | `azurefoundry.langchain4j`| LangChain4J `ChatModel` over `AnthropicClient`            |
+
+---
+
+<a id="23-examples"></a>
+
+## 23. Examples Directory Reference
 
 The `examples/` directory contains reference BPMN processes and configurations. When making code changes that affect
 connector behavior, element template properties, or data model shapes, update the relevant examples to stay in sync.
