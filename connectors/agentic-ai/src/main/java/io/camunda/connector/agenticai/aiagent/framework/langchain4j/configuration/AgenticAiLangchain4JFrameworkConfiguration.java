@@ -23,7 +23,6 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Azu
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.BedrockChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistry;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
@@ -112,7 +111,7 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   @ConditionalOnMissingBean
   public ChatModelProviderRegistry langchain4JChatModelProviderRegistry(
       List<ChatModelProvider> chatModelProviders) {
-    return new ChatModelProviderRegistryImpl(chatModelProviders);
+    return new ChatModelProviderRegistry(chatModelProviders);
   }
 
   @Bean

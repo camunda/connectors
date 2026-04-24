@@ -7,11 +7,44 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- * Registry used to resolve a {@link ChatModelProvider} for a given {@link ProviderConfiguration}.
- */
-public interface ChatModelProviderRegistry {
+public class ChatModelProviderRegistry {
 
-  ChatModelProvider getChatModelProvider(ProviderConfiguration providerConfiguration);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelProviderRegistry.class);
+
+  private final Map<String, ChatModelProvider> chatModelProviders = new HashMap<>();
+
+  public ChatModelProviderRegistry() {}
+
+  public ChatModelProviderRegistry(List<ChatModelProvider> chatModelProviders) {
+    chatModelProviders.forEach(this::registerChatModelProvider);
+  }
+
+  public void registerChatModelProvider(final ChatModelProvider chatModelProvider) {
+    final var type = chatModelProvider.type();
+    if (chatModelProviders.containsKey(type)) {
+      throw new IllegalArgumentException(
+          "Chat model provider with type '%s' is already registered.".formatted(type));
+    }
+
+    LOGGER.debug("Registering chat model provider of type '{}'", type);
+
+    chatModelProviders.put(type, chatModelProvider);
+  }
+
+  public ChatModelProvider getChatModelProvider(ProviderConfiguration providerConfiguration) {
+    final var providerId = providerConfiguration.providerId();
+    final var chatModelProvider = chatModelProviders.get(providerId);
+    if (chatModelProvider == null) {
+      throw new IllegalStateException(
+          "No chat model provider registered for provider type: %s".formatted(providerId));
+    }
+
+    return chatModelProvider;
+  }
 }

@@ -16,14 +16,14 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class ChatModelProviderRegistryImplTest {
+class ChatModelProviderRegistryTest {
 
   @Test
   void resolvesProviderByType() {
     final var customProvider = providerFor("my-custom");
     final var otherProvider = providerFor("other");
 
-    final var registry = new ChatModelProviderRegistryImpl(List.of(customProvider, otherProvider));
+    final var registry = new ChatModelProviderRegistry(List.of(customProvider, otherProvider));
 
     final var config = new CustomProviderConfiguration("my-custom", Map.of("key", "value"));
 
@@ -32,7 +32,7 @@ class ChatModelProviderRegistryImplTest {
 
   @Test
   void resolvesProviderRegisteredViaRegisterMethod() {
-    final var registry = new ChatModelProviderRegistryImpl();
+    final var registry = new ChatModelProviderRegistry();
     final var provider = providerFor("my-custom");
     registry.registerChatModelProvider(provider);
 
@@ -42,7 +42,7 @@ class ChatModelProviderRegistryImplTest {
 
   @Test
   void throwsWhenNoProviderRegisteredForType() {
-    final var registry = new ChatModelProviderRegistryImpl();
+    final var registry = new ChatModelProviderRegistry();
     final var config = new CustomProviderConfiguration("unknown", null);
 
     assertThatThrownBy(() -> registry.getChatModelProvider(config))
@@ -54,7 +54,7 @@ class ChatModelProviderRegistryImplTest {
   void throwsWhenRegisteringDuplicateProviderViaConstructor() {
     assertThatThrownBy(
             () ->
-                new ChatModelProviderRegistryImpl(
+                new ChatModelProviderRegistry(
                     List.of(providerFor("duplicate"), providerFor("duplicate"))))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Chat model provider with type 'duplicate' is already registered.");
@@ -62,7 +62,7 @@ class ChatModelProviderRegistryImplTest {
 
   @Test
   void throwsWhenRegisteringDuplicateProviderViaRegisterMethod() {
-    final var registry = new ChatModelProviderRegistryImpl();
+    final var registry = new ChatModelProviderRegistry();
     registry.registerChatModelProvider(providerFor("duplicate"));
 
     assertThatThrownBy(() -> registry.registerChatModelProvider(providerFor("duplicate")))
@@ -72,7 +72,7 @@ class ChatModelProviderRegistryImplTest {
 
   @Test
   void throwsWhenRegisteringDuplicateProviderViaAdditionalRegisterMethod() {
-    final var registry = new ChatModelProviderRegistryImpl(List.of(providerFor("duplicate")));
+    final var registry = new ChatModelProviderRegistry(List.of(providerFor("duplicate")));
 
     assertThatThrownBy(() -> registry.registerChatModelProvider(providerFor("duplicate")))
         .isInstanceOf(IllegalArgumentException.class)
