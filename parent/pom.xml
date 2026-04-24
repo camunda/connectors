@@ -106,6 +106,8 @@ limitations under the License.</license.inlineheader>
 
     <version.localstack>2.0.5</version.localstack>
 
+    <version.anthropic-java>2.26.0</version.anthropic-java>
+    <version.archunit>1.3.0</version.archunit>
     <version.okhttp>4.12.0</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
     <version.opensearch-client>2.26.0</version.opensearch-client>
@@ -453,6 +455,17 @@ limitations under the License.</license.inlineheader>
         <groupId>com.google.cloud</groupId>
         <artifactId>spring-cloud-gcp-logging</artifactId>
         <version>${version.spring-cloud-gcp-starter-logging}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.anthropic</groupId>
+        <artifactId>anthropic-java-core</artifactId>
+        <version>${version.anthropic-java}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.anthropic</groupId>
+        <artifactId>anthropic-java-foundry</artifactId>
+        <version>${version.anthropic-java}</version>
       </dependency>
 
       <dependency>
@@ -852,6 +865,12 @@ limitations under the License.</license.inlineheader>
         <artifactId>system-stubs-jupiter</artifactId>
         <version>${version.system-stubs}</version>
         <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>com.tngtech.archunit</groupId>
+        <artifactId>archunit-junit5</artifactId>
+        <version>${version.archunit}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
