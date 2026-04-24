@@ -24,7 +24,6 @@ import com.anthropic.core.http.HttpRequestBody;
 import com.anthropic.core.http.HttpResponse;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -148,8 +147,12 @@ class JdkAnthropicHttpClientTest {
   private static HttpRequestBody jsonBody(byte[] bytes) {
     return new HttpRequestBody() {
       @Override
-      public void writeTo(OutputStream out) throws IOException {
-        out.write(bytes);
+      public void writeTo(OutputStream out) {
+        try {
+          out.write(bytes);
+        } catch (java.io.IOException e) {
+          throw new RuntimeException(e);
+        }
       }
 
       @Override
