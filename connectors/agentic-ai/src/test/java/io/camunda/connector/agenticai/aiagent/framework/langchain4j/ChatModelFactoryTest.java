@@ -32,6 +32,8 @@ import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.mistralai.MistralAiChatModel;
+import dev.langchain4j.model.mistralai.MistralAiChatModel.MistralAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
@@ -58,6 +60,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVerte
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.MistralProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.MistralProviderConfiguration.MistralAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.MistralProviderConfiguration.MistralConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.MistralProviderConfiguration.MistralModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.MistralProviderConfiguration.MistralModel.MistralModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel.OpenAiCompatibleModelParameters;
@@ -865,6 +872,136 @@ class ChatModelFactoryTest {
 
     static Stream<OpenAiModelParameters> nullModelParameters() {
       return Stream.of(new OpenAiModelParameters(null, null, null));
+    }
+  }
+
+  @Nested
+  class MistralChatModelFactoryTest {
+
+    private static final String MISTRAL_API_KEY = "mistralApiKey";
+    private static final String MISTRAL_MODEL = "mistral-large-latest";
+    private static final String CUSTOM_ENDPOINT = "https://mistral.custom.local/v1";
+
+    private static final MistralModelParameters DEFAULT_MODEL_PARAMETERS =
+        new MistralModelParameters(1000, 0.7, 0.9, true, 42);
+
+    @Test
+    void createsMistralChatModel() {
+      final var providerConfig =
+          new MistralProviderConfiguration(
+              new MistralConnection(
+                  null,
+                  new MistralAuthentication(MISTRAL_API_KEY),
+                  MODEL_TIMEOUT,
+                  new MistralModel(MISTRAL_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testMistralChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).timeout(MODEL_TIMEOUT.timeout());
+            verify(builder).apiKey(MISTRAL_API_KEY);
+            verify(builder).modelName(MISTRAL_MODEL);
+            verify(builder, never()).baseUrl(any());
+            verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
+            verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
+            verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
+            verify(builder).safePrompt(DEFAULT_MODEL_PARAMETERS.safePrompt());
+            verify(builder).randomSeed(DEFAULT_MODEL_PARAMETERS.randomSeed());
+          });
+    }
+
+    @Test
+    void createsMistralChatModelWithCustomEndpoint() {
+      final var providerConfig =
+          new MistralProviderConfiguration(
+              new MistralConnection(
+                  CUSTOM_ENDPOINT,
+                  new MistralAuthentication(MISTRAL_API_KEY),
+                  MODEL_TIMEOUT,
+                  new MistralModel(MISTRAL_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testMistralChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).timeout(MODEL_TIMEOUT.timeout());
+            verify(builder).apiKey(MISTRAL_API_KEY);
+            verify(builder).modelName(MISTRAL_MODEL);
+            verify(builder).baseUrl(CUSTOM_ENDPOINT);
+            verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
+            verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
+            verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
+            verify(builder).safePrompt(DEFAULT_MODEL_PARAMETERS.safePrompt());
+            verify(builder).randomSeed(DEFAULT_MODEL_PARAMETERS.randomSeed());
+          });
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#defaultTimeoutYieldingConfigs")
+    void shouldUseDefaultTimeout(TimeoutConfiguration timeoutConfiguration) {
+      final var providerConfig =
+          new MistralProviderConfiguration(
+              new MistralConnection(
+                  null,
+                  new MistralAuthentication(MISTRAL_API_KEY),
+                  timeoutConfiguration,
+                  new MistralModel(MISTRAL_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testMistralChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder)
+                .timeout(createDefaultConfigurationProperties().aiagent().chatModel().api().defaultTimeout());
+          });
+    }
+
+    @ParameterizedTest
+    @MethodSource("nullModelParameters")
+    void shouldHandleNullModelParameters(MistralModelParameters modelParameters) {
+      final var providerConfig =
+          new MistralProviderConfiguration(
+              new MistralConnection(
+                  null,
+                  new MistralAuthentication(MISTRAL_API_KEY),
+                  MODEL_TIMEOUT,
+                  new MistralModel(MISTRAL_MODEL, modelParameters)));
+
+      testMistralChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).timeout(MODEL_TIMEOUT.timeout());
+            verify(builder).apiKey(MISTRAL_API_KEY);
+            verify(builder).modelName(MISTRAL_MODEL);
+            verify(builder, never()).maxTokens(anyInt());
+            verify(builder, never()).temperature(anyDouble());
+            verify(builder, never()).topP(anyDouble());
+            verify(builder, never()).safePrompt(any());
+            verify(builder, never()).randomSeed(anyInt());
+          });
+    }
+
+    private void testMistralChatModelBuilder(
+        MistralProviderConfiguration providerConfig,
+        ThrowingConsumer<MistralAiChatModelBuilder> builderAssertions) {
+      final var chatModelBuilder = spy(MistralAiChatModel.builder());
+      final var chatModelResultCaptor = new ResultCaptor<MistralAiChatModel>();
+      doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
+
+      try (MockedStatic<MistralAiChatModel> chatModelMock =
+          mockStatic(MistralAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
+        chatModelMock.when(MistralAiChatModel::builder).thenReturn(chatModelBuilder);
+
+        final var chatModel = chatModelFactory.createChatModel(providerConfig);
+        assertThat(chatModel).isNotNull().isInstanceOf(MistralAiChatModel.class);
+        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+
+        verify(proxySupport).createJdkHttpClientBuilder();
+        builderAssertions.accept(chatModelBuilder);
+      }
+    }
+
+    static Stream<MistralModelParameters> nullModelParameters() {
+      return Stream.of(new MistralModelParameters(null, null, null, null, null));
     }
   }
 
