@@ -19,8 +19,10 @@ import com.anthropic.errors.InternalServerException;
 import com.anthropic.errors.RateLimitException;
 import com.anthropic.errors.UnauthorizedException;
 import com.anthropic.models.messages.ContentBlock;
+import com.anthropic.models.messages.DirectCaller;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
+import com.anthropic.models.messages.Model;
 import com.anthropic.models.messages.StopReason;
 import com.anthropic.models.messages.TextBlock;
 import com.anthropic.models.messages.ToolUseBlock;
@@ -41,6 +43,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundr
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -67,20 +70,65 @@ class AnthropicOnFoundryChatModelTest {
     adapter = new AnthropicOnFoundryChatModel(mockClient, modelConfig);
   }
 
+  // -------------------------------------------------------------------------
+  // Test fixture helpers — SDK builders are strict about required fields
+  // -------------------------------------------------------------------------
+
+  /** Build a minimal Usage with all required fields set. */
+  private static Usage usage(long inputTokens, long outputTokens) {
+    return Usage.builder()
+        .inputTokens(inputTokens)
+        .outputTokens(outputTokens)
+        .cacheCreation(Optional.empty())
+        .cacheCreationInputTokens(Optional.empty())
+        .cacheReadInputTokens(Optional.empty())
+        .inferenceGeo(Optional.empty())
+        .serverToolUse(Optional.empty())
+        .serviceTier(Optional.empty())
+        .build();
+  }
+
+  /** Build a minimal TextBlock with all required fields set. */
+  private static TextBlock textBlock(String text) {
+    return TextBlock.builder().text(text).citations(Optional.empty()).build();
+  }
+
+  /** Build a minimal ToolUseBlock with all required fields set. */
+  private static ToolUseBlock toolUseBlock(String id, String name, JsonValue input) {
+    return ToolUseBlock.builder()
+        .id(id)
+        .name(name)
+        .input(input)
+        .caller(ToolUseBlock.Caller.ofDirect(DirectCaller.builder().build()))
+        .build();
+  }
+
+  /** Build a Message with all required fields set. */
+  private static Message message(
+      String id, List<ContentBlock> blocks, StopReason stopReason, Usage usageValue) {
+    var builder =
+        Message.builder()
+            .id(id)
+            .model(Model.CLAUDE_SONNET_4_0)
+            .stopReason(Optional.of(stopReason))
+            .stopDetails(Optional.empty())
+            .stopSequence(Optional.empty())
+            .usage(usageValue);
+    for (ContentBlock block : blocks) {
+      builder.addContent(block);
+    }
+    return builder.build();
+  }
+
+  // -------------------------------------------------------------------------
+  // Tests
+  // -------------------------------------------------------------------------
+
   @Test
   void translates_text_response_to_ai_message() {
     // given
-    var textBlock = TextBlock.builder().text("Hello, world!").build();
-    var contentBlock = ContentBlock.ofText(textBlock);
-    var usage = Usage.builder().inputTokens(10).outputTokens(5).build();
-    var message =
-        Message.builder()
-            .id("msg_001")
-            .model("claude-3-5-sonnet-20241022")
-            .addContent(contentBlock)
-            .stopReason(StopReason.END_TURN)
-            .usage(usage)
-            .build();
+    var contentBlock = ContentBlock.ofText(textBlock("Hello, world!"));
+    var message = message("msg_001", List.of(contentBlock), StopReason.END_TURN, usage(10, 5));
     when(mockMessageService.create(any(MessageCreateParams.class))).thenReturn(message);
 
     var request = ChatRequest.builder().messages(List.of(new UserMessage("Hi"))).build();
@@ -101,21 +149,12 @@ class AnthropicOnFoundryChatModelTest {
   void translates_tool_use_response_to_tool_execution_requests() {
     // given
     var toolUseBlock =
-        ToolUseBlock.builder()
-            .id("toolu_01XFDUDYJgAACTU9bRTQE47m")
-            .name("get_weather")
-            .input(JsonValue.from(java.util.Map.of("location", "San Francisco, CA")))
-            .build();
+        toolUseBlock(
+            "toolu_01XFDUDYJgAACTU9bRTQE47m",
+            "get_weather",
+            JsonValue.from(java.util.Map.of("location", "San Francisco, CA")));
     var contentBlock = ContentBlock.ofToolUse(toolUseBlock);
-    var usage = Usage.builder().inputTokens(20).outputTokens(8).build();
-    var message =
-        Message.builder()
-            .id("msg_002")
-            .model("claude-3-5-sonnet-20241022")
-            .addContent(contentBlock)
-            .stopReason(StopReason.TOOL_USE)
-            .usage(usage)
-            .build();
+    var message = message("msg_002", List.of(contentBlock), StopReason.TOOL_USE, usage(20, 8));
     when(mockMessageService.create(any(MessageCreateParams.class))).thenReturn(message);
 
     var request =
@@ -139,16 +178,8 @@ class AnthropicOnFoundryChatModelTest {
   @Test
   void translates_max_tokens_stop_reason_to_LENGTH() {
     // given
-    var textBlock = TextBlock.builder().text("Partial response...").build();
-    var usage = Usage.builder().inputTokens(15).outputTokens(1024).build();
-    var message =
-        Message.builder()
-            .id("msg_003")
-            .model("claude-3-5-sonnet-20241022")
-            .addContent(textBlock)
-            .stopReason(StopReason.MAX_TOKENS)
-            .usage(usage)
-            .build();
+    var contentBlock = ContentBlock.ofText(textBlock("Partial response..."));
+    var message = message("msg_003", List.of(contentBlock), StopReason.MAX_TOKENS, usage(15, 1024));
     when(mockMessageService.create(any(MessageCreateParams.class))).thenReturn(message);
 
     var request =
@@ -165,16 +196,8 @@ class AnthropicOnFoundryChatModelTest {
   @Test
   void translates_system_and_tool_result_messages_in_request() {
     // given
-    var usage = Usage.builder().inputTokens(30).outputTokens(10).build();
-    var textBlock = TextBlock.builder().text("Done").build();
-    var message =
-        Message.builder()
-            .id("msg_004")
-            .model("claude-3-5-sonnet-20241022")
-            .addContent(textBlock)
-            .stopReason(StopReason.END_TURN)
-            .usage(usage)
-            .build();
+    var contentBlock = ContentBlock.ofText(textBlock("Done"));
+    var message = message("msg_004", List.of(contentBlock), StopReason.END_TURN, usage(30, 10));
     when(mockMessageService.create(any(MessageCreateParams.class))).thenReturn(message);
 
     var toolRequest =
