@@ -30,6 +30,7 @@ class ChatModelFactoryTest {
   private final ChatModelFactory chatModelFactory = new ChatModelFactoryImpl(registry);
 
   @Test
+  @SuppressWarnings("unchecked")
   void delegatesToProviderResolvedFromRegistry() {
     final ProviderConfiguration providerConfig =
         new AnthropicProviderConfiguration(
@@ -39,7 +40,7 @@ class ChatModelFactoryTest {
                 null,
                 new AnthropicModel("claude", null)));
     final var expectedChatModel = mock(ChatModel.class);
-    final var provider = mock(ChatModelProvider.class);
+    final ChatModelProvider<ProviderConfiguration> provider = mock(ChatModelProvider.class);
     when(registry.getChatModelProvider(providerConfig)).thenReturn(provider);
     when(provider.createChatModel(providerConfig)).thenReturn(expectedChatModel);
 

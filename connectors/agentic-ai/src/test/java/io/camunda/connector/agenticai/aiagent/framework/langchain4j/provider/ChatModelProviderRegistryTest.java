@@ -82,8 +82,8 @@ class ChatModelProviderRegistryTest {
         .hasMessageContaining("Chat model provider with type 'duplicate' is already registered.");
   }
 
-  private static ChatModelProvider providerFor(String type) {
-    final var provider = mock(ChatModelProvider.class);
+  private static ChatModelProvider<?> providerFor(String type) {
+    final ChatModelProvider<?> provider = mock(ChatModelProvider.class);
     when(provider.type()).thenReturn(type);
     return provider;
   }

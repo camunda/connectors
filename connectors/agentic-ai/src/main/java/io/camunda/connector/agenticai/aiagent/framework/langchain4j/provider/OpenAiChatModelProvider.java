@@ -11,11 +11,11 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import java.util.Optional;
 
-public class OpenAiChatModelProvider extends AbstractChatModelProvider {
+public class OpenAiChatModelProvider
+    extends AbstractChatModelProvider<OpenAiProviderConfiguration> {
 
   private final ChatModelHttpProxySupport proxySupport;
 
@@ -32,13 +32,7 @@ public class OpenAiChatModelProvider extends AbstractChatModelProvider {
   }
 
   @Override
-  public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
-    if (!(providerConfiguration instanceof OpenAiProviderConfiguration openai)) {
-      throw new IllegalArgumentException(
-          "Expected OpenAiProviderConfiguration but got "
-              + providerConfiguration.getClass().getSimpleName());
-    }
-
+  public ChatModel createChatModel(OpenAiProviderConfiguration openai) {
     final var connection = openai.openai();
 
     final var builder =

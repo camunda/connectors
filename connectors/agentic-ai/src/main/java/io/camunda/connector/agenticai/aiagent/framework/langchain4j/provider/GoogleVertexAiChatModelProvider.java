@@ -11,7 +11,6 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.io.ByteArrayInputStream;
@@ -21,7 +20,8 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GoogleVertexAiChatModelProvider extends AbstractChatModelProvider {
+public class GoogleVertexAiChatModelProvider
+    extends AbstractChatModelProvider<GoogleVertexAiProviderConfiguration> {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(GoogleVertexAiChatModelProvider.class);
@@ -37,13 +37,7 @@ public class GoogleVertexAiChatModelProvider extends AbstractChatModelProvider {
   }
 
   @Override
-  public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
-    if (!(providerConfiguration instanceof GoogleVertexAiProviderConfiguration vertexAi)) {
-      throw new IllegalArgumentException(
-          "Expected GoogleVertexAiProviderConfiguration but got "
-              + providerConfiguration.getClass().getSimpleName());
-    }
-
+  public ChatModel createChatModel(GoogleVertexAiProviderConfiguration vertexAi) {
     final var connection = vertexAi.googleVertexAi();
     final var builder =
         VertexAiGeminiChatModel.builder()

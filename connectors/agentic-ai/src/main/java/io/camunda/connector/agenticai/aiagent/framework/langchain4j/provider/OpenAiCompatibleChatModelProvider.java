@@ -12,14 +12,14 @@ import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OpenAiCompatibleChatModelProvider extends AbstractChatModelProvider {
+public class OpenAiCompatibleChatModelProvider
+    extends AbstractChatModelProvider<OpenAiCompatibleProviderConfiguration> {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(OpenAiCompatibleChatModelProvider.class);
@@ -39,14 +39,7 @@ public class OpenAiCompatibleChatModelProvider extends AbstractChatModelProvider
   }
 
   @Override
-  public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
-    if (!(providerConfiguration
-        instanceof OpenAiCompatibleProviderConfiguration openaiCompatible)) {
-      throw new IllegalArgumentException(
-          "Expected OpenAiCompatibleProviderConfiguration but got "
-              + providerConfiguration.getClass().getSimpleName());
-    }
-
+  public ChatModel createChatModel(OpenAiCompatibleProviderConfiguration openaiCompatible) {
     final var connection = openaiCompatible.openaiCompatible();
 
     final var builder =

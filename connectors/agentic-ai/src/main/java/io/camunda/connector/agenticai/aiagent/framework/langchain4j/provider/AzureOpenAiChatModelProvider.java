@@ -13,12 +13,12 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHtt
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
-public class AzureOpenAiChatModelProvider extends AbstractChatModelProvider {
+public class AzureOpenAiChatModelProvider
+    extends AbstractChatModelProvider<AzureOpenAiProviderConfiguration> {
 
   private final ChatModelHttpProxySupport proxySupport;
 
@@ -35,13 +35,7 @@ public class AzureOpenAiChatModelProvider extends AbstractChatModelProvider {
   }
 
   @Override
-  public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
-    if (!(providerConfiguration instanceof AzureOpenAiProviderConfiguration azureOpenAi)) {
-      throw new IllegalArgumentException(
-          "Expected AzureOpenAiProviderConfiguration but got "
-              + providerConfiguration.getClass().getSimpleName());
-    }
-
+  public ChatModel createChatModel(AzureOpenAiProviderConfiguration azureOpenAi) {
     final var connection = azureOpenAi.azureOpenAi();
     final var builder =
         AzureOpenAiChatModel.builder()

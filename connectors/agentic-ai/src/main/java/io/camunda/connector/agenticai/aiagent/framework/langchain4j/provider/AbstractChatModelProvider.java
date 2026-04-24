@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import java.time.Duration;
@@ -14,7 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Base class for built-in {@link ChatModelProvider} implementations. */
-public abstract class AbstractChatModelProvider implements ChatModelProvider {
+public abstract class AbstractChatModelProvider<T extends ProviderConfiguration>
+    implements ChatModelProvider<T> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractChatModelProvider.class);
 

@@ -10,11 +10,11 @@ import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import java.util.Optional;
 
-public class AnthropicChatModelProvider extends AbstractChatModelProvider {
+public class AnthropicChatModelProvider
+    extends AbstractChatModelProvider<AnthropicProviderConfiguration> {
 
   private final ChatModelHttpProxySupport proxySupport;
 
@@ -31,13 +31,7 @@ public class AnthropicChatModelProvider extends AbstractChatModelProvider {
   }
 
   @Override
-  public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
-    if (!(providerConfiguration instanceof AnthropicProviderConfiguration anthropic)) {
-      throw new IllegalArgumentException(
-          "Expected AnthropicProviderConfiguration but got "
-              + providerConfiguration.getClass().getSimpleName());
-    }
-
+  public ChatModel createChatModel(AnthropicProviderConfiguration anthropic) {
     final var connection = anthropic.anthropic();
 
     final var builder =

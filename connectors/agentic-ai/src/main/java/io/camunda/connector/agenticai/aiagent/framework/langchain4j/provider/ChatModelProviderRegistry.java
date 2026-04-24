@@ -17,15 +17,15 @@ public class ChatModelProviderRegistry {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelProviderRegistry.class);
 
-  private final Map<String, ChatModelProvider> chatModelProviders = new HashMap<>();
+  private final Map<String, ChatModelProvider<?>> chatModelProviders = new HashMap<>();
 
   public ChatModelProviderRegistry() {}
 
-  public ChatModelProviderRegistry(List<ChatModelProvider> chatModelProviders) {
+  public ChatModelProviderRegistry(List<? extends ChatModelProvider<?>> chatModelProviders) {
     chatModelProviders.forEach(this::registerChatModelProvider);
   }
 
-  public void registerChatModelProvider(final ChatModelProvider chatModelProvider) {
+  public void registerChatModelProvider(final ChatModelProvider<?> chatModelProvider) {
     final var type = chatModelProvider.type();
     if (chatModelProviders.containsKey(type)) {
       throw new IllegalArgumentException(
@@ -37,7 +37,9 @@ public class ChatModelProviderRegistry {
     chatModelProviders.put(type, chatModelProvider);
   }
 
-  public ChatModelProvider getChatModelProvider(ProviderConfiguration providerConfiguration) {
+  @SuppressWarnings("unchecked")
+  public <T extends ProviderConfiguration> ChatModelProvider<T> getChatModelProvider(
+      T providerConfiguration) {
     final var providerId = providerConfiguration.providerId();
     final var chatModelProvider = chatModelProviders.get(providerId);
     if (chatModelProvider == null) {
@@ -45,6 +47,6 @@ public class ChatModelProviderRegistry {
           "No chat model provider registered for provider type: %s".formatted(providerId));
     }
 
-    return chatModelProvider;
+    return (ChatModelProvider<T>) chatModelProvider;
   }
 }

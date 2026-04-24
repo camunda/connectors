@@ -11,7 +11,6 @@ import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import java.net.URI;
 import java.util.Optional;
@@ -20,7 +19,8 @@ import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
-public class BedrockChatModelProvider extends AbstractChatModelProvider {
+public class BedrockChatModelProvider
+    extends AbstractChatModelProvider<BedrockProviderConfiguration> {
 
   private final ChatModelHttpProxySupport proxySupport;
 
@@ -37,13 +37,7 @@ public class BedrockChatModelProvider extends AbstractChatModelProvider {
   }
 
   @Override
-  public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
-    if (!(providerConfiguration instanceof BedrockProviderConfiguration bedrock)) {
-      throw new IllegalArgumentException(
-          "Expected BedrockProviderConfiguration but got "
-              + providerConfiguration.getClass().getSimpleName());
-    }
-
+  public ChatModel createChatModel(BedrockProviderConfiguration bedrock) {
     final var connection = bedrock.bedrock();
 
     final var builder =

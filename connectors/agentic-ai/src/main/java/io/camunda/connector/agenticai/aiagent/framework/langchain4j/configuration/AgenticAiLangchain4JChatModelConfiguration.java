@@ -91,7 +91,7 @@ public class AgenticAiLangchain4JChatModelConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ChatModelProviderRegistry langchain4JChatModelProviderRegistry(
-      List<ChatModelProvider> chatModelProviders) {
+      List<ChatModelProvider<?>> chatModelProviders) {
     return new ChatModelProviderRegistry(chatModelProviders);
   }
 
