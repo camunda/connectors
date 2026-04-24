@@ -64,8 +64,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -79,7 +77,6 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
-@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class HttpTests {
 
   @RegisterExtension
@@ -368,7 +365,6 @@ public class HttpTests {
         .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
-    when(processDef.getVersion()).thenReturn(1);
     when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
 
     // Deploy the webhook
