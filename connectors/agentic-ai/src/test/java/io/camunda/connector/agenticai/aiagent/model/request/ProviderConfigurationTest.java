@@ -24,6 +24,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVerte
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.MistralProviderConfiguration.MistralAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.MistralProviderConfiguration.MistralConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.MistralProviderConfiguration.MistralModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel;
@@ -318,6 +321,51 @@ class ProviderConfigurationTest {
           new ServiceAccountCredentialsAuthentication("{}"),
           new GoogleVertexAiModel(
               "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
+    }
+  }
+
+  @Nested
+  class MistralConnectionTest {
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#validHttpUrls")
+    void shouldAcceptValidEndpoint(String endpoint) {
+      var connection =
+          new MistralConnection(
+              endpoint,
+              new MistralAuthentication("key"),
+              TIMEOUT,
+              new MistralModel("mistral-large-latest", null));
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#invalidHttpUrls")
+    void shouldRejectInvalidUrlEndpoint(String endpoint) {
+      var connection =
+          new MistralConnection(
+              endpoint,
+              new MistralAuthentication("key"),
+              TIMEOUT,
+              new MistralModel("mistral-large-latest", null));
+      assertThat(validator.validate(connection))
+          .extracting(ConstraintViolation::getMessage)
+          .contains(HTTP_URL_VALIDATION_MESSAGE);
+    }
+
+    @ParameterizedTest
+    @NullSource
+    void shouldAcceptNullEndpoint(String endpoint) {
+      // Null endpoint is allowed for Mistral (defaults to https://api.mistral.ai/v1)
+      var connection =
+          new MistralConnection(
+              endpoint,
+              new MistralAuthentication("key"),
+              TIMEOUT,
+              new MistralModel("mistral-large-latest", null));
+      assertThat(validator.validate(connection)).isEmpty();
     }
   }
 
