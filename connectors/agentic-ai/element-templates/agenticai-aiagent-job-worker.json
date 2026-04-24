@@ -1207,10 +1207,10 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Anthropic (Claude)",
+      "name" : "Anthropic",
       "value" : "anthropic"
     }, {
-      "name" : "OpenAI (GPT)",
+      "name" : "OpenAI",
       "value" : "openai"
     } ]
   }, {
@@ -1357,6 +1357,7 @@
         "type" : "simple"
       } ]
     },
+    "placeholder" : "gpt-4o",
     "type" : "String"
   }, {
     "id" : "provider.azureAiFoundry.model.parameters.openai.maxTokens",

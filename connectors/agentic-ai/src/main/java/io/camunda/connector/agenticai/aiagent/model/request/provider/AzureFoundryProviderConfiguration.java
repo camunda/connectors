@@ -66,7 +66,7 @@ public record AzureFoundryProviderConfiguration(
       description = "Select which model family is deployed behind this Foundry endpoint.")
   public sealed interface AzureAiFoundryModel permits AnthropicModel, OpenAiModel {
 
-    @TemplateSubType(id = "anthropic", label = "Anthropic (Claude)")
+    @TemplateSubType(id = "anthropic", label = "Anthropic")
     record AnthropicModel(
         @NotBlank
             @TemplateProperty(
@@ -128,7 +128,7 @@ public record AzureFoundryProviderConfiguration(
               Integer topK) {}
     }
 
-    @TemplateSubType(id = "openai", label = "OpenAI (GPT)")
+    @TemplateSubType(id = "openai", label = "OpenAI")
     record OpenAiModel(
         @NotBlank
             @TemplateProperty(
@@ -138,6 +138,7 @@ public record AzureFoundryProviderConfiguration(
                 description = "The Azure Foundry deployment name for your OpenAI model.",
                 type = TemplateProperty.PropertyType.String,
                 feel = FeelMode.optional,
+                placeholder = "gpt-4o",
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String deploymentName,
         @Valid OpenAiModelParameters parameters)
