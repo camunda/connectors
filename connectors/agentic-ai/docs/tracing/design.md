@@ -249,18 +249,30 @@ flowchart TD
 
 ### 6.1 Event wrapper
 
-Every event is wrapped in a common envelope. Field order: scope (`jobKey`), identity
-(`deduplicationKey`), discriminator (`type`), metadata (`timestamp`), variable body (`payload`).
+Every event is wrapped in a common envelope. Field order: scope (`jobKey`, `elementInstanceKey`),
+identity (`deduplicationKey`), discriminator (`type`), metadata (`timestamp`), variable body
+(`payload`).
 
 ```java
 public record AgentTraceEvent(
     long jobKey,
+    long elementInstanceKey,
     String deduplicationKey,
     AgentTraceEventType type,
     Instant timestamp,
     AgentTraceEventPayload payload
 ) {}
 ```
+
+`elementInstanceKey` identifies the BPMN element instance (AHSP or task) under which this event
+was produced. An agent execution may span multiple element instances (e.g., the process
+re-enters the AHSP, or the task is re-invoked); each activation carries its own
+`elementInstanceKey`. Consumers can use it to join events to Zeebe element-instance data
+(incidents, duration) without a separate lookup via `jobKey`.
+
+`CreateAgentExecutionRequest.elementInstanceKey` (§10.1) records the element instance that
+first created the execution; per-event `elementInstanceKey` reflects the instance producing
+the event itself, which may differ from the first one on subsequent activations.
 
 ### 6.2 Event types
 
@@ -1197,6 +1209,7 @@ The agent detects an MCP gateway tool element and initiates tool discovery.
 [
   {
     "jobKey": 2251799813685300,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "019078a0-f1e2-7a3b-8c4d-5e6f7a8b9c0d",
     "type": "TOOL_DISCOVERY_STARTED",
     "timestamp": "2026-04-23T14:29:55.100Z",
@@ -1221,6 +1234,7 @@ LLM call with the user's prompt.
 [
   {
     "jobKey": 2251799813685305,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "019078a1-0a0b-7c1d-9e2f-3a4b5c6d7e8f",
     "type": "TOOL_DEFINITIONS_CHANGED",
     "timestamp": "2026-04-23T14:29:58.200Z",
@@ -1234,6 +1248,7 @@ LLM call with the user's prompt.
   },
   {
     "jobKey": 2251799813685305,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "019078a1-0a0c-7c1d-9e2f-3a4b5c6d7e90",
     "type": "AGENT_INITIALIZED",
     "timestamp": "2026-04-23T14:29:58.201Z",
@@ -1241,6 +1256,7 @@ LLM call with the user's prompt.
   },
   {
     "jobKey": 2251799813685305,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "019078a1-0b1c-7d2e-0f3a-4b5c6d7e8f9a",
     "type": "MODEL_CALL_STARTED",
     "timestamp": "2026-04-23T14:29:58.210Z",
@@ -1278,6 +1294,7 @@ LLM call with the user's prompt.
 [
   {
     "jobKey": 2251799813685305,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "019078a1-3c4d-7e5f-6a7b-8c9d0e1f2a3b",
     "type": "MODEL_CALL_COMPLETED",
     "timestamp": "2026-04-23T14:30:00.550Z",
@@ -1299,6 +1316,7 @@ LLM call with the user's prompt.
   },
   {
     "jobKey": 2251799813685305,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "019078a1-4d5e-7f6a-7b8c-9d0e1f2a3b4c",
     "type": "TOOL_CALLS_EMITTED",
     "timestamp": "2026-04-23T14:30:00.555Z",
@@ -1311,6 +1329,7 @@ LLM call with the user's prompt.
   },
   {
     "jobKey": 2251799813685305,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "019078a1-5e6f-7a7b-8c9d-0e1f2a3b4c5d",
     "type": "ITERATION_COMPLETED",
     "timestamp": "2026-04-23T14:30:00.560Z",
@@ -1342,6 +1361,7 @@ completed and show its result, even before the next iteration runs.
 [
   {
     "jobKey": 2251799813685310,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "tcr:019078a2-0000-7001-8000-000000000001",
     "type": "TOOL_CALL_RESULT_RECEIVED",
     "timestamp": "2026-04-23T14:30:01.100Z",
@@ -1373,6 +1393,7 @@ text answer (no tool calls).
 [
   {
     "jobKey": 2251799813685315,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "tcr:019078a2-0000-7001-8000-000000000001",
     "type": "TOOL_CALL_RESULT_RECEIVED",
     "timestamp": "2026-04-23T14:30:05.100Z",
@@ -1387,6 +1408,7 @@ text answer (no tool calls).
   },
   {
     "jobKey": 2251799813685315,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "tcr:019078a2-0000-7002-8000-000000000002",
     "type": "TOOL_CALL_RESULT_RECEIVED",
     "timestamp": "2026-04-23T14:30:05.101Z",
@@ -1401,6 +1423,7 @@ text answer (no tool calls).
   },
   {
     "jobKey": 2251799813685315,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "019078a3-0a1b-7c2d-3e4f-5a6b7c8d9e0f",
     "type": "MODEL_CALL_STARTED",
     "timestamp": "2026-04-23T14:30:05.110Z",
@@ -1425,6 +1448,7 @@ text answer (no tool calls).
 [
   {
     "jobKey": 2251799813685315,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "019078a3-1b2c-7d3e-4f5a-6b7c8d9e0f1a",
     "type": "MODEL_CALL_COMPLETED",
     "timestamp": "2026-04-23T14:30:07.450Z",
@@ -1443,6 +1467,7 @@ text answer (no tool calls).
   },
   {
     "jobKey": 2251799813685315,
+    "elementInstanceKey": 2251799813685280,
     "deduplicationKey": "019078a3-3d4e-7f5a-6b7c-8d9e0f1a2b3c",
     "type": "ITERATION_COMPLETED",
     "timestamp": "2026-04-23T14:30:07.460Z",
