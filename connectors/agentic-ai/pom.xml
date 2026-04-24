@@ -412,6 +412,8 @@
                 <ignoredDependency>com.anthropic:anthropic-java-core</ignoredDependency>
                 <ignoredDependency>com.anthropic:anthropic-java-foundry</ignoredDependency>
                 <ignoredDependency>com.tngtech.archunit:archunit-junit5</ignoredDependency>
+                <ignoredDependency>com.tngtech.archunit:archunit-junit5-api</ignoredDependency>
+                <ignoredDependency>com.tngtech.archunit:archunit</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
