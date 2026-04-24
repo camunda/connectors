@@ -112,6 +112,16 @@
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-anthropic</artifactId>
     </dependency>
+
+    <!-- Anthropic Java SDK (Azure AI Foundry provider) -->
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-foundry</artifactId>
+    </dependency>
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-azure-open-ai</artifactId>
@@ -362,6 +372,11 @@
       <artifactId>jsonassert</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -394,6 +409,9 @@
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-core</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-json</ignoredDependency>
+                <ignoredDependency>com.anthropic:anthropic-java-core</ignoredDependency>
+                <ignoredDependency>com.anthropic:anthropic-java-foundry</ignoredDependency>
+                <ignoredDependency>com.tngtech.archunit:archunit-junit5</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
