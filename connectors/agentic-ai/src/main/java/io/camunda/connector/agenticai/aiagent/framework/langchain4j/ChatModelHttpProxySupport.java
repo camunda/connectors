@@ -34,6 +34,10 @@ public class ChatModelHttpProxySupport {
     this.jdkHttpClientProxyConfigurator = jdkHttpClientProxyConfigurator;
   }
 
+  public JdkHttpClientProxyConfigurator getJdkHttpClientProxyConfigurator() {
+    return jdkHttpClientProxyConfigurator;
+  }
+
   public JdkHttpClientBuilder createJdkHttpClientBuilder() {
     final var httpClientBuilder = HttpClient.newBuilder();
     jdkHttpClientProxyConfigurator.configure(httpClientBuilder);
