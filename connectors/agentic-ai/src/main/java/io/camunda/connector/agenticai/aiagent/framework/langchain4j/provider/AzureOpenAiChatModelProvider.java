@@ -43,17 +43,42 @@ public class AzureOpenAiChatModelProvider
   @Override
   public ChatModel createChatModel(AzureOpenAiProviderConfiguration azureOpenAi) {
     final var connection = azureOpenAi.azureOpenAi();
+    final var modelParameters = connection.model().parameters();
+    return buildAzureOpenAiChatModel(
+        connection.endpoint(),
+        connection.authentication(),
+        connection.timeouts(),
+        connection.model().deploymentName(),
+        modelParameters != null ? modelParameters.maxTokens() : null,
+        modelParameters != null ? modelParameters.temperature() : null,
+        modelParameters != null ? modelParameters.topP() : null);
+  }
+
+  /**
+   * Shared helper used by this provider for the legacy {@code azureOpenAi} configuration and by the
+   * Azure AI Foundry provider for its OpenAI model family. Both flow through the same {@code
+   * langchain4j-azure-open-ai} integration.
+   */
+  AzureOpenAiChatModel buildAzureOpenAiChatModel(
+      String endpoint,
+      io.camunda.connector.agenticai.aiagent.model.request.provider.shared.AzureAuthentication
+          authentication,
+      io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration
+          timeouts,
+      String deploymentName,
+      Integer maxTokens,
+      Double temperature,
+      Double topP) {
+
     final var builder =
         AzureOpenAiChatModel.builder()
-            .endpoint(connection.endpoint())
-            .deploymentName(connection.model().deploymentName())
-            .timeout(
-                deriveTimeoutSetting(
-                    "Azure OpenAI model call", config, connection.timeouts(), LOGGER));
+            .endpoint(endpoint)
+            .deploymentName(deploymentName)
+            .timeout(deriveTimeoutSetting("Azure OpenAI model call", config, timeouts, LOGGER));
 
-    proxySupport.createAzureProxyOptions(connection.endpoint()).ifPresent(builder::proxyOptions);
+    proxySupport.createAzureProxyOptions(endpoint).ifPresent(builder::proxyOptions);
 
-    switch (connection.authentication()) {
+    switch (authentication) {
       case AzureApiKeyAuthentication azureApiKeyAuthentication ->
           builder.apiKey(azureApiKeyAuthentication.apiKey());
       case AzureClientCredentialsAuthentication auth -> {
@@ -69,12 +94,9 @@ public class AzureOpenAiChatModelProvider
       }
     }
 
-    final var modelParameters = connection.model().parameters();
-    if (modelParameters != null) {
-      Optional.ofNullable(modelParameters.maxTokens()).ifPresent(builder::maxTokens);
-      Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
-      Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
-    }
+    Optional.ofNullable(maxTokens).ifPresent(builder::maxTokens);
+    Optional.ofNullable(temperature).ifPresent(builder::temperature);
+    Optional.ofNullable(topP).ifPresent(builder::topP);
 
     return builder.build();
   }

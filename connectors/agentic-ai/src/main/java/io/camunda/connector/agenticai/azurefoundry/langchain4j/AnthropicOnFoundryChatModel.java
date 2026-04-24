@@ -106,14 +106,18 @@ public class AnthropicOnFoundryChatModel implements ChatModel {
 
     // Model parameters from config (required + optional)
     var params = modelConfig.parameters();
-    builder.maxTokens(params.maxTokens() != null ? (long) params.maxTokens() : 1024L);
-    if (params.temperature() != null) {
+    if (params != null && params.maxTokens() != null) {
+      builder.maxTokens((long) params.maxTokens());
+    } else {
+      builder.maxTokens(1024L);
+    }
+    if (params != null && params.temperature() != null) {
       builder.temperature(params.temperature());
     }
-    if (params.topP() != null) {
+    if (params != null && params.topP() != null) {
       builder.topP(params.topP());
     }
-    if (params.topK() != null) {
+    if (params != null && params.topK() != null) {
       builder.topK((long) params.topK());
     }
 

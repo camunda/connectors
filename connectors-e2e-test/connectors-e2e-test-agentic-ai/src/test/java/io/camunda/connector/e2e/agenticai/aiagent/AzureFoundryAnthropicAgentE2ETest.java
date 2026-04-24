@@ -32,8 +32,8 @@ import org.junit.jupiter.api.Test;
 /**
  * E2E contract for the Azure AI Foundry provider's Anthropic model family.
  *
- * <p>Currently red — fails at invocation with the Milestone 1 stub ConnectorInputException.
- * Milestone 2 implementation will make it pass.
+ * <p>Verifies the two-turn tool-call round trip through the Anthropic Messages wire format against
+ * a WireMock server acting as the Azure AI Foundry endpoint.
  */
 @SlowTest
 class AzureFoundryAnthropicAgentE2ETest extends BaseAiAgentConnectorTest {
@@ -57,6 +57,7 @@ class AzureFoundryAnthropicAgentE2ETest extends BaseAiAgentConnectorTest {
   void agentLoopCompletesWithToolCallRoundTrip(WireMockRuntimeInfo wireMock) throws Exception {
     // Stub 1: first LLM call returns a tool_use block (Anthropic Messages wire format).
     // The Foundry SDK appends /anthropic/v1/messages to the base endpoint URL.
+    // The tool name must match an element ID in the Agent_Tools AHSP of the test BPMN.
     stubFor(
         post(urlEqualTo("/anthropic/v1/messages"))
             .inScenario("foundry-anthropic-tool-call")
@@ -76,8 +77,8 @@ class AzureFoundryAnthropicAgentE2ETest extends BaseAiAgentConnectorTest {
                             {
                               "type": "tool_use",
                               "id": "toolu_01",
-                              "name": "get_weather",
-                              "input": {"city": "Berlin"}
+                              "name": "GetDateAndTime",
+                              "input": {}
                             }
                           ],
                           "stop_reason": "tool_use",
@@ -108,6 +109,11 @@ class AzureFoundryAnthropicAgentE2ETest extends BaseAiAgentConnectorTest {
                         }
                         """)));
 
+    // Signal user satisfaction so the BPMN feedback loop exits after the final agent response.
+    // Without this, the User_Feedback job completes with userSatisfied=null, which loops back to
+    // the AI Agent with the stale toolCallResults still in scope.
+    userFeedbackVariables.set(userSatisfiedFeedback());
+
     // The WireMock base URL is the Azure AI Foundry endpoint the Foundry SDK will call.
     // The Foundry SDK appends /anthropic/v1/messages to this base URL internally.
     final var zeebeTest =
@@ -117,10 +123,8 @@ class AzureFoundryAnthropicAgentE2ETest extends BaseAiAgentConnectorTest {
                     "provider.azureAiFoundry.endpoint", wireMock.getHttpBaseUrl()),
             Map.of("userPrompt", "Write a haiku about the sea"));
 
-    // In M1 state: ChatModelFactoryImpl throws ConnectorInputException("Azure AI Foundry runtime
-    // is not yet implemented (planned for Milestone 2)..."), Zeebe creates an incident, and this
-    // assertion times out — making the test RED.
-    // In M2 state: the two-turn tool-call loop completes, and the process finishes successfully.
+    // The two-turn tool-call loop should complete: first turn returns GetDateAndTime tool call,
+    // second turn (after tool result) returns final text response, process completes.
     zeebeTest.waitForProcessCompletion();
   }
 }
