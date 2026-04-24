@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFac
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AnthropicChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureFoundryChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureOpenAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.BedrockChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
@@ -18,12 +19,13 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Goo
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.azurefoundry.AnthropicOnFoundryClientFactory;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -52,12 +54,31 @@ public class AgenticAiLangchain4JChatModelConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProvider<AzureOpenAiProviderConfiguration>
-      langchain4JAzureOpenAiChatModelProvider(
-          AgenticAiConnectorsConfigurationProperties config,
-          ChatModelHttpProxySupport chatModelHttpProxySupport) {
+  public AzureOpenAiChatModelProvider langchain4JAzureOpenAiChatModelProvider(
+      AgenticAiConnectorsConfigurationProperties config,
+      ChatModelHttpProxySupport chatModelHttpProxySupport) {
     return new AzureOpenAiChatModelProvider(
         config.aiagent().chatModel(), chatModelHttpProxySupport);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AnthropicOnFoundryClientFactory anthropicOnFoundryClientFactory(
+      ChatModelHttpProxySupport chatModelHttpProxySupport) {
+    return new AnthropicOnFoundryClientFactory(chatModelHttpProxySupport);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ChatModelProvider<AzureFoundryProviderConfiguration>
+      langchain4JAzureFoundryChatModelProvider(
+          AgenticAiConnectorsConfigurationProperties config,
+          AnthropicOnFoundryClientFactory anthropicOnFoundryClientFactory,
+          AzureOpenAiChatModelProvider azureOpenAiChatModelProvider) {
+    return new AzureFoundryChatModelProvider(
+        config.aiagent().chatModel(),
+        anthropicOnFoundryClientFactory,
+        azureOpenAiChatModelProvider);
   }
 
   @Bean

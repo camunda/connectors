@@ -18,11 +18,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundr
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.AzureAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.AzureAuthentication.AzureClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.azurefoundry.http.BackendAwareAnthropicHttpClient;
 import io.camunda.connector.agenticai.azurefoundry.http.JdkAnthropicHttpClient;
 import io.camunda.connector.agenticai.azurefoundry.langchain4j.AnthropicOnFoundryChatModel;
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 
@@ -39,7 +39,7 @@ public class AnthropicOnFoundryClientFactory {
   public AnthropicOnFoundryChatModel create(
       String endpoint,
       AzureAuthentication authentication,
-      TimeoutConfiguration timeouts,
+      Duration timeout,
       AnthropicModel modelConfig) {
 
     String normalizedEndpoint = StringUtils.removeEnd(endpoint, "/");
@@ -55,12 +55,12 @@ public class AnthropicOnFoundryClientFactory {
     // or the SDK default computed from the resource name). It must be passed as ClientOptions
     // baseUrl so that the SDK's service implementations set it on each HttpRequest before
     // handing the request to our BackendAwareAnthropicHttpClient.
-    AnthropicClient anthropicClient =
-        new AnthropicClientImpl(
-            ClientOptions.builder()
-                .httpClient(backendAwareHttp)
-                .baseUrl(backend.baseUrl())
-                .build());
+    ClientOptions.Builder optionsBuilder =
+        ClientOptions.builder().httpClient(backendAwareHttp).baseUrl(backend.baseUrl());
+    if (timeout != null) {
+      optionsBuilder.timeout(timeout);
+    }
+    AnthropicClient anthropicClient = new AnthropicClientImpl(optionsBuilder.build());
 
     return new AnthropicOnFoundryChatModel(anthropicClient, modelConfig);
   }
