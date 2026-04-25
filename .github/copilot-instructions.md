@@ -589,7 +589,7 @@ You can open documentation pull request in this repository: https://github.com/c
 
 ## Guidelines
 
-ehavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
