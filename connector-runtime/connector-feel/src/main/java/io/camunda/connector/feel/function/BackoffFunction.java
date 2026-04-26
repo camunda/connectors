@@ -78,6 +78,17 @@ public class BackoffFunction {
                   DEFAULT_MAX_DELAY,
                   DEFAULT_JITTER_FACTOR_VAL));
 
+  private static final JavaFunction FUNCTION_2 =
+      new JavaFunction(
+          ARGUMENTS.subList(0, 2),
+          args ->
+              compute(
+                  FunctionHelper.toNumber(args, 0, NAME, "attempt"),
+                  FunctionHelper.toDuration(args, 1, NAME, "minDelay"),
+                  DEFAULT_FACTOR_VAL,
+                  DEFAULT_MAX_DELAY,
+                  DEFAULT_JITTER_FACTOR_VAL));
+
   private static final JavaFunction FUNCTION_1 =
       new JavaFunction(
           ARGUMENTS.subList(0, 1),
@@ -90,7 +101,7 @@ public class BackoffFunction {
                   DEFAULT_JITTER_FACTOR_VAL));
 
   public static final List<JavaFunction> FUNCTIONS =
-      List.of(FUNCTION_1, FUNCTION_3, FUNCTION_4, FUNCTION_5);
+      List.of(FUNCTION_1, FUNCTION_2, FUNCTION_3, FUNCTION_4, FUNCTION_5);
 
   private static ValDayTimeDuration compute(
       ValNumber attempt,
@@ -129,6 +140,6 @@ public class BackoffFunction {
       jitter = ThreadLocalRandom.current().nextDouble(-jf * clampedMs, jf * clampedMs);
     }
 
-    return new ValDayTimeDuration(Duration.ofMillis(Math.round(clampedMs + jitter)));
+    return new ValDayTimeDuration(Duration.ofMillis(Math.max(0, Math.round(clampedMs + jitter))));
   }
 }
