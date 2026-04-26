@@ -3,14 +3,7 @@
   "name" : "Hybrid Slack Webhook Receive Task Connector",
   "id" : "io.camunda.connectors.inbound.Slack.ReceiveTask.v1-hybrid",
   "description" : "Receive events from Slack",
-  "keywords" : [
-    "message received",
-    "event received",
-    "channel event",
-    "webhook",
-    "messaging",
-    "new message"
-  ],
+  "keywords" : [ "message received", "event received", "channel event", "webhook", "messaging", "new message" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
   "version" : 8,
   "category" : {

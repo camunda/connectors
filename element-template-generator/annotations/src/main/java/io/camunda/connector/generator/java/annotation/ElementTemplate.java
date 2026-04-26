@@ -75,7 +75,11 @@ public @interface ElementTemplate {
    */
   String description() default "";
 
-  Metadata metadata() default @Metadata;
+  /**
+   * Keywords used by Camunda Modeler to improve connector discoverability in search. Emitted at the
+   * root level of the generated element template JSON.
+   */
+  String[] keywords() default {};
 
   /**
    * Manual configuration for the connector property groups.
@@ -115,12 +119,6 @@ public @interface ElementTemplate {
    * <p>If not specified, no default expression value will be set.
    */
   String defaultResultExpression() default "";
-
-  /** Metadata tags for the connector. Will be used in Camunda Modeler. */
-  @interface Metadata {
-
-    String[] keywords() default {};
-  }
 
   @interface PropertyGroup {
 

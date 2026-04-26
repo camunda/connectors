@@ -4,9 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory.conversation;
+package io.camunda.connector.aws.bedrock.codeinterpreter.model.response;
 
-@FunctionalInterface
-public interface ConversationSessionHandler<T> {
-  T handleSession(ConversationSession session);
-}
+import io.camunda.connector.api.document.Document;
+import java.util.List;
+
+public record CodeInterpreterResponse(
+    String stdout, String stderr, Integer exitCode, Double executionTimeMs, List<Document> files) {}

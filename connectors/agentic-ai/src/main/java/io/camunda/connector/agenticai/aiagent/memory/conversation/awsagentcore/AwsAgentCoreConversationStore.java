@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSessionHandler;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -42,10 +42,8 @@ public class AwsAgentCoreConversationStore implements ConversationStore {
   }
 
   @Override
-  public <T> T executeInSession(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      ConversationSessionHandler<T> sessionHandler) {
+  public ConversationSession createSession(
+      AgentExecutionContext executionContext, AgentContext agentContext) {
     final var config =
         Optional.ofNullable(executionContext.memory())
             .map(MemoryConfiguration::storage)
@@ -57,11 +55,8 @@ public class AwsAgentCoreConversationStore implements ConversationStore {
               .formatted(config != null ? config.getClass().getName() : "null"));
     }
 
-    try (BedrockAgentCoreClient client = clientFactory.createClient(agentCoreConfig)) {
-      final var session =
-          new AwsAgentCoreConversationSession(agentCoreConfig, client, conversationMapper);
-      return sessionHandler.handleSession(session);
-    }
+    final BedrockAgentCoreClient client = clientFactory.createClient(agentCoreConfig);
+    return new AwsAgentCoreConversationSession(agentCoreConfig, client, conversationMapper);
   }
 
   /** Factory interface for creating BedrockAgentCoreClient instances. */

@@ -1,4 +1,4 @@
-FROM reg.mini.dev/1212/openjre-base:v25.0.2-dev
+FROM reg.mini.dev/1212/openjre-base:v26.0.1-dev
 
 # If you don't have access to Minimus hardened base images, you can use public
 # base images like this instead on your own risk:
@@ -29,4 +29,11 @@ USER 1001:1001
 
 # Use entry point to allow downstream images to add JVM arguments using CMD
 ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
+ENV HEALTHCHECK_URL=http://localhost:8080/actuator/health/readiness
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=30s \
+  CMD java -cp /opt/app/*-with-dependencies.jar \
+      -Dloader.main=io.camunda.connector.runtime.healthcheck.HealthCheckCommand \
+      org.springframework.boot.loader.launch.PropertiesLauncher
+
 ENTRYPOINT ["/start.sh"]

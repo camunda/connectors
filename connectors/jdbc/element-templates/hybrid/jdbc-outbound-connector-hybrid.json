@@ -3,22 +3,7 @@
   "name" : "Hybrid SQL Database Connector",
   "id" : "io.camunda.connectors.Jdbc.v1-hybrid",
   "description" : "Read and write data from a Camunda process directly to a SQL database (e.g., Microsoft SQL Server, MySQL, PostgreSQL)",
-  "keywords" : [
-    "SQL",
-    "query database",
-    "execute SQL",
-    "database",
-    "relational database",
-    "MySQL",
-    "PostgreSQL",
-    "SQL Server",
-    "Oracle",
-    "MariaDB",
-    "select",
-    "insert",
-    "update",
-    "delete"
-  ],
+  "keywords" : [ "relational", "database", "SQL", "query database", "execute SQL", "relational database", "MySQL", "PostgreSQL", "SQL Server", "Oracle", "MariaDB", "select", "insert", "update", "delete" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql",
   "version" : 3,
   "category" : {

@@ -34,7 +34,7 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
     id = "io.camunda.connectors.AWSSNS.v1",
     name = "Amazon SNS Outbound connector",
     description = "Send messages to Amazon SNS.",
-    metadata = @ElementTemplate.Metadata(keywords = {"send message", "publish message"}),
+    keywords = {"send message", "publish message", "notification", "publish to topic", "FIFO"},
     inputDataClass = SnsConnectorRequest.class,
     version = 8,
     propertyGroups = {

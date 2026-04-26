@@ -64,7 +64,22 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-aws-bedrock-agentcore-runtime</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-aws-bedrock-codeinterpreter</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-s3</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-aws-bedrock-agentcore-long-term-memory</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>

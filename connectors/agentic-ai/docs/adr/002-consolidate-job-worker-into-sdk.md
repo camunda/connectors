@@ -37,7 +37,7 @@ Chosen option: **Option 2 — Introduce a `ConnectorResponse` sealed interface h
 
 This decision depends on the `ConnectorResponse` sealed interface hierarchy added to the SDK in
 [#6781](https://github.com/camunda/connectors/pull/6781) (`io.camunda.connector.api.outbound`). With that in place,
-`AiAgentJobWorker` becomes a standard `@OutboundConnector`-annotated function that returns `AiAgentSubProcessResponse`
+`AiAgentJobWorker` becomes a standard `@OutboundConnector`-annotated function that returns `AiAgentSubProcessConnectorResponse`
 (implementing `AdHocSubProcessConnectorResponse`) from `execute()`. The runtime translates the response's
 `variables()`, `elementActivations()`, `completionConditionFulfilled()`, and `cancelRemainingInstances()` into the
 Zeebe complete command with `.withResult().forAdHocSubProcess()` configuration. The SDK handles everything else.
@@ -60,5 +60,5 @@ Zeebe complete command with `.withResult().forAdHocSubProcess()` configuration. 
 - **Completion callbacks**: Extend `ConnectorResponse` with `onCompletionSuccess`/`onCompletionError` callbacks once
   `CommandWrapper` supports command outcome notification
 - **`cancelRemainingInstances` flag**: The mutable flag on `JobWorkerAgentExecutionContext` (set in
-  `handleAddedUserMessages()`, read in `completeJob()`) can be simplified by moving interrupted-tool-call detection
-  into `completeWithResponse()` via `executionContext.initialToolCallResults()`, eliminating the mutable state
+  `handleAddedUserMessages()`, read in `buildConnectorResponse()`) can be simplified by moving interrupted-tool-call detection
+  into `buildResponse()` via `executionContext.initialToolCallResults()`, eliminating the mutable state

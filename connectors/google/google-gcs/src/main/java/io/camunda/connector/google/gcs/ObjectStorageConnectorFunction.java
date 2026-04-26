@@ -37,15 +37,20 @@ import java.util.function.Function;
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "additionalProperties", label = "Additional properties")
     },
-    metadata =
-        @ElementTemplate.Metadata(
-            keywords = {
-              "download file from google cloud storage",
-              "upload file to google cloud storage",
-              "download file from gcs",
-              "upload file to gcs",
-              "gcs"
-            }),
+    keywords = {
+      "download file from google cloud storage",
+      "upload file to google cloud storage",
+      "download file from gcs",
+      "upload file to gcs",
+      "gcs",
+      "download file",
+      "upload file",
+      "download object",
+      "upload object",
+      "cloud storage",
+      "object storage",
+      "file storage"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage",
     icon = "icon.svg")

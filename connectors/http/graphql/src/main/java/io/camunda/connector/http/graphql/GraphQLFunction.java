@@ -33,6 +33,18 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.GraphQL.v1",
     name = "GraphQL Outbound Connector",
     description = "Execute GraphQL query",
+    keywords = {
+      "API",
+      "query",
+      "mutation",
+      "HTTP",
+      "web request",
+      "GraphQL",
+      "fetch data",
+      "data query",
+      "execute query",
+      "API call"
+    },
     inputDataClass = GraphQLRequest.class,
     version = 9,
     propertyGroups = {
