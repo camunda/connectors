@@ -40,4 +40,8 @@ public sealed interface ProviderConfiguration
         AzureOpenAiProviderConfiguration,
         GoogleVertexAiProviderConfiguration,
         OpenAiProviderConfiguration,
-        OpenAiCompatibleProviderConfiguration {}
+        OpenAiCompatibleProviderConfiguration {
+
+  /** Type of the provider implementation used to resolve the backing chat model. */
+  String providerType();
+}

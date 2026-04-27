@@ -24,6 +24,11 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
   @TemplateProperty(ignore = true)
   public static final String OPENAI_ID = "openai";
 
+  @Override
+  public String providerType() {
+    return OPENAI_ID;
+  }
+
   public record OpenAiConnection(
       @Valid @NotNull OpenAiAuthentication authentication,
       @Valid TimeoutConfiguration timeouts,
