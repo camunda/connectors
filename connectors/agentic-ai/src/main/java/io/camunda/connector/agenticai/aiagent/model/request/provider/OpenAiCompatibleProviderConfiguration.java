@@ -28,7 +28,7 @@ public record OpenAiCompatibleProviderConfiguration(
   public static final String OPENAI_COMPATIBLE_ID = "openaiCompatible";
 
   @Override
-  public String providerId() {
+  public String providerType() {
     return OPENAI_COMPATIBLE_ID;
   }
 

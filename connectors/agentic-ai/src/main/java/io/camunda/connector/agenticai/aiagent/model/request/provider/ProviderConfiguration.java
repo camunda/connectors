@@ -42,6 +42,6 @@ public sealed interface ProviderConfiguration
         OpenAiProviderConfiguration,
         OpenAiCompatibleProviderConfiguration {
 
-  /** Identifier of the provider implementation used to resolve the backing chat model. */
-  String providerId();
+  /** Type of the provider implementation used to resolve the backing chat model. */
+  String providerType();
 }

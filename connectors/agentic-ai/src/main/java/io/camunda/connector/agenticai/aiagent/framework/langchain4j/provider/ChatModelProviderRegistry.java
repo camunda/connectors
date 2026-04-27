@@ -40,16 +40,16 @@ public class ChatModelProviderRegistry {
   @SuppressWarnings("unchecked")
   public <T extends ProviderConfiguration> ChatModelProvider<T> getChatModelProvider(
       T providerConfiguration) {
-    final var providerId = providerConfiguration.providerId();
-    final var chatModelProvider = chatModelProviders.get(providerId);
+    final var providerType = providerConfiguration.providerType();
+    final var chatModelProvider = chatModelProviders.get(providerType);
     if (chatModelProvider == null) {
       throw new IllegalStateException(
-          "No chat model provider registered for provider type: %s".formatted(providerId));
+          "No chat model provider registered for provider type: %s".formatted(providerType));
     }
 
     LOGGER.debug(
         "Resolved chat model provider for type '{}': {}",
-        providerId,
+        providerType,
         chatModelProvider.getClass().getName());
 
     return (ChatModelProvider<T>) chatModelProvider;

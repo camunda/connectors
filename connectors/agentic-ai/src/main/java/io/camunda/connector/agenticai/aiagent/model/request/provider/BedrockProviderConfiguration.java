@@ -32,7 +32,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
   public static final String BEDROCK_ID = "bedrock";
 
   @Override
-  public String providerId() {
+  public String providerType() {
     return BEDROCK_ID;
   }
 
