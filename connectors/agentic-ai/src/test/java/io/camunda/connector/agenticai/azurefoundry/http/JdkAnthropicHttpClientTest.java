@@ -45,7 +45,7 @@ class JdkAnthropicHttpClientTest {
   }
 
   @Test
-  void posts_json_body_and_returns_response_body(WireMockRuntimeInfo wm) throws Exception {
+  void postsJsonBodyAndReturnsResponseBody(WireMockRuntimeInfo wm) throws Exception {
     stubFor(
         post(urlEqualTo("/anthropic/v1/messages"))
             .withHeader("X-Test-Header", equalTo("value"))
@@ -78,7 +78,7 @@ class JdkAnthropicHttpClientTest {
   }
 
   @Test
-  void propagates_non_2xx_as_http_response_not_exception(WireMockRuntimeInfo wm) throws Exception {
+  void propagatesNon2xxAsHttpResponseNotException(WireMockRuntimeInfo wm) throws Exception {
     stubFor(
         post(urlEqualTo("/err"))
             .willReturn(
@@ -103,7 +103,7 @@ class JdkAnthropicHttpClientTest {
   }
 
   @Test
-  void async_execute_round_trips(WireMockRuntimeInfo wm) throws Exception {
+  void asyncExecuteRoundTrips(WireMockRuntimeInfo wm) throws Exception {
     stubFor(post(urlEqualTo("/async")).willReturn(aResponse().withStatus(200).withBody("ok")));
 
     HttpRequest request =
@@ -120,7 +120,7 @@ class JdkAnthropicHttpClientTest {
   }
 
   @Test
-  void get_request_without_body_works(WireMockRuntimeInfo wm) throws Exception {
+  void getRequestWithoutBodyWorks(WireMockRuntimeInfo wm) throws Exception {
     stubFor(get(urlEqualTo("/ping")).willReturn(aResponse().withStatus(200).withBody("pong")));
 
     HttpRequest request =
@@ -140,7 +140,7 @@ class JdkAnthropicHttpClientTest {
   }
 
   @Test
-  void close_does_not_throw() {
+  void closeDoesNotThrow() {
     client.close();
   }
 

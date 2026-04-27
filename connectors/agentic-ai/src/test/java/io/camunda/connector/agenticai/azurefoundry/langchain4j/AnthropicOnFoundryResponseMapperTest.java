@@ -85,7 +85,7 @@ class AnthropicOnFoundryResponseMapperTest {
   // -------------------------------------------------------------------------
 
   @Test
-  void translates_text_response_to_ai_message() {
+  void translatesTextResponseToAiMessage() {
     // given
     var contentBlock = ContentBlock.ofText(textBlock("Hello, world!"));
     var msg = message("msg_001", List.of(contentBlock), StopReason.END_TURN, usage(10, 5));
@@ -103,7 +103,7 @@ class AnthropicOnFoundryResponseMapperTest {
   }
 
   @Test
-  void translates_tool_use_response_to_tool_execution_requests() {
+  void translatesToolUseResponseToToolExecutionRequests() {
     // given
     var toolUseBlock =
         toolUseBlock(
@@ -129,7 +129,7 @@ class AnthropicOnFoundryResponseMapperTest {
   }
 
   @Test
-  void translates_max_tokens_stop_reason_to_LENGTH() {
+  void translatesMaxTokensStopReasonToLength() {
     // given
     var contentBlock = ContentBlock.ofText(textBlock("Partial response..."));
     var msg = message("msg_003", List.of(contentBlock), StopReason.MAX_TOKENS, usage(15, 1024));

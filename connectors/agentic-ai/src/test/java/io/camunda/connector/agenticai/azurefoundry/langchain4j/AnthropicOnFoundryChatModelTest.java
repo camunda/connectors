@@ -119,7 +119,7 @@ class AnthropicOnFoundryChatModelTest {
   // -------------------------------------------------------------------------
 
   @Test
-  void translates_system_and_tool_result_messages_in_request() {
+  void translatesSystemAndToolResultMessagesInRequest() {
     // given
     var contentBlock = ContentBlock.ofText(textBlock("Done"));
     var message = message("msg_004", List.of(contentBlock), StopReason.END_TURN, usage(30, 10));
@@ -158,7 +158,7 @@ class AnthropicOnFoundryChatModelTest {
   // -------------------------------------------------------------------------
 
   @Test
-  void bad_request_becomes_connector_input_exception() {
+  void badRequestBecomesConnectorInputException() {
     // given
     var ex =
         BadRequestException.builder().headers(EMPTY_HEADERS).body(JsonValue.from(null)).build();
@@ -173,7 +173,7 @@ class AnthropicOnFoundryChatModelTest {
   }
 
   @Test
-  void unauthorized_becomes_connector_input_exception() {
+  void unauthorizedBecomesConnectorInputException() {
     // given
     var ex =
         UnauthorizedException.builder().headers(EMPTY_HEADERS).body(JsonValue.from(null)).build();
@@ -188,7 +188,7 @@ class AnthropicOnFoundryChatModelTest {
   }
 
   @Test
-  void permission_denied_becomes_connector_input_exception() {
+  void permissionDeniedBecomesConnectorInputException() {
     // given
     var ex =
         PermissionDeniedException.builder()
@@ -206,7 +206,7 @@ class AnthropicOnFoundryChatModelTest {
   }
 
   @Test
-  void not_found_becomes_connector_input_exception() {
+  void notFoundBecomesConnectorInputException() {
     // given
     var ex = NotFoundException.builder().headers(EMPTY_HEADERS).body(JsonValue.from(null)).build();
     when(mockMessageService.create(any(MessageCreateParams.class))).thenThrow(ex);
@@ -220,7 +220,7 @@ class AnthropicOnFoundryChatModelTest {
   }
 
   @Test
-  void unprocessable_entity_becomes_connector_input_exception() {
+  void unprocessableEntityBecomesConnectorInputException() {
     // given
     var ex =
         UnprocessableEntityException.builder()
@@ -238,7 +238,7 @@ class AnthropicOnFoundryChatModelTest {
   }
 
   @Test
-  void rate_limit_becomes_retryable_connector_exception() {
+  void rateLimitBecomesRetryableConnectorException() {
     // given
     var ex = RateLimitException.builder().headers(EMPTY_HEADERS).body(JsonValue.from(null)).build();
     when(mockMessageService.create(any(MessageCreateParams.class))).thenThrow(ex);
@@ -253,7 +253,7 @@ class AnthropicOnFoundryChatModelTest {
   }
 
   @Test
-  void internal_server_error_becomes_retryable_connector_exception() {
+  void internalServerErrorBecomesRetryableConnectorException() {
     // given
     var ex =
         InternalServerException.builder()
@@ -273,7 +273,7 @@ class AnthropicOnFoundryChatModelTest {
   }
 
   @Test
-  void transport_io_failure_becomes_retryable_connector_exception() {
+  void transportIoFailureBecomesRetryableConnectorException() {
     // given
     var cause = new java.io.IOException("connect refused");
     var ex = new AnthropicIoException("net down", cause);
