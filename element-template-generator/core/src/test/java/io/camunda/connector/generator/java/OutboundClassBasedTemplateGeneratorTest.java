@@ -35,6 +35,7 @@ import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.NumberProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeLinkedResource;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition;
@@ -47,6 +48,7 @@ import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
+import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithPrimitiveTypes;
 import io.camunda.connector.generator.java.example.outbound.SingleOperationAnnotatedConnector;
 import java.io.File;
@@ -1024,6 +1026,151 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var icon = template.icon();
 
       assertThat(icon.contents()).isEqualTo(expectedIconString);
+    }
+  }
+
+  @Nested
+  class LinkedResource {
+
+    @Test
+    void singleLinkedResource_emitsThreeProperties() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var linkedResourceProps =
+          template.properties().stream()
+              .filter(
+                  p ->
+                      "zeebe:linkedResource".equals(p.getBinding().type())
+                          && p.getCondition() instanceof PropertyCondition.AllMatch am
+                          && am.allMatch()
+                              .contains(new PropertyCondition.Equals("operation", "op1")))
+              .toList();
+      assertThat(linkedResourceProps).hasSize(3);
+    }
+
+    @Test
+    void linkedResource_hiddenResourceTypeProperty() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var hidden =
+          template.properties().stream()
+              .filter(
+                  p ->
+                      "zeebe:linkedResource".equals(p.getBinding().type())
+                          && p instanceof HiddenProperty)
+              .findFirst()
+              .orElseThrow();
+
+      assertThat(hidden.getValue()).isEqualTo("form");
+      assertThat(hidden.getGroup()).isNull();
+      assertThat(((ZeebeLinkedResource) hidden.getBinding()).linkName())
+          .isEqualTo("formDefinition");
+      assertThat(((ZeebeLinkedResource) hidden.getBinding()).property()).isEqualTo("resourceType");
+      assertThat(hidden.getCondition()).isInstanceOf(PropertyCondition.AllMatch.class);
+      assertThat(((PropertyCondition.AllMatch) hidden.getCondition()).allMatch())
+          .contains(new PropertyCondition.Equals("operation", "op1"));
+    }
+
+    @Test
+    void linkedResource_bindingTypeDropdown() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var bindingType =
+          (DropdownProperty) getPropertyById("op1:formDefinition.bindingType", template);
+
+      assertThat(bindingType.getLabel()).isEqualTo("Form binding");
+      assertThat(bindingType.getGroup()).isEqualTo("form");
+      assertThat(bindingType.getValue()).isEqualTo("latest");
+      assertThat(((ZeebeLinkedResource) bindingType.getBinding()).linkName())
+          .isEqualTo("formDefinition");
+      assertThat(((ZeebeLinkedResource) bindingType.getBinding()).property())
+          .isEqualTo("bindingType");
+      assertThat(bindingType.getChoices())
+          .containsExactly(
+              new DropdownProperty.DropdownChoice("Latest", "latest"),
+              new DropdownProperty.DropdownChoice("Deployment", "deployment"),
+              new DropdownProperty.DropdownChoice("Version tag", "versionTag"));
+      assertThat(bindingType.getCondition()).isInstanceOf(PropertyCondition.AllMatch.class);
+      assertThat(((PropertyCondition.AllMatch) bindingType.getCondition()).allMatch())
+          .contains(new PropertyCondition.Equals("operation", "op1"));
+    }
+
+    @Test
+    void linkedResource_resourceIdString() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var resourceId = getPropertyById("op1:formDefinition.resourceId", template);
+
+      assertThat(resourceId).isInstanceOf(StringProperty.class);
+      assertThat(resourceId.getLabel()).isEqualTo("Form ID");
+      assertThat(resourceId.getDescription())
+          .isEqualTo("Select a form to render as an adaptive card");
+      assertThat(resourceId.getGroup()).isEqualTo("form");
+      assertThat(((ZeebeLinkedResource) resourceId.getBinding()).linkName())
+          .isEqualTo("formDefinition");
+      assertThat(((ZeebeLinkedResource) resourceId.getBinding()).property())
+          .isEqualTo("resourceId");
+      assertThat(resourceId.getCondition()).isInstanceOf(PropertyCondition.AllMatch.class);
+      assertThat(((PropertyCondition.AllMatch) resourceId.getCondition()).allMatch())
+          .contains(new PropertyCondition.Equals("operation", "op1"));
+    }
+
+    @Test
+    void multipleLinkedResources_emitsSixProperties() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var op2LinkedResourceProps =
+          template.properties().stream()
+              .filter(
+                  p ->
+                      "zeebe:linkedResource".equals(p.getBinding().type())
+                          && p.getCondition() instanceof PropertyCondition.AllMatch am
+                          && am.allMatch()
+                              .contains(new PropertyCondition.Equals("operation", "op2")))
+              .toList();
+      assertThat(op2LinkedResourceProps).hasSize(6);
+    }
+
+    @Test
+    void linkedResource_blankLabels_fallBackToNeutralDefaults() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var bindingType = (DropdownProperty) getPropertyById("op3:resource.bindingType", template);
+      var resourceId = getPropertyById("op3:resource.resourceId", template);
+
+      assertThat(bindingType.getLabel()).isEqualTo("Resource binding");
+      assertThat(resourceId.getLabel()).isEqualTo("Resource ID");
+      assertThat(resourceId.getDescription()).isNull();
+    }
+
+    @Test
+    void multipleLinkedResources_correctLinkNamesAndResourceTypes() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+
+      var attachmentAHidden =
+          template.properties().stream()
+              .filter(
+                  p ->
+                      p instanceof HiddenProperty
+                          && "zeebe:linkedResource".equals(p.getBinding().type())
+                          && "attachmentA"
+                              .equals(((ZeebeLinkedResource) p.getBinding()).linkName()))
+              .findFirst()
+              .orElseThrow();
+      assertThat(attachmentAHidden.getValue()).isEqualTo("form");
+
+      var attachmentBHidden =
+          template.properties().stream()
+              .filter(
+                  p ->
+                      p instanceof HiddenProperty
+                          && "zeebe:linkedResource".equals(p.getBinding().type())
+                          && "attachmentB"
+                              .equals(((ZeebeLinkedResource) p.getBinding()).linkName()))
+              .findFirst()
+              .orElseThrow();
+      assertThat(attachmentBHidden.getValue()).isEqualTo("file");
     }
   }
 

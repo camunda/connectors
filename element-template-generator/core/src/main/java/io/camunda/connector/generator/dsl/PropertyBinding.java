@@ -94,4 +94,12 @@ public sealed interface PropertyBinding {
       return "bpmn:Message#property";
     }
   }
+
+  record ZeebeLinkedResource(String linkName, String property) implements PropertyBinding {
+
+    @Override
+    public String type() {
+      return "zeebe:linkedResource";
+    }
+  }
 }
