@@ -28,6 +28,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundr
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Maps a langchain4j {@link ChatRequest} to an Anthropic SDK {@link MessageCreateParams}.
@@ -36,6 +38,7 @@ import java.util.Optional;
  */
 class AnthropicOnFoundryRequestMapper {
 
+  private static final Logger LOG = LoggerFactory.getLogger(AnthropicOnFoundryRequestMapper.class);
   private static final long DEFAULT_MAX_TOKENS = 1024L;
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -202,7 +205,11 @@ class AnthropicOnFoundryRequestMapper {
                     inputBuilder.putAdditionalProperty(
                         entry.getKey(), com.anthropic.core.JsonValue.from(entry.getValue())));
       } catch (JsonProcessingException e) {
-        // If arguments can't be parsed as JSON, treat as empty input
+        LOG.warn(
+            "Failed to parse tool arguments JSON for tool '{}' (id={}); using empty input. {}",
+            toolRequest.name(),
+            toolRequest.id(),
+            e.getMessage());
       }
     }
     return ContentBlockParam.ofToolUse(
@@ -251,7 +258,10 @@ class AnthropicOnFoundryRequestMapper {
           schemaBuilder.required(required);
         }
       } catch (JsonProcessingException e) {
-        // If schema can't be parsed, emit an empty schema
+        LOG.warn(
+            "Failed to parse tool input schema for tool '{}'; emitting empty schema. {}",
+            spec.name(),
+            e.getMessage());
       }
     }
 

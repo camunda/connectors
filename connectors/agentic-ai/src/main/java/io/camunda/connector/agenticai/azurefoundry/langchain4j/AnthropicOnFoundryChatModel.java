@@ -25,6 +25,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundr
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.Collections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * langchain4j {@link ChatModel} adapter that wraps an Anthropic SDK {@link AnthropicClient}.
@@ -39,6 +41,8 @@ import java.util.Collections;
  * streaming are deferred to a later milestone.
  */
 public class AnthropicOnFoundryChatModel implements ChatModel {
+
+  private static final Logger LOG = LoggerFactory.getLogger(AnthropicOnFoundryChatModel.class);
 
   private final AnthropicClient client;
   private final AnthropicModel modelConfig;
@@ -58,9 +62,19 @@ public class AnthropicOnFoundryChatModel implements ChatModel {
 
   @Override
   public ChatResponse doChat(ChatRequest request) {
+    LOG.debug(
+        "Foundry Anthropic chat: model={} messages={} tools={}",
+        modelConfig.deploymentName(),
+        request.messages().size(),
+        request.toolSpecifications() == null ? 0 : request.toolSpecifications().size());
     try {
       MessageCreateParams params = requestMapper.toMessageCreateParams(request);
       Message response = client.messages().create(params);
+      LOG.debug(
+          "Foundry Anthropic response: stopReason={} inputTokens={} outputTokens={}",
+          response.stopReason().map(Object::toString).orElse("UNKNOWN"),
+          response.usage().inputTokens(),
+          response.usage().outputTokens());
       return responseMapper.toChatResponse(response);
     } catch (BadRequestException
         | UnauthorizedException
