@@ -51,15 +51,29 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.m
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomAnthropicProviderConfig.CustomAnthropicChatModelProvider;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomAnthropicProviderConfig.CustomAnthropicChatModelProvider;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomAzureOpenAiProviderConfig.CustomAzureOpenAiChatModelProvider;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomBedrockProviderConfig.CustomBedrockChatModelProvider;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomGoogleVertexAiProviderConfig.CustomGoogleVertexAiChatModelProvider;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomOpenAiCompatibleProviderConfig.CustomOpenAiCompatibleChatModelProvider;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomOpenAiProviderConfig.CustomOpenAiChatModelProvider;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -269,44 +283,202 @@ class AgenticAiConnectorsAutoConfigurationTest {
             });
   }
 
-  @Test
-  void userProvidedAnthropicProviderBeanOverridesDefault() {
-    new ApplicationContextRunner()
-        .withUserConfiguration(TestConfig.class, CustomAnthropicProviderConfig.class)
-        .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class)
-        .run(
-            context -> {
-              ResolvableType type =
-                  ResolvableType.forClassWithGenerics(
-                      ChatModelProvider.class, AnthropicProviderConfiguration.class);
+  @Nested
+  class CustomChatModelProviderOverrides {
 
-              final var beanNamesForType = context.getBeanNamesForType(type);
-              assertThat(beanNamesForType)
-                  .hasSize(1)
-                  .containsExactly("customAnthropicChatModelProvider");
+    @ParameterizedTest
+    @MethodSource("providerOverrideCases")
+    void userProvidedProviderBeanOverridesDefault(ProviderOverrideCase override) {
+      new ApplicationContextRunner()
+          .withUserConfiguration(TestConfig.class, override.configurationClass())
+          .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class)
+          .run(
+              context -> {
+                ResolvableType type =
+                    ResolvableType.forClassWithGenerics(
+                        ChatModelProvider.class, override.providerConfigurationClass());
 
-              assertThat(context.getBean(beanNamesForType[0]))
-                  .isInstanceOf(CustomAnthropicChatModelProvider.class);
-            });
-  }
+                final var beanNamesForType = context.getBeanNamesForType(type);
+                assertThat(beanNamesForType).hasSize(1).containsExactly(override.beanName());
 
-  static class CustomAnthropicProviderConfig {
-    @Bean
-    ChatModelProvider<AnthropicProviderConfiguration> customAnthropicChatModelProvider() {
-      return new CustomAnthropicChatModelProvider();
+                assertThat(context.getBean(beanNamesForType[0]))
+                    .isInstanceOf(override.customProviderClass());
+              });
     }
 
-    static class CustomAnthropicChatModelProvider
-        implements ChatModelProvider<AnthropicProviderConfiguration> {
+    static Stream<ProviderOverrideCase> providerOverrideCases() {
+      return Stream.of(
+          new ProviderOverrideCase(
+              CustomAnthropicProviderConfig.class,
+              "customAnthropicChatModelProvider",
+              AnthropicProviderConfiguration.class,
+              CustomAnthropicChatModelProvider.class),
+          new ProviderOverrideCase(
+              CustomAzureOpenAiProviderConfig.class,
+              "customAzureOpenAiChatModelProvider",
+              AzureOpenAiProviderConfiguration.class,
+              CustomAzureOpenAiChatModelProvider.class),
+          new ProviderOverrideCase(
+              CustomBedrockProviderConfig.class,
+              "customBedrockChatModelProvider",
+              BedrockProviderConfiguration.class,
+              CustomBedrockChatModelProvider.class),
+          new ProviderOverrideCase(
+              CustomGoogleVertexAiProviderConfig.class,
+              "customGoogleVertexAiChatModelProvider",
+              GoogleVertexAiProviderConfiguration.class,
+              CustomGoogleVertexAiChatModelProvider.class),
+          new ProviderOverrideCase(
+              CustomOpenAiProviderConfig.class,
+              "customOpenAiChatModelProvider",
+              OpenAiProviderConfiguration.class,
+              CustomOpenAiChatModelProvider.class),
+          new ProviderOverrideCase(
+              CustomOpenAiCompatibleProviderConfig.class,
+              "customOpenAiCompatibleChatModelProvider",
+              OpenAiCompatibleProviderConfiguration.class,
+              CustomOpenAiCompatibleChatModelProvider.class));
+    }
+
+    record ProviderOverrideCase(
+        Class<?> configurationClass,
+        String beanName,
+        Class<? extends ProviderConfiguration> providerConfigurationClass,
+        Class<? extends ChatModelProvider<?>> customProviderClass) {
 
       @Override
-      public String type() {
-        return AnthropicProviderConfiguration.ANTHROPIC_ID;
+      public String toString() {
+        return providerConfigurationClass.getSimpleName();
+      }
+    }
+
+    static class CustomAnthropicProviderConfig {
+      @Bean
+      ChatModelProvider<AnthropicProviderConfiguration> customAnthropicChatModelProvider() {
+        return new CustomAnthropicChatModelProvider();
       }
 
-      @Override
-      public ChatModel createChatModel(AnthropicProviderConfiguration providerConfiguration) {
-        return mock(ChatModel.class);
+      static class CustomAnthropicChatModelProvider
+          implements ChatModelProvider<AnthropicProviderConfiguration> {
+
+        @Override
+        public String type() {
+          return AnthropicProviderConfiguration.ANTHROPIC_ID;
+        }
+
+        @Override
+        public ChatModel createChatModel(AnthropicProviderConfiguration providerConfiguration) {
+          return mock(ChatModel.class);
+        }
+      }
+    }
+
+    static class CustomAzureOpenAiProviderConfig {
+      @Bean
+      ChatModelProvider<AzureOpenAiProviderConfiguration> customAzureOpenAiChatModelProvider() {
+        return new CustomAzureOpenAiChatModelProvider();
+      }
+
+      static class CustomAzureOpenAiChatModelProvider
+          implements ChatModelProvider<AzureOpenAiProviderConfiguration> {
+
+        @Override
+        public String type() {
+          return AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
+        }
+
+        @Override
+        public ChatModel createChatModel(AzureOpenAiProviderConfiguration providerConfiguration) {
+          return mock(ChatModel.class);
+        }
+      }
+    }
+
+    static class CustomBedrockProviderConfig {
+      @Bean
+      ChatModelProvider<BedrockProviderConfiguration> customBedrockChatModelProvider() {
+        return new CustomBedrockChatModelProvider();
+      }
+
+      static class CustomBedrockChatModelProvider
+          implements ChatModelProvider<BedrockProviderConfiguration> {
+
+        @Override
+        public String type() {
+          return BedrockProviderConfiguration.BEDROCK_ID;
+        }
+
+        @Override
+        public ChatModel createChatModel(BedrockProviderConfiguration providerConfiguration) {
+          return mock(ChatModel.class);
+        }
+      }
+    }
+
+    static class CustomGoogleVertexAiProviderConfig {
+      @Bean
+      ChatModelProvider<GoogleVertexAiProviderConfiguration>
+          customGoogleVertexAiChatModelProvider() {
+        return new CustomGoogleVertexAiChatModelProvider();
+      }
+
+      static class CustomGoogleVertexAiChatModelProvider
+          implements ChatModelProvider<GoogleVertexAiProviderConfiguration> {
+
+        @Override
+        public String type() {
+          return GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
+        }
+
+        @Override
+        public ChatModel createChatModel(
+            GoogleVertexAiProviderConfiguration providerConfiguration) {
+          return mock(ChatModel.class);
+        }
+      }
+    }
+
+    static class CustomOpenAiProviderConfig {
+      @Bean
+      ChatModelProvider<OpenAiProviderConfiguration> customOpenAiChatModelProvider() {
+        return new CustomOpenAiChatModelProvider();
+      }
+
+      static class CustomOpenAiChatModelProvider
+          implements ChatModelProvider<OpenAiProviderConfiguration> {
+
+        @Override
+        public String type() {
+          return OpenAiProviderConfiguration.OPENAI_ID;
+        }
+
+        @Override
+        public ChatModel createChatModel(OpenAiProviderConfiguration providerConfiguration) {
+          return mock(ChatModel.class);
+        }
+      }
+    }
+
+    static class CustomOpenAiCompatibleProviderConfig {
+      @Bean
+      ChatModelProvider<OpenAiCompatibleProviderConfiguration>
+          customOpenAiCompatibleChatModelProvider() {
+        return new CustomOpenAiCompatibleChatModelProvider();
+      }
+
+      static class CustomOpenAiCompatibleChatModelProvider
+          implements ChatModelProvider<OpenAiCompatibleProviderConfiguration> {
+
+        @Override
+        public String type() {
+          return OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
+        }
+
+        @Override
+        public ChatModel createChatModel(
+            OpenAiCompatibleProviderConfiguration providerConfiguration) {
+          return mock(ChatModel.class);
+        }
       }
     }
   }
