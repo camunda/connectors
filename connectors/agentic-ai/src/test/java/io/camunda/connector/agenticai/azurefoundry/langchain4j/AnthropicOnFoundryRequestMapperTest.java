@@ -41,7 +41,7 @@ class AnthropicOnFoundryRequestMapperTest {
       new AnthropicOnFoundryRequestMapper(modelConfig, jsonSchemaConverter);
 
   @Test
-  void passes_system_message_to_anthropic_system_field() {
+  void passesSystemMessageToAnthropicSystemField() {
     // given — mapper passes system text as a plain String to builder.system(String)
     var request =
         ChatRequest.builder()
@@ -60,7 +60,7 @@ class AnthropicOnFoundryRequestMapperTest {
   }
 
   @Test
-  void groups_tool_result_messages_into_single_user_message() {
+  void groupsToolResultMessagesIntoSingleUserMessage() {
     // given — two consecutive tool-result messages must be merged into one user-role MessageParam
     // containing two ToolResultBlockParam content blocks (Anthropic API requirement)
     var request =
@@ -113,7 +113,7 @@ class AnthropicOnFoundryRequestMapperTest {
   }
 
   @Test
-  void translates_assistant_tool_calls_into_tool_use_blocks() {
+  void translatesAssistantToolCallsIntoToolUseBlocks() {
     // given — an AiMessage with a tool execution request must produce an assistant-role
     // MessageParam whose content contains a ToolUseBlockParam with the right id, name, and parsed
     // input
@@ -159,7 +159,7 @@ class AnthropicOnFoundryRequestMapperTest {
   }
 
   @Test
-  void default_max_tokens_when_neither_config_nor_request_sets_one() {
+  void defaultMaxTokensWhenNeitherConfigNorRequestSetsOne() {
     // given — model with null parameters → should fall back to 1024
     var mapperNoParams =
         new AnthropicOnFoundryRequestMapper(
@@ -175,7 +175,7 @@ class AnthropicOnFoundryRequestMapperTest {
   }
 
   @Test
-  void chat_request_max_tokens_overrides_model_config() {
+  void chatRequestMaxTokensOverridesModelConfig() {
     // given — modelConfig has maxTokens=1024; ChatRequest overrides to 4096
     var request =
         ChatRequest.builder().messages(UserMessage.from("hi")).maxOutputTokens(4096).build();
@@ -188,7 +188,7 @@ class AnthropicOnFoundryRequestMapperTest {
   }
 
   @Test
-  void translates_tool_specifications_with_object_schema() {
+  void translatesToolSpecificationsWithObjectSchema() {
     // given — a tool with a JsonObjectSchema that has required and optional string properties
     JsonObjectSchema schema =
         JsonObjectSchema.builder()

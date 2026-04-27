@@ -26,7 +26,7 @@ class AzureFoundryProviderConfigurationDeserializationTest {
   class AnthropicFamily {
 
     @Test
-    void roundtrips_with_api_key_auth() throws Exception {
+    void roundtripsWithApiKeyAuth() throws Exception {
       String json =
           """
           {
@@ -57,7 +57,7 @@ class AzureFoundryProviderConfigurationDeserializationTest {
     }
 
     @Test
-    void roundtrips_with_client_credentials_auth() throws Exception {
+    void roundtripsWithClientCredentialsAuth() throws Exception {
       String json =
           """
           {
@@ -123,7 +123,7 @@ class AzureFoundryProviderConfigurationDeserializationTest {
   class LegacyAzureOpenAiCompat {
 
     @Test
-    void pre_refactor_azure_openai_json_still_deserializes() throws Exception {
+    void preRefactorAzureOpenAiJsonStillDeserializes() throws Exception {
       // Legacy BPMN process definitions use "type": "azureOpenAi" — must still resolve to
       // the existing provider class post-M1 extraction of AzureAuthentication.
       String json =

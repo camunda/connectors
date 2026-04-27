@@ -44,7 +44,7 @@ class AnthropicOnFoundryClientFactoryTest {
           proxySupport, new JsonSchemaConverter(new ObjectMapper()));
 
   @Test
-  void builds_anthropic_chat_model_with_api_key_auth() {
+  void buildsAnthropicChatModelWithApiKeyAuth() {
     AnthropicOnFoundryChatModel chatModel =
         factory.create(
             "https://my-resource.services.ai.azure.com",
@@ -58,7 +58,7 @@ class AnthropicOnFoundryClientFactoryTest {
   }
 
   @Test
-  void builds_chat_model_even_when_endpoint_has_trailing_slash() {
+  void buildsChatModelEvenWhenEndpointHasTrailingSlash() {
     AnthropicOnFoundryChatModel chatModel =
         factory.create(
             "https://my-resource.services.ai.azure.com/",
@@ -70,7 +70,7 @@ class AnthropicOnFoundryClientFactoryTest {
   }
 
   @Test
-  void builds_anthropic_chat_model_with_client_credentials_auth() {
+  void buildsAnthropicChatModelWithClientCredentialsAuth() {
     AnthropicOnFoundryChatModel chatModel =
         factory.create(
             "https://my-resource.services.ai.azure.com",
@@ -84,7 +84,7 @@ class AnthropicOnFoundryClientFactoryTest {
   }
 
   @Test
-  void uses_custom_authority_host_when_provided() {
+  void usesCustomAuthorityHostWhenProvided() {
     AnthropicOnFoundryChatModel chatModel =
         factory.create(
             "https://my-resource.services.ai.azure.com",
@@ -114,7 +114,7 @@ class AnthropicOnFoundryClientFactoryTest {
       """;
 
   @Test
-  void normalizes_trailing_slash_in_endpoint(WireMockRuntimeInfo wm) throws Exception {
+  void normalizesTrailingSlashInEndpoint(WireMockRuntimeInfo wm) throws Exception {
     stubFor(
         post(urlEqualTo("/anthropic/v1/messages"))
             .willReturn(
@@ -140,7 +140,7 @@ class AnthropicOnFoundryClientFactoryTest {
   }
 
   @Test
-  void injects_api_key_header(WireMockRuntimeInfo wm) throws Exception {
+  void injectsApiKeyHeader(WireMockRuntimeInfo wm) throws Exception {
     stubFor(
         post(urlEqualTo("/anthropic/v1/messages"))
             .willReturn(
