@@ -31,6 +31,11 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
   @TemplateProperty(ignore = true)
   public static final String BEDROCK_ID = "bedrock";
 
+  @Override
+  public String providerType() {
+    return BEDROCK_ID;
+  }
+
   public record BedrockConnection(
       @NotBlank
           @TemplateProperty(

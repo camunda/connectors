@@ -28,6 +28,11 @@ public record GoogleVertexAiProviderConfiguration(
   @TemplateProperty(ignore = true)
   public static final String GOOGLE_VERTEX_AI_ID = "google-vertex-ai";
 
+  @Override
+  public String providerType() {
+    return GOOGLE_VERTEX_AI_ID;
+  }
+
   public record GoogleVertexAiConnection(
       @NotBlank
           @TemplateProperty(

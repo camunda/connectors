@@ -34,7 +34,7 @@ public class ChatModelHttpProxySupport {
     this.jdkHttpClientProxyConfigurator = jdkHttpClientProxyConfigurator;
   }
 
-  JdkHttpClientBuilder createJdkHttpClientBuilder() {
+  public JdkHttpClientBuilder createJdkHttpClientBuilder() {
     final var httpClientBuilder = HttpClient.newBuilder();
     jdkHttpClientProxyConfigurator.configure(httpClientBuilder);
     return new JdkHttpClientBuilder().httpClientBuilder(httpClientBuilder);
@@ -79,7 +79,7 @@ public class ChatModelHttpProxySupport {
     return awsProxyConfigBuilder.build();
   }
 
-  Optional<ProxyOptions> createAzureProxyOptions(String endpoint) {
+  public Optional<ProxyOptions> createAzureProxyOptions(String endpoint) {
     final var uri = URI.create(endpoint);
     if (uri.getScheme() == null) {
       throw new IllegalArgumentException("Invalid endpoint URI: " + endpoint);
