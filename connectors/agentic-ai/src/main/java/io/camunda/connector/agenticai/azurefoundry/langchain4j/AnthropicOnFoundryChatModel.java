@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.azurefoundry.langchain4j;
 
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.errors.AnthropicException;
+import com.anthropic.errors.AnthropicIoException;
 import com.anthropic.errors.BadRequestException;
 import com.anthropic.errors.InternalServerException;
 import com.anthropic.errors.NotFoundException;
@@ -89,6 +90,8 @@ public class AnthropicOnFoundryChatModel implements ChatModel {
       throw new ConnectorInputException(ex);
     } catch (RateLimitException | InternalServerException ex) {
       throw new ConnectorException(String.valueOf(ex.statusCode()), ex.getMessage(), ex);
+    } catch (AnthropicIoException ex) {
+      throw new ConnectorException("TRANSPORT_ERROR", ex.getMessage(), ex);
     } catch (AnthropicException ex) {
       throw new ConnectorException("ANTHROPIC_ERROR", ex.getMessage(), ex);
     }
