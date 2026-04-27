@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.azurefoundry.langchain4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.anthropic.models.messages.ContentBlockParam;
 import com.anthropic.models.messages.MessageCreateParams;
@@ -233,5 +234,33 @@ class AnthropicOnFoundryRequestMapperTest {
     // required list must contain "city"
     assertThat(inputSchema.required()).isPresent();
     assertThat(inputSchema.required().get()).contains("city");
+  }
+
+  @Test
+  void failsWithConnectorInputExceptionWhenToolSchemaPropertyConversionFails() {
+    // given — a converter stubbed to throw on schemaToMap; a tool spec with a single property
+    JsonSchemaConverter failingConverter = org.mockito.Mockito.mock(JsonSchemaConverter.class);
+    org.mockito.Mockito.when(failingConverter.schemaToMap(org.mockito.ArgumentMatchers.any()))
+        .thenThrow(new IllegalArgumentException("boom"));
+
+    AnthropicOnFoundryRequestMapper mapperWithFailingConverter =
+        new AnthropicOnFoundryRequestMapper(modelConfig, failingConverter);
+
+    ToolSpecification spec =
+        ToolSpecification.builder()
+            .name("broken_tool")
+            .parameters(JsonObjectSchema.builder().addStringProperty("x").build())
+            .build();
+
+    ChatRequest request =
+        ChatRequest.builder().messages(UserMessage.from("hi")).toolSpecifications(spec).build();
+
+    // when / then — propagate as ConnectorInputException so the connector runtime surfaces a
+    // terminal incident with a clear message instead of silently emitting a malformed schema.
+    assertThatThrownBy(() -> mapperWithFailingConverter.toMessageCreateParams(request))
+        .isInstanceOf(io.camunda.connector.api.error.ConnectorInputException.class)
+        .hasMessageContaining("broken_tool")
+        .hasMessageContaining("'x'")
+        .hasCauseInstanceOf(IllegalArgumentException.class);
   }
 }
