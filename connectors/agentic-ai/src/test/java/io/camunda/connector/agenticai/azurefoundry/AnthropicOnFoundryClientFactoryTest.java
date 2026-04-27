@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundr
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel.AnthropicModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.AzureAuthentication.AzureClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.azurefoundry.langchain4j.AnthropicOnFoundryChatModel;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -35,7 +34,7 @@ class AnthropicOnFoundryClientFactoryTest {
         factory.create(
             "https://my-resource.services.ai.azure.com",
             new AzureApiKeyAuthentication("api-key-value"),
-            new TimeoutConfiguration(Duration.ofSeconds(30)),
+            Duration.ofSeconds(30),
             new AnthropicModel(
                 "claude-sonnet-4-6", new AnthropicModelParameters(1024, 0.7, 0.9, 40)));
 
