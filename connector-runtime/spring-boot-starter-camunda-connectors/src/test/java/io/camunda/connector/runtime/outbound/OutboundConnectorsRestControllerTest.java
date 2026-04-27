@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.outbound;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,6 +32,7 @@ import io.camunda.connector.runtime.core.common.AbstractConnectorFactory.Connect
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
+import io.camunda.connector.runtime.outbound.jobstream.GatewayConnectivityState;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,18 +95,20 @@ class OutboundConnectorsRestControllerTest {
     assertEquals(30000L, http.timeout());
     assertEquals("localhost", http.runtimeId());
     assertTrue(http.enabled());
+    assertEquals(GatewayConnectivityState.UNKNOWN, http.gatewayConnectivityState());
 
     var slack = connectors.stream().filter(c -> c.type().equals(TYPE_2)).findFirst().orElseThrow();
     assertEquals("Slack", slack.name());
     assertEquals(List.of("channel", "message"), slack.inputVariables());
-    assertNull(slack.timeout());
     assertEquals("localhost", slack.runtimeId());
     assertTrue(slack.enabled());
+    assertEquals(GatewayConnectivityState.UNKNOWN, slack.gatewayConnectivityState());
 
     var disabled =
         connectors.stream().filter(c -> c.type().equals(TYPE_DISABLED)).findFirst().orElseThrow();
     assertEquals("Disabled Connector", disabled.name());
     assertFalse(disabled.enabled());
+    assertEquals(GatewayConnectivityState.UNKNOWN, disabled.gatewayConnectivityState());
   }
 
   @Test
