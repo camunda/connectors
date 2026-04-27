@@ -11,14 +11,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.anthropic.models.messages.ContentBlockParam;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.MessageParam;
+import com.anthropic.models.messages.Tool;
 import com.anthropic.models.messages.ToolResultBlockParam;
 import com.anthropic.models.messages.ToolUseBlockParam;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel.AnthropicModelParameters;
 import java.util.List;
@@ -29,8 +34,10 @@ class AnthropicOnFoundryRequestMapperTest {
   private final AnthropicModel modelConfig =
       new AnthropicModel(
           "claude-3-5-sonnet-20241022", new AnthropicModelParameters(1024, 0.7, 0.9, 10));
+  private final JsonSchemaConverter jsonSchemaConverter =
+      new JsonSchemaConverter(new ObjectMapper());
   private final AnthropicOnFoundryRequestMapper mapper =
-      new AnthropicOnFoundryRequestMapper(modelConfig);
+      new AnthropicOnFoundryRequestMapper(modelConfig, jsonSchemaConverter);
 
   @Test
   void passes_system_message_to_anthropic_system_field() {
@@ -154,7 +161,8 @@ class AnthropicOnFoundryRequestMapperTest {
   void default_max_tokens_when_neither_config_nor_request_sets_one() {
     // given — model with null parameters → should fall back to 1024
     var mapperNoParams =
-        new AnthropicOnFoundryRequestMapper(new AnthropicModel("claude-sonnet-4-6", null));
+        new AnthropicOnFoundryRequestMapper(
+            new AnthropicModel("claude-sonnet-4-6", null), jsonSchemaConverter);
 
     var request = ChatRequest.builder().messages(UserMessage.from("hi")).build();
 
@@ -176,5 +184,54 @@ class AnthropicOnFoundryRequestMapperTest {
 
     // then
     assertThat(params.maxTokens()).isEqualTo(4096L);
+  }
+
+  @Test
+  void translates_tool_specifications_with_object_schema() {
+    // given — a tool with a JsonObjectSchema that has required and optional string properties
+    JsonObjectSchema schema =
+        JsonObjectSchema.builder()
+            .addStringProperty("city", "City name")
+            .addStringProperty("country", "Optional country code")
+            .required("city")
+            .build();
+
+    ToolSpecification spec =
+        ToolSpecification.builder()
+            .name("get_weather")
+            .description("Get the weather for a city")
+            .parameters(schema)
+            .build();
+
+    ChatRequest request =
+        ChatRequest.builder()
+            .messages(UserMessage.from("What's the weather?"))
+            .toolSpecifications(spec)
+            .build();
+
+    // when
+    MessageCreateParams params = mapper.toMessageCreateParams(request);
+
+    // then — the tool must appear in the params with correctly populated schema
+    assertThat(params.tools()).isPresent();
+    assertThat(params.tools().get()).hasSize(1);
+
+    assertThat(params.tools().get().get(0).isTool()).isTrue();
+    Tool tool = params.tools().get().get(0).asTool();
+    assertThat(tool.name()).isEqualTo("get_weather");
+    assertThat(tool.description()).isPresent();
+    assertThat(tool.description().get()).isEqualTo("Get the weather for a city");
+
+    Tool.InputSchema inputSchema = tool.inputSchema();
+
+    // properties must contain both "city" and "country"
+    assertThat(inputSchema.properties()).isPresent();
+    assertThat(inputSchema.properties().get()._additionalProperties())
+        .containsKey("city")
+        .containsKey("country");
+
+    // required list must contain "city"
+    assertThat(inputSchema.required()).isPresent();
+    assertThat(inputSchema.required().get()).contains("city");
   }
 }

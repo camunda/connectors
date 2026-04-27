@@ -21,6 +21,7 @@ import com.anthropic.models.messages.MessageCreateParams;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -49,10 +50,11 @@ public class AnthropicOnFoundryChatModel implements ChatModel {
   private final AnthropicOnFoundryRequestMapper requestMapper;
   private final AnthropicOnFoundryResponseMapper responseMapper;
 
-  public AnthropicOnFoundryChatModel(AnthropicClient client, AnthropicModel modelConfig) {
+  public AnthropicOnFoundryChatModel(
+      AnthropicClient client, AnthropicModel modelConfig, JsonSchemaConverter jsonSchemaConverter) {
     this.client = client;
     this.modelConfig = modelConfig;
-    this.requestMapper = new AnthropicOnFoundryRequestMapper(modelConfig);
+    this.requestMapper = new AnthropicOnFoundryRequestMapper(modelConfig, jsonSchemaConverter);
     this.responseMapper = new AnthropicOnFoundryResponseMapper();
   }
 

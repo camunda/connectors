@@ -17,9 +17,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.models.messages.MessageCreateParams;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel.AnthropicModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.AzureAuthentication.AzureApiKeyAuthentication;
@@ -38,7 +40,8 @@ class AnthropicOnFoundryClientFactoryTest {
           ProxyConfiguration.NONE, new JdkHttpClientProxyConfigurator(ProxyConfiguration.NONE));
 
   private final AnthropicOnFoundryClientFactory factory =
-      new AnthropicOnFoundryClientFactory(proxySupport);
+      new AnthropicOnFoundryClientFactory(
+          proxySupport, new JsonSchemaConverter(new ObjectMapper()));
 
   @Test
   void builds_anthropic_chat_model_with_api_key_auth() {

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.configurati
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AnthropicChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureFoundryChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureOpenAiChatModelProvider;
@@ -64,8 +65,9 @@ public class AgenticAiLangchain4JChatModelConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AnthropicOnFoundryClientFactory anthropicOnFoundryClientFactory(
-      ChatModelHttpProxySupport chatModelHttpProxySupport) {
-    return new AnthropicOnFoundryClientFactory(chatModelHttpProxySupport);
+      ChatModelHttpProxySupport chatModelHttpProxySupport,
+      JsonSchemaConverter jsonSchemaConverter) {
+    return new AnthropicOnFoundryClientFactory(chatModelHttpProxySupport, jsonSchemaConverter);
   }
 
   @Bean

@@ -14,6 +14,7 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.identity.AuthenticationUtil;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.AzureAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.AzureAuthentication.AzureApiKeyAuthentication;
@@ -35,9 +36,12 @@ public class AnthropicOnFoundryClientFactory {
   private static final String BEARER_SCOPE = "https://cognitiveservices.azure.com/.default";
 
   private final ChatModelHttpProxySupport proxySupport;
+  private final JsonSchemaConverter jsonSchemaConverter;
 
-  public AnthropicOnFoundryClientFactory(ChatModelHttpProxySupport proxySupport) {
+  public AnthropicOnFoundryClientFactory(
+      ChatModelHttpProxySupport proxySupport, JsonSchemaConverter jsonSchemaConverter) {
     this.proxySupport = proxySupport;
+    this.jsonSchemaConverter = jsonSchemaConverter;
   }
 
   public AnthropicOnFoundryChatModel create(
@@ -72,7 +76,7 @@ public class AnthropicOnFoundryClientFactory {
         authType(authentication),
         modelConfig.deploymentName());
 
-    return new AnthropicOnFoundryChatModel(anthropicClient, modelConfig);
+    return new AnthropicOnFoundryChatModel(anthropicClient, modelConfig, jsonSchemaConverter);
   }
 
   private static String authType(AzureAuthentication auth) {

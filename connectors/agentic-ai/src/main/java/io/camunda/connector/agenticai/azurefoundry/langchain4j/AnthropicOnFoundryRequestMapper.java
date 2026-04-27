@@ -24,9 +24,11 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +45,12 @@ class AnthropicOnFoundryRequestMapper {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final AnthropicModel modelConfig;
+  private final JsonSchemaConverter jsonSchemaConverter;
 
-  AnthropicOnFoundryRequestMapper(AnthropicModel modelConfig) {
+  AnthropicOnFoundryRequestMapper(
+      AnthropicModel modelConfig, JsonSchemaConverter jsonSchemaConverter) {
     this.modelConfig = modelConfig;
+    this.jsonSchemaConverter = jsonSchemaConverter;
   }
 
   MessageCreateParams toMessageCreateParams(ChatRequest request) {
@@ -235,31 +240,36 @@ class AnthropicOnFoundryRequestMapper {
     var schemaBuilder = Tool.InputSchema.builder();
 
     if (spec.parameters() != null) {
-      // Use the JSON representation from langchain4j — toJson() gives us the full schema JSON
       try {
-        JsonNode schemaNode = OBJECT_MAPPER.readTree(spec.parameters().toString());
-        // properties
-        JsonNode propertiesNode = schemaNode.get("properties");
-        if (propertiesNode != null && !propertiesNode.isEmpty()) {
+        Map<String, Object> schemaMap = jsonSchemaConverter.schemaToMap(spec.parameters());
+
+        Object propertiesObj = schemaMap.get("properties");
+        if (propertiesObj instanceof Map<?, ?> propertiesMap && !propertiesMap.isEmpty()) {
           var propertiesBuilder = Tool.InputSchema.Properties.builder();
-          propertiesNode
-              .fields()
-              .forEachRemaining(
-                  entry ->
-                      propertiesBuilder.putAdditionalProperty(
-                          entry.getKey(), com.anthropic.core.JsonValue.from(entry.getValue())));
+          propertiesMap.forEach(
+              (key, value) -> {
+                if (key instanceof String name) {
+                  propertiesBuilder.putAdditionalProperty(
+                      name, com.anthropic.core.JsonValue.from(value));
+                }
+              });
           schemaBuilder.properties(propertiesBuilder.build());
         }
-        // required
-        JsonNode requiredNode = schemaNode.get("required");
-        if (requiredNode != null && requiredNode.isArray()) {
+
+        Object requiredObj = schemaMap.get("required");
+        if (requiredObj instanceof List<?> requiredList) {
           List<String> required = new ArrayList<>();
-          requiredNode.forEach(n -> required.add(n.asText()));
+          requiredList.forEach(
+              item -> {
+                if (item instanceof String s) {
+                  required.add(s);
+                }
+              });
           schemaBuilder.required(required);
         }
-      } catch (JsonProcessingException e) {
+      } catch (RuntimeException e) {
         LOG.warn(
-            "Failed to parse tool input schema for tool '{}'; emitting empty schema. {}",
+            "Failed to convert tool input schema for tool '{}'; emitting empty schema. {}",
             spec.name(),
             e.getMessage());
       }

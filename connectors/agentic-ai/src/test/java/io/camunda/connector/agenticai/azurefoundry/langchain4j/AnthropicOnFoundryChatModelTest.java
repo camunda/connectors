@@ -30,6 +30,7 @@ import com.anthropic.models.messages.StopReason;
 import com.anthropic.models.messages.TextBlock;
 import com.anthropic.models.messages.Usage;
 import com.anthropic.services.blocking.MessageService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -39,6 +40,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel.AnthropicModelParameters;
 import io.camunda.connector.api.error.ConnectorException;
@@ -68,7 +70,8 @@ class AnthropicOnFoundryChatModelTest {
     var modelConfig =
         new AnthropicModel(
             "claude-3-5-sonnet-20241022", new AnthropicModelParameters(1024, 0.7, 0.9, 10));
-    adapter = new AnthropicOnFoundryChatModel(mockClient, modelConfig);
+    var jsonSchemaConverter = new JsonSchemaConverter(new ObjectMapper());
+    adapter = new AnthropicOnFoundryChatModel(mockClient, modelConfig, jsonSchemaConverter);
   }
 
   // -------------------------------------------------------------------------
