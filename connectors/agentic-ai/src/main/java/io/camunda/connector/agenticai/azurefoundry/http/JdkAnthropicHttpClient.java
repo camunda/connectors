@@ -23,6 +23,8 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link com.anthropic.core.http.HttpClient} backed by the JDK {@link
@@ -33,6 +35,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class JdkAnthropicHttpClient implements HttpClient {
 
+  private static final Logger LOG = LoggerFactory.getLogger(JdkAnthropicHttpClient.class);
+
   private final java.net.http.HttpClient jdkHttpClient;
 
   public JdkAnthropicHttpClient(java.net.http.HttpClient jdkHttpClient) {
@@ -41,9 +45,12 @@ public final class JdkAnthropicHttpClient implements HttpClient {
 
   @Override
   public HttpResponse execute(HttpRequest request, RequestOptions requestOptions) {
+    LOG.debug("Anthropic SDK request: {} {}", request.method(), request.url());
     try {
       java.net.http.HttpResponse<InputStream> jdkResponse =
           jdkHttpClient.send(toJdkRequest(request, requestOptions), BodyHandlers.ofInputStream());
+      LOG.debug(
+          "Anthropic SDK response: status={} url={}", jdkResponse.statusCode(), request.url());
       return toAnthropicResponse(jdkResponse);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -56,9 +63,17 @@ public final class JdkAnthropicHttpClient implements HttpClient {
   @Override
   public CompletableFuture<HttpResponse> executeAsync(
       HttpRequest request, RequestOptions requestOptions) {
+    LOG.debug("Anthropic SDK async request: {} {}", request.method(), request.url());
     return jdkHttpClient
         .sendAsync(toJdkRequest(request, requestOptions), BodyHandlers.ofInputStream())
-        .thenApply(this::toAnthropicResponse);
+        .thenApply(
+            jdkResponse -> {
+              LOG.debug(
+                  "Anthropic SDK async response: status={} url={}",
+                  jdkResponse.statusCode(),
+                  request.url());
+              return toAnthropicResponse(jdkResponse);
+            });
   }
 
   @Override

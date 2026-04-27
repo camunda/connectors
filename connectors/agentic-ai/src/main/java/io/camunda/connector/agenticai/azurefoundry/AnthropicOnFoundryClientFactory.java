@@ -25,8 +25,12 @@ import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AnthropicOnFoundryClientFactory {
+
+  private static final Logger LOG = LoggerFactory.getLogger(AnthropicOnFoundryClientFactory.class);
 
   private static final String BEARER_SCOPE = "https://cognitiveservices.azure.com/.default";
 
@@ -62,7 +66,20 @@ public class AnthropicOnFoundryClientFactory {
     }
     AnthropicClient anthropicClient = new AnthropicClientImpl(optionsBuilder.build());
 
+    LOG.info(
+        "Created Anthropic-on-Foundry client for endpoint={} auth={} deployment={}",
+        normalizedEndpoint,
+        authType(authentication),
+        modelConfig.deploymentName());
+
     return new AnthropicOnFoundryChatModel(anthropicClient, modelConfig);
+  }
+
+  private static String authType(AzureAuthentication auth) {
+    return switch (auth) {
+      case AzureApiKeyAuthentication ignored -> "apiKey";
+      case AzureClientCredentialsAuthentication ignored -> "clientCredentials";
+    };
   }
 
   private HttpClient buildJdkHttpClient() {
@@ -82,6 +99,7 @@ public class AnthropicOnFoundryClientFactory {
 
       case AzureClientCredentialsAuthentication creds -> {
         TokenCredential credential = buildTokenCredential(creds);
+        LOG.debug("Building Entra ID bearer-token supplier with scope {}", BEARER_SCOPE);
         Supplier<String> bearerSupplier =
             AuthenticationUtil.getBearerTokenSupplier(credential, BEARER_SCOPE);
         yield FoundryBackend.builder()

@@ -12,6 +12,8 @@ import com.anthropic.core.http.HttpClient;
 import com.anthropic.core.http.HttpRequest;
 import com.anthropic.core.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An {@link HttpClient} decorator that applies a {@link Backend}'s request-preparation and
@@ -37,6 +39,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class BackendAwareAnthropicHttpClient implements HttpClient {
 
+  private static final Logger LOG = LoggerFactory.getLogger(BackendAwareAnthropicHttpClient.class);
+
   private final HttpClient delegate;
   private final Backend backend;
 
@@ -61,6 +65,7 @@ public final class BackendAwareAnthropicHttpClient implements HttpClient {
 
   @Override
   public void close() {
+    LOG.debug("Closing BackendAwareAnthropicHttpClient");
     delegate.close();
     backend.close();
   }

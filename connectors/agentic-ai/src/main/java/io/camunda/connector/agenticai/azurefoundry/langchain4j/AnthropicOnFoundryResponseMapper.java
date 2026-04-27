@@ -18,6 +18,8 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Maps an Anthropic SDK {@link Message} to a langchain4j {@link ChatResponse}.
@@ -26,6 +28,7 @@ import java.util.List;
  */
 class AnthropicOnFoundryResponseMapper {
 
+  private static final Logger LOG = LoggerFactory.getLogger(AnthropicOnFoundryResponseMapper.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   ChatResponse toChatResponse(Message message) {
@@ -66,6 +69,11 @@ class AnthropicOnFoundryResponseMapper {
     try {
       argumentsJson = OBJECT_MAPPER.writeValueAsString(toolUse._input().convert(Object.class));
     } catch (JsonProcessingException e) {
+      LOG.warn(
+          "Failed to serialize tool input for tool '{}' (id={}); using empty arguments. {}",
+          toolUse.name(),
+          toolUse.id(),
+          e.getMessage());
       argumentsJson = "{}";
     }
     return ToolExecutionRequest.builder()
@@ -88,6 +96,7 @@ class AnthropicOnFoundryResponseMapper {
     if (stopReason.equals(StopReason.MAX_TOKENS)) {
       return FinishReason.LENGTH;
     }
+    LOG.debug("Unknown Anthropic stop reason '{}'; mapping to OTHER", stopReason);
     return FinishReason.OTHER;
   }
 
