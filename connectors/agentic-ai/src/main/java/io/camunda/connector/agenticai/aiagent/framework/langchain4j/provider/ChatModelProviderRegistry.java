@@ -47,6 +47,11 @@ public class ChatModelProviderRegistry {
           "No chat model provider registered for provider type: %s".formatted(providerId));
     }
 
+    LOGGER.debug(
+        "Resolved chat model provider for type '{}': {}",
+        providerId,
+        chatModelProvider.getClass().getName());
+
     return (ChatModelProvider<T>) chatModelProvider;
   }
 }
