@@ -6,8 +6,19 @@
  */
 package io.camunda.connector.agenticai.azurefoundry;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.models.messages.MessageCreateParams;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel.AnthropicModelParameters;
@@ -19,6 +30,7 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
+@WireMockTest
 class AnthropicOnFoundryClientFactoryTest {
 
   private final ChatModelHttpProxySupport proxySupport =
@@ -79,5 +91,95 @@ class AnthropicOnFoundryClientFactoryTest {
             new AnthropicModel("claude-sonnet-4-6", null));
 
     assertThat(chatModel).isNotNull();
+  }
+
+  // ---------------------------------------------------------------------------
+  // WireMock round-trip tests — verify HTTP-level behaviour of the full chain
+  // ---------------------------------------------------------------------------
+
+  private static final String MINIMAL_SUCCESS_RESPONSE =
+      """
+      {
+        "id": "msg_01",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-sonnet-4-6",
+        "content": [{"type": "text", "text": "ok"}],
+        "stop_reason": "end_turn",
+        "usage": {"input_tokens": 1, "output_tokens": 1}
+      }
+      """;
+
+  @Test
+  void normalizes_trailing_slash_in_endpoint(WireMockRuntimeInfo wm) throws Exception {
+    stubFor(
+        post(urlEqualTo("/anthropic/v1/messages"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(MINIMAL_SUCCESS_RESPONSE)));
+
+    AnthropicOnFoundryChatModel chatModel =
+        factory.create(
+            wm.getHttpBaseUrl() + "/", // trailing slash — must be stripped
+            new AzureApiKeyAuthentication("test-key"),
+            Duration.ofSeconds(30),
+            new AnthropicModel(
+                "claude-sonnet-4-6", new AnthropicModelParameters(100, null, null, null)));
+
+    // Drive the call through the Anthropic SDK client directly (no langchain4j) to stay within
+    // the azurefoundry package ArchUnit boundary.
+    triggerMessages(chatModel);
+
+    // Request must arrive at exactly /anthropic/v1/messages — no double slash
+    verify(postRequestedFor(urlEqualTo("/anthropic/v1/messages")));
+  }
+
+  @Test
+  void injects_api_key_header(WireMockRuntimeInfo wm) throws Exception {
+    stubFor(
+        post(urlEqualTo("/anthropic/v1/messages"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(MINIMAL_SUCCESS_RESPONSE)));
+
+    AnthropicOnFoundryChatModel chatModel =
+        factory.create(
+            wm.getHttpBaseUrl(),
+            new AzureApiKeyAuthentication("secret-key-value"),
+            Duration.ofSeconds(30),
+            new AnthropicModel(
+                "claude-sonnet-4-6", new AnthropicModelParameters(100, null, null, null)));
+
+    triggerMessages(chatModel);
+
+    // The Foundry SDK uses "x-api-key" (HEADER_API_KEY constant in FoundryBackend) for API-key
+    // auth — same header name as direct Anthropic, not the "api-key" Azure OpenAI convention.
+    verify(
+        postRequestedFor(urlEqualTo("/anthropic/v1/messages"))
+            .withHeader("x-api-key", equalTo("secret-key-value")));
+  }
+
+  /**
+   * Extracts the {@code AnthropicClient} wired by the factory and makes one minimal messages call.
+   * Uses reflection so the test stays in the {@code azurefoundry} package without importing
+   * langchain4j types — which would violate the ArchUnit rule that restricts langchain4j usage to
+   * the {@code azurefoundry.langchain4j} sub-package.
+   */
+  private static void triggerMessages(AnthropicOnFoundryChatModel chatModel) throws Exception {
+    var clientField = AnthropicOnFoundryChatModel.class.getDeclaredField("client");
+    clientField.setAccessible(true);
+    AnthropicClient client = (AnthropicClient) clientField.get(chatModel);
+
+    MessageCreateParams params =
+        MessageCreateParams.builder()
+            .model("claude-sonnet-4-6")
+            .maxTokens(10L)
+            .addUserMessage("hi")
+            .build();
+    client.messages().create(params);
   }
 }
