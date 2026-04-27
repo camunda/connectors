@@ -28,6 +28,7 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
+import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -240,8 +241,9 @@ class AnthropicOnFoundryRequestMapper {
 
   private Tool buildAnthropicTool(ToolSpecification spec) {
     var schemaBuilder = Tool.InputSchema.builder();
+    JsonObjectSchema objectSchema = spec.parameters();
 
-    if (spec.parameters() instanceof JsonObjectSchema objectSchema) {
+    if (objectSchema != null) {
       List<String> required = objectSchema.required();
       if (required != null && !required.isEmpty()) {
         schemaBuilder.required(new ArrayList<>(required));
@@ -252,17 +254,20 @@ class AnthropicOnFoundryRequestMapper {
         var propertiesBuilder = Tool.InputSchema.Properties.builder();
         properties.forEach(
             (name, element) -> {
+              Map<String, Object> elementMap;
               try {
-                Map<String, Object> elementMap = jsonSchemaConverter.schemaToMap(element);
-                propertiesBuilder.putAdditionalProperty(
-                    name, com.anthropic.core.JsonValue.from(elementMap));
+                elementMap = jsonSchemaConverter.schemaToMap(element);
               } catch (RuntimeException e) {
-                LOG.warn(
-                    "Failed to convert tool input schema property '{}' for tool '{}'; skipping.",
-                    name,
-                    spec.name(),
+                throw new ConnectorInputException(
+                    "Failed to convert tool input schema property '"
+                        + name
+                        + "' for tool '"
+                        + spec.name()
+                        + "'",
                     e);
               }
+              propertiesBuilder.putAdditionalProperty(
+                  name, com.anthropic.core.JsonValue.from(elementMap));
             });
         schemaBuilder.properties(propertiesBuilder.build());
       }
