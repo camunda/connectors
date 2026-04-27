@@ -24,6 +24,8 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
 import java.util.ArrayList;
@@ -239,39 +241,30 @@ class AnthropicOnFoundryRequestMapper {
   private Tool buildAnthropicTool(ToolSpecification spec) {
     var schemaBuilder = Tool.InputSchema.builder();
 
-    if (spec.parameters() != null) {
-      try {
-        Map<String, Object> schemaMap = jsonSchemaConverter.schemaToMap(spec.parameters());
+    if (spec.parameters() instanceof JsonObjectSchema objectSchema) {
+      List<String> required = objectSchema.required();
+      if (required != null && !required.isEmpty()) {
+        schemaBuilder.required(new ArrayList<>(required));
+      }
 
-        Object propertiesObj = schemaMap.get("properties");
-        if (propertiesObj instanceof Map<?, ?> propertiesMap && !propertiesMap.isEmpty()) {
-          var propertiesBuilder = Tool.InputSchema.Properties.builder();
-          propertiesMap.forEach(
-              (key, value) -> {
-                if (key instanceof String name) {
-                  propertiesBuilder.putAdditionalProperty(
-                      name, com.anthropic.core.JsonValue.from(value));
-                }
-              });
-          schemaBuilder.properties(propertiesBuilder.build());
-        }
-
-        Object requiredObj = schemaMap.get("required");
-        if (requiredObj instanceof List<?> requiredList) {
-          List<String> required = new ArrayList<>();
-          requiredList.forEach(
-              item -> {
-                if (item instanceof String s) {
-                  required.add(s);
-                }
-              });
-          schemaBuilder.required(required);
-        }
-      } catch (RuntimeException e) {
-        LOG.warn(
-            "Failed to convert tool input schema for tool '{}'; emitting empty schema. {}",
-            spec.name(),
-            e.getMessage());
+      Map<String, JsonSchemaElement> properties = objectSchema.properties();
+      if (properties != null && !properties.isEmpty()) {
+        var propertiesBuilder = Tool.InputSchema.Properties.builder();
+        properties.forEach(
+            (name, element) -> {
+              try {
+                Map<String, Object> elementMap = jsonSchemaConverter.schemaToMap(element);
+                propertiesBuilder.putAdditionalProperty(
+                    name, com.anthropic.core.JsonValue.from(elementMap));
+              } catch (RuntimeException e) {
+                LOG.warn(
+                    "Failed to convert tool input schema property '{}' for tool '{}'; skipping.",
+                    name,
+                    spec.name(),
+                    e);
+              }
+            });
+        schemaBuilder.properties(propertiesBuilder.build());
       }
     }
 
