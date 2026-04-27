@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.autoconfigure;
 import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
 import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertHasAllBeansOf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
@@ -55,7 +57,6 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -280,7 +281,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
   static class OverridingAnthropicProviderConfig {
     @Bean
     AnthropicChatModelProvider overridingAnthropicProvider() {
-      return Mockito.mock(AnthropicChatModelProvider.class);
+      var provider = mock(AnthropicChatModelProvider.class);
+      when(provider.type()).thenReturn("anthropic");
+      return provider;
     }
   }
 
