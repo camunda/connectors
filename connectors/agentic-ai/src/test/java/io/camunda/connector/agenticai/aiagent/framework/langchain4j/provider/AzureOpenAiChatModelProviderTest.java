@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.MODEL_TIMEOUT;
-import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.createDefaultConfigurationProperties;
+import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.createDefaultChatModelProperties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
@@ -66,7 +66,7 @@ class AzureOpenAiChatModelProviderTest {
               proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
   private final AzureOpenAiChatModelProvider provider =
-      new AzureOpenAiChatModelProvider(createDefaultConfigurationProperties(), proxySupport);
+      new AzureOpenAiChatModelProvider(createDefaultChatModelProperties(), proxySupport);
 
   @Captor ArgumentCaptor<TokenCredential> tokenCredentialsCapture;
 

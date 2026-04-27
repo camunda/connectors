@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+
 import com.azure.identity.ClientSecretCredentialBuilder;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.chat.ChatModel;
@@ -13,19 +15,23 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHtt
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AzureOpenAiChatModelProvider
-    extends AbstractChatModelProvider<AzureOpenAiProviderConfiguration> {
+    implements ChatModelProvider<AzureOpenAiProviderConfiguration> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(AzureOpenAiChatModelProvider.class);
+
+  private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
   public AzureOpenAiChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
-      ChatModelHttpProxySupport proxySupport) {
-    super(agenticAiConnectorsConfigurationProperties);
+      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+    this.config = config;
     this.proxySupport = proxySupport;
   }
 
@@ -41,7 +47,9 @@ public class AzureOpenAiChatModelProvider
         AzureOpenAiChatModel.builder()
             .endpoint(connection.endpoint())
             .deploymentName(connection.model().deploymentName())
-            .timeout(deriveTimeoutSetting(connection.timeouts()));
+            .timeout(
+                deriveTimeoutSetting(
+                    "Azure OpenAI model call", config, connection.timeouts(), LOGGER));
 
     proxySupport.createAzureProxyOptions(connection.endpoint()).ifPresent(builder::proxyOptions);
 

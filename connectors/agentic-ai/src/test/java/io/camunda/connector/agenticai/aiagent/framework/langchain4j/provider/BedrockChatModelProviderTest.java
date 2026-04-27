@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.MODEL_TIMEOUT;
-import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.createDefaultConfigurationProperties;
+import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.createDefaultChatModelProperties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -73,7 +73,7 @@ class BedrockChatModelProviderTest {
               proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
   private final BedrockChatModelProvider provider =
-      new BedrockChatModelProvider(createDefaultConfigurationProperties(), proxySupport);
+      new BedrockChatModelProvider(createDefaultChatModelProperties(), proxySupport);
 
   @Captor private ArgumentCaptor<ChatRequestParameters> modelParametersArgumentCaptor;
   @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderArgumentCaptor;

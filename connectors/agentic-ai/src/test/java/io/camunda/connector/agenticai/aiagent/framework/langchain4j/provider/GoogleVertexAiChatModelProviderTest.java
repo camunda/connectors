@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
-import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.createDefaultConfigurationProperties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
@@ -51,8 +50,7 @@ class GoogleVertexAiChatModelProviderTest {
   private static final GoogleVertexAiModelParameters DEFAULT_MODEL_PARAMETERS =
       new GoogleVertexAiModelParameters(10, 1.0F, 0.8F, 100);
 
-  private final GoogleVertexAiChatModelProvider provider =
-      new GoogleVertexAiChatModelProvider(createDefaultConfigurationProperties());
+  private final GoogleVertexAiChatModelProvider provider = new GoogleVertexAiChatModelProvider();
 
   @Test
   void createsGoogleVertexAiChatModel() {

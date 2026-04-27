@@ -6,30 +6,32 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OpenAiCompatibleChatModelProvider
-    extends AbstractChatModelProvider<OpenAiCompatibleProviderConfiguration> {
+    implements ChatModelProvider<OpenAiCompatibleProviderConfiguration> {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(OpenAiCompatibleChatModelProvider.class);
 
+  private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
   public OpenAiCompatibleChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
-      ChatModelHttpProxySupport proxySupport) {
-    super(agenticAiConnectorsConfigurationProperties);
+      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+    this.config = config;
     this.proxySupport = proxySupport;
   }
 
@@ -46,7 +48,9 @@ public class OpenAiCompatibleChatModelProvider
         OpenAiChatModel.builder()
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint())
-            .timeout(deriveTimeoutSetting(connection.timeouts()))
+            .timeout(
+                deriveTimeoutSetting(
+                    "OpenAI compatible model call", config, connection.timeouts(), LOGGER))
             .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
 
     Optional.ofNullable(connection.authentication())

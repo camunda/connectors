@@ -6,28 +6,33 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.net.URI;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
-public class BedrockChatModelProvider
-    extends AbstractChatModelProvider<BedrockProviderConfiguration> {
+public class BedrockChatModelProvider implements ChatModelProvider<BedrockProviderConfiguration> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(BedrockChatModelProvider.class);
+
+  private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
   public BedrockChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
-      ChatModelHttpProxySupport proxySupport) {
-    super(agenticAiConnectorsConfigurationProperties);
+      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+    this.config = config;
     this.proxySupport = proxySupport;
   }
 
@@ -44,7 +49,8 @@ public class BedrockChatModelProvider
         BedrockChatModel.builder()
             .client(createBedrockClient(connection))
             .modelId(connection.model().model())
-            .timeout(deriveTimeoutSetting(connection.timeouts()));
+            .timeout(
+                deriveTimeoutSetting("Bedrock model call", config, connection.timeouts(), LOGGER));
 
     applyBedrockModelParametersIfPresent(connection, builder);
 
@@ -67,7 +73,8 @@ public class BedrockChatModelProvider
       bedrockClientBuilder.endpointOverride(endpointOverride);
     }
 
-    overrideClientConfigurationBuilder.apiCallTimeout(deriveTimeoutSetting(connection.timeouts()));
+    overrideClientConfigurationBuilder.apiCallTimeout(
+        deriveTimeoutSetting("Bedrock API call", config, connection.timeouts(), LOGGER));
 
     SdkHttpClient httpClient = proxySupport.createAwsHttpClient(endpointOverride);
     bedrockClientBuilder.httpClient(httpClient);

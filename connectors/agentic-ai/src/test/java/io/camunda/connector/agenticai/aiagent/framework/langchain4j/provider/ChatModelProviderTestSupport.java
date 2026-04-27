@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
@@ -30,11 +31,14 @@ final class ChatModelProviderTestSupport {
         new TimeoutConfiguration(Duration.ofMinutes(-5)));
   }
 
-  static AgenticAiConnectorsConfigurationProperties createDefaultConfigurationProperties() {
+  static ChatModelProperties createDefaultChatModelProperties() {
     final var binder = new Binder(List.of());
-    return binder.bindOrCreate(
-        "camunda.connector.agenticai",
-        Bindable.of(AgenticAiConnectorsConfigurationProperties.class));
+    return binder
+        .bindOrCreate(
+            "camunda.connector.agenticai",
+            Bindable.of(AgenticAiConnectorsConfigurationProperties.class))
+        .aiagent()
+        .chatModel();
   }
 
   static class ResultCaptor<T> implements Answer<T> {

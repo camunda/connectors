@@ -6,23 +6,28 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class OpenAiChatModelProvider
-    extends AbstractChatModelProvider<OpenAiProviderConfiguration> {
+public class OpenAiChatModelProvider implements ChatModelProvider<OpenAiProviderConfiguration> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(OpenAiChatModelProvider.class);
+
+  private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
   public OpenAiChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
-      ChatModelHttpProxySupport proxySupport) {
-    super(agenticAiConnectorsConfigurationProperties);
+      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+    this.config = config;
     this.proxySupport = proxySupport;
   }
 
@@ -39,7 +44,8 @@ public class OpenAiChatModelProvider
         OpenAiChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
-            .timeout(deriveTimeoutSetting(connection.timeouts()))
+            .timeout(
+                deriveTimeoutSetting("OpenAI model call", config, connection.timeouts(), LOGGER))
             .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
 
     Optional.ofNullable(connection.authentication().organizationId())

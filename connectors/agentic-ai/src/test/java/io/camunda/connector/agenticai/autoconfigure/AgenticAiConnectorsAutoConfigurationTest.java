@@ -10,8 +10,8 @@ import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAss
 import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertHasAllBeansOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
+import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.J
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AnthropicChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureOpenAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.BedrockChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
@@ -49,7 +50,9 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.A
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomAnthropicProviderConfig.CustomAnthropicChatModelProvider;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
@@ -60,6 +63,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.ResolvableType;
 import org.springframework.validation.FieldError;
 
 class AgenticAiConnectorsAutoConfigurationTest {
@@ -268,22 +272,42 @@ class AgenticAiConnectorsAutoConfigurationTest {
   @Test
   void userProvidedAnthropicProviderBeanOverridesDefault() {
     new ApplicationContextRunner()
-        .withUserConfiguration(TestConfig.class, OverridingAnthropicProviderConfig.class)
+        .withUserConfiguration(TestConfig.class, CustomAnthropicProviderConfig.class)
         .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class)
         .run(
             context -> {
-              assertThat(context).hasSingleBean(AnthropicChatModelProvider.class);
-              assertThat(context.getBean(AnthropicChatModelProvider.class))
-                  .isSameAs(context.getBean("overridingAnthropicProvider"));
+              ResolvableType type =
+                  ResolvableType.forClassWithGenerics(
+                      ChatModelProvider.class, AnthropicProviderConfiguration.class);
+
+              final var beanNamesForType = context.getBeanNamesForType(type);
+              assertThat(beanNamesForType)
+                  .hasSize(1)
+                  .containsExactly("customAnthropicChatModelProvider");
+
+              assertThat(context.getBean(beanNamesForType[0]))
+                  .isInstanceOf(CustomAnthropicChatModelProvider.class);
             });
   }
 
-  static class OverridingAnthropicProviderConfig {
+  static class CustomAnthropicProviderConfig {
     @Bean
-    AnthropicChatModelProvider overridingAnthropicProvider() {
-      var provider = mock(AnthropicChatModelProvider.class);
-      when(provider.type()).thenReturn("anthropic");
-      return provider;
+    ChatModelProvider<AnthropicProviderConfiguration> customAnthropicChatModelProvider() {
+      return new CustomAnthropicChatModelProvider();
+    }
+
+    static class CustomAnthropicChatModelProvider
+        implements ChatModelProvider<AnthropicProviderConfiguration> {
+
+      @Override
+      public String type() {
+        return AnthropicProviderConfiguration.ANTHROPIC_ID;
+      }
+
+      @Override
+      public ChatModel createChatModel(AnthropicProviderConfiguration providerConfiguration) {
+        return mock(ChatModel.class);
+      }
     }
   }
 

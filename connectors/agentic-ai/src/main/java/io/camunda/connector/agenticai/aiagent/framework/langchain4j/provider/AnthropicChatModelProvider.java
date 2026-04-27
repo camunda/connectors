@@ -6,22 +6,28 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AnthropicChatModelProvider
-    extends AbstractChatModelProvider<AnthropicProviderConfiguration> {
+    implements ChatModelProvider<AnthropicProviderConfiguration> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(AnthropicChatModelProvider.class);
+
+  private final ChatModelProperties config;
   private final ChatModelHttpProxySupport proxySupport;
 
   public AnthropicChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
-      ChatModelHttpProxySupport proxySupport) {
-    super(agenticAiConnectorsConfigurationProperties);
+      ChatModelProperties config, ChatModelHttpProxySupport proxySupport) {
+    this.config = config;
     this.proxySupport = proxySupport;
   }
 
@@ -38,7 +44,8 @@ public class AnthropicChatModelProvider
         AnthropicChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
-            .timeout(deriveTimeoutSetting(connection.timeouts()))
+            .timeout(
+                deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER))
             .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
 
     Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);

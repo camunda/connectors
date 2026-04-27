@@ -17,6 +17,12 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Cha
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.util.List;
@@ -38,54 +44,53 @@ public class AgenticAiLangchain4JChatModelConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AnthropicChatModelProvider langchain4JAnthropicChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
+  public ChatModelProvider<AnthropicProviderConfiguration> langchain4JAnthropicChatModelProvider(
+      AgenticAiConnectorsConfigurationProperties config,
       ChatModelHttpProxySupport chatModelHttpProxySupport) {
-    return new AnthropicChatModelProvider(
-        agenticAiConnectorsConfigurationProperties, chatModelHttpProxySupport);
+    return new AnthropicChatModelProvider(config.aiagent().chatModel(), chatModelHttpProxySupport);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public AzureOpenAiChatModelProvider langchain4JAzureOpenAiChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
-      ChatModelHttpProxySupport chatModelHttpProxySupport) {
+  public ChatModelProvider<AzureOpenAiProviderConfiguration>
+      langchain4JAzureOpenAiChatModelProvider(
+          AgenticAiConnectorsConfigurationProperties config,
+          ChatModelHttpProxySupport chatModelHttpProxySupport) {
     return new AzureOpenAiChatModelProvider(
-        agenticAiConnectorsConfigurationProperties, chatModelHttpProxySupport);
+        config.aiagent().chatModel(), chatModelHttpProxySupport);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public BedrockChatModelProvider langchain4JBedrockChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
+  public ChatModelProvider<BedrockProviderConfiguration> langchain4JBedrockChatModelProvider(
+      AgenticAiConnectorsConfigurationProperties config,
       ChatModelHttpProxySupport chatModelHttpProxySupport) {
-    return new BedrockChatModelProvider(
-        agenticAiConnectorsConfigurationProperties, chatModelHttpProxySupport);
+    return new BedrockChatModelProvider(config.aiagent().chatModel(), chatModelHttpProxySupport);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public GoogleVertexAiChatModelProvider langchain4JGoogleVertexAiChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
-    return new GoogleVertexAiChatModelProvider(agenticAiConnectorsConfigurationProperties);
+  public ChatModelProvider<GoogleVertexAiProviderConfiguration>
+      langchain4JGoogleVertexAiChatModelProvider() {
+    return new GoogleVertexAiChatModelProvider();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public OpenAiChatModelProvider langchain4JOpenAiChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
+  public ChatModelProvider<OpenAiProviderConfiguration> langchain4JOpenAiChatModelProvider(
+      AgenticAiConnectorsConfigurationProperties config,
       ChatModelHttpProxySupport chatModelHttpProxySupport) {
-    return new OpenAiChatModelProvider(
-        agenticAiConnectorsConfigurationProperties, chatModelHttpProxySupport);
+    return new OpenAiChatModelProvider(config.aiagent().chatModel(), chatModelHttpProxySupport);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public OpenAiCompatibleChatModelProvider langchain4JOpenAiCompatibleChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
-      ChatModelHttpProxySupport chatModelHttpProxySupport) {
+  public ChatModelProvider<OpenAiCompatibleProviderConfiguration>
+      langchain4JOpenAiCompatibleChatModelProvider(
+          AgenticAiConnectorsConfigurationProperties config,
+          ChatModelHttpProxySupport chatModelHttpProxySupport) {
     return new OpenAiCompatibleChatModelProvider(
-        agenticAiConnectorsConfigurationProperties, chatModelHttpProxySupport);
+        config.aiagent().chatModel(), chatModelHttpProxySupport);
   }
 
   @Bean
