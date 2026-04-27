@@ -14,10 +14,14 @@ import static org.mockito.Mockito.when;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.http.Headers;
+import com.anthropic.errors.AnthropicIoException;
 import com.anthropic.errors.BadRequestException;
 import com.anthropic.errors.InternalServerException;
+import com.anthropic.errors.NotFoundException;
+import com.anthropic.errors.PermissionDeniedException;
 import com.anthropic.errors.RateLimitException;
 import com.anthropic.errors.UnauthorizedException;
+import com.anthropic.errors.UnprocessableEntityException;
 import com.anthropic.models.messages.ContentBlock;
 import com.anthropic.models.messages.DirectCaller;
 import com.anthropic.models.messages.Message;
@@ -291,5 +295,76 @@ class AnthropicOnFoundryChatModelTest {
         .isInstanceOf(ConnectorException.class)
         .isNotInstanceOf(ConnectorInputException.class)
         .hasCause(ex);
+  }
+
+  @Test
+  void permission_denied_becomes_connector_input_exception() {
+    // given
+    var ex =
+        PermissionDeniedException.builder()
+            .headers(EMPTY_HEADERS)
+            .body(JsonValue.from(null))
+            .build();
+    when(mockMessageService.create(any(MessageCreateParams.class))).thenThrow(ex);
+
+    var request = ChatRequest.builder().messages(List.of(new UserMessage("hello"))).build();
+
+    // when / then
+    assertThatThrownBy(() -> adapter.chat(request))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasCause(ex);
+  }
+
+  @Test
+  void not_found_becomes_connector_input_exception() {
+    // given
+    var ex = NotFoundException.builder().headers(EMPTY_HEADERS).body(JsonValue.from(null)).build();
+    when(mockMessageService.create(any(MessageCreateParams.class))).thenThrow(ex);
+
+    var request = ChatRequest.builder().messages(List.of(new UserMessage("hello"))).build();
+
+    // when / then
+    assertThatThrownBy(() -> adapter.chat(request))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasCause(ex);
+  }
+
+  @Test
+  void unprocessable_entity_becomes_connector_input_exception() {
+    // given
+    var ex =
+        UnprocessableEntityException.builder()
+            .headers(EMPTY_HEADERS)
+            .body(JsonValue.from(null))
+            .build();
+    when(mockMessageService.create(any(MessageCreateParams.class))).thenThrow(ex);
+
+    var request = ChatRequest.builder().messages(List.of(new UserMessage("hello"))).build();
+
+    // when / then
+    assertThatThrownBy(() -> adapter.chat(request))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasCause(ex);
+  }
+
+  @Test
+  void transport_io_failure_becomes_retryable_connector_exception() {
+    // given
+    var cause = new java.io.IOException("connect refused");
+    var ex = new AnthropicIoException("net down", cause);
+    when(mockMessageService.create(any(MessageCreateParams.class))).thenThrow(ex);
+
+    var request = ChatRequest.builder().messages(List.of(new UserMessage("hello"))).build();
+
+    // when / then
+    assertThatThrownBy(() -> adapter.chat(request))
+        .isInstanceOf(ConnectorException.class)
+        .isNotInstanceOf(ConnectorInputException.class)
+        .hasCause(ex)
+        .satisfies(
+            thrown -> {
+              ConnectorException connectorEx = (ConnectorException) thrown;
+              assertThat(connectorEx.getErrorCode()).isEqualTo("TRANSPORT_ERROR");
+            });
   }
 }
