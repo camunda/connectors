@@ -22,7 +22,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     type = "io.camunda:aws-bedrock-agentcore-lt-memory:1")
 @ElementTemplate(
     engineVersion = "^8.10",
-    id = "io.camunda.connectors.aws.bedrock.agentcore.memory.v1",
+    id = "io.camunda.connectors.aws.bedrock.agentcore.memory.longterm.v1",
     name = "AWS Bedrock AgentCore Long-Term Memory Connector",
     description =
         "Retrieve persistent knowledge — facts, preferences, and summaries — from AWS Bedrock AgentCore Long-Term Memory",

@@ -64,8 +64,8 @@
               </connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.aws.bedrock.agentcore.memory.v1</templateId>
-                  <templateFileName>aws-bedrock-agentcore-lt-memory-outbound-connector.json</templateFileName>
+                  <templateId>io.camunda.connectors.aws.bedrock.agentcore.memory.longterm.v1</templateId>
+                  <templateFileName>aws-bedrock-agentcore-long-term-memory-outbound-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
