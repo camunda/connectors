@@ -19,4 +19,4 @@ USER 1001:1001
 ENV CAMUNDA_CONNECTOR_RUNTIME_SAAS=true
 ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
 
-ENTRYPOINT ["java", "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", "-cp", "/opt/app/*", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+ENTRYPOINT ["java", "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", "-XX:+ExitOnOutOfMemoryError", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/tmp", "-cp", "/opt/app/*", "org.springframework.boot.loader.launch.PropertiesLauncher"]
