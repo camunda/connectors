@@ -38,6 +38,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
+            <version>${plugin.version.maven-surefire-plugin}</version>
             <configuration>
               <includes>
                 <include>**/*E2ETestIT.java</include>
