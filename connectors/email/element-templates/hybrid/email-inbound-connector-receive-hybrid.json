@@ -227,7 +227,7 @@
       "equals" : "unseenPollingConfig",
       "type" : "simple"
     },
-    "tooltip" : "Chose the desired handling strategy",
+    "tooltip" : "Choose the desired handling strategy",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Mark as read after processing",
@@ -282,7 +282,7 @@
       "equals" : "allPollingConfig",
       "type" : "simple"
     },
-    "tooltip" : "Chose the desired handling strategy",
+    "tooltip" : "Choose the desired handling strategy",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Delete after processing",

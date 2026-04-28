@@ -15,7 +15,7 @@ import jakarta.validation.constraints.NotNull;
 public record PollUnseen(
     @TemplateProperty(
             label = "Handling strategy",
-            tooltip = "Chose the desired handling strategy",
+            tooltip = "Choose the desired handling strategy",
             group = "unseenPollingConfig",
             id = "data.pollingConfig.unseenHandlingStrategy",
             feel = FeelMode.required,
