@@ -11,7 +11,7 @@
     "bpmn:StartEvent"
   ],
   "engines": {
-    "camunda": "^8.9"
+    "camunda": "^8.10"
   },
   "entriesVisible": {
     "outputs": true
@@ -34,7 +34,7 @@
   "properties": [
     {
       "label": "Name",
-      "tooltip": "Give this process a name that helps AI agents understand what it does. <br><br>Use only letters, numbers, hyphens (-), underscores (_), and dots (.). Spaces are not allowed.",
+      "tooltip": "Give this process a name that helps AI agents understand what it does. </br></br>Use only letters, numbers, hyphens (-), underscores (_), and dots (.). Spaces are not allowed.",
       "type": "String",
       "placeholder": "e.g., my_process",
       "binding": {
@@ -43,7 +43,7 @@
       },
       "constraints": {
         "notEmpty": true,
-        "pattern": "^[a-zA-Z0-9._-]+$",
+        "pattern": "^[a-zA-Z-_.0-9]+$",
         "maxLength": 100
       },
       "group": "tool-definition"
@@ -55,6 +55,20 @@
       "binding": {
         "type": "zeebe:property",
         "name": "io.camunda.tool:purpose"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "tool-definition"
+    },
+    {
+      "label": "Which inputs it needs",
+      "type": "Text",
+      "placeholder": "Describe the inputs the AI should send to start this process.",
+      "tooltip": "Provide the inputs the AI should send along when this process is started, in plain language.</br></br>You can describe optional and required parameters, their data types and formats, and any constraints they have, such as a limited set of options the AI can choose from.",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "io.camunda.tool:inputs"
       },
       "constraints": {
         "notEmpty": true
@@ -83,7 +97,7 @@
     },
     {
       "label": "What the tool returns",
-      "tooltip": "Describe the outcomes and results after the process completes. You can also mention specific variable names that will be available (e.g., 'iban', 'request_id').<br><br>To define what inputs this tool requires, use the output mapping section.",
+      "tooltip": "Describe the outcomes and results after the process completes. You can also mention specific variable names that will be available (e.g., 'iban', 'request_id').",
       "type": "Text",
       "placeholder": "Describe the expected outcome and what data is returned.",
       "binding": {
