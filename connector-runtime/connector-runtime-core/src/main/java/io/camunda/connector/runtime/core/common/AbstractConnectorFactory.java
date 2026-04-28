@@ -20,7 +20,11 @@ import io.camunda.connector.runtime.core.ConnectorFactory;
 import io.camunda.connector.runtime.core.config.ConnectorConfiguration;
 import io.camunda.connector.runtime.core.discovery.DisabledConnectorEnvVarsConfig;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**

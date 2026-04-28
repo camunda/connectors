@@ -34,6 +34,7 @@ import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactor
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorsRestController;
 import io.camunda.connector.runtime.outbound.jobstream.GatewayJobStreamClient;
@@ -49,7 +50,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 @Configuration
-@Import(OutboundConnectorsRestController.class)
+@Import({OutboundConnectorsRestController.class, InstanceForwardingConfiguration.class})
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
