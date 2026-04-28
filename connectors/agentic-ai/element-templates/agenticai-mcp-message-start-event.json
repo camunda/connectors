@@ -34,7 +34,7 @@
   "properties": [
     {
       "label": "Name",
-      "tooltip": "Give this process a name that helps AI agents understand what it does. </br></br>Use only letters, numbers, hyphens (-), underscores (_), and dots (.). Spaces are not allowed.",
+      "tooltip": "Give this process a name that helps AI agents understand what it does. <br/><br/>Use only letters, numbers, hyphens (-), underscores (_), and dots (.). Spaces are not allowed.",
       "type": "String",
       "placeholder": "e.g., my_process",
       "binding": {
@@ -65,7 +65,7 @@
       "label": "Which inputs it needs",
       "type": "Text",
       "placeholder": "Describe the inputs the AI should send to start this process.",
-      "tooltip": "Provide the inputs the AI should send along when this process is started, in plain language.</br></br>You can describe optional and required parameters, their data types and formats, and any constraints they have, such as a limited set of options the AI can choose from.",
+      "tooltip": "Provide the inputs the AI should send along when this process is started, in plain language.<br/><br/>You can describe optional and required parameters, their data types and formats, and any constraints they have, such as a limited set of options the AI can choose from.",
       "binding": {
         "type": "zeebe:property",
         "name": "io.camunda.tool:inputs"
