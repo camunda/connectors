@@ -44,8 +44,8 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    *
    * <p>{@link SerializationFeature#FAIL_ON_EMPTY_BEANS} is disabled and {@link
    * JacksonModuleDocumentSerializer} is registered so that FEEL contexts containing a {@code
-   * CamundaDocument} can be serialized into a tree without throwing — and so the document
-   * reference is preserved instead of being silently emptied. See issue #6946.
+   * CamundaDocument} can be serialized into a tree without throwing — and so the document reference
+   * is preserved instead of being silently emptied. See issue #6946.
    */
   protected static final ObjectMapper BLANK_OBJECT_MAPPER =
       new ObjectMapper()

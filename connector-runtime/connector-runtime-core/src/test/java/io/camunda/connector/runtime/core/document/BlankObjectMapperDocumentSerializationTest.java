@@ -32,13 +32,13 @@ import org.junit.jupiter.api.Test;
  *
  * <p>When a FEEL expression evaluates against a context that contains a {@link CamundaDocument},
  * the FEEL deserializer ends up calling {@code AbstractFeelDeserializer.BLANK_OBJECT_MAPPER
- * .valueToTree(contextMap)}. The bug is that on 8.6/8.7/8.8 {@code BLANK_OBJECT_MAPPER} is a vanilla
- * {@code new ObjectMapper()} — {@code FAIL_ON_EMPTY_BEANS=true} and no document serializer
+ * .valueToTree(contextMap)}. The bug is that on 8.6/8.7/8.8 {@code BLANK_OBJECT_MAPPER} is a
+ * vanilla {@code new ObjectMapper()} — {@code FAIL_ON_EMPTY_BEANS=true} and no document serializer
  * registered — so {@code valueToTree} throws {@link
  * com.fasterxml.jackson.databind.exc.InvalidDefinitionException} for any {@link CamundaDocument}.
  *
- * <p>This test reproduces the user-facing failure path through the public API
- * ({@link FeelContextAwareObjectReader}) and asserts that no exception is thrown.
+ * <p>This test reproduces the user-facing failure path through the public API ({@link
+ * FeelContextAwareObjectReader}) and asserts that no exception is thrown.
  *
  * <p><b>Expected behaviour:</b>
  *
@@ -66,8 +66,7 @@ class BlankObjectMapperDocumentSerializationTest {
     // Real CamundaDocument, not a Mockito mock — Mockito's proxy exposes internal getters that
     // make the bean non-empty and accidentally bypass the FAIL_ON_EMPTY_BEANS path we want to
     // exercise. The store is unused here because no content is read.
-    Map<String, Object> feelContext =
-        Map.of("doc", new CamundaDocument(metadata, reference, null));
+    Map<String, Object> feelContext = Map.of("doc", new CamundaDocument(metadata, reference, null));
 
     // The FEEL expression itself is trivial — the failure is triggered by serializing the
     // context map (which contains a CamundaDocument) into a JsonNode for the FEEL engine,
