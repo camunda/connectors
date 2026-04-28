@@ -26,7 +26,6 @@ import io.camunda.connector.runtime.outbound.jobstream.GatewayResult;
 import io.camunda.connector.runtime.outbound.jobstream.StreamConnectivity;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,15 +34,14 @@ public class OutboundConnectorsService {
   private static final Logger LOG = LoggerFactory.getLogger(OutboundConnectorsService.class);
 
   private final OutboundConnectorFactory connectorFactory;
-  private final Optional<GatewayJobStreamClient> gatewayJobStreamClient;
+  private final GatewayJobStreamClient gatewayJobStreamClient;
 
   public OutboundConnectorsService(OutboundConnectorFactory connectorFactory) {
-    this(connectorFactory, Optional.empty());
+    this(connectorFactory, null);
   }
 
   public OutboundConnectorsService(
-      OutboundConnectorFactory connectorFactory,
-      Optional<GatewayJobStreamClient> gatewayJobStreamClient) {
+      OutboundConnectorFactory connectorFactory, GatewayJobStreamClient gatewayJobStreamClient) {
     this.connectorFactory = connectorFactory;
     this.gatewayJobStreamClient = gatewayJobStreamClient;
   }
@@ -69,11 +67,11 @@ public class OutboundConnectorsService {
   }
 
   private GatewayResult queryGateway() {
-    if (gatewayJobStreamClient.isEmpty()) {
+    if (gatewayJobStreamClient == null) {
       return new GatewayResult.Failure.Unknown();
     }
     try {
-      return new GatewayResult.Success(gatewayJobStreamClient.get().fetchJobStreams());
+      return new GatewayResult.Success(gatewayJobStreamClient.fetchJobStreams());
     } catch (Exception e) {
       LOG.warn("Failed to fetch job streams from gateway: {}", e.getMessage());
       return new GatewayResult.Failure.Unreachable();

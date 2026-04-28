@@ -39,10 +39,10 @@ import io.camunda.connector.runtime.outbound.controller.OutboundConnectorsRestCo
 import io.camunda.connector.runtime.outbound.jobstream.GatewayJobStreamClient;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import java.util.List;
-import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -81,10 +81,13 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  @ConditionalOnProperty(
+      name = "camunda.connector.gateway.monitoring.enabled",
+      havingValue = "true")
   public GatewayJobStreamClient gatewayJobStreamClient(
       CamundaClient camundaClient,
       @ConnectorsObjectMapper ObjectMapper mapper,
-      @Value("${camunda.connector.gateway.monitoring-port:9600}") int monitoringPort) {
+      @Value("${camunda.connector.gateway.monitoring.port:9600}") int monitoringPort) {
     return new GatewayJobStreamClient(camundaClient, monitoringPort, mapper);
   }
 
@@ -93,7 +96,7 @@ public class OutboundConnectorRuntimeConfiguration {
       OutboundConnectorFactory outboundConnectorConfigurationRegistry,
       @Autowired(required = false) GatewayJobStreamClient gatewayJobStreamClient) {
     return new OutboundConnectorsService(
-        outboundConnectorConfigurationRegistry, Optional.ofNullable(gatewayJobStreamClient));
+        outboundConnectorConfigurationRegistry, gatewayJobStreamClient);
   }
 
   @Bean
