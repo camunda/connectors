@@ -46,6 +46,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateContainerImpl;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManagerImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.connector.runtime.instances.service.InboundInstancesService;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -146,6 +147,13 @@ public class InboundConnectorRuntimeConfiguration {
       ActivityLogRegistry activityLogRegistry) {
     return new InboundExecutableRegistryImpl(
         inboundConnectorFactory, batchExecutableProcessor, activityLogRegistry);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public InboundInstancesService inboundInstancesService(
+      InboundExecutableRegistry inboundExecutableRegistry) {
+    return new InboundInstancesService(inboundExecutableRegistry);
   }
 
   @Bean

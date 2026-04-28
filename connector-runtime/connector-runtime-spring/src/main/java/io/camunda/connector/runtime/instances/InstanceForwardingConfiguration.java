@@ -17,13 +17,13 @@
 package io.camunda.connector.runtime.instances;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.instances.service.DefaultInstanceForwardingService;
-import io.camunda.connector.runtime.instances.service.InboundInstancesService;
+import io.camunda.connector.runtime.instances.service.ForwardingInstanceForwardingRouter;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingService;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.camunda.connector.runtime.instances.service.LocalInstanceForwardingRouter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -50,16 +50,16 @@ public class InstanceForwardingConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean
-  public InstanceForwardingRouter instanceForwardingRouter(
-      @Autowired(required = false) InstanceForwardingService instanceForwardingService) {
-    return new InstanceForwardingRouter(instanceForwardingService);
+  @ConditionalOnBean(InstanceForwardingService.class)
+  @ConditionalOnMissingBean(InstanceForwardingRouter.class)
+  public InstanceForwardingRouter forwardingInstanceForwardingRouter(
+      InstanceForwardingService instanceForwardingService) {
+    return new ForwardingInstanceForwardingRouter(instanceForwardingService);
   }
 
   @Bean
-  @ConditionalOnMissingBean
-  public InboundInstancesService inboundInstancesService(
-      InboundExecutableRegistry inboundExecutableRegistry) {
-    return new InboundInstancesService(inboundExecutableRegistry);
+  @ConditionalOnMissingBean(InstanceForwardingRouter.class)
+  public InstanceForwardingRouter localInstanceForwardingRouter() {
+    return new LocalInstanceForwardingRouter();
   }
 }

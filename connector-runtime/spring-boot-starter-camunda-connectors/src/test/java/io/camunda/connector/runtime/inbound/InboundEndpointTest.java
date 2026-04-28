@@ -34,6 +34,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationP
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
+import io.camunda.connector.runtime.instances.service.LocalInstanceForwardingRouter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +84,7 @@ public class InboundEndpointTest {
                     System.currentTimeMillis())));
 
     InboundConnectorRestController statusController =
-        new InboundConnectorRestController(executableRegistry, null);
+        new InboundConnectorRestController(executableRegistry, new LocalInstanceForwardingRouter());
 
     var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());
@@ -110,7 +111,7 @@ public class InboundEndpointTest {
                     System.currentTimeMillis())));
 
     InboundConnectorRestController statusController =
-        new InboundConnectorRestController(executableRegistry, null);
+        new InboundConnectorRestController(executableRegistry, new LocalInstanceForwardingRouter());
 
     var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());

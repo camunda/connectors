@@ -25,7 +25,6 @@ import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,7 +43,7 @@ public class OutboundConnectorsRestController {
   private String hostname;
 
   public OutboundConnectorsRestController(
-      @Autowired(required = false) InstanceForwardingRouter instanceForwardingRouter,
+      InstanceForwardingRouter instanceForwardingRouter,
       OutboundConnectorsService outboundConnectorsService) {
     this.instanceForwardingRouter = instanceForwardingRouter;
     this.outboundConnectorsService = outboundConnectorsService;

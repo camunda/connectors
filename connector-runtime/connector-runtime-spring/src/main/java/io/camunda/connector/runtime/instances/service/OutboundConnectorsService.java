@@ -24,7 +24,6 @@ import io.camunda.connector.runtime.outbound.controller.OutboundConnectorRespons
 import io.camunda.connector.runtime.outbound.jobstream.GatewayJobStreamClient;
 import io.camunda.connector.runtime.outbound.jobstream.GatewayResult;
 import io.camunda.connector.runtime.outbound.jobstream.StreamConnectivity;
-import java.util.Arrays;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,7 +98,9 @@ public class OutboundConnectorsService {
     return new OutboundConnectorResponse(
         connectorConfig.name(),
         connectorConfig.type(),
-        Arrays.asList(connectorConfig.inputVariables()),
+        connectorConfig.inputVariables() == null
+            ? List.of()
+            : List.of(connectorConfig.inputVariables()),
         connectorConfig.timeout(),
         config.isActive(),
         runtimeId,
