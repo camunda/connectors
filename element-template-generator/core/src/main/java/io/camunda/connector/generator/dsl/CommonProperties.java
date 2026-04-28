@@ -39,7 +39,7 @@ public class CommonProperties {
             .group("output")
             .label("Result expression")
             .description(
-                "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.")
+                "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.")
             .feel(FeelMode.required);
 
     if (StringUtils.isNotBlank(value)) {
@@ -60,7 +60,7 @@ public class CommonProperties {
             .group("output")
             .label("Result variable")
             .description(
-                "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.")
+                "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.")
             .feel(FeelMode.disabled);
 
     if (StringUtils.isNotBlank(value)) {
