@@ -102,6 +102,10 @@
                   <templateId>io.camunda.connectors.inbound.EmailBoundary.v1</templateId>
                   <templateFileName>email-inbound-connector-boundary.json</templateFileName>
                 </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.EmailReceive.v1</templateId>
+                  <templateFileName>email-inbound-connector-receive.json</templateFileName>
+                </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
               <features>

@@ -56,7 +56,12 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
           appliesTo = BpmnType.BOUNDARY_EVENT,
           elementType = BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.EmailBoundary.v1",
-          templateNameOverride = "Email Boundary Event Connector")
+          templateNameOverride = "Email Boundary Event Connector"),
+      @ElementTemplate.ConnectorElementType(
+          appliesTo = BpmnType.RECEIVE_TASK,
+          elementType = BpmnType.RECEIVE_TASK,
+          templateIdOverride = "io.camunda.connectors.inbound.EmailReceive.v1",
+          templateNameOverride = "Email Receive Task Connector")
     })
 public class EmailConnectorExecutable
     implements InboundConnectorExecutable<InboundConnectorContext> {
