@@ -55,8 +55,9 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                     .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)
                     .hasNoResponseJson());
 
-    // Defense-in-depth: even without an event sub-process, inner-instance variables
-    // must not leak to the AHSP/root scope (regression camunda/camunda#51939).
+    // Inner-instance variables must not leak to the AHSP/root scope when a tool with an
+    // <zeebe:output> mapping is executed (regression camunda/camunda#51939). The connectors BPMN's
+    // SuperfluxProduct uses such an output mapping, so this is a real regression detector.
     assertNoToolCallVariableLeak(zeebeTest);
   }
 

@@ -21,25 +21,33 @@
       <bpmn:scriptTask id="SuperfluxProduct" name="Superflux Product Calculation">
         <bpmn:documentation>Calculates the superflux product (a very complicated method only this tool can do) given two input numbers</bpmn:documentation>
         <bpmn:extensionElements>
-          <zeebe:script expression="=3 * (inputA + inputB)" resultVariable="toolCallResult" />
+          <zeebe:script expression="=3 * (inputA + inputB)" resultVariable="superfluxValue" />
           <zeebe:ioMapping>
             <zeebe:input source="=fromAi(toolCall.a, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
             <zeebe:input source="=fromAi(toolCall.b, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
+            <zeebe:output source="=superfluxValue" target="toolCallResult" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
       </bpmn:scriptTask>
-      <bpmn:subProcess id="Event_Subprocess" name="" triggeredByEvent="true">
-        <bpmn:scriptTask id="Event_Follow_Up_Task" name="Event follow-up task">
+      <bpmn:serviceTask id="Pending_Tool" name="Pending Tool">
+        <bpmn:documentation>Service task that produces a job which tests intentionally hold to keep the AHSP open while the event message is published.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="pending-tool-job" />
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:subProcess id="Event_Subprocess" name="Event subprocess" triggeredByEvent="true">
+        <bpmn:scriptTask id="Event_Script" name="Project event payload">
+          <bpmn:documentation>Sets toolCallResult = eventPayload. The AHSP outputElement projects this into the toolCallResults collection.</bpmn:documentation>
           <bpmn:extensionElements>
-            <zeebe:script expression="=&#34;Updated message from event: &#34; + messageFromEvent" resultVariable="toolCallResult" />
+            <zeebe:script expression="=eventPayload" resultVariable="toolCallResult" />
           </bpmn:extensionElements>
-          <bpmn:incoming>Flow_1lr5g2f</bpmn:incoming>
+          <bpmn:incoming>Flow_Event_To_Script</bpmn:incoming>
         </bpmn:scriptTask>
-        <bpmn:startEvent id="An_Event" name="An Event!" isInterrupting="false">
-          <bpmn:outgoing>Flow_1lr5g2f</bpmn:outgoing>
-          <bpmn:messageEventDefinition id="MessageEventDefinition_18sycls" messageRef="Message_1yi97dl" />
+        <bpmn:startEvent id="Event_Start" name="Message received" isInterrupting="false">
+          <bpmn:outgoing>Flow_Event_To_Script</bpmn:outgoing>
+          <bpmn:messageEventDefinition id="MessageEventDefinition_1" messageRef="Message_Event" />
         </bpmn:startEvent>
-        <bpmn:sequenceFlow id="Flow_1lr5g2f" sourceRef="An_Event" targetRef="Event_Follow_Up_Task" />
+        <bpmn:sequenceFlow id="Flow_Event_To_Script" sourceRef="Event_Start" targetRef="Event_Script" />
       </bpmn:subProcess>
       <bpmn:scriptTask id="Search_The_Web" name="Search The Web">
         <bpmn:documentation>Do a web search to find the needed information.</bpmn:documentation>
@@ -49,23 +57,15 @@
             <zeebe:input source="=fromAi(toolCall.searchQuery, &#34;The search query to use&#34;)" target="searchQuery" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
-        <bpmn:outgoing>Flow_0y5jpx6</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Search_To_Followup</bpmn:outgoing>
       </bpmn:scriptTask>
-      <bpmn:intermediateCatchEvent id="Timer_Event" name="Timer">
-        <bpmn:incoming>Flow_0y5jpx6</bpmn:incoming>
-        <bpmn:outgoing>Flow_19shwk2</bpmn:outgoing>
-        <bpmn:timerEventDefinition id="TimerEventDefinition_1jx19o4">
-          <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT5S</bpmn:timeDuration>
-        </bpmn:timerEventDefinition>
-      </bpmn:intermediateCatchEvent>
-      <bpmn:scriptTask id="Activity_04kfkv3" name="Follow-up task">
+      <bpmn:scriptTask id="Follow_Up_Task" name="Follow-up task">
         <bpmn:extensionElements>
           <zeebe:script expression="=&#34;No results for &#39;&#34; + searchResults.searchQuery + &#34;&#39;&#34;" resultVariable="toolCallResult" />
         </bpmn:extensionElements>
-        <bpmn:incoming>Flow_19shwk2</bpmn:incoming>
+        <bpmn:incoming>Flow_Search_To_Followup</bpmn:incoming>
       </bpmn:scriptTask>
-      <bpmn:sequenceFlow id="Flow_19shwk2" sourceRef="Timer_Event" targetRef="Activity_04kfkv3" />
-      <bpmn:sequenceFlow id="Flow_0y5jpx6" sourceRef="Search_The_Web" targetRef="Timer_Event" />
+      <bpmn:sequenceFlow id="Flow_Search_To_Followup" sourceRef="Search_The_Web" targetRef="Follow_Up_Task" />
     </bpmn:adHocSubProcess>
     <bpmn:exclusiveGateway id="Gateway_1onk6us">
       <bpmn:incoming>Flow_1tj3t23</bpmn:incoming>
@@ -149,9 +149,9 @@
     <bpmn:sequenceFlow id="Flow_0xt1jbl" sourceRef="Gateway_1onk6us" targetRef="AI_Agent" />
     <bpmn:sequenceFlow id="Flow_1xcihlq" sourceRef="AI_Agent" targetRef="User_Feedback" />
   </bpmn:process>
-  <bpmn:message id="Message_1yi97dl" name="ai-agent-message">
+  <bpmn:message id="Message_Event" name="ai-agent-message">
     <bpmn:extensionElements>
-      <zeebe:subscription correlationKey="=&#34;ai-agent-message-correlation&#34;" />
+      <zeebe:subscription correlationKey="=eventCorrelationKey" />
     </bpmn:extensionElements>
   </bpmn:message>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
@@ -171,42 +171,35 @@
         <dc:Bounds x="970" y="220" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pending_Tool_di" bpmnElement="Pending_Tool">
+        <dc:Bounds x="830" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_0rjolnk" bpmnElement="Event_Subprocess" isExpanded="true">
         <dc:Bounds x="810" y="560" width="290" height="130" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_0mulp05" bpmnElement="Event_Follow_Up_Task">
+      <bpmndi:BPMNShape id="Event_Script_di" bpmnElement="Event_Script">
         <dc:Bounds x="980" y="580" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_0n2qxpu" bpmnElement="An_Event">
+      <bpmndi:BPMNShape id="Event_Start_di" bpmnElement="Event_Start">
         <dc:Bounds x="837" y="602" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="832" y="645" width="48" height="14" />
+          <dc:Bounds x="817" y="645" width="80" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="BPMNEdge_1rloedc" bpmnElement="Flow_1lr5g2f">
+      <bpmndi:BPMNEdge id="Flow_Event_To_Script_di" bpmnElement="Flow_Event_To_Script">
         <di:waypoint x="873" y="620" />
         <di:waypoint x="980" y="620" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="BPMNShape_17cbwhd" bpmnElement="Search_The_Web">
-        <dc:Bounds x="830" y="330" width="100" height="80" />
+        <dc:Bounds x="970" y="330" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_1mvvb8k_di" bpmnElement="Timer_Event">
-        <dc:Bounds x="1002" y="352" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1006" y="322" width="29" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_1o3zv6d" bpmnElement="Activity_04kfkv3">
+      <bpmndi:BPMNShape id="Follow_Up_Task_di" bpmnElement="Follow_Up_Task">
         <dc:Bounds x="970" y="450" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Flow_19shwk2_di" bpmnElement="Flow_19shwk2">
-        <di:waypoint x="1020" y="388" />
+      <bpmndi:BPMNEdge id="Flow_Search_To_Followup_di" bpmnElement="Flow_Search_To_Followup">
+        <di:waypoint x="1020" y="410" />
         <di:waypoint x="1020" y="450" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0y5jpx6_di" bpmnElement="Flow_0y5jpx6">
-        <di:waypoint x="930" y="370" />
-        <di:waypoint x="1002" y="370" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Gateway_1onk6us_di" bpmnElement="Gateway_1onk6us" isMarkerVisible="true">
         <dc:Bounds x="665" y="195" width="50" height="50" />
