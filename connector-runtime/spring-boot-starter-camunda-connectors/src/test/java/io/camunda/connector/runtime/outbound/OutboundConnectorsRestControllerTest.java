@@ -53,7 +53,6 @@ class OutboundConnectorsRestControllerTest {
   private static final String TYPE_1 = "io.camunda:http-json:1";
   private static final String TYPE_2 = "io.camunda:slack:1";
   private static final String TYPE_DISABLED = "io.camunda:disabled-connector:1";
-  private static final String LOCALHOST = "localhost";
 
   @BeforeEach
   void init() {

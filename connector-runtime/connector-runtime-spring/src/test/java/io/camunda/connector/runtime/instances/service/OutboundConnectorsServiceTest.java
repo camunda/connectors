@@ -35,7 +35,6 @@ import io.camunda.connector.runtime.outbound.jobstream.JobStreamsResponse;
 import io.camunda.connector.runtime.outbound.jobstream.RemoteJobStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -79,7 +78,7 @@ class OutboundConnectorsServiceTest {
   void shouldReturnUnreachable_whenGatewayClientThrows() throws Exception {
     when(gatewayClient.fetchJobStreams()).thenThrow(new RuntimeException("connection refused"));
 
-    var service = new OutboundConnectorsService(factory, Optional.of(gatewayClient));
+    var service = new OutboundConnectorsService(factory, gatewayClient);
     var results = service.findAll(RUNTIME_ID);
 
     assertEquals(1, results.size());
@@ -98,7 +97,7 @@ class OutboundConnectorsServiceTest {
     when(gatewayClient.fetchJobStreams())
         .thenReturn(new JobStreamsResponse(List.of(), List.of())); // no streams at all
 
-    var service = new OutboundConnectorsService(factory, Optional.of(gatewayClient));
+    var service = new OutboundConnectorsService(factory, gatewayClient);
     var results = service.findAll(RUNTIME_ID);
 
     assertThat(results).hasSize(1);
@@ -119,7 +118,7 @@ class OutboundConnectorsServiceTest {
     when(gatewayClient.fetchJobStreams())
         .thenReturn(new JobStreamsResponse(List.of(brokerStream), List.of(clientStream)));
 
-    var service = new OutboundConnectorsService(factory, Optional.of(gatewayClient));
+    var service = new OutboundConnectorsService(factory, gatewayClient);
     var results = service.findAll(RUNTIME_ID);
 
     assertThat(results).hasSize(1);
@@ -139,7 +138,7 @@ class OutboundConnectorsServiceTest {
             new JobStreamsResponse(
                 List.of(connectedBroker, disconnectedBroker), List.of(clientStream)));
 
-    var service = new OutboundConnectorsService(factory, Optional.of(gatewayClient));
+    var service = new OutboundConnectorsService(factory, gatewayClient);
     var results = service.findAll(RUNTIME_ID);
 
     assertThat(results.getFirst().brokerConnectivityState())
@@ -152,7 +151,7 @@ class OutboundConnectorsServiceTest {
     when(gatewayClient.fetchJobStreams())
         .thenReturn(new JobStreamsResponse(List.of(), List.of(clientStream)));
 
-    var service = new OutboundConnectorsService(factory, Optional.of(gatewayClient));
+    var service = new OutboundConnectorsService(factory, gatewayClient);
     var results = service.findAll(RUNTIME_ID);
 
     assertThat(results.getFirst().brokerConnectivityState())
@@ -167,7 +166,7 @@ class OutboundConnectorsServiceTest {
   void shouldPopulateResponseMetadata() throws Exception {
     when(gatewayClient.fetchJobStreams()).thenReturn(new JobStreamsResponse(List.of(), List.of()));
 
-    var service = new OutboundConnectorsService(factory, Optional.of(gatewayClient));
+    var service = new OutboundConnectorsService(factory, gatewayClient);
     var response = service.findAll(RUNTIME_ID).getFirst();
 
     assertThat(response.name()).isEqualTo("HTTP JSON");
@@ -196,7 +195,7 @@ class OutboundConnectorsServiceTest {
                     true)));
     when(gatewayClient.fetchJobStreams()).thenReturn(new JobStreamsResponse(List.of(), List.of()));
 
-    var service = new OutboundConnectorsService(factory, Optional.of(gatewayClient));
+    var service = new OutboundConnectorsService(factory, gatewayClient);
     var results = service.findByType(TYPE, RUNTIME_ID);
 
     assertThat(results).hasSize(1);
@@ -207,7 +206,7 @@ class OutboundConnectorsServiceTest {
   void findByType_shouldThrowDataNotFoundException_whenTypeUnknown() throws Exception {
     when(gatewayClient.fetchJobStreams()).thenReturn(new JobStreamsResponse(List.of(), List.of()));
 
-    var service = new OutboundConnectorsService(factory, Optional.of(gatewayClient));
+    var service = new OutboundConnectorsService(factory, gatewayClient);
 
     assertThatThrownBy(() -> service.findByType("io.camunda:unknown:1", RUNTIME_ID))
         .isInstanceOf(DataNotFoundException.class);
