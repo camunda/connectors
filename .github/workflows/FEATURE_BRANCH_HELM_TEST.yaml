@@ -355,6 +355,14 @@ jobs:
           distribution: temurin
           java-version: '21.0.9'
 
+      - name: Login to Harbor
+        if: steps.changes.outputs.ai == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: registry.camunda.cloud
+          username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
+          password: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
+
       - name: Create settings.xml
         if: steps.changes.outputs.ai == 'true'
         uses: s4u/maven-settings-action@v4.0.0
