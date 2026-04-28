@@ -274,7 +274,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "name" : "resultVariable",
@@ -284,7 +284,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "value" : "{\n  myRequestBody: request.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: request.body.event.user\n}",
     "feel" : "required",
     "group" : "output",
