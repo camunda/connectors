@@ -44,15 +44,20 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
 
   @Test
   void executesAgentWithToolCallingAndUserFeedback() throws Exception {
-    testInteractionWithToolsAndUserFeedbackLoops(
-        e -> e,
-        FEEDBACK_LOOP_RESPONSE_TEXT,
-        true,
-        (agentResponse) ->
-            JobWorkerAgentResponseAssert.assertThat(agentResponse)
-                .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
-                .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)
-                .hasNoResponseJson());
+    final var zeebeTest =
+        testInteractionWithToolsAndUserFeedbackLoops(
+            e -> e,
+            FEEDBACK_LOOP_RESPONSE_TEXT,
+            true,
+            (agentResponse) ->
+                JobWorkerAgentResponseAssert.assertThat(agentResponse)
+                    .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
+                    .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)
+                    .hasNoResponseJson());
+
+    // Defense-in-depth: even without an event sub-process, inner-instance variables
+    // must not leak to the AHSP/root scope (regression camunda/camunda#51939).
+    assertNoToolCallVariableLeak(zeebeTest);
   }
 
   @ParameterizedTest

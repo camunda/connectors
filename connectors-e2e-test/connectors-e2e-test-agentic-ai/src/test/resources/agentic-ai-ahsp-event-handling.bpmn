@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_event_handling" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.42.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+  <bpmn:process id="Agentic_AI_Event_Handling" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_Start_To_Agent</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_Agent" sourceRef="StartEvent_1" targetRef="AI_Agent" />
+    <bpmn:adHocSubProcess id="AI_Agent" name="AI Agent">
+      <bpmn:documentation>Minimal AHSP for event-handling regression tests.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="dummy" retries="0" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Start_To_Agent</bpmn:incoming>
+      <bpmn:outgoing>Flow_Agent_To_End</bpmn:outgoing>
+      <bpmn:scriptTask id="Fast_Tool" name="Fast Tool">
+        <bpmn:documentation>A fast script tool that returns immediately. Mirrors the real-world tool pattern from camunda/camunda#51939's repro (e.g. `Update_Ship_Status`): script computes a value, output mapping projects it onto `toolCallResult`. The presence of `&lt;zeebe:output&gt;` is what triggers the regression code path on 8.9.1 — without it, the buggy parent+local merge in `BpmnVariableMappingBehavior` is never reached.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="=42" resultVariable="fastToolValue" />
+          <zeebe:ioMapping>
+            <zeebe:output source="=fastToolValue" target="toolCallResult" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
+      <bpmn:serviceTask id="Pending_Tool" name="Pending Tool">
+        <bpmn:documentation>Service task that produces a job which is intentionally held by the test to keep the AHSP open while the event is published.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="pending-tool-job" />
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:subProcess id="Event_Subprocess" triggeredByEvent="true">
+        <bpmn:startEvent id="Event_Start" name="Event with payload" isInterrupting="false">
+          <bpmn:outgoing>Flow_Event_To_Script</bpmn:outgoing>
+          <bpmn:messageEventDefinition id="MessageEventDefinition_1" messageRef="Message_Event" />
+        </bpmn:startEvent>
+        <bpmn:scriptTask id="Event_Script">
+          <bpmn:documentation>Sets toolCallResult = eventPayload. The AHSP outputElement projects this into the toolCallResults collection.</bpmn:documentation>
+          <bpmn:extensionElements>
+            <zeebe:script expression="=eventPayload" resultVariable="toolCallResult" />
+          </bpmn:extensionElements>
+          <bpmn:incoming>Flow_Event_To_Script</bpmn:incoming>
+        </bpmn:scriptTask>
+        <bpmn:sequenceFlow id="Flow_Event_To_Script" sourceRef="Event_Start" targetRef="Event_Script" />
+      </bpmn:subProcess>
+    </bpmn:adHocSubProcess>
+    <bpmn:sequenceFlow id="Flow_Agent_To_End" sourceRef="AI_Agent" targetRef="EndEvent_1" />
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_Agent_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmn:message id="Message_Event" name="ai-agent-event">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=eventCorrelationKey" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Agentic_AI_Event_Handling">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="202" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="AI_Agent_di" bpmnElement="AI_Agent" isExpanded="true">
+        <dc:Bounds x="260" y="80" width="500" height="350" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fast_Tool_di" bpmnElement="Fast_Tool">
+        <dc:Bounds x="320" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pending_Tool_di" bpmnElement="Pending_Tool">
+        <dc:Bounds x="500" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Subprocess_di" bpmnElement="Event_Subprocess" isExpanded="true">
+        <dc:Bounds x="320" y="270" width="380" height="140" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Start_di" bpmnElement="Event_Start">
+        <dc:Bounds x="360" y="320" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="345" y="363" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Script_di" bpmnElement="Event_Script">
+        <dc:Bounds x="470" y="298" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Event_To_Script_di" bpmnElement="Flow_Event_To_Script">
+        <di:waypoint x="396" y="338" />
+        <di:waypoint x="470" y="338" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="822" y="202" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_To_Agent_di" bpmnElement="Flow_Start_To_Agent">
+        <di:waypoint x="188" y="220" />
+        <di:waypoint x="260" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Agent_To_End_di" bpmnElement="Flow_Agent_To_End">
+        <di:waypoint x="760" y="220" />
+        <di:waypoint x="822" y="220" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
