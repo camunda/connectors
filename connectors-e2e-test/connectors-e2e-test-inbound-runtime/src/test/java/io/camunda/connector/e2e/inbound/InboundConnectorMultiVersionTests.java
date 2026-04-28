@@ -24,7 +24,6 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -287,7 +286,7 @@ public class InboundConnectorMultiVersionTests {
 
   /** Queries executables for the given process. */
   private List<ActiveExecutableResponse> queryExecutables(String processId) {
-    return executableRegistry.query(new ActiveExecutableQuery(processId, null, null, null));
+    return executableRegistry.query(f -> f.bpmnProcessId(processId));
   }
 
   /** Waits for executables to reach the expected count for the given process. */

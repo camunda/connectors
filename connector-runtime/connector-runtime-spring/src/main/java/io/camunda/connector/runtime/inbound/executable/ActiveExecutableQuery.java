@@ -16,5 +16,64 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
-public record ActiveExecutableQuery(
-    String bpmnProcessId, String elementId, String type, String tenantId) {}
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
+
+/** Mutable filter used with the consumer-based {@code query} API. */
+public class ActiveExecutableQuery {
+
+  private String bpmnProcessId;
+  private String elementId;
+  private String type;
+  private String tenantId;
+  private ExecutableId executableId;
+
+  public ActiveExecutableQuery bpmnProcessId(String bpmnProcessId) {
+    this.bpmnProcessId = bpmnProcessId;
+    return this;
+  }
+
+  public ActiveExecutableQuery elementId(String elementId) {
+    this.elementId = elementId;
+    return this;
+  }
+
+  public ActiveExecutableQuery type(String type) {
+    this.type = type;
+    return this;
+  }
+
+  public ActiveExecutableQuery tenantId(String tenantId) {
+    this.tenantId = tenantId;
+    return this;
+  }
+
+  public ActiveExecutableQuery executableId(ExecutableId executableId) {
+    this.executableId = executableId;
+    return this;
+  }
+
+  public ActiveExecutableQuery executableId(String executableId) {
+    this.executableId = executableId == null ? null : ExecutableId.fromHashedId(executableId);
+    return this;
+  }
+
+  public String bpmnProcessId() {
+    return bpmnProcessId;
+  }
+
+  public String elementId() {
+    return elementId;
+  }
+
+  public String type() {
+    return type;
+  }
+
+  public String tenantId() {
+    return tenantId;
+  }
+
+  public ExecutableId executableId() {
+    return executableId;
+  }
+}

@@ -19,7 +19,6 @@ package io.camunda.connector.e2e.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import java.time.Duration;
@@ -77,8 +76,7 @@ public class InboundConnectorTestConfiguration {
           .atMost(waitDuration)
           .untilAsserted(
               () -> {
-                var allExecutables =
-                    executableRegistry.query(new ActiveExecutableQuery(null, null, null, null));
+                var allExecutables = executableRegistry.query(f -> {});
                 assertThat(allExecutables).isEmpty();
               });
     }

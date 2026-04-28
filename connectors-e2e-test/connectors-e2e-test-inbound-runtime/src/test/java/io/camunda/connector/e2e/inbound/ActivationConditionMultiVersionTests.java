@@ -26,7 +26,6 @@ import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -139,7 +138,7 @@ public class ActivationConditionMultiVersionTests {
   }
 
   private List<ActiveExecutableResponse> queryExecutables(String processId) {
-    return executableRegistry.query(new ActiveExecutableQuery(processId, null, null, null));
+    return executableRegistry.query(f -> f.bpmnProcessId(processId));
   }
 
   private void awaitHealthyExecutable(String processId) {

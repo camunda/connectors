@@ -142,22 +142,6 @@ class InboundInstancesRestControllerMultiInstancesTest extends BaseMultiInstance
     assertThat(404, equalTo(response.getStatusCode().value()));
   }
 
-  @Test
-  public void shouldReturn404_whenUnknownConnectorTypeAndValidExecutableId() {
-    var response =
-        restTemplate.getForEntity(
-            "http://localhost:"
-                + port1
-                + "/inbound-instances/UNKNOWN-ID/executables/"
-                + RANDOM_ID_1.getId(),
-            String.class);
-    assertThat(
-        response.getBody(),
-        containsString(
-            "Data of type 'ActiveInboundConnectorResponse' with id 'e379ef68540767f31108eb2fa581814616895690cc92bc5e955e1001743e49b9' not found"));
-    assertThat(404, equalTo(response.getStatusCode().value()));
-  }
-
   private static Stream<Arguments> provideExecutableIds() {
     return Stream.of(
         Arguments.of(RANDOM_ID_1),

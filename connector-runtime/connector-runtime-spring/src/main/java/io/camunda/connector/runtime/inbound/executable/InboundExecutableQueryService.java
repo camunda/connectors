@@ -82,6 +82,10 @@ public class InboundExecutableQueryService {
       return false;
     }
 
+    if (query == null) {
+      return true;
+    }
+
     var firstElement = elements.getFirst();
 
     if (query.type() != null && !query.type().equals(firstElement.type())) {
@@ -94,11 +98,12 @@ public class InboundExecutableQueryService {
         && !query.bpmnProcessId().equals(firstElement.element().bpmnProcessId())) {
       return false;
     }
+    if (query.executableId() != null && !query.executableId().equals(response.executableId())) {
+      return false;
+    }
     if (query.elementId() != null) {
-      boolean hasMatchingElement =
-          elements.stream()
-              .anyMatch(element -> element.element().elementId().equals(query.elementId()));
-      return hasMatchingElement;
+      return elements.stream()
+          .anyMatch(element -> element.element().elementId().equals(query.elementId()));
     }
     return true;
   }

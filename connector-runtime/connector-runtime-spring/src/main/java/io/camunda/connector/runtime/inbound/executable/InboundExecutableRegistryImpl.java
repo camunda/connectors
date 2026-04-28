@@ -25,16 +25,15 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementConte
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService.ActionType;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService.PlannedAction;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService.StateTransitionPlan;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService.TargetState;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Cancelled;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -117,9 +116,9 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         event.elementsByProcessDefinitionKey().size());
     LOG.debug("Received target elements: {}", event.elementsByProcessDefinitionKey());
 
-    var processId = event.tenantId() + event.bpmnProcessId();
+    var processLockKey = processLockKey(event.tenantId(), event.bpmnProcessId());
 
-    synchronized (processId.intern()) {
+    synchronized (processLockKey.intern()) {
       try {
         List<InboundConnectorElement> allElements =
             event.elementsByProcessDefinitionKey().values().stream().flatMap(List::stream).toList();
@@ -289,13 +288,81 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   @Override
-  public List<ActiveExecutableResponse> query(ActiveExecutableQuery query) {
+  public List<ActiveExecutableResponse> query(Consumer<ActiveExecutableQuery> filter) {
+    var query = new ActiveExecutableQuery();
+    Optional.ofNullable(filter).ifPresent(f -> f.accept(query));
     return queryService.query(query);
   }
 
   @Override
   public String getConnectorName(String type) {
     return queryService.getConnectorName(type);
+  }
+
+  @Override
+  public RegisteredExecutable reset(ExecutableId id) {
+    // Peek at the current state to determine the process lock key before entering the synchronized
+    // block. This prevents a race condition where a concurrent redeploy (handleProcessStateChanged)
+    // could run during restart, leaving the newly-activated executable invisible to the state
+    // machine (zombie connector).
+    var processLockKey = extractProcessLockKey(validateResettable(id));
+    synchronized (processLockKey.intern()) {
+      // Re-validate inside the lock; state may have changed since the peek
+      var current = validateResettable(id);
+
+      // Reuse the standard state-transition pipeline: build a target state from the current
+      // elements and issue a RESTART plan. On activation failure, activateBatch stores a
+      // FailedToActivate entry so the executable remains visible and retryable by operators.
+      var targetState =
+          stateTransitionService.computeTargetState(extractContext(current).connectorElements());
+      executeStateTransition(
+          new StateTransitionPlan(List.of(new PlannedAction(id, ActionType.RESTART))), targetState);
+
+      var result = stateStore.get(id);
+      LOG.info(
+          "Connector executable '{}' reset, new state: {}",
+          id,
+          result == null ? "absent" : result.getClass().getSimpleName());
+      return result;
+    }
+  }
+
+  private RegisteredExecutable validateResettable(ExecutableId id) {
+    var current = stateStore.get(id);
+    if (current == null) {
+      throw new IllegalArgumentException("No executable found with ID: " + id);
+    }
+    if (!(current instanceof Activated) && !(current instanceof Cancelled)) {
+      throw new IllegalStateException(
+          "Cannot reset executable '"
+              + id
+              + "': must be in Activated or Cancelled state, but was: "
+              + current.getClass().getSimpleName());
+    }
+    return current;
+  }
+
+  /**
+   * Derives the process-level lock key from a registered executable, matching the key used by
+   * {@link #handleProcessStateChanged} to synchronize state transitions.
+   */
+  private String extractProcessLockKey(RegisteredExecutable executable) {
+    var element = extractContext(executable).connectorElements().getFirst();
+    return processLockKey(element.tenantId(), element.element().bpmnProcessId());
+  }
+
+  private String processLockKey(String tenantId, String bpmnProcessId) {
+    return tenantId + bpmnProcessId;
+  }
+
+  private InboundConnectorManagementContext extractContext(RegisteredExecutable executable) {
+    return switch (executable) {
+      case Activated a -> a.context();
+      case Cancelled c -> c.context();
+      default ->
+          throw new IllegalArgumentException(
+              "Cannot extract context from: " + executable.getClass().getSimpleName());
+    };
   }
 
   @Scheduled(fixedDelay = 30000)

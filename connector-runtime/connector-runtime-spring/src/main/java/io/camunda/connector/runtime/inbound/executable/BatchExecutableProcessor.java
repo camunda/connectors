@@ -43,6 +43,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Fail
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -175,16 +176,9 @@ public class BatchExecutableProcessor {
                   "Webhook connectors are not supported in this environment")));
       return new ConnectorNotRegistered(validData, id);
     }
+    final Activated activated;
     try {
-      if (executable instanceof WebhookConnectorExecutable) {
-        LOG.debug("Registering webhook: {}", data.type());
-        if (webhookConnectorRegistry.register(
-            new RegisteredExecutable.Activated(executable, context, id))) {
-          executable.activate(context);
-        }
-      } else {
-        executable.activate(context);
-      }
+      activated = doActivate(executable, context, id);
     } catch (Exception e) {
       LOG.error("Failed to activate connector", e);
       connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());
@@ -200,48 +194,115 @@ public class BatchExecutableProcessor {
                     "Activated inbound connector %s with deduplication ID '%s'",
                     data.type(), data.deduplicationId())));
     connectorsInboundMetrics.increaseActivation(data.connectorElements().getFirst());
-    return new Activated(executable, context, id);
+    return activated;
+  }
+
+  /**
+   * Handles the webhook registration (if applicable) and activates the executable. Throws on
+   * failure so callers can apply their own error-handling strategy.
+   */
+  private Activated doActivate(
+      InboundConnectorExecutable<InboundConnectorContext> executable,
+      InboundConnectorManagementContext context,
+      ExecutableId id)
+      throws Exception {
+    var activated = new Activated(executable, context, id);
+    if (executable instanceof WebhookConnectorExecutable) {
+      LOG.debug("Registering webhook: {}", context.getDefinition().type());
+      if (webhookConnectorRegistry.register(activated)) {
+        executable.activate(context);
+      }
+    } else {
+      executable.activate(context);
+    }
+    return activated;
+  }
+
+  /** Deactivates a single inbound connector. */
+  public void deactivateSingle(RegisteredExecutable executable) {
+    if (executable instanceof Activated activated) {
+      try {
+        if (activated.executable() instanceof WebhookConnectorExecutable) {
+          LOG.debug("Unregistering webhook: {}", activated.context().getDefinition().type());
+          webhookConnectorRegistry.deregister(activated);
+        }
+        activated.executable().deactivate();
+        log(
+            executable.id(),
+            Activity.newBuilder()
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.LIFECYCLE)
+                .withMessage(
+                    "Deactivated executable: "
+                        + activated.context().getDefinition().type()
+                        + " with executable ID "
+                        + activated.id()));
+      } catch (Exception e) {
+        LOG.error("Failed to deactivate executable", e);
+      }
+      connectorsInboundMetrics.increaseDeactivation(
+          activated.context().connectorElements().getFirst());
+    }
   }
 
   /** Deactivates a batch of inbound connectors. */
   public void deactivateBatch(List<RegisteredExecutable> executables) {
-    for (var activeExecutable : executables) {
-      if (activeExecutable instanceof Activated activated) {
-        try {
-          if (activated.executable() instanceof WebhookConnectorExecutable) {
-            LOG.debug("Unregistering webhook: {}", activated.context().getDefinition().type());
-            webhookConnectorRegistry.deregister(activated);
-          }
-          activated.executable().deactivate();
-          log(
-              activeExecutable.id(),
-              Activity.newBuilder()
-                  .withSeverity(Severity.INFO)
-                  .withTag(ActivityLogTag.LIFECYCLE)
-                  .withMessage(
-                      "Deactivated executable: "
-                          + activated.context().getDefinition().type()
-                          + " with executable ID "
-                          + activated.id()));
-        } catch (Exception e) {
-          LOG.error("Failed to deactivate executable", e);
-        }
-        connectorsInboundMetrics.increaseDeactivation(
-            activated.context().connectorElements().getFirst());
-      }
+    for (var executable : executables) {
+      deactivateSingle(executable);
     }
+  }
+
+  /**
+   * Resets an executable by deactivating it (if currently active) and re-activating it with a fresh
+   * instance, reusing the same context. Only {@link Activated} and {@link
+   * RegisteredExecutable.Cancelled} states are supported.
+   *
+   * @param executable the executable to reset
+   * @return a {@link CompletableFuture} that resolves to the new {@link Activated} executable
+   * @throws IllegalStateException if the executable is not in a resettable state
+   */
+  public CompletableFuture<Activated> restartFromContext(RegisteredExecutable executable) {
+    RegisteredExecutable.Cancelled cancelled =
+        switch (executable) {
+          case Activated activated -> {
+            LOG.info(
+                "Resetting activated inbound connector of type '{}'",
+                activated.context().getDefinition().type());
+            deactivateSingle(activated);
+            yield new RegisteredExecutable.Cancelled(
+                activated.executable(), activated.context(), null, activated.id());
+          }
+          case RegisteredExecutable.Cancelled c -> {
+            LOG.info(
+                "Resetting cancelled inbound connector of type '{}'",
+                c.context().getDefinition().type());
+            yield c;
+          }
+          default ->
+              throw new IllegalStateException(
+                  "Cannot reset connector in state: "
+                      + executable.getClass().getSimpleName()
+                      + ". Only Activated or Cancelled executables can be reset.");
+        };
+
+    return doRestartFromContext(cancelled, 0, Duration.ZERO);
   }
 
   public CompletableFuture<Activated> restartFromContext(
       RegisteredExecutable.Cancelled cancelled, ConnectorRetryException retryException) {
+    return doRestartFromContext(
+        cancelled, retryException.getRetries(), retryException.getBackoffDuration());
+  }
 
+  private CompletableFuture<Activated> doRestartFromContext(
+      RegisteredExecutable.Cancelled cancelled, int maxRetries, Duration backoff) {
     InboundConnectorExecutable<InboundConnectorContext> newExecutable =
         connectorFactory.getInstance(cancelled.context().getDefinition().type());
     LOG.warn("Inbound connector executable has requested its reactivation");
     try {
       RetryPolicy<Object> retryPolicy =
           RetryPolicy.builder()
-              .withDelay(retryException.getBackoffDuration())
+              .withDelay(backoff)
               .onFailedAttempt(
                   event ->
                       LOG.error(
@@ -254,7 +315,7 @@ public class BatchExecutableProcessor {
                           "Failure #{} to reactivate connector: {}. Retrying.",
                           event.getAttemptCount(),
                           cancelled.context().getDefinition().type()))
-              .withMaxRetries(retryException.getRetries())
+              .withMaxRetries(maxRetries)
               .build();
       return Failsafe.with(retryPolicy)
           .getAsync(() -> tryRestart(newExecutable, cancelled.context()));
@@ -269,9 +330,9 @@ public class BatchExecutableProcessor {
     try {
       var executableId =
           ExecutableId.fromDeduplicationId(context.getDefinition().deduplicationId());
-      executable.activate(context);
+      var activated = doActivate(executable, context, executableId);
       LOG.info("Activation successful for {}", context.getDefinition().type());
-      return new Activated(executable, context, executableId);
+      return activated;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
