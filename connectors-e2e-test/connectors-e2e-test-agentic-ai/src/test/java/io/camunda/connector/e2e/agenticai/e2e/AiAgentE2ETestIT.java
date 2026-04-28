@@ -65,14 +65,8 @@ public class AiAgentE2ETestIT {
             .send()
             .join();
 
-    // then — wait for the user task to appear (AI agent finished processing)
-    await()
-        .atMost(Duration.ofMinutes(3))
-        .pollInterval(Duration.ofSeconds(5))
-        .untilAsserted(
-            () ->
-                CamundaAssert.assertThatProcessInstance(processInstance)
-                    .hasActiveElements("User_Feedback"));
+    // then — wait for the user task to appear (CamundaAssert polls internally via setAssertionTimeout)
+    CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
 
     // complete the user task with satisfaction
     var tasks =
@@ -117,14 +111,8 @@ public class AiAgentE2ETestIT {
             .send()
             .join();
 
-    // then — wait for the first user task
-    await()
-        .atMost(Duration.ofMinutes(3))
-        .pollInterval(Duration.ofSeconds(5))
-        .untilAsserted(
-            () ->
-                CamundaAssert.assertThatProcessInstance(processInstance)
-                    .hasActiveElements("User_Feedback"));
+    // then — wait for the first user task (CamundaAssert polls internally via setAssertionTimeout)
+    CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
 
     // complete with follow-up (not satisfied)
     var firstTasks =
