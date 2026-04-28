@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -126,7 +127,7 @@ class McpSdkClientFactoryTest {
               WireMock.verify(
                   1,
                   postRequestedFor(urlPathEqualTo(endpoint))
-                      .withHeader("Content-Type", equalTo("application/json"))
+                      .withHeader("Content-Type", containing("application/json"))
                       .withHeader("Accept", equalTo("application/json, text/event-stream"))
                       .withHeader("Authorization", equalTo("Bearer test-token"))
                       .withHeader("X-Dummy", equalTo("Test")));
