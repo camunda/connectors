@@ -17,7 +17,6 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
@@ -29,12 +28,12 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
-import io.camunda.client.api.search.enums.ElementInstanceState;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.process.test.api.assertions.JobSelectors;
 import java.io.IOException;
@@ -115,8 +114,6 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
 
   private static final AgentMetrics EXPECTED_TWO_ITERATION_METRICS =
       new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220));
-
-  private static final Duration POLL_TIMEOUT = Duration.ofSeconds(60);
 
   /** Re-rolled per test method to keep message correlations isolated. */
   private String eventCorrelationKey;
@@ -386,47 +383,13 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
   }
 
   private void awaitPendingToolJobCreated(ZeebeTest zeebeTest) {
-    final long processInstanceKey = zeebeTest.getProcessInstanceEvent().getProcessInstanceKey();
-
-    await()
-        .alias("Pending_Tool job created")
-        .atMost(POLL_TIMEOUT)
-        .untilAsserted(
-            () -> {
-              final var jobs =
-                  camundaClient
-                      .newJobSearchRequest()
-                      .filter(
-                          f ->
-                              f.processInstanceKey(processInstanceKey).elementId(PENDING_TOOL_NAME))
-                      .send()
-                      .join()
-                      .items();
-              assertThat(jobs).isNotEmpty();
-            });
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+        .hasActiveElements(PENDING_TOOL_NAME);
   }
 
   private void awaitEventSubprocessCompletions(ZeebeTest zeebeTest, int expectedCount) {
-    final long processInstanceKey = zeebeTest.getProcessInstanceEvent().getProcessInstanceKey();
-
-    await()
-        .alias("Event_Script element completed " + expectedCount + " time(s)")
-        .atMost(POLL_TIMEOUT)
-        .untilAsserted(
-            () -> {
-              final var instances =
-                  camundaClient
-                      .newElementInstanceSearchRequest()
-                      .filter(
-                          f ->
-                              f.processInstanceKey(processInstanceKey)
-                                  .elementId("Event_Script")
-                                  .state(ElementInstanceState.COMPLETED))
-                      .send()
-                      .join()
-                      .items();
-              assertThat(instances).hasSize(expectedCount);
-            });
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+        .hasCompletedElement("Event_Script", expectedCount);
   }
 
   private void completePendingToolJob(String toolCallResultValue) {
