@@ -17,6 +17,11 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-feel-wrapper</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
