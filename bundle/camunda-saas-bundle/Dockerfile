@@ -25,4 +25,4 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=30s \
       -Dloader.main=io.camunda.connector.runtime.healthcheck.HealthCheckCommand \
       org.springframework.boot.loader.launch.PropertiesLauncher
 
-ENTRYPOINT ["java", "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", "-cp", "/opt/app/*", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+ENTRYPOINT ["java", "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", "-XX:+ExitOnOutOfMemoryError", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/tmp", "-cp", "/opt/app/*", "org.springframework.boot.loader.launch.PropertiesLauncher"]
