@@ -20,8 +20,10 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.io.IOException;
 import java.util.function.Supplier;
@@ -39,8 +41,16 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    * aware of any registered modules. It should not be used to deserialize the final result. For
    * final results, use the {@link DeserializationContext} object passed to {@link
    * #doDeserialize(JsonNode, JsonNode, DeserializationContext)} instead.
+   *
+   * <p>{@link SerializationFeature#FAIL_ON_EMPTY_BEANS} is disabled and {@link
+   * JacksonModuleDocumentSerializer} is registered so that FEEL contexts containing a {@code
+   * CamundaDocument} can be serialized into a tree without throwing — and so the document reference
+   * is preserved instead of being silently emptied. See issue #6946.
    */
-  protected static final ObjectMapper BLANK_OBJECT_MAPPER = new ObjectMapper();
+  protected static final ObjectMapper BLANK_OBJECT_MAPPER =
+      new ObjectMapper()
+          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+          .registerModule(new JacksonModuleDocumentSerializer());
 
   protected AbstractFeelDeserializer(FeelEngineWrapper feelEngineWrapper, boolean relaxed) {
     super(String.class);
