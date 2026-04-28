@@ -38,8 +38,8 @@ import org.junit.jupiter.api.Test;
  * registered — so {@code valueToTree} throws {@link
  * com.fasterxml.jackson.databind.exc.InvalidDefinitionException} for any {@link CamundaDocument}.
  *
- * <p>This test reproduces the user-facing failure path through the public API
- * ({@link FeelContextAwareObjectReader}) and asserts that no exception is thrown.
+ * <p>This test reproduces the user-facing failure path through the public API ({@link
+ * FeelContextAwareObjectReader}) and asserts that no exception is thrown.
  *
  * <p>The test is red on stable/8.7 until {@code BLANK_OBJECT_MAPPER} is reconfigured to disable
  * {@code FAIL_ON_EMPTY_BEANS} and register {@code JacksonModuleDocumentSerializer}.
@@ -57,8 +57,7 @@ class BlankObjectMapperDocumentSerializationTest {
     // Real CamundaDocument, not a Mockito mock — Mockito's proxy exposes internal getters that
     // make the bean non-empty and accidentally bypass the FAIL_ON_EMPTY_BEANS path we want to
     // exercise. The store is unused here because no content is read.
-    Map<String, Object> feelContext =
-        Map.of("doc", new CamundaDocument(metadata, reference, null));
+    Map<String, Object> feelContext = Map.of("doc", new CamundaDocument(metadata, reference, null));
 
     // The FEEL expression itself is trivial — the failure is triggered by serializing the
     // context map (which contains a CamundaDocument) into a JsonNode for the FEEL engine,
