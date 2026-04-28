@@ -44,8 +44,6 @@ import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.pebbletemplates.pebble.PebbleEngine;
 import io.pebbletemplates.pebble.extension.core.DisallowExtensionCustomizerBuilder;
-import io.pebbletemplates.pebble.loader.ClasspathLoader;
-import io.pebbletemplates.pebble.loader.DelegatingLoader;
 import io.pebbletemplates.pebble.loader.FileLoader;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
 import java.io.IOException;
@@ -145,12 +143,10 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
 
     var model = buildTemplateModel(template, templateGenerationContext);
 
-    var path = Path.of(configuration.templatePath());
-
-    var fileLoader = new FileLoader(path.getParent().toAbsolutePath().toString());
-    var classpathLoader = new ClasspathLoader();
-    classpathLoader.setPrefix("templates/");
-    var delegatingLoader = new DelegatingLoader(List.of(fileLoader, classpathLoader));
+    var path = Path.of(configuration.templatePath()).toAbsolutePath();
+    // Use the filesystem root as prefix so relative extends (e.g. "../layout.peb") are
+    // resolvable without triggering Pebble 4.x directory-traversal checks
+    var fileLoader = new FileLoader(path.getRoot().toString());
 
     PebbleEngine engine =
         new PebbleEngine.Builder()
@@ -158,12 +154,13 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
                 new DisallowExtensionCustomizerBuilder()
                     .disallowedTokenParserTags(List.of("include"))
                     .build()) // Security fix for https://www.cve.org/CVERecord?id=CVE-2025-1686
-            .loader(delegatingLoader)
+            .loader(fileLoader)
             .autoEscaping(false)
             .extension(new DocsPebbleExtension())
             .build();
 
-    PebbleTemplate compiledTemplate = engine.getTemplate(path.getFileName().toString());
+    PebbleTemplate compiledTemplate =
+        engine.getTemplate(path.getRoot().relativize(path).toString());
     var output = renderTemplate(model, compiledTemplate);
 
     return new Doc(configuration.outputPath(), output);
