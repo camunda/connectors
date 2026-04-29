@@ -25,6 +25,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class AnthropicOnFoundryResponseMapperTest {
 
@@ -140,5 +141,127 @@ class AnthropicOnFoundryResponseMapperTest {
     // then
     assertThat(response.finishReason()).isEqualTo(FinishReason.LENGTH);
     assertThat(response.aiMessage().text()).isEqualTo("Partial response...");
+  }
+
+  @Test
+  void aggregatesMultipleTextBlocksInResponse() {
+    // given — two consecutive text blocks; mapper concatenates with no separator
+    var block1 = ContentBlock.ofText(textBlock("Hello "));
+    var block2 = ContentBlock.ofText(textBlock("world."));
+    var msg = message("msg_004", List.of(block1, block2), StopReason.END_TURN, usage(10, 5));
+
+    // when
+    ChatResponse response = mapper.toChatResponse(msg);
+
+    // then
+    assertThat(response.aiMessage().text()).isEqualTo("Hello world.");
+    assertThat(response.finishReason()).isEqualTo(FinishReason.STOP);
+  }
+
+  @Test
+  void translatesMixedTextAndToolUseResponse() {
+    // given — text preamble followed by a tool_use block (Claude's typical pattern)
+    var textContent = ContentBlock.ofText(textBlock("Let me check that for you."));
+    var toolUseContent =
+        ContentBlock.ofToolUse(
+            toolUseBlock(
+                "toolu_abc123",
+                "get_weather",
+                JsonValue.from(java.util.Map.of("location", "Paris"))));
+    var msg =
+        message(
+            "msg_005", List.of(textContent, toolUseContent), StopReason.TOOL_USE, usage(20, 10));
+
+    // when
+    ChatResponse response = mapper.toChatResponse(msg);
+
+    // then
+    assertThat(response.finishReason()).isEqualTo(FinishReason.TOOL_EXECUTION);
+    AiMessage aiMessage = response.aiMessage();
+    assertThat(aiMessage.text()).isEqualTo("Let me check that for you.");
+    assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
+    ToolExecutionRequest req = aiMessage.toolExecutionRequests().get(0);
+    assertThat(req.id()).isEqualTo("toolu_abc123");
+    assertThat(req.name()).isEqualTo("get_weather");
+    assertThat(req.arguments()).contains("Paris");
+  }
+
+  @Test
+  void translatesMultipleParallelToolUseBlocks() {
+    // given — two tool_use blocks in a single response (Claude parallel tool calls)
+    var tool1 =
+        ContentBlock.ofToolUse(
+            toolUseBlock(
+                "toolu_001",
+                "get_weather",
+                JsonValue.from(java.util.Map.of("location", "Berlin"))));
+    var tool2 =
+        ContentBlock.ofToolUse(
+            toolUseBlock(
+                "toolu_002",
+                "get_time",
+                JsonValue.from(java.util.Map.of("timezone", "Europe/Berlin"))));
+    var msg = message("msg_006", List.of(tool1, tool2), StopReason.TOOL_USE, usage(25, 12));
+
+    // when
+    ChatResponse response = mapper.toChatResponse(msg);
+
+    // then
+    assertThat(response.finishReason()).isEqualTo(FinishReason.TOOL_EXECUTION);
+    AiMessage aiMessage = response.aiMessage();
+    // no text blocks → text field is null when tool requests are present
+    assertThat(aiMessage.text()).isNull();
+    assertThat(aiMessage.toolExecutionRequests()).hasSize(2);
+    assertThat(aiMessage.toolExecutionRequests())
+        .extracting(ToolExecutionRequest::id)
+        .containsExactly("toolu_001", "toolu_002");
+    assertThat(aiMessage.toolExecutionRequests())
+        .extracting(ToolExecutionRequest::name)
+        .containsExactly("get_weather", "get_time");
+  }
+
+  @Test
+  void translatesStopSequenceStopReasonToStop() {
+    // given — stop_sequence is treated identically to end_turn
+    var contentBlock = ContentBlock.ofText(textBlock("Done."));
+    var msg = message("msg_007", List.of(contentBlock), StopReason.STOP_SEQUENCE, usage(8, 3));
+
+    // when
+    ChatResponse response = mapper.toChatResponse(msg);
+
+    // then
+    assertThat(response.finishReason()).isEqualTo(FinishReason.STOP);
+    assertThat(response.aiMessage().text()).isEqualTo("Done.");
+  }
+
+  @Test
+  void mapsNullStopReasonToOther() {
+    // given — stopReason() returns Optional.empty() (requires mocking; SDK builder mandates a
+    // value)
+    Message message = Mockito.mock(Message.class);
+    Mockito.when(message.content()).thenReturn(List.of(ContentBlock.ofText(textBlock("hi"))));
+    Mockito.when(message.stopReason()).thenReturn(Optional.empty());
+    Mockito.when(message.usage()).thenReturn(usage(1, 1));
+    Mockito.when(message.id()).thenReturn("msg_008");
+    Mockito.when(message.model()).thenReturn(Model.CLAUDE_SONNET_4_0);
+
+    // when
+    ChatResponse response = mapper.toChatResponse(message);
+
+    // then
+    assertThat(response.finishReason()).isEqualTo(FinishReason.OTHER);
+  }
+
+  @Test
+  void mapsUnknownStopReasonToOther() {
+    // given — REFUSAL is a known SDK value the mapper does not handle explicitly
+    var contentBlock = ContentBlock.ofText(textBlock("I cannot help with that."));
+    var msg = message("msg_009", List.of(contentBlock), StopReason.REFUSAL, usage(5, 4));
+
+    // when
+    ChatResponse response = mapper.toChatResponse(msg);
+
+    // then
+    assertThat(response.finishReason()).isEqualTo(FinishReason.OTHER);
   }
 }
