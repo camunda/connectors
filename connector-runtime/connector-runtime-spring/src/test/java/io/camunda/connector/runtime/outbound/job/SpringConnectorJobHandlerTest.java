@@ -1726,7 +1726,9 @@ class SpringConnectorJobHandlerTest {
     void listenerNotifiedWithBpmnErrorThrownOnBpmnErrorExpression() throws Exception {
       var listener = mock(JobCompletionListener.class);
       var function = new TestListenerFunction(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(function);
+      var handler =
+          newConnectorJobHandler(
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       JobBuilder.create()
           .withErrorExpressionHeader(
@@ -1742,6 +1744,7 @@ class SpringConnectorJobHandlerTest {
                 assertThat(failure.errorCode()).isEqualTo("ERR_001");
                 assertThat(failure.errorMessage()).isEqualTo("test error");
                 assertThat(failure.variables()).isEmpty();
+                assertThat(failure.commandFailure()).isNull();
               });
     }
 
@@ -1749,7 +1752,9 @@ class SpringConnectorJobHandlerTest {
     void listenerNotifiedWithBpmnErrorThrownWithVariables() throws Exception {
       var listener = mock(JobCompletionListener.class);
       var function = new TestListenerFunction(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(function);
+      var handler =
+          newConnectorJobHandler(
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       JobBuilder.create()
           .withErrorExpressionHeader(
@@ -1766,6 +1771,36 @@ class SpringConnectorJobHandlerTest {
                 assertThat(failure.errorMessage()).isEqualTo("with vars");
                 assertThat(failure.variables())
                     .containsExactlyInAnyOrderEntriesOf(Map.of("detail", "info"));
+                assertThat(failure.commandFailure()).isNull();
+              });
+    }
+
+    @Test
+    void listenerNotifiedWithBpmnErrorAndCommandFailureWhenThrowBpmnErrorRejected()
+        throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var function = new TestListenerFunction(Map.of("status", "fail"), listener);
+      var cause = new RuntimeException("Zeebe rejected throwBpmnError");
+      var handler =
+          newConnectorJobHandler(
+              function, CompletableFuture.completedFuture(new CommandOutcome.Failed(cause, 3)));
+
+      JobBuilder.create()
+          .withErrorExpressionHeader(
+              "=if response.status = \"fail\" then bpmnError(\"ERR_X\", \"boom\") else null")
+          .executeAndCaptureResult(handler, false, true);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.BpmnErrorThrown.class,
+              failure -> {
+                assertThat(failure.errorCode()).isEqualTo("ERR_X");
+                assertThat(failure.commandFailure())
+                    .isInstanceOfSatisfying(
+                        JobCompletionFailure.CommandFailure.CommandFailed.class,
+                        cf -> assertThat(cf.cause()).isSameAs(cause));
               });
     }
 
@@ -1773,7 +1808,9 @@ class SpringConnectorJobHandlerTest {
     void listenerNotifiedWithJobErrorRaisedOnJobErrorExpression() throws Exception {
       var listener = mock(JobCompletionListener.class);
       var function = new TestListenerFunction(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(function);
+      var handler =
+          newConnectorJobHandler(
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       JobBuilder.create()
           .withErrorExpressionHeader(
@@ -1789,6 +1826,7 @@ class SpringConnectorJobHandlerTest {
                 assertThat(failure.errorMessage()).isEqualTo("something went wrong");
                 assertThat(failure.variables())
                     .containsExactlyInAnyOrderEntriesOf(Map.of("error", "something went wrong"));
+                assertThat(failure.commandFailure()).isNull();
               });
     }
 
@@ -1796,7 +1834,9 @@ class SpringConnectorJobHandlerTest {
     void listenerNotifiedWithJobErrorRaisedWithVariables() throws Exception {
       var listener = mock(JobCompletionListener.class);
       var function = new TestListenerFunction(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(function);
+      var handler =
+          newConnectorJobHandler(
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       JobBuilder.create()
           .withErrorExpressionHeader(
@@ -1813,6 +1853,7 @@ class SpringConnectorJobHandlerTest {
                 assertThat(failure.variables())
                     .containsExactlyInAnyOrderEntriesOf(
                         Map.of("detail", "more info", "error", "failed"));
+                assertThat(failure.commandFailure()).isNull();
               });
     }
 
@@ -1820,7 +1861,9 @@ class SpringConnectorJobHandlerTest {
     void listenerNotifiedWithJobErrorRaisedWithRetriesAndBackoff() throws Exception {
       var listener = mock(JobCompletionListener.class);
       var function = new TestListenerFunction(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(function);
+      var handler =
+          newConnectorJobHandler(
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       JobBuilder.create()
           .withErrorExpressionHeader(
@@ -1837,6 +1880,35 @@ class SpringConnectorJobHandlerTest {
                 assertThat(failure.errorMessage()).isEqualTo("retry me");
                 assertThat(failure.variables())
                     .containsExactlyInAnyOrderEntriesOf(Map.of("error", "retry me"));
+                assertThat(failure.commandFailure()).isNull();
+              });
+    }
+
+    @Test
+    void listenerNotifiedWithJobErrorAndCommandFailureWhenFailJobRejected() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var function = new TestListenerFunction(Map.of("status", "fail"), listener);
+      var cause = new RuntimeException("Zeebe rejected failJob");
+      var handler =
+          newConnectorJobHandler(
+              function, CompletableFuture.completedFuture(new CommandOutcome.Ignored(cause, 1)));
+
+      JobBuilder.create()
+          .withErrorExpressionHeader(
+              "=if response.status = \"fail\" then jobError(\"boom\") else null")
+          .executeAndCaptureResult(handler, false, false);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.JobErrorRaised.class,
+              failure -> {
+                assertThat(failure.errorMessage()).isEqualTo("boom");
+                assertThat(failure.commandFailure())
+                    .isInstanceOfSatisfying(
+                        JobCompletionFailure.CommandFailure.CommandIgnored.class,
+                        cf -> assertThat(cf.cause()).isSameAs(cause));
               });
     }
 
@@ -1868,7 +1940,7 @@ class SpringConnectorJobHandlerTest {
       verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
-              JobCompletionFailure.CommandIgnored.class,
+              JobCompletionFailure.CommandFailure.CommandIgnored.class,
               failure -> assertThat(failure.cause()).isSameAs(cause));
     }
 
@@ -1887,7 +1959,7 @@ class SpringConnectorJobHandlerTest {
       verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
-              JobCompletionFailure.CommandFailed.class,
+              JobCompletionFailure.CommandFailure.CommandFailed.class,
               failure -> assertThat(failure.cause()).isSameAs(cause));
     }
 
@@ -1904,7 +1976,7 @@ class SpringConnectorJobHandlerTest {
       verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
-              JobCompletionFailure.CommandFailed.class,
+              JobCompletionFailure.CommandFailure.CommandFailed.class,
               failure -> assertThat(failure.cause()).isSameAs(cause));
     }
 
@@ -1932,7 +2004,9 @@ class SpringConnectorJobHandlerTest {
           .when(listener)
           .onJobCompletionFailed(any(), any(), any());
       var function = new TestListenerFunction(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(function);
+      var handler =
+          newConnectorJobHandler(
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       // should not throw despite listener failure
       JobBuilder.create()
@@ -1972,7 +2046,8 @@ class SpringConnectorJobHandlerTest {
 
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
       verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
-      assertThat(captor.getValue()).isInstanceOf(JobCompletionFailure.CommandFailed.class);
+      assertThat(captor.getValue())
+          .isInstanceOf(JobCompletionFailure.CommandFailure.CommandFailed.class);
     }
 
     @Test
@@ -1987,7 +2062,7 @@ class SpringConnectorJobHandlerTest {
       verify(listener).onJobCompletionFailed(any(), eq(null), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
-              JobCompletionFailure.CommandFailed.class,
+              JobCompletionFailure.CommandFailure.CommandFailed.class,
               failure -> assertThat(failure.cause()).hasMessage("execute exploded"));
     }
 

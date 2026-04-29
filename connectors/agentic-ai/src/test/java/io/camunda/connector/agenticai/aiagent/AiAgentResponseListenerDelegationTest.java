@@ -38,7 +38,8 @@ class AiAgentResponseListenerDelegationTest {
     @Test
     void onJobCompletionFailed_delegatesToListener() {
       var listener = mock(AgentJobCompletionListener.class);
-      var failure = new JobCompletionFailure.CommandFailed(new RuntimeException("test"));
+      var failure =
+          new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("test"));
       var response = new AiAgentTaskConnectorResponse(null, listener);
 
       response.onJobCompletionFailed(failure);
@@ -60,7 +61,7 @@ class AiAgentResponseListenerDelegationTest {
 
       // should not throw
       response.onJobCompletionFailed(
-          new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
+          new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("test")));
     }
   }
 
@@ -80,7 +81,8 @@ class AiAgentResponseListenerDelegationTest {
     @Test
     void onJobCompletionFailed_delegatesToListener() {
       var listener = mock(AgentJobCompletionListener.class);
-      var failure = new JobCompletionFailure.CommandFailed(new RuntimeException("test"));
+      var failure =
+          new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("test"));
       var response = buildResponse(listener);
 
       response.onJobCompletionFailed(failure);
@@ -102,7 +104,7 @@ class AiAgentResponseListenerDelegationTest {
 
       // should not throw
       response.onJobCompletionFailed(
-          new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
+          new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("test")));
     }
 
     private AiAgentSubProcessConnectorResponse buildResponse(AgentJobCompletionListener listener) {
@@ -135,7 +137,8 @@ class AiAgentResponseListenerDelegationTest {
       var listener = mock(AgentJobCompletionListener.class);
       var function = new AiAgentFunction(null, null);
       var response = new AiAgentTaskConnectorResponse(null, listener);
-      var failure = new JobCompletionFailure.CommandFailed(new RuntimeException("test"));
+      var failure =
+          new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("test"));
 
       function.onJobCompletionFailed(mock(OutboundConnectorContext.class), response, failure);
 
@@ -150,7 +153,7 @@ class AiAgentResponseListenerDelegationTest {
       function.onJobCompletionFailed(
           mock(OutboundConnectorContext.class),
           null,
-          new JobCompletionFailure.CommandFailed(new RuntimeException("boom")));
+          new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("boom")));
     }
 
     @Test
@@ -162,7 +165,7 @@ class AiAgentResponseListenerDelegationTest {
       function.onJobCompletionFailed(
           mock(OutboundConnectorContext.class),
           foreignResponse,
-          new JobCompletionFailure.CommandFailed(new RuntimeException("boom")));
+          new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("boom")));
     }
   }
 
@@ -199,7 +202,8 @@ class AiAgentResponseListenerDelegationTest {
               .cancelRemainingInstances(false)
               .completionListener(listener)
               .build();
-      var failure = new JobCompletionFailure.CommandFailed(new RuntimeException("test"));
+      var failure =
+          new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("test"));
 
       function.onJobCompletionFailed(mock(OutboundConnectorContext.class), response, failure);
 
@@ -214,7 +218,7 @@ class AiAgentResponseListenerDelegationTest {
       function.onJobCompletionFailed(
           mock(OutboundConnectorContext.class),
           (ConnectorResponse) null,
-          new JobCompletionFailure.CommandFailed(new RuntimeException("boom")));
+          new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("boom")));
 
       verifyNoInteractions(listener);
     }
