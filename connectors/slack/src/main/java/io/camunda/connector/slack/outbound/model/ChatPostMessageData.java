@@ -128,6 +128,7 @@ public record ChatPostMessageData(
       if (documents != null && !documents.isEmpty()) {
         requestBuilder.blocks(
             BlockBuilder.create(new FileUploader(methodsClient))
+                .text(text)
                 .documents(documents)
                 .getLayoutBlocks());
       }
