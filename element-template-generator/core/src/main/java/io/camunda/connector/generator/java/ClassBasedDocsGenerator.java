@@ -46,12 +46,12 @@ import io.pebbletemplates.pebble.PebbleEngine;
 import io.pebbletemplates.pebble.extension.core.DisallowExtensionCustomizerBuilder;
 import io.pebbletemplates.pebble.loader.FileLoader;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
-import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -144,19 +144,24 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
 
     var model = buildTemplateModel(template, templateGenerationContext);
 
+    var path = Path.of(configuration.templatePath()).toAbsolutePath();
+    // Use the filesystem root as prefix so relative extends (e.g. "../layout.peb") are
+    // resolvable without triggering Pebble 4.x directory-traversal checks
+    var fileLoader = new FileLoader(path.getRoot().toString());
+
     PebbleEngine engine =
         new PebbleEngine.Builder()
             .registerExtensionCustomizer(
                 new DisallowExtensionCustomizerBuilder()
                     .disallowedTokenParserTags(List.of("include"))
                     .build()) // Security fix for https://www.cve.org/CVERecord?id=CVE-2025-1686
-            .loader(new FileLoader())
+            .loader(fileLoader)
             .autoEscaping(false)
             .extension(new DocsPebbleExtension())
             .build();
 
-    var absolute = new File(configuration.templatePath()).getAbsolutePath();
-    PebbleTemplate compiledTemplate = engine.getTemplate(absolute);
+    PebbleTemplate compiledTemplate =
+        engine.getTemplate(path.getRoot().relativize(path).toString());
     var output = renderTemplate(model, compiledTemplate);
 
     return new Doc(configuration.outputPath(), output);
