@@ -148,9 +148,9 @@ public interface AiAgentTestFixtures {
       if ("camunda".equals(node.path("camunda.document.type").asText(null))) {
         return node;
       }
-      final var fields = node.fields();
-      while (fields.hasNext()) {
-        final var found = findFirstCamundaDocumentNode(fields.next().getValue());
+      final var properties = node.properties();
+      for (var property : properties) {
+        final var found = findFirstCamundaDocumentNode(property.getValue());
         if (found != null) {
           return found;
         }

@@ -135,7 +135,7 @@ BPMN tool calls whose `content()` is a raw `Map`/`List`/`Document` tree from the
 `Object[]`, and `Document`.
 
 The walker is also public: handler implementations whose typed content embeds raw user-generated subtrees (e.g. opaque
-`Map<String, Object>` payloads from a downstream system) can call `ContentTreeDocumentWalker.INSTANCE` for those parts.
+`Map<String, Object>` payloads from a downstream system) can call `ContentTreeDocumentWalker.extractDocumentsFromContent(...)` for those parts.
 
 The default `GatewayToolHandler.extractDocuments` implementation delegates to the walker, so third-party handlers that
 return raw content do not need to override anything.
