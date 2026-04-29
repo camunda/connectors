@@ -66,8 +66,10 @@ correlate the reference with the actual content in the user message.
 
 **Generic layer** (`AgentMessagesHandlerImpl`):
 
-1. After building the `ToolCallResultMessage`, scan each `ToolCallResult.content()` tree for `Document` instances using
-   `ToolCallResultDocumentExtractor` (handles `Map`, `Collection`, `Object[]`, and `Document`).
+1. After building the `ToolCallResultMessage`, scan each `ToolCallResult.content()` for `Document` instances using
+   `ToolCallResultDocumentExtractor`. The extractor delegates per result to the responsible
+   `GatewayToolHandler.extractDocuments(...)` (with `ContentTreeDocumentWalker` as the default fallback for results not
+   managed by any gateway handler) — see "Per-handler document extraction" below.
 2. Build a single `UserMessage` (metadata: `toolCallDocuments=true`) containing a preamble, per-document XML tags with
    correlation attributes, and `DocumentContent` blocks.
 3. Apply the same extraction to event messages: prepend `<document>` XML tags before each `DocumentContent` block in the
@@ -114,22 +116,32 @@ The synthetic document `UserMessage` (identified by `UserMessage.METADATA_TOOL_C
 the `maxMessages` context window limit. When evicting messages, the document `UserMessage` is removed together with its
 associated `ToolCallResultMessage` — it is never orphaned.
 
-### Gateway tool handlers must preserve raw content
+### Per-handler document extraction
 
 Gateway tool handlers (MCP, A2A) transform `ToolCallResult` objects — renaming tool calls with fully qualified
-identifiers and processing the result content. When tool call results arrive from the process engine, `Document`
-instances in the content tree have already been deserialized by the connectors `ObjectMapper` (which recognizes
-`camunda.document.type` references). The content is a raw tree of `Map`, `List`, `String`, and `Document` objects.
+identifiers and producing typed domain objects (`McpClientCallToolResult`, `A2aSendMessageResult`) as the transformed
+`content()`. Each handler exposes a domain-specific `extractDocuments(ToolCallResult)` method on the
+`GatewayToolHandler` SPI that walks its own typed structure (sealed-type `switch`) to collect `Document` instances:
 
-Gateway handlers **must not** convert this raw content to typed domain objects (e.g., `McpClientCallToolResult`,
-`A2aSendMessageResult`) and put the typed object back as `ToolCallResult.content()`. The `ToolCallResultDocumentExtractor`
-walks the content tree using `instanceof` checks for `Document`, `Map`, `Collection`, and `Object[]`. Typed records and POJOs are
-invisible to it — documents nested inside them would not be extracted.
+* MCP: walks `McpClientCallToolResult.content()` and matches `McpDocumentContent` and
+  `McpEmbeddedResourceContent.BlobDocumentResource`.
+* A2A: walks `A2aSendMessageResult` (sealed `A2aMessage | A2aTask`), descending into artifacts and recursive task
+  history to collect `DocumentContent` instances.
 
-Instead, handlers should:
-1. Convert to typed objects only when needed to extract metadata (e.g., MCP tool name for the fully qualified identifier).
-2. Pass the **raw content** through to the output `ToolCallResult`, preserving the original `Map`/`List`/`Document` tree.
-3. For simple text-only results, extract the text string directly (optimization to avoid unnecessary JSON wrapping).
+`ToolCallResultDocumentExtractor` routes each result to the handler that manages it (via
+`GatewayToolHandlerRegistry.handlerForToolDefinition(toolName)`). When no handler claims the result — typical for plain
+BPMN tool calls whose `content()` is a raw `Map`/`List`/`Document` tree from the engine — the extractor falls back to
+`ContentTreeDocumentWalker`, which performs the original `instanceof`-based recursion over `Map`, `Collection`,
+`Object[]`, and `Document`.
+
+The walker is also public: handler implementations whose typed content embeds raw user-generated subtrees (e.g. opaque
+`Map<String, Object>` payloads from a downstream system) can call `ContentTreeDocumentWalker.INSTANCE` for those parts.
+
+The default `GatewayToolHandler.extractDocuments` implementation delegates to the walker, so third-party handlers that
+return raw content do not need to override anything.
+
+For simple text-only MCP results, the handler still extracts the text string directly (optimization to avoid
+unnecessary JSON wrapping); in that case `extractDocuments` returns an empty list since the content is a `String`.
 
 ### Future optimization (out of scope)
 
