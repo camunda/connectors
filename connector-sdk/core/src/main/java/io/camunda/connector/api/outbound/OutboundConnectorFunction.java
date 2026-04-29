@@ -19,6 +19,10 @@ package io.camunda.connector.api.outbound;
 /**
  * Central function interface of a connector. This will be called from the environment-specific
  * runtime.
+ *
+ * <p>Implementations may additionally implement {@link JobCompletionListener} to receive
+ * notifications after the Zeebe completion command resolves (success, BPMN error, command failure,
+ * or pre-response failure).
  */
 public interface OutboundConnectorFunction {
 
@@ -27,7 +31,10 @@ public interface OutboundConnectorFunction {
    * to fetch objects provided by the environment transparently.
    *
    * <p>The connector can return any serializable object that will be passed to the
-   * environment-specific runtime.
+   * environment-specific runtime. Returning a {@link ConnectorResponse} subtype (e.g. {@link
+   * ConnectorResponse.StandardConnectorResponse} or {@link
+   * ConnectorResponse.AdHocSubProcessConnectorResponse}) gives finer control over how the runtime
+   * completes the job; any other object is wrapped in a standard response.
    *
    * <p>Checked exceptions can be handled by the connector if desired. The environment-specifc
    * runtime will also take care of catching all checked exceptions from the connector function.
