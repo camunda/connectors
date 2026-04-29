@@ -17,7 +17,6 @@ import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecut
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.outbound.JobCompletionListener;
 import java.util.List;
 import org.springframework.util.CollectionUtils;
 
@@ -61,7 +60,7 @@ public class OutboundConnectorAgentRequestHandler
   public AiAgentTaskConnectorResponse buildConnectorResponse(
       OutboundConnectorAgentExecutionContext executionContext,
       AgentResponse agentResponse,
-      JobCompletionListener completionListener) {
+      AgentJobCompletionListener completionListener) {
     return new AiAgentTaskConnectorResponse(agentResponse, completionListener);
   }
 }

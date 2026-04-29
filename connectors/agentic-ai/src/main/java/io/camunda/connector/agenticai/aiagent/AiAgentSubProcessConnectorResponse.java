@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import io.camunda.connector.agenticai.aiagent.agent.AgentJobCompletionListener;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
-import io.camunda.connector.api.outbound.JobCompletionListener;
 import java.util.List;
 import java.util.Map;
 import org.springframework.lang.Nullable;
@@ -22,9 +22,9 @@ public record AiAgentSubProcessConnectorResponse(
     List<ElementActivation> elementActivations,
     boolean completionConditionFulfilled,
     boolean cancelRemainingInstances,
-    @Nullable JobCompletionListener completionListener)
+    @Nullable AgentJobCompletionListener completionListener)
     implements AdHocSubProcessConnectorResponse,
-        JobCompletionListener,
+        AgentJobCompletionListener,
         AiAgentSubProcessConnectorResponseBuilder.With {
 
   public static AiAgentSubProcessConnectorResponseBuilder builder() {

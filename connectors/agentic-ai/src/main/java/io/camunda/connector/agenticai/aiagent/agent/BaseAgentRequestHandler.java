@@ -25,7 +25,6 @@ import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
-import io.camunda.connector.api.outbound.JobCompletionListener;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
@@ -211,16 +210,16 @@ public abstract class BaseAgentRequestHandler<
   protected abstract R buildConnectorResponse(
       final C executionContext,
       @Nullable final AgentResponse agentResponse,
-      @Nullable final JobCompletionListener completionListener);
+      @Nullable final AgentJobCompletionListener completionListener);
 
   private static <C extends AgentExecutionContext>
-      JobCompletionListener createStoreCompletionListener(
+      AgentJobCompletionListener createStoreCompletionListener(
           C executionContext, ConversationStore store, @Nullable AgentResponse agentResponse) {
     if (agentResponse == null) {
       return null;
     }
     var context = agentResponse.context();
-    return new JobCompletionListener() {
+    return new AgentJobCompletionListener() {
       @Override
       public void onJobCompleted() {
         store.onJobCompleted(executionContext, context);
