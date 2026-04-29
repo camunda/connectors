@@ -22,9 +22,11 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import java.io.IOException;
 
 public class DocumentSerializer extends JsonSerializer<Document> {
@@ -55,6 +57,10 @@ public class DocumentSerializer extends JsonSerializer<Document> {
                 new CamundaDocumentMetadataModel(camundaReference.getMetadata()));
       }
       jsonGenerator.writeObject(model);
+    } else if (reference instanceof InlineDocumentReference inlineReference) {
+      jsonGenerator.writeObject(
+          new InlineDocumentReferenceModel(
+              inlineReference.content(), inlineReference.name(), inlineReference.contentType()));
     } else {
       throw new IllegalArgumentException("Unsupported document reference type: " + reference);
     }

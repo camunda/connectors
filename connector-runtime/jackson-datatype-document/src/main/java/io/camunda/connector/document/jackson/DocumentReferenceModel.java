@@ -23,10 +23,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
+import io.camunda.connector.document.jackson.deserializer.InlineContentDeserializer;
 import java.time.OffsetDateTime;
 import java.util.Map;
 
@@ -37,7 +40,8 @@ import java.util.Map;
     include = As.EXISTING_PROPERTY)
 @JsonSubTypes({
   @JsonSubTypes.Type(value = CamundaDocumentReferenceModel.class, name = "camunda"),
-  @JsonSubTypes.Type(value = ExternalDocumentReferenceModel.class, name = "external")
+  @JsonSubTypes.Type(value = ExternalDocumentReferenceModel.class, name = "external"),
+  @JsonSubTypes.Type(value = InlineDocumentReferenceModel.class, name = "inline")
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
 public sealed interface DocumentReferenceModel extends DocumentReference {
@@ -138,6 +142,19 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     @JsonProperty(DISCRIMINATOR_KEY)
     private String documentType() {
       return "external";
+    }
+  }
+
+  @JsonInclude(Include.NON_NULL)
+  record InlineDocumentReferenceModel(
+      @JsonDeserialize(using = InlineContentDeserializer.class) String content,
+      String name,
+      String contentType)
+      implements DocumentReferenceModel, InlineDocumentReference {
+
+    @JsonProperty(DISCRIMINATOR_KEY)
+    private String documentType() {
+      return "inline";
     }
   }
 }
