@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
@@ -232,9 +233,19 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ToolCallResultDocumentExtractor toolCallResultDocumentExtractor(
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new ToolCallResultDocumentExtractor(gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentMessagesHandler aiAgentMessagesHandler(
-      GatewayToolHandlerRegistry gatewayToolHandlers, SystemPromptComposer systemPromptComposer) {
-    return new AgentMessagesHandlerImpl(gatewayToolHandlers, systemPromptComposer);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      SystemPromptComposer systemPromptComposer,
+      ToolCallResultDocumentExtractor documentExtractor) {
+    return new AgentMessagesHandlerImpl(
+        gatewayToolHandlers, systemPromptComposer, documentExtractor);
   }
 
   @Bean

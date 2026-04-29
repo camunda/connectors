@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.DocumentXmlTag;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
@@ -33,6 +34,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -57,11 +59,15 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final SystemPromptComposer systemPromptComposer;
+  private final ToolCallResultDocumentExtractor documentExtractor;
 
   public AgentMessagesHandlerImpl(
-      GatewayToolHandlerRegistry gatewayToolHandlers, SystemPromptComposer systemPromptComposer) {
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      SystemPromptComposer systemPromptComposer,
+      ToolCallResultDocumentExtractor documentExtractor) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.systemPromptComposer = systemPromptComposer;
+    this.documentExtractor = documentExtractor;
   }
 
   @Override
@@ -125,6 +131,10 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       // if message is null, we wait on further tool call results to be added
       if (toolCallResultMessage != null) {
         messages.add(toolCallResultMessage);
+        var documentMessage = createDocumentMessageForToolResults(toolCallResultMessage.results());
+        if (documentMessage != null) {
+          messages.add(documentMessage);
+        }
         messages.addAll(eventMessages);
       }
     } else {
@@ -205,6 +215,29 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
         .build();
   }
 
+  private UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
+    final var toolCallDocuments = documentExtractor.extractDocuments(results);
+    if (toolCallDocuments.isEmpty()) {
+      return null;
+    }
+
+    final var content = new ArrayList<Content>();
+    content.add(textContent("Documents extracted from tool call results:"));
+    for (var entry : toolCallDocuments) {
+      for (var doc : entry.documents()) {
+        content.add(
+            textContent(
+                DocumentXmlTag.from(doc, entry.toolCallName(), entry.toolCallId()).toXml()));
+        content.add(DocumentContent.documentContent(doc));
+      }
+    }
+
+    final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
+    metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+
+    return UserMessage.builder().content(content).metadata(metadata).build();
+  }
+
   private Message createEventMessage(
       ToolCallResult eventResult, boolean interruptToolCallsOnEventResults) {
     Object eventContent = eventResult.content();
@@ -222,6 +255,16 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
             case String textContent -> textContent(textContent);
             default -> objectContent(eventContent);
           });
+    }
+
+    // extract documents from event content and add as document content blocks
+    // events originate from BPMN event sub-processes (not a gateway handler), so walk the raw tree
+    var eventDocuments = ContentTreeDocumentWalker.extractDocumentsFromContent(eventContent);
+    if (!eventDocuments.isEmpty()) {
+      for (var doc : eventDocuments) {
+        userMessageContent.add(textContent(DocumentXmlTag.from(doc).toXml()));
+        userMessageContent.add(DocumentContent.documentContent(doc));
+      }
     }
 
     return UserMessage.builder()

@@ -19,6 +19,9 @@ package io.camunda.connector.e2e.agenticai.aiagent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.ThrowingConsumer;
@@ -89,4 +92,77 @@ public interface AiAgentTestFixtures {
 
   String FEEDBACK_LOOP_RESPONSE_TEXT =
       "A very complex calculation only the superflux calculation tool can do.";
+
+  ObjectMapper TOOL_RESULT_OBJECT_MAPPER = new ObjectMapper();
+
+  /**
+   * Parsed Camunda document reference fields extracted from a tool call result JSON. The {@link
+   * #shortId()} returns the first UUID segment of the {@code documentId}, used as the compact
+   * correlation key in the synthetic {@code <document>} XML tag.
+   */
+  record DocumentReferenceFields(
+      String storeId, String documentId, String contentType, String fileName) {
+    public String shortId() {
+      int dash = documentId.indexOf('-');
+      return dash > 0 ? documentId.substring(0, dash) : documentId;
+    }
+  }
+
+  /**
+   * Locates the first Camunda document reference inside a serialized tool call result and reads its
+   * structural fields. Recursively descends into objects/arrays until it finds an object carrying
+   * the {@code camunda.document.type} discriminator (set by {@code DocumentSerializer}).
+   *
+   * <p>Use this in place of regex-matching the raw text — both for asserting expected reference
+   * fields (content type, file name) and for extracting the document short ID.
+   */
+  static DocumentReferenceFields readDocumentReference(String toolResultText) {
+    final JsonNode root;
+    try {
+      root = TOOL_RESULT_OBJECT_MAPPER.readTree(toolResultText);
+    } catch (JsonProcessingException e) {
+      throw new AssertionError("Failed to parse tool result text as JSON: " + toolResultText, e);
+    }
+
+    final JsonNode docNode = findFirstCamundaDocumentNode(root);
+    assertThat(docNode)
+        .as("Camunda document reference in tool result text: %s", toolResultText)
+        .isNotNull();
+    assertThat(docNode.path("camunda.document.type").asText())
+        .as("camunda.document.type discriminator")
+        .isEqualTo("camunda");
+    assertThat(docNode.path("documentId").asText()).as("documentId").isNotBlank();
+
+    return new DocumentReferenceFields(
+        docNode.path("storeId").asText(null),
+        docNode.path("documentId").asText(),
+        docNode.path("metadata").path("contentType").asText(null),
+        docNode.path("metadata").path("fileName").asText(null));
+  }
+
+  private static JsonNode findFirstCamundaDocumentNode(JsonNode node) {
+    if (node == null) {
+      return null;
+    }
+    if (node.isObject()) {
+      if ("camunda".equals(node.path("camunda.document.type").asText(null))) {
+        return node;
+      }
+      final var properties = node.properties();
+      for (var property : properties) {
+        final var found = findFirstCamundaDocumentNode(property.getValue());
+        if (found != null) {
+          return found;
+        }
+      }
+    } else if (node.isArray()) {
+      for (var element : node) {
+        final var found = findFirstCamundaDocumentNode(element);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
 }

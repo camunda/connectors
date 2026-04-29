@@ -52,6 +52,12 @@
       <artifactId>camunda-process-test-spring</artifactId>
       <version>${version.camunda}</version>
     </dependency>
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>camunda-process-test-langchain4j</artifactId>
+      <version>${version.camunda}</version>
+      <scope>test</scope>
+    </dependency>
 
     <!-- Test -->
     <dependency>

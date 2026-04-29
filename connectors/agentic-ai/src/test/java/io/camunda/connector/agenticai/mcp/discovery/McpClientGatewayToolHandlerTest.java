@@ -10,17 +10,28 @@ import static io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolH
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinitionBuilder;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpBlobContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpDocumentContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent.BlobDocumentResource;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent.BlobResource;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent.TextResource;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpObjectContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpResourceLinkContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
@@ -391,7 +402,7 @@ class McpClientGatewayToolHandlerTest {
     }
 
     @Test
-    void retainsListOfContentBlocksIfResultIsNotASingleTextBlock() {
+    void retainsTypedContentListIfResultIsNotASingleTextBlock() {
       var agentContext = AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1"));
       var mcpCallToolResult =
           new McpClientCallToolResult(
@@ -400,17 +411,19 @@ class McpClientGatewayToolHandlerTest {
                   McpTextContent.textContent("First content"),
                   McpTextContent.textContent("Second content")),
               false);
-      var toolCallResults =
-          List.of(createToolCallResultWithContent("call1", "mcp1", mcpCallToolResult));
+      // simulate engine deserialization: content arrives as a raw Map, not a typed POJO
+      @SuppressWarnings("unchecked")
+      var contentAsMap = objectMapper.convertValue(mcpCallToolResult, Map.class);
+      var toolCallResults = List.of(createToolCallResultWithContent("call1", "mcp1", contentAsMap));
 
       var result = handler.transformToolCallResults(agentContext, toolCallResults);
 
       assertThat(result).hasSize(1);
       assertThat(result.getFirst().content())
-          .isEqualTo(
-              List.of(
-                  McpTextContent.textContent("First content"),
-                  McpTextContent.textContent("Second content")));
+          .asInstanceOf(InstanceOfAssertFactories.list(McpContent.class))
+          .containsExactly(
+              McpTextContent.textContent("First content"),
+              McpTextContent.textContent("Second content"));
     }
 
     @Test
@@ -565,6 +578,124 @@ class McpClientGatewayToolHandlerTest {
 
       assertThat(result.added()).isEmpty();
       assertThat(result.removed()).containsExactly("mcp1", "mcp2");
+    }
+  }
+
+  @Nested
+  class ExtractDocuments {
+
+    @Test
+    void extractsDocumentFromMcpDocumentContent() {
+      var document = mock(Document.class);
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1", "MCP_mcp1___tool1", List.of(new McpDocumentContent(document, Map.of())));
+
+      var documents = handler.extractDocuments(toolCallResult);
+
+      assertThat(documents).containsExactly(document);
+    }
+
+    @Test
+    void extractsDocumentFromBlobDocumentResourceInsideEmbeddedResource() {
+      var document = mock(Document.class);
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
+              List.of(
+                  new McpEmbeddedResourceContent(
+                      new BlobDocumentResource("uri://doc", "application/pdf", document),
+                      Map.of())));
+
+      var documents = handler.extractDocuments(toolCallResult);
+
+      assertThat(documents).containsExactly(document);
+    }
+
+    @Test
+    void doesNotExtractFromTextResource() {
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
+              List.of(
+                  new McpEmbeddedResourceContent(
+                      new TextResource("uri://text", "text/plain", "hello"), Map.of())));
+
+      assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
+    }
+
+    @Test
+    void doesNotExtractFromBlobResource() {
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
+              List.of(
+                  new McpEmbeddedResourceContent(
+                      new BlobResource("uri://blob", "application/octet-stream", new byte[] {1, 2}),
+                      Map.of())));
+
+      assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
+    }
+
+    @Test
+    void doesNotExtractFromTextOrObjectOrBlobOrResourceLinkVariants() {
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
+              List.of(
+                  McpTextContent.textContent("just text"),
+                  new McpObjectContent(Map.of("k", "v"), Map.of()),
+                  new McpBlobContent(new byte[] {1}, "image/png", Map.of()),
+                  new McpResourceLinkContent("uri://x", "link", "desc", "text/plain", Map.of())));
+
+      assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
+    }
+
+    @Test
+    void preservesOrderAndCollectsMultipleDocuments() {
+      var doc1 = mock(Document.class);
+      var doc2 = mock(Document.class);
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
+              List.of(
+                  new McpDocumentContent(doc1, Map.of()),
+                  McpTextContent.textContent("between"),
+                  new McpEmbeddedResourceContent(
+                      new BlobDocumentResource("uri://2", "application/pdf", doc2), Map.of())));
+
+      assertThat(handler.extractDocuments(toolCallResult)).containsExactly(doc1, doc2);
+    }
+
+    @Test
+    void returnsEmptyListWhenContentIsAStringOptimization() {
+      // single-text-content optimization yields a String content; nothing to extract
+      var toolCallResult =
+          createToolCallResultWithContent("call1", "MCP_mcp1___tool1", "plain text");
+
+      assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
+    }
+
+    @Test
+    void returnsEmptyListWhenContentIsNotAList() {
+      var toolCallResult =
+          createToolCallResultWithContent("call1", "MCP_mcp1___tool1", Map.of("foo", "bar"));
+
+      assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
+    }
+
+    @Test
+    void returnsEmptyListWhenListEntriesAreNotMcpContent() {
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1", "MCP_mcp1___tool1", List.of(Map.of("type", "text", "text", "raw map")));
+
+      assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
     }
   }
 }

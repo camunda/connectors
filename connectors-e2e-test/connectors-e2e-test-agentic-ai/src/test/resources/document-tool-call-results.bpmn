@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.42.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+  <bpmn:process id="CPT_Document_Tool_Call_Results" name="CPT Document Tool Call Results" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_Start_To_Download</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_Download" sourceRef="StartEvent_1" targetRef="Download_Files" />
+    <bpmn:serviceTask id="Download_Files" name="Download files" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="GET" target="method" />
+          <zeebe:input source="=downloadUrl" target="url" />
+          <zeebe:input source="=true" target="storeResponse" />
+          <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
+          <zeebe:input source="=20" target="readTimeoutInSeconds" />
+          <zeebe:input source="=false" target="ignoreNullValues" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="elementTemplateVersion" value="12" />
+          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+          <zeebe:header key="resultExpression" value="={&#10;  document: response.document&#10;}" />
+          <zeebe:header key="retryBackoff" value="PT2S" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Start_To_Download</bpmn:incoming>
+      <bpmn:outgoing>Flow_Download_To_Agent</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics>
+        <bpmn:extensionElements>
+          <zeebe:loopCharacteristics inputCollection="=downloadUrls" inputElement="downloadUrl" outputCollection="downloadedFiles" outputElement="=document" />
+        </bpmn:extensionElements>
+      </bpmn:multiInstanceLoopCharacteristics>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_Download_To_Agent" sourceRef="Download_Files" targetRef="AI_Agent" />
+    <bpmn:adHocSubProcess id="AI_Agent" name="AI Agent">
+      <bpmn:documentation>Document analysis agent for CPT viability testing</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="dummy" retries="0" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Download_To_Agent</bpmn:incoming>
+      <bpmn:outgoing>Flow_Agent_To_End</bpmn:outgoing>
+      <bpmn:scriptTask id="Analyze_Single_Document" name="Analyze Single Document">
+        <bpmn:documentation>Retrieves a single document for analysis. Returns one PDF document from the pre-downloaded files.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="=downloadedFiles[1]" resultVariable="toolCallResult" />
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Search_Documents" name="Search Documents">
+        <bpmn:documentation>Searches for and retrieves multiple documents. Returns a list of two PDF documents from the pre-downloaded files.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="=[downloadedFiles[1], downloadedFiles[2]]" resultVariable="toolCallResult" />
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Fetch_Report" name="Fetch Report">
+        <bpmn:documentation>Fetches a full report containing multiple documents in a nested structure. Returns a map with a summary string, an attachments list with two documents, and a metadata map containing a cover page document.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="={&#10;  summary: &#34;Q1 Financial Report&#34;,&#10;  attachments: [downloadedFiles[1], downloadedFiles[2]],&#10;  metadata: {&#10;    cover: downloadedFiles[3]&#10;  }&#10;}" resultVariable="toolCallResult" />
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
+    </bpmn:adHocSubProcess>
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_Agent_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Agent_To_End" sourceRef="AI_Agent" targetRef="EndEvent_1" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="CPT_Document_Tool_Call_Results">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="262" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Download_di" bpmnElement="Download_Files">
+        <dc:Bounds x="260" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Agent_di" bpmnElement="AI_Agent" isExpanded="true">
+        <dc:Bounds x="440" y="170" width="400" height="400" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Analyze_di" bpmnElement="Analyze_Single_Document">
+        <dc:Bounds x="500" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Search_di" bpmnElement="Search_Documents">
+        <dc:Bounds x="660" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Fetch_di" bpmnElement="Fetch_Report">
+        <dc:Bounds x="500" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="922" y="262" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_To_Download_di" bpmnElement="Flow_Start_To_Download">
+        <di:waypoint x="188" y="280" />
+        <di:waypoint x="260" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Download_To_Agent_di" bpmnElement="Flow_Download_To_Agent">
+        <di:waypoint x="360" y="280" />
+        <di:waypoint x="440" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Agent_To_End_di" bpmnElement="Flow_Agent_To_End">
+        <di:waypoint x="840" y="280" />
+        <di:waypoint x="922" y="280" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

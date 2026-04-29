@@ -44,7 +44,12 @@ import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -74,6 +79,9 @@ class AgentMessagesHandlerTest {
   private static final String EVENT_WAIT_FOR_TOOL_CALL_RESULTS_EMPTY_MESSAGE =
       "An event was triggered but no content was returned. Execution waited for all in-flight tool executions to complete before proceeding.";
 
+  private static final InMemoryDocumentStore documentStore = InMemoryDocumentStore.INSTANCE;
+  private static final DocumentFactoryImpl documentFactory = new DocumentFactoryImpl(documentStore);
+
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -85,9 +93,34 @@ class AgentMessagesHandlerTest {
 
   @BeforeEach
   void setUp() {
+    documentStore.clear();
     systemPromptComposer = new SystemPromptComposerImpl(List.of());
-    messagesHandler = new AgentMessagesHandlerImpl(gatewayToolHandlers, systemPromptComposer);
+    // No stub for handlerForToolDefinition: the mocked registry returns Optional.empty() by
+    // default, so the extractor falls back to the generic content-tree walker for every result.
+    // Individual tests can override this when a gateway-handler-specific extraction is needed.
+    messagesHandler =
+        new AgentMessagesHandlerImpl(
+            gatewayToolHandlers,
+            systemPromptComposer,
+            new ToolCallResultDocumentExtractor(gatewayToolHandlers));
     runtimeMemory = spy(new DefaultRuntimeMemory());
+  }
+
+  private static Document createDocument(String content, String contentType, String filename) {
+    return documentFactory.create(
+        DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
+            .contentType(contentType)
+            .fileName(filename)
+            .build());
+  }
+
+  private static String documentShortId(Document document) {
+    if (document.reference() instanceof CamundaDocumentReference ref) {
+      var id = ref.getDocumentId();
+      int dash = id.indexOf('-');
+      return dash > 0 ? id.substring(0, dash) : id;
+    }
+    return null;
   }
 
   @Nested
@@ -750,6 +783,215 @@ class AgentMessagesHandlerTest {
                                                 .isEqualTo(
                                                     textContent(
                                                         EVENT_INTERRUPT_TOOL_CALLS_EMPTY_MESSAGE)))));
+      }
+
+      @Test
+      void createsDocumentUserMessageWhenToolResultsContainDocuments() {
+        final var doc1 = createDocument("weather data", "text/plain", "weather.txt");
+        final var doc2 = createDocument("time report", "application/pdf", "report.pdf");
+        final var shortId1 = documentShortId(doc1);
+        final var shortId2 = documentShortId(doc2);
+
+        final var toolCallResultsWithDocs =
+            List.of(
+                ToolCallResult.builder()
+                    .id("abcdef")
+                    .name("getWeather")
+                    .content(Map.of("result", "Sunny", "attachment", doc1))
+                    .build(),
+                ToolCallResult.builder()
+                    .id("fedcba")
+                    .name("getDateTime")
+                    .content(Map.of("report", doc2))
+                    .build());
+
+        final var assistantMessage =
+            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
+        runtimeMemory.addMessage(assistantMessage);
+
+        when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, toolCallResultsWithDocs))
+            .thenReturn(toolCallResultsWithDocs);
+
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                toolCallResultsWithDocs);
+
+        assertThat(addedMessages)
+            .hasSize(2)
+            .satisfiesExactly(
+                message -> assertThat(message).isInstanceOf(ToolCallResultMessage.class),
+                message ->
+                    assertThat(message)
+                        .isInstanceOfSatisfying(
+                            UserMessage.class,
+                            userMessage -> {
+                              assertThat(userMessage.metadata())
+                                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true)
+                                  .containsKey("timestamp");
+                              assertThat(userMessage.content())
+                                  .hasSize(5)
+                                  .satisfiesExactly(
+                                      c ->
+                                          assertThat(c)
+                                              .isEqualTo(
+                                                  textContent(
+                                                      "Documents extracted from tool call results:")),
+                                      c ->
+                                          assertThat(c)
+                                              .isEqualTo(
+                                                  textContent(
+                                                      "<document tool-name=\"getWeather\" tool-call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
+                                                          .formatted(shortId1))),
+                                      c ->
+                                          assertThat(c)
+                                              .isEqualTo(DocumentContent.documentContent(doc1)),
+                                      c ->
+                                          assertThat(c)
+                                              .isEqualTo(
+                                                  textContent(
+                                                      "<document tool-name=\"getDateTime\" tool-call-id=\"fedcba\" document-short-id=\"%s\" filename=\"report.pdf\" />"
+                                                          .formatted(shortId2))),
+                                      c ->
+                                          assertThat(c)
+                                              .isEqualTo(DocumentContent.documentContent(doc2)));
+                            }));
+      }
+
+      @Test
+      void doesNotCreateDocumentUserMessageWhenNoDocumentsInToolResults() {
+        final var assistantMessage =
+            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
+        runtimeMemory.addMessage(assistantMessage);
+
+        when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .thenReturn(TOOL_CALL_RESULTS.stream().toList());
+
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                TOOL_CALL_RESULTS);
+
+        // no document user message - only the tool call result message
+        assertThat(addedMessages).hasSize(1).first().isInstanceOf(ToolCallResultMessage.class);
+      }
+
+      @Test
+      void ordersDocumentUserMessageBetweenToolResultsAndEvents() {
+        when(executionContext.events())
+            .thenReturn(new EventHandlingConfiguration(WAIT_FOR_TOOL_CALL_RESULTS));
+
+        final var doc = createDocument("weather data", "text/plain", "weather.txt");
+        final var shortId = documentShortId(doc);
+        final var toolCallResultsWithDocsAndEvents =
+            List.of(
+                ToolCallResult.builder()
+                    .id("abcdef")
+                    .name("getWeather")
+                    .content(Map.of("file", doc))
+                    .build(),
+                ToolCallResult.builder().id("fedcba").name("getDateTime").content("15:00").build(),
+                EVENT_TOOL_CALL_RESULTS.get(0));
+
+        final var assistantMessage =
+            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
+        runtimeMemory.addMessage(assistantMessage);
+
+        when(gatewayToolHandlers.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
+            .thenAnswer(invocationOnMock -> invocationOnMock.getArgument(1));
+
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                toolCallResultsWithDocsAndEvents);
+
+        // order: ToolCallResultMessage -> document UserMessage -> event UserMessage
+        assertThat(addedMessages)
+            .hasSize(3)
+            .satisfiesExactly(
+                message -> assertThat(message).isInstanceOf(ToolCallResultMessage.class),
+                message ->
+                    assertThat(message)
+                        .isInstanceOfSatisfying(
+                            UserMessage.class,
+                            um ->
+                                assertThat(um.content())
+                                    .hasSize(3)
+                                    .satisfiesExactly(
+                                        c ->
+                                            assertThat(c)
+                                                .isEqualTo(
+                                                    textContent(
+                                                        "Documents extracted from tool call results:")),
+                                        c ->
+                                            assertThat(c)
+                                                .isEqualTo(
+                                                    textContent(
+                                                        "<document tool-name=\"getWeather\" tool-call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
+                                                            .formatted(shortId))),
+                                        c ->
+                                            assertThat(c)
+                                                .isEqualTo(DocumentContent.documentContent(doc)))),
+                message ->
+                    assertThat(message)
+                        .isInstanceOfSatisfying(
+                            UserMessage.class,
+                            um ->
+                                assertThat(um.content())
+                                    .first()
+                                    .isEqualTo(textContent("Event data"))));
+      }
+
+      @Test
+      void appendsDocumentsToEventMessage() {
+        final var doc = createDocument("event data", "application/pdf", "event.pdf");
+        final var shortId = documentShortId(doc);
+        final var eventWithDoc =
+            ToolCallResult.builder().content(Map.of("text", "event", "file", doc)).build();
+
+        final var assistantMessage =
+            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
+        runtimeMemory.addMessage(assistantMessage);
+
+        when(gatewayToolHandlers.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
+            .thenReturn(TOOL_CALL_RESULTS.stream().toList());
+
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                List.of(TOOL_CALL_RESULTS.get(0), TOOL_CALL_RESULTS.get(1), eventWithDoc));
+
+        // find the event message (last one)
+        final var eventMessage = addedMessages.getLast();
+        assertThat(eventMessage)
+            .isInstanceOfSatisfying(
+                UserMessage.class,
+                um ->
+                    assertThat(um.content())
+                        .hasSize(3)
+                        .satisfiesExactly(
+                            c ->
+                                assertThat(c)
+                                    .isEqualTo(objectContent(Map.of("text", "event", "file", doc))),
+                            c ->
+                                assertThat(c)
+                                    .isEqualTo(
+                                        textContent(
+                                            "<document document-short-id=\"%s\" filename=\"event.pdf\" />"
+                                                .formatted(shortId))),
+                            c -> assertThat(c).isEqualTo(DocumentContent.documentContent(doc))));
       }
 
       static List<Arguments> toolCallResultsWithEventsAndEventBehavior() {

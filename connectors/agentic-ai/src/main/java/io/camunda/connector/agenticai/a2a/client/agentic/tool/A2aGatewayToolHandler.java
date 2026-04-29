@@ -12,21 +12,29 @@ import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_O
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.model.message.content.Content;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.util.CollectionUtils;
+import io.camunda.connector.api.document.Document;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -229,6 +237,49 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
     toolCallResultBuilder.content(sendMessageResult);
 
     return toolCallResultBuilder.build();
+  }
+
+  @Override
+  public List<Document> extractDocuments(ToolCallResult toolCallResult) {
+    if (!(toolCallResult.content() instanceof A2aSendMessageResult result)) {
+      return List.of();
+    }
+
+    final var documents = new ArrayList<Document>();
+    collectDocumentsFromResult(result, documents);
+    return documents;
+  }
+
+  private void collectDocumentsFromResult(A2aSendMessageResult result, List<Document> documents) {
+    switch (result) {
+      case A2aMessage message -> collectDocumentsFromContents(message.contents(), documents);
+      case A2aTask task -> {
+        Optional.ofNullable(task.artifacts())
+            .ifPresent(
+                artifacts ->
+                    artifacts.forEach(
+                        artifact -> collectDocumentsFromArtifact(artifact, documents)));
+        Optional.ofNullable(task.history())
+            .ifPresent(
+                history ->
+                    history.forEach(message -> collectDocumentsFromResult(message, documents)));
+      }
+    }
+  }
+
+  private void collectDocumentsFromArtifact(A2aArtifact artifact, List<Document> documents) {
+    collectDocumentsFromContents(artifact.contents(), documents);
+  }
+
+  private void collectDocumentsFromContents(List<Content> contents, List<Document> documents) {
+    if (contents == null) {
+      return;
+    }
+    for (Content content : contents) {
+      if (content instanceof DocumentContent documentContent) {
+        documents.add(documentContent.document());
+      }
+    }
   }
 
   /**

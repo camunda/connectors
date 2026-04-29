@@ -14,7 +14,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
@@ -27,11 +26,9 @@ import org.apache.commons.lang3.StringUtils;
 public class ToolCallConverterImpl implements ToolCallConverter {
 
   private final ObjectMapper objectMapper;
-  private final ContentConverter contentConverter;
 
-  public ToolCallConverterImpl(ObjectMapper objectMapper, ContentConverter contentConverter) {
+  public ToolCallConverterImpl(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
-    this.contentConverter = contentConverter;
   }
 
   @Override
@@ -78,8 +75,8 @@ public class ToolCallConverterImpl implements ToolCallConverter {
   /**
    * Converts the result of a tool call to a {@link ToolExecutionResultMessage}.
    *
-   * <p>If the result is not a string, it will be serialized to a JSON string, using the {@link
-   * ContentConverter} to serialize document contents.
+   * <p>If the result is not a string, it will be serialized to a JSON string using the connectors
+   * ObjectMapper. Document instances in the content tree are serialized as document references.
    */
   @Override
   public ToolExecutionResultMessage asToolExecutionResultMessage(ToolCallResult toolCallResult) {
@@ -96,7 +93,13 @@ public class ToolCallConverterImpl implements ToolCallConverter {
 
   private String contentAsString(String toolName, Object result) {
     try {
-      return contentConverter.convertToString(result);
+      if (result == null) {
+        return null;
+      }
+      if (result instanceof String s) {
+        return s;
+      }
+      return objectMapper.writeValueAsString(result);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
           "Failed to convert result of tool call '%s' to string: %s"

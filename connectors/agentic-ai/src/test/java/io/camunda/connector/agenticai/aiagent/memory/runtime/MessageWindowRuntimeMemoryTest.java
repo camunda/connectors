@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
+import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
@@ -186,6 +187,94 @@ class MessageWindowRuntimeMemoryTest {
     memory.addMessage(userMessage("User message 4"));
     assertThat(memory.filteredMessages()).hasSize(MAX_MESSAGES - 1);
     assertThat(memory.filteredMessages().get(1)).isEqualTo(messages.get(4));
+  }
+
+  @Test
+  void doesNotCountToolCallDocumentMessagesTowardLimit() {
+    final var documentUserMessage =
+        UserMessage.builder()
+            .content(List.of(textContent("Documents extracted from tool call results:")))
+            .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
+            .build();
+
+    List<Message> messages = new ArrayList<>();
+    for (int i = 1; i <= MAX_MESSAGES; i++) {
+      messages.add(userMessage("Message " + i));
+    }
+    // insert document message in the middle — should not count toward limit
+    messages.add(4, documentUserMessage);
+
+    memory.addMessages(messages);
+
+    // all messages kept: document message doesn't count, so effective count is MAX_MESSAGES
+    assertThat(memory.allMessages()).hasSize(MAX_MESSAGES + 1);
+    assertThat(memory.filteredMessages()).hasSize(MAX_MESSAGES + 1);
+  }
+
+  @Test
+  void evictsDocumentUserMessageWithToolCallResult() {
+    final var documentUserMessage =
+        UserMessage.builder()
+            .content(List.of(textContent("Documents extracted from tool call results:")))
+            .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
+            .build();
+
+    final List<Message> messages =
+        List.of(
+            systemMessage("System"),
+            userMessage("User 1"),
+            assistantMessage(
+                "Calling tools",
+                List.of(ToolCall.builder().id("call_1").name("tool").arguments(Map.of()).build())),
+            toolCallResultMessage(
+                List.of(
+                    ToolCallResult.builder().id("call_1").name("tool").content("result").build())),
+            documentUserMessage,
+            assistantMessage("Response"),
+            userMessage("User 2"));
+
+    memory.addMessages(messages);
+
+    // add messages until assistant message with tool calls gets evicted
+    for (int i = 3; i <= 8; i++) {
+      memory.addMessage(userMessage("User " + i));
+    }
+
+    var filtered = memory.filteredMessages();
+    assertThat(filtered).noneMatch(m -> m == documentUserMessage);
+    assertThat(filtered)
+        .noneMatch(
+            m ->
+                m instanceof ToolCallResultMessage tcr
+                    && tcr.results().stream().anyMatch(r -> "call_1".equals(r.id())));
+  }
+
+  @Test
+  void handlesOrphanedDocumentMessageDuringEviction() {
+    // edge case: a document message ends up at the eviction position without a preceding
+    // tool call result (e.g. from corrupted/migrated persisted history)
+    final var documentUserMessage =
+        UserMessage.builder()
+            .content(List.of(textContent("Documents extracted from tool call results:")))
+            .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
+            .build();
+
+    List<Message> messages = new ArrayList<>();
+    messages.add(systemMessage("System"));
+    // orphaned document message right after system message
+    messages.add(documentUserMessage);
+    for (int i = 1; i <= MAX_MESSAGES + 1; i++) {
+      messages.add(userMessage("Message " + i));
+    }
+
+    memory.addMessages(messages);
+
+    // the document message should be evicted without affecting the effective count;
+    // effective count = system + 7 remaining user messages = 8 = MAX_MESSAGES
+    var filtered = memory.filteredMessages();
+    assertThat(filtered).noneMatch(m -> m == documentUserMessage);
+    assertThat(filtered).hasSize(MAX_MESSAGES);
+    assertThat(filtered.getFirst()).isEqualTo(systemMessage("System"));
   }
 
   @Test

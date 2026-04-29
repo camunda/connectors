@@ -150,8 +150,14 @@ Simpler than MCP because there's only one "tool" per A2A element (the agent itse
 5. Result (A2aSendMessageResult — either A2aTask or A2aMessage) flows back
 6. A2aGatewayToolHandler.transformToolCallResults():
    - Rebuilds fully qualified name: "A2A_WeatherAgent"
-   - Returns ToolCallResult with the send message result content
+   - Deserializes content into the typed A2aSendMessageResult and sets it as the transformed
+     ToolCallResult content
 7. LLM receives the response and decides next action based on task state
+8. A2aGatewayToolHandler.extractDocuments() walks the typed A2aSendMessageResult and collects
+   Camunda Documents from DocumentContent entries: A2aMessage.contents at the root, plus
+   A2aTask.artifacts and (recursively) A2aTask.history. Documents flow into the synthetic
+   document UserMessage produced by ToolCallResultDocumentExtractor (see ai-agent.md §19
+   "Document Extraction from Tool Call Results").
 ```
 
 ---

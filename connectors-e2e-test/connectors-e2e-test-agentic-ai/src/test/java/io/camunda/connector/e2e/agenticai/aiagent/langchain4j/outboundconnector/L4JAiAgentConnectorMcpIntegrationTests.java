@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.readDocumentReference;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.mcp.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +34,10 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -56,6 +60,7 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -342,6 +347,121 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
                 }));
 
     verify(chatModel, times(3)).chat(any(ChatRequest.class));
+  }
+
+  @Test
+  void extractsDocumentsFromMcpImageToolCallResult() throws IOException {
+    final var imageBytes = "fake-png-image-data".getBytes();
+    final var imageBase64 = Base64.getEncoder().encodeToString(imageBytes);
+
+    when(aMcpClient.callTool(aMcpClientToolExecutionRequestCaptor.capture()))
+        .thenReturn(mcpCallToolResultWithImage(imageBase64, "image/png"));
+
+    final var initialUserPrompt = "Get me an image from MCP!";
+
+    final var aiToolCallMessage =
+        new AiMessage(
+            "I will call the MCP tool to get an image.",
+            List.of(
+                ToolExecutionRequest.builder()
+                    .id("img111")
+                    .name("MCP_A_MCP_Client___toolA")
+                    .arguments("{\"paramA1\": \"getImage\", \"paramA2\": 1}")
+                    .build()));
+    final var aiFinalResponse = new AiMessage("Here is the image I retrieved from MCP.");
+
+    mockChatInteractions(
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.TOOL_EXECUTION)
+                        .tokenUsage(new TokenUsage(10, 20))
+                        .build())
+                .aiMessage(aiToolCallMessage)
+                .build()),
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.STOP)
+                        .tokenUsage(new TokenUsage(100, 200))
+                        .build())
+                .aiMessage(aiFinalResponse)
+                .build(),
+            userSatisfiedFeedback()));
+
+    final var zeebeTest =
+        createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
+            .waitForProcessCompletion();
+
+    assertThat(chatRequestCaptor.getAllValues()).hasSize(2);
+    final var lastMessages = chatRequestCaptor.getValue().messages();
+    assertThat(lastMessages).hasSize(5);
+
+    assertThat(lastMessages.get(0)).isInstanceOf(SystemMessage.class);
+    assertThat(lastMessages.get(1)).isInstanceOf(UserMessage.class); // initial prompt
+    assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class); // tool call
+
+    // tool result: document serialized as document reference
+    var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
+    var documentReference = readDocumentReference(toolResultText);
+
+    assertThat(lastMessages.get(3))
+        .isInstanceOfSatisfying(
+            ToolExecutionResultMessage.class,
+            msg -> {
+              assertThat(msg.id()).isEqualTo("img111");
+              assertThat(msg.toolName()).isEqualTo("MCP_A_MCP_Client___toolA");
+            });
+    assertThat(documentReference.contentType()).isEqualTo("image/png");
+
+    // document user message: extracted document content
+    assertThat(lastMessages.get(4))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            msg -> {
+              List<Content> contents = msg.contents();
+              assertThat(contents).hasSize(3);
+              assertThat(contents.get(0))
+                  .isInstanceOfSatisfying(
+                      TextContent.class,
+                      tc ->
+                          assertThat(tc.text())
+                              .isEqualTo("Documents extracted from tool call results:"));
+              assertThat(contents.get(1))
+                  .isInstanceOfSatisfying(
+                      TextContent.class,
+                      tc ->
+                          assertThat(tc.text())
+                              .isEqualTo(
+                                  "<document tool-name=\"MCP_A_MCP_Client___toolA\" tool-call-id=\"img111\" document-short-id=\"%s\" />"
+                                      .formatted(documentReference.shortId())));
+              assertThat(contents.get(2))
+                  .isInstanceOfSatisfying(
+                      ImageContent.class,
+                      img -> {
+                        assertThat(img.image().mimeType()).isEqualTo("image/png");
+                        assertThat(img.image().base64Data()).isEqualTo(imageBase64);
+                      });
+            });
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasNoToolCalls()
+                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220)))
+                .hasResponseMessageText(aiFinalResponse.text())
+                .hasResponseText(aiFinalResponse.text()));
+  }
+
+  protected McpSchema.CallToolResult mcpCallToolResultWithImage(
+      String base64Data, String mimeType) {
+    return McpSchema.CallToolResult.builder()
+        .addContent(new McpSchema.ImageContent(null, base64Data, mimeType))
+        .build();
   }
 
   @Override
