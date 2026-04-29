@@ -20,10 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -97,16 +95,9 @@ class AgentMessagesHandlerTest {
   void setUp() {
     documentStore.clear();
     systemPromptComposer = new SystemPromptComposerImpl(List.of());
-    // default: route document extraction through the generic walker (no handler-specific behaviour
-    // under test here). Individual tests can override this stub for handler-specific extraction.
-    lenient()
-        .when(gatewayToolHandlers.extractDocuments(any(ToolCallResult.class)))
-        .thenAnswer(
-            invocation -> {
-              ToolCallResult result = invocation.getArgument(0);
-              return ContentTreeDocumentWalker.INSTANCE.extractDocumentsFromContent(
-                  result.content());
-            });
+    // No stub for handlerForToolDefinition: the mocked registry returns Optional.empty() by
+    // default, so the extractor falls back to the generic content-tree walker for every result.
+    // Individual tests can override this when a gateway-handler-specific extraction is needed.
     messagesHandler =
         new AgentMessagesHandlerImpl(
             gatewayToolHandlers,

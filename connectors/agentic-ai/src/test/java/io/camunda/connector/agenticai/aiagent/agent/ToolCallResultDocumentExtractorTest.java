@@ -8,8 +8,8 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
@@ -24,6 +24,7 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +48,51 @@ class ToolCallResultDocumentExtractorTest {
   }
 
   @Test
-  void groupsDocumentsByToolCall_routedThroughRegistry() {
+  void usesContentTreeWalkerWhenNoHandlerManagesTheToolCall() {
+    final var doc = createDocument("hello", "text/plain", "test.txt");
+    final var result =
+        ToolCallResult.builder()
+            .id("call_1")
+            .name("plain_bpmn_tool")
+            .content(Map.of("file", doc))
+            .build();
+
+    when(registry.handlerForToolDefinition("plain_bpmn_tool")).thenReturn(Optional.empty());
+
+    final var extracted = extractor.extractDocuments(List.of(result));
+
+    assertThat(extracted).hasSize(1);
+    assertThat(extracted.getFirst().documents()).containsExactly(doc);
+  }
+
+  @Test
+  void delegatesToHandlerWhenManaged(@Mock GatewayToolHandler handler) {
+    final var doc = createDocument("typed", "text/plain", "typed.txt");
+    final var typedContent = new TypedHandlerContent(doc);
+    final var result =
+        ToolCallResult.builder().id("call_1").name("typed_tool").content(typedContent).build();
+
+    when(registry.handlerForToolDefinition("typed_tool")).thenReturn(Optional.of(handler));
+    when(handler.extractDocuments(result)).thenReturn(List.of(doc));
+
+    final var extracted = extractor.extractDocuments(List.of(result));
+
+    assertThat(extracted).hasSize(1);
+    assertThat(extracted.getFirst().documents()).containsExactly(doc);
+    verify(handler).extractDocuments(result);
+  }
+
+  @Test
+  void doesNotConsultHandlerWhenContentHasNoDocumentsAndIsUnmanaged() {
+    final var result =
+        ToolCallResult.builder().id("call_1").name("unknown").content("plain text").build();
+    when(registry.handlerForToolDefinition("unknown")).thenReturn(Optional.empty());
+
+    assertThat(extractor.extractDocuments(List.of(result))).isEmpty();
+  }
+
+  @Test
+  void groupsExtractedDocumentsByToolCall() {
     final var doc1 = createDocument("hello", "text/plain", "test.txt");
     final var doc2 = createDocument("<pdf>", "application/pdf", "report.pdf");
 
@@ -60,8 +105,7 @@ class ToolCallResultDocumentExtractorTest {
             .content(Map.of("report", doc2))
             .build();
 
-    when(registry.extractDocuments(result1)).thenReturn(List.of(doc1));
-    when(registry.extractDocuments(result2)).thenReturn(List.of(doc2));
+    when(registry.handlerForToolDefinition(any())).thenReturn(Optional.empty());
 
     final var extracted = extractor.extractDocuments(List.of(result1, result2));
 
@@ -91,8 +135,7 @@ class ToolCallResultDocumentExtractorTest {
     final var withoutDoc =
         ToolCallResult.builder().id("call_2").name("tool_b").content("plain text result").build();
 
-    when(registry.extractDocuments(withDoc)).thenReturn(List.of(doc));
-    when(registry.extractDocuments(withoutDoc)).thenReturn(List.of());
+    when(registry.handlerForToolDefinition(any())).thenReturn(Optional.empty());
 
     final var extracted = extractor.extractDocuments(List.of(withDoc, withoutDoc));
 
@@ -101,19 +144,11 @@ class ToolCallResultDocumentExtractorTest {
   }
 
   @Test
-  void returnsEmptyWhenNoToolCallsContainDocuments() {
-    final var result =
-        ToolCallResult.builder().id("call_1").name("tool_a").content("text result").build();
-    when(registry.extractDocuments(result)).thenReturn(List.of());
-
-    assertThat(extractor.extractDocuments(List.of(result))).isEmpty();
-  }
-
-  @Test
   void handlesNullNameAndId() {
     final var doc = createDocument("hello", "text/plain", "test.txt");
     final var result = ToolCallResult.builder().content(Map.of("file", doc)).build();
-    when(registry.extractDocuments(result)).thenReturn(List.of(doc));
+
+    when(registry.handlerForToolDefinition(null)).thenReturn(Optional.empty());
 
     final var extracted = extractor.extractDocuments(List.of(result));
 
@@ -127,18 +162,9 @@ class ToolCallResultDocumentExtractorTest {
   }
 
   @Test
-  void returnsEmptyForEmptyInputWithoutTouchingRegistry() {
-    final var extracted = extractor.extractDocuments(List.of());
-
-    assertThat(extracted).isEmpty();
-    verifyNoInteractions(registry);
-  }
-
-  @Test
-  void integrationWithRealRegistry_fallsBackToContentTreeWalkerWhenNoHandlerMatches() {
-    // Use a real (empty) registry: no handlers -> default walker fallback.
-    final var realRegistry = new GatewayToolHandlerRegistryImpl(List.of());
-    final var integrationExtractor = new ToolCallResultDocumentExtractor(realRegistry);
+  void integrationWithRealRegistry_fallsBackToWalkerWhenNoHandlerMatches() {
+    final var realExtractor =
+        new ToolCallResultDocumentExtractor(new GatewayToolHandlerRegistryImpl(List.of()));
 
     final var doc = createDocument("hello", "text/plain", "test.txt");
     final var result =
@@ -148,15 +174,14 @@ class ToolCallResultDocumentExtractorTest {
             .content(Map.of("attachment", doc))
             .build();
 
-    final var extracted = integrationExtractor.extractDocuments(List.of(result));
+    final var extracted = realExtractor.extractDocuments(List.of(result));
 
     assertThat(extracted).hasSize(1);
     assertThat(extracted.getFirst().documents()).containsExactly(doc);
   }
 
   @Test
-  void integrationWithRealRegistry_routesToHandlerOverridingExtraction(
-      @Mock GatewayToolHandler handler) {
+  void integrationWithRealRegistry_routesToManagingHandler(@Mock GatewayToolHandler handler) {
     final var doc = createDocument("typed", "text/plain", "typed.txt");
     final var typedContent = new TypedHandlerContent(doc);
 
@@ -164,17 +189,41 @@ class ToolCallResultDocumentExtractorTest {
     when(handler.isGatewayManaged("typed_tool")).thenReturn(true);
     when(handler.extractDocuments(any(ToolCallResult.class))).thenReturn(List.of(doc));
 
-    final var realRegistry = new GatewayToolHandlerRegistryImpl(List.of(handler));
-    final var integrationExtractor = new ToolCallResultDocumentExtractor(realRegistry);
+    final var realExtractor =
+        new ToolCallResultDocumentExtractor(new GatewayToolHandlerRegistryImpl(List.of(handler)));
 
     final var result =
         ToolCallResult.builder().id("call_1").name("typed_tool").content(typedContent).build();
 
-    final var extracted = integrationExtractor.extractDocuments(List.of(result));
+    final var extracted = realExtractor.extractDocuments(List.of(result));
 
     assertThat(extracted).hasSize(1);
     assertThat(extracted.getFirst().documents()).containsExactly(doc);
     verify(handler).extractDocuments(result);
+  }
+
+  @Test
+  void integrationWithRealRegistry_doesNotConsultHandlerForUnmanagedTool(
+      @Mock GatewayToolHandler handler) {
+    when(handler.type()).thenReturn("typed");
+    when(handler.isGatewayManaged("plain_tool")).thenReturn(false);
+
+    final var realExtractor =
+        new ToolCallResultDocumentExtractor(new GatewayToolHandlerRegistryImpl(List.of(handler)));
+
+    final var doc = createDocument("hello", "text/plain", "test.txt");
+    final var result =
+        ToolCallResult.builder()
+            .id("call_1")
+            .name("plain_tool")
+            .content(Map.of("attachment", doc))
+            .build();
+
+    final var extracted = realExtractor.extractDocuments(List.of(result));
+
+    assertThat(extracted).hasSize(1);
+    assertThat(extracted.getFirst().documents()).containsExactly(doc);
+    verify(handler, never()).extractDocuments(any());
   }
 
   private Document createDocument(String content, String contentType, String filename) {
