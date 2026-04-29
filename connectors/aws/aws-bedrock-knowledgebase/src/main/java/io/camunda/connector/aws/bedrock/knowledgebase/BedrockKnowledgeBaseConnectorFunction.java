@@ -6,16 +6,14 @@
  */
 package io.camunda.connector.aws.bedrock.knowledgebase;
 
+import static io.camunda.connector.aws.AwsClientSupport.createClient;
+
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.bedrock.knowledgebase.model.request.BedrockKnowledgeBaseRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
-import java.net.URI;
-import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeClient;
 
 @OutboundConnector(
@@ -41,21 +39,8 @@ public class BedrockKnowledgeBaseConnectorFunction implements OutboundConnectorF
   @Override
   public Object execute(OutboundConnectorContext context) {
     var request = context.bindVariables(BedrockKnowledgeBaseRequest.class);
-    try (var client = createClient(request, BedrockAgentRuntimeClient.builder())) {
+    try (var client = createClient(BedrockAgentRuntimeClient.builder(), request)) {
       return new BedrockKnowledgeBaseExecutor(client).execute(request, context);
     }
-  }
-
-  private <B extends AwsClientBuilder<B, C>, C extends AutoCloseable> C createClient(
-      BedrockKnowledgeBaseRequest request, B builder) {
-    builder.credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request));
-    var config = request.getConfiguration();
-    if (config != null && config.region() != null) {
-      builder.region(Region.of(config.region()));
-    }
-    if (config != null && config.endpoint() != null && !config.endpoint().isBlank()) {
-      builder.endpointOverride(URI.create(config.endpoint()));
-    }
-    return builder.build();
   }
 }

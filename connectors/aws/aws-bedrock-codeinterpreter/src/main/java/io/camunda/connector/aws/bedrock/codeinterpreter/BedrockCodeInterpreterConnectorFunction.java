@@ -6,16 +6,14 @@
  */
 package io.camunda.connector.aws.bedrock.codeinterpreter;
 
+import static io.camunda.connector.aws.AwsClientSupport.createClient;
+
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
-import java.net.URI;
-import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreAsyncClient;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 
@@ -42,23 +40,10 @@ public class BedrockCodeInterpreterConnectorFunction implements OutboundConnecto
   @Override
   public Object execute(OutboundConnectorContext context) {
     var request = context.bindVariables(CodeInterpreterRequest.class);
-    try (var syncClient = createClient(request, BedrockAgentCoreClient.builder());
-        var asyncClient = createClient(request, BedrockAgentCoreAsyncClient.builder())) {
+    try (var syncClient = createClient(BedrockAgentCoreClient.builder(), request);
+        var asyncClient = createClient(BedrockAgentCoreAsyncClient.builder(), request)) {
       return new CodeInterpreterExecutor(syncClient, asyncClient, context::create)
           .execute(request, context.getJobContext().getElementInstanceKey());
     }
-  }
-
-  private <B extends AwsClientBuilder<B, C>, C extends AutoCloseable> C createClient(
-      CodeInterpreterRequest request, B builder) {
-    builder.credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request));
-    var config = request.getConfiguration();
-    if (config != null && config.region() != null) {
-      builder.region(Region.of(config.region()));
-    }
-    if (config != null && config.endpoint() != null && !config.endpoint().isBlank()) {
-      builder.endpointOverride(URI.create(config.endpoint()));
-    }
-    return builder.build();
   }
 }
