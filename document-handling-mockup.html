@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document Handling — Connector Properties UI</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+    background: #F3F4F6;
+    color: #1A1A1A;
+    padding: 48px 56px 72px;
+    line-height: 1.4;
+  }
+
+  /* ── Page title ──────────────────────────────────────────────────── */
+  .page-title { margin-bottom: 64px; }
+  .page-title h1 { font-size: 24px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px; }
+  .page-title p  { font-size: 14px; color: #6E6E6E; }
+
+  /* ── Section ─────────────────────────────────────────────────────── */
+  .section { margin-bottom: 64px; }
+  .section-head { margin-bottom: 20px; }
+  .section-head h2 { font-size: 16px; font-weight: 600; color: #1A1A1A; margin-bottom: 6px; }
+  .section-head p  { font-size: 13px; color: #6E6E6E; max-width: 800px; }
+
+  /* ── Row of panels ───────────────────────────────────────────────── */
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    align-items: flex-start;
+  }
+
+  /* ── Property panel card ─────────────────────────────────────────── */
+  .panel {
+    width: 300px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ── Badge ───────────────────────────────────────────────────────── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.5;
+    align-self: flex-start;
+  }
+  .badge.blue   { background: #DBEAFE; color: #1D4ED8; }
+  .badge.green  { background: #D1FAE5; color: #047857; }
+  .badge.purple { background: #EDE9FE; color: #6D28D9; }
+  .badge.orange { background: #FFEDD5; color: #9A3412; }
+  .badge.teal   { background: #CCFBF1; color: #0F766E; }
+
+  /* ── Divider ─────────────────────────────────────────────────────── */
+  .divider {
+    height: 1px;
+    background: #EBEBEB;
+    margin: 0 -16px;
+    width: calc(100% + 32px);
+  }
+
+  /* ── Form field ──────────────────────────────────────────────────── */
+  .form-field { display: flex; flex-direction: column; gap: 4px; }
+
+  .form-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #404040;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .form-label .required { color: #CD2626; }
+
+  /* ── Input ───────────────────────────────────────────────────────── */
+  .input, .dropdown {
+    width: 100%;
+    height: 32px;
+    border: 1px solid #C8C8C8;
+    border-radius: 4px;
+    padding: 0 8px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #1A1A1A;
+    background: #fff;
+    display: flex;
+    align-items: center;
+  }
+  .input.feel { color: #0064D2; }
+  .input.placeholder { color: #AAAAAA; }
+
+  /* ── Dropdown ────────────────────────────────────────────────────── */
+  .dropdown {
+    justify-content: space-between;
+    cursor: default;
+  }
+  .dropdown-arrow { color: #787878; font-size: 11px; }
+
+  /* ── Note ────────────────────────────────────────────────────────── */
+  .note {
+    font-size: 11px;
+    color: #8C8C8C;
+    line-height: 1.5;
+  }
+
+  /* ── Sub-label (within a section) ───────────────────────────────── */
+  .sub-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .sub-label-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  /* ── Connector chip ──────────────────────────────────────────────── */
+  .chip {
+    background: #F0F0F0;
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-size: 11px;
+    color: #555;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* ── Footnote bar ────────────────────────────────────────────────── */
+  .footnote-bar {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid #DCDCDC;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .footnote-bar p { font-size: 12px; color: #888; }
+  .footnote-bar strong { color: #555; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- ── Page title ─────────────────────────────────────────────────────── -->
+<div class="page-title">
+  <h1>Document Handling — Connector Properties UI</h1>
+  <p>Property panel states for document source selection (input) and return format (output)</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     Section 1: Document Input
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-head">
+    <h2>Document Input</h2>
+    <p>Every <code>Document</code>-typed field gets a source dropdown. A hidden FEEL composer field assembles the final JSON and sends it to the connector via <code>zeebe:input</code>. For <code>List&lt;Document&gt;</code> fields, a mode toggle switches between a single-document source dropdown and a multi-document FEEL array field.</p>
+  </div>
+
+  <!-- Sub-label: Document (single) -->
+  <div class="sub-label">Document field</div>
+  <div class="row" style="margin-bottom: 28px;">
+
+    <!-- Camunda Document -->
+    <div class="panel">
+      <span class="badge blue">Camunda Document</span>
+      <div class="divider"></div>
+      <div class="form-field">
+        <div class="form-label">Document source</div>
+        <div class="dropdown">Camunda Document <span class="dropdown-arrow">▾</span></div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">Document reference <span class="required">*</span></div>
+        <div class="input feel">= document</div>
+      </div>
+    </div>
+
+    <!-- Inline Content -->
+    <div class="panel">
+      <span class="badge green">Inline Content</span>
+      <div class="divider"></div>
+      <div class="form-field">
+        <div class="form-label">Document source</div>
+        <div class="dropdown">Inline Content <span class="dropdown-arrow">▾</span></div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">Content <span class="required">*</span></div>
+        <div class="input feel">= {"name": "report", "date": today}</div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">File name</div>
+        <div class="input">report.json</div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">Content type</div>
+        <div class="input placeholder">Optional — inferred from file extension</div>
+      </div>
+      <div class="note">File name and content type are optional by default. Connectors can mark them required (e.g., S3 needs a filename for the object key).</div>
+    </div>
+
+    <!-- External Document -->
+    <div class="panel">
+      <span class="badge purple">External Document</span>
+      <div class="divider"></div>
+      <div class="form-field">
+        <div class="form-label">Document source</div>
+        <div class="dropdown">External Document <span class="dropdown-arrow">▾</span></div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">URL <span class="required">*</span></div>
+        <div class="input">https://example.com/data.csv</div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">File name</div>
+        <div class="input placeholder">Optional — inferred from URL</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Sub-label: List<Document> -->
+  <div class="sub-label">List&lt;Document&gt; field
+    <span class="sub-label-chips">
+      <span class="chip">Slack</span>
+      <span class="chip">Microsoft Teams</span>
+      <span class="chip">SendGrid</span>
+      <span class="chip">Email (Outbound)</span>
+      <span class="chip">AWS Bedrock</span>
+      <span class="chip">Embeddings Vector DB</span>
+      <span class="chip">Agentic AI</span>
+    </span>
+  </div>
+  <div class="row">
+
+    <!-- Single document -->
+    <div class="panel">
+      <span class="badge blue">Single document</span>
+      <div class="divider"></div>
+      <div class="form-field">
+        <div class="form-label">Document mode</div>
+        <div class="dropdown">Single document <span class="dropdown-arrow">▾</span></div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">Document source</div>
+        <div class="dropdown">Camunda Document <span class="dropdown-arrow">▾</span></div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">Document reference <span class="required">*</span></div>
+        <div class="input feel">= attachment</div>
+      </div>
+      <div class="note">Shows the full source dropdown — same 3 options as a single Document input.</div>
+    </div>
+
+    <!-- Multiple documents -->
+    <div class="panel">
+      <span class="badge teal">Multiple documents</span>
+      <div class="divider"></div>
+      <div class="form-field">
+        <div class="form-label">Document mode</div>
+        <div class="dropdown">Multiple documents <span class="dropdown-arrow">▾</span></div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">Documents <span class="required">*</span></div>
+        <div class="input feel">= [doc1, doc2, doc3]</div>
+      </div>
+      <div class="note">FEEL expression returning an array of document objects. Each item can be a camunda, external, or inline document reference.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     Section 2: Document Output — Return Format
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-head">
+    <h2>Document Output — Return Format</h2>
+    <p>Replaces <code>asFile</code> / <code>asDocument</code> / <code>storeResponse</code> booleans across 6 connectors. ETG detects <code>DocumentResponse</code> type and generates this 3-option dropdown. For base64 encoding, use FEEL's <code>base64encode()</code> on the text result.</p>
+  </div>
+  <div class="row">
+
+    <!-- Document reference -->
+    <div class="panel">
+      <span class="badge blue">Document reference</span>
+      <div class="divider"></div>
+      <div class="form-field">
+        <div class="form-label">Return format</div>
+        <div class="dropdown">Document reference <span class="dropdown-arrow">▾</span></div>
+      </div>
+      <div class="note">Saves to Document Store, returns reference object. Path 1 — opaque pass-through. Use getJson() / getText() downstream if needed.</div>
+    </div>
+
+    <!-- As text -->
+    <div class="panel">
+      <span class="badge green">As text</span>
+      <div class="divider"></div>
+      <div class="form-field">
+        <div class="form-label">Return format</div>
+        <div class="dropdown">As text <span class="dropdown-arrow">▾</span></div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">Encoding</div>
+        <div class="input">UTF-8</div>
+      </div>
+      <div class="note">Returns string (<code>new String(bytes, encoding)</code>). Encoding field shown conditionally. Good for CSV, XML, plain text.</div>
+    </div>
+
+    <!-- As JSON -->
+    <div class="panel">
+      <span class="badge purple">As JSON</span>
+      <div class="divider"></div>
+      <div class="form-field">
+        <div class="form-label">Return format</div>
+        <div class="dropdown">As JSON <span class="dropdown-arrow">▾</span></div>
+      </div>
+      <div class="note">Returns parsed JSON object. Enables <code>result.name</code> directly in FEEL. Creates a Zeebe incident if content is not valid JSON.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     Footnote
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="footnote-bar">
+  <p><strong>Blue FEEL fields</strong> — accept FEEL expressions. Value is evaluated at runtime.</p>
+  <p><strong>Visible fields</strong> use <code>zeebe:property</code> binding (stored in BPMN XML, not sent to connector). A hidden FEEL composer field uses <code>zeebe:input</code> — the only binding the connector receives.</p>
+  <p><strong>Base64 encoding:</strong> Not a dropdown option — use FEEL's <code>base64encode(result)</code> after receiving the text result instead.</p>
+  <p><strong>Breaking change:</strong> Old boolean toggles (<code>asFile</code>, <code>asDocument</code>, <code>storeResponse</code>) are removed. New element template version required. Migration guide needed.</p>
+</div>
+
+</body>
+</html>
