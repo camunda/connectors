@@ -227,15 +227,16 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   }
 
   private ToolCallResult toolCallResultFromA2aSendMessage(ToolCallResult toolCallResult) {
-    final var identifier = new A2aToolCallIdentifier(toolCallResult.name());
-    final var typedContent =
+    final var sendMessageResult =
         objectMapper.convertValue(toolCallResult.content(), A2aSendMessageResult.class);
+    final var identifier = new A2aToolCallIdentifier(toolCallResult.name());
 
-    return ToolCallResult.builder()
-        .id(toolCallResult.id())
-        .name(identifier.fullyQualifiedName())
-        .content(typedContent)
-        .build();
+    final var toolCallResultBuilder =
+        ToolCallResult.builder().id(toolCallResult.id()).name(identifier.fullyQualifiedName());
+
+    toolCallResultBuilder.content(sendMessageResult);
+
+    return toolCallResultBuilder.build();
   }
 
   @Override
