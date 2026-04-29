@@ -17,6 +17,9 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationDefinitions;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpDocumentContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent.BlobDocumentResource;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
@@ -26,7 +29,9 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.util.CollectionUtils;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -259,27 +264,35 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
         && callToolResult.content().getFirst() instanceof McpTextContent textContent) {
       toolCallResultBuilder.content(textContent.text());
     } else {
-      // use the raw content from the original tool call result (preserving document references
-      // as deserialized by the engine) rather than the typed McpContent list, which may lose
-      // document reference fidelity during re-serialization.
-      toolCallResultBuilder.content(getRawMcpContent(toolCallResult));
+      toolCallResultBuilder.content(callToolResult);
     }
 
     return toolCallResultBuilder.build();
   }
 
-  private Object getRawMcpContent(ToolCallResult toolCallResult) {
-    if (toolCallResult.content() instanceof Map<?, ?> map) {
-      var content = map.get("content");
-      if (content == null && !map.isEmpty()) {
-        LOGGER.warn(
-            "MCP tool call result map has no 'content' key but contains keys: {}. "
-                + "Documents may be lost if the response structure has changed.",
-            map.keySet());
-      }
-      return content;
+  @Override
+  public List<Document> extractDocuments(ToolCallResult toolCallResult) {
+    if (!(toolCallResult.content() instanceof McpClientCallToolResult callToolResult)) {
+      // string-content optimization or unmanaged shape — nothing to walk
+      return List.of();
     }
-    return toolCallResult.content();
+
+    final var documents = new ArrayList<Document>();
+    for (var content : callToolResult.content()) {
+      switch (content) {
+        case McpDocumentContent documentContent -> documents.add(documentContent.document());
+        case McpEmbeddedResourceContent embeddedResourceContent -> {
+          if (embeddedResourceContent.resource()
+              instanceof BlobDocumentResource blobDocumentResource) {
+            documents.add(blobDocumentResource.document());
+          }
+        }
+        default -> {
+          // text/object/blob/resourceLink — no documents
+        }
+      }
+    }
+    return documents;
   }
 
   private Map<String, Object> mcpClientOperationAsMap(McpClientOperation mcpClientOperation) {
