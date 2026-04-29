@@ -6,13 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool;
 
-import io.camunda.connector.agenticai.aiagent.agent.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
-import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -164,15 +162,5 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
     }
 
     return transformedToolCallResults;
-  }
-
-  @Override
-  public List<Document> extractDocuments(ToolCallResult toolCallResult) {
-    return handlerForToolDefinition(toolCallResult.name())
-        .map(handler -> handler.extractDocuments(toolCallResult))
-        .orElseGet(
-            () ->
-                ContentTreeDocumentWalker.INSTANCE.extractDocumentsFromContent(
-                    toolCallResult.content()));
   }
 }

@@ -13,21 +13,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Recursively walks an arbitrary content tree and collects {@link Document} instances. Handles
- * {@link Document}, {@link Map}, {@link Collection}, and {@code Object[]}; all other types are
- * skipped.
+ * Stateless utility that recursively walks an arbitrary content tree and collects {@link Document}
+ * instances. Handles {@link Document}, {@link Map}, {@link Collection}, and {@code Object[]}; all
+ * other types are skipped.
  *
- * <p>This is the default extraction strategy used by {@link
- * io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler#extractDocuments} and the fallback
- * for tool call results not managed by any gateway handler. It is intentionally public so that
- * gateway handler implementations whose typed content wraps raw user-generated subtrees (e.g.
- * arbitrary maps from a downstream system) can delegate to it for those subtrees.
+ * <p>Used as the default extraction strategy by {@link
+ * io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler#extractDocuments} and as the
+ * fallback in {@link ToolCallResultDocumentExtractor} for tool call results not managed by any
+ * gateway handler. Public on purpose so that gateway handler implementations whose typed content
+ * wraps raw user-generated subtrees (e.g. arbitrary maps from a downstream system) can delegate to
+ * it for those subtrees.
  */
 public final class ContentTreeDocumentWalker {
 
-  public static final ContentTreeDocumentWalker INSTANCE = new ContentTreeDocumentWalker();
+  private ContentTreeDocumentWalker() {}
 
-  public List<Document> extractDocumentsFromContent(Object content) {
+  public static List<Document> extractDocumentsFromContent(Object content) {
     if (content == null) {
       return List.of();
     }
@@ -37,7 +38,7 @@ public final class ContentTreeDocumentWalker {
     return documents;
   }
 
-  private void collectDocuments(Object node, List<Document> documents) {
+  private static void collectDocuments(Object node, List<Document> documents) {
     if (node == null) {
       return;
     }

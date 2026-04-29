@@ -16,10 +16,12 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * Extracts {@link Document} instances from a list of tool call results, grouped by tool call.
  *
- * <p>The actual extraction strategy is delegated to the {@link GatewayToolHandlerRegistry}: each
- * tool call result is routed to its responsible {@code GatewayToolHandler} (which may walk a typed
- * domain object), with the generic content-tree walker as the default fallback for tool calls not
- * managed by any gateway handler.
+ * <p>For each result, the extractor walks the {@code content()} tree using {@link
+ * ContentTreeDocumentWalker} by default. When a result belongs to a {@link
+ * io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler} that overrides {@link
+ * io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler#extractDocuments(ToolCallResult)
+ * extractDocuments}, the handler's typed extraction is used instead — gateway handlers contribute
+ * extraction for the results they manage; the generic walker handles everything else.
  */
 public class ToolCallResultDocumentExtractor {
 
@@ -41,7 +43,7 @@ public class ToolCallResultDocumentExtractor {
     final var result = new ArrayList<ToolCallDocuments>();
 
     for (ToolCallResult toolCallResult : toolCallResults) {
-      final var documents = gatewayToolHandlers.extractDocuments(toolCallResult);
+      final var documents = extractFromToolCallResult(toolCallResult);
       if (!documents.isEmpty()) {
         result.add(
             new ToolCallDocuments(
@@ -52,5 +54,13 @@ public class ToolCallResultDocumentExtractor {
     }
 
     return result;
+  }
+
+  private List<Document> extractFromToolCallResult(ToolCallResult toolCallResult) {
+    return gatewayToolHandlers
+        .handlerForToolDefinition(toolCallResult.name())
+        .map(handler -> handler.extractDocuments(toolCallResult))
+        .orElseGet(
+            () -> ContentTreeDocumentWalker.extractDocumentsFromContent(toolCallResult.content()));
   }
 }
