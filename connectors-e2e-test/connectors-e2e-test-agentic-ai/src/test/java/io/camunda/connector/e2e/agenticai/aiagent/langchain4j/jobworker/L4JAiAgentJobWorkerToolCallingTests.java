@@ -17,7 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.extractDocumentShortId;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.readDocumentReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -145,20 +145,17 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
     assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class); // tool call
 
     // tool result: document serialized as document reference
+    var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
+    var documentReference = readDocumentReference(toolResultText);
+
     assertThat(lastMessages.get(3))
         .isInstanceOfSatisfying(
             ToolExecutionResultMessage.class,
             msg -> {
               assertThat(msg.id()).isEqualTo("aaa111");
               assertThat(msg.toolName()).isEqualTo("Download_A_File");
-              assertThat(msg.text()).contains("camunda.document.type");
-              assertThat(msg.text()).contains(mimeType);
             });
-
-    // extract the document short ID (first UUID segment) from the serialized document reference
-    // e.g. from {"documentId":"25ece9fa-...", ...} -> "25ece9fa"
-    var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
-    var documentShortId = extractDocumentShortId(toolResultText);
+    assertThat(documentReference.contentType()).isEqualTo(mimeType);
 
     // document user message: extracted document content
     assertThat(lastMessages.get(4))
@@ -180,7 +177,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                           assertThat(tc.text())
                               .isEqualTo(
                                   "<document tool-name=\"Download_A_File\" tool-call-id=\"aaa111\" document-short-id=\"%s\" />"
-                                      .formatted(documentShortId)));
+                                      .formatted(documentReference.shortId())));
               assertDocumentContentBlock(contents.get(2), type, mimeType);
             });
 
