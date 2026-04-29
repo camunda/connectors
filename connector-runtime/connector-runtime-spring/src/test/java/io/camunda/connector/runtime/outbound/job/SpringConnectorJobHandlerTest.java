@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -44,11 +45,13 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
+import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import io.camunda.connector.api.outbound.JobCompletionListener;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.JobBuilder;
@@ -1722,8 +1725,8 @@ class SpringConnectorJobHandlerTest {
     @Test
     void listenerNotifiedWithBpmnErrorThrownOnBpmnErrorExpression() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(context -> response);
+      var function = new TestListenerFunction(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(function);
 
       JobBuilder.create()
           .withErrorExpressionHeader(
@@ -1731,7 +1734,7 @@ class SpringConnectorJobHandlerTest {
           .executeAndCaptureResult(handler, false, true);
 
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
-      verify(listener).onJobCompletionFailed(captor.capture());
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
               JobCompletionFailure.BpmnErrorThrown.class,
@@ -1745,8 +1748,8 @@ class SpringConnectorJobHandlerTest {
     @Test
     void listenerNotifiedWithBpmnErrorThrownWithVariables() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(context -> response);
+      var function = new TestListenerFunction(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(function);
 
       JobBuilder.create()
           .withErrorExpressionHeader(
@@ -1754,7 +1757,7 @@ class SpringConnectorJobHandlerTest {
           .executeAndCaptureResult(handler, false, true);
 
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
-      verify(listener).onJobCompletionFailed(captor.capture());
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
               JobCompletionFailure.BpmnErrorThrown.class,
@@ -1769,8 +1772,8 @@ class SpringConnectorJobHandlerTest {
     @Test
     void listenerNotifiedWithJobErrorRaisedOnJobErrorExpression() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(context -> response);
+      var function = new TestListenerFunction(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(function);
 
       JobBuilder.create()
           .withErrorExpressionHeader(
@@ -1778,7 +1781,7 @@ class SpringConnectorJobHandlerTest {
           .executeAndCaptureResult(handler, false, false);
 
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
-      verify(listener).onJobCompletionFailed(captor.capture());
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
               JobCompletionFailure.JobErrorRaised.class,
@@ -1792,8 +1795,8 @@ class SpringConnectorJobHandlerTest {
     @Test
     void listenerNotifiedWithJobErrorRaisedWithVariables() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(context -> response);
+      var function = new TestListenerFunction(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(function);
 
       JobBuilder.create()
           .withErrorExpressionHeader(
@@ -1801,7 +1804,7 @@ class SpringConnectorJobHandlerTest {
           .executeAndCaptureResult(handler, false, false);
 
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
-      verify(listener).onJobCompletionFailed(captor.capture());
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
               JobCompletionFailure.JobErrorRaised.class,
@@ -1816,8 +1819,8 @@ class SpringConnectorJobHandlerTest {
     @Test
     void listenerNotifiedWithJobErrorRaisedWithRetriesAndBackoff() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(context -> response);
+      var function = new TestListenerFunction(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(function);
 
       JobBuilder.create()
           .withErrorExpressionHeader(
@@ -1825,7 +1828,7 @@ class SpringConnectorJobHandlerTest {
           .executeAndCaptureResult(handler, false, false);
 
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
-      verify(listener).onJobCompletionFailed(captor.capture());
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       // retries and backoff control the FailJob command, not the notification
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
@@ -1840,31 +1843,29 @@ class SpringConnectorJobHandlerTest {
     @Test
     void listenerNotifiedOnSuccessfulCompletion() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      var function = new TestListenerFunction(Map.of("key", "value"), listener);
       var handler =
           newConnectorJobHandler(
-              context -> response,
-              CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       JobBuilder.create().execute(handler);
 
-      verify(listener).onJobCompleted();
+      verify(listener).onJobCompleted(any(), any(ConnectorResponse.class));
     }
 
     @Test
     void listenerNotifiedWithCommandIgnoredOnIgnoredOutcome() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      var function = new TestListenerFunction(Map.of("key", "value"), listener);
       var cause = new RuntimeException("NOT_FOUND");
       var handler =
           newConnectorJobHandler(
-              context -> response,
-              CompletableFuture.completedFuture(new CommandOutcome.Ignored(cause, 1)));
+              function, CompletableFuture.completedFuture(new CommandOutcome.Ignored(cause, 1)));
 
       JobBuilder.create().execute(handler);
 
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
-      verify(listener).onJobCompletionFailed(captor.capture());
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
               JobCompletionFailure.CommandIgnored.class,
@@ -1874,17 +1875,16 @@ class SpringConnectorJobHandlerTest {
     @Test
     void listenerNotifiedWithCommandFailedOnFailedOutcome() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      var function = new TestListenerFunction(Map.of("key", "value"), listener);
       var cause = new RuntimeException("command failed");
       var handler =
           newConnectorJobHandler(
-              context -> response,
-              CompletableFuture.completedFuture(new CommandOutcome.Failed(cause, 3)));
+              function, CompletableFuture.completedFuture(new CommandOutcome.Failed(cause, 3)));
 
       JobBuilder.create().execute(handler);
 
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
-      verify(listener).onJobCompletionFailed(captor.capture());
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
               JobCompletionFailure.CommandFailed.class,
@@ -1894,15 +1894,14 @@ class SpringConnectorJobHandlerTest {
     @Test
     void listenerNotifiedWithCommandFailedOnFutureException() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      var function = new TestListenerFunction(Map.of("key", "value"), listener);
       var cause = new RuntimeException("future failed");
-      var handler =
-          newConnectorJobHandler(context -> response, CompletableFuture.failedFuture(cause));
+      var handler = newConnectorJobHandler(function, CompletableFuture.failedFuture(cause));
 
       JobBuilder.create().execute(handler);
 
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
-      verify(listener).onJobCompletionFailed(captor.capture());
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
               JobCompletionFailure.CommandFailed.class,
@@ -1912,17 +1911,18 @@ class SpringConnectorJobHandlerTest {
     @Test
     void throwingListenerOnCompletionDoesNotPropagate() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      doThrow(new RuntimeException("listener exploded")).when(listener).onJobCompleted();
-      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      doThrow(new RuntimeException("listener exploded"))
+          .when(listener)
+          .onJobCompleted(any(), any());
+      var function = new TestListenerFunction(Map.of("key", "value"), listener);
       var handler =
           newConnectorJobHandler(
-              context -> response,
-              CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       // should not throw despite listener failure
       JobBuilder.create().execute(handler);
 
-      verify(listener).onJobCompleted();
+      verify(listener).onJobCompleted(any(), any(ConnectorResponse.class));
     }
 
     @Test
@@ -1930,9 +1930,9 @@ class SpringConnectorJobHandlerTest {
       var listener = mock(JobCompletionListener.class);
       doThrow(new RuntimeException("listener exploded"))
           .when(listener)
-          .onJobCompletionFailed(any());
-      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
-      var handler = newConnectorJobHandler(context -> response);
+          .onJobCompletionFailed(any(), any(), any());
+      var function = new TestListenerFunction(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(function);
 
       // should not throw despite listener failure
       JobBuilder.create()
@@ -1940,31 +1940,30 @@ class SpringConnectorJobHandlerTest {
               "=if response.status = \"fail\" then bpmnError(\"ERR\", \"boom\") else null")
           .executeAndCaptureResult(handler, false, true);
 
-      verify(listener).onJobCompletionFailed(any());
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), any());
     }
 
     @Test
     void listenerNotifiedOnIgnoreErrorCompletion() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
+      var function = new TestListenerFunction(Map.of("status", "fail"), listener);
       var handler =
           newConnectorJobHandler(
-              context -> response,
-              CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       JobBuilder.create()
           .withErrorExpressionHeader(
               "=if response.status = \"fail\" then ignoreError({\"recovered\": true}) else null")
           .executeAndCaptureResult(handler);
 
-      verify(listener).onJobCompleted();
+      verify(listener).onJobCompleted(any(), any(ConnectorResponse.class));
     }
 
     @Test
     void listenerNotifiedWhenErrorExpressionEvaluationFails() throws Exception {
       var listener = mock(JobCompletionListener.class);
-      var response = new TestListenerResponse(Map.of("key", "value"), listener);
-      var handler = newConnectorJobHandler(context -> response);
+      var function = new TestListenerFunction(Map.of("key", "value"), listener);
+      var handler = newConnectorJobHandler(function);
 
       // expression returning a non-object value causes examineErrorExpression to throw
       JobBuilder.create()
@@ -1972,13 +1971,29 @@ class SpringConnectorJobHandlerTest {
           .executeAndCaptureResult(handler, false);
 
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
-      verify(listener).onJobCompletionFailed(captor.capture());
+      verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue()).isInstanceOf(JobCompletionFailure.CommandFailed.class);
     }
 
     @Test
+    void listenerNotifiedWithNullResponseWhenExecuteThrows() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var function = new TestListenerFunction(new RuntimeException("execute exploded"), listener);
+      var handler = newConnectorJobHandler(function);
+
+      JobBuilder.create().executeAndCaptureResult(handler, false);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(any(), eq(null), captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.CommandFailed.class,
+              failure -> assertThat(failure.cause()).hasMessage("execute exploded"));
+    }
+
+    @Test
     void noListenerDoesNotCrash() throws Exception {
-      // response that does NOT implement JobCompletionListener
+      // function that does NOT implement JobCompletionListener
       var handler =
           newConnectorJobHandler(
               context -> StandardConnectorResponse.of(Map.of("key", "value")),
@@ -1988,18 +2003,37 @@ class SpringConnectorJobHandlerTest {
       JobBuilder.create().execute(handler);
     }
 
-    /** Response that implements both StandardConnectorResponse and JobCompletionListener. */
-    private record TestListenerResponse(Object responseValue, JobCompletionListener delegate)
-        implements StandardConnectorResponse, JobCompletionListener {
+    /** Function that implements both OutboundConnectorFunction and JobCompletionListener. */
+    private static final class TestListenerFunction
+        implements OutboundConnectorFunction, JobCompletionListener {
 
-      @Override
-      public void onJobCompleted() {
-        delegate.onJobCompleted();
+      private final Object responseOrException;
+      private final JobCompletionListener delegate;
+
+      TestListenerFunction(Object responseOrException, JobCompletionListener delegate) {
+        this.responseOrException = responseOrException;
+        this.delegate = delegate;
       }
 
       @Override
-      public void onJobCompletionFailed(JobCompletionFailure failure) {
-        delegate.onJobCompletionFailed(failure);
+      public Object execute(OutboundConnectorContext context) throws Exception {
+        if (responseOrException instanceof Exception ex) {
+          throw ex;
+        }
+        return responseOrException;
+      }
+
+      @Override
+      public void onJobCompleted(OutboundConnectorContext context, ConnectorResponse response) {
+        delegate.onJobCompleted(context, response);
+      }
+
+      @Override
+      public void onJobCompletionFailed(
+          OutboundConnectorContext context,
+          ConnectorResponse response,
+          JobCompletionFailure failure) {
+        delegate.onJobCompletionFailed(context, response, failure);
       }
     }
   }

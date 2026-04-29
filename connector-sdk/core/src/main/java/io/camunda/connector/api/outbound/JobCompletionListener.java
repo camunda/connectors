@@ -16,22 +16,41 @@
  */
 package io.camunda.connector.api.outbound;
 
+import org.jspecify.annotations.Nullable;
+
 /**
- * Callbacks for job completion outcomes. Connector responses can implement this interface to
- * receive notification after the Zeebe command is dispatched.
+ * Optional callbacks for job completion outcomes. An {@link OutboundConnectorFunction} can
+ * implement this interface to receive notification after the Zeebe command is dispatched.
  *
  * <p>For the completeJob path, callbacks fire asynchronously after the command future resolves. For
- * failJob and throwBpmnError paths (triggered by error expressions), callbacks fire synchronously
- * before the command is dispatched, since the outcome is already determined.
+ * failJob and throwBpmnError paths (triggered by error expressions or pre-response failures),
+ * callbacks fire synchronously before the command is dispatched, since the outcome is already
+ * determined.
  */
 public interface JobCompletionListener {
 
-  /** Called when the job was successfully completed (completeJob command accepted by Zeebe). */
-  void onJobCompleted();
+  /**
+   * Called when the job was successfully completed (completeJob command accepted by Zeebe).
+   *
+   * @param context the connector context for the job
+   * @param response the connector response that was used to complete the job
+   */
+  void onJobCompleted(OutboundConnectorContext context, ConnectorResponse response);
 
   /**
    * Called when the job was not successfully completed. This covers command failures, superseded
-   * jobs, error expression failures, and BPMN errors.
+   * jobs, error expression failures, BPMN errors, and pre-response failures (variable
+   * binding/validation/{@code execute()} throwing).
+   *
+   * <p>The {@code response} argument is {@code null} when no response was produced (e.g. the
+   * connector function threw before returning).
+   *
+   * @param context the connector context for the job
+   * @param response the connector response, or {@code null} if no response was produced
+   * @param failure the failure that caused job completion to fail
    */
-  void onJobCompletionFailed(JobCompletionFailure failure);
+  void onJobCompletionFailed(
+      OutboundConnectorContext context,
+      @Nullable ConnectorResponse response,
+      JobCompletionFailure failure);
 }

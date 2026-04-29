@@ -55,7 +55,6 @@ import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
-import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -146,17 +145,17 @@ public class SpringConnectorJobHandler implements JobHandler {
         job.getKey(),
         job.getType(),
         job.getTenantId());
-    ConnectorResult result = getConnectorResult(job);
-    processFinalResult(client, job, result, counterMetricsContext);
+    var context =
+        new JobHandlerContext(
+            job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
+    ConnectorResult result = getConnectorResult(job, context);
+    processFinalResult(client, job, context, result, counterMetricsContext);
   }
 
-  private ConnectorResult getConnectorResult(ActivatedJob job) {
+  private ConnectorResult getConnectorResult(ActivatedJob job, OutboundConnectorContext context) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
-      var context =
-          new JobHandlerContext(
-              job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
 
       var connectorResponse = getConnectorResponse(context);
 
@@ -190,6 +189,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void processFinalResult(
       JobClient client,
       ActivatedJob job,
+      OutboundConnectorContext context,
       ConnectorResult finalResult,
       CounterMetricsContext counterMetricsContext) {
     try {
@@ -200,11 +200,14 @@ public class SpringConnectorJobHandler implements JobHandler {
               new ErrorExpressionJobContext(
                   new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())));
       optionalConnectorError.ifPresentOrElse(
-          error -> handleConnectorError(client, job, finalResult, error, counterMetricsContext),
-          () -> handleFinalResult(client, job, finalResult, counterMetricsContext));
+          error ->
+              handleConnectorError(client, job, context, finalResult, error, counterMetricsContext),
+          () -> handleFinalResult(client, job, context, finalResult, counterMetricsContext));
     } catch (Exception ex) {
       notifyJobCompletionFailed(
-          extractJobCompletionListener(finalResult), new JobCompletionFailure.CommandFailed(ex));
+          context,
+          connectorResponseOrNull(finalResult),
+          new JobCompletionFailure.CommandFailed(ex));
       failJob(
           client,
           job,
@@ -216,16 +219,12 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void handleFinalResult(
       JobClient jobClient,
       ActivatedJob job,
+      OutboundConnectorContext context,
       ConnectorResult finalResult,
       CounterMetricsContext counterMetricsContext) {
     if (finalResult instanceof ConnectorResult.SuccessResult successResult) {
       LOGGER.info("Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
-      completeJob(
-          jobClient,
-          job,
-          successResult,
-          extractJobCompletionListener(finalResult),
-          counterMetricsContext);
+      completeJob(jobClient, job, context, successResult, counterMetricsContext);
     } else if (finalResult instanceof ConnectorResult.ErrorResult errorResult) {
       // Handle Java error, e.g. ConnectorException
       // these errors won't be handled ConnectorHelper.examineErrorExpression
@@ -234,6 +233,10 @@ public class SpringConnectorJobHandler implements JobHandler {
           JobForLog.from(job),
           errorResult.exception().getMessage(),
           errorResult.exception());
+      // pre-response failure path: function threw before returning a response, so notify with a
+      // null response (subscribers to JobCompletionListener can still react)
+      notifyJobCompletionFailed(
+          context, null, new JobCompletionFailure.CommandFailed(errorResult.exception()));
       failJob(jobClient, job, errorResult, counterMetricsContext);
     }
   }
@@ -241,17 +244,19 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void handleConnectorError(
       JobClient client,
       ActivatedJob job,
+      OutboundConnectorContext context,
       ConnectorResult finalResult,
       ConnectorError error,
       CounterMetricsContext counterMetricsContext) {
-    var listener = extractJobCompletionListener(finalResult);
+    var response = connectorResponseOrNull(finalResult);
 
     switch (error) {
       case BpmnError bpmnError -> {
         LOGGER.debug(
             "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
         notifyJobCompletionFailed(
-            listener,
+            context,
+            response,
             new JobCompletionFailure.BpmnErrorThrown(
                 bpmnError.errorCode(), bpmnError.errorMessage(), bpmnError.variables()));
         throwBpmnError(client, job, bpmnError, counterMetricsContext);
@@ -259,7 +264,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       case JobError jobError -> {
         LOGGER.debug("Throwing incident for job {}", job.getKey());
         notifyJobCompletionFailed(
-            listener,
+            context,
+            response,
             new JobCompletionFailure.JobErrorRaised(
                 jobError.errorMessage(), jobError.variablesWithErrorMessage()));
         failJob(
@@ -280,7 +286,8 @@ public class SpringConnectorJobHandler implements JobHandler {
               job.getKey());
           var cause =
               new UnsupportedOperationException("IgnoreError is not supported for this connector");
-          notifyJobCompletionFailed(listener, new JobCompletionFailure.CommandFailed(cause));
+          notifyJobCompletionFailed(
+              context, response, new JobCompletionFailure.CommandFailed(cause));
           failJob(
               client,
               job,
@@ -291,9 +298,9 @@ public class SpringConnectorJobHandler implements JobHandler {
           completeJob(
               client,
               job,
+              context,
               new ConnectorResult.SuccessResult(
                   StandardConnectorResponse.of(null), ignoreError.variables()),
-              listener,
               counterMetricsContext);
         }
       }
@@ -374,8 +381,8 @@ public class SpringConnectorJobHandler implements JobHandler {
   private CompletableFuture<CommandOutcome> completeJob(
       JobClient client,
       ActivatedJob job,
+      OutboundConnectorContext context,
       ConnectorResult.SuccessResult result,
-      @Nullable JobCompletionListener listener,
       CounterMetricsContext counterMetricsContext) {
     ConnectorResponse connectorResponse = result.connectorResponse();
 
@@ -391,8 +398,10 @@ public class SpringConnectorJobHandler implements JobHandler {
             .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
             .executeAsync();
 
-    if (listener != null) {
-      future.whenComplete((outcome, error) -> notifyJobCompletionOutcome(listener, outcome, error));
+    if (call instanceof JobCompletionListener) {
+      future.whenComplete(
+          (outcome, error) ->
+              notifyJobCompletionOutcome(context, connectorResponse, outcome, error));
     }
 
     return future;
@@ -438,26 +447,34 @@ public class SpringConnectorJobHandler implements JobHandler {
         : null;
   }
 
-  private static JobCompletionListener extractJobCompletionListener(ConnectorResult result) {
-    if (result instanceof ConnectorResult.SuccessResult successResult
-        && successResult.connectorResponse() instanceof JobCompletionListener listener) {
-      return listener;
-    }
-    return null;
+  private static ConnectorResponse connectorResponseOrNull(ConnectorResult result) {
+    return result instanceof ConnectorResult.SuccessResult successResult
+        ? successResult.connectorResponse()
+        : null;
   }
 
-  private static void notifyJobCompletionOutcome(
-      JobCompletionListener listener, CommandOutcome outcome, Throwable error) {
+  private void notifyJobCompletionOutcome(
+      OutboundConnectorContext context,
+      ConnectorResponse response,
+      CommandOutcome outcome,
+      Throwable error) {
+    if (!(call instanceof JobCompletionListener listener)) {
+      return;
+    }
+
     try {
       if (error != null) {
-        listener.onJobCompletionFailed(new JobCompletionFailure.CommandFailed(error));
+        listener.onJobCompletionFailed(
+            context, response, new JobCompletionFailure.CommandFailed(error));
       } else {
         switch (outcome) {
-          case CommandOutcome.Completed c -> listener.onJobCompleted();
+          case CommandOutcome.Completed c -> listener.onJobCompleted(context, response);
           case CommandOutcome.Failed f ->
-              listener.onJobCompletionFailed(new JobCompletionFailure.CommandFailed(f.cause()));
+              listener.onJobCompletionFailed(
+                  context, response, new JobCompletionFailure.CommandFailed(f.cause()));
           case CommandOutcome.Ignored i ->
-              listener.onJobCompletionFailed(new JobCompletionFailure.CommandIgnored(i.cause()));
+              listener.onJobCompletionFailed(
+                  context, response, new JobCompletionFailure.CommandIgnored(i.cause()));
         }
       }
     } catch (Exception e) {
@@ -465,13 +482,14 @@ public class SpringConnectorJobHandler implements JobHandler {
     }
   }
 
-  private static void notifyJobCompletionFailed(
-      JobCompletionListener listener, JobCompletionFailure failure) {
-    if (listener == null) {
+  private void notifyJobCompletionFailed(
+      OutboundConnectorContext context, ConnectorResponse response, JobCompletionFailure failure) {
+    if (!(call instanceof JobCompletionListener listener)) {
       return;
     }
+
     try {
-      listener.onJobCompletionFailed(failure);
+      listener.onJobCompletionFailed(context, response, failure);
     } catch (Exception e) {
       LOGGER.warn("JobCompletionListener callback failed", e);
     }
