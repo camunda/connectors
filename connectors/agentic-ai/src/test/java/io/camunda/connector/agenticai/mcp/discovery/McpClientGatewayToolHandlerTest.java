@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinitionBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpBlobContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpDocumentContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent.BlobDocumentResource;
@@ -401,7 +402,7 @@ class McpClientGatewayToolHandlerTest {
     }
 
     @Test
-    void retainsTypedCallToolResultIfResultIsNotASingleTextBlock() {
+    void retainsTypedContentListIfResultIsNotASingleTextBlock() {
       var agentContext = AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1"));
       var mcpCallToolResult =
           new McpClientCallToolResult(
@@ -419,15 +420,10 @@ class McpClientGatewayToolHandlerTest {
 
       assertThat(result).hasSize(1);
       assertThat(result.getFirst().content())
-          .isInstanceOfSatisfying(
-              McpClientCallToolResult.class,
-              typedResult -> {
-                assertThat(typedResult.name()).isEqualTo("tool1");
-                assertThat(typedResult.content())
-                    .containsExactly(
-                        McpTextContent.textContent("First content"),
-                        McpTextContent.textContent("Second content"));
-              });
+          .asInstanceOf(InstanceOfAssertFactories.list(McpContent.class))
+          .containsExactly(
+              McpTextContent.textContent("First content"),
+              McpTextContent.textContent("Second content"));
     }
 
     @Test
@@ -591,11 +587,9 @@ class McpClientGatewayToolHandlerTest {
     @Test
     void extractsDocumentFromMcpDocumentContent() {
       var document = mock(Document.class);
-      var callToolResult =
-          new McpClientCallToolResult(
-              "tool1", List.of(new McpDocumentContent(document, Map.of())), false);
       var toolCallResult =
-          createToolCallResultWithContent("call1", "MCP_mcp1___tool1", callToolResult);
+          createToolCallResultWithContent(
+              "call1", "MCP_mcp1___tool1", List.of(new McpDocumentContent(document, Map.of())));
 
       var documents = handler.extractDocuments(toolCallResult);
 
@@ -605,16 +599,14 @@ class McpClientGatewayToolHandlerTest {
     @Test
     void extractsDocumentFromBlobDocumentResourceInsideEmbeddedResource() {
       var document = mock(Document.class);
-      var callToolResult =
-          new McpClientCallToolResult(
-              "tool1",
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
               List.of(
                   new McpEmbeddedResourceContent(
                       new BlobDocumentResource("uri://doc", "application/pdf", document),
-                      Map.of())),
-              false);
-      var toolCallResult =
-          createToolCallResultWithContent("call1", "MCP_mcp1___tool1", callToolResult);
+                      Map.of())));
 
       var documents = handler.extractDocuments(toolCallResult);
 
@@ -623,48 +615,42 @@ class McpClientGatewayToolHandlerTest {
 
     @Test
     void doesNotExtractFromTextResource() {
-      var callToolResult =
-          new McpClientCallToolResult(
-              "tool1",
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
               List.of(
                   new McpEmbeddedResourceContent(
-                      new TextResource("uri://text", "text/plain", "hello"), Map.of())),
-              false);
-      var toolCallResult =
-          createToolCallResultWithContent("call1", "MCP_mcp1___tool1", callToolResult);
+                      new TextResource("uri://text", "text/plain", "hello"), Map.of())));
 
       assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
     }
 
     @Test
     void doesNotExtractFromBlobResource() {
-      var callToolResult =
-          new McpClientCallToolResult(
-              "tool1",
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
               List.of(
                   new McpEmbeddedResourceContent(
                       new BlobResource("uri://blob", "application/octet-stream", new byte[] {1, 2}),
-                      Map.of())),
-              false);
-      var toolCallResult =
-          createToolCallResultWithContent("call1", "MCP_mcp1___tool1", callToolResult);
+                      Map.of())));
 
       assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
     }
 
     @Test
     void doesNotExtractFromTextOrObjectOrBlobOrResourceLinkVariants() {
-      var callToolResult =
-          new McpClientCallToolResult(
-              "tool1",
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
               List.of(
                   McpTextContent.textContent("just text"),
                   new McpObjectContent(Map.of("k", "v"), Map.of()),
                   new McpBlobContent(new byte[] {1}, "image/png", Map.of()),
-                  new McpResourceLinkContent("uri://x", "link", "desc", "text/plain", Map.of())),
-              false);
-      var toolCallResult =
-          createToolCallResultWithContent("call1", "MCP_mcp1___tool1", callToolResult);
+                  new McpResourceLinkContent("uri://x", "link", "desc", "text/plain", Map.of())));
 
       assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
     }
@@ -673,17 +659,15 @@ class McpClientGatewayToolHandlerTest {
     void preservesOrderAndCollectsMultipleDocuments() {
       var doc1 = mock(Document.class);
       var doc2 = mock(Document.class);
-      var callToolResult =
-          new McpClientCallToolResult(
-              "tool1",
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
               List.of(
                   new McpDocumentContent(doc1, Map.of()),
                   McpTextContent.textContent("between"),
                   new McpEmbeddedResourceContent(
-                      new BlobDocumentResource("uri://2", "application/pdf", doc2), Map.of())),
-              false);
-      var toolCallResult =
-          createToolCallResultWithContent("call1", "MCP_mcp1___tool1", callToolResult);
+                      new BlobDocumentResource("uri://2", "application/pdf", doc2), Map.of())));
 
       assertThat(handler.extractDocuments(toolCallResult)).containsExactly(doc1, doc2);
     }
@@ -698,9 +682,18 @@ class McpClientGatewayToolHandlerTest {
     }
 
     @Test
-    void returnsEmptyListWhenContentIsNotMcpClientCallToolResult() {
+    void returnsEmptyListWhenContentIsNotAList() {
       var toolCallResult =
           createToolCallResultWithContent("call1", "MCP_mcp1___tool1", Map.of("foo", "bar"));
+
+      assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
+    }
+
+    @Test
+    void returnsEmptyListWhenListEntriesAreNotMcpContent() {
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1", "MCP_mcp1___tool1", List.of(Map.of("type", "text", "text", "raw map")));
 
       assertThat(handler.extractDocuments(toolCallResult)).isEmpty();
     }

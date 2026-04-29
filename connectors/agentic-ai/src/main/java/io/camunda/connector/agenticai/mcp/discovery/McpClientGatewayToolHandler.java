@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationDefinitions;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpDocumentContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent.BlobDocumentResource;
@@ -264,7 +265,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
         && callToolResult.content().getFirst() instanceof McpTextContent textContent) {
       toolCallResultBuilder.content(textContent.text());
     } else {
-      toolCallResultBuilder.content(callToolResult);
+      toolCallResultBuilder.content(callToolResult.content());
     }
 
     return toolCallResultBuilder.build();
@@ -272,13 +273,16 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
   @Override
   public List<Document> extractDocuments(ToolCallResult toolCallResult) {
-    if (!(toolCallResult.content() instanceof McpClientCallToolResult callToolResult)) {
+    if (!(toolCallResult.content() instanceof List<?> contents)) {
       // string-content optimization or unmanaged shape — nothing to walk
       return List.of();
     }
 
     final var documents = new ArrayList<Document>();
-    for (var content : callToolResult.content()) {
+    for (var entry : contents) {
+      if (!(entry instanceof McpContent content)) {
+        continue;
+      }
       switch (content) {
         case McpDocumentContent documentContent -> documents.add(documentContent.document());
         case McpEmbeddedResourceContent embeddedResourceContent -> {
