@@ -21,7 +21,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     inputVariables = {"authentication", "configuration", "memoryId", "namespace", "operation"},
     type = "io.camunda:aws-bedrock-agentcore-lt-memory:1")
 @ElementTemplate(
-    engineVersion = "^8.9", // TODO: update to ^8.10 when available
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.aws.bedrock.agentcore.memory.v1",
     name = "AWS Bedrock AgentCore Long-Term Memory Connector",
     description =

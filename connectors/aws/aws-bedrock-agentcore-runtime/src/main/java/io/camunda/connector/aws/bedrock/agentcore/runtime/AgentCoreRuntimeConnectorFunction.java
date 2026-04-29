@@ -23,7 +23,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-bedrock-agentcore-runtime:1")
 @ElementTemplate(
-    engineVersion = "^8.9", // TODO: update to ^8.10 when available
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.aws.bedrock.agentcore.runtime.v1",
     name = "AWS Bedrock AgentCore Runtime",
     version = 1,

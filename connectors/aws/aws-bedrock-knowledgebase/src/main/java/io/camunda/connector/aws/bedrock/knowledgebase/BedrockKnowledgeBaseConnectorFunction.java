@@ -21,7 +21,7 @@ import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeCl
     inputVariables = {"authentication", "configuration", "knowledgeBaseId", "operation"},
     type = "io.camunda:aws-bedrock-knowledgebase:1")
 @ElementTemplate(
-    engineVersion = "^8.9", // TODO: update to ^8.10 when available
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.aws.bedrock.knowledgebase.v1",
     name = "AWS Bedrock Knowledge Base Outbound Connector",
     description = "Retrieve relevant documents from an AWS Bedrock Knowledge Base",
