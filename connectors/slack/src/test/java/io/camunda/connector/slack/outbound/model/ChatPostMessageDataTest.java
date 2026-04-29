@@ -167,6 +167,10 @@ class ChatPostMessageDataTest {
       ChatPostMessageRequest value = chatPostMessageRequest.getValue();
       assertThat(value.getChannel()).isEqualTo(USERID);
       assertThat(value.isLinkNames()).isTrue();
+      assertThat(value.getText()).isEqualTo("test");
+      assertThat(value.getBlocks())
+          .anyMatch(block -> block instanceof com.slack.api.model.block.SectionBlock)
+          .anyMatch(block -> block instanceof com.slack.api.model.block.FileBlock);
     }
   }
 
