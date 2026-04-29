@@ -6,23 +6,32 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Extracts {@link Document} instances from tool call result content trees. Documents can appear at
- * any level: as the root content, within maps, or within lists.
+ * Extracts {@link Document} instances from a list of tool call results, grouped by tool call.
+ *
+ * <p>The actual extraction strategy is delegated to the {@link GatewayToolHandlerRegistry}: each
+ * tool call result is routed to its responsible {@code GatewayToolHandler} (which may walk a typed
+ * domain object), with the generic content-tree walker as the default fallback for tool calls not
+ * managed by any gateway handler.
  */
 public class ToolCallResultDocumentExtractor {
 
   /** Documents extracted from a single tool call result, grouped with the tool call identity. */
   public record ToolCallDocuments(
       String toolCallId, String toolCallName, List<Document> documents) {}
+
+  private final GatewayToolHandlerRegistry gatewayToolHandlers;
+
+  public ToolCallResultDocumentExtractor(GatewayToolHandlerRegistry gatewayToolHandlers) {
+    this.gatewayToolHandlers = gatewayToolHandlers;
+  }
 
   /**
    * Extracts all {@link Document} instances from the given tool call results, grouped by tool call.
@@ -32,7 +41,7 @@ public class ToolCallResultDocumentExtractor {
     final var result = new ArrayList<ToolCallDocuments>();
 
     for (ToolCallResult toolCallResult : toolCallResults) {
-      final var documents = extractDocumentsFromContent(toolCallResult.content());
+      final var documents = gatewayToolHandlers.extractDocuments(toolCallResult);
       if (!documents.isEmpty()) {
         result.add(
             new ToolCallDocuments(
@@ -43,40 +52,5 @@ public class ToolCallResultDocumentExtractor {
     }
 
     return result;
-  }
-
-  /**
-   * Recursively extracts all {@link Document} instances from an arbitrary object tree. Handles
-   * {@link Document}, {@link Map}, {@link List}/{@link Collection}, and skips all other types.
-   */
-  public List<Document> extractDocumentsFromContent(Object content) {
-    if (content == null) {
-      return List.of();
-    }
-
-    final var documents = new ArrayList<Document>();
-    collectDocuments(content, documents);
-    return documents;
-  }
-
-  private void collectDocuments(Object node, List<Document> documents) {
-    if (node == null) {
-      return;
-    }
-
-    switch (node) {
-      case Document document -> documents.add(document);
-      case Map<?, ?> map -> map.values().forEach(value -> collectDocuments(value, documents));
-      case Collection<?> collection ->
-          collection.forEach(element -> collectDocuments(element, documents));
-      case Object[] array -> {
-        for (Object element : array) {
-          collectDocuments(element, documents);
-        }
-      }
-      default -> {
-        // scalars and other types - nothing to extract
-      }
-    }
   }
 }

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.tool;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,4 +43,12 @@ public interface GatewayToolHandlerRegistry extends GatewayToolCallTransformer {
 
   GatewayToolDiscoveryResult handleToolDiscoveryResults(
       AgentContext agentContext, List<ToolCallResult> toolCallResults);
+
+  /**
+   * Extracts {@link Document} instances from a tool call result by routing to the responsible
+   * gateway handler, falling back to the default content-tree walker when no handler manages the
+   * tool. Expected to be called on already-transformed tool call results (i.e. after {@link
+   * #transformToolCallResults}).
+   */
+  List<Document> extractDocuments(ToolCallResult toolCallResult);
 }
