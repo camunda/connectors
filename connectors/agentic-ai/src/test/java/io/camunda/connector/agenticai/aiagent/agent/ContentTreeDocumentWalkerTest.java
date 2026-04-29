@@ -25,7 +25,6 @@ class ContentTreeDocumentWalkerTest {
 
   private final InMemoryDocumentStore documentStore = InMemoryDocumentStore.INSTANCE;
   private final DocumentFactory documentFactory = new DocumentFactoryImpl(documentStore);
-  private final ContentTreeDocumentWalker walker = ContentTreeDocumentWalker.INSTANCE;
 
   @BeforeEach
   void setUp() {
@@ -35,21 +34,23 @@ class ContentTreeDocumentWalkerTest {
   @Test
   void extractsRootLevelDocument() {
     final var doc = createDocument("hello", "text/plain", "test.txt");
-    final var result = walker.extractDocumentsFromContent(doc);
+    final var result = ContentTreeDocumentWalker.extractDocumentsFromContent(doc);
     assertThat(result).containsExactly(doc);
   }
 
   @Test
   void extractsDocumentFromMapValue() {
     final var doc = createDocument("hello", "text/plain", "test.txt");
-    final var result = walker.extractDocumentsFromContent(Map.of("file", doc, "key", "value"));
+    final var result =
+        ContentTreeDocumentWalker.extractDocumentsFromContent(Map.of("file", doc, "key", "value"));
     assertThat(result).containsExactly(doc);
   }
 
   @Test
   void extractsDocumentFromList() {
     final var doc = createDocument("hello", "text/plain", "test.txt");
-    final var result = walker.extractDocumentsFromContent(List.of("text", doc, 42));
+    final var result =
+        ContentTreeDocumentWalker.extractDocumentsFromContent(List.of("text", doc, 42));
     assertThat(result).containsExactly(doc);
   }
 
@@ -57,7 +58,7 @@ class ContentTreeDocumentWalkerTest {
   void extractsDeeplyNestedDocuments() {
     final var doc = createDocument("hello", "text/plain", "test.txt");
     final var nested = Map.of("level1", Map.of("level2", List.of(Map.of("file", doc))));
-    final var result = walker.extractDocumentsFromContent(nested);
+    final var result = ContentTreeDocumentWalker.extractDocumentsFromContent(nested);
     assertThat(result).containsExactly(doc);
   }
 
@@ -70,34 +71,36 @@ class ContentTreeDocumentWalkerTest {
     content.put("report", doc2);
     content.put("other", "value");
 
-    final var result = walker.extractDocumentsFromContent(content);
+    final var result = ContentTreeDocumentWalker.extractDocumentsFromContent(content);
     assertThat(result).containsExactly(doc1, doc2);
   }
 
   @Test
   void returnsEmptyForContentWithoutDocuments() {
     final var result =
-        walker.extractDocumentsFromContent(Map.of("key", "value", "list", List.of(1, 2, 3)));
+        ContentTreeDocumentWalker.extractDocumentsFromContent(
+            Map.of("key", "value", "list", List.of(1, 2, 3)));
     assertThat(result).isEmpty();
   }
 
   @Test
   void returnsEmptyForNullContent() {
-    final var result = walker.extractDocumentsFromContent(null);
+    final var result = ContentTreeDocumentWalker.extractDocumentsFromContent(null);
     assertThat(result).isEmpty();
   }
 
   @Test
   void returnsEmptyForScalarContent() {
-    assertThat(walker.extractDocumentsFromContent("text")).isEmpty();
-    assertThat(walker.extractDocumentsFromContent(42)).isEmpty();
-    assertThat(walker.extractDocumentsFromContent(true)).isEmpty();
+    assertThat(ContentTreeDocumentWalker.extractDocumentsFromContent("text")).isEmpty();
+    assertThat(ContentTreeDocumentWalker.extractDocumentsFromContent(42)).isEmpty();
+    assertThat(ContentTreeDocumentWalker.extractDocumentsFromContent(true)).isEmpty();
   }
 
   @Test
   void extractsDocumentFromArray() {
     final var doc = createDocument("hello", "text/plain", "test.txt");
-    final var result = walker.extractDocumentsFromContent(new Object[] {"text", doc, 42});
+    final var result =
+        ContentTreeDocumentWalker.extractDocumentsFromContent(new Object[] {"text", doc, 42});
     assertThat(result).containsExactly(doc);
   }
 
@@ -105,7 +108,7 @@ class ContentTreeDocumentWalkerTest {
   void extractsDocumentFromNestedArray() {
     final var doc = createDocument("hello", "text/plain", "test.txt");
     final var nested = Map.of("items", new Object[] {doc});
-    final var result = walker.extractDocumentsFromContent(nested);
+    final var result = ContentTreeDocumentWalker.extractDocumentsFromContent(nested);
     assertThat(result).containsExactly(doc);
   }
 
@@ -116,7 +119,7 @@ class ContentTreeDocumentWalkerTest {
     content.put("file", doc);
     content.put("missing", null);
 
-    final var result = walker.extractDocumentsFromContent(content);
+    final var result = ContentTreeDocumentWalker.extractDocumentsFromContent(content);
     assertThat(result).containsExactly(doc);
   }
 
@@ -128,7 +131,7 @@ class ContentTreeDocumentWalkerTest {
     content.add(null);
     content.add("text");
 
-    final var result = walker.extractDocumentsFromContent(content);
+    final var result = ContentTreeDocumentWalker.extractDocumentsFromContent(content);
     assertThat(result).containsExactly(doc);
   }
 

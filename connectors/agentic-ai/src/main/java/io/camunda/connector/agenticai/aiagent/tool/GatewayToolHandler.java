@@ -71,6 +71,6 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
    * around nested raw subtrees — call {@link ContentTreeDocumentWalker#INSTANCE} on the raw parts.
    */
   default List<Document> extractDocuments(ToolCallResult toolCallResult) {
-    return ContentTreeDocumentWalker.INSTANCE.extractDocumentsFromContent(toolCallResult.content());
+    return ContentTreeDocumentWalker.extractDocumentsFromContent(toolCallResult.content());
   }
 }
