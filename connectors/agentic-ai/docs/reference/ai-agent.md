@@ -1249,6 +1249,9 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
 
     // Migration
     GatewayToolDefinitionUpdates resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+    // Document extraction (default falls back to ContentTreeDocumentWalker for raw content trees)
+    default List<Document> extractDocuments(ToolCallResult toolCallResult);
 }
 
 // From GatewayToolCallTransformer:
@@ -1316,6 +1319,38 @@ Gateway handlers store per-handler state in `AgentContext.properties`:
 - A2A: `properties.a2aClients = ["elementId1", "elementId2"]` — list of A2A client element IDs
 
 These are used during discovery checking and tool call result transformation.
+
+### Document Extraction from Tool Call Results
+
+Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
+embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent
+extracts those documents into a synthetic follow-up `UserMessage` with native `DocumentContent`
+blocks so LLMs can interpret them; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md).
+
+`ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentMessagesHandlerImpl` after
+the `ToolCallResultMessage` is built. For each result it asks the registry which handler manages
+the tool name (`GatewayToolHandlerRegistry.handlerForToolDefinition`) and either:
+
+- delegates to that handler's `extractDocuments(ToolCallResult)` — handlers walk their own typed
+  content (sealed-type `switch` over `McpContent` / `A2aSendMessageResult`), so documents inside
+  typed records remain discoverable;
+- falls back to `ContentTreeDocumentWalker` — a stateless static utility that recursively walks
+  `Map`, `Collection`, `Object[]` and `Document` nodes. Used for plain BPMN tools whose content is
+  the raw FEEL tree from the engine.
+
+The default `GatewayToolHandler.extractDocuments` implementation also delegates to
+`ContentTreeDocumentWalker`, so third-party handlers that return raw maps work without overriding.
+Handlers whose typed content embeds raw user-generated subtrees can call the walker directly on
+those subtrees.
+
+```
+ToolCallResultDocumentExtractor.extractDocuments(results)
+  ├─ for each result:
+  │    GatewayToolHandlerRegistry.handlerForToolDefinition(result.name())
+  │      ├─ Some(handler) → handler.extractDocuments(result)        ── typed walk
+  │      └─ None          → ContentTreeDocumentWalker.extractDocumentsFromContent(content)
+  └─ groups documents by ToolCallDocuments(toolCallId, toolCallName, documents)
+```
 
 ---
 

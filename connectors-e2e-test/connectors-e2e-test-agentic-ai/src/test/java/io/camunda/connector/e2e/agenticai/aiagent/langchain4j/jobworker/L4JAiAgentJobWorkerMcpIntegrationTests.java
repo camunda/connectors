@@ -17,7 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.extractDocumentShortId;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.readDocumentReference;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.mcp.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -402,18 +402,17 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
     assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class); // tool call
 
     // tool result: document serialized as document reference
+    var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
+    var documentReference = readDocumentReference(toolResultText);
+
     assertThat(lastMessages.get(3))
         .isInstanceOfSatisfying(
             ToolExecutionResultMessage.class,
             msg -> {
               assertThat(msg.id()).isEqualTo("img111");
               assertThat(msg.toolName()).isEqualTo("MCP_A_MCP_Client___toolA");
-              assertThat(msg.text()).contains("camunda.document.type");
             });
-
-    // extract the document short ID (first UUID segment) from the serialized document reference
-    var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
-    var documentShortId = extractDocumentShortId(toolResultText);
+    assertThat(documentReference.contentType()).isEqualTo("image/png");
 
     // document user message: extracted document content
     assertThat(lastMessages.get(4))
@@ -435,7 +434,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                           assertThat(tc.text())
                               .isEqualTo(
                                   "<document tool-name=\"MCP_A_MCP_Client___toolA\" tool-call-id=\"img111\" document-short-id=\"%s\" />"
-                                      .formatted(documentShortId)));
+                                      .formatted(documentReference.shortId())));
               assertThat(contents.get(2))
                   .isInstanceOfSatisfying(
                       ImageContent.class,
