@@ -68,7 +68,8 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
    *
    * <p>Handlers that return typed records or POJOs as content must override this method and walk
    * their own structure (typically via a sealed-type switch). For mixed shapes — typed wrappers
-   * around nested raw subtrees — call {@link ContentTreeDocumentWalker#INSTANCE} on the raw parts.
+   * around nested raw subtrees — call {@link
+   * ContentTreeDocumentWalker#extractDocumentsFromContent(Object)} on the raw parts.
    */
   default List<Document> extractDocuments(ToolCallResult toolCallResult) {
     return ContentTreeDocumentWalker.extractDocumentsFromContent(toolCallResult.content());
