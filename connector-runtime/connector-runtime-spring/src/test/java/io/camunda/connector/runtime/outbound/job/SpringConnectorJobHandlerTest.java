@@ -50,6 +50,8 @@ import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnec
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import io.camunda.connector.api.outbound.JobCompletionFailure.CommandFailure.CommandFailed;
+import io.camunda.connector.api.outbound.JobCompletionFailure.ExecutionFailed;
 import io.camunda.connector.api.outbound.JobCompletionListener;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -2037,7 +2039,9 @@ class SpringConnectorJobHandlerTest {
     void listenerNotifiedWhenErrorExpressionEvaluationFails() throws Exception {
       var listener = mock(JobCompletionListener.class);
       var function = new TestListenerFunction(Map.of("key", "value"), listener);
-      var handler = newConnectorJobHandler(function);
+      var handler =
+          newConnectorJobHandler(
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       // expression returning a non-object value causes examineErrorExpression to throw
       JobBuilder.create()
@@ -2047,14 +2051,17 @@ class SpringConnectorJobHandlerTest {
       var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
       verify(listener).onJobCompletionFailed(any(), any(ConnectorResponse.class), captor.capture());
       assertThat(captor.getValue())
-          .isInstanceOf(JobCompletionFailure.CommandFailure.CommandFailed.class);
+          .isInstanceOfSatisfying(
+              ExecutionFailed.class, failure -> assertThat(failure.commandFailure()).isNull());
     }
 
     @Test
     void listenerNotifiedWithNullResponseWhenExecuteThrows() throws Exception {
       var listener = mock(JobCompletionListener.class);
       var function = new TestListenerFunction(new RuntimeException("execute exploded"), listener);
-      var handler = newConnectorJobHandler(function);
+      var handler =
+          newConnectorJobHandler(
+              function, CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
 
       JobBuilder.create().executeAndCaptureResult(handler, false);
 
@@ -2062,8 +2069,36 @@ class SpringConnectorJobHandlerTest {
       verify(listener).onJobCompletionFailed(any(), eq(null), captor.capture());
       assertThat(captor.getValue())
           .isInstanceOfSatisfying(
-              JobCompletionFailure.CommandFailure.CommandFailed.class,
-              failure -> assertThat(failure.cause()).hasMessage("execute exploded"));
+              ExecutionFailed.class,
+              failure -> {
+                assertThat(failure.cause()).hasMessage("execute exploded");
+                assertThat(failure.commandFailure()).isNull();
+              });
+    }
+
+    @Test
+    void executionFailedCarriesCommandFailureWhenFailJobRejected() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var function = new TestListenerFunction(new RuntimeException("execute exploded"), listener);
+      var failJobCause = new RuntimeException("Zeebe rejected failJob");
+      var handler =
+          newConnectorJobHandler(
+              function,
+              CompletableFuture.completedFuture(new CommandOutcome.Failed(failJobCause, 3)));
+
+      JobBuilder.create().executeAndCaptureResult(handler, false);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(any(), eq(null), captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              ExecutionFailed.class,
+              failure -> {
+                assertThat(failure.cause()).hasMessage("execute exploded");
+                assertThat(failure.commandFailure()).isInstanceOf(CommandFailed.class);
+                assertThat(((CommandFailed) failure.commandFailure()).cause())
+                    .isSameAs(failJobCause);
+              });
     }
 
     @Test

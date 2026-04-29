@@ -23,14 +23,20 @@ import org.jspecify.annotations.Nullable;
  * Describes why a job completion did not succeed. Used as the parameter for {@link
  * JobCompletionListener#onJobCompletionFailed}.
  *
- * <p>The hierarchy separates two concerns:
+ * <p>The hierarchy separates "things went wrong" from "the connector deliberately chose to fail":
  *
  * <ul>
  *   <li>{@link CommandFailure} — Zeebe rejected or ignored the command we sent.
- *   <li>{@link BpmnErrorThrown} / {@link JobErrorRaised} — the connector decided not to complete
- *       normally (via an error expression). They optionally carry a {@link CommandFailure} to
- *       surface the case where the throwBpmnError / failJob command itself was rejected by Zeebe.
+ *   <li>{@link ExecutionFailed} — the connector or runtime hit an error before/while producing a
+ *       usable response (function exception, error-expression evaluation failure, runtime-
+ *       synthesized rejection).
+ *   <li>{@link BpmnErrorThrown} / {@link JobErrorRaised} — the connector deliberately chose not to
+ *       complete normally (via an error expression).
  * </ul>
+ *
+ * <p>{@link ExecutionFailed}, {@link BpmnErrorThrown} and {@link JobErrorRaised} each carry an
+ * optional {@link CommandFailure} that surfaces whether the failJob / throwBpmnError command sent
+ * in response was itself accepted by Zeebe.
  */
 public sealed interface JobCompletionFailure {
 
@@ -38,9 +44,8 @@ public sealed interface JobCompletionFailure {
   sealed interface CommandFailure extends JobCompletionFailure {
 
     /**
-     * The job could not be completed successfully. This covers Zeebe command failures (network
-     * error, internal error after retries) as well as runtime-level rejections (e.g., unsupported
-     * error expression for the connector type).
+     * Zeebe rejected the command we sent (network error, internal error after retries, or other
+     * server-side rejection).
      */
     record CommandFailed(Throwable cause) implements CommandFailure {}
 
@@ -49,13 +54,15 @@ public sealed interface JobCompletionFailure {
   }
 
   /**
-   * A failJob command was issued (e.g., from error expression evaluation).
+   * Job completion failed because the connector or runtime hit an error before/while producing a
+   * usable response. Covers connector function exceptions, error-expression evaluation failures,
+   * and runtime-synthesized rejections (e.g., {@code IgnoreError} used by a connector that doesn't
+   * support it).
    *
-   * @param commandFailure {@code null} if Zeebe accepted the failJob command; populated if the
-   *     command itself was rejected.
+   * @param commandFailure {@code null} if Zeebe accepted the failJob command sent in response;
+   *     populated if the command itself was rejected.
    */
-  record JobErrorRaised(
-      String errorMessage, Map<String, Object> variables, @Nullable CommandFailure commandFailure)
+  record ExecutionFailed(Throwable cause, @Nullable CommandFailure commandFailure)
       implements JobCompletionFailure {}
 
   /**
@@ -69,5 +76,15 @@ public sealed interface JobCompletionFailure {
       String errorMessage,
       Map<String, Object> variables,
       @Nullable CommandFailure commandFailure)
+      implements JobCompletionFailure {}
+
+  /**
+   * A failJob command was issued (e.g., from error expression evaluation).
+   *
+   * @param commandFailure {@code null} if Zeebe accepted the failJob command; populated if the
+   *     command itself was rejected.
+   */
+  record JobErrorRaised(
+      String errorMessage, Map<String, Object> variables, @Nullable CommandFailure commandFailure)
       implements JobCompletionFailure {}
 }
