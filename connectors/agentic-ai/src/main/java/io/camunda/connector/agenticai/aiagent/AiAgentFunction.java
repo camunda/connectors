@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecut
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
@@ -83,7 +82,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           openByDefault = false)
     },
     icon = "aiagent.svg")
-public class AiAgentFunction implements OutboundConnectorFunction {
+public class AiAgentFunction implements AgentConnectorFunction {
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final OutboundConnectorAgentRequestHandler agentRequestHandler;
 

@@ -20,7 +20,6 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
-import io.camunda.connector.api.outbound.JobCompletionListener;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +86,7 @@ public class JobWorkerAgentRequestHandler
   public AiAgentSubProcessConnectorResponse buildConnectorResponse(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
-      JobCompletionListener completionListener) {
+      AgentJobCompletionListener completionListener) {
     if (agentResponse == null) {
       LOGGER.debug(
           "No agent response provided, completing job {} without response",
@@ -114,7 +113,7 @@ public class JobWorkerAgentRequestHandler
   private AiAgentSubProcessConnectorResponse buildResponse(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
-      JobCompletionListener completionListener) {
+      AgentJobCompletionListener completionListener) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
     boolean cancelRemainingInstances = executionContext.cancelRemainingInstances();
 
