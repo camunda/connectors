@@ -46,7 +46,14 @@ public class CustomApacheHttpClient implements HttpClient {
     // Will throw ConnectorInputException if URL is blocked
     httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
     var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
-    var host = apacheRequest.getAuthority().getHostName();
+    var authority = apacheRequest.getAuthority();
+    if (authority == null) {
+      throw new ConnectorException(
+          String.valueOf(HttpStatus.SC_BAD_REQUEST),
+          "Invalid URL: The URL '" + request.getUrl() + "' cannot be parsed as a valid HTTP request. "
+              + "Please ensure the URL includes a valid hostname.");
+    }
+    var host = authority.getHostName();
     var scheme = apacheRequest.getScheme();
 
     try (var client =

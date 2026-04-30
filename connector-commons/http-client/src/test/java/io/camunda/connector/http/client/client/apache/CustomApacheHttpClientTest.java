@@ -423,6 +423,28 @@ public class CustomApacheHttpClientTest {
   class GetTests {
 
     @Test
+    public void shouldThrow400_whenMalformedURLWithNullAuthority() {
+      // URL that causes getAuthority() to return null
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl("http://0x7f000001");
+
+      ConnectorException e =
+          assertThrows(
+              ConnectorException.class,
+              () -> httpClient.execute(request, ResponseMappers.asString()));
+      assertThat(e.getErrorCode()).isEqualTo("400");
+      assertThat(e.getMessage())
+          .contains("Invalid URL")
+          .contains("http://0x7f000001")
+          .contains("valid hostname");
+      // Ensure we're not leaking internal implementation details
+      assertThat(e.getMessage()).doesNotContain("URIAuthority");
+      assertThat(e.getMessage()).doesNotContain("ClassicHttpRequest");
+      assertThat(e.getMessage()).doesNotContain("NullPointerException");
+    }
+
+    @Test
     public void shouldReturn200_whenNullHeaders(WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(get("/path").willReturn(ok()));
       HttpClientRequest request = new HttpClientRequest();
