@@ -451,28 +451,43 @@ try (var session = store.createSession(executionContext, agentContext)) {
 
 ### Completion Callbacks
 
-After Zeebe accepts or rejects the job completion command, the runtime notifies the connector response
-via `JobCompletionListener` (from the connector SDK). Both `AiAgentTaskConnectorResponse` and
-`AiAgentSubProcessConnectorResponse` implement this interface and delegate to the conversation
-store's `onJobCompleted` / `onJobCompletionFailed` hooks.
+After Zeebe accepts or rejects the job-completion command, the runtime notifies the connector
+function via `JobCompletionListener` (from the connector SDK). Both `AiAgentFunction` and
+`AiAgentJobWorker` implement this interface (via the shared `AgentConnectorFunction` mixin) and
+delegate to an internal `AgentJobCompletionListener` carried by the response, which in turn
+invokes the conversation store's `onJobCompleted` / `onJobCompletionFailed` hooks.
 
 ```
-storeMessages(...)  →  completeJob to Zeebe  →  Zeebe responds  →  callback fires
-                                                   ├─ accepted  →  store.onJobCompleted(executionContext, context)
-                                                   └─ rejected  →  store.onJobCompletionFailed(executionContext, context, failure)
+storeMessages(...)  →  Zeebe command sent  →  command future resolves  →  callback fires
+                                                                           ├─ accepted  →  store.onJobCompleted(executionContext, context)
+                                                                           └─ rejected  →  store.onJobCompletionFailed(executionContext, context, failure)
 ```
 
-**Callback timing:**
-- **completeJob path**: asynchronous — fires after the Zeebe command future resolves
-- **Error expression paths** (failJob, throwBpmnError): synchronous — fires before the command is dispatched, since the outcome is already determined by the error expression
+Carrying the callback on the response is what keeps the conversation store and agent context in
+scope: both are captured during request handling and dispatched once the Zeebe command resolves.
+
+**Callback timing**: All paths are asynchronous — callbacks fire only after the corresponding
+Zeebe command (`completeJob`, `failJob`, or `throwBpmnError`) resolves. This applies uniformly
+to successful completion, error-expression paths, and pre-response failures.
 
 **Best-effort guarantee**: Callbacks may never fire (e.g., runtime crash before command dispatch). They are optimizations for cleanup (e.g., orphan removal), not correctness mechanisms. The [Storage Contract](#storage-contract) ensures correctness without callbacks.
 
-**`JobCompletionFailure` variants:**
-- `CommandFailed(cause)` — job could not be completed (Zeebe command failure or runtime rejection)
-- `CommandIgnored(cause)` — job was superseded (NOT_FOUND)
-- `JobErrorRaised(errorMessage, variables)` — failJob command issued via error expression
-- `BpmnErrorThrown(errorCode, errorMessage, variables)` — throwBpmnError command issued via error expression
+**`JobCompletionFailure` hierarchy:**
+
+- `CommandFailure` (sealed) — Zeebe rejected the command we sent:
+  - `CommandFailed(cause)` — server-side rejection (network, internal error after retries)
+  - `CommandIgnored(cause)` — the job was superseded (`NOT_FOUND`)
+- `ExecutionFailed(cause, commandFailure?)` — connector or runtime hit an error before/while
+  producing a response (function exception, error-expression evaluation, IgnoreError used by an
+  unsupported connector type)
+- `BpmnErrorThrown(errorCode, errorMessage, variables, commandFailure?)` — `throwBpmnError`
+  dispatched via error expression
+- `JobErrorRaised(errorMessage, variables, commandFailure?)` — `failJob` dispatched via error
+  expression
+
+The optional `commandFailure` field on `ExecutionFailed`, `BpmnErrorThrown`, and `JobErrorRaised`
+surfaces the case where the failJob/throwBpmnError command sent in response was itself rejected
+by Zeebe. It is `null` when Zeebe accepted the response command.
 
 `CamundaDocumentConversationStore` overrides `onJobCompletionFailed` to clean up orphaned documents. Other built-in stores use the default no-op implementations. Custom stores can override either hook for cleanup or bookkeeping.
 

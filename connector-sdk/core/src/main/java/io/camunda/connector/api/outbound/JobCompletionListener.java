@@ -22,10 +22,11 @@ import org.jspecify.annotations.Nullable;
  * Optional callbacks for job completion outcomes. An {@link OutboundConnectorFunction} can
  * implement this interface to receive notification after the Zeebe command is dispatched.
  *
- * <p>For the completeJob path, callbacks fire asynchronously after the command future resolves. For
- * failJob and throwBpmnError paths (triggered by error expressions or pre-response failures),
- * callbacks fire synchronously before the command is dispatched, since the outcome is already
- * determined.
+ * <p>Callbacks fire asynchronously after the corresponding Zeebe command future ({@code
+ * completeJob}, {@code failJob}, or {@code throwBpmnError}) resolves. The associated {@link
+ * JobCompletionFailure} subtype reflects the path that produced the outcome, with an optional
+ * {@code commandFailure} field surfacing the case where the response command was itself rejected by
+ * Zeebe.
  */
 public interface JobCompletionListener {
 
