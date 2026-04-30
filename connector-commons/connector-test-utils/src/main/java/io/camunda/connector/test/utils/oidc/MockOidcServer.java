@@ -113,11 +113,11 @@ public final class MockOidcServer implements AutoCloseable {
                     """
                     {
                       "issuer": "%s",
-                      "jwks_uri": "%s/oauth2/jwks",
+                      "jwks_uri": "%s%s",
                       "id_token_signing_alg_values_supported": ["RS256"]
                     }
                     """
-                        .formatted(issuer(), issuer()))));
+                        .formatted(issuer(), issuer(), JWKS_PATH))));
     server.stubFor(
         WireMock.get(urlEqualTo(JWKS_PATH))
             .atPriority(DEFAULT_STUB_PRIORITY)
