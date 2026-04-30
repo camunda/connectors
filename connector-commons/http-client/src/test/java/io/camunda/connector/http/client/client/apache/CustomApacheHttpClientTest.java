@@ -30,6 +30,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
@@ -423,21 +424,39 @@ public class CustomApacheHttpClientTest {
   class GetTests {
 
     @Test
-    public void shouldThrow400_whenMalformedURLWithNullAuthority() {
+    public void shouldThrowErrorwhenMalformedURLWithNullAuthority() {
       // URL that causes getAuthority() to return null
+      var url = "http://0000::1";
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
-      request.setUrl("http://0x7f000001");
+      request.setUrl(url);
 
-      ConnectorException e =
+      ConnectorInputException e =
           assertThrows(
-              ConnectorException.class,
+              ConnectorInputException.class,
               () -> httpClient.execute(request, ResponseMappers.asString()));
-      assertThat(e.getErrorCode()).isEqualTo("400");
-      assertThat(e.getMessage())
-          .contains("Invalid URL")
-          .contains("http://0x7f000001")
-          .contains("valid hostname");
+      assertThat(e.getMessage()).contains("Invalid URL").contains(url);
+
+      // Ensure we're not leaking internal implementation details
+      assertThat(e.getMessage()).doesNotContain("URIAuthority");
+      assertThat(e.getMessage()).doesNotContain("ClassicHttpRequest");
+      assertThat(e.getMessage()).doesNotContain("NullPointerException");
+    }
+
+    @Test
+    public void shouldThrowErrorwhenMalformedURLWithIllegalScheme() {
+      // URL that causes getAuthority() to return null
+      var url = "//abc";
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(url);
+
+      ConnectorInputException e =
+          assertThrows(
+              ConnectorInputException.class,
+              () -> httpClient.execute(request, ResponseMappers.asString()));
+      assertThat(e.getMessage()).contains("Invalid URL").contains(url);
+
       // Ensure we're not leaking internal implementation details
       assertThat(e.getMessage()).doesNotContain("URIAuthority");
       assertThat(e.getMessage()).doesNotContain("ClassicHttpRequest");

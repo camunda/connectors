@@ -17,6 +17,7 @@
 package io.camunda.connector.http.client.client.apache;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.blocklist.DefaultHttpBlocklistManager;
 import io.camunda.connector.http.client.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.client.client.HttpClient;
@@ -46,15 +47,24 @@ public class CustomApacheHttpClient implements HttpClient {
     // Will throw ConnectorInputException if URL is blocked
     httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
     var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
+
     var authority = apacheRequest.getAuthority();
     if (authority == null) {
-      throw new ConnectorException(
-          String.valueOf(HttpStatus.SC_BAD_REQUEST),
-          "Invalid URL: The URL '" + request.getUrl() + "' cannot be parsed as a valid HTTP request. "
+      throw new ConnectorInputException(
+          "Invalid URL: The URL '"
+              + request.getUrl()
+              + "' cannot be parsed as a valid HTTP request. "
               + "Please ensure the URL includes a valid hostname.");
     }
     var host = authority.getHostName();
     var scheme = apacheRequest.getScheme();
+    if (scheme == null) {
+      throw new ConnectorInputException(
+          "Invalid URL: The URL '"
+              + request.getUrl()
+              + "' cannot be parsed as a valid HTTP request. "
+              + "Please ensure the URL includes a valid hostname.");
+    }
 
     try (var client =
         new ProxyAwareHttpClient(
