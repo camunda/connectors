@@ -17,6 +17,8 @@
 package io.camunda.connector.e2e.agenticai;
 
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
+import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.process.test.api.CamundaAssert;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -67,5 +69,22 @@ public final class TestUtil {
             () ->
                 CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
                     .hasActiveElement(elementId, 1));
+  }
+
+  /**
+   * Waits for an inbound connector to be fully ready: triggers a process definition import, waits
+   * for the BPMN element to become active in the process, and waits for the inbound executable to
+   * be registered and healthy in the runtime registry. The last step is required because executable
+   * activation events are processed asynchronously, so without it incoming requests (e.g. webhook
+   * POSTs) may hit before the subscription is active.
+   */
+  public static void awaitInboundConnectorReady(
+      ZeebeTest zeebeTest,
+      String elementId,
+      ImportSchedulers importSchedulers,
+      InboundConnectorTestHelper testHelper) {
+    importSchedulers.scheduleLatestVersionImport();
+    waitForElementActivation(zeebeTest, elementId);
+    testHelper.awaitActiveInboundExecutable(elementId);
   }
 }

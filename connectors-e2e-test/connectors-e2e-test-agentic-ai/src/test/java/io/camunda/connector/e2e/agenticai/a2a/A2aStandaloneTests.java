@@ -24,7 +24,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static io.camunda.connector.e2e.agenticai.TestUtil.postWithDelay;
-import static io.camunda.connector.e2e.agenticai.TestUtil.waitForElementActivation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -36,6 +35,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
+import io.camunda.connector.e2e.agenticai.TestUtil;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
@@ -103,12 +103,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
             Map.of(
                 "responseRetrievalMode", "polling", "a2aServerUrl", wireMock.getHttpBaseUrl()));
 
-    // Trigger the import scheduler manually and wait for the polling executable to be active.
-    // Otherwise the test relies on the default 5s import scheduler tick + 1s event-queue tick,
-    // which combined with the polling intervals occasionally exceeds the 20s process completion
-    // timeout.
-    importSchedulers.scheduleLatestVersionImport();
-    inboundConnectorTestHelper.awaitActiveInboundExecutable(POLLING_ELEMENT_ID);
+    awaitInboundConnectorReady(zeebeTest, POLLING_ELEMENT_ID);
 
     zeebeTest.waitForProcessCompletion();
 
@@ -135,7 +130,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "webhookUrl",
                 webhookUrl));
 
-    waitForWebhookElementActivation(zeebeTest);
+    awaitInboundConnectorReady(zeebeTest, WEBHOOK_ELEMENT_ID);
 
     // Post working state - should NOT activate webhook
     postWithDelay(
@@ -172,7 +167,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "token",
                 token));
 
-    waitForWebhookElementActivation(zeebeTest);
+    awaitInboundConnectorReady(zeebeTest, WEBHOOK_ELEMENT_ID);
 
     // Post working state - should NOT activate webhook
     postWithDelay(
@@ -226,7 +221,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "webhookUrl",
                 webhookUrl));
 
-    waitForWebhookElementActivation(zeebeTest);
+    awaitInboundConnectorReady(zeebeTest, WEBHOOK_ELEMENT_ID);
 
     // Post working state - should NOT activate webhook
     postWithDelay(
@@ -273,7 +268,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "webhookUrl",
                 webhookUrl));
 
-    waitForWebhookElementActivation(zeebeTest);
+    awaitInboundConnectorReady(zeebeTest, WEBHOOK_ELEMENT_ID);
 
     // Post working state - should NOT activate webhook
     postWithDelay(
@@ -307,15 +302,9 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     assertVariablesWithWebhook(zeebeTest);
   }
 
-  private void waitForWebhookElementActivation(ZeebeTest zeebeTest) {
-    // manually trigger process definition import to register the webhook
-    importSchedulers.scheduleLatestVersionImport();
-    waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
-    // Activation events are processed asynchronously by the inbound executable registry, so we
-    // additionally wait for the webhook subscription to be registered and healthy. Otherwise an
-    // incoming POST may hit before the executable is active (returning 404), which leads to
-    // flaky tests when the test posts arrive on tight delays.
-    inboundConnectorTestHelper.awaitActiveInboundExecutable(WEBHOOK_ELEMENT_ID);
+  private void awaitInboundConnectorReady(ZeebeTest zeebeTest, String elementId) {
+    TestUtil.awaitInboundConnectorReady(
+        zeebeTest, elementId, importSchedulers, inboundConnectorTestHelper);
   }
 
   private BpmnModelInstance getBpmnModelWithNewId(String newProcessId) throws IOException {
