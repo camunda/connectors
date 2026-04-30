@@ -16,11 +16,15 @@
  */
 package io.camunda.connector.runtime.saas;
 
+import io.camunda.connector.test.utils.oidc.MockOidcServer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(
@@ -28,9 +32,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     properties = {
       "camunda.saas.secrets.projectId=42",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
-      "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
       "camunda.connector.secretprovider.discovery.enabled=false",
-      "camunda.client.auth.token-url=https://weblogin.cloud.dev.ultrawombat.com/token",
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
       "spring.cloud.gcp.parametermanager.enabled=false"
     })
@@ -39,6 +41,19 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 // we keep it disabled to test the setup e2e with stackdriver logging configuration as in prod
 @ExtendWith(MockitoExtension.class)
 public class TestSpringContextStartup {
+
+  private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
+
+  @DynamicPropertySource
+  static void registerOidcProperties(DynamicPropertyRegistry registry) {
+    registry.add("camunda.connector.auth.issuer", OIDC_SERVER::issuer);
+    registry.add("camunda.client.auth.token-url", OIDC_SERVER::tokenUrl);
+  }
+
+  @AfterAll
+  static void stopOidcServer() {
+    OIDC_SERVER.close();
+  }
 
   @MockitoBean(answers = Answers.RETURNS_MOCKS)
   public SaaSSecretConfiguration saaSSecretConfiguration;

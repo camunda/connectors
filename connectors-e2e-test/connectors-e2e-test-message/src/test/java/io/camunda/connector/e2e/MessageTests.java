@@ -22,6 +22,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.connector.test.utils.oidc.MockOidcServer;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -29,6 +30,7 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
@@ -50,7 +54,6 @@ import org.springframework.context.annotation.ComponentScan;
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.cloud.organizationId=orgId",
       "camunda.connector.auth.console.audience=cloud.dev.ultrawombat.com",
-      "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
       "camunda.connector.secretprovider.discovery.enabled=false",
       "management.endpoints.web.exposure.include=*"
     },
@@ -64,6 +67,17 @@ public class MessageTests {
   private static final String MESSAGE_NAME = "first-message";
   private static final String CORRELATION_KEY_EXPRESSION = "valOneCorrelation";
   private static final String CORRELATION_VALUE = "123";
+  private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
+
+  @DynamicPropertySource
+  static void registerOidcProperties(DynamicPropertyRegistry registry) {
+    registry.add("camunda.connector.auth.issuer", OIDC_SERVER::issuer);
+  }
+
+  @AfterAll
+  static void stopOidcServer() {
+    OIDC_SERVER.close();
+  }
 
   @TempDir File tempDir;
 
