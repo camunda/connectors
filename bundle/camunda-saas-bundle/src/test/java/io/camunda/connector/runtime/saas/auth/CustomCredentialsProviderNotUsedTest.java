@@ -21,12 +21,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.client.CredentialsProvider;
 import io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication;
 import io.camunda.connector.runtime.saas.SaaSSecretConfiguration;
+import io.camunda.connector.test.utils.oidc.MockOidcServer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(
@@ -34,9 +38,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     properties = {
       "camunda.saas.secrets.projectId=42",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
-      "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
       "camunda.connector.secretprovider.discovery.enabled=false",
-      "camunda.client.auth.token-url=https://weblogin.cloud.dev.ultrawombat.com/token",
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.client.auth.client-id=client-id",
       "camunda.client.auth.client-secret=client-secret",
@@ -44,6 +46,19 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     })
 @ActiveProfiles("test")
 public class CustomCredentialsProviderNotUsedTest {
+
+  private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
+
+  @DynamicPropertySource
+  static void registerOidcProperties(DynamicPropertyRegistry registry) {
+    registry.add("camunda.connector.auth.issuer", OIDC_SERVER::issuer);
+    registry.add("camunda.client.auth.token-url", OIDC_SERVER::tokenUrl);
+  }
+
+  @AfterAll
+  static void stopOidcServer() {
+    OIDC_SERVER.close();
+  }
 
   @MockitoBean(answers = Answers.RETURNS_MOCKS)
   public SaaSSecretConfiguration saaSSecretConfiguration;
