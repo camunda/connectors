@@ -6,20 +6,37 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import io.camunda.connector.agenticai.aiagent.agent.AgentJobCompletionListener;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
 import org.springframework.lang.Nullable;
 
 /**
- * Response type for the AI Agent task flavor (outbound connector on a service task). Wraps the
- * {@link AgentResponse} as a {@link StandardConnectorResponse} so the runtime evaluates it via
- * result expressions.
+ * Response type for the AI Agent task flavor (outbound connector on a service task). Carries an
+ * optional {@link AgentJobCompletionListener} so the connector function can dispatch lifecycle
+ * callbacks once the Zeebe completion command has resolved.
  */
-public record AiAgentTaskConnectorResponse(@Nullable AgentResponse agentResponse)
-    implements StandardConnectorResponse {
+public record AiAgentTaskConnectorResponse(
+    @Nullable AgentResponse agentResponse, @Nullable AgentJobCompletionListener completionListener)
+    implements StandardConnectorResponse, AgentJobCompletionListener {
 
   @Override
   public Object responseValue() {
     return agentResponse;
+  }
+
+  @Override
+  public void onJobCompleted() {
+    if (completionListener != null) {
+      completionListener.onJobCompleted();
+    }
+  }
+
+  @Override
+  public void onJobCompletionFailed(JobCompletionFailure failure) {
+    if (completionListener != null) {
+      completionListener.onJobCompletionFailed(failure);
+    }
   }
 }

@@ -21,7 +21,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.annotation.value.JobWorkerValue;
 import io.camunda.client.annotation.value.SourceAware;
 import io.camunda.client.annotation.value.SourceAware.FromAnnotation;
-import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.jobhandling.JobHandlerFactory;
 import io.camunda.client.jobhandling.JobWorkerManager;
 import io.camunda.client.jobhandling.ManagedJobWorker;
@@ -46,7 +46,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   private static final Logger LOG = LoggerFactory.getLogger(OutboundConnectorManager.class);
   private final JobWorkerManager jobWorkerManager;
   private final OutboundConnectorFactory connectorFactory;
-  private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
+  private final JobCallbackCommandWrapperFactory jobCallbackCommandWrapperFactory;
   private final SecretProviderAggregator secretProviderAggregator;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
@@ -56,7 +56,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
-      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
+      JobCallbackCommandWrapperFactory jobCallbackCommandWrapperFactory,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
@@ -64,7 +64,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
       MetricsRecorder metricsRecorder) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
-    this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
+    this.jobCallbackCommandWrapperFactory = jobCallbackCommandWrapperFactory;
     this.secretProviderAggregator = secretProviderAggregator;
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
@@ -110,7 +110,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
         ctx ->
             new SpringConnectorJobHandler(
                 metricsRecorder,
-                commandExceptionHandlingStrategy,
+                jobCallbackCommandWrapperFactory,
                 secretProviderAggregator,
                 validationProvider,
                 documentFactory,

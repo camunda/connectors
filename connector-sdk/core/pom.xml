@@ -26,6 +26,11 @@
           <artifactId>jackson-databind</artifactId>
           <scope>provided</scope>
       </dependency>
+
+      <dependency>
+          <groupId>org.jspecify</groupId>
+          <artifactId>jspecify</artifactId>
+      </dependency>
   </dependencies>
 
 </project>
