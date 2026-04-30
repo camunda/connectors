@@ -69,8 +69,9 @@ import org.springframework.core.io.Resource;
  *
  * <p>Each scenario asserts the expected chat conversation, agent metrics and response text, the
  * user-feedback worker firing exactly once, and the inner-instance scoping invariant via {@link
- * #assertNoToolCallVariableLeak(ZeebeTest)} — the direct check for the regression introduced in
- * 8.9.1 (<a href="https://github.com/camunda/camunda/issues/51939">camunda/camunda#51939</a>).
+ * #assertNoToolCallVariableLeakToProcessScope(ZeebeTest)} — the direct check for the regression
+ * introduced in 8.9.1 (<a
+ * href="https://github.com/camunda/camunda/issues/51939">camunda/camunda#51939</a>).
  *
  * <p>For "during execution" scenarios the {@code Pending_Tool} job is left unhandled (no worker
  * registered). The test publishes the event message while the job is waiting, then either completes
@@ -202,7 +203,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
   void multipleEventsDuringToolExecution_preservesOrder() throws Exception {
     final var firstEventPayload = "First event arrived.";
     final var secondEventPayload = "Second event arrived.";
-    final var aiToolCallMessage = aiTwoToolCalls();
+    final var aiToolCallMessage = aiMessageWithTwoToolCallInstructions();
 
     final var expectedConversation =
         List.of(
@@ -242,7 +243,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
   private void runEventDuringExecution(
       String publishedPayload, ChatMessage expectedEventMessage, String pendingToolResultValue)
       throws Exception {
-    final var aiToolCallMessage = aiTwoToolCalls();
+    final var aiToolCallMessage = aiMessageWithTwoToolCallInstructions();
 
     final var expectedConversation =
         List.of(
@@ -274,7 +275,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
 
   private void runEventDuringExecutionWithCancel(
       String publishedPayload, ChatMessage expectedEventMessage) throws Exception {
-    final var aiToolCallMessage = aiTwoToolCalls();
+    final var aiToolCallMessage = aiMessageWithTwoToolCallInstructions();
 
     final var expectedConversation =
         List.of(
@@ -317,7 +318,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
     assertLastChatRequest(expectedConversation, false);
     assertReadyAgentResponse(zeebeTest, EXPECTED_TWO_ITERATION_METRICS);
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
-    assertNoToolCallVariableLeak(zeebeTest);
+    assertNoToolCallVariableLeakToProcessScope(zeebeTest);
   }
 
   private void assertReadyAgentResponse(ZeebeTest zeebeTest, AgentMetrics expectedMetrics) {
@@ -337,7 +338,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
         List.of(toolCall(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_ARGS)));
   }
 
-  private AiMessage aiTwoToolCalls() {
+  private AiMessage aiMessageWithTwoToolCallInstructions() {
     return new AiMessage(
         "Calling the superflux and pending tools.",
         List.of(

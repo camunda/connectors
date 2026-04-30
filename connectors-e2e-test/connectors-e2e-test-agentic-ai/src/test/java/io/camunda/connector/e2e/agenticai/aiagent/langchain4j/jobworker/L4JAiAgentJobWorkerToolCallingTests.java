@@ -58,7 +58,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
     // Inner-instance variables must not leak to the process-instance root scope when a tool with
     // a <zeebe:output> mapping is executed (regression camunda/camunda#51939). The connectors
     // BPMN's SuperfluxProduct uses such an output mapping, so this is a real regression detector.
-    assertNoToolCallVariableLeak(zeebeTest);
+    assertNoToolCallVariableLeakToProcessScope(zeebeTest);
   }
 
   @ParameterizedTest

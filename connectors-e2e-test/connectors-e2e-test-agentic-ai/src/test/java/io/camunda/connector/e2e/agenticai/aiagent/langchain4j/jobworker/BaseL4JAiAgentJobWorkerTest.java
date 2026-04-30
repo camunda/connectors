@@ -340,7 +340,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
    * <p>{@code scopeKey} on the variable search filters direct (not inherited) variables, which is
    * exactly what we want.
    */
-  protected void assertNoToolCallVariableLeak(ZeebeTest zeebeTest) {
+  protected void assertNoToolCallVariableLeakToProcessScope(ZeebeTest zeebeTest) {
     final long processInstanceKey = zeebeTest.getProcessInstanceEvent().getProcessInstanceKey();
 
     await()
