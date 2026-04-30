@@ -315,3 +315,105 @@ jobs:
           else
             echo "No downstream workflow run URL found." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+  run-ai-agent-cpt:
+    name: AI Agent E2E Tests (CPT)
+    runs-on: ubuntu-latest
+    needs: [build-image]
+    if: needs.build-image.outputs.connectors-version != ''
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check for agentic-ai changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            ai:
+              - 'connectors/agentic-ai/**'
+              - 'connectors-e2e-test/connectors-e2e-test-agentic-ai/**'
+
+      - name: Import Secrets
+        if: steps.changes.outputs.ai == 'true'
+        id: secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite OPENAI_API_KEY;
+
+      - uses: actions/setup-java@v5
+        if: steps.changes.outputs.ai == 'true'
+        with:
+          distribution: temurin
+          java-version: '21.0.9'
+
+      - name: Login to Harbor
+        if: steps.changes.outputs.ai == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: registry.camunda.cloud
+          username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
+          password: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
+
+      - name: Create settings.xml
+        if: steps.changes.outputs.ai == 'true'
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
+               "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
+
+      - name: Restore Maven cache
+        if: steps.changes.outputs.ai == 'true'
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-node@v6
+        if: steps.changes.outputs.ai == 'true'
+        with:
+          node-version: '24'
+
+      - name: Install element templates CLI
+        if: steps.changes.outputs.ai == 'true'
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+
+      - name: Run AI Agent E2E tests
+        if: steps.changes.outputs.ai == 'true'
+        env:
+          CONNECTORS_IMAGE_NAME: registry.camunda.cloud/team-connectors/connectors-bundle
+          CONNECTORS_IMAGE_VERSION: ${{ needs.build-image.outputs.connectors-version }}
+          OPENAI_API_KEY: ${{ steps.secrets.outputs.OPENAI_API_KEY }}
+        run: |
+          mvn verify \
+            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+            -Pit-real-llm \
+            -DskipUTs \
+            --batch-mode
+
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          job_name: run-ai-agent-cpt
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
