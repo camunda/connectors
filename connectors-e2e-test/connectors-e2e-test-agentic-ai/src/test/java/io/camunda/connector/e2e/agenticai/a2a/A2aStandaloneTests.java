@@ -100,8 +100,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     ZeebeTest zeebeTest =
         createProcessInstance(
             bpmnModel,
-            Map.of(
-                "responseRetrievalMode", "polling", "a2aServerUrl", wireMock.getHttpBaseUrl()));
+            Map.of("responseRetrievalMode", "polling", "a2aServerUrl", wireMock.getHttpBaseUrl()));
 
     awaitInboundConnectorReady(zeebeTest, POLLING_ELEMENT_ID);
 
