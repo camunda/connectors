@@ -1,0 +1,122 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "MCP start event",
+  "id": "io.camunda.mcp.start-message",
+  "version": 1,
+  "icon": {
+    "contents": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAQAAADZc7J/AAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfqAwsPJB1yGKXXAAABqklEQVRIx6XVvWsUURTG4SfZuDGkUBC7oI1FIIVYJI2KoBILLQQLBbEQUcQijRAM2OQP8AOUhAhiUiQIWoigYkoLCwUrK4UI8QPFVYmFhnWzx2In2VUym53JW92Ze3/n3PPeM3cK1lKnfr34IYcKLlsQQnhhICte9EAI382pCIsOZMMfCmXnFdBjVvikOyt+dOVNtw/Cqex4h2kL+jAmXM+O3xP+2IUbwrR9trWOF8wIFSfR5VtyHuG5/qx40Tsh/DJvSfhtMA8+qRPbzQolm1c/99XwOSHcWlnZ5a0wlI4vW3f8P7zdmJKdGBVmsuO3hao9GBbuZ9t8m3Gh6gJ4JozWA9xp6Lqphuw16yYasp8DI0LZjnqAxxYT/Jiw5ERTfFgII40ObLAlGT0VrqXUXsMvCuFqWiN9EXbjVdPsV9Ib+bOwFx/z4TwSxrFJXx6cw0LVJUVsdbf12uu6KYSf3igLFWez4bQZ8jX5bF87mBWvqcOAQ3qTp8z4v1onfroV55vpfdKZqWpf84JlvvnPq7k22m9Qycu8JSzfAmfyu1AL8YT1hDiiJ23yLxup/hFQZlOcAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI2LTAzLTExVDE1OjM2OjI5KzAwOjAwN5TmhAAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNi0wMy0xMVQxNTozNjoyOSswMDowMEbJXjgAAAAASUVORK5CYII="
+  },
+  "description": "Expose the process as MCP tool",
+  "appliesTo": [
+    "bpmn:StartEvent"
+  ],
+  "engines": {
+    "camunda": "^8.10"
+  },
+  "entriesVisible": {
+    "outputs": true
+  },
+  "elementType": {
+    "value": "bpmn:StartEvent",
+    "eventDefinition": "bpmn:MessageEventDefinition"
+  },
+  "groups": [
+    {
+      "id": "tool-definition",
+      "label": "Tool definition",
+      "openByDefault": true
+    }
+  ],
+  "category": {
+    "id": "aiTools",
+    "name": "AI Tools"
+  },
+  "properties": [
+    {
+      "label": "Name",
+      "tooltip": "Give this process a name that helps AI agents understand what it does. <br/><br/>Use only letters, numbers, hyphens (-), underscores (_), and dots (.). Spaces are not allowed.",
+      "type": "String",
+      "placeholder": "e.g., my_process",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "io.camunda.tool:name"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": "^[a-zA-Z-_.0-9]+$",
+        "maxLength": 100
+      },
+      "group": "tool-definition"
+    },
+    {
+      "label": "What it does",
+      "type": "Text",
+      "placeholder": "Describe the core function of this process in a clear and concise way.",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "io.camunda.tool:purpose"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "tool-definition"
+    },
+    {
+      "label": "Which inputs it needs",
+      "type": "Text",
+      "placeholder": "Describe the inputs the AI should send to start this process.",
+      "tooltip": "Provide the inputs the AI should send along when this process is started, in plain language.<br/><br/>You can describe optional and required parameters, their data types and formats, and any constraints they have, such as a limited set of options the AI can choose from.",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "io.camunda.tool:inputs"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "tool-definition"
+    },
+    {
+      "label": "When to use",
+      "type": "Text",
+      "placeholder": "Describe the specific situations or user intents that should trigger this process.",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "io.camunda.tool:when_to_use"
+      },
+      "group": "tool-definition"
+    },
+    {
+      "label": "When not to use",
+      "type": "Text",
+      "placeholder": "Describe the situations or conditions where this process should not be used.",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "io.camunda.tool:when_not_to_use"
+      },
+      "group": "tool-definition"
+    },
+    {
+      "label": "What the tool returns",
+      "tooltip": "Describe the outcomes and results after the process completes. You can also mention specific variable names that will be available (e.g., 'iban', 'request_id').",
+      "type": "Text",
+      "placeholder": "Describe the expected outcome and what data is returned.",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "io.camunda.tool:results"
+      },
+      "group": "tool-definition"
+    },
+    {
+      "id": "messageNameUuid",
+      "type": "Hidden",
+      "generatedValue": {
+        "type": "uuid"
+      },
+      "binding": {
+        "type": "bpmn:Message#property",
+        "name": "name"
+      },
+      "group": "tool-definition"
+    }
+  ]
+}
