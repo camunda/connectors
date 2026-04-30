@@ -42,12 +42,20 @@ public class ForwardingInstanceForwardingRouter implements InstanceForwardingRou
       Supplier<T> localImplementation,
       TypeReference<T> typeReference) {
     if (StringUtils.isBlank(forwardedFor)) {
-      LOGGER.debug(
-          "Forwarding request to instances: {}",
-          request.getRequestURL().toString() + "?" + request.getQueryString());
+      final String sanitizedQuery = sanitizeForLog(request.getQueryString());
+      final String requestUri =
+          request.getRequestURL().toString() + (sanitizedQuery.isEmpty() ? "" : "?" + sanitizedQuery);
+      LOGGER.debug("Forwarding request to instances: {}", requestUri);
       return instanceForwardingService.forwardAndReduce(request, typeReference);
     }
     LOGGER.debug("Request was already forwarded, performing local call for request: {}", request);
     return localImplementation.get();
+  }
+
+  private static String sanitizeForLog(String value) {
+    if (value == null) {
+      return "";
+    }
+    return value.replace('\r', '_').replace('\n', '_');
   }
 }
