@@ -30,10 +30,11 @@
       <bpmn:scriptTask id="SuperfluxProduct" name="Superflux Product Calculation">
         <bpmn:documentation>Calculates the superflux product (a very complicated method only this tool can do) given two input numbers</bpmn:documentation>
         <bpmn:extensionElements>
-          <zeebe:script expression="=3 * (inputA + inputB)" resultVariable="toolCallResult" />
+          <zeebe:script expression="=3 * (inputA + inputB)" resultVariable="superfluxValue" />
           <zeebe:ioMapping>
             <zeebe:input source="=fromAi(toolCall.a, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
             <zeebe:input source="=fromAi(toolCall.b, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
+            <zeebe:output source="=superfluxValue" target="toolCallResult" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
       </bpmn:scriptTask>

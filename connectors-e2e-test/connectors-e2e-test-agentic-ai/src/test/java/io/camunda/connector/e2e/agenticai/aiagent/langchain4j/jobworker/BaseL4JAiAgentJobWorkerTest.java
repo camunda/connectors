@@ -47,6 +47,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentJobWorkerTest;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -328,6 +329,41 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
   protected void assertToolSpecifications(ChatRequest chatRequest) {
     assertThat(chatRequest.toolSpecifications())
         .containsExactlyInAnyOrderElementsOf(expectedToolSpecifications());
+  }
+
+  /**
+   * Asserts that the {@code toolCall} variable does not exist at the root (process instance) scope.
+   * The AI agent sets {@code toolCall} only on inner-instance scopes when activating a tool; a hit
+   * at the root scope means an inner-instance variable has leaked upward — the regression tracked
+   * by camunda/camunda#51939, introduced in 8.9.1.
+   *
+   * <p>{@code scopeKey} on the variable search filters direct (not inherited) variables, which is
+   * exactly what we want.
+   */
+  protected void assertNoToolCallVariableLeak(ZeebeTest zeebeTest) {
+    final long processInstanceKey = zeebeTest.getProcessInstanceEvent().getProcessInstanceKey();
+
+    await()
+        .alias("toolCall variable does not leak to root scope")
+        .atMost(Duration.ofSeconds(15))
+        .untilAsserted(
+            () -> {
+              final var leaked =
+                  camundaClient
+                      .newVariableSearchRequest()
+                      .filter(
+                          f ->
+                              f.processInstanceKey(processInstanceKey)
+                                  .scopeKey(processInstanceKey)
+                                  .name("toolCall"))
+                      .send()
+                      .join()
+                      .items();
+              assertThat(leaked)
+                  .as(
+                      "toolCall should only exist on inner-instance scopes — leak to root scope detected")
+                  .isEmpty();
+            });
   }
 
   protected record ChatInteraction(ChatResponse chatResponse, Map<String, Object> userFeedback) {
