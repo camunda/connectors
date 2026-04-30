@@ -41,6 +41,365 @@
     "list labels",
     "update label"
   ],
+  "steps": [
+    {
+      "name": "Actions",
+      "description": "Manage GitHub Actions workflows",
+      "steps": [
+        {
+          "name": "Create a workflow dispatch event",
+          "description": "Trigger a GitHub Actions workflow run",
+          "keywords": ["create workflow dispatch", "trigger workflow", "run workflow"],
+          "presets": {
+            "operationGroup": "actions",
+            "eventOperationType": "createWorkflowDispatchEvent"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Branches",
+      "description": "Manage repository branches",
+      "steps": [
+        {
+          "name": "Get a branch",
+          "description": "Get details of a specific branch",
+          "keywords": ["get branch", "fetch branch"],
+          "presets": {
+            "operationGroup": "branches",
+            "branchOperationType": "getBranch"
+          }
+        },
+        {
+          "name": "List branches",
+          "description": "List all branches in a repository",
+          "keywords": ["list branches", "get branches"],
+          "presets": {
+            "operationGroup": "branches",
+            "branchOperationType": "listBranches"
+          }
+        },
+        {
+          "name": "Merge a branch",
+          "description": "Merge one branch into another",
+          "keywords": ["merge branch"],
+          "presets": {
+            "operationGroup": "branches",
+            "branchOperationType": "mergeBranch"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Code scanning",
+      "description": "Manage code scanning alerts",
+      "steps": [
+        {
+          "name": "List code scanning alerts for a repository",
+          "description": "List code scanning alerts for a repository",
+          "keywords": ["list code scanning alerts", "repository alerts"],
+          "presets": {
+            "operationGroup": "codeScanning",
+            "listAlertsOperationType": "listAlertsForRepo"
+          }
+        },
+        {
+          "name": "List code scanning alerts for an organization",
+          "description": "List code scanning alerts for an organization",
+          "keywords": ["list code scanning alerts", "organization alerts"],
+          "presets": {
+            "operationGroup": "codeScanning",
+            "listAlertsOperationType": "listAlertsForOrg"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Collaborators",
+      "description": "Manage repository collaborators",
+      "steps": [
+        {
+          "name": "List repository collaborators",
+          "description": "List collaborators of a repository",
+          "keywords": ["list collaborators", "list repository collaborators"],
+          "presets": {
+            "operationGroup": "collaborators",
+            "listCollaboratorsOperationType": "listCollaborators"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Issues",
+      "description": "Manage GitHub issues",
+      "steps": [
+        {
+          "name": "Create an issue",
+          "description": "Create a new GitHub issue",
+          "keywords": ["create issue", "open ticket"],
+          "presets": {
+            "operationGroup": "issues",
+            "issueOperationType": "createIssue"
+          }
+        },
+        {
+          "name": "Create an issue comment",
+          "description": "Add a comment to an existing issue",
+          "keywords": ["create issue comment", "comment on issue"],
+          "presets": {
+            "operationGroup": "issues",
+            "issueOperationType": "createIssueComment"
+          }
+        },
+        {
+          "name": "Get an issue",
+          "description": "Get details of a specific issue",
+          "keywords": ["get issue", "fetch issue"],
+          "presets": {
+            "operationGroup": "issues",
+            "issueOperationType": "getIssue"
+          }
+        },
+        {
+          "name": "List commits",
+          "description": "List commits in a repository",
+          "keywords": ["list commits"],
+          "presets": {
+            "operationGroup": "issues",
+            "issueOperationType": "listCommits"
+          }
+        },
+        {
+          "name": "Search issues and pull requests",
+          "description": "Search issues and pull requests across GitHub",
+          "keywords": ["search issues", "search pull requests", "find issues"],
+          "presets": {
+            "operationGroup": "issues",
+            "issueOperationType": "searchIssues"
+          }
+        },
+        {
+          "name": "Update an issue",
+          "description": "Update an existing issue",
+          "keywords": ["update issue", "edit issue"],
+          "presets": {
+            "operationGroup": "issues",
+            "issueOperationType": "updateIssue"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Labels",
+      "description": "Manage issue and pull request labels",
+      "steps": [
+        {
+          "name": "Create a label",
+          "description": "Create a new label",
+          "keywords": ["create label"],
+          "presets": {
+            "operationGroup": "labels",
+            "labelOperationType": "createLabel"
+          }
+        },
+        {
+          "name": "Delete a label",
+          "description": "Delete an existing label",
+          "keywords": ["delete label", "remove label"],
+          "presets": {
+            "operationGroup": "labels",
+            "labelOperationType": "deleteLabel"
+          }
+        },
+        {
+          "name": "Get a label",
+          "description": "Get details of a specific label",
+          "keywords": ["get label", "fetch label"],
+          "presets": {
+            "operationGroup": "labels",
+            "labelOperationType": "getLabel"
+          }
+        },
+        {
+          "name": "List labels",
+          "description": "List labels in a repository",
+          "keywords": ["list labels"],
+          "presets": {
+            "operationGroup": "labels",
+            "labelOperationType": "listLabels"
+          }
+        },
+        {
+          "name": "Update a label",
+          "description": "Update an existing label",
+          "keywords": ["update label", "edit label"],
+          "presets": {
+            "operationGroup": "labels",
+            "labelOperationType": "updateLabel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pulls",
+      "description": "Manage pull requests",
+      "steps": [
+        {
+          "name": "Create a pull request",
+          "description": "Open a new pull request",
+          "keywords": ["create pull request", "open pr"],
+          "presets": {
+            "operationGroup": "pulls",
+            "pullRequestOperationType": "createPullRequest"
+          }
+        }
+      ]
+    },
+    {
+      "name": "References",
+      "description": "Manage Git references",
+      "steps": [
+        {
+          "name": "Create a reference",
+          "description": "Create a new Git reference",
+          "keywords": ["create reference", "create ref"],
+          "presets": {
+            "operationGroup": "references",
+            "referenceOperationType": "createReference"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Releases",
+      "description": "Manage repository releases",
+      "steps": [
+        {
+          "name": "Create a release",
+          "description": "Publish a new release",
+          "keywords": ["create release", "publish release"],
+          "presets": {
+            "operationGroup": "releases",
+            "releaseOperationType": "createRelease"
+          }
+        },
+        {
+          "name": "Delete a release",
+          "description": "Delete an existing release",
+          "keywords": ["delete release", "remove release"],
+          "presets": {
+            "operationGroup": "releases",
+            "releaseOperationType": "deleteRelease"
+          }
+        },
+        {
+          "name": "List releases",
+          "description": "List releases in a repository",
+          "keywords": ["list releases"],
+          "presets": {
+            "operationGroup": "releases",
+            "releaseOperationType": "listReleases"
+          }
+        },
+        {
+          "name": "Update a release",
+          "description": "Update an existing release",
+          "keywords": ["update release", "edit release"],
+          "presets": {
+            "operationGroup": "releases",
+            "releaseOperationType": "updateRelease"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Repositories",
+      "description": "Manage repositories and their content",
+      "steps": [
+        {
+          "name": "Create an organization invitation",
+          "description": "Invite a user to an organization",
+          "keywords": ["create organization invitation", "invite organization"],
+          "presets": {
+            "operationGroup": "repositories",
+            "reposOperationType": "orgInvitation"
+          }
+        },
+        {
+          "name": "Create an organization repository",
+          "description": "Create a new repository in an organization",
+          "keywords": ["create organization repository", "create repo"],
+          "presets": {
+            "operationGroup": "repositories",
+            "reposOperationType": "createOrganizationRepo"
+          }
+        },
+        {
+          "name": "Create or update file content",
+          "description": "Create or update the content of a file in a repository",
+          "keywords": ["create file", "update file content", "upload file"],
+          "presets": {
+            "operationGroup": "repositories",
+            "reposOperationType": "uploadFile"
+          }
+        },
+        {
+          "name": "Delete a repository",
+          "description": "Delete an existing repository",
+          "keywords": ["delete repository", "remove repository"],
+          "presets": {
+            "operationGroup": "repositories",
+            "reposOperationType": "deleteRepo"
+          }
+        },
+        {
+          "name": "Get a repository",
+          "description": "Get details of a specific repository",
+          "keywords": ["get repository", "fetch repository"],
+          "presets": {
+            "operationGroup": "repositories",
+            "reposOperationType": "getRepo"
+          }
+        },
+        {
+          "name": "Get repository content",
+          "description": "Get the content of a file or directory",
+          "keywords": ["get repository content", "fetch file"],
+          "presets": {
+            "operationGroup": "repositories",
+            "reposOperationType": "getRepoContent"
+          }
+        },
+        {
+          "name": "List organization repositories",
+          "description": "List repositories of an organization",
+          "keywords": ["list organization repositories", "list repos"],
+          "presets": {
+            "operationGroup": "repositories",
+            "reposOperationType": "listOrganizationRepos"
+          }
+        },
+        {
+          "name": "List repository contributors",
+          "description": "List contributors of a repository",
+          "keywords": ["list repository contributors"],
+          "presets": {
+            "operationGroup": "repositories",
+            "reposOperationType": "listRepoContributors"
+          }
+        },
+        {
+          "name": "Update a repository",
+          "description": "Update an existing repository",
+          "keywords": ["update repository", "edit repository"],
+          "presets": {
+            "operationGroup": "repositories",
+            "reposOperationType": "updateRepo"
+          }
+        }
+      ]
+    }
+  ],
   "icon": {
     "contents": "data:image/svg+xml;utf8,%3Csvg width='98' height='96' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z' fill='%2324292f'/%3E%3C/svg%3E"
   },
