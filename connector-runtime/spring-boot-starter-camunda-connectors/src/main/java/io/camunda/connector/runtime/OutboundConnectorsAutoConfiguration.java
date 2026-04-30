@@ -18,6 +18,7 @@ package io.camunda.connector.runtime;
 
 import io.camunda.client.jobhandling.CamundaClientExecutorService;
 import io.camunda.client.metrics.MeteredCamundaClientExecutorService;
+import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.Executors;
@@ -30,7 +31,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 @AutoConfiguration
-@Import(OutboundConnectorRuntimeConfiguration.class)
+@Import({OutboundConnectorRuntimeConfiguration.class, InstanceForwardingConfiguration.class})
 public class OutboundConnectorsAutoConfiguration {
 
   @Bean

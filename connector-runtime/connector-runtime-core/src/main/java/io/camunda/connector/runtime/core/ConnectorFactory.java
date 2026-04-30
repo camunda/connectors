@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core;
 
+import io.camunda.connector.runtime.core.common.AbstractConnectorFactory;
 import io.camunda.connector.runtime.core.config.ConnectorConfiguration;
 import java.util.Collection;
 
@@ -28,11 +29,24 @@ import java.util.Collection;
 public interface ConnectorFactory<T, C extends ConnectorConfiguration> {
 
   /**
-   * List all available configurations loaded by the runtime
+   * List all active connector configurations loaded by the runtime. A configuration is considered
+   * active when it has not been disabled via the {@code CONNECTOR_<NAME>_DISABLED} environment
+   * variable.
    *
-   * @return List of available configurations
+   * @return list of active {@link ConnectorConfiguration} entries; never {@code null}
+   * @see #getRuntimeConfigurations()
    */
-  Collection<C> getConfigurations();
+  Collection<C> getActiveConfigurations();
+
+  /**
+   * List all connector configurations loaded by the runtime, including those that have been
+   * disabled via the {@code CONNECTOR_<NAME>_DISABLED} environment variable.
+   *
+   * @return list of all {@link
+   *     io.camunda.connector.runtime.core.common.AbstractConnectorFactory.ConnectorRuntimeConfiguration}
+   *     entries; never {@code null}
+   */
+  Collection<AbstractConnectorFactory.ConnectorRuntimeConfiguration<C>> getRuntimeConfigurations();
 
   /**
    * Create a Connector instance by type

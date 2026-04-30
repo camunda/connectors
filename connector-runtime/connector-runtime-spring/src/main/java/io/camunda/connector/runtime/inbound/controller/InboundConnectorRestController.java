@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,7 +42,7 @@ public class InboundConnectorRestController {
 
   public InboundConnectorRestController(
       InboundExecutableRegistry executableRegistry,
-      @Autowired(required = false) InstanceForwardingRouter instanceForwardingRouter) {
+      InstanceForwardingRouter instanceForwardingRouter) {
     this.executableRegistry = executableRegistry;
     this.instanceForwardingRouter = instanceForwardingRouter;
   }

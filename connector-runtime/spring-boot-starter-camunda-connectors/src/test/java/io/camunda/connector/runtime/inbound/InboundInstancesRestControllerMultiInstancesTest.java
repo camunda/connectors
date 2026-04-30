@@ -19,6 +19,8 @@ package io.camunda.connector.runtime.inbound;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
@@ -276,5 +278,22 @@ class InboundInstancesRestControllerMultiInstancesTest extends BaseMultiInstance
         logs.getFirst(),
         equalTo(
             new InstanceAwareModel.InstanceAwareHealth(Health.Status.UP, null, null, "instance1")));
+  }
+
+  @Test
+  public void shouldReturnEmptyList_whenNoConnectors() {
+    reset(executableRegistry1, executableRegistry2);
+    when(executableRegistry1.query(any())).thenReturn(Collections.emptyList());
+    when(executableRegistry2.query(any())).thenReturn(Collections.emptyList());
+
+    ResponseEntity<List<ConnectorInstances>> response =
+        restTemplate.exchange(
+            "http://localhost:" + port1 + "/inbound-instances",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<>() {});
+
+    List<ConnectorInstances> instance = response.getBody();
+    assertEquals(0, instance.size());
   }
 }

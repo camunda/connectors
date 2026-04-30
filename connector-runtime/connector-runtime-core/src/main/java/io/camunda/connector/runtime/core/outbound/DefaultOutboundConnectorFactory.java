@@ -137,7 +137,6 @@ public class DefaultOutboundConnectorFactory
 
   @Override
   public OutboundConnectorFunction getInstance(String type) {
-
     return this.getActiveConfiguration(type)
         .map(this::getCachedInstance)
         .orElseThrow(

@@ -59,7 +59,7 @@ public class InboundConnectorDiscoveryTest {
 
     // when
     Collection<InboundConnectorConfiguration> registrations =
-        withEnvVars(env, () -> getFactory().getConfigurations());
+        withEnvVars(env, () -> getFactory().getActiveConfigurations());
 
     // then
     Assertions.assertThat(registrations).hasSize(3);
@@ -97,7 +97,8 @@ public class InboundConnectorDiscoveryTest {
         };
 
     // then
-    Assertions.assertThatThrownBy(() -> withEnvVars(env, () -> getFactory().getConfigurations()))
+    Assertions.assertThatThrownBy(
+            () -> withEnvVars(env, () -> getFactory().getActiveConfigurations()))
         .hasMessage(
             "Type not specified: Please configure it via CONNECTOR_NOT_ANNOTATED_TYPE environment variable");
   }
@@ -113,7 +114,8 @@ public class InboundConnectorDiscoveryTest {
         };
 
     // then
-    Assertions.assertThatThrownBy(() -> withEnvVars(env, () -> getFactory().getConfigurations()))
+    Assertions.assertThatThrownBy(
+            () -> withEnvVars(env, () -> getFactory().getActiveConfigurations()))
         .hasMessage("Failed to load io.camunda.connector.runtime.jobworker.impl.outbound.NotFound");
   }
 
@@ -121,7 +123,8 @@ public class InboundConnectorDiscoveryTest {
   public void shouldConfigureViaSPI() {
 
     // when
-    Collection<InboundConnectorConfiguration> registrations = getFactory().getConfigurations();
+    Collection<InboundConnectorConfiguration> registrations =
+        getFactory().getActiveConfigurations();
 
     // then
     Assertions.assertThat(registrations).hasSize(1);
@@ -157,7 +160,7 @@ public class InboundConnectorDiscoveryTest {
 
     // when
     Collection<InboundConnectorConfiguration> registrations =
-        withEnvVars(env, () -> getFactory().getConfigurations());
+        withEnvVars(env, () -> getFactory().getActiveConfigurations());
 
     // then
     Assertions.assertThat(registrations).isEmpty();

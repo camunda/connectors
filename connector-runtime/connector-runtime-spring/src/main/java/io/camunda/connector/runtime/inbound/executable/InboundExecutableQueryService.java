@@ -66,7 +66,7 @@ public class InboundExecutableQueryService {
    */
   public String getConnectorName(String type) {
     try {
-      return connectorFactory.getConfigurations().stream()
+      return connectorFactory.getActiveConfigurations().stream()
           .filter(configuration -> configuration.type().equals(type))
           .findFirst()
           .map(configuration -> configuration.name())

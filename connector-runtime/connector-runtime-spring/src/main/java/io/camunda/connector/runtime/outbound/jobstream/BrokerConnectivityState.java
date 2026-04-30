@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.instances.service;
+package io.camunda.connector.runtime.outbound.jobstream;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import jakarta.servlet.http.HttpServletRequest;
-import java.util.function.Supplier;
-
-public interface InstanceForwardingRouter {
-  /**
-   * This method is used to forward the request to the instances or local service depending on the
-   * configuration.
-   *
-   * @see io.camunda.connector.runtime.instances.InstanceForwardingConfiguration
-   */
-  <T> T forwardToInstancesAndReduceOrLocal(
-      HttpServletRequest request,
-      String forwardedFor,
-      Supplier<T> localImplementation,
-      TypeReference<T> typeReference);
+/**
+ * Describes the connectivity state of an outbound connector worker to the Zeebe brokers.
+ *
+ * <ul>
+ *   <li>{@code NONE} – No client stream is registered as a consumer in any broker's remote stream.
+ *   <li>{@code PARTIALLY_CONNECTED} – Client streams exist on the gateway, but they do not appear
+ *       as consumers in <b>every</b> broker's remote stream. This may indicate a transient issue;
+ *       restart the gateway if it persists.
+ *   <li>{@code ALL_CONNECTED} – All client streams for this job type are registered as consumers on
+ *       all broker remote streams.
+ * </ul>
+ */
+public enum BrokerConnectivityState {
+  NONE,
+  PARTIALLY_CONNECTED,
+  ALL_CONNECTED
 }
