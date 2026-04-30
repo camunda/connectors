@@ -17,7 +17,6 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.TestUtil.postWithDelay;
-import static io.camunda.connector.e2e.agenticai.TestUtil.waitForElementActivation;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_A2A_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,6 +33,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.TestUtil;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.common.L4JAiAgentA2aIntegrationTestSupport;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration;
@@ -183,9 +183,7 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
                 "userPrompt",
                 testSupport.initialUserPrompt));
 
-    // manually trigger process definition import to register the webhook
-    importSchedulers.scheduleLatestVersionImport();
-    waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
+    awaitInboundConnectorReady(zeebeTest, WEBHOOK_ELEMENT_ID);
     postWithDelay(
         webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);
 
@@ -204,5 +202,10 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
                 .hasResponseText(expectedResponseText));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
+  }
+
+  private void awaitInboundConnectorReady(ZeebeTest zeebeTest, String elementId) {
+    TestUtil.awaitInboundConnectorReady(
+        zeebeTest, elementId, importSchedulers, inboundConnectorTestHelper);
   }
 }
