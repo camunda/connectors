@@ -70,6 +70,7 @@ import org.springframework.test.context.TestPropertySource;
 public class A2aStandaloneTests extends BaseAgenticAiTest {
 
   private static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
+  private static final String POLLING_ELEMENT_ID = "Wait_For_Completion_Polling";
 
   @Autowired private InboundConnectorTestHelper inboundConnectorTestHelper;
   @Autowired private ImportSchedulers importSchedulers;
@@ -98,10 +99,18 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
     ZeebeTest zeebeTest =
         createProcessInstance(
-                bpmnModel,
-                Map.of(
-                    "responseRetrievalMode", "polling", "a2aServerUrl", wireMock.getHttpBaseUrl()))
-            .waitForProcessCompletion();
+            bpmnModel,
+            Map.of(
+                "responseRetrievalMode", "polling", "a2aServerUrl", wireMock.getHttpBaseUrl()));
+
+    // Trigger the import scheduler manually and wait for the polling executable to be active.
+    // Otherwise the test relies on the default 5s import scheduler tick + 1s event-queue tick,
+    // which combined with the polling intervals occasionally exceeds the 20s process completion
+    // timeout.
+    importSchedulers.scheduleLatestVersionImport();
+    inboundConnectorTestHelper.awaitActiveInboundExecutable(POLLING_ELEMENT_ID);
+
+    zeebeTest.waitForProcessCompletion();
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableSatisfies(
@@ -302,6 +311,11 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     // manually trigger process definition import to register the webhook
     importSchedulers.scheduleLatestVersionImport();
     waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
+    // Activation events are processed asynchronously by the inbound executable registry, so we
+    // additionally wait for the webhook subscription to be registered and healthy. Otherwise an
+    // incoming POST may hit before the executable is active (returning 404), which leads to
+    // flaky tests when the test posts arrive on tight delays.
+    inboundConnectorTestHelper.awaitActiveInboundExecutable(WEBHOOK_ELEMENT_ID);
   }
 
   private BpmnModelInstance getBpmnModelWithNewId(String newProcessId) throws IOException {

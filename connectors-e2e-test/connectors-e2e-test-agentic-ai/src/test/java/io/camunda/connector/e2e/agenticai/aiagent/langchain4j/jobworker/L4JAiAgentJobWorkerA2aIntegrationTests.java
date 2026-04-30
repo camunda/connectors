@@ -186,6 +186,10 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
     // manually trigger process definition import to register the webhook
     importSchedulers.scheduleLatestVersionImport();
     waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
+    // Wait for the webhook executable to be registered & healthy before posting. The inbound
+    // executable registry processes activation events asynchronously, so without this wait the
+    // delayed POST could hit before the subscription is active and return 404.
+    inboundConnectorTestHelper.awaitActiveInboundExecutable(WEBHOOK_ELEMENT_ID);
     postWithDelay(
         webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);
 
