@@ -45,6 +45,8 @@ public class AzureOpenAiChatModelProvider
     final var connection = azureOpenAi.azureOpenAi();
     final var modelParameters = connection.model().parameters();
     return buildAzureOpenAiChatModel(
+        config,
+        proxySupport,
         connection.endpoint(),
         connection.authentication(),
         connection.timeouts(),
@@ -57,9 +59,13 @@ public class AzureOpenAiChatModelProvider
   /**
    * Shared helper used by this provider for the legacy {@code azureOpenAi} configuration and by the
    * Azure AI Foundry provider for its OpenAI model family. Both flow through the same {@code
-   * langchain4j-azure-open-ai} integration.
+   * langchain4j-azure-open-ai} integration. Static so the Foundry path can call it without
+   * depending on this provider's bean — that decoupling is required so a user-supplied {@code
+   * ChatModelProvider<AzureOpenAiProviderConfiguration>} bean can override the default.
    */
-  AzureOpenAiChatModel buildAzureOpenAiChatModel(
+  static AzureOpenAiChatModel buildAzureOpenAiChatModel(
+      ChatModelProperties config,
+      ChatModelHttpProxySupport proxySupport,
       String endpoint,
       io.camunda.connector.agenticai.aiagent.model.request.provider.shared.AzureAuthentication
           authentication,

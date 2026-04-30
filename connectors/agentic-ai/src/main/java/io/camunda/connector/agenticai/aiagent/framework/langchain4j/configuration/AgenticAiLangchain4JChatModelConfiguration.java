@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Ope
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
@@ -55,9 +56,10 @@ public class AgenticAiLangchain4JChatModelConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AzureOpenAiChatModelProvider langchain4JAzureOpenAiChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties config,
-      ChatModelHttpProxySupport chatModelHttpProxySupport) {
+  public ChatModelProvider<AzureOpenAiProviderConfiguration>
+      langchain4JAzureOpenAiChatModelProvider(
+          AgenticAiConnectorsConfigurationProperties config,
+          ChatModelHttpProxySupport chatModelHttpProxySupport) {
     return new AzureOpenAiChatModelProvider(
         config.aiagent().chatModel(), chatModelHttpProxySupport);
   }
@@ -75,12 +77,10 @@ public class AgenticAiLangchain4JChatModelConfiguration {
   public ChatModelProvider<AzureFoundryProviderConfiguration>
       langchain4JAzureFoundryChatModelProvider(
           AgenticAiConnectorsConfigurationProperties config,
-          AnthropicOnFoundryClientFactory anthropicOnFoundryClientFactory,
-          AzureOpenAiChatModelProvider azureOpenAiChatModelProvider) {
+          ChatModelHttpProxySupport chatModelHttpProxySupport,
+          AnthropicOnFoundryClientFactory anthropicOnFoundryClientFactory) {
     return new AzureFoundryChatModelProvider(
-        config.aiagent().chatModel(),
-        anthropicOnFoundryClientFactory,
-        azureOpenAiChatModelProvider);
+        config.aiagent().chatModel(), chatModelHttpProxySupport, anthropicOnFoundryClientFactory);
   }
 
   @Bean

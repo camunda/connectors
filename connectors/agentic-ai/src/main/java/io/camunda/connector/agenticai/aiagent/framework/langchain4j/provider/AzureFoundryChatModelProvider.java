@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import dev.langchain4j.model.chat.ChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
@@ -36,16 +37,16 @@ public class AzureFoundryChatModelProvider
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureFoundryChatModelProvider.class);
 
   private final ChatModelProperties config;
+  private final ChatModelHttpProxySupport proxySupport;
   private final AnthropicOnFoundryClientFactory anthropicOnFoundryClientFactory;
-  private final AzureOpenAiChatModelProvider azureOpenAiChatModelProvider;
 
   public AzureFoundryChatModelProvider(
       ChatModelProperties config,
-      AnthropicOnFoundryClientFactory anthropicOnFoundryClientFactory,
-      AzureOpenAiChatModelProvider azureOpenAiChatModelProvider) {
+      ChatModelHttpProxySupport proxySupport,
+      AnthropicOnFoundryClientFactory anthropicOnFoundryClientFactory) {
     this.config = config;
+    this.proxySupport = proxySupport;
     this.anthropicOnFoundryClientFactory = anthropicOnFoundryClientFactory;
-    this.azureOpenAiChatModelProvider = azureOpenAiChatModelProvider;
   }
 
   @Override
@@ -67,7 +68,9 @@ public class AzureFoundryChatModelProvider
 
       case OpenAiModel openai -> {
         var params = openai.parameters();
-        yield azureOpenAiChatModelProvider.buildAzureOpenAiChatModel(
+        yield AzureOpenAiChatModelProvider.buildAzureOpenAiChatModel(
+            config,
+            proxySupport,
             conn.endpoint(),
             conn.authentication(),
             conn.timeouts(),
