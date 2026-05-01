@@ -252,7 +252,7 @@ jobs:
       needs.helm-deploy.result != 'cancelled'
     steps:
       - name: Send Slack notification on failure
-        uses: slackapi/slack-github-action@v3.0.2
+        uses: slackapi/slack-github-action@v3.0.3
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           method: chat.postMessage
