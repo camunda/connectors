@@ -183,7 +183,8 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
                 "userPrompt",
                 testSupport.initialUserPrompt));
 
-    awaitInboundConnectorReady(zeebeTest, WEBHOOK_ELEMENT_ID);
+    TestUtil.awaitInboundConnectorReady(
+        zeebeTest, WEBHOOK_ELEMENT_ID, importSchedulers, inboundConnectorTestHelper);
 
     postWithDelay(
         webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);
@@ -203,10 +204,5 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
                 .hasResponseText(expectedResponseText));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
-  }
-
-  private void awaitInboundConnectorReady(ZeebeTest zeebeTest, String elementId) {
-    TestUtil.awaitInboundConnectorReady(
-        zeebeTest, elementId, importSchedulers, inboundConnectorTestHelper);
   }
 }
