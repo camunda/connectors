@@ -3,8 +3,8 @@ name: Feature branch Helm test
 on:
   push:
     branches:
-      - '**'
-      - '!main'
+      - "**"
+      - "!main"
 
 jobs:
   build-image:
@@ -39,11 +39,11 @@ jobs:
 
       - uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '21.0.9'
+          distribution: "temurin"
+          java-version: "21.0.9"
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
-      - name: 'Create settings.xml'
+      - name: "Create settings.xml"
         uses: s4u/maven-settings-action@v4.0.0
         with:
           githubServer: false
@@ -53,11 +53,14 @@ jobs:
                "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
                "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
              }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
+          mirrors: "[{\"url\":
+            \"https://repository.nexus.camunda.cloud/content/groups/internal/\",
+            \"id\": \"camunda-nexus\", \"mirrorOf\":
+            \"*,!shibboleth,!confluent\", \"name\": \"camunda Nexus\"}]"
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Install element templates CLI
         run: npm install --global element-templates-cli
@@ -65,7 +68,8 @@ jobs:
       - name: Package Connectors
         env:
           PROJECTS: bundle/default-bundle,bundle/camunda-saas-bundle
-        run: mvn --batch-mode compile generate-sources package -DskipTests --projects "${PROJECTS}" --also-make
+        run: mvn --batch-mode compile generate-sources package -DskipTests --projects
+          "${PROJECTS}" --also-make
 
       - name: Check default-bundle jar exists
         run: ls -lh bundle/default-bundle/target/
@@ -140,7 +144,8 @@ jobs:
           context: bundle/camunda-saas-bundle/
           provenance: false
           push: true
-          tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ env.TAG }}
+          tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ env.TAG
+            }}
 
   trigger-sm-e2e:
     name: Trigger SM E2E tests
@@ -157,7 +162,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ build-image ]
     timeout-minutes: 25
-    permissions: { }
+    permissions: {}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -179,7 +184,8 @@ jobs:
       - name: Trigger repository_dispatch for SaaS Connectors
         env:
           GITHUB_TOKEN: ${{ steps.github-token.outputs.token }}
-          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
+          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{
+            github.run_attempt }}:${{ github.sha }}
         run: |
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
@@ -214,7 +220,8 @@ jobs:
         id: wait-downstream
         env:
           GH_TOKEN: ${{ steps.github-token.outputs.token }}
-          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
+          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{
+            github.run_attempt }}:${{ github.sha }}
         run: |
           set -euo pipefail
           echo "Waiting for downstream E2E workflow run in camunda/c8-cross-component-e2e-tests for correlation id: $CORRELATION_ID"
@@ -319,7 +326,7 @@ jobs:
   run-ai-agent-cpt:
     name: AI Agent E2E Tests (CPT)
     runs-on: ubuntu-latest
-    needs: [build-image]
+    needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
     timeout-minutes: 20
     steps:
@@ -353,7 +360,7 @@ jobs:
         if: steps.changes.outputs.ai == 'true'
         with:
           distribution: temurin
-          java-version: '21.0.9'
+          java-version: "21.0.9"
 
       - name: Login to Harbor
         if: steps.changes.outputs.ai == 'true'
@@ -374,7 +381,10 @@ jobs:
                "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
                "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
              }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
+          mirrors: "[{\"url\":
+            \"https://repository.nexus.camunda.cloud/content/groups/internal/\",
+            \"id\": \"camunda-nexus\", \"mirrorOf\":
+            \"*,!shibboleth,!confluent\", \"name\": \"camunda Nexus\"}]"
 
       - name: Restore Maven cache
         if: steps.changes.outputs.ai == 'true'
@@ -388,11 +398,13 @@ jobs:
       - uses: actions/setup-node@v6
         if: steps.changes.outputs.ai == 'true'
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Install element templates CLI
         if: steps.changes.outputs.ai == 'true'
-        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+        run: npm install --global element-templates-cli@$(jq -r
+          '.devDependencies["element-templates-cli"]'
+          .github/workflows/package.json)
 
       - name: Run AI Agent E2E tests
         if: steps.changes.outputs.ai == 'true'
