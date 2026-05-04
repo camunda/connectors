@@ -72,19 +72,21 @@ public final class TestUtil {
   }
 
   /**
-   * Waits for an inbound connector to be fully ready: triggers a process definition import, waits
-   * for the BPMN element to become active in the process, and waits for the inbound executable to
-   * be registered and healthy in the runtime registry. The last step is required because executable
-   * activation events are processed asynchronously, so without it incoming requests (e.g. webhook
-   * POSTs) may hit before the subscription is active.
+   * Waits for an inbound connector to be fully ready: waits for the BPMN element to become active
+   * in the process, triggers a process definition import, and waits for the inbound executable to
+   * be registered and healthy in the runtime registry. The order ensures that when the executable
+   * activates, the polling fetcher's first iteration already sees the running process instance at
+   * the catch event. The last step is required because executable activation events are processed
+   * asynchronously, so without it incoming requests (e.g. webhook POSTs) may hit before the
+   * subscription is active.
    */
   public static void awaitInboundConnectorReady(
       ZeebeTest zeebeTest,
       String elementId,
       ImportSchedulers importSchedulers,
       InboundConnectorTestHelper testHelper) {
-    importSchedulers.scheduleLatestVersionImport();
     waitForElementActivation(zeebeTest, elementId);
+    importSchedulers.scheduleLatestVersionImport();
     testHelper.awaitActiveInboundExecutable(elementId);
   }
 }
