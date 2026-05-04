@@ -85,12 +85,12 @@ public class AiAgentE2ETestIT {
         .send()
         .join();
 
-    // then — process should complete with an agent response containing date/time info
+    // then — process should complete with an agent response containing Berlin date/time info
     CamundaAssert.assertThatProcessInstance(processInstance).isCompleted();
     CamundaAssert.assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
-            "The agent variable contains a responseText field with information about the current date and time");
+            "The agent variable contains a responseText field with the current date and time in Berlin, explicitly referencing the CET or CEST timezone or the city name Berlin");
   }
 
   @Test
@@ -227,7 +227,7 @@ public class AiAgentE2ETestIT {
     CamundaAssert.assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
-            "The agent variable contains a responseText field that includes a user's name from the user lookup");
+            "The agent variable contains a responseText field that names a real user from the jsonplaceholder API (e.g. Leanne Graham, Ervin Howell, or Clementine Bauch) — not a hallucinated name — proving the HTTP ListUsers tool was actually invoked");
   }
 
   @Test
@@ -275,7 +275,7 @@ public class AiAgentE2ETestIT {
     CamundaAssert.assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
-            "The agent variable contains a responseText field that includes both the current time and a joke");
+            "The agent variable contains a responseText field with a specific current time (including hours and minutes) from the GetDateAndTime tool AND a complete joke with a punchline from the jokes API, proving both HTTP tools were invoked");
   }
 
   @Test
@@ -367,6 +367,6 @@ public class AiAgentE2ETestIT {
     CamundaAssert.assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
-            "The agent variable contains a responseText field that says whether it is daytime or nighttime based on a previously retrieved time");
+            "The agent variable contains a responseText that says whether it is daytime or nighttime AND explicitly references or quotes the specific time retrieved by the GetDateAndTime tool in the previous turn, proving conversation context was retained");
   }
 }
