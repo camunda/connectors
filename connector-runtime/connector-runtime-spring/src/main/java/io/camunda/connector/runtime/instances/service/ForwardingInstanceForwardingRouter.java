@@ -44,7 +44,8 @@ public class ForwardingInstanceForwardingRouter implements InstanceForwardingRou
     if (StringUtils.isBlank(forwardedFor)) {
       final String sanitizedQuery = sanitizeForLog(request.getQueryString());
       final String requestUri =
-          request.getRequestURL().toString() + (sanitizedQuery.isEmpty() ? "" : "?" + sanitizedQuery);
+          request.getRequestURL().toString()
+              + (sanitizedQuery.isEmpty() ? "" : "?" + sanitizedQuery);
       LOGGER.debug("Forwarding request to instances: {}", requestUri);
       return instanceForwardingService.forwardAndReduce(request, typeReference);
     }
