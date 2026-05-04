@@ -41,24 +41,27 @@ public abstract class AbstractConnectorFactory<T, C extends ConnectorConfigurati
       new DisabledConnectorEnvVarsConfig();
 
   public record ConnectorRuntimeConfiguration<T extends ConnectorConfiguration>(
-      T config, boolean isActive) {
-    public Optional<T> getActiveConfig() {
-      return isActive ? Optional.of(config) : Optional.empty();
-    }
-  }
+      T config, boolean isActive) {}
 
   private Map<String, ConnectorRuntimeConfiguration<C>> configurations = new HashMap<>();
 
   @Override
-  public Collection<C> getConfigurations() {
+  public Collection<ConnectorRuntimeConfiguration<C>> getRuntimeConfigurations() {
+    return List.copyOf(configurations.values());
+  }
+
+  @Override
+  public List<C> getActiveConfigurations() {
     return configurations.values().stream()
-        .flatMap(e -> e.getActiveConfig().stream())
+        .filter(ConnectorRuntimeConfiguration::isActive)
+        .map(ConnectorRuntimeConfiguration::config)
         .collect(Collectors.toList());
   }
 
   protected Optional<C> getActiveConfiguration(String type) {
     return Optional.ofNullable(configurations.get(type))
-        .flatMap(ConnectorRuntimeConfiguration::getActiveConfig);
+        .filter(ConnectorRuntimeConfiguration::isActive)
+        .map(ConnectorRuntimeConfiguration::config);
   }
 
   /**

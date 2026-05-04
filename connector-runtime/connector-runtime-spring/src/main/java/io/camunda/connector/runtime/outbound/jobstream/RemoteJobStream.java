@@ -14,22 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.instances.service;
+package io.camunda.connector.runtime.outbound.jobstream;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import jakarta.servlet.http.HttpServletRequest;
-import java.util.function.Supplier;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
+import java.util.Map;
 
-public interface InstanceForwardingRouter {
-  /**
-   * This method is used to forward the request to the instances or local service depending on the
-   * configuration.
-   *
-   * @see io.camunda.connector.runtime.instances.InstanceForwardingConfiguration
-   */
-  <T> T forwardToInstancesAndReduceOrLocal(
-      HttpServletRequest request,
-      String forwardedFor,
-      Supplier<T> localImplementation,
-      TypeReference<T> typeReference);
-}
+/** A remote (broker-side) job stream as reported by the gateway. */
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record RemoteJobStream(String jobType, List<Map<String, String>> consumers) {}

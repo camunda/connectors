@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
+import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -48,5 +49,17 @@ public class ReducerRegistryTest {
 
     // then
     assertThat(reducer).isNotNull().isInstanceOf(ConnectorInstancesListReducer.class);
+  }
+
+  @Test
+  public void shouldReturnReducer_forOutboundConnectorResponseList() {
+    // given
+    var targetClass = new TypeReference<List<OutboundConnectorResponse>>() {};
+
+    // when
+    var reducer = reducerRegistry.getReducer(targetClass);
+
+    // then
+    assertThat(reducer).isNotNull();
   }
 }

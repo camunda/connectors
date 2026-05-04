@@ -34,16 +34,27 @@ import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactor
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
+import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
+import io.camunda.connector.runtime.outbound.controller.OutboundConnectorsRestController;
+import io.camunda.connector.runtime.outbound.jobstream.GatewayJobStreamClient;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 @Configuration
+@Import({OutboundConnectorsRestController.class, InstanceForwardingConfiguration.class})
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
+  @ConditionalOnMissingBean(OutboundConnectorFactory.class)
   public DefaultOutboundConnectorFactory outboundConnectorConfigurationRegistry(
       @ConnectorsObjectMapper ObjectMapper mapper,
       ValidationProvider validationProvider,
@@ -68,6 +79,25 @@ public class OutboundConnectorRuntimeConfiguration {
   @Bean
   ValidationProvider validationProvider() {
     return ValidationUtil.discoverDefaultValidationProviderImplementation();
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      name = "camunda.connector.gateway.monitoring.enabled",
+      havingValue = "true")
+  public GatewayJobStreamClient gatewayJobStreamClient(
+      CamundaClient camundaClient,
+      @ConnectorsObjectMapper ObjectMapper mapper,
+      @Value("${camunda.connector.gateway.monitoring.port:9600}") int monitoringPort) {
+    return new GatewayJobStreamClient(camundaClient, monitoringPort, mapper);
+  }
+
+  @Bean
+  public OutboundConnectorsService outboundConnectorsService(
+      OutboundConnectorFactory outboundConnectorConfigurationRegistry,
+      @Autowired(required = false) GatewayJobStreamClient gatewayJobStreamClient) {
+    return new OutboundConnectorsService(
+        outboundConnectorConfigurationRegistry, gatewayJobStreamClient);
   }
 
   @Bean

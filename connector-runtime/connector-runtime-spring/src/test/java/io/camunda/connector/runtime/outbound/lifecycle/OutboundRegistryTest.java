@@ -118,7 +118,7 @@ class OutboundRegistryTest {
     configuredContextRunner.run(
         context -> {
           var outboundConnectorRegistry = context.getBean(DefaultOutboundConnectorFactory.class);
-          Assertions.assertThatStream(outboundConnectorRegistry.getConfigurations().stream())
+          Assertions.assertThatStream(outboundConnectorRegistry.getActiveConfigurations().stream())
               .anyMatch(
                   e -> {
                     try {

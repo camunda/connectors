@@ -59,7 +59,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
     this.stateStore = new InMemoryInboundExecutableStateStore();
     var deduplicationScopesByType =
-        connectorFactory.getConfigurations().stream()
+        connectorFactory.getActiveConfigurations().stream()
             .collect(
                 java.util.stream.Collectors.toMap(
                     config -> config.type(),
