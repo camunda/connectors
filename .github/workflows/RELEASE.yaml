@@ -244,6 +244,9 @@ jobs:
       - name: Install artifacts
         run: mvn -B install -DskipTests -DskipChecks -Pe2eExcluded
 
+      - name: Install element templates CLI
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+
       - name: Run E2E tests
         run: mvn -B verify -f connectors-e2e-test/pom.xml
 
