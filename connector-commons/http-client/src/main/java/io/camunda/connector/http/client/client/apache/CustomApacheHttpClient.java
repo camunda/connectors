@@ -63,7 +63,7 @@ public class CustomApacheHttpClient implements HttpClient {
           "Invalid URL: The URL '"
               + request.getUrl()
               + "' cannot be parsed as a valid HTTP request. "
-              + "Please ensure the URL includes a valid hostname.");
+              + "Please ensure the URL includes a valid scheme.");
     }
 
     try (var client =
