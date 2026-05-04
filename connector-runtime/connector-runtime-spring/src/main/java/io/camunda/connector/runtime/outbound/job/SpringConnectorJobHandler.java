@@ -209,14 +209,14 @@ public class SpringConnectorJobHandler implements JobHandler {
               handleConnectorError(client, job, context, finalResult, error, counterMetricsContext),
           () -> handleFinalResult(client, job, context, finalResult, counterMetricsContext));
     } catch (Exception ex) {
-      var failJobFuture =
+      CompletableFuture<CommandOutcome> failJobRequest =
           failJob(
               client,
               job,
               this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job),
               counterMetricsContext);
       notifyFailureOnCommandOutcome(
-          failJobFuture,
+          failJobRequest,
           context,
           connectorResponseOrNull(finalResult),
           completionFailure -> new ExecutionFailed(ex, completionFailure));
@@ -243,9 +243,10 @@ public class SpringConnectorJobHandler implements JobHandler {
 
       // pre-response failure path: function threw before returning a response, so notify with a
       // null response (subscribers to JobCompletionListener can still react)
-      var failJobFuture = failJob(jobClient, job, errorResult, counterMetricsContext);
+      CompletableFuture<CommandOutcome> failJobRequest =
+          failJob(jobClient, job, errorResult, counterMetricsContext);
       notifyFailureOnCommandOutcome(
-          failJobFuture,
+          failJobRequest,
           context,
           null,
           completionFailure -> new ExecutionFailed(errorResult.exception(), completionFailure));
@@ -265,9 +266,10 @@ public class SpringConnectorJobHandler implements JobHandler {
       case BpmnError bpmnError -> {
         LOGGER.debug(
             "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
-        var bpmnErrorFuture = throwBpmnError(client, job, bpmnError, counterMetricsContext);
+        CompletableFuture<CommandOutcome> throwBpmnErrorRequest =
+            throwBpmnError(client, job, bpmnError, counterMetricsContext);
         notifyFailureOnCommandOutcome(
-            bpmnErrorFuture,
+            throwBpmnErrorRequest,
             context,
             response,
             completionFailure ->
@@ -279,7 +281,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       }
       case JobError jobError -> {
         LOGGER.debug("Throwing incident for job {}", job.getKey());
-        var failJobFuture =
+        CompletableFuture<CommandOutcome> failJobRequest =
             failJob(
                 client,
                 job,
@@ -290,7 +292,7 @@ public class SpringConnectorJobHandler implements JobHandler {
                     jobError.retryBackoff()),
                 counterMetricsContext);
         notifyFailureOnCommandOutcome(
-            failJobFuture,
+            failJobRequest,
             context,
             response,
             completionFailure ->
@@ -319,7 +321,7 @@ public class SpringConnectorJobHandler implements JobHandler {
           "IgnoreError not supported for AdHocSubProcessConnectorResponse, job {}", job.getKey());
       var cause =
           new UnsupportedOperationException("IgnoreError is not supported for this connector");
-      var failJobFuture =
+      CompletableFuture<CommandOutcome> failJobRequest =
           failJob(
               client,
               job,
@@ -327,7 +329,7 @@ public class SpringConnectorJobHandler implements JobHandler {
               counterMetricsContext);
 
       notifyFailureOnCommandOutcome(
-          failJobFuture,
+          failJobRequest,
           context,
           response,
           completionFailure -> new ExecutionFailed(cause, completionFailure));
@@ -429,12 +431,12 @@ public class SpringConnectorJobHandler implements JobHandler {
               prepareAdHocSubProcessCompleteJobCommand(client, job, ahsp);
         };
 
-    var completeJobFuture =
+    CompletableFuture<CommandOutcome> completeJobRequest =
         jobCallbackCommandWrapperFactory
             .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
             .executeAsync();
 
-    completeJobFuture.whenComplete(
+    completeJobRequest.whenComplete(
         (outcome, throwable) -> {
           var commandFailure = commandFailureOrNull(outcome, throwable);
           if (commandFailure == null) {
@@ -444,7 +446,7 @@ public class SpringConnectorJobHandler implements JobHandler {
           }
         });
 
-    return completeJobFuture;
+    return completeJobRequest;
   }
 
   private static JobCallbackFinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
@@ -497,11 +499,11 @@ public class SpringConnectorJobHandler implements JobHandler {
    * subtype and embeds the command outcome where applicable.
    */
   private void notifyFailureOnCommandOutcome(
-      CompletableFuture<CommandOutcome> future,
+      CompletableFuture<CommandOutcome> request,
       OutboundConnectorContext context,
       ConnectorResponse response,
       Function<CommandFailure, JobCompletionFailure> failureBuilder) {
-    future.whenComplete(
+    request.whenComplete(
         (outcome, throwable) ->
             notifyJobCompletionFailed(
                 context, response, failureBuilder.apply(commandFailureOrNull(outcome, throwable))));
