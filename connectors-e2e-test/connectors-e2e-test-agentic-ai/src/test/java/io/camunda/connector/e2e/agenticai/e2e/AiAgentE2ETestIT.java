@@ -23,6 +23,7 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.time.Duration;
 import java.util.Map;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +66,8 @@ public class AiAgentE2ETestIT {
             .send()
             .join();
 
-    // then — wait for the user task to appear (CamundaAssert polls internally via setAssertionTimeout)
+    // then — wait for the user task to appear (CamundaAssert polls internally via
+    // setAssertionTimeout)
     CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
 
     // complete the user task with satisfaction
@@ -111,7 +113,8 @@ public class AiAgentE2ETestIT {
             .send()
             .join();
 
-    // then — wait for the first user task (CamundaAssert polls internally via setAssertionTimeout)
+    // then — wait for the first user task (CamundaAssert polls internally via
+    // setAssertionTimeout)
     CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
 
     // complete with follow-up (not satisfied)
@@ -178,5 +181,192 @@ public class AiAgentE2ETestIT {
         .hasVariableSatisfiesJudge(
             "agent",
             "The agent variable contains a responseText field that mentions something about cats");
+  }
+
+  @Test
+  void shouldCompleteWithUserLookupTool() {
+    // given
+    camundaClient
+        .newDeployResourceCommand()
+        .addResourceFromClasspath(BPMN_RESOURCE)
+        .addResourceFromClasspath(FORM_RESOURCE)
+        .send()
+        .join();
+
+    // when — prompt explicitly requires the ListUsers HTTP connector tool
+    var processInstance =
+        camundaClient
+            .newCreateInstanceCommand()
+            .bpmnProcessId(PROCESS_ID)
+            .latestVersion()
+            .variables(
+                Map.of(
+                    "inputText",
+                    "Use your user lookup tool to list available users and tell me the name of the first user you find"))
+            .send()
+            .join();
+
+    // then — wait for user task (agent called ListUsers HTTP tool and responded)
+    CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
+
+    var tasks =
+        camundaClient
+            .newUserTaskSearchRequest()
+            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
+            .send()
+            .join();
+    long taskKey = tasks.items().getFirst().getUserTaskKey();
+
+    camundaClient
+        .newCompleteUserTaskCommand(taskKey)
+        .variables(Map.of("userSatisfied", true))
+        .send()
+        .join();
+
+    CamundaAssert.assertThatProcessInstance(processInstance).isCompleted();
+    CamundaAssert.assertThatProcessInstance(processInstance)
+        .hasVariableSatisfiesJudge(
+            "agent",
+            "The agent variable contains a responseText field that includes a user's name from the user lookup");
+  }
+
+  @Test
+  void shouldCompleteWithMultipleToolCalls() {
+    // given
+    camundaClient
+        .newDeployResourceCommand()
+        .addResourceFromClasspath(BPMN_RESOURCE)
+        .addResourceFromClasspath(FORM_RESOURCE)
+        .send()
+        .join();
+
+    // when — explicitly request both the date/time tool and the jokes API in one prompt
+    var processInstance =
+        camundaClient
+            .newCreateInstanceCommand()
+            .bpmnProcessId(PROCESS_ID)
+            .latestVersion()
+            .variables(
+                Map.of(
+                    "inputText",
+                    "I need two things: use your date and time tool to tell me the current time,"
+                        + " and also use your jokes API tool to fetch a random joke for me"))
+            .send()
+            .join();
+
+    // then — agent called both tools and produced a combined response
+    CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
+
+    var tasks =
+        camundaClient
+            .newUserTaskSearchRequest()
+            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
+            .send()
+            .join();
+    long taskKey = tasks.items().getFirst().getUserTaskKey();
+
+    camundaClient
+        .newCompleteUserTaskCommand(taskKey)
+        .variables(Map.of("userSatisfied", true))
+        .send()
+        .join();
+
+    CamundaAssert.assertThatProcessInstance(processInstance).isCompleted();
+    CamundaAssert.assertThatProcessInstance(processInstance)
+        .hasVariableSatisfiesJudge(
+            "agent",
+            "The agent variable contains a responseText field that includes both the current time and a joke");
+  }
+
+  @Test
+  void shouldRetainToolResultAcrossFeedbackLoop() {
+    // given
+    camundaClient
+        .newDeployResourceCommand()
+        .addResourceFromClasspath(BPMN_RESOURCE)
+        .addResourceFromClasspath(FORM_RESOURCE)
+        .send()
+        .join();
+
+    // when — first turn: ask for the current time (forces GetDateAndTime tool)
+    var processInstance =
+        camundaClient
+            .newCreateInstanceCommand()
+            .bpmnProcessId(PROCESS_ID)
+            .latestVersion()
+            .variables(
+                Map.of(
+                    "inputText",
+                    "Use your date and time tool to tell me the exact current date and time"))
+            .send()
+            .join();
+
+    CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
+
+    var firstTasks =
+        camundaClient
+            .newUserTaskSearchRequest()
+            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
+            .send()
+            .join();
+    long firstTaskKey = firstTasks.items().getFirst().getUserTaskKey();
+
+    // follow-up explicitly references the previously retrieved time — tests conversation context
+    camundaClient
+        .newCompleteUserTaskCommand(firstTaskKey)
+        .variables(
+            Map.of(
+                "userSatisfied",
+                false,
+                "followUpInput",
+                "Based on the time you just looked up, is it currently daytime or nighttime?"))
+        .send()
+        .join();
+
+    // wait for second user task
+    await()
+        .atMost(Duration.ofMinutes(3))
+        .pollInterval(Duration.ofSeconds(5))
+        .untilAsserted(
+            () -> {
+              var tasks =
+                  camundaClient
+                      .newUserTaskSearchRequest()
+                      .filter(
+                          f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
+                      .send()
+                      .join();
+              Assertions.assertThat(
+                      tasks.items().stream()
+                          .filter(t -> t.getUserTaskKey() != firstTaskKey)
+                          .toList())
+                  .isNotEmpty();
+            });
+
+    long secondTaskKey =
+        camundaClient
+            .newUserTaskSearchRequest()
+            .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
+            .send()
+            .join()
+            .items()
+            .stream()
+            .filter(t -> t.getUserTaskKey() != firstTaskKey)
+            .findFirst()
+            .orElseThrow()
+            .getUserTaskKey();
+
+    camundaClient
+        .newCompleteUserTaskCommand(secondTaskKey)
+        .variables(Map.of("userSatisfied", true))
+        .send()
+        .join();
+
+    // then — agent answered the follow-up using the tool result retained in conversation context
+    CamundaAssert.assertThatProcessInstance(processInstance).isCompleted();
+    CamundaAssert.assertThatProcessInstance(processInstance)
+        .hasVariableSatisfiesJudge(
+            "agent",
+            "The agent variable contains a responseText field that says whether it is daytime or nighttime based on a previously retrieved time");
   }
 }
