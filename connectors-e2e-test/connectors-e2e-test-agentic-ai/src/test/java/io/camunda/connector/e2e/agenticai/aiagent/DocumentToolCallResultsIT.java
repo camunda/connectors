@@ -27,6 +27,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -225,6 +226,8 @@ class DocumentToolCallResultsIT {
 
   static Stream<ProviderConfig> providers() {
     List<Predicate<ProviderConfig>> modelFilters = new ArrayList<>();
+
+    // sample filter
     // modelFilters.add(p -> p.label().contains("gpt-4.1"));
 
     return Stream.of(
@@ -339,7 +342,7 @@ class DocumentToolCallResultsIT {
     var model = buildModel(provider);
 
     // deploy and wait for process definition to be available
-    io.camunda.connector.e2e.ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
+    ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
 
     return camundaClient
         .newCreateInstanceCommand()
