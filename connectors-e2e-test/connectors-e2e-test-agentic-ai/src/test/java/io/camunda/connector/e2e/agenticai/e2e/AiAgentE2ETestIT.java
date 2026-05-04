@@ -332,8 +332,7 @@ public class AiAgentE2ETestIT {
               var tasks =
                   camundaClient
                       .newUserTaskSearchRequest()
-                      .filter(
-                          f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
+                      .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
                       .send()
                       .join();
               Assertions.assertThat(
