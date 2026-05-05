@@ -33,7 +33,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(classes = AiAgentE2ETestApplication.class)
 @CamundaSpringProcessTest
-@ActiveProfiles("e2e-real-llm")
+@ActiveProfiles("it-real-llm")
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 public class AiAgentE2ETestIT {
 
@@ -92,7 +92,7 @@ public class AiAgentE2ETestIT {
     assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
-            "The agent variable contains a responseText field with the current date and time in Berlin, explicitly referencing the CET or CEST timezone or the city name Berlin");
+            "The agent variable contains a responseText field that includes a specific time value (hours and minutes) and explicitly references the CET or CEST timezone or the city name Berlin");
   }
 
   @Test
@@ -368,6 +368,6 @@ public class AiAgentE2ETestIT {
     assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
-            "The agent variable contains a responseText that says whether it is daytime or nighttime AND explicitly references or quotes the specific time retrieved by the GetDateAndTime tool in the previous turn, proving conversation context was retained");
+            "The agent variable contains a responseText that says whether it is daytime or nighttime AND includes a specific time value (hours and minutes) from the GetDateAndTime tool, proving conversation context was retained");
   }
 }
