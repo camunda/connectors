@@ -59,8 +59,8 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           exportEnv: false # we rely on step outputs, no need for environment variables
           secrets: |
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+            secret/data/products/connectors/ci/artifactory USER | CI_LDAP_USER;
+            secret/data/products/connectors/ci/artifactory TOKEN | CI_LDAP_PASSWORD;
 
       - name: Restore cache
         uses: actions/cache@v5

@@ -58,8 +58,8 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common DOCKERHUB_USER;
             secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Restore cache
