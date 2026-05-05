@@ -488,7 +488,7 @@
   }, {
     "id" : "provider.azureOpenAi.authentication.authorityHost",
     "label" : "Authority host",
-    "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+    "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. Use a different host for sovereign clouds (e.g. <code>https://login.microsoftonline.us</code> for Azure Government).",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
@@ -674,7 +674,7 @@
   }, {
     "id" : "provider.azureAiFoundry.authentication.authorityHost",
     "label" : "Authority host",
-    "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+    "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. Use a different host for sovereign clouds (e.g. <code>https://login.microsoftonline.us</code> for Azure Government).",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",

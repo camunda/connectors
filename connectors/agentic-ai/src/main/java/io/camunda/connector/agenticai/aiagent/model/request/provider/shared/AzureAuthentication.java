@@ -81,7 +81,7 @@ public sealed interface AzureAuthentication {
               group = "provider",
               label = "Authority host",
               description =
-                  "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+                  "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. Use a different host for sovereign clouds (e.g. <code>https://login.microsoftonline.us</code> for Azure Government).",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               optional = true)

@@ -9,25 +9,38 @@ package io.camunda.connector.agenticai.azurefoundry.langchain4j;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.anthropic.models.messages.Base64ImageSource;
 import com.anthropic.models.messages.ContentBlockParam;
+import com.anthropic.models.messages.JsonOutputFormat;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.MessageParam;
+import com.anthropic.models.messages.OutputConfig;
 import com.anthropic.models.messages.Tool;
 import com.anthropic.models.messages.ToolResultBlockParam;
 import com.anthropic.models.messages.ToolUseBlockParam;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.pdf.PdfFile;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchema;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureFoundryProviderConfiguration.AzureAiFoundryModel.AnthropicModel.AnthropicModelParameters;
+import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class AnthropicOnFoundryRequestMapperTest {
@@ -262,5 +275,126 @@ class AnthropicOnFoundryRequestMapperTest {
         .hasMessageContaining("broken_tool")
         .hasMessageContaining("'x'")
         .hasCauseInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void mapsMultiPartUserMessageWithTextAndBase64ImageToContentBlocks() {
+    // given — a UserMessage with two content blocks: text + base64-encoded image
+    var request =
+        ChatRequest.builder()
+            .messages(
+                UserMessage.from(
+                    TextContent.from("Describe this image:"),
+                    ImageContent.from(
+                        Image.builder().base64Data("iVBORw0KGgo=").mimeType("image/png").build())))
+            .build();
+
+    // when
+    MessageCreateParams params = mapper.toMessageCreateParams(request);
+
+    // then — the user message must use block-params form with text + image blocks
+    assertThat(params.messages()).hasSize(1);
+    MessageParam userMsg = params.messages().get(0);
+    assertThat(userMsg.role()).isEqualTo(MessageParam.Role.USER);
+    assertThat(userMsg.content().isBlockParams()).isTrue();
+
+    List<ContentBlockParam> blocks = userMsg.content().asBlockParams();
+    assertThat(blocks).hasSize(2);
+
+    assertThat(blocks.get(0).isText()).isTrue();
+    assertThat(blocks.get(0).asText().text()).isEqualTo("Describe this image:");
+
+    assertThat(blocks.get(1).isImage()).isTrue();
+    Base64ImageSource source = blocks.get(1).asImage().source().asBase64();
+    assertThat(source.data()).isEqualTo("iVBORw0KGgo=");
+    assertThat(source.mediaType()).isEqualTo(Base64ImageSource.MediaType.IMAGE_PNG);
+  }
+
+  @Test
+  void mapsUserMessageWithUrlImageToImageContentBlock() {
+    // given — a UserMessage with a URL-referenced image
+    var request =
+        ChatRequest.builder()
+            .messages(
+                UserMessage.from(ImageContent.from(URI.create("https://example.com/img.jpg"))))
+            .build();
+
+    // when
+    MessageCreateParams params = mapper.toMessageCreateParams(request);
+
+    // then
+    List<ContentBlockParam> blocks = params.messages().get(0).content().asBlockParams();
+    assertThat(blocks).hasSize(1);
+    assertThat(blocks.get(0).isImage()).isTrue();
+    assertThat(blocks.get(0).asImage().source().isUrl()).isTrue();
+    assertThat(blocks.get(0).asImage().source().asUrl().url())
+        .isEqualTo("https://example.com/img.jpg");
+  }
+
+  @Test
+  void mapsUserMessageWithBase64PdfToDocumentContentBlock() {
+    // given — a UserMessage with a base64-encoded PDF document
+    var request =
+        ChatRequest.builder()
+            .messages(
+                UserMessage.from(
+                    PdfFileContent.from(PdfFile.builder().base64Data("JVBERi0xLjQ=").build())))
+            .build();
+
+    // when
+    MessageCreateParams params = mapper.toMessageCreateParams(request);
+
+    // then
+    List<ContentBlockParam> blocks = params.messages().get(0).content().asBlockParams();
+    assertThat(blocks).hasSize(1);
+    assertThat(blocks.get(0).isDocument()).isTrue();
+    assertThat(blocks.get(0).asDocument().source().isBase64()).isTrue();
+    assertThat(blocks.get(0).asDocument().source().asBase64().data()).isEqualTo("JVBERi0xLjQ=");
+  }
+
+  @Test
+  void setsOutputConfigForJsonSchemaResponseFormat() {
+    // given — a ChatRequest with a JSON schema response format
+    JsonObjectSchema schema =
+        JsonObjectSchema.builder()
+            .addStringProperty("answer", "The answer")
+            .required("answer")
+            .build();
+    var request =
+        ChatRequest.builder()
+            .messages(UserMessage.from("Give me a structured answer"))
+            .responseFormat(
+                ResponseFormat.builder()
+                    .type(ResponseFormatType.JSON)
+                    .jsonSchema(JsonSchema.builder().name("Response").rootElement(schema).build())
+                    .build())
+            .build();
+
+    // when
+    MessageCreateParams params = mapper.toMessageCreateParams(request);
+
+    // then — outputConfig must be present with a json_schema format containing the schema
+    assertThat(params.outputConfig()).isPresent();
+    OutputConfig outputConfig = params.outputConfig().get();
+    assertThat(outputConfig.format()).isPresent();
+    JsonOutputFormat format = outputConfig.format().get();
+    Map<String, Object> schemaProperties =
+        format.schema()._additionalProperties().entrySet().stream()
+            .collect(
+                java.util.stream.Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
+    assertThat(schemaProperties).containsKey("properties");
+    assertThat(schemaProperties).containsKey("required");
+  }
+
+  @Test
+  void doesNotSetOutputConfigForTextResponseFormat() {
+    // given — no responseFormat set (defaults to TEXT)
+    var request = ChatRequest.builder().messages(UserMessage.from("hi")).build();
+
+    // when
+    MessageCreateParams params = mapper.toMessageCreateParams(request);
+
+    // then — no outputConfig must be set
+    assertThat(params.outputConfig()).isEmpty();
   }
 }

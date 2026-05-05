@@ -6,24 +6,39 @@
  */
 package io.camunda.connector.agenticai.azurefoundry.langchain4j;
 
+import com.anthropic.models.messages.Base64ImageSource;
+import com.anthropic.models.messages.Base64PdfSource;
 import com.anthropic.models.messages.ContentBlockParam;
+import com.anthropic.models.messages.DocumentBlockParam;
+import com.anthropic.models.messages.ImageBlockParam;
+import com.anthropic.models.messages.JsonOutputFormat;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.MessageParam;
+import com.anthropic.models.messages.OutputConfig;
 import com.anthropic.models.messages.TextBlockParam;
 import com.anthropic.models.messages.Tool;
 import com.anthropic.models.messages.ToolResultBlockParam;
 import com.anthropic.models.messages.ToolUseBlockParam;
+import com.anthropic.models.messages.UrlImageSource;
+import com.anthropic.models.messages.UrlPdfSource;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.pdf.PdfFile;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
@@ -109,6 +124,26 @@ class AnthropicOnFoundryRequestMapper {
       }
     }
 
+    // Response format → output_config (JSON schema only; schemaless JSON is not supported)
+    if (request.responseFormat() != null
+        && request.responseFormat().type() == ResponseFormatType.JSON) {
+      var jsonSchema = request.responseFormat().jsonSchema();
+      if (jsonSchema != null && jsonSchema.rootElement() != null) {
+        Map<String, Object> schemaMap = jsonSchemaConverter.schemaToMap(jsonSchema.rootElement());
+        var schemaBuilder = JsonOutputFormat.Schema.builder();
+        schemaMap.forEach(
+            (k, v) -> schemaBuilder.putAdditionalProperty(k, com.anthropic.core.JsonValue.from(v)));
+        builder.outputConfig(
+            OutputConfig.builder()
+                .format(JsonOutputFormat.builder().schema(schemaBuilder.build()).build())
+                .build());
+      } else {
+        LOG.warn(
+            "Schemaless JSON response format is not supported for Anthropic on Azure AI Foundry;"
+                + " outputConfig not set.");
+      }
+    }
+
     return builder.build();
   }
 
@@ -167,10 +202,52 @@ class AnthropicOnFoundryRequestMapper {
   }
 
   private MessageParam buildUserMessage(UserMessage message) {
-    return MessageParam.builder()
-        .role(MessageParam.Role.USER)
-        .content(message.singleText())
-        .build();
+    List<ContentBlockParam> blocks = new ArrayList<>();
+    for (Content content : message.contents()) {
+      switch (content) {
+        case TextContent textContent ->
+            blocks.add(
+                ContentBlockParam.ofText(
+                    TextBlockParam.builder().text(textContent.text()).build()));
+        case ImageContent imageContent -> blocks.add(buildImageBlock(imageContent.image()));
+        case PdfFileContent pdfFileContent ->
+            blocks.add(buildDocumentBlock(pdfFileContent.pdfFile()));
+        default -> LOG.warn("Unsupported UserMessage content type '{}'; skipping.", content.type());
+      }
+    }
+    return MessageParam.builder().role(MessageParam.Role.USER).contentOfBlockParams(blocks).build();
+  }
+
+  private ContentBlockParam buildImageBlock(Image image) {
+    if (image.url() != null) {
+      return ContentBlockParam.ofImage(
+          ImageBlockParam.builder()
+              .source(UrlImageSource.builder().url(image.url().toString()).build())
+              .build());
+    }
+    return ContentBlockParam.ofImage(
+        ImageBlockParam.builder()
+            .source(
+                Base64ImageSource.builder()
+                    .data(image.base64Data())
+                    .mediaType(
+                        Base64ImageSource.MediaType.of(
+                            image.mimeType() != null ? image.mimeType() : "image/jpeg"))
+                    .build())
+            .build());
+  }
+
+  private ContentBlockParam buildDocumentBlock(PdfFile pdfFile) {
+    if (pdfFile.url() != null) {
+      return ContentBlockParam.ofDocument(
+          DocumentBlockParam.builder()
+              .source(UrlPdfSource.builder().url(pdfFile.url().toString()).build())
+              .build());
+    }
+    return ContentBlockParam.ofDocument(
+        DocumentBlockParam.builder()
+            .source(Base64PdfSource.builder().data(pdfFile.base64Data()).build())
+            .build());
   }
 
   private MessageParam buildAssistantMessage(AiMessage aiMessage) {
