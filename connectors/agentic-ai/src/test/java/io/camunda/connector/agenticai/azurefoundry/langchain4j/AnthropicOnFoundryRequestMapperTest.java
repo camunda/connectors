@@ -397,4 +397,21 @@ class AnthropicOnFoundryRequestMapperTest {
     // then — no outputConfig must be set
     assertThat(params.outputConfig()).isEmpty();
   }
+
+  @Test
+  void doesNotSetOutputConfigForSchemalessJsonResponseFormat() {
+    // given — JSON type with no schema (schemaless JSON is unsupported for Anthropic;
+    // the mapper logs a warning and skips rather than throwing)
+    var request =
+        ChatRequest.builder()
+            .messages(UserMessage.from("hi"))
+            .responseFormat(ResponseFormat.builder().type(ResponseFormatType.JSON).build())
+            .build();
+
+    // when
+    MessageCreateParams params = mapper.toMessageCreateParams(request);
+
+    // then — outputConfig must not be set; request proceeds as unstructured text
+    assertThat(params.outputConfig()).isEmpty();
+  }
 }
