@@ -5,6 +5,9 @@ camunda:
   process-test:
     connectors-enabled: true
     connectors-docker-image-name: ${CONNECTORS_IMAGE_NAME:registry.camunda.cloud/team-connectors/connectors-bundle}
+    # In CI, CONNECTORS_IMAGE_VERSION is set from the build-image job output.
+    # To test locally, build the image first (mvn package -pl bundle/default-bundle -DskipTests),
+    # then export CONNECTORS_IMAGE_NAME and CONNECTORS_IMAGE_VERSION before running.
     connectors-docker-image-version: ${CONNECTORS_IMAGE_VERSION:SNAPSHOT}
     connectors-secrets:
       OPENAI_API_KEY: ${OPENAI_API_KEY}

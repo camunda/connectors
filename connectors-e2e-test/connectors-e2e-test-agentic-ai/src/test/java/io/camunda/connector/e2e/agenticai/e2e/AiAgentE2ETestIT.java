@@ -16,16 +16,17 @@
  */
 package io.camunda.connector.e2e.agenticai.e2e;
 
+import static io.camunda.process.test.api.CamundaAssert.assertThatProcessInstance;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.time.Duration;
 import java.util.Map;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -33,6 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest(classes = AiAgentE2ETestApplication.class)
 @CamundaSpringProcessTest
 @ActiveProfiles("e2e-real-llm")
+@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 public class AiAgentE2ETestIT {
 
   private static final String BPMN_RESOURCE = "ai-agent-e2e-openai.bpmn";
@@ -68,7 +70,7 @@ public class AiAgentE2ETestIT {
 
     // then — wait for the user task to appear (CamundaAssert polls internally via
     // setAssertionTimeout)
-    CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
+    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
 
     // complete the user task with satisfaction
     var tasks =
@@ -86,8 +88,8 @@ public class AiAgentE2ETestIT {
         .join();
 
     // then — process should complete with an agent response containing Berlin date/time info
-    CamundaAssert.assertThatProcessInstance(processInstance).isCompleted();
-    CamundaAssert.assertThatProcessInstance(processInstance)
+    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
             "The agent variable contains a responseText field with the current date and time in Berlin, explicitly referencing the CET or CEST timezone or the city name Berlin");
@@ -115,7 +117,7 @@ public class AiAgentE2ETestIT {
 
     // then — wait for the first user task (CamundaAssert polls internally via
     // setAssertionTimeout)
-    CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
+    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
 
     // complete with follow-up (not satisfied)
     var firstTasks =
@@ -152,7 +154,7 @@ public class AiAgentE2ETestIT {
               // A new task should appear with a different key
               var activeTasks =
                   tasks.items().stream().filter(t -> t.getUserTaskKey() != firstTaskKey).toList();
-              org.assertj.core.api.Assertions.assertThat(activeTasks).isNotEmpty();
+              assertThat(activeTasks).isNotEmpty();
             });
 
     // complete the second user task with satisfaction
@@ -176,8 +178,8 @@ public class AiAgentE2ETestIT {
         .join();
 
     // then — process completes
-    CamundaAssert.assertThatProcessInstance(processInstance).isCompleted();
-    CamundaAssert.assertThatProcessInstance(processInstance)
+    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
             "The agent variable contains a responseText field that mentions something about cats");
@@ -207,7 +209,7 @@ public class AiAgentE2ETestIT {
             .join();
 
     // then — wait for user task (agent called ListUsers HTTP tool and responded)
-    CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
+    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
 
     var tasks =
         camundaClient
@@ -223,8 +225,8 @@ public class AiAgentE2ETestIT {
         .send()
         .join();
 
-    CamundaAssert.assertThatProcessInstance(processInstance).isCompleted();
-    CamundaAssert.assertThatProcessInstance(processInstance)
+    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
             "The agent variable contains a responseText field that names a real user from the jsonplaceholder API (e.g. Leanne Graham, Ervin Howell, or Clementine Bauch) — not a hallucinated name — proving the HTTP ListUsers tool was actually invoked");
@@ -255,7 +257,7 @@ public class AiAgentE2ETestIT {
             .join();
 
     // then — agent called both tools and produced a combined response
-    CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
+    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
 
     var tasks =
         camundaClient
@@ -271,8 +273,8 @@ public class AiAgentE2ETestIT {
         .send()
         .join();
 
-    CamundaAssert.assertThatProcessInstance(processInstance).isCompleted();
-    CamundaAssert.assertThatProcessInstance(processInstance)
+    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
             "The agent variable contains a responseText field with a specific current time (including hours and minutes) from the GetDateAndTime tool AND a complete joke with a punchline from the jokes API, proving both HTTP tools were invoked");
@@ -301,7 +303,7 @@ public class AiAgentE2ETestIT {
             .send()
             .join();
 
-    CamundaAssert.assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
+    assertThatProcessInstance(processInstance).hasActiveElements("User_Feedback");
 
     var firstTasks =
         camundaClient
@@ -335,7 +337,7 @@ public class AiAgentE2ETestIT {
                       .filter(f -> f.processInstanceKey(processInstance.getProcessInstanceKey()))
                       .send()
                       .join();
-              Assertions.assertThat(
+              assertThat(
                       tasks.items().stream()
                           .filter(t -> t.getUserTaskKey() != firstTaskKey)
                           .toList())
@@ -362,8 +364,8 @@ public class AiAgentE2ETestIT {
         .join();
 
     // then — agent answered the follow-up using the tool result retained in conversation context
-    CamundaAssert.assertThatProcessInstance(processInstance).isCompleted();
-    CamundaAssert.assertThatProcessInstance(processInstance)
+    assertThatProcessInstance(processInstance).isCompleted();
+    assertThatProcessInstance(processInstance)
         .hasVariableSatisfiesJudge(
             "agent",
             "The agent variable contains a responseText that says whether it is daytime or nighttime AND explicitly references or quotes the specific time retrieved by the GetDateAndTime tool in the previous turn, proving conversation context was retained");
