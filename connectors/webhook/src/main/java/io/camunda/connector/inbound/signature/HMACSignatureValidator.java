@@ -10,6 +10,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Map;
@@ -93,8 +94,12 @@ public class HMACSignatureValidator {
     // The Twilio produce base64 version
     String expectedBase64HmacString = Base64.getEncoder().encodeToString(expectedHmac);
     LOG.debug("Computed HMAC from webhook body: {}", expectedHmacString);
-    return providedHmac.equals(expectedHmacString)
-        || providedHmacWithoutTag.equals(expectedHmacString)
-        || providedHmac.equals(expectedBase64HmacString);
+    byte[] providedHmacBytes = providedHmac.getBytes(StandardCharsets.UTF_8);
+    byte[] providedHmacWithoutTagBytes = providedHmacWithoutTag.getBytes(StandardCharsets.UTF_8);
+    byte[] expectedHmacBytes = expectedHmacString.getBytes(StandardCharsets.UTF_8);
+    byte[] expectedBase64HmacBytes = expectedBase64HmacString.getBytes(StandardCharsets.UTF_8);
+    return MessageDigest.isEqual(providedHmacBytes, expectedHmacBytes)
+        || MessageDigest.isEqual(providedHmacWithoutTagBytes, expectedHmacBytes)
+        || MessageDigest.isEqual(providedHmacBytes, expectedBase64HmacBytes);
   }
 }
