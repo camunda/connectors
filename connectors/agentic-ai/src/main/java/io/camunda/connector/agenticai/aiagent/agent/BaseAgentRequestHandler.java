@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
@@ -23,6 +24,7 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.ConnectorResponse;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
@@ -73,14 +75,14 @@ public abstract class BaseAgentRequestHandler<
         LOGGER.debug(
             "AI Agent initialization returned direct response including {} tool calls. Completing job without further processing.",
             agentResponse.toolCalls().size());
-        yield buildConnectorResponse(executionContext, agentResponse);
+        yield buildConnectorResponse(executionContext, agentResponse, null);
       }
 
       // discovery still in progress (not all tool call results present)
       case AgentDiscoveryInProgressInitializationResult ignored -> {
         LOGGER.debug(
             "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
-        yield buildConnectorResponse(executionContext, null);
+        yield buildConnectorResponse(executionContext, null, null);
       }
 
       case AgentContextInitializationResult(
@@ -109,7 +111,9 @@ public abstract class BaseAgentRequestHandler<
           "Request processing completed {} agent response, completing job",
           agentResponse == null ? "without" : "with");
 
-      return buildConnectorResponse(executionContext, agentResponse);
+      var completionListener =
+          createStoreCompletionListener(executionContext, store, agentResponse);
+      return buildConnectorResponse(executionContext, agentResponse, completionListener);
     }
   }
 
@@ -200,7 +204,31 @@ public abstract class BaseAgentRequestHandler<
     // no-op by default
   }
 
-  /** Builds the connector response from the agent response. Agent response may be null. */
+  /**
+   * Builds the connector response from the agent response. Agent response and listener may be null.
+   */
   protected abstract R buildConnectorResponse(
-      final C executionContext, @Nullable final AgentResponse agentResponse);
+      final C executionContext,
+      @Nullable final AgentResponse agentResponse,
+      @Nullable final AgentJobCompletionListener completionListener);
+
+  private static <C extends AgentExecutionContext>
+      AgentJobCompletionListener createStoreCompletionListener(
+          C executionContext, ConversationStore store, @Nullable AgentResponse agentResponse) {
+    if (agentResponse == null) {
+      return null;
+    }
+    var context = agentResponse.context();
+    return new AgentJobCompletionListener() {
+      @Override
+      public void onJobCompleted() {
+        store.onJobCompleted(executionContext, context);
+      }
+
+      @Override
+      public void onJobCompletionFailed(JobCompletionFailure failure) {
+        store.onJobCompletionFailed(executionContext, context, failure);
+      }
+    };
+  }
 }

@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionConte
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
 /**
  * AI Agent job worker implementation (acting on an ad-hoc sub-process).
@@ -33,7 +32,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
       AiAgentJobWorker.PROVIDER_VARIABLE,
       AiAgentJobWorker.DATA_VARIABLE
     })
-public class AiAgentJobWorker implements OutboundConnectorFunction {
+public class AiAgentJobWorker implements AgentConnectorFunction {
 
   public static final String JOB_WORKER_NAME = "AI Agent Job Worker";
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent-job-worker:1";

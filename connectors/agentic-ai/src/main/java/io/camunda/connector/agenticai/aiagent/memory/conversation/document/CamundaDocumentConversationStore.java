@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
+import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -14,10 +16,17 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CamundaDocumentConversationStore implements ConversationStore {
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(CamundaDocumentConversationStore.class);
 
   public static final String TYPE = "camunda-document";
 
@@ -55,5 +64,30 @@ public class CamundaDocumentConversationStore implements ConversationStore {
 
     return new CamundaDocumentConversationSession(
         documentConfig, documentFactory, documentStore, conversationSerializer, executionContext);
+  }
+
+  @Override
+  public void onJobCompletionFailed(
+      AgentExecutionContext executionContext,
+      AgentContext failedContext,
+      JobCompletionFailure failure) {
+    var ctx = loadConversationContext(failedContext, CamundaDocumentConversationContext.class);
+    if (ctx == null) {
+      return;
+    }
+
+    // ctx.document() is the document written by storeMessages during this job — it became
+    // orphaned because Zeebe rejected the job completion, so no pointer will ever reference it
+    var document = ctx.document();
+    if (document.reference() instanceof CamundaDocumentReference camundaDocumentReference) {
+      try {
+        documentStore.deleteDocument(camundaDocumentReference);
+      } catch (Exception e) {
+        LOGGER.warn(
+            "Failed to delete orphaned document after job completion failure: {}",
+            camundaDocumentReference,
+            e);
+      }
+    }
   }
 }

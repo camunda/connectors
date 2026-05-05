@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
 
 /**
  * Pluggable backend for persisting and loading conversation history.
@@ -32,4 +33,26 @@ public interface ConversationStore {
    */
   ConversationSession createSession(
       AgentExecutionContext executionContext, AgentContext agentContext);
+
+  /**
+   * Best-effort: the job carrying the given agentContext was accepted by Zeebe. Implementations may
+   * use this to clean up previous state (old documents, orphaned branches).
+   *
+   * <p>Receives the same execution context as {@link #createSession} so implementations can create
+   * a temporary session for post-commit actions if needed.
+   */
+  default void onJobCompleted(
+      AgentExecutionContext executionContext, AgentContext committedContext) {}
+
+  /**
+   * Best-effort: the job was not accepted. The store may have written state that Zeebe doesn't know
+   * about.
+   *
+   * <p>Receives the same execution context as {@link #createSession} so implementations can create
+   * a temporary session for compensation if needed.
+   */
+  default void onJobCompletionFailed(
+      AgentExecutionContext executionContext,
+      AgentContext failedContext,
+      JobCompletionFailure failure) {}
 }

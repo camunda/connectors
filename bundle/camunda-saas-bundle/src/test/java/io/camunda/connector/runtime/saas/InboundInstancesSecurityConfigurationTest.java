@@ -24,6 +24,7 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +67,15 @@ public class InboundInstancesSecurityConfigurationTest {
   static void registerOidcProperties(DynamicPropertyRegistry registry) {
     registry.add("camunda.connector.auth.issuer", OIDC_SERVER::issuer);
     registry.add("camunda.client.auth.token-url", OIDC_SERVER::tokenUrl);
+  }
+
+  @BeforeAll
+  static void beforeAll() {
+    OIDC_SERVER.stubTokenResponse(
+        200,
+        """
+        {"access_token":"test-token","token_type":"Bearer","expires_in":3600}
+        """);
   }
 
   @AfterAll

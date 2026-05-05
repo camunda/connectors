@@ -19,25 +19,43 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.output.FinishReason;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.e2e.agenticai.AgentCoreMemoryTestConfiguration;
 import io.camunda.connector.e2e.agenticai.InMemoryBedrockAgentCoreClientFactory;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 @Import(AgentCoreMemoryTestConfiguration.class)
 public class L4JAiAgentJobWorkerMemoryStorageTests extends BaseL4JAiAgentJobWorkerTest {
+
+  @MockitoSpyBean private CamundaDocumentConversationStore documentConversationStore;
+  @MockitoSpyBean private CamundaDocumentStore documentStore;
 
   @BeforeEach
   void clearAgentCoreMemoryStore() {
@@ -111,6 +129,76 @@ public class L4JAiAgentJobWorkerMemoryStorageTests extends BaseL4JAiAgentJobWork
                             });
                   });
         });
+  }
+
+  @Test
+  void camundaDocumentStorage_cleansUpOrphanedDocumentOnJobCompletionFailure() throws Exception {
+    // capture the job key from the createSession call on the spy
+    var jobKey = new AtomicLong();
+    doAnswer(
+            invocation -> {
+              AgentExecutionContext executionContext = invocation.getArgument(0);
+              jobKey.set(executionContext.jobContext().getJobKey());
+              return invocation.callRealMethod();
+            })
+        .when(documentConversationStore)
+        .createSession(any(), any());
+
+    // capture the reference of the document created by storeMessages during this job —
+    // this is the document that becomes orphaned when job completion fails
+    var createdReference = new AtomicReference<CamundaDocumentReference>();
+    doAnswer(
+            invocation -> {
+              CamundaDocumentReference ref = (CamundaDocumentReference) invocation.callRealMethod();
+              createdReference.set(ref);
+              return ref;
+            })
+        .when(documentStore)
+        .createDocument(any());
+
+    final var initialUserPrompt = "Write a haiku about the sea";
+    final var responseText = "Waves crash on the shore";
+
+    doAnswer(
+            invocation -> {
+              // fail the job via Zeebe API — causes the subsequent completeJob to be rejected
+              camundaClient
+                  .newFailCommand(jobKey.get())
+                  .retries(0)
+                  .errorMessage("Deliberately failed for e2e test")
+                  .send()
+                  .join();
+
+              return ChatResponse.builder()
+                  .metadata(
+                      ChatResponseMetadata.builder()
+                          .finishReason(FinishReason.STOP)
+                          .tokenUsage(new TokenUsage(10, 20))
+                          .build())
+                  .aiMessage(new AiMessage(responseText))
+                  .build();
+            })
+        .when(chatModel)
+        .chat(chatRequestCaptor.capture());
+
+    createProcessInstance(
+        elementTemplate ->
+            elementTemplate
+                .property("data.memory.storage.type", "camunda-document")
+                .property("data.memory.storage.timeToLive", "PT1H"),
+        Map.of("userPrompt", initialUserPrompt));
+
+    // verify that onJobCompletionFailed deleted the exact document that was written by
+    // storeMessages — the orphaned document that no Zeebe pointer will ever reference
+    await()
+        .alias("onJobCompletionFailed should clean up the orphaned document")
+        .atMost(Duration.ofSeconds(30))
+        .pollInterval(Duration.ofMillis(500))
+        .untilAsserted(
+            () -> {
+              assertThat(createdReference.get()).isNotNull();
+              verify(documentStore).deleteDocument(createdReference.get());
+            });
   }
 
   @Test

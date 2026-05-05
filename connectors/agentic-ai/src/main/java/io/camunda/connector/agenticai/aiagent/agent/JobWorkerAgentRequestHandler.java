@@ -84,7 +84,9 @@ public class JobWorkerAgentRequestHandler
 
   @Override
   public AiAgentSubProcessConnectorResponse buildConnectorResponse(
-      JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
+      JobWorkerAgentExecutionContext executionContext,
+      AgentResponse agentResponse,
+      AgentJobCompletionListener completionListener) {
     if (agentResponse == null) {
       LOGGER.debug(
           "No agent response provided, completing job {} without response",
@@ -104,12 +106,14 @@ public class JobWorkerAgentRequestHandler
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
-      return buildResponse(executionContext, agentResponse);
+      return buildResponse(executionContext, agentResponse, completionListener);
     }
   }
 
   private AiAgentSubProcessConnectorResponse buildResponse(
-      JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
+      JobWorkerAgentExecutionContext executionContext,
+      AgentResponse agentResponse,
+      AgentJobCompletionListener completionListener) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
     boolean cancelRemainingInstances = executionContext.cancelRemainingInstances();
 
@@ -138,6 +142,7 @@ public class JobWorkerAgentRequestHandler
         .elementActivations(buildElementActivations(agentResponse))
         .completionConditionFulfilled(completionConditionFulfilled)
         .cancelRemainingInstances(cancelRemainingInstances)
+        .completionListener(completionListener)
         .build();
   }
 
