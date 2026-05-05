@@ -403,6 +403,7 @@ jobs:
         run: |
           mvn verify \
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+            -am \
             -Pit-real-llm \
             --batch-mode
 
