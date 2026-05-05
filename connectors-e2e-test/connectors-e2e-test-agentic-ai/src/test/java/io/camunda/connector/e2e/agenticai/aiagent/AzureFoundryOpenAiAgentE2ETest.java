@@ -71,14 +71,11 @@ class AzureFoundryOpenAiAgentE2ETest extends BaseAiAgentConnectorTest {
   protected Map<String, String> elementTemplateProperties() {
     final var properties = new HashMap<>(AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PROPERTIES);
     properties.put("provider.type", "azureAiFoundry");
-    // The endpoint is not actually called — the ChatModelFactory is mocked. A placeholder is
-    // still required so element-template validation passes.
     properties.put("provider.azureAiFoundry.endpoint", "https://placeholder.services.ai.azure.com");
     properties.put("provider.azureAiFoundry.authentication.type", "apiKey");
     properties.put("provider.azureAiFoundry.authentication.apiKey", "test-api-key");
     properties.put("provider.azureAiFoundry.model.family", "openai");
     properties.put("provider.azureAiFoundry.model.openai.deploymentName", "gpt-4o");
-    // remove openai provider keys inherited from the fixture so they don't conflict
     properties.remove("provider.openai.authentication.apiKey");
     properties.remove("provider.openai.model.model");
     return properties;
@@ -86,30 +83,23 @@ class AzureFoundryOpenAiAgentE2ETest extends BaseAiAgentConnectorTest {
 
   @Test
   void agentLoopCompletesWithoutToolCalls() throws Exception {
-    // Single-turn scenario: the mocked ChatModel returns a direct response with no tool calls.
-    // This exercises the full connector stack (deserialization → dispatch → model call →
-    // agent response) without routing through the BPMN tool-call sub-process.
     when(chatModel.chat(any(ChatRequest.class)))
-        .thenReturn(
-            ChatResponse.builder()
-                .aiMessage(AiMessage.from("It's sunny in Berlin."))
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(42, 18))
-                        .build())
-                .build());
-
-    // Signal user satisfaction so the BPMN feedback loop exits after the first agent response.
+        .thenReturn(directTextResponse("It's sunny in Berlin."));
     userFeedbackVariables.set(userSatisfiedFeedback());
 
-    final var zeebeTest =
-        createProcessInstance(
-            elementTemplate -> elementTemplate,
-            Map.of("userPrompt", "Write a haiku about the sea"));
+    createProcessInstance(
+            elementTemplate -> elementTemplate, Map.of("userPrompt", "Write a haiku about the sea"))
+        .waitForProcessCompletion();
+  }
 
-    // The Foundry OpenAI-family dispatch path delegates to the shared Azure OpenAI builder
-    // helper (same as the legacy azureOpenAi provider). If this test fails, dispatch is broken.
-    zeebeTest.waitForProcessCompletion();
+  private static ChatResponse directTextResponse(String text) {
+    return ChatResponse.builder()
+        .aiMessage(AiMessage.from(text))
+        .metadata(
+            ChatResponseMetadata.builder()
+                .finishReason(FinishReason.STOP)
+                .tokenUsage(new TokenUsage(42, 18))
+                .build())
+        .build();
   }
 }
