@@ -82,8 +82,8 @@ public class AnthropicOnFoundryClientFactory {
 
   private static String authType(AzureAuthentication auth) {
     return switch (auth) {
-      case AzureApiKeyAuthentication -> "apiKey";
-      case AzureClientCredentialsAuthentication -> "clientCredentials";
+      case AzureApiKeyAuthentication ignored -> "apiKey";
+      case AzureClientCredentialsAuthentication ignored -> "clientCredentials";
     };
   }
 
