@@ -207,8 +207,8 @@ class AnthropicOnFoundryRequestMapper {
     if (arguments != null && !arguments.isBlank()) {
       try {
         JsonNode node = OBJECT_MAPPER.readTree(arguments);
-        node.fields()
-            .forEachRemaining(
+        node.properties()
+            .forEach(
                 entry ->
                     inputBuilder.putAdditionalProperty(
                         entry.getKey(), com.anthropic.core.JsonValue.from(entry.getValue())));

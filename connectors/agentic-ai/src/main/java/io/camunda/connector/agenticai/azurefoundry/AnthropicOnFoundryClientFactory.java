@@ -50,7 +50,7 @@ public class AnthropicOnFoundryClientFactory {
       Duration timeout,
       AnthropicModel modelConfig) {
 
-    String normalizedEndpoint = StringUtils.removeEnd(endpoint, "/");
+    String normalizedEndpoint = endpoint.endsWith("/") ? endpoint.substring(0, endpoint.length() - 1) : endpoint;
 
     FoundryBackend backend = buildFoundryBackend(normalizedEndpoint, authentication);
 
@@ -81,8 +81,8 @@ public class AnthropicOnFoundryClientFactory {
 
   private static String authType(AzureAuthentication auth) {
     return switch (auth) {
-      case AzureApiKeyAuthentication ignored -> "apiKey";
-      case AzureClientCredentialsAuthentication ignored -> "clientCredentials";
+      case AzureApiKeyAuthentication _ -> "apiKey";
+      case AzureClientCredentialsAuthentication _ -> "clientCredentials";
     };
   }
 
