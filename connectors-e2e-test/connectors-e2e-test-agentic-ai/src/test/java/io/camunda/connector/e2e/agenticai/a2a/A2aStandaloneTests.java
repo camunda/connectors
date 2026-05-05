@@ -24,7 +24,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static io.camunda.connector.e2e.agenticai.TestUtil.postWithDelay;
-import static io.camunda.connector.e2e.agenticai.TestUtil.waitForElementActivation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -36,6 +35,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
+import io.camunda.connector.e2e.agenticai.TestUtil;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
@@ -70,6 +70,7 @@ import org.springframework.test.context.TestPropertySource;
 public class A2aStandaloneTests extends BaseAgenticAiTest {
 
   private static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
+  private static final String POLLING_ELEMENT_ID = "Wait_For_Completion_Polling";
 
   @Autowired private InboundConnectorTestHelper inboundConnectorTestHelper;
   @Autowired private ImportSchedulers importSchedulers;
@@ -98,10 +99,12 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
     ZeebeTest zeebeTest =
         createProcessInstance(
-                bpmnModel,
-                Map.of(
-                    "responseRetrievalMode", "polling", "a2aServerUrl", wireMock.getHttpBaseUrl()))
-            .waitForProcessCompletion();
+            bpmnModel,
+            Map.of("responseRetrievalMode", "polling", "a2aServerUrl", wireMock.getHttpBaseUrl()));
+
+    awaitInboundConnectorReady(zeebeTest, POLLING_ELEMENT_ID);
+
+    zeebeTest.waitForProcessCompletion();
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableSatisfies(
@@ -126,7 +129,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "webhookUrl",
                 webhookUrl));
 
-    waitForWebhookElementActivation(zeebeTest);
+    awaitInboundConnectorReady(zeebeTest, WEBHOOK_ELEMENT_ID);
 
     // Post working state - should NOT activate webhook
     postWithDelay(
@@ -163,7 +166,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "token",
                 token));
 
-    waitForWebhookElementActivation(zeebeTest);
+    awaitInboundConnectorReady(zeebeTest, WEBHOOK_ELEMENT_ID);
 
     // Post working state - should NOT activate webhook
     postWithDelay(
@@ -217,7 +220,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "webhookUrl",
                 webhookUrl));
 
-    waitForWebhookElementActivation(zeebeTest);
+    awaitInboundConnectorReady(zeebeTest, WEBHOOK_ELEMENT_ID);
 
     // Post working state - should NOT activate webhook
     postWithDelay(
@@ -264,7 +267,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "webhookUrl",
                 webhookUrl));
 
-    waitForWebhookElementActivation(zeebeTest);
+    awaitInboundConnectorReady(zeebeTest, WEBHOOK_ELEMENT_ID);
 
     // Post working state - should NOT activate webhook
     postWithDelay(
@@ -298,10 +301,9 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     assertVariablesWithWebhook(zeebeTest);
   }
 
-  private void waitForWebhookElementActivation(ZeebeTest zeebeTest) {
-    // manually trigger process definition import to register the webhook
-    importSchedulers.scheduleLatestVersionImport();
-    waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
+  private void awaitInboundConnectorReady(ZeebeTest zeebeTest, String elementId) {
+    TestUtil.awaitInboundConnectorReady(
+        zeebeTest, elementId, importSchedulers, inboundConnectorTestHelper);
   }
 
   private BpmnModelInstance getBpmnModelWithNewId(String newProcessId) throws IOException {

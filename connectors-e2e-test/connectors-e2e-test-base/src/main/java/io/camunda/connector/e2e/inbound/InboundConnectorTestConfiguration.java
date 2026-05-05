@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
@@ -40,6 +41,7 @@ public class InboundConnectorTestConfiguration {
   public static class InboundConnectorTestHelper {
 
     private static final Duration DEFAULT_AWAIT_NO_EXECUTABLES_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration DEFAULT_AWAIT_ACTIVE_EXECUTABLE_TIMEOUT = Duration.ofSeconds(15);
 
     private final CacheManager cacheManager;
     private final InboundExecutableRegistry executableRegistry;
@@ -80,6 +82,40 @@ public class InboundConnectorTestConfiguration {
                 var allExecutables =
                     executableRegistry.query(new ActiveExecutableQuery(null, null, null, null));
                 assertThat(allExecutables).isEmpty();
+              });
+    }
+
+    /**
+     * Waits until an inbound executable for the given BPMN element id is registered and reports
+     * health {@link Health.Status#UP}. This is needed in addition to waiting for the BPMN element
+     * to become active because the inbound executable registry processes activation events
+     * asynchronously, so the subscription may not yet be reachable (e.g. a webhook would return
+     * 404) when the element activates in the process.
+     */
+    public void awaitActiveInboundExecutable(String elementId) {
+      awaitActiveInboundExecutable(elementId, DEFAULT_AWAIT_ACTIVE_EXECUTABLE_TIMEOUT);
+    }
+
+    /** See {@link #awaitActiveInboundExecutable(String)}. */
+    public void awaitActiveInboundExecutable(String elementId, Duration waitDuration) {
+      await("inbound executable for element '" + elementId + "' should be active and healthy")
+          .atMost(waitDuration)
+          .untilAsserted(
+              () -> {
+                var executables =
+                    executableRegistry.query(
+                        new ActiveExecutableQuery(null, elementId, null, null));
+                assertThat(executables)
+                    .as("executable for element '%s' should be registered", elementId)
+                    .isNotEmpty();
+                assertThat(executables)
+                    .allSatisfy(
+                        executable ->
+                            assertThat(executable.health().getStatus())
+                                .as(
+                                    "executable for element '%s' should be UP, got: %s",
+                                    elementId, executable.health())
+                                .isEqualTo(Health.Status.UP));
               });
     }
   }
