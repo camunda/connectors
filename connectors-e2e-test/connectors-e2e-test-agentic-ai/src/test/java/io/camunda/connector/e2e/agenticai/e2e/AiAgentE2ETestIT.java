@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.e2e;
 
 import static io.camunda.process.test.api.CamundaAssert.assertThatProcessInstance;
+import static io.camunda.process.test.api.CamundaAssert.setAssertionTimeout;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -45,7 +46,7 @@ public class AiAgentE2ETestIT {
 
   @BeforeAll
   static void setUp() {
-    CamundaAssert.setAssertionTimeout(Duration.ofMinutes(3));
+    setAssertionTimeout(Duration.ofMinutes(3));
   }
 
   @Test
