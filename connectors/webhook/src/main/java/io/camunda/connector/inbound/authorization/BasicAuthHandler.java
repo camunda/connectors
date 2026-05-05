@@ -13,6 +13,7 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.In
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.WebhookAuthorization.BasicAuth;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -37,7 +38,9 @@ final class BasicAuthHandler extends WebhookAuthorizationHandler<BasicAuth> {
     String expectedAuth = expectedAuthorization.username() + ":" + expectedAuthorization.password();
     String actualAuth =
         new String(Base64.getDecoder().decode(authValue.getBytes(StandardCharsets.UTF_8)));
-    if (!expectedAuth.equals(actualAuth)) {
+    if (!MessageDigest.isEqual(
+        expectedAuth.getBytes(StandardCharsets.UTF_8),
+        actualAuth.getBytes(StandardCharsets.UTF_8))) {
       return AUTH_HEADER_INVALID_RESULT;
     }
     return Success.INSTANCE;
