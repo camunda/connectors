@@ -21,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.api.inbound.ActivityLogTag;
+import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
@@ -153,6 +156,56 @@ class InboundConnectorContextImplTest {
 
     // then
     assertThat(properties.get("stringMap")).isEqualTo("={\"keyString\":null}");
+  }
+
+  @Test
+  void reportHealth_shouldLogInfoSeverityWhenStatusIsUp() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of());
+    var health = Health.up();
+    InboundConnectorContextImpl inboundConnectorContext =
+        new InboundConnectorContextImpl(
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+
+    // when
+    inboundConnectorContext.reportHealth(health);
+
+    // then
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(
+            log -> {
+              assertThat(log.tag()).isEqualTo(ActivityLogTag.HEALTH);
+              assertThat(log.healthChange()).isEqualTo(health);
+              assertThat(log.severity()).isEqualTo(Severity.INFO);
+            });
+  }
+
+  @Test
+  void reportHealth_shouldLogErrorSeverityWhenStatusIsDown() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of());
+    var health = Health.down();
+    InboundConnectorContextImpl inboundConnectorContext =
+        new InboundConnectorContextImpl(
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+
+    // when
+    inboundConnectorContext.reportHealth(health);
+
+    // then
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(
+            log -> {
+              assertThat(log.tag()).isEqualTo(ActivityLogTag.HEALTH);
+              assertThat(log.healthChange()).isEqualTo(health);
+              assertThat(log.severity()).isEqualTo(Severity.ERROR);
+            });
   }
 
   private TestPropertiesClass createTestClass() {

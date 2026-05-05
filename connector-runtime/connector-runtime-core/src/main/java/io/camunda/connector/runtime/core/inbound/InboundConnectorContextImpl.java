@@ -306,6 +306,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
                 String.format(
                     "Health status changed to %s, details: %s",
                     health.getStatus(), health.getDetails()))
+            .withSeverity(health.getStatus() == Health.Status.UP ? Severity.INFO : Severity.ERROR)
             .andReportHealth(health)
             .build();
     // append the activity log to store the health status change history
