@@ -13,6 +13,8 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.In
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +42,9 @@ final class ApiKeyAuthHandler extends WebhookAuthorizationHandler<ApiKeyAuth> {
       if (apiKeyValue == null) {
         return API_KEY_MISSING_RESULT;
       }
-      if (!apiKeyValue.equals(expectedAuthorization.apiKey())) {
+      if (!MessageDigest.isEqual(
+          apiKeyValue.getBytes(StandardCharsets.UTF_8),
+          expectedAuthorization.apiKey().getBytes(StandardCharsets.UTF_8))) {
         return API_KEY_INVALID_RESULT;
       }
       return Success.INSTANCE;
