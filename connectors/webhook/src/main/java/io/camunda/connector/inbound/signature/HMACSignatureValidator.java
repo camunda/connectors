@@ -18,12 +18,8 @@ import java.util.TreeMap;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HMACSignatureValidator {
-
-  private static final Logger LOG = LoggerFactory.getLogger(HMACSignatureValidator.class);
 
   private final byte[] requestBody;
   private final Map<String, String> headers;
@@ -68,7 +64,6 @@ public class HMACSignatureValidator {
       throw new ConnectorException("Expected HMAC header " + hmacHeader + ", but was not present");
     }
     final String providedHmac = caseInsensitiveHeaders.get(hmacHeader);
-    LOG.debug("Given HMAC from webhook call: {}", providedHmac);
 
     if (providedHmac == null || providedHmac.length() == 0) {
       return false;
@@ -93,7 +88,7 @@ public class HMACSignatureValidator {
 
     // The Twilio produce base64 version
     String expectedBase64HmacString = Base64.getEncoder().encodeToString(expectedHmac);
-    LOG.debug("Computed HMAC from webhook body: {}", expectedHmacString);
+
     byte[] providedHmacBytes = providedHmac.getBytes(StandardCharsets.UTF_8);
     byte[] providedHmacWithoutTagBytes = providedHmacWithoutTag.getBytes(StandardCharsets.UTF_8);
     byte[] expectedHmacBytes = expectedHmacString.getBytes(StandardCharsets.UTF_8);
