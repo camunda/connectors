@@ -21,6 +21,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -78,27 +79,35 @@ abstract class BaseWireFormatAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTe
   /** Response body for the second LLM call — final text answer, no tool calls. */
   protected abstract String finalResponseBody();
 
+  /**
+   * Adds provider-specific API key header matching to the stub, e.g. {@code x-api-key} for
+   * Anthropic or {@code Authorization: Bearer} for OpenAI.
+   */
+  protected abstract MappingBuilder withApiKeyHeaderMatcher(MappingBuilder stub);
+
   protected void stubLlmApiForToolCallThenFinalResponse() {
     stubFor(
-        post(urlEqualTo(llmApiPath()))
-            .inScenario(SCENARIO_NAME)
-            .whenScenarioStateIs(Scenario.STARTED)
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(toolCallResponseBody()))
-            .willSetStateTo(AFTER_TOOL_CALL_STATE));
+        withApiKeyHeaderMatcher(
+            post(urlEqualTo(llmApiPath()))
+                .inScenario(SCENARIO_NAME)
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(toolCallResponseBody()))
+                .willSetStateTo(AFTER_TOOL_CALL_STATE)));
 
     stubFor(
-        post(urlEqualTo(llmApiPath()))
-            .inScenario(SCENARIO_NAME)
-            .whenScenarioStateIs(AFTER_TOOL_CALL_STATE)
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(finalResponseBody())));
+        withApiKeyHeaderMatcher(
+            post(urlEqualTo(llmApiPath()))
+                .inScenario(SCENARIO_NAME)
+                .whenScenarioStateIs(AFTER_TOOL_CALL_STATE)
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(finalResponseBody()))));
   }
 
   protected ZeebeTest runToolCallScenario() throws Exception {
