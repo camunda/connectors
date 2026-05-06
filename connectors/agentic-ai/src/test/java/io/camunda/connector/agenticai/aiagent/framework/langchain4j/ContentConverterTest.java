@@ -7,13 +7,16 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import static io.camunda.connector.agenticai.model.message.content.ObjectContent.objectContent;
+import static io.camunda.connector.agenticai.model.message.content.ReasoningContent.reasoningContent;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -83,6 +86,15 @@ class ContentConverterTest {
       assertThat(content).isInstanceOf(dev.langchain4j.data.message.TextContent.class);
       assertThat(((dev.langchain4j.data.message.TextContent) content).text())
           .isEqualTo("{\"key\":\"value\"}");
+    }
+
+    @Test
+    void convertReasoningContent_throwsUnsupported() {
+      final ReasoningContent reasoningContent = reasoningContent("thinking...");
+
+      assertThatThrownBy(() -> contentConverter.convertToContent(reasoningContent))
+          .isInstanceOf(UnsupportedOperationException.class)
+          .hasMessageContaining("ReasoningContent is not supported by the LangChain4j");
     }
   }
 

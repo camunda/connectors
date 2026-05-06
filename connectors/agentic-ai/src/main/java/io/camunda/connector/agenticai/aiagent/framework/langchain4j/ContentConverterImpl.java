@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.Doc
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 
 public class ContentConverterImpl implements ContentConverter {
@@ -34,6 +35,9 @@ public class ContentConverterImpl implements ContentConverter {
           documentToContentConverter.convert(documentContent.document());
       case ObjectContent objectContent ->
           new dev.langchain4j.data.message.TextContent(convertToString(objectContent.content()));
+      case ReasoningContent ignored ->
+          throw new UnsupportedOperationException(
+              "ReasoningContent is not supported by the LangChain4j framework integration");
     };
   }
 

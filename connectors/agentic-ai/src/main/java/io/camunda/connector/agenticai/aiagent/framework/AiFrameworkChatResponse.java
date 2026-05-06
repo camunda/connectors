@@ -9,10 +9,8 @@ package io.camunda.connector.agenticai.aiagent.framework;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 
-public interface AiFrameworkChatResponse<T> {
+public interface AiFrameworkChatResponse {
   AgentContext agentContext();
 
   AssistantMessage assistantMessage();
-
-  T rawChatResponse();
 }
