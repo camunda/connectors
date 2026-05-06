@@ -490,4 +490,91 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
     // then
     assertThat(result).doesNotContainKey("variables").containsEntry("errorType", "ignoreError");
   }
+
+  @Test
+  void backoffFunctionWithAttemptOnly() {
+    // given - attempt=1: raw = defaultMinDelay * factor^0 = 50ms, jitter ±10% -> [45ms, 55ms]
+    // when
+    Duration result = objectUnderTest.evaluate("=backoff(1)", Map.of());
+    // then
+    assertThat(result).isBetween(Duration.ofMillis(45), Duration.ofMillis(55));
+  }
+
+  @Test
+  void backoffFunctionShouldClampToMaxDelay() {
+    // given - attempt=100: raw exceeds maxdelay, must clamp to defaultMaxDelay=5000ms, jitter ±10%
+    // ->
+    // [4500ms, 5500ms]
+    // when
+    Duration result = objectUnderTest.evaluate("=backoff(100)", Map.of());
+    // then
+    assertThat(result).isBetween(Duration.ofMillis(4500), Duration.ofMillis(5500));
+  }
+
+  @Test
+  void backoffFunctionUsableAsRetryBackoffInJobError() {
+    // given - jitterFactor=0 makes result deterministic: attempt=1, minDelay=PT1S, factor=2 ->
+    // exactly 1000ms
+    final var expression =
+        "=jobError(\"fail\", {}, 2, backoff(1, duration(\"PT1S\"), 2, duration(\"PT1M\"), 0))";
+    // when
+    Map<String, Object> result = objectUnderTest.evaluate(expression, Map.of());
+    // then
+    assertThat(result)
+        .containsEntry("errorType", "jobError")
+        .containsEntry("retryBackoff", Duration.ofMillis(1000));
+  }
+
+  @Test
+  void backoffFunctionShouldThrowWhenAttemptIsZero() {
+    // given - attempt=0 is invalid, must be >= 1
+    // when & then
+    assertThatThrownBy(() -> objectUnderTest.evaluate("=backoff(0)", Map.of()))
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("attempt");
+  }
+
+  @Test
+  void backoffFunctionShouldThrowWhenFactorIsZero() {
+    // given - factor=0 breaks exponential formula
+    // when & then
+    assertThatThrownBy(
+            () -> objectUnderTest.evaluate("=backoff(1, duration(\"PT0.05S\"), 0)", Map.of()))
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("factor");
+  }
+
+  @Test
+  void backoffFunctionWithAttemptAndMinDelay() {
+    // given - attempt=1, minDelay=PT1S: raw = 1000ms * 1.6^0 = 1000ms, jitter ±10% -> [900ms,
+    // 1100ms]
+    // when
+    Duration result = objectUnderTest.evaluate("=backoff(1, duration(\"PT1S\"))", Map.of());
+    // then
+    assertThat(result).isBetween(Duration.ofMillis(900), Duration.ofMillis(1100));
+  }
+
+  @Test
+  void backoffFunctionShouldThrowWhenMinDelayExceedsMaxDelay() {
+    // given - minDelay=PT10S > maxDelay=PT5S is invalid
+    // when & then
+    assertThatThrownBy(
+            () ->
+                objectUnderTest.evaluate(
+                    "=backoff(1, duration(\"PT10S\"), 1.6, duration(\"PT5S\"), 0.1)", Map.of()))
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("minDelay");
+  }
+
+  @Test
+  void backoffFunctionShouldThrowWhenJitterFactorIsNegative() {
+    // given - negative jitterFactor is invalid
+    // when & then
+    assertThatThrownBy(
+            () ->
+                objectUnderTest.evaluate(
+                    "=backoff(1, duration(\"PT0.05S\"), 1.6, duration(\"PT5S\"), -0.1)", Map.of()))
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("jitterFactor");
+  }
 }
