@@ -16,11 +16,13 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wireformat;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
@@ -46,8 +48,7 @@ public class OpenAiResponsesApiAiAgentJobWorkerTests extends BaseWireFormatAiAge
     return Map.ofEntries(
         Map.entry("agentContext", "=agent.context"),
         Map.entry("provider.type", "openaiCompatible"),
-        Map.entry(
-            "provider.openaiCompatible.endpoint", "http://localhost:" + wireMockPort + "/v1/"),
+        Map.entry("provider.openaiCompatible.endpoint", "http://localhost:" + wireMockPort + "/v1"),
         Map.entry("provider.openaiCompatible.authentication.apiKey", "test-api-key"),
         Map.entry("provider.openaiCompatible.model.model", "gpt-4o"),
         Map.entry(
@@ -60,6 +61,11 @@ public class OpenAiResponsesApiAiAgentJobWorkerTests extends BaseWireFormatAiAge
         Map.entry("data.memory.storage.type", "in-process"),
         Map.entry("data.response.includeAssistantMessage", "=true"),
         Map.entry("data.response.includeAgentContext", "=true"));
+  }
+
+  @Override
+  protected MappingBuilder withApiKeyHeaderMatcher(MappingBuilder stub) {
+    return stub.withHeader("Authorization", equalTo("Bearer test-api-key"));
   }
 
   @Override
