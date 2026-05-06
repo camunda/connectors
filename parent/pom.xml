@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.9.2</version.camunda>
+    <version.camunda>8.9.4</version.camunda>
     <version.feel-engine>1.21.0</version.feel-engine>
     <version.camunda-xml-model>7.24.0</version.camunda-xml-model>
 
@@ -99,7 +99,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.44.1</version.aws-sdk2>
+    <version.aws-sdk2>2.44.2</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -116,7 +116,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-services-drive>v3-rev20260428-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.46.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.47.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260427-2.0.0</version.google-api-services-docs>
     <version.google-libraries-bom>26.80.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20260213-2.0.0</version.google-api-services-sheets>
