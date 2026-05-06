@@ -12,10 +12,12 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.StopReason;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.generator.java.annotation.DataExample;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import org.springframework.lang.Nullable;
@@ -87,18 +89,12 @@ public record AgentResponse(
     final var assistantMessage =
         AssistantMessage.builder()
             .content(singleTextContent("This is a sample response text from the AI agent."))
-            .metadata(
-                Map.of(
-                    "framework",
-                    Map.ofEntries(
-                        Map.entry("id", "chatcmpl-123"),
-                        Map.entry("finishReason", "STOP"),
-                        Map.entry(
-                            "tokenUsage",
-                            Map.of(
-                                "inputTokenCount", 5,
-                                "outputTokenCount", 6,
-                                "totalTokenCount", 11)))))
+            .modelId("gpt-5")
+            .apiId("chatcmpl-123")
+            .stopReason(StopReason.STOP)
+            .usage(
+                AgentMetrics.TokenUsage.builder().inputTokenCount(5).outputTokenCount(6).build())
+            .metadata(Map.of("timestamp", ZonedDateTime.parse("2025-01-15T10:30:00Z")))
             .build();
 
     return AgentResponse.builder()

@@ -9,10 +9,8 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.internal.Json;
 import dev.langchain4j.model.anthropic.AnthropicTokenUsage;
 import dev.langchain4j.model.bedrock.BedrockTokenUsage;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -30,33 +28,23 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
-import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class ChatMessageConverterImpl implements ChatMessageConverter {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ChatMessageConverterImpl.class);
-
   private final ContentConverter contentConverter;
   private final ToolCallConverter toolCallConverter;
-  private final ObjectMapper objectMapper;
 
   public ChatMessageConverterImpl(
-      ContentConverter contentConverter,
-      ToolCallConverter toolCallConverter,
-      ObjectMapper objectMapper) {
+      ContentConverter contentConverter, ToolCallConverter toolCallConverter) {
     this.contentConverter = contentConverter;
     this.toolCallConverter = toolCallConverter;
-    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -140,10 +128,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
     final ChatResponseMetadata metadata = chatResponse.metadata();
     if (metadata != null) {
-      builder.metadata(
-          Map.of(
-              "timestamp", ZonedDateTime.now(),
-              "framework", serializedChatResponseMetadata(metadata)));
+      builder.metadata(Map.of("timestamp", ZonedDateTime.now()));
 
       Optional.ofNullable(metadata.modelName())
           .filter(StringUtils::isNotBlank)
@@ -211,43 +196,6 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     }
 
     return builder.build();
-  }
-
-  protected Map<String, Object> serializedChatResponseMetadata(
-      ChatResponseMetadata chatResponseMetadata) {
-    if (chatResponseMetadata == null) {
-      return Map.of();
-    }
-
-    final var metadata = new LinkedHashMap<String, Object>();
-    Optional.ofNullable(chatResponseMetadata.id())
-        .filter(StringUtils::isNotBlank)
-        .ifPresent(id -> metadata.put("id", id));
-    Optional.ofNullable(chatResponseMetadata.finishReason())
-        .ifPresent(finishReason -> metadata.put("finishReason", finishReason.name()));
-
-    final var tokenUsage = serializedTokenUsage(chatResponseMetadata.tokenUsage());
-    if (!tokenUsage.isEmpty()) {
-      metadata.put("tokenUsage", tokenUsage);
-    }
-
-    return metadata;
-  }
-
-  protected Map<String, Object> serializedTokenUsage(TokenUsage tokenUsage) {
-    if (tokenUsage == null) {
-      return Map.of();
-    }
-
-    try {
-      return objectMapper.readValue(
-          Json.toJson(tokenUsage), ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
-    } catch (JsonProcessingException e) {
-      LOGGER.warn(
-          "Failed to deserialize token usage metadata: {}",
-          humanReadableJsonProcessingExceptionMessage(e));
-      return Map.of();
-    }
   }
 
   @Override
