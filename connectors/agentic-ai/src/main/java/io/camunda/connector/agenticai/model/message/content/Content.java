@@ -14,8 +14,10 @@ import java.util.Map;
 @JsonSubTypes({
   @JsonSubTypes.Type(value = TextContent.class, name = "text"),
   @JsonSubTypes.Type(value = DocumentContent.class, name = "document"),
-  @JsonSubTypes.Type(value = ObjectContent.class, name = "object")
+  @JsonSubTypes.Type(value = ObjectContent.class, name = "object"),
+  @JsonSubTypes.Type(value = ReasoningContent.class, name = "reasoning")
 })
-public sealed interface Content permits TextContent, DocumentContent, ObjectContent {
+public sealed interface Content
+    permits TextContent, DocumentContent, ObjectContent, ReasoningContent {
   Map<String, Object> metadata();
 }

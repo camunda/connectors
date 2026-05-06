@@ -14,7 +14,6 @@ import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
@@ -70,10 +69,12 @@ public class Langchain4JAiFrameworkAdapter
             agentContext
                 .metrics()
                 .incrementModelCalls(1)
-                .incrementTokenUsage(tokenUsage(chatResponse.tokenUsage())));
+                .incrementTokenUsage(
+                    assistantMessage.usage() != null
+                        ? assistantMessage.usage()
+                        : AgentMetrics.TokenUsage.empty()));
 
-    return new Langchain4JAiFrameworkChatResponse(
-        updatedAgentContext, assistantMessage, chatResponse);
+    return new Langchain4JAiFrameworkChatResponse(updatedAgentContext, assistantMessage);
   }
 
   private void configureResponseFormat(
@@ -121,16 +122,5 @@ public class Langchain4JAiFrameworkAdapter
       throw new ConnectorException(
           ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(message), e);
     }
-  }
-
-  private AgentMetrics.TokenUsage tokenUsage(TokenUsage tokenUsage) {
-    if (tokenUsage == null) {
-      return AgentMetrics.TokenUsage.empty();
-    }
-
-    return AgentMetrics.TokenUsage.builder()
-        .inputTokenCount(Optional.ofNullable(tokenUsage.inputTokenCount()).orElse(0))
-        .outputTokenCount(Optional.ofNullable(tokenUsage.outputTokenCount()).orElse(0))
-        .build();
   }
 }

@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.within;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -23,6 +24,8 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
+import dev.langchain4j.model.anthropic.AnthropicTokenUsage;
+import dev.langchain4j.model.bedrock.BedrockTokenUsage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.openai.OpenAiChatResponseMetadata;
@@ -30,8 +33,10 @@ import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.model.message.StopReason;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
@@ -46,9 +51,13 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -425,5 +434,134 @@ class ChatMessageConverterTest {
     assertThatThrownBy(() -> chatMessageConverter.map(unknownMessage))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Unknown message type");
+  }
+
+  @Test
+  void toAssistantMessage_populatesTypedProvenanceFields() {
+    final var aiMessage = AiMessage.builder().text("Hello").build();
+    final var chatResponseMetadata =
+        ChatResponseMetadata.builder()
+            .id("msg-abc")
+            .modelName("claude-3-7-sonnet")
+            .finishReason(FinishReason.STOP)
+            .tokenUsage(new TokenUsage(5, 10))
+            .build();
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.apiId()).isEqualTo("msg-abc");
+    assertThat(result.modelId()).isEqualTo("claude-3-7-sonnet");
+    assertThat(result.stopReason()).isEqualTo(StopReason.STOP);
+    assertThat(result.usage())
+        .isEqualTo(
+            AgentMetrics.TokenUsage.builder().inputTokenCount(5).outputTokenCount(10).build());
+  }
+
+  @Test
+  void toAssistantMessage_extractsAnthropicCacheTokens() {
+    final var aiMessage = AiMessage.builder().build();
+    final var anthropicTokenUsage =
+        AnthropicTokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(5)
+            .cacheReadInputTokens(3)
+            .cacheCreationInputTokens(7)
+            .build();
+    final var chatResponseMetadata =
+        ChatResponseMetadata.builder().tokenUsage(anthropicTokenUsage).build();
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.usage())
+        .isEqualTo(
+            AgentMetrics.TokenUsage.builder()
+                .inputTokenCount(10)
+                .outputTokenCount(5)
+                .cacheReadInputTokenCount(3)
+                .cacheCreationInputTokenCount(7)
+                .build());
+  }
+
+  @Test
+  void toAssistantMessage_extractsBedrockCacheTokens() {
+    final var aiMessage = AiMessage.builder().build();
+    final var bedrockTokenUsage =
+        BedrockTokenUsage.builder()
+            .inputTokenCount(8)
+            .outputTokenCount(4)
+            .cacheReadInputTokens(2)
+            .cacheWriteInputTokens(6)
+            .build();
+    final var chatResponseMetadata =
+        ChatResponseMetadata.builder().tokenUsage(bedrockTokenUsage).build();
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.usage())
+        .isEqualTo(
+            AgentMetrics.TokenUsage.builder()
+                .inputTokenCount(8)
+                .outputTokenCount(4)
+                .cacheReadInputTokenCount(2)
+                .cacheCreationInputTokenCount(6)
+                .build());
+  }
+
+  @Test
+  void toAssistantMessage_extractsOpenAiReasoningTokens() {
+    final var aiMessage = AiMessage.builder().build();
+    final var openAiTokenUsage =
+        OpenAiTokenUsage.builder()
+            .inputTokenCount(12)
+            .inputTokensDetails(
+                OpenAiTokenUsage.InputTokensDetails.builder().cachedTokens(4).build())
+            .outputTokenCount(8)
+            .outputTokensDetails(
+                OpenAiTokenUsage.OutputTokensDetails.builder().reasoningTokens(3).build())
+            .build();
+    final var chatResponseMetadata =
+        ChatResponseMetadata.builder().tokenUsage(openAiTokenUsage).build();
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.usage())
+        .isEqualTo(
+            AgentMetrics.TokenUsage.builder()
+                .inputTokenCount(12)
+                .outputTokenCount(8)
+                .cacheReadInputTokenCount(4)
+                .reasoningTokenCount(3)
+                .build());
+  }
+
+  @ParameterizedTest
+  @MethodSource("finishReasonMappings")
+  void toAssistantMessage_finishReasonMapping(FinishReason finishReason, StopReason expected) {
+    final var aiMessage = AiMessage.builder().build();
+    final var chatResponseMetadata =
+        ChatResponseMetadata.builder().finishReason(finishReason).build();
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.stopReason()).isEqualTo(expected);
+  }
+
+  static Stream<Arguments> finishReasonMappings() {
+    return Stream.of(
+        arguments(FinishReason.STOP, StopReason.STOP),
+        arguments(FinishReason.LENGTH, StopReason.LENGTH),
+        arguments(FinishReason.TOOL_EXECUTION, StopReason.TOOL_USE),
+        arguments(FinishReason.CONTENT_FILTER, StopReason.CONTENT_FILTERED),
+        arguments(FinishReason.OTHER, null));
   }
 }

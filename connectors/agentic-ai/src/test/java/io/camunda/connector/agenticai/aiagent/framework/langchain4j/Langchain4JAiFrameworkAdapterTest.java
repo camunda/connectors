@@ -26,7 +26,6 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
@@ -121,8 +120,10 @@ class Langchain4JAiFrameworkAdapterTest {
 
     when(chatModelFactory.createChatModel(any())).thenReturn(chatModel);
     when(chatModel.chat(chatRequestCaptor.capture())).thenReturn(chatResponse);
-    when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
-    when(chatMessageConverter.toAssistantMessage(chatResponse)).thenReturn(ASSISTANT_MESSAGE);
+    when(chatMessageConverter.toAssistantMessage(chatResponse))
+        .thenReturn(
+            ASSISTANT_MESSAGE.withUsage(
+                AgentMetrics.TokenUsage.builder().inputTokenCount(5).outputTokenCount(6).build()));
 
     adapter =
         new Langchain4JAiFrameworkAdapter(
@@ -289,7 +290,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void tokenUsageIsUnchangedIfMissingInResponse() {
-    when(chatResponse.tokenUsage()).thenReturn(null);
+    when(chatMessageConverter.toAssistantMessage(chatResponse)).thenReturn(ASSISTANT_MESSAGE);
 
     final var adapterResponse =
         adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);

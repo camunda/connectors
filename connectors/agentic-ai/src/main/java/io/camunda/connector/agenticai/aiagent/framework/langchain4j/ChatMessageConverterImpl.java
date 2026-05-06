@@ -13,12 +13,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.internal.Json;
+import dev.langchain4j.model.anthropic.AnthropicTokenUsage;
+import dev.langchain4j.model.bedrock.BedrockTokenUsage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.openai.OpenAiTokenUsage;
+import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.AssistantMessageBuilder;
+import io.camunda.connector.agenticai.model.message.StopReason;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
@@ -132,11 +138,23 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   protected AssistantMessageBuilder toAssistantMessageBuilder(ChatResponse chatResponse) {
     final var builder = AssistantMessage.builder();
 
-    if (chatResponse.metadata() != null) {
+    final ChatResponseMetadata metadata = chatResponse.metadata();
+    if (metadata != null) {
       builder.metadata(
           Map.of(
               "timestamp", ZonedDateTime.now(),
-              "framework", serializedChatResponseMetadata(chatResponse.metadata())));
+              "framework", serializedChatResponseMetadata(metadata)));
+
+      Optional.ofNullable(metadata.modelName())
+          .filter(StringUtils::isNotBlank)
+          .ifPresent(builder::modelId);
+      Optional.ofNullable(metadata.id()).filter(StringUtils::isNotBlank).ifPresent(builder::apiId);
+      Optional.ofNullable(metadata.finishReason())
+          .map(this::toStopReason)
+          .ifPresent(builder::stopReason);
+      Optional.ofNullable(metadata.tokenUsage())
+          .map(this::toDomainTokenUsage)
+          .ifPresent(builder::usage);
     }
 
     final var aiMessage = chatResponse.aiMessage();
@@ -150,6 +168,49 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     builder.toolCalls(toolCalls);
 
     return builder;
+  }
+
+  private StopReason toStopReason(FinishReason finishReason) {
+    return switch (finishReason) {
+      case STOP -> StopReason.STOP;
+      case LENGTH -> StopReason.LENGTH;
+      case TOOL_EXECUTION -> StopReason.TOOL_USE;
+      case CONTENT_FILTER -> StopReason.CONTENT_FILTERED;
+      case OTHER -> null;
+    };
+  }
+
+  AgentMetrics.TokenUsage toDomainTokenUsage(TokenUsage tokenUsage) {
+    if (tokenUsage == null) {
+      return AgentMetrics.TokenUsage.empty();
+    }
+
+    final var builder =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(Optional.ofNullable(tokenUsage.inputTokenCount()).orElse(0))
+            .outputTokenCount(Optional.ofNullable(tokenUsage.outputTokenCount()).orElse(0));
+
+    if (tokenUsage instanceof AnthropicTokenUsage anthropicTokenUsage) {
+      Optional.ofNullable(anthropicTokenUsage.cacheReadInputTokens())
+          .ifPresent(builder::cacheReadInputTokenCount);
+      Optional.ofNullable(anthropicTokenUsage.cacheCreationInputTokens())
+          .ifPresent(builder::cacheCreationInputTokenCount);
+    } else if (tokenUsage instanceof BedrockTokenUsage bedrockTokenUsage) {
+      Optional.ofNullable(bedrockTokenUsage.cacheReadInputTokens())
+          .ifPresent(builder::cacheReadInputTokenCount);
+      // Bedrock uses "write" terminology; we expose it as "creation" to match Anthropic's semantics
+      Optional.ofNullable(bedrockTokenUsage.cacheWriteInputTokens())
+          .ifPresent(builder::cacheCreationInputTokenCount);
+    } else if (tokenUsage instanceof OpenAiTokenUsage openAiTokenUsage) {
+      Optional.ofNullable(openAiTokenUsage.inputTokensDetails())
+          .map(OpenAiTokenUsage.InputTokensDetails::cachedTokens)
+          .ifPresent(builder::cacheReadInputTokenCount);
+      Optional.ofNullable(openAiTokenUsage.outputTokensDetails())
+          .map(OpenAiTokenUsage.OutputTokensDetails::reasoningTokens)
+          .ifPresent(builder::reasoningTokenCount);
+    }
+
+    return builder.build();
   }
 
   protected Map<String, Object> serializedChatResponseMetadata(

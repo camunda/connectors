@@ -12,7 +12,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.camunda.connector.agenticai.model.message.content.Content;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.lang.Nullable;
 
@@ -22,6 +24,7 @@ public record ToolCallResult(
     @Nullable String id,
     @Nullable String name,
     @Nullable Object content,
+    @Nullable @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> contentBlocks,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @JsonAnySetter @JsonAnyGetter
         Map<String, Object> properties)
     implements ToolCallResultBuilder.With {

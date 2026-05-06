@@ -182,7 +182,9 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build()));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -248,7 +250,9 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build()));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -345,7 +349,9 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build()));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -528,15 +534,16 @@ class JobWorkerAgentRequestHandlerTest {
                       agentContext
                           .metrics()
                           .incrementModelCalls(1)
-                          .incrementTokenUsage(new TokenUsage(10, 20))),
-                  assistantMessage,
-                  Map.of("message", assistantMessage.content()));
+                          .incrementTokenUsage(
+                              TokenUsage.builder()
+                                  .inputTokenCount(10)
+                                  .outputTokenCount(20)
+                                  .build())),
+                  assistantMessage);
             });
   }
 
   private record TestFrameworkChatResponse(
-      AgentContext agentContext,
-      AssistantMessage assistantMessage,
-      Map<String, Object> rawChatResponse)
-      implements AiFrameworkChatResponse<Map<String, Object>> {}
+      AgentContext agentContext, AssistantMessage assistantMessage)
+      implements AiFrameworkChatResponse {}
 }
