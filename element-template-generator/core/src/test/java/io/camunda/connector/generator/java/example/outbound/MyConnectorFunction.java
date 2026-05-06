@@ -160,6 +160,18 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
+      inputDataClass = StaticFieldInput.class)
+  public static class WithStaticFields extends MyConnectorFunction {
+    record StaticFieldInput(String instanceField) {
+      static final String STATIC_CONSTANT = "constant";
+    }
+  }
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
       elementTypes = {
         @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SERVICE_TASK),
