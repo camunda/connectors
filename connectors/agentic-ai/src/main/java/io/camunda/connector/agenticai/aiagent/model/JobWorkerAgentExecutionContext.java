@@ -7,6 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerResponseConfiguration;
@@ -18,16 +20,29 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderCon
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(JobWorkerAgentExecutionContext.class);
+
   private final JobContext jobContext;
   private final JobWorkerAgentRequest request;
+  private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private boolean cancelRemainingInstances;
+  private List<AdHocToolElement> toolElements;
 
   public JobWorkerAgentExecutionContext(
-      final JobContext jobContext, final JobWorkerAgentRequest request) {
+      final JobContext jobContext,
+      final JobWorkerAgentRequest request,
+      final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
     this.jobContext = jobContext;
     this.request = request;
+    this.toolElementsResolver = toolElementsResolver;
   }
 
   @Override
@@ -47,7 +62,43 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
 
   @Override
   public List<AdHocToolElement> toolElements() {
-    return request.toolElements();
+    if (toolElements != null) {
+      return toolElements;
+    }
+
+    return toolElements = enrichWithParameters(request.toolElements());
+  }
+
+  /**
+   * Zeebe's adHocSubProcessElements variable provides element metadata (id, name, documentation,
+   * zeebe:properties) but not tool parameters from specext:externalParameters or fromAi()
+   * expressions. This method enriches each element with parameters resolved from the BPMN XML.
+   */
+  private List<AdHocToolElement> enrichWithParameters(List<AdHocToolElement> zeebeElements) {
+    if (zeebeElements == null || zeebeElements.isEmpty() || toolElementsResolver == null) {
+      return zeebeElements;
+    }
+
+    try {
+      final Map<String, List<AdHocToolElementParameter>> paramsByElementId =
+          toolElementsResolver
+              .resolveToolElements(jobContext.getProcessDefinitionKey(), jobContext.getElementId())
+              .stream()
+              .collect(Collectors.toMap(AdHocToolElement::elementId, AdHocToolElement::parameters));
+
+      return zeebeElements.stream()
+          .map(
+              element ->
+                  element.withParameters(
+                      paramsByElementId.getOrDefault(element.elementId(), List.of())))
+          .toList();
+    } catch (Exception e) {
+      LOGGER.warn(
+          "Failed to enrich tool elements with parameters from process definition. "
+              + "Tool parameters will not be available for schema generation. Cause: {}",
+          e.getMessage());
+      return zeebeElements;
+    }
   }
 
   @Override

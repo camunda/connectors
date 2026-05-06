@@ -330,7 +330,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
-  public AiAgentJobWorker aiAgentJobWorker(JobWorkerAgentRequestHandler agentRequestHandler) {
-    return new AiAgentJobWorker(agentRequestHandler);
+  public AiAgentJobWorker aiAgentJobWorker(
+      JobWorkerAgentRequestHandler agentRequestHandler,
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
+    return new AiAgentJobWorker(agentRequestHandler, toolElementsResolver);
   }
 }

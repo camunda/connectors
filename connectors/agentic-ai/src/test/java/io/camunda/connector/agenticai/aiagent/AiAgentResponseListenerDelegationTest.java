@@ -175,7 +175,7 @@ class AiAgentResponseListenerDelegationTest {
     @Test
     void onJobCompleted_invokesAgentListenerCarriedByResponse() {
       var listener = mock(AgentJobCompletionListener.class);
-      var function = new AiAgentJobWorker(null);
+      var function = new AiAgentJobWorker(null, null);
       var response =
           AiAgentSubProcessConnectorResponse.builder()
               .variables(Map.of())
@@ -193,7 +193,7 @@ class AiAgentResponseListenerDelegationTest {
     @Test
     void onJobCompletionFailed_invokesAgentListenerCarriedByResponse() {
       var listener = mock(AgentJobCompletionListener.class);
-      var function = new AiAgentJobWorker(null);
+      var function = new AiAgentJobWorker(null, null);
       var response =
           AiAgentSubProcessConnectorResponse.builder()
               .variables(Map.of())
@@ -212,7 +212,7 @@ class AiAgentResponseListenerDelegationTest {
 
     @Test
     void onJobCompletionFailed_noOpWhenResponseIsNull() {
-      var function = new AiAgentJobWorker(null);
+      var function = new AiAgentJobWorker(null, null);
       var listener = mock(AgentJobCompletionListener.class);
 
       function.onJobCompletionFailed(
