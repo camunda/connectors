@@ -54,10 +54,27 @@ public class ReflectionUtil {
     return annotation;
   }
 
+  /**
+   * Returns all non-static (instance) fields declared in the given type and its superclasses.
+   * Static fields are excluded to prevent constants from being treated as connector properties
+   * during element template generation.
+   *
+   * @param type the class to inspect
+   * @return a list of all non-static fields in the type hierarchy
+   */
   public static List<Field> getAllFields(Class<?> type) {
     return getAllFields(new ArrayList<>(), type);
   }
 
+  /**
+   * Collects all non-static (instance) fields declared in the given type and its superclasses into
+   * the provided list. Static fields are excluded to prevent constants from being treated as
+   * connector properties during element template generation.
+   *
+   * @param fields the list to accumulate fields into
+   * @param type the class to inspect
+   * @return the same list with all non-static fields added
+   */
   public static List<Field> getAllFields(List<Field> fields, Class<?> type) {
     for (Field field : type.getDeclaredFields()) {
       if (!Modifier.isStatic(field.getModifiers())) {
