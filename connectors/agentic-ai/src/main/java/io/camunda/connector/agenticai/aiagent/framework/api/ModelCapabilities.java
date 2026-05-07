@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import org.springframework.lang.Nullable;
 
@@ -30,10 +31,15 @@ public record ModelCapabilities(
     @Nullable Integer maxOutputTokens) {
 
   public enum Modality {
+    @JsonProperty("text")
     TEXT,
+    @JsonProperty("image")
     IMAGE,
+    @JsonProperty("pdf")
     PDF,
+    @JsonProperty("audio")
     AUDIO,
+    @JsonProperty("video")
     VIDEO
   }
 }
