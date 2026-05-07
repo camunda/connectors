@@ -23,6 +23,7 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import io.camunda.connector.runtime.inbound.executable.BatchExecutableProcessor;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.ProcessStateChanged;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableNotFoundException;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableNotResettableException;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateStore;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService.ActionType;
@@ -101,11 +102,7 @@ public class LifecycleExecutor {
       throw new InboundExecutableNotFoundException(id);
     }
     if (!(current instanceof Activated) && !(current instanceof FailedToActivate)) {
-      throw new IllegalStateException(
-          "Cannot reset executable '"
-              + id
-              + "': must be in Activated or FailedToActivate state, but was: "
-              + current.getClass().getSimpleName());
+      throw new InboundExecutableNotResettableException(id, current.getClass().getSimpleName());
     }
 
     var elements = extractElements(current);

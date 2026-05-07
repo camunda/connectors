@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.controller.exception;
 
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableNotFoundException;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableNotResettableException;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl.InboundLifecycleTimeoutException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,8 +36,8 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
   }
 
-  @ExceptionHandler(IllegalStateException.class)
-  public ResponseEntity<String> handleIllegalState(IllegalStateException ex) {
+  @ExceptionHandler(InboundExecutableNotResettableException.class)
+  public ResponseEntity<String> handleNotResettable(InboundExecutableNotResettableException ex) {
     return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
   }
 

@@ -129,6 +129,9 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
       if (cause instanceof RuntimeException re) {
         throw re;
       }
+      if (cause instanceof Error err) {
+        throw err;
+      }
       throw new RuntimeException(cause);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();

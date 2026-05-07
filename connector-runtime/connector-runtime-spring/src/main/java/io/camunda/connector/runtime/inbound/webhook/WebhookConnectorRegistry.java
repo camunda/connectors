@@ -37,12 +37,8 @@ import org.slf4j.LoggerFactory;
  * and no synchronisation primitives are needed. The map is a plain {@link HashMap} and {@link
  * WebhookExecutables} is plain mutable Java.
  *
- * <p>Trade-off: webhook HTTP request handling calls {@link #getActiveWebhook} on the hot path, so
- * every request pays the cost of submitting a task to the coordinator and awaiting it (~tens of
- * microseconds, dominated by future bookkeeping). For typical webhook traffic this is well below
- * network latency. If a webhook lifecycle transition triggers a slow {@code executable.activate()}
- * (e.g. promoting a queued connector after deregister), the coordinator is briefly blocked for the
- * duration of that activate — accepted as a rare corner case.
+ * <p>Webhook connector activations are expected to be fast (in-memory state setup, no I/O), so the
+ * coordinator is never blocked for meaningful durations in normal operation.
  */
 public class WebhookConnectorRegistry {
 
