@@ -2,27 +2,32 @@
 
 ## Context
 
-[ADR-004](connectors/agentic-ai/docs/adr/004-replace-langchain4j-framework.md) (on branch
-`origin/agentic-ai/custom-llm-layer`) replaces the LangChain4j-backed `AiFrameworkAdapter` with
-a native provider layer over official vendor SDKs. The ADR names this "Phase 1 — one shipping
-unit," but it is large enough to review and merge in chunks. This plan breaks it into six
-green-build checkpoints (Phases A–F) on the working branch.
+[ADR-004](connectors/agentic-ai/docs/adr/004-replace-langchain4j-framework.md) replaces the
+LangChain4j-backed `AiFrameworkAdapter` with a native provider layer over official vendor SDKs.
+The ADR names this "Phase 1 — one shipping unit," but it is large enough to review and merge in
+chunks. This plan breaks it into eight green-build checkpoints (Phases A–H) on the working branch.
 
-**Actual starting state** (`origin/agentic-ai/custom-llm-layer`, 4 commits ahead of `main`):
+**Plan revision (2026-05-07)** — re-ordered to ship two real native providers ahead of the
+capability/multimodality infrastructure. Validating the SPI against two divergent wire formats
+before generalising leads to a smaller, better-shaped abstraction in Phase E. Reasoning, prompt
+caching, multimodal user/tool-result content, Azure OpenAI, Anthropic cloud backends, Google GenAI
+and Bedrock-Converse are all explicitly **deferred** out of the first native cut.
+
+**Actual starting state** (`agentic-ai/custom-llm-layer`):
 - Phase 0 done: `AssistantMessage` gains `modelId`/`apiId`/`stopReason`/`usage`; `TokenUsage`
   gains cache and reasoning fields; `ReasoningContent` added to `Content` hierarchy;
   `contentBlocks` added to `ToolCallResult`; `AiFrameworkChatResponse#rawChatResponse()` dropped.
-  LangChain4j adapter populates the new fields from `ChatResponseMetadata`.
+- **Phase A done**: SPI under `framework/api/` shipped; `BaseAgentRequestHandler` routes through
+  `ChatClient`; LangChain4j wired as the bridge `ChatModelApi` for all six provider discriminators
+  (one factory bean per discriminator). `AiFrameworkAdapter` and `AiFrameworkChatResponse` already
+  removed from the source tree (ahead of the original Phase F schedule).
 - Wire-format e2e regression tests added for Anthropic Messages API and OpenAI Responses API
-  (WireMock-based, currently exercising LangChain4j).
+  (WireMock-based, currently exercising the bridge).
 - ADR-004 document committed.
-- **SPI under `framework/api/` does NOT exist yet.** The plan starts here.
 
-**First action**: merge `origin/agentic-ai/custom-llm-layer` into
-`claude/refine-local-plan-e5Asz` to carry Phase 0 forward, then implement Phases A–F on top.
-
-**End state**: `BaseAgentRequestHandler` calls `ChatClient`, not `AiFrameworkAdapter`. Five native
-`ChatModelApiFactory` families ship. LangChain4j survives only as an opt-in bridge.
+**End state**: `BaseAgentRequestHandler` calls `ChatClient`. Native `ChatModelApi` impls ship for
+Anthropic Messages (direct), OpenAI Chat Completions, OpenAI Responses, Azure OpenAI, Anthropic
+cloud backends, Google GenAI and Bedrock-Converse. LangChain4j survives only as an opt-in bridge.
 
 ---
 
@@ -127,134 +132,233 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
 
 ---
 
-## Phase B — Capability matrix + tool-result strategy
+## Scope deferred out of native cut (Phases B–D)
 
-**Goal**: infrastructure native providers will depend on. Bridge returns conservative defaults;
-`ToolCallResultStrategy` always falls back (current behavior unchanged).
+The first native cut deliberately ignores these — they re-enter in Phase E or G:
 
-**Files to create**:
-- `resources/capabilities/model-capabilities.yaml` — empty entries initially; schema per ADR
-  §"Capability Matrix".
-- `ModelCapabilitiesResolver` — resolution chain: connector override → exact id/alias → glob
-  (longest match) → conservative defaults. INFO log on pattern or default use.
-- `ToolCallResultStrategy` — pure function `apply(ToolCallResult, ModelCapabilities)` returning
-  per-block routing decision (inline `contentBlocks` vs. synthetic `UserMessage` fallback via
-  existing `AgentMessagesHandlerImpl` path from PR #6999).
+| Topic | Re-enters |
+|-------|-----------|
+| Multimodal user-message / tool-result content (image, PDF, audio, video) | E (capabilities + strategy) |
+| Reasoning content (signed thinking blocks, encrypted reasoning items) | E |
+| Prompt caching (`cache_control`, `prompt_cache_key`) | E |
+| Capability matrix YAML + resolver | E |
+| `ToolCallResultStrategy` (always inline-text in B–D) | E |
+| Azure OpenAI native impl | G |
+| Anthropic cloud backends (Bedrock / Vertex / Foundry) | G |
+| Google GenAI native impl | G |
+| Bedrock-Converse native impl (non-Anthropic models) | G |
+| `ProviderConfiguration` discriminator restructure + Jackson migration | F |
 
-**ChatOptions** completes here: `CacheRetention` defaults to `SHORT` in `ChatClientImpl`; bridge
-always uses `NONE` (no cache support), resolved from `ModelCapabilities.supportsPromptCaching()`.
-
-**Tests to add**:
-- `ModelCapabilitiesResolverTest` — all 4 resolution steps, alias match, glob longest-match.
-- `ToolCallResultStrategyTest` — table-driven: every modality × every capability combo.
-- YAML round-trip test (Jackson reads the resource, validates required fields).
-
-**Verification**: `mvn clean test -pl connectors/agentic-ai` green; e2e wire-format tests still
-pass.
+Under this scope each native impl returns a hardcoded `ModelCapabilities` (text-only, no
+reasoning, no caching, parallel tool calls true). `ChatOptions.cacheRetention` and
+`ChatOptions.reasoning` are accepted but ignored. `ToolCallResult.contentBlocks` carries text
+parts only — image / PDF / audio / video parts get rejected (or pass through unchanged where the
+existing handler already drops them) until Phase E lands the strategy.
 
 ---
 
-## Phase C — First native: `anthropic-messages` (direct backend only)
+## Phase B — Native `anthropic-messages` (direct backend, text-only)
 
-**Goal**: prove the streaming-first internal pattern, signed reasoning roundtrip, and cache
-breakpoints with one provider end-to-end.
+**Goal**: replace the L4J bridge for the `anthropic` discriminator with a direct vendor-SDK impl.
+Validates streaming-first internal pattern + content-block accumulation against one wire format.
 
 **Files to create** (`framework/anthropic/`):
-- `AnthropicMessagesChatModelApi` — drives `anthropic-java` SDK streaming endpoint. Emits
-  `ChatModelEvent`s, accumulates content blocks by index, materialises `AssistantMessage`
-  (including `ReasoningContent` with `signature`), maps `stop_reason` → `StopReason`, populates
-  `TokenUsage` with cache/reasoning fields. Error mapping per ADR §"Error semantics": model-side
-  terminal → `ChatResponse{stopReason=ERROR}`; transport/auth → exceptional future with
+- `AnthropicMessagesChatModelApi` — drives `anthropic-java` SDK streaming endpoint. Accumulates
+  content blocks by index, materialises `AssistantMessage`, maps `stop_reason` → `StopReason`,
+  populates `TokenUsage` (cache / reasoning fields left at zero). Emits `ChatModelEvent`s as the
+  stream progresses. Reasoning blocks parsed structurally but **dropped** in this phase (or kept
+  as opaque text content per ADR — we'll decide during impl). Error mapping: model-side terminal
+  → `ChatResponse{stopReason=ERROR}`; transport/auth → exceptional future with
   `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, ...)`.
 - `AnthropicMessagesChatModelApiFactory` — `providerType() = AnthropicProviderConfiguration.ANTHROPIC_ID`;
-  `configurationType() = AnthropicProviderConfiguration.class`. Phase C: `backend = direct` only
-  (other backends added in Phase E).
+  `configurationType() = AnthropicProviderConfiguration.class`. Direct backend only.
 - `AnthropicMessagesApiConfiguration` — `@ConditionalOnClass(AnthropicClient.class)` Spring config
-  bean.
+  bean. Registers the factory under bean name `langchain4JAnthropicChatModelApiFactory` (same name
+  as the bridge bean), so `@ConditionalOnMissingBean(name = ...)` in
+  `AgenticAiLangchain4JFrameworkConfiguration` skips registering the bridge for this discriminator.
 
 **Files to modify**:
-- `pom.xml`: add `com.anthropic:anthropic-java` SDK.
-- `model-capabilities.yaml`: populate Anthropic models (Opus, Sonnet, Haiku families).
-- `AgenticAiConnectorsAutoConfiguration`: import `AnthropicMessagesApiConfiguration`; the bridge
-  factory falls back only for providers not covered natively (`@ConditionalOnMissingBean` scoped to
-  `ChatModelApiFactory` bean named for each discriminator, or registry registration order with a
-  `@Order` lower on the bridge).
-- `ChatClientImpl`: switch from `.get()` to async completion (the `CompletableFuture` from Phase A
-  was already wired, just blocked synchronously — make it truly async or keep sync if call-site
-  doesn't need it).
+- `connectors/agentic-ai/pom.xml`: add `com.anthropic:anthropic-java` SDK.
+- `AgenticAiConnectorsAutoConfiguration`: `@Import(AnthropicMessagesApiConfiguration.class)`.
 
 **Tests to add**:
-- `AnthropicMessagesChatModelApiTest` — mocked SDK client; verify event ordering, content-block
-  accumulation, signature roundtrip, usage accounting, error path.
-- Extend `AnthropicMessagesApiAiAgentJobWorkerTests` with a streaming variant and reasoning
-  roundtrip case (WireMock stubs still in HTTP, now exercising the native implementation).
+- `AnthropicMessagesChatModelApiTest` — mocked SDK client; verify message conversion, tool
+  conversion, content-block accumulation, stop-reason mapping, usage accounting, error path.
+- `AnthropicMessagesChatModelApiFactoryTest` — providerType/configurationType wiring.
 
-**Verification**: unit tests green; both wire-format e2e tests still green (Anthropic via native,
-OpenAI still via bridge).
+**Verification**: `mvn clean test -pl connectors/agentic-ai`; the existing
+`AnthropicMessagesApiAiAgentJobWorkerTests` wire-format e2e should pass against the native impl
+(skip if it asserts on bridge-specific behaviour — flag for later).
 
 ---
 
-## Phase D — ProviderConfiguration restructure + Jackson migration
+## Phase C — Native OpenAI Chat Completions (`openai` + `openaiCompatible`)
 
-**Goal**: introduce new discriminators without breaking saved process state. Element template
-version bump to 11.
+**Goal**: replace the L4J bridge for `openai` and `openaiCompatible` discriminators. Azure
+deferred to G.
+
+**Files to create** (`framework/openai/`):
+- `OpenAiChatCompletionsChatModelApi` — drives `openai-java` SDK chat-completions endpoint
+  (streaming-first internal). Same accumulation / stop-reason / error patterns as Phase B's
+  Anthropic impl.
+- `OpenAiToolConverter` — small shared converter: `ToolDefinition` → openai-java `ChatTool`
+  (JSON schema). Lives in `framework/openai/` — reused by Phase D's Responses impl.
+- `OpenAiChatModelApiFactory` — registered under bean name
+  `langchain4JOpenAiChatModelApiFactory`. Builds an `OpenAIClient` from
+  `OpenAiProviderConfiguration` and instantiates `OpenAiChatCompletionsChatModelApi`.
+  (Phase D wraps an apiFamily branch around the impl-class choice.)
+- `OpenAiCompatibleChatModelApiFactory` — registered under bean name
+  `langchain4JOpenAiCompatibleChatModelApiFactory`. Builds an `OpenAIClient` with custom baseUrl
+  and optional auth, hands to `OpenAiChatCompletionsChatModelApi`.
+- `OpenAiChatModelApiConfiguration` — `@ConditionalOnClass(OpenAIClient.class)` Spring config bean
+  registering both factories.
+
+**Files to modify**:
+- `connectors/agentic-ai/pom.xml`: add `com.openai:openai-java` SDK.
+- `AgenticAiConnectorsAutoConfiguration`: `@Import(OpenAiChatModelApiConfiguration.class)`.
+
+**Tests to add**:
+- `OpenAiChatCompletionsChatModelApiTest` — mocked SDK client; conversion + accumulation +
+  errors.
+- `OpenAiChatModelApiFactoryTest` / `OpenAiCompatibleChatModelApiFactoryTest`.
+- `OpenAiToolConverterTest` — JSON schema fidelity.
+
+**Verification**: `mvn clean test -pl connectors/agentic-ai`. The existing
+`OpenAiChatCompletionsApiAiAgentJobWorkerTests` (or analogous wire-format e2e) should pass.
+
+---
+
+## Phase D — Add OpenAI Responses (`apiFamily` switch on `openai`)
+
+**Goal**: ship native `openai-responses` without doing the Phase F config restructure.
+Azure stays bridged; openaiCompatible stays Completions-only.
+
+**Files to create** (`framework/openai/`):
+- `OpenAiResponsesChatModelApi` — drives `openai-java` SDK responses endpoint. Handles input-item
+  shape, output-item shape, and the different streaming format. Reuses `OpenAiToolConverter` for
+  the `tools[]` JSON schema. Encrypted reasoning items parsed structurally but dropped in this
+  phase (Phase E re-enables roundtripping).
+
+**Files to modify**:
+- `OpenAiProviderConfiguration`:
+  - Add `ApiFamily { COMPLETIONS, RESPONSES }`.
+  - Add `apiFamily` field, defaulting to `COMPLETIONS` so saved process state from v10 element
+    template instances deserializes unchanged. **No Jackson migration deserializer** needed for
+    this — the canonical restructure (with multi-row migration table) is Phase F.
+- `OpenAiChatModelApiFactory` (from Phase C): branch on `config.apiFamily()`. Same client built
+  from auth/baseUrl is handed to either impl class.
+- `element-templates/agenticai-aiagent-outbound-connector.json`: bump `version` 10 → 11; add
+  `apiFamily` dropdown (Completions / Responses) under the OpenAI provider section. Maven's
+  `gmavenplus` step regenerates the versioned snapshot and the job-worker template automatically.
+- `element-templates/README.md`: update top row for AI Agent (Task + Sub-process tables, both
+  reflect v11) per AGENTS.md §"Version index README" rule.
+
+**Tests to add**:
+- `OpenAiResponsesChatModelApiTest` — mocked SDK client; input-item / output-item conversion;
+  tool-call extraction; streaming accumulation; errors.
+- `OpenAiChatModelApiFactoryTest`: extend with `apiFamily=RESPONSES` branch.
+- `OpenAiProviderConfigurationTest`: round-trip a config without `apiFamily` (defaults applied).
+
+**Verification**: `mvn clean install -pl connectors/agentic-ai` (regenerates element templates);
+verify `versioned/agenticai-aiagent-outbound-connector-10.json` exists alongside the new v11 file
+in the main folder. The existing `OpenAiResponsesApiAiAgentJobWorkerTests` wire-format e2e should
+pass against the native impl.
+
+---
+
+## Phase E — Capability matrix + tool-result strategy + multimodality + reasoning + caching
+
+**Goal**: re-enable the deferred features now that we have three real native impls and one bridge
+to generalise from.
+
+**Files to create**:
+- `resources/capabilities/model-capabilities.yaml` — populated entries for Anthropic Claude
+  families, OpenAI Chat Completions models, OpenAI Responses models. Schema per ADR §"Capability
+  Matrix".
+- `ModelCapabilitiesResolver` — 4-step resolution chain: connector override → exact id/alias →
+  glob (longest match) → conservative defaults. INFO log on pattern or default use.
+- `ToolCallResultStrategy` — pure function `apply(ToolCallResult, ModelCapabilities)` returning
+  per-block routing decision (inline `contentBlocks` vs. synthetic `UserMessage` fallback through
+  the existing `AgentMessagesHandlerImpl` path from PR #6999).
+
+**Files to modify**:
+- Each native `ChatModelApi`: replace the hardcoded `ModelCapabilities` with the resolved one;
+  start emitting/consuming the deferred features:
+  - **Anthropic**: extended thinking blocks (signed reasoning roundtrip), `cache_control` markers
+    on the last system / message / tool-definition block, image/PDF user content, image tool-result
+    content.
+  - **OpenAI Responses**: encrypted reasoning items roundtrip, `prompt_cache_key`, image input.
+  - **OpenAI Completions**: `prompt_cache_key`, image input.
+  - **L4J bridge**: keeps conservative defaults; cache → NONE.
+- `ChatClientImpl`: default `ChatOptions.cacheRetention` to `SHORT` (clamped to `NONE` when
+  `!supportsPromptCaching()`); query `capabilities()` once per call; apply
+  `ToolCallResultStrategy`.
+
+**Tests to add**:
+- `ModelCapabilitiesResolverTest` — all 4 steps, alias match, glob longest-match.
+- `ToolCallResultStrategyTest` — table-driven across modality × capability combos.
+- YAML round-trip test (Jackson reads the resource, validates required fields).
+- Per-impl: extend tests with multimodal / reasoning / cache cases.
+
+**Verification**: `mvn clean test -pl connectors/agentic-ai`; both wire-format e2e tests still
+green; new multimodal / reasoning / cache cases added under `wireformat/` exercise the new code
+paths.
+
+---
+
+## Phase F — `ProviderConfiguration` restructure + Jackson migration
+
+**Goal**: introduce the canonical discriminator scheme without breaking saved process state.
+Element template version bump 11 → 12 (after D's bump).
 
 **Files to modify**:
 - `AnthropicProviderConfiguration`: add `AnthropicBackend { DIRECT, BEDROCK, VERTEX, FOUNDRY }`;
   conditional auth fields per backend.
-- `OpenAiProviderConfiguration` / `AzureOpenAiProviderConfiguration` /
-  `OpenAiCompatibleProviderConfiguration`: add `ApiFamily { RESPONSES, COMPLETIONS }` with
-  provider-appropriate defaults.
+- `OpenAiProviderConfiguration`: `apiFamily` already added in Phase D — extend handling here as
+  needed.
+- `AzureOpenAiProviderConfiguration`: add `apiFamily` matching the OpenAI shape.
+- `OpenAiCompatibleProviderConfiguration`: stays Completions-only (no `apiFamily` field).
 - `GoogleVertexAiProviderConfiguration` → `GoogleGenAiProviderConfiguration`: add
-  `GoogleBackend { DEVELOPER_API, VERTEX }`; discriminator `googleVertexAi` → `googleGenAi`.
-  Update `ProviderConfiguration` sealed type + `@JsonSubTypes`.
-- `BedrockProviderConfiguration`: validate at construction that model ID is non-Anthropic.
-- New `ProviderConfigurationDeserializer extends StdDeserializer<ProviderConfiguration>`: pre-
-  processes JSON node before delegating. Migration rules per ADR table (7 rows). Pattern:
+  `GoogleBackend { DEVELOPER_API, VERTEX }`; rename discriminator `googleVertexAi` → `googleGenAi`.
+- `BedrockProviderConfiguration`: validate at construction that model ID is non-Anthropic
+  (forwarding to the Anthropic factory if it is).
+- New `ProviderConfigurationDeserializer extends StdDeserializer<ProviderConfiguration>`:
+  pre-processes JSON node before delegating. Migration rules per ADR table. Pattern:
   `JsonSchemaElementDeserializer.java:52` (tree-walking dispatch). Register via Jackson `Module`.
-- `element-templates/agenticai-aiagent-outbound-connector.json`: bump `version` 10 → 11; add
-  conditional UI groups for `backend` / `apiFamily`. Maven generates versioned snapshot and
-  job-worker template automatically via existing `gmavenplus` step.
-- `element-templates/README.md`: same Camunda minor (8.10) → replace top row per AGENTS.md
-  §"Version index README" rule.
+- `element-templates/agenticai-aiagent-outbound-connector.json`: bump 11 → 12; add conditional UI
+  groups for `backend`. Maven regenerates the versioned snapshot + job-worker template.
+- `element-templates/README.md`: replace top row again (or insert new row if Camunda min version
+  changes).
 
 **Tests to add**:
 - `ProviderConfigurationDeserializerTest` — every row of the migration table round-trips to new
   shape; forward serialization writes new shape.
-- `AgentContextTest` round-trip with stored agent context (no provider config inside — sanity).
 
-**Verification**:
-```bash
-mvn clean install -pl connectors/agentic-ai   # triggers element-template generation
-```
-Manual inspect: `versioned/agenticai-aiagent-outbound-connector-10.json` created correctly.
+**Verification**: `mvn clean install -pl connectors/agentic-ai`; manual inspect
+`versioned/agenticai-aiagent-outbound-connector-11.json` created; deserialization smoke test
+covers a saved `agentContext` from a v10/v11 instance.
 
 ---
 
-## Phase E — Remaining native implementations
+## Phase G — Remaining native impls
 
-**Goal**: four remaining `ChatModelApiFactory` families. Each follows the Phase C pattern.
-Structured as five sub-steps (note: `anthropic-messages` cloud backends reuse the Phase C
-factory, so it's not a full new impl):
+**Goal**: native impls for the last four families. Each follows the Phase B pattern.
 
-1. **`anthropic-messages` cloud backends** — extend `AnthropicMessagesChatModelApiFactory` to
-   honour `backend = bedrock | vertex | foundry` (SDK modules: `anthropic-java-bedrock`,
+1. **Anthropic cloud backends** — extend `AnthropicMessagesChatModelApiFactory` to honour
+   `backend = bedrock | vertex | foundry` (SDK modules: `anthropic-java-bedrock`,
    `anthropic-java-vertex`, `anthropic-java-foundry`). Same wire format; only client construction
    differs.
-
-2. **`openai-responses`** — `openai-java` SDK, Responses API. Encrypted reasoning item; cache via
-   `prompt_cache_key`. Covers OpenAI direct + Azure when `apiFamily = responses`.
-
-3. **`openai-completions`** — same SDK, Chat Completions endpoint. Covers legacy Chat models,
-   OpenAI-compatible gateways (Ollama, vLLM). Default for `OpenAiCompatibleProviderConfiguration`.
-
-4. **`google-genai`** — `google-genai-java` SDK; backend toggle (`developer-api` / `vertex`).
+2. **Native Azure OpenAI** — `AzureOpenAiChatModelApiFactory` builds the Azure-flavored
+   `OpenAIClient` (API key or Entra/AAD auth) and hands to the existing `OpenAiChatCompletions`
+   / `OpenAiResponses` impl classes. Branches on `config.apiFamily()` exactly like the OpenAI
+   factory. (If openai-java's Azure variant lags Responses endpoint coverage, Azure stays
+   Completions-only for one release.)
+3. **Native Google GenAI** — `google-genai-java` SDK; backend toggle (`developer-api` / `vertex`).
    Reasoning via `thoughtSignature`; thinking budget via `ThinkingConfig.thinkingBudget`.
+4. **Native Bedrock-Converse** — AWS SDK v2 `bedrockruntime`. Non-Anthropic models only.
+   Multimodal tool results via `ToolResultContentBlock`; cache via `cachePoint` blocks.
 
-5. **`bedrock-converse`** — AWS SDK v2 `bedrockruntime`. Non-Anthropic models only. Multimodal
-   tool results via `ToolResultContentBlock`; cache via `cachePoint` blocks.
-
-**Per-impl checklist** (same as Phase C):
+**Per-impl checklist** (same as Phase B):
 - SDK dependency with `@ConditionalOnClass`
 - Streaming-first internal driver
 - Full `ChatModelEvent` emission
@@ -262,30 +366,28 @@ factory, so it's not a full new impl):
 - Error classification per ADR table
 - `model-capabilities.yaml` entries
 - Unit tests (mocked SDK client)
-- Wire-format e2e regression test added under `connectors-e2e-test-agentic-ai/.../wireformat/`
+- Wire-format e2e regression test under `connectors-e2e-test-agentic-ai/.../wireformat/`
 
 **Verification**: after each impl, corresponding wire-format e2e test passes; full unit suite
 green.
 
 ---
 
-## Phase F — Cleanup + LangChain4j demotion
+## Phase H — Cleanup + LangChain4j demotion
 
-**Goal**: remove the legacy contract; bridge stays on shelf as opt-in.
+**Goal**: bridge stays as opt-in only.
 
-**Files to delete**: already removed during Phase A
-(`AiFrameworkAdapter`, `AiFrameworkChatResponse`, `Langchain4JAiFrameworkChatResponse` —
-no leftover references in `connectors/agentic-ai/src`).
+**Files to delete**: already removed during Phase A.
 
 **Files to modify**:
-- `Langchain4JChatModelApiFactory`: drop default Spring registration; gate behind
-  `camunda.connector.agenticai.framework.langchain4j.bridge.enabled=false` by default. Document
-  in release notes / `docs/reference/ai-agent.md`.
-- `AgenticAiConnectorsAutoConfiguration`: drop `AgenticAiLangchain4JFrameworkConfiguration` import;
-  add per-provider `@ConditionalOnClass` configurations (built in Phase C–E).
-- ADR-004 status: Proposed → Implemented, dated 2026-05-07.
-- `docs/reference/ai-agent.md` + `CLAUDE.md` (agentic-ai): describe `ChatModelApi` as the
-  framework; LangChain4j bridge as legacy opt-in.
+- `Langchain4JChatModelApiFactory` / `AgenticAiLangchain4JFrameworkConfiguration`: drop default
+  Spring registration; gate behind `camunda.connector.agenticai.framework.langchain4j.bridge.enabled=false`
+  by default. Document in release notes / `docs/reference/ai-agent.md`.
+- `AgenticAiConnectorsAutoConfiguration`: drop `AgenticAiLangchain4JFrameworkConfiguration`
+  default import.
+- ADR-004 status: Proposed → Implemented (final date set when shipping).
+- `docs/reference/ai-agent.md` + `AGENTS.md` (agentic-ai): `ChatModelApi` is the framework;
+  LangChain4j bridge is legacy opt-in.
 
 **Tests to add/update**:
 - `AgenticAiConnectorsAutoConfigurationTest` updated for new wiring.
@@ -304,32 +406,35 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai   # full suite (
 
 | File | Phase |
 |------|-------|
-| `BaseAgentRequestHandler.java:171–172` | A (cutover site) |
-| `AgenticAiConnectorsAutoConfiguration.java` | A, C–F (Spring wiring) |
-| `framework/api/` (new SPI package) | A |
-| `framework/langchain4j/Langchain4JAiFrameworkAdapter.java` | A (wrapped by bridge) |
-| `framework/langchain4j/provider/ChatModelProviderRegistry.java` | A (registry pattern to mirror) |
-| `model/request/provider/*ProviderConfiguration.java` | D |
-| `element-templates/agenticai-aiagent-outbound-connector.json` | D |
-| `element-templates/README.md` | D |
-| `docs/adr/004-replace-langchain4j-framework.md` | F (status update) |
+| `BaseAgentRequestHandler.java:172–176` | A (cutover site, done) |
+| `framework/api/` SPI package | A (done) |
+| `framework/ChatClientImpl.java` | A (done), E (capability + strategy wiring) |
+| `framework/anthropic/` (new) | B, G (cloud backends) |
+| `framework/openai/` (new) | C (Completions + factories), D (Responses), G (Azure) |
+| `OpenAiProviderConfiguration.java` | D (apiFamily field) |
+| `model/request/provider/*ProviderConfiguration.java` | F (canonical restructure) |
+| `element-templates/agenticai-aiagent-outbound-connector.json` | D (v11), F (v12) |
+| `element-templates/README.md` | D, F |
+| `AgenticAiConnectorsAutoConfiguration.java` | A (done), B–G (provider imports) |
+| `docs/adr/004-replace-langchain4j-framework.md` | H (status update) |
 
 ## Reusable existing code
 
 | Code | Used in |
 |------|---------|
-| `ChatModelProviderRegistry.java:16–57` | registry pattern for `ChatModelApiRegistryImpl` (Phase A) |
-| `JsonSchemaElementDeserializer.java:52` | tree-walking deserializer pattern for `ProviderConfigurationDeserializer` (Phase D) |
-| `AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL` | transport/auth error wrapping in each native impl |
-| `AgentMessagesHandlerImpl` tool-result fallback path (PR #6999) | `ToolCallResultStrategy` fallback (Phase B) |
+| `ChatModelProviderRegistry.java:16–57` | registry pattern for `ChatModelApiRegistryImpl` (Phase A, done) |
+| `JsonSchemaElementDeserializer.java:52` | tree-walking deserializer pattern for `ProviderConfigurationDeserializer` (Phase F) |
+| `AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL` | transport/auth error wrapping in each native impl (B onwards) |
+| `AgentMessagesHandlerImpl` tool-result fallback path (PR #6999) | `ToolCallResultStrategy` fallback (Phase E) |
 
-## End-to-end verification (after Phase F)
+## End-to-end verification (after Phase H)
 
 1. `mvn clean install -pl connectors/agentic-ai` — all unit tests green, element templates
-   regenerate to v11, `AI_AGENT.md` regenerates.
+   regenerate, `AI_AGENT.md` regenerates.
 2. `mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Dtest=*Wireformat*` — both
    wire-format tests pass via native Anthropic and OpenAI implementations.
 3. `mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai` — full suite green.
-4. Manual: `git diff element-templates/` shows v11 source + v10 in `versioned/` + README updated.
-5. Stale-process smoke: deserialize a saved `agentContext` from a v10 instance with the new
-   `ProviderConfigurationDeserializer` — all 7 ADR migration table rows covered by tests.
+4. Manual: `git diff element-templates/` shows the latest source + previous in `versioned/` +
+   README updated.
+5. Stale-process smoke: deserialize a saved `agentContext` from a pre-restructure instance with
+   the new `ProviderConfigurationDeserializer` — every migration table row covered by tests.
