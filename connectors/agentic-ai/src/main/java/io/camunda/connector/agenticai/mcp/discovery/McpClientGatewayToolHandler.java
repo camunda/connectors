@@ -275,6 +275,13 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   public List<Document> extractDocuments(ToolCallResult toolCallResult) {
     if (!(toolCallResult.content() instanceof List<?> contents)) {
       // string-content optimization or unmanaged shape — nothing to walk
+      LOGGER.debug(
+          "MCP tool call result content is not a List ({}), skipping document extraction. toolCallId={}, toolName={}",
+          toolCallResult.content() != null
+              ? toolCallResult.content().getClass().getSimpleName()
+              : null,
+          toolCallResult.id(),
+          toolCallResult.name());
       return List.of();
     }
 

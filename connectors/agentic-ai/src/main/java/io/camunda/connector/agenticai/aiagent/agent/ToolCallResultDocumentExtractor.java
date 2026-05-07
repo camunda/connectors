@@ -11,6 +11,8 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Extracts {@link Document} instances from a list of tool call results, grouped by tool call.
@@ -23,6 +25,9 @@ import java.util.List;
  * extraction for the results they manage; the generic walker handles everything else.
  */
 public class ToolCallResultDocumentExtractor {
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(ToolCallResultDocumentExtractor.class);
 
   /** Documents extracted from a single tool call result, grouped with the tool call identity. */
   public record ToolCallDocuments(
@@ -40,13 +45,21 @@ public class ToolCallResultDocumentExtractor {
    */
   public List<ToolCallDocuments> extractDocuments(List<ToolCallResult> toolCallResults) {
     final var result = new ArrayList<ToolCallDocuments>();
+    int totalDocuments = 0;
 
     for (ToolCallResult toolCallResult : toolCallResults) {
       final var documents = extractFromToolCallResult(toolCallResult);
       if (!documents.isEmpty()) {
         result.add(new ToolCallDocuments(toolCallResult.id(), toolCallResult.name(), documents));
+        totalDocuments += documents.size();
       }
     }
+
+    LOGGER.debug(
+        "Tool call document extraction: processed {} result(s), extracted documents from {} ({} document(s) total)",
+        toolCallResults.size(),
+        result.size(),
+        totalDocuments);
 
     return result;
   }

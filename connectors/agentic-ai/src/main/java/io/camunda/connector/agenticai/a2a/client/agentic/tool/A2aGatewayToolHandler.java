@@ -242,6 +242,13 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   @Override
   public List<Document> extractDocuments(ToolCallResult toolCallResult) {
     if (!(toolCallResult.content() instanceof A2aSendMessageResult result)) {
+      LOGGER.debug(
+          "A2A tool call result content is not an A2aSendMessageResult ({}), skipping document extraction. toolCallId={}, toolName={}",
+          toolCallResult.content() != null
+              ? toolCallResult.content().getClass().getSimpleName()
+              : null,
+          toolCallResult.id(),
+          toolCallResult.name());
       return List.of();
     }
 
