@@ -23,7 +23,6 @@ import io.camunda.connector.validator.core.Rule;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,9 +74,7 @@ public class ConditionTargetExistsRule implements Rule {
   private void walk(
       JsonNode node, String pointer, Path file, Set<String> propertyIds, List<Finding> findings) {
     if (node.isObject()) {
-      Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-      while (fields.hasNext()) {
-        Map.Entry<String, JsonNode> entry = fields.next();
+      for (Map.Entry<String, JsonNode> entry : node.properties()) {
         String childPointer = pointer + "/" + JsonPointers.escape(entry.getKey());
         if ("condition".equals(entry.getKey()) && entry.getValue().isObject()) {
           checkCondition(entry.getValue(), childPointer, file, propertyIds, findings);

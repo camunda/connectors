@@ -24,7 +24,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,9 +93,7 @@ public class PresetTargetExistsRule implements Rule {
       Map<String, Set<String>> propertyChoices,
       List<Finding> findings) {
     if (node.isObject()) {
-      Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-      while (fields.hasNext()) {
-        Map.Entry<String, JsonNode> entry = fields.next();
+      for (Map.Entry<String, JsonNode> entry : node.properties()) {
         String childPointer = pointer + "/" + JsonPointers.escape(entry.getKey());
         if ("presets".equals(entry.getKey()) && entry.getValue().isObject()) {
           checkPresets(entry.getValue(), childPointer, file, propertyChoices, findings);
@@ -116,9 +113,7 @@ public class PresetTargetExistsRule implements Rule {
       Path file,
       Map<String, Set<String>> propertyChoices,
       List<Finding> findings) {
-    Iterator<Map.Entry<String, JsonNode>> entries = presets.fields();
-    while (entries.hasNext()) {
-      Map.Entry<String, JsonNode> entry = entries.next();
+    for (Map.Entry<String, JsonNode> entry : presets.properties()) {
       String propertyId = entry.getKey();
       JsonNode value = entry.getValue();
       String entryPointer = presetsPointer + "/" + JsonPointers.escape(propertyId);

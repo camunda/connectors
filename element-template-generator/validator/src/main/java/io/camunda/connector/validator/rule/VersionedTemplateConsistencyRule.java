@@ -70,7 +70,20 @@ public class VersionedTemplateConsistencyRule implements MultiFileRule {
         continue;
       }
       String filenameVersionStr = m.group(2);
-      int filenameVersion = Integer.parseInt(filenameVersionStr);
+      int filenameVersion;
+      try {
+        filenameVersion = Integer.parseInt(filenameVersionStr);
+      } catch (NumberFormatException e) {
+        findings.add(
+            Finding.error(
+                path,
+                "/",
+                ID,
+                "Versioned template filename suffix \""
+                    + filenameVersionStr
+                    + "\" is not a valid version number."));
+        continue;
+      }
       boolean preVersioningSnapshot = filenameVersionStr.startsWith("0");
 
       JsonNode template = entry.getValue();

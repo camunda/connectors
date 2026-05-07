@@ -23,7 +23,6 @@ import io.camunda.connector.validator.core.Rule;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -78,9 +77,7 @@ public class ConditionPropertyOrderRule implements Rule {
       Path file,
       List<Finding> findings) {
     if (node.isObject()) {
-      Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-      while (fields.hasNext()) {
-        Map.Entry<String, JsonNode> entry = fields.next();
+      for (Map.Entry<String, JsonNode> entry : node.properties()) {
         String childPointer = pointer + "/" + JsonPointers.escape(entry.getKey());
         if ("condition".equals(entry.getKey()) && entry.getValue().isObject()) {
           checkCondition(
