@@ -31,7 +31,7 @@ class DocumentXmlTagTest {
       when(doc.metadata()).thenReturn(metadata);
       when(metadata.getFileName()).thenReturn("report.pdf");
 
-      assertThat(DocumentXmlTag.from(doc, "search", "call_abc").toXml())
+      assertThat(DocumentXmlTag.from(doc, "call_abc", "search").toXml())
           .isEqualTo(
               "<document tool-name=\"search\" tool-call-id=\"call_abc\" document-short-id=\"25ece9fa\" filename=\"report.pdf\" />");
     }
@@ -85,7 +85,7 @@ class DocumentXmlTagTest {
       when(doc.reference()).thenReturn(ref);
       when(ref.getDocumentId()).thenReturn("abc12345-0000-0000-0000-000000000000");
 
-      assertThat(DocumentXmlTag.from(doc, "tool<with\"quotes>", "call_1").toXml())
+      assertThat(DocumentXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
           .isEqualTo(
               "<document tool-name=\"tool&lt;with&quot;quotes&gt;\" tool-call-id=\"call_1\" document-short-id=\"abc12345\" />");
     }

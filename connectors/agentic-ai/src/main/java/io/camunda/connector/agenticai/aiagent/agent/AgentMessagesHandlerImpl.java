@@ -227,7 +227,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       for (var doc : entry.documents()) {
         content.add(
             textContent(
-                DocumentXmlTag.from(doc, entry.toolCallName(), entry.toolCallId()).toXml()));
+                DocumentXmlTag.from(doc, entry.toolCallId(), entry.toolCallName()).toXml()));
         content.add(DocumentContent.documentContent(doc));
       }
     }

@@ -22,8 +22,8 @@ import org.springframework.lang.Nullable;
  * the document reference in the tool result JSON.
  */
 public record DocumentXmlTag(
-    @Nullable String toolName,
     @Nullable String toolCallId,
+    @Nullable String toolName,
     @Nullable String documentShortId,
     @Nullable String filename) {
 
@@ -32,9 +32,9 @@ public record DocumentXmlTag(
    * the first segment of the document's UUID identifier (e.g. "25ece9fa" from
    * "25ece9fa-aeea-423d-98ed-67c1f08b137b").
    */
-  public static DocumentXmlTag from(Document document, String toolName, String toolCallId) {
+  public static DocumentXmlTag from(Document document, String toolCallId, String toolName) {
     return new DocumentXmlTag(
-        toolName, toolCallId, extractDocumentShortId(document), extractFileName(document));
+        toolCallId, toolName, extractDocumentShortId(document), extractFileName(document));
   }
 
   /** Creates a tag from a document without tool call context (e.g. for event documents). */

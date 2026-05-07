@@ -200,8 +200,8 @@ public final class ToolCallResultDocumentAssertions {
     /** The XML tag string this document is expected to render to in the synthetic user message. */
     String expectedXmlTag() {
       return new DocumentXmlTag(
-              toolName,
               toolCallId,
+              toolName,
               documentShortId(),
               reference.metadata() != null ? reference.metadata().fileName() : null)
           .toXml();
