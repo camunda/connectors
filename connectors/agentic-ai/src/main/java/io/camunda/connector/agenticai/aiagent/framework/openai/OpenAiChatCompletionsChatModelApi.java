@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.content.ContentTextSerializer;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.DocumentModality;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
@@ -36,7 +37,6 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -153,7 +153,7 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
     return configuredMaxCompletionTokens;
   }
 
-  private static String systemPrompt(SystemMessage system) {
+  private String systemPrompt(SystemMessage system) {
     return extractText(system.content());
   }
 
@@ -163,7 +163,7 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
    * used when the message contains at least one {@link DocumentContent} (image / document,
    * validated upstream by {@code ToolCallResultStrategy}).
    */
-  private static void addUserMessage(ChatCompletionCreateParams.Builder builder, UserMessage user) {
+  private void addUserMessage(ChatCompletionCreateParams.Builder builder, UserMessage user) {
     final var content = user.content();
     if (!hasMultimodalContent(content)) {
       builder.addUserMessage(extractText(content));
@@ -171,22 +171,14 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
     }
     final var parts = new ArrayList<ChatCompletionContentPart>();
     for (var c : content) {
-      switch (c) {
-        case TextContent t ->
-            parts.add(
-                ChatCompletionContentPart.ofText(
-                    ChatCompletionContentPartText.builder().text(t.text()).build()));
-        case ObjectContent o ->
-            parts.add(
-                ChatCompletionContentPart.ofText(
-                    ChatCompletionContentPartText.builder()
-                        .text(String.valueOf(o.content()))
-                        .build()));
-        case DocumentContent doc -> parts.add(documentPart(doc.document()));
-        default ->
-            throw new IllegalArgumentException(
-                "Unsupported content block for OpenAI Chat Completions user message: "
-                    + c.getClass().getSimpleName());
+      if (c instanceof DocumentContent doc) {
+        parts.add(documentPart(doc.document()));
+      } else {
+        parts.add(
+            ChatCompletionContentPart.ofText(
+                ChatCompletionContentPartText.builder()
+                    .text(ContentTextSerializer.toText(c, objectMapper))
+                    .build()));
       }
     }
     builder.addUserMessageOfArrayOfContentParts(parts);
@@ -245,27 +237,15 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
     return StringUtils.isNotBlank(name) ? name : "document";
   }
 
-  private static String extractText(List<Content> content) {
+  private String extractText(List<Content> content) {
     if (content == null || content.isEmpty()) {
       return "";
     }
     final var sb = new StringBuilder();
     for (var c : content) {
-      sb.append(textOf(c));
+      sb.append(ContentTextSerializer.toText(c, objectMapper));
     }
     return sb.toString();
-  }
-
-  private static String textOf(Content content) {
-    if (content instanceof TextContent text) {
-      return text.text();
-    }
-    if (content instanceof ObjectContent object) {
-      return String.valueOf(object.content());
-    }
-    throw new IllegalArgumentException(
-        "Unsupported content block for text-only OpenAI Chat Completions API: "
-            + content.getClass().getSimpleName());
   }
 
   private ChatCompletionAssistantMessageParam toAssistantParam(AssistantMessage message) {

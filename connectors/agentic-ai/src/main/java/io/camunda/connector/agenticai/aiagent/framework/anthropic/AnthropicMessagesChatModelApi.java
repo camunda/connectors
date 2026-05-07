@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.content.ContentTextSerializer;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.DocumentModality;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
@@ -43,7 +44,6 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -202,7 +202,7 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
    * validated user-message documents against the model's {@code userMessageModalities}, so any
    * {@link DocumentContent} reaching this point is known to be supported.
    */
-  private static List<ContentBlockParam> messageContentBlocks(List<Content> content) {
+  private List<ContentBlockParam> messageContentBlocks(List<Content> content) {
     if (content == null) {
       return List.of();
     }
@@ -213,7 +213,7 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
     return blocks;
   }
 
-  private static ContentBlockParam messageContentBlock(Content content) {
+  private ContentBlockParam messageContentBlock(Content content) {
     if (content instanceof DocumentContent doc) {
       final var modality = DocumentModality.of(doc.document());
       return switch (modality) {
@@ -235,7 +235,7 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
    * Assistant-message blocks: text only (assistant turns we send back to the model don't carry
    * documents). Used by the assistant-message conversion path.
    */
-  private static List<ContentBlockParam> textOnlyBlocks(List<Content> content) {
+  private List<ContentBlockParam> textOnlyBlocks(List<Content> content) {
     if (content == null) {
       return List.of();
     }
@@ -246,17 +246,9 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
     return blocks;
   }
 
-  private static ContentBlockParam textOnlyBlock(Content content) {
-    if (content instanceof TextContent text) {
-      return ContentBlockParam.ofText(TextBlockParam.builder().text(text.text()).build());
-    }
-    if (content instanceof ObjectContent object) {
-      return ContentBlockParam.ofText(
-          TextBlockParam.builder().text(String.valueOf(object.content())).build());
-    }
-    throw new IllegalArgumentException(
-        "Unsupported content block for text-only Anthropic Messages API: "
-            + content.getClass().getSimpleName());
+  private ContentBlockParam textOnlyBlock(Content content) {
+    return ContentBlockParam.ofText(
+        TextBlockParam.builder().text(ContentTextSerializer.toText(content, objectMapper)).build());
   }
 
   private static ImageBlockParam imageBlockParam(Document document) {

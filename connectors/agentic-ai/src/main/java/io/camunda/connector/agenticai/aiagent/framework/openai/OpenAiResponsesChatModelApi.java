@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.content.ContentTextSerializer;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.DocumentModality;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
@@ -42,7 +43,6 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -163,21 +163,13 @@ public class OpenAiResponsesChatModelApi implements ChatModelApi {
     return configuredMaxOutputTokens;
   }
 
-  private static String extractText(List<Content> content) {
+  private String extractText(List<Content> content) {
     if (content == null || content.isEmpty()) {
       return "";
     }
     final var sb = new StringBuilder();
     for (var c : content) {
-      if (c instanceof TextContent t) {
-        sb.append(t.text());
-      } else if (c instanceof ObjectContent o) {
-        sb.append(String.valueOf(o.content()));
-      } else {
-        throw new IllegalArgumentException(
-            "Unsupported content block for text-only OpenAI Responses API: "
-                + c.getClass().getSimpleName());
-      }
+      sb.append(ContentTextSerializer.toText(c, objectMapper));
     }
     return sb.toString();
   }
@@ -312,20 +304,14 @@ public class OpenAiResponsesChatModelApi implements ChatModelApi {
     }
     final var items = new ArrayList<ResponseInputContent>();
     for (var c : content) {
-      switch (c) {
-        case TextContent t ->
-            items.add(
-                ResponseInputContent.ofInputText(
-                    ResponseInputText.builder().text(t.text()).build()));
-        case ObjectContent o ->
-            items.add(
-                ResponseInputContent.ofInputText(
-                    ResponseInputText.builder().text(String.valueOf(o.content())).build()));
-        case DocumentContent doc -> items.add(documentInputContent(doc.document()));
-        default ->
-            throw new IllegalArgumentException(
-                "Unsupported content block for OpenAI Responses user message: "
-                    + c.getClass().getSimpleName());
+      if (c instanceof DocumentContent doc) {
+        items.add(documentInputContent(doc.document()));
+      } else {
+        items.add(
+            ResponseInputContent.ofInputText(
+                ResponseInputText.builder()
+                    .text(ContentTextSerializer.toText(c, objectMapper))
+                    .build()));
       }
     }
     return ResponseInputItem.ofEasyInputMessage(
