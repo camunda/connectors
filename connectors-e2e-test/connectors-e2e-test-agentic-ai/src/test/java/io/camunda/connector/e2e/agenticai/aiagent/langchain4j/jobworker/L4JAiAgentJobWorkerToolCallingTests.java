@@ -17,18 +17,16 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.readDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlock;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.Content;
-import dev.langchain4j.data.message.ImageContent;
-import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -36,6 +34,7 @@ import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.ExtractedDocument;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
@@ -152,7 +151,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
 
     // tool result: document serialized as document reference
     var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
-    var documentReference = readDocumentReference(toolResultText);
+    var documentReference = parseDocumentReference(toolResultText);
 
     assertThat(lastMessages.get(3))
         .isInstanceOfSatisfying(
@@ -161,31 +160,16 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
               assertThat(msg.id()).isEqualTo("aaa111");
               assertThat(msg.toolName()).isEqualTo("Download_A_File");
             });
-    assertThat(documentReference.contentType()).isEqualTo(mimeType);
+    assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
 
     // document user message: extracted document content
-    assertThat(lastMessages.get(4))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            msg -> {
-              List<Content> contents = msg.contents();
-              assertThat(contents).hasSize(3);
-              assertThat(contents.get(0))
-                  .isInstanceOfSatisfying(
-                      TextContent.class,
-                      tc ->
-                          assertThat(tc.text())
-                              .isEqualTo("Documents extracted from tool call results:"));
-              assertThat(contents.get(1))
-                  .isInstanceOfSatisfying(
-                      TextContent.class,
-                      tc ->
-                          assertThat(tc.text())
-                              .isEqualTo(
-                                  "<document tool-name=\"Download_A_File\" tool-call-id=\"aaa111\" document-short-id=\"%s\" />"
-                                      .formatted(documentReference.shortId())));
-              assertDocumentContentBlock(contents.get(2), type, mimeType);
-            });
+    assertExtractedDocumentsUserMessage(
+        lastMessages.get(4),
+        ExtractedDocument.forToolCall(
+            "aaa111",
+            "Download_A_File",
+            documentReference,
+            content -> assertDocumentContentBlock(content, type, mimeType)));
 
     assertThat(lastMessages.get(5)).isInstanceOf(AiMessage.class); // response after tool
 
@@ -204,25 +188,5 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                 .hasResponseText(aiFinalResponse.text()));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
-  }
-
-  private void assertDocumentContentBlock(
-      Content content, String expectedType, String expectedMimeType) {
-    if (expectedType.equals("text")) {
-      assertThat(content).isInstanceOf(TextContent.class);
-    } else if (expectedMimeType.equals("application/pdf")) {
-      assertThat(content)
-          .isInstanceOfSatisfying(
-              PdfFileContent.class, pdf -> assertThat(pdf.pdfFile().base64Data()).isNotBlank());
-    } else {
-      // image types
-      assertThat(content)
-          .isInstanceOfSatisfying(
-              ImageContent.class,
-              img -> {
-                assertThat(img.image().mimeType()).isEqualTo(expectedMimeType);
-                assertThat(img.image().base64Data()).isNotBlank();
-              });
-    }
   }
 }

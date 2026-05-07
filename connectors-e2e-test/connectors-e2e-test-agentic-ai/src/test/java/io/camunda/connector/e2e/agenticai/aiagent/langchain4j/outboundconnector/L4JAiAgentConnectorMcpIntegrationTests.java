@@ -17,7 +17,8 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.readDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.mcp.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,10 +35,8 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -53,6 +52,7 @@ import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpC
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.ExtractedDocument;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -405,7 +405,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
 
     // tool result: document serialized as document reference
     var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
-    var documentReference = readDocumentReference(toolResultText);
+    var documentReference = parseDocumentReference(toolResultText);
 
     assertThat(lastMessages.get(3))
         .isInstanceOfSatisfying(
@@ -414,37 +414,23 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
               assertThat(msg.id()).isEqualTo("img111");
               assertThat(msg.toolName()).isEqualTo("MCP_A_MCP_Client___toolA");
             });
-    assertThat(documentReference.contentType()).isEqualTo("image/png");
+    assertThat(documentReference.metadata().contentType()).isEqualTo("image/png");
 
     // document user message: extracted document content
-    assertThat(lastMessages.get(4))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            msg -> {
-              List<Content> contents = msg.contents();
-              assertThat(contents).hasSize(3);
-              assertThat(contents.get(0))
-                  .isInstanceOfSatisfying(
-                      TextContent.class,
-                      tc ->
-                          assertThat(tc.text())
-                              .isEqualTo("Documents extracted from tool call results:"));
-              assertThat(contents.get(1))
-                  .isInstanceOfSatisfying(
-                      TextContent.class,
-                      tc ->
-                          assertThat(tc.text())
-                              .isEqualTo(
-                                  "<document tool-name=\"MCP_A_MCP_Client___toolA\" tool-call-id=\"img111\" document-short-id=\"%s\" />"
-                                      .formatted(documentReference.shortId())));
-              assertThat(contents.get(2))
-                  .isInstanceOfSatisfying(
-                      ImageContent.class,
-                      img -> {
-                        assertThat(img.image().mimeType()).isEqualTo("image/png");
-                        assertThat(img.image().base64Data()).isEqualTo(imageBase64);
-                      });
-            });
+    assertExtractedDocumentsUserMessage(
+        lastMessages.get(4),
+        ExtractedDocument.forToolCall(
+            "img111",
+            "MCP_A_MCP_Client___toolA",
+            documentReference,
+            content ->
+                assertThat(content)
+                    .isInstanceOfSatisfying(
+                        ImageContent.class,
+                        img -> {
+                          assertThat(img.image().mimeType()).isEqualTo("image/png");
+                          assertThat(img.image().base64Data()).isEqualTo(imageBase64);
+                        })));
 
     assertAgentResponse(
         zeebeTest,
