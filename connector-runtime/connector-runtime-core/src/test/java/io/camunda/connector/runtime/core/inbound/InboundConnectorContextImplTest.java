@@ -49,7 +49,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("stringMap", "={{\"key\":\"value\"}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, (e) -> {}, definition, null, mapper, activityLogRegistry);
     // when and then
     RuntimeException exception =
         assertThrows(
@@ -64,7 +64,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("stringMap", "={\"keyString\":null}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, (e) -> {}, definition, null, mapper, activityLogRegistry);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -83,7 +83,7 @@ class InboundConnectorContextImplTest {
                 "={key:[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, (e) -> {}, definition, null, mapper, activityLogRegistry);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -134,7 +134,7 @@ class InboundConnectorContextImplTest {
                 "={\"innerObject\":{\"stringList\":[\"innerList\"], \"bool\":true}}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, (e) -> {}, definition, null, mapper, activityLogRegistry);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -149,7 +149,7 @@ class InboundConnectorContextImplTest {
 
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, (e) -> {}, definition, null, mapper, activityLogRegistry);
 
     // when
     Map<String, Object> properties = inboundConnectorContext.getProperties();
@@ -165,7 +165,7 @@ class InboundConnectorContextImplTest {
     var health = Health.up();
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, (e) -> {}, definition, null, mapper, activityLogRegistry);
 
     // when
     inboundConnectorContext.reportHealth(health);
@@ -190,7 +190,7 @@ class InboundConnectorContextImplTest {
     var health = Health.down();
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, (e) -> {}, definition, null, mapper, activityLogRegistry);
 
     // when
     inboundConnectorContext.reportHealth(health);

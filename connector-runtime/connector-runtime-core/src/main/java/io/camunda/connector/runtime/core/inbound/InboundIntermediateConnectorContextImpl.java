@@ -109,11 +109,6 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   @Override
-  public void cancel(final Throwable exception) {
-    inboundContext.cancel(exception);
-  }
-
-  @Override
   public Map<String, Object> getProperties() {
     return inboundContext.getProperties();
   }

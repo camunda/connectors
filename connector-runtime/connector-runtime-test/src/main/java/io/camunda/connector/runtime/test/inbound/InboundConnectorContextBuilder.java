@@ -293,11 +293,6 @@ public class InboundConnectorContextBuilder {
     }
 
     @Override
-    public void cancel(Throwable exception) {
-      // do nothing
-    }
-
-    @Override
     public Map<String, Object> getProperties() {
       try {
         return objectMapper.readValue(propertiesWithSecrets, new TypeReference<>() {});

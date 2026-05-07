@@ -34,13 +34,6 @@ public sealed interface RegisteredExecutable {
       ExecutableId id)
       implements RegisteredExecutable {}
 
-  record Cancelled(
-      InboundConnectorExecutable<InboundConnectorContext> executable,
-      InboundConnectorManagementContext context,
-      Throwable exceptionThrown,
-      ExecutableId id)
-      implements RegisteredExecutable {}
-
   record ConnectorNotRegistered(ValidInboundConnectorDetails data, ExecutableId id)
       implements RegisteredExecutable {}
 

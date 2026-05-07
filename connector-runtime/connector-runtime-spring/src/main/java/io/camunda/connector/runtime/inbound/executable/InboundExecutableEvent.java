@@ -16,11 +16,18 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
-import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Marker for events that drive inbound executable state changes. Producers (e.g. the Operate
+ * process-state poller) publish these to the registry; the registry routes them through the
+ * per-process lane dispatcher.
+ *
+ * <p>Cancellation of an active executable is no longer modelled as an event variant — it is a
+ * direct callback handled inside the lane (see {@code LifecycleExecutor#cancelAndMaybeRetry}).
+ */
 public sealed interface InboundExecutableEvent {
 
   /**
@@ -46,6 +53,4 @@ public sealed interface InboundExecutableEvent {
       String tenantId,
       Map<Long, List<InboundConnectorElement>> elementsByProcessDefinitionKey)
       implements InboundExecutableEvent {}
-
-  record Cancelled(ExecutableId id, Throwable throwable) implements InboundExecutableEvent {}
 }

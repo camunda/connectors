@@ -83,13 +83,6 @@ public interface InboundConnectorContext extends DocumentFactory {
   CorrelationResult correlate(CorrelationRequest correlationRequest);
 
   /**
-   * /** Signals to the Connector runtime that inbound Connector execution was interrupted. As a
-   * result of this call, the runtime may attempt to retry the execution or provide the user with an
-   * appropriate alert.
-   */
-  void cancel(Throwable exception);
-
-  /**
    * Low-level properties access method. Allows to perform custom deserialization. For a simpler
    * property access, consider using {@link #bindProperties(Class)}.
    *

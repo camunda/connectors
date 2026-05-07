@@ -16,9 +16,6 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
-import dev.failsafe.Failsafe;
-import dev.failsafe.RetryPolicy;
-import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.ActivityBuilder;
 import io.camunda.connector.api.inbound.ActivityLogTag;
@@ -43,14 +40,19 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Fail
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
-import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * Activates and deactivates inbound connectors. Designed to be invoked from a single lane thread
+ * per process — this class itself holds no locks and returns no futures.
+ */
 public class BatchExecutableProcessor {
 
   private static final Logger LOG = LoggerFactory.getLogger(BatchExecutableProcessor.class);
@@ -75,13 +77,12 @@ public class BatchExecutableProcessor {
   }
 
   /**
-   * Activates a batch of inbound connectors. Guarantees that all connectors are activated or none
-   * (except non-registered connectors, which can be activated by a different runtime - those are
-   * considered valid).
+   * Activates a batch of inbound connectors. Guarantees all-or-nothing semantics for the batch
+   * (except connectors not registered locally, which are considered valid since another runtime may
+   * own them — hybrid mode).
    */
   public Map<ExecutableId, RegisteredExecutable> activateBatch(
-      Map<ExecutableId, InboundConnectorDetails> request,
-      Consumer<InboundExecutableEvent.Cancelled> cancellationCallback) {
+      Map<ExecutableId, InboundConnectorDetails> request) {
 
     final Map<ExecutableId, RegisteredExecutable> alreadyActivated = new HashMap<>();
 
@@ -99,15 +100,12 @@ public class BatchExecutableProcessor {
         data = (ValidInboundConnectorDetails) maybeValidData;
       }
 
-      final RegisteredExecutable result =
-          activateSingle(
-              data, t -> cancellationCallback.accept(new InboundExecutableEvent.Cancelled(id, t)));
+      final RegisteredExecutable result = activateSingle(data);
 
       switch (result) {
         case Activated activated -> alreadyActivated.put(id, activated);
         case ConnectorNotRegistered notRegistered -> alreadyActivated.put(id, notRegistered);
         case InvalidDefinition invalid -> alreadyActivated.put(id, invalid);
-        case RegisteredExecutable.Cancelled cancelled -> alreadyActivated.put(id, cancelled);
         case FailedToActivate failed -> {
           LOG.error(
               "Failed to activate connector of type '{}' with deduplication ID '{}', reason: {}. "
@@ -145,8 +143,7 @@ public class BatchExecutableProcessor {
     return alreadyActivated;
   }
 
-  private RegisteredExecutable activateSingle(
-      InboundConnectorDetails data, Consumer<Throwable> cancellationCallback) {
+  private RegisteredExecutable activateSingle(InboundConnectorDetails data) {
 
     final ExecutableId id = ExecutableId.fromDeduplicationId(data.deduplicationId());
     if (data instanceof InvalidInboundConnectorDetails invalid) {
@@ -162,7 +159,7 @@ public class BatchExecutableProcessor {
       context =
           (InboundConnectorManagementContext)
               connectorContextFactory.createContext(
-                  validData, cancellationCallback, executable.getClass(), activityLogWriter);
+                  validData, executable.getClass(), activityLogWriter);
     } catch (NoSuchElementException e) {
       LOG.warn("Failed to create executable", e);
       return new ConnectorNotRegistered(validData, id);
@@ -198,8 +195,10 @@ public class BatchExecutableProcessor {
   }
 
   /**
-   * Handles the webhook registration (if applicable) and activates the executable. Throws on
-   * failure so callers can apply their own error-handling strategy.
+   * Activates the executable and (for webhook connectors) registers it. For webhook connectors we
+   * register first to claim the context slot, but roll back the registration if {@code activate}
+   * subsequently throws — otherwise the webhook lookup would point at a connector that never
+   * started.
    */
   private Activated doActivate(
       InboundConnectorExecutable<InboundConnectorContext> executable,
@@ -209,8 +208,19 @@ public class BatchExecutableProcessor {
     var activated = new Activated(executable, context, id);
     if (executable instanceof WebhookConnectorExecutable) {
       LOG.debug("Registering webhook: {}", context.getDefinition().type());
-      if (webhookConnectorRegistry.register(activated)) {
-        executable.activate(context);
+      boolean acceptedAsActive = webhookConnectorRegistry.register(activated);
+      if (acceptedAsActive) {
+        try {
+          executable.activate(context);
+        } catch (Exception e) {
+          try {
+            webhookConnectorRegistry.deregister(activated);
+          } catch (Exception deregErr) {
+            LOG.warn(
+                "Failed to deregister webhook after activation failure for '{}'", id, deregErr);
+          }
+          throw e;
+        }
       }
     } else {
       executable.activate(context);
@@ -249,103 +259,6 @@ public class BatchExecutableProcessor {
   public void deactivateBatch(List<RegisteredExecutable> executables) {
     for (var executable : executables) {
       deactivateSingle(executable);
-    }
-  }
-
-  /**
-   * Resets an executable by deactivating it (if currently active) and re-activating it with a fresh
-   * instance, reusing the same context. Only {@link Activated} and {@link
-   * RegisteredExecutable.Cancelled} states are supported.
-   *
-   * @param executable the executable to reset
-   * @return a {@link CompletableFuture} that resolves to the new {@link Activated} executable
-   * @throws IllegalStateException if the executable is not in a resettable state
-   */
-  public CompletableFuture<Activated> restartFromContext(RegisteredExecutable executable) {
-    RegisteredExecutable.Cancelled cancelled =
-        switch (executable) {
-          case Activated activated -> {
-            LOG.info(
-                "Resetting activated inbound connector of type '{}'",
-                activated.context().getDefinition().type());
-            deactivateSingle(activated);
-            yield new RegisteredExecutable.Cancelled(
-                activated.executable(), activated.context(), null, activated.id());
-          }
-          case RegisteredExecutable.Cancelled c -> {
-            LOG.info(
-                "Resetting cancelled inbound connector of type '{}'",
-                c.context().getDefinition().type());
-            yield c;
-          }
-          default ->
-              throw new IllegalStateException(
-                  "Cannot reset connector in state: "
-                      + executable.getClass().getSimpleName()
-                      + ". Only Activated or Cancelled executables can be reset.");
-        };
-
-    return doRestartFromContext(cancelled, 0, Duration.ZERO);
-  }
-
-  public CompletableFuture<Activated> restartFromContext(
-      RegisteredExecutable.Cancelled cancelled, ConnectorRetryException retryException) {
-    return doRestartFromContext(
-        cancelled, retryException.getRetries(), retryException.getBackoffDuration());
-  }
-
-  private CompletableFuture<Activated> doRestartFromContext(
-      RegisteredExecutable.Cancelled cancelled, int maxRetries, Duration backoff) {
-    InboundConnectorExecutable<InboundConnectorContext> newExecutable =
-        connectorFactory.getInstance(cancelled.context().getDefinition().type());
-    LOG.warn("Inbound connector executable has requested its reactivation");
-    try {
-      RetryPolicy<Object> retryPolicy =
-          RetryPolicy.builder()
-              .withDelay(backoff)
-              .onFailedAttempt(
-                  event ->
-                      LOG.error(
-                          "Reactivation failed for inbound connector: {}",
-                          cancelled.context().getDefinition().type(),
-                          event.getLastException()))
-              .onRetry(
-                  event ->
-                      LOG.warn(
-                          "Failure #{} to reactivate connector: {}. Retrying.",
-                          event.getAttemptCount(),
-                          cancelled.context().getDefinition().type()))
-              .withMaxRetries(maxRetries)
-              .build();
-      return Failsafe.with(retryPolicy)
-          .getAsync(() -> tryRestart(newExecutable, cancelled.context()));
-    } catch (Exception e) {
-      return CompletableFuture.failedFuture(e);
-    }
-  }
-
-  private Activated tryRestart(
-      InboundConnectorExecutable<InboundConnectorContext> executable,
-      InboundConnectorManagementContext context) {
-    try {
-      var executableId =
-          ExecutableId.fromDeduplicationId(context.getDefinition().deduplicationId());
-      var activated = doActivate(executable, context, executableId);
-      LOG.info("Activation successful for {}", context.getDefinition().type());
-      return activated;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public RegisteredExecutable.Cancelled cancelExecutable(Activated activated, Throwable throwable) {
-    try {
-      activated.executable().deactivate();
-      return new RegisteredExecutable.Cancelled(
-          activated.executable(), activated.context(), throwable, activated.id());
-    } catch (Exception e) {
-      LOG.error("Failed to deactivate connector", e);
-      throw new RuntimeException("Failed to deactivate connector", e);
     }
   }
 

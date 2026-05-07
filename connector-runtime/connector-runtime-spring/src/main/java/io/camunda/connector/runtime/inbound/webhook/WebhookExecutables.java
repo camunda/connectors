@@ -88,21 +88,25 @@ public class WebhookExecutables {
   }
 
   /**
-   * Tries to activate the next executable in the queue. It also updates the health status of the
-   * active executable (to UP) and all other executables in the queue (error message).
+   * Tries to activate the next executable in the queue. If activation fails, the candidate is
+   * marked DOWN and the next queued executable is tried, until one succeeds or the queue is
+   * exhausted. On success the remaining standby executables have their queueing error message
+   * refreshed against the new active executable.
    *
-   * @return true if an executable was activated, false if there are no executables in the queue
+   * @return true if an executable was activated, false if no candidate could be activated
    */
   private boolean tryActivateNext() {
-    if (inactiveExecutables.isEmpty()) {
-      return false;
+    while (!inactiveExecutables.isEmpty()) {
+      var candidate = inactiveExecutables.removeFirst();
+      activeExecutable = candidate;
+      if (tryMarkActiveAsUpAndActivate(candidate)) {
+        updateInactiveExecutablesErrorMessage();
+        return true;
+      }
+      // Promotion failed: roll back so the registry doesn't claim this connector is active.
+      activeExecutable = null;
     }
-
-    activeExecutable = inactiveExecutables.removeFirst();
-    markActiveExecutableAsUpAndActivate();
-    updateInactiveExecutablesErrorMessage();
-
-    return true;
+    return false;
   }
 
   public RegisteredExecutable.Activated getActiveWebhook() {
@@ -139,10 +143,15 @@ public class WebhookExecutables {
     executable.context().reportHealth(Health.down(new IllegalStateException(createErrorMessage())));
   }
 
-  private void markActiveExecutableAsUpAndActivate() {
+  /**
+   * Attempts to activate the given candidate. Returns {@code true} on success, {@code false} on
+   * failure (in which case the candidate's health is reported DOWN and an activity log entry is
+   * written; the caller is expected to roll back its {@code activeExecutable} assignment).
+   */
+  private boolean tryMarkActiveAsUpAndActivate(RegisteredExecutable.Activated candidate) {
     try {
-      activeExecutable.executable().activate(activeExecutable.context());
-      activeExecutable
+      candidate.executable().activate(candidate.context());
+      candidate
           .context()
           .log(
               activity ->
@@ -153,8 +162,28 @@ public class WebhookExecutables {
                           "Path \""
                               + context
                               + "\" is now available. executable has been activated."));
+      return true;
     } catch (Exception e) {
-      throw new RuntimeException("Could not activate connector: " + activeExecutable, e);
+      candidate
+          .context()
+          .reportHealth(
+              Health.down(
+                  new RuntimeException(
+                      "Failed to activate after promotion to webhook path \"" + context + "\"",
+                      e)));
+      candidate
+          .context()
+          .log(
+              activity ->
+                  activity
+                      .withSeverity(Severity.ERROR)
+                      .withTag(ActivityLogTag.ACTIVATION)
+                      .withMessage(
+                          "Failed to activate after promotion to path \""
+                              + context
+                              + "\": "
+                              + e.getMessage()));
+      return false;
     }
   }
 

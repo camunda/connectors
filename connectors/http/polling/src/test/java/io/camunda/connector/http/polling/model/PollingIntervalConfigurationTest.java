@@ -64,7 +64,6 @@ public class PollingIntervalConfigurationTest {
             (e) -> {},
             connectorData,
             null,
-            (e) -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
             new ActivityLogRegistry());
   }

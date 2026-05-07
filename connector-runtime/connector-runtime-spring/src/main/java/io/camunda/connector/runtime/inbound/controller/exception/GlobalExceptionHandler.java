@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound.controller.exception;
 
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableNotFoundException;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl.InboundLifecycleTimeoutException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,6 +28,22 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(DataNotFoundException.class)
   public ResponseEntity<String> handleNotFound(DataNotFoundException ex) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+  }
+
+  @ExceptionHandler(InboundExecutableNotFoundException.class)
+  public ResponseEntity<String> handleExecutableNotFound(InboundExecutableNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+  }
+
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<String> handleIllegalState(IllegalStateException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+  }
+
+  @ExceptionHandler(InboundLifecycleTimeoutException.class)
+  public ResponseEntity<String> handleLifecycleTimeout(InboundLifecycleTimeoutException ex) {
+    return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT)
+        .body(ex.getMessage() + ". GET /inbound to observe outcome.");
   }
 
   @ExceptionHandler(Exception.class)

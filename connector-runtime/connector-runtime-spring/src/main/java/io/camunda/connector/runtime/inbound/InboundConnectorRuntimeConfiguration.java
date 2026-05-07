@@ -36,6 +36,8 @@ import io.camunda.connector.runtime.inbound.controller.exception.GlobalException
 import io.camunda.connector.runtime.inbound.executable.BatchExecutableProcessor;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl;
+import io.camunda.connector.runtime.inbound.executable.lifecycle.LaneDispatcher;
+import io.camunda.connector.runtime.inbound.executable.lifecycle.VirtualThreadLaneDispatcher;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
 import io.camunda.connector.runtime.inbound.search.ProcessInstanceClientConfiguration;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
@@ -76,6 +78,12 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Value("${camunda.connector.inbound.log.size:100}")
   private int activityLogSize;
+
+  @Value("${camunda.connector.inbound.reset-timeout:PT30S}")
+  private Duration resetTimeout;
+
+  @Value("${camunda.connector.inbound.lane-count:128}")
+  private int laneCount;
 
   @Bean
   public static InboundConnectorBeanDefinitionProcessor inboundConnectorBeanDefinitionProcessor(
@@ -141,12 +149,23 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public LaneDispatcher inboundLaneDispatcher() {
+    return new VirtualThreadLaneDispatcher(laneCount);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public InboundExecutableRegistry inboundExecutableRegistry(
       InboundConnectorFactory inboundConnectorFactory,
       BatchExecutableProcessor batchExecutableProcessor,
-      ActivityLogRegistry activityLogRegistry) {
+      ActivityLogRegistry activityLogRegistry,
+      LaneDispatcher laneDispatcher) {
     return new InboundExecutableRegistryImpl(
-        inboundConnectorFactory, batchExecutableProcessor, activityLogRegistry);
+        inboundConnectorFactory,
+        batchExecutableProcessor,
+        activityLogRegistry,
+        laneDispatcher,
+        resetTimeout);
   }
 
   @Bean

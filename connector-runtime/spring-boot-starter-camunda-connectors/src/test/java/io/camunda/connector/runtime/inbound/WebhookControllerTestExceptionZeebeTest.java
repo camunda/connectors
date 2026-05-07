@@ -243,7 +243,6 @@ class WebhookControllerTestExceptionZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
             mapper,
             new ActivityLogRegistry());
 

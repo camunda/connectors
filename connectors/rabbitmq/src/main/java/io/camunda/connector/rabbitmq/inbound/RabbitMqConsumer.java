@@ -129,18 +129,14 @@ public class RabbitMqConsumer extends DefaultConsumer {
 
   @Override
   public void handleCancel(String consumerTag) {
-    try {
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.WARNING)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage("Consumer cancelled: " + consumerTag));
-      context.cancel(null);
-    } catch (Exception e) {
-      context.reportHealth(Health.down(e));
-      LOGGER.error("Failed to cancel Connector execution: {}", e.getMessage());
-    }
+    var reason = "Consumer cancelled by broker: " + consumerTag;
+    context.log(
+        activity ->
+            activity
+                .withSeverity(Severity.WARNING)
+                .withTag(ActivityLogTag.CONSUMER)
+                .withMessage(reason));
+    context.reportHealth(Health.down(new RuntimeException(reason)));
   }
 
   @Override

@@ -18,67 +18,118 @@ package io.camunda.connector.runtime.inbound.webhook;
 
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Registry of active webhook executables, keyed by webhook context (URL path).
+ *
+ * <p>Concurrency model: every public operation is submitted as a {@link Callable} to a
+ * single-thread virtual-thread executor and the caller blocks on the resulting future. Because
+ * exactly one thread ever touches the registry's internals, no locks, no concurrent collections,
+ * and no synchronisation primitives are needed. The map is a plain {@link HashMap} and {@link
+ * WebhookExecutables} is plain mutable Java.
+ *
+ * <p>Trade-off: webhook HTTP request handling calls {@link #getActiveWebhook} on the hot path, so
+ * every request pays the cost of submitting a task to the coordinator and awaiting it (~tens of
+ * microseconds, dominated by future bookkeeping). For typical webhook traffic this is well below
+ * network latency. If a webhook lifecycle transition triggers a slow {@code executable.activate()}
+ * (e.g. promoting a queued connector after deregister), the coordinator is briefly blocked for the
+ * duration of that activate — accepted as a rare corner case.
+ */
 public class WebhookConnectorRegistry {
 
   private final Logger LOG = LoggerFactory.getLogger(WebhookConnectorRegistry.class);
 
   private final Map<String, WebhookExecutables> executablesByContext = new HashMap<>();
+  private final ExecutorService coordinator =
+      Executors.newSingleThreadExecutor(
+          Thread.ofVirtual().name("inbound-webhook-coordinator").factory());
 
   public Optional<RegisteredExecutable.Activated> getActiveWebhook(String context) {
-    return Optional.ofNullable(executablesByContext.get(context))
-        .map(WebhookExecutables::getActiveWebhook);
+    return runOnCoordinator(
+        () -> {
+          var executables = executablesByContext.get(context);
+          if (executables == null) {
+            return Optional.empty();
+          }
+          try {
+            return Optional.ofNullable(executables.getActiveWebhook());
+          } catch (IllegalStateException ignored) {
+            return Optional.empty();
+          }
+        });
   }
 
+  /**
+   * Returns an immutable snapshot of the current registry. Callers may iterate it freely without
+   * coordinating with the registry; mutations after the snapshot is taken are not reflected.
+   */
   public Map<String, WebhookExecutables> getExecutablesByContext() {
-    return executablesByContext;
+    return runOnCoordinator(() -> Map.copyOf(executablesByContext));
   }
 
   public boolean register(RegisteredExecutable.Activated connector) {
     var context = getContext(connector);
-
     WebhookConnectorValidationUtil.logIfWebhookPathDeprecated(connector, context);
-    createExecutablesOrGetExisting(context, connector)
-        .ifPresent(existingExecutables -> existingExecutables.markAsDownAndAdd(connector));
 
-    return registeredAsActiveConnector(connector, context);
-  }
-
-  private boolean registeredAsActiveConnector(
-      RegisteredExecutable.Activated connector, String context) {
-    return getActiveWebhook(context).map(c -> c.equals(connector)).orElse(false);
-  }
-
-  /**
-   * Creates a new {@link WebhookExecutables} instance for the given context if it does not already
-   * exist (and returns an empty Optional), or returns the existing one.
-   */
-  private Optional<WebhookExecutables> createExecutablesOrGetExisting(
-      String context, RegisteredExecutable.Activated connector) {
-    return Optional.ofNullable(
-        executablesByContext.putIfAbsent(context, new WebhookExecutables(connector, context)));
+    return runOnCoordinator(
+        () -> {
+          var existing = executablesByContext.get(context);
+          if (existing == null) {
+            executablesByContext.put(context, new WebhookExecutables(connector, context));
+          } else {
+            existing.markAsDownAndAdd(connector);
+          }
+          return registeredAsActiveConnector(connector, context);
+        });
   }
 
   public void deregister(RegisteredExecutable.Activated connector) {
     var context = getContext(connector);
-    var executables = executablesByContext.get(context);
-    if (executables == null) {
-      var logMessage = "Context: " + context + " is not registered. Cannot deregister.";
-      LOG.debug(logMessage);
-      throw new RuntimeException(logMessage);
-    }
-
-    var hasActiveConnector = executables.deregister(connector);
-    if (!hasActiveConnector) {
-      executablesByContext.remove(context);
-    }
+    runOnCoordinator(
+        () -> {
+          var executables = executablesByContext.get(context);
+          if (executables == null) {
+            var logMessage = "Context: " + context + " is not registered. Cannot deregister.";
+            LOG.debug(logMessage);
+            throw new RuntimeException(logMessage);
+          }
+          var hasActiveConnector = executables.deregister(connector);
+          if (!hasActiveConnector) {
+            executablesByContext.remove(context);
+          }
+          return null;
+        });
   }
 
   public void reset() {
-    executablesByContext.clear();
+    runOnCoordinator(
+        () -> {
+          executablesByContext.clear();
+          return null;
+        });
+  }
+
+  /** Runs entirely inside the coordinator; no synchronisation needed. */
+  private boolean registeredAsActiveConnector(
+      RegisteredExecutable.Activated connector, String context) {
+    var executables = executablesByContext.get(context);
+    if (executables == null) {
+      return false;
+    }
+    try {
+      return connector.equals(executables.getActiveWebhook());
+    } catch (IllegalStateException ignored) {
+      return false;
+    }
   }
 
   private String getContext(RegisteredExecutable.Activated connector) {
@@ -90,5 +141,23 @@ public class WebhookConnectorRegistry {
       throw new RuntimeException(logMessage);
     }
     return context;
+  }
+
+  private <T> T runOnCoordinator(Callable<T> task) {
+    try {
+      return coordinator.submit(task).get();
+    } catch (ExecutionException e) {
+      var cause = e.getCause();
+      if (cause instanceof RuntimeException re) {
+        throw re;
+      }
+      if (cause instanceof Error err) {
+        throw err;
+      }
+      throw new RuntimeException(cause);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("Interrupted while waiting for webhook coordinator", e);
+    }
   }
 }

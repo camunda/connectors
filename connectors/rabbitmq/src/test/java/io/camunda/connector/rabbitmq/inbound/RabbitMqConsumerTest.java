@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -17,10 +18,12 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
+import io.camunda.connector.api.inbound.ActivityBuilder;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.InvalidInput;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ZeebeClientStatus;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
@@ -146,7 +149,12 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     consumer.handleCancel(consumerTag);
 
     // Then
-    verify(spyContext, times(1)).cancel(null);
+    ArgumentCaptor<Health> healthCaptor = ArgumentCaptor.forClass(Health.class);
+    verify(spyContext, times(1)).reportHealth(healthCaptor.capture());
+    assertThat(healthCaptor.getValue().getStatus()).isEqualTo(Health.Status.DOWN);
+    assertThat(healthCaptor.getValue().getError().code()).isEqualTo("RuntimeException");
+    assertThat(healthCaptor.getValue().getError().message())
+        .contains("Consumer cancelled by broker: " + consumerTag);
   }
 
   @Test
@@ -161,8 +169,8 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     consumer.handleShutdownSignal(consumerTag, cause);
 
     // Then
-    verify(spyContext, times(0)).cancel(cause);
-    verify(spyContext, times(1)).log(any(Consumer.class));
+    verify(spyContext, never()).reportHealth(any(Health.class));
+    verify(spyContext, times(1)).log(org.mockito.ArgumentMatchers.<Consumer<ActivityBuilder>>any());
   }
 
   @Test

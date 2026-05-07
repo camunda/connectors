@@ -17,15 +17,12 @@
 package io.camunda.connector.runtime.inbound.executable;
 
 import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.Health.Status;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
-import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Cancelled;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -111,7 +108,6 @@ public class InboundExecutableQueryService {
   private ActiveExecutableResponse buildActiveExecutableResponse(RegisteredExecutable executable) {
     return switch (executable) {
       case Activated activated -> buildFromActivated(activated);
-      case Cancelled cancelled -> buildFromCancelled(cancelled);
       case ConnectorNotRegistered notRegistered -> buildFromNotRegistered(notRegistered);
       case FailedToActivate failed -> buildFromFailedToActivate(failed);
       case InvalidDefinition invalid -> buildFromInvalidDefinition(invalid);
@@ -127,18 +123,6 @@ public class InboundExecutableQueryService {
         context.connectorElements(),
         context.getHealth(),
         activityLogRegistry.getLogs(activated.id()),
-        context.getActivationTimestamp());
-  }
-
-  private ActiveExecutableResponse buildFromCancelled(Cancelled cancelled) {
-    var context = cancelled.context();
-
-    return new ActiveExecutableResponse(
-        cancelled.id(),
-        cancelled.executable().getClass(),
-        context.connectorElements(),
-        Health.down(cancelled.exceptionThrown()),
-        activityLogRegistry.getLogs(cancelled.id()),
         context.getActivationTimestamp());
   }
 
@@ -176,42 +160,5 @@ public class InboundExecutableQueryService {
         Health.down(new RuntimeException("Invalid connector definition: " + invalid.reason())),
         activityLogRegistry.getLogs(invalid.id()),
         null);
-  }
-
-  /**
-   * Aggregates health status across all executables.
-   *
-   * @return aggregated health status
-   */
-  public Health aggregateHealth() {
-    var executables = stateStore.getAllExecutables();
-
-    if (executables.isEmpty()) {
-      return Health.up();
-    }
-
-    List<Health> healths = new ArrayList<>();
-    for (RegisteredExecutable executable : executables) {
-      healths.add(getHealthFromExecutable(executable));
-    }
-
-    boolean anyDown = healths.stream().anyMatch(h -> h.getStatus() == Status.DOWN);
-    if (anyDown) {
-      long downCount = healths.stream().filter(h -> h.getStatus() == Status.DOWN).count();
-      return Health.down(
-          new RuntimeException(downCount + " of " + healths.size() + " connectors are down"));
-    }
-
-    return Health.up();
-  }
-
-  private Health getHealthFromExecutable(RegisteredExecutable executable) {
-    return switch (executable) {
-      case Activated activated -> activated.context().getHealth();
-      case Cancelled cancelled -> Health.down(cancelled.exceptionThrown());
-      case ConnectorNotRegistered ignored -> Health.down(new RuntimeException("Not registered"));
-      case FailedToActivate failed -> Health.down(new RuntimeException(failed.reason()));
-      case InvalidDefinition invalid -> Health.down(new RuntimeException(invalid.reason()));
-    };
   }
 }

@@ -78,7 +78,6 @@ public abstract class WebhookTestsBase {
             new DefaultValidationProvider(),
             def,
             mock(InboundCorrelationHandler.class),
-            e -> {},
             mapper,
             new ActivityLogRegistry());
 

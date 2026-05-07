@@ -28,7 +28,6 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.function.Consumer;
 
 public class DefaultInboundConnectorContextFactory implements InboundConnectorContextFactory {
   private final ObjectMapper objectMapper;
@@ -56,7 +55,6 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
   @Override
   public <T extends InboundConnectorExecutable<?>> InboundConnectorContext createContext(
       final ValidInboundConnectorDetails connectorDetails,
-      final Consumer<Throwable> cancellationCallback,
       final Class<T> executableClass,
       final ActivityLogWriter logWriter) {
 
@@ -67,7 +65,6 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
             documentFactory,
             connectorDetails,
             correlationHandler,
-            cancellationCallback,
             objectMapper,
             logWriter);
 

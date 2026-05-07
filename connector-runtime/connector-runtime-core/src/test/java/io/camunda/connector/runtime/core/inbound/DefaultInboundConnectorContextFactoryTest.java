@@ -28,7 +28,6 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +42,6 @@ class DefaultInboundConnectorContextFactoryTest {
   @Mock private SecretProviderAggregator secretProviderAggregator;
   @Mock private ValidationProvider validationProvider;
   @Mock private ProcessInstanceClient processInstanceClient;
-  @Mock private Consumer<Throwable> cancellationCallback;
   @Mock private ValidInboundConnectorDetails newConnector;
   @Mock private DocumentFactory documentFactory;
   private DefaultInboundConnectorContextFactory factory;
@@ -65,10 +63,7 @@ class DefaultInboundConnectorContextFactoryTest {
   void shouldCreateInboundConnectorContext() {
     InboundConnectorContext result =
         factory.createContext(
-            newConnector,
-            cancellationCallback,
-            ExecutableWithInboundContext.class,
-            activityLogRegistry);
+            newConnector, ExecutableWithInboundContext.class, activityLogRegistry);
 
     assertThat(result).isExactlyInstanceOf(InboundConnectorContextImpl.class);
   }
@@ -77,10 +72,7 @@ class DefaultInboundConnectorContextFactoryTest {
   void shouldCreateInboundConnectorContextWhenParameterizedTypeIsEmpty() {
     InboundConnectorContext result =
         factory.createContext(
-            newConnector,
-            cancellationCallback,
-            ExecutableWithEmptyParameterizedType.class,
-            activityLogRegistry);
+            newConnector, ExecutableWithEmptyParameterizedType.class, activityLogRegistry);
 
     assertThat(result).isExactlyInstanceOf(InboundConnectorContextImpl.class);
   }
@@ -89,11 +81,7 @@ class DefaultInboundConnectorContextFactoryTest {
   void shouldCreateInboundIntermediateConnectorContext() {
 
     InboundConnectorContext result =
-        factory.createContext(
-            newConnector,
-            cancellationCallback,
-            ExecutableWithIntermediate.class,
-            activityLogRegistry);
+        factory.createContext(newConnector, ExecutableWithIntermediate.class, activityLogRegistry);
 
     assertThat(result).isExactlyInstanceOf(InboundIntermediateConnectorContextImpl.class);
   }

@@ -82,7 +82,6 @@ public class InMemoryInboundExecutableStateStore implements InboundExecutableSta
   private List<InboundConnectorElement> getElementsFromExecutable(RegisteredExecutable executable) {
     return switch (executable) {
       case RegisteredExecutable.Activated activated -> activated.context().connectorElements();
-      case RegisteredExecutable.Cancelled cancelled -> cancelled.context().connectorElements();
       case RegisteredExecutable.ConnectorNotRegistered notRegistered ->
           notRegistered.data().connectorElements();
       case RegisteredExecutable.FailedToActivate failed -> failed.data().connectorElements();

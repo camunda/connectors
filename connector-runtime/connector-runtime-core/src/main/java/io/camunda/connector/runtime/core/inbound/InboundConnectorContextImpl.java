@@ -62,7 +62,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final InboundCorrelationHandler correlationHandler;
   private final ObjectMapper objectMapper;
 
-  private final Consumer<Throwable> cancellationCallback;
   private final ActivityLogWriter activityLogWriter;
   private final DocumentFactory documentFactory;
   private final Long activationTimestamp;
@@ -75,7 +74,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       DocumentFactory documentFactory,
       ValidInboundConnectorDetails connectorDetails,
       InboundCorrelationHandler correlationHandler,
-      Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
       ActivityLogWriter activityLogWriter) {
     super(secretProvider, validationProvider);
@@ -86,7 +84,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         InboundPropertyHandler.readWrappedProperties(
             connectorDetails.rawPropertiesWithoutKeywords());
     this.objectMapper = objectMapper;
-    this.cancellationCallback = cancellationCallback;
     this.activityLogWriter = activityLogWriter;
     this.activationTimestamp = System.currentTimeMillis();
   }
@@ -96,7 +93,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ValidationProvider validationProvider,
       ValidInboundConnectorDetails connectorDetails,
       InboundCorrelationHandler correlationHandler,
-      Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
       ActivityLogWriter logs) {
     this(
@@ -105,7 +101,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
         connectorDetails,
         correlationHandler,
-        cancellationCallback,
         objectMapper,
         logs);
   }
@@ -256,15 +251,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
                     .withTag(ActivityLogTag.CORRELATION)
                     .withMessage("Other error: " + failure.message()));
         break;
-    }
-  }
-
-  @Override
-  public void cancel(Throwable exception) {
-    try {
-      cancellationCallback.accept(exception);
-    } catch (Throwable e) {
-      LOG.error("Failed to deliver the cancellation signal to the runtime", e);
     }
   }
 
