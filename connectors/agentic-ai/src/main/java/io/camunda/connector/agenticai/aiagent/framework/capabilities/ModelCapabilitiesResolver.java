@@ -26,7 +26,7 @@ import org.springframework.lang.Nullable;
 
 /**
  * Resolves a runtime {@link ModelCapabilities} from the capability matrix using the four-step chain
- * defined in ADR-004:
+ * defined in ADR-005:
  *
  * <ol>
  *   <li>Connector config override (if present)

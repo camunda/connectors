@@ -14,7 +14,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.event.ChatModelEvent
  * listener is intentionally not exposed as a reactive type — the public chat surface remains a
  * blocking {@code CompletableFuture<ChatResponse>}.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * <p>Part of the ADR-005 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
 @FunctionalInterface

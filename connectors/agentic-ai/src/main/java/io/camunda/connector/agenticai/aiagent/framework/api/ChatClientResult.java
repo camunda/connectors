@@ -15,7 +15,7 @@ import io.camunda.connector.agenticai.model.message.AssistantMessage;
  * ChatModelApi}. Replaces {@code AiFrameworkChatResponse} at the {@code BaseAgentRequestHandler}
  * call site so the cutover stays a 1:1 swap.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * <p>Part of the ADR-005 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
 public record ChatClientResult(AgentContext agentContext, AssistantMessage assistantMessage) {}

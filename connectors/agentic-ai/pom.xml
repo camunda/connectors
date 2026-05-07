@@ -134,7 +134,7 @@
       <artifactId>langchain4j-http-client-jdk</artifactId>
     </dependency>
 
-    <!-- Native vendor SDKs (ADR-004) -->
+    <!-- Native vendor SDKs (ADR-005) -->
     <dependency>
       <groupId>com.anthropic</groupId>
       <artifactId>anthropic-java-core</artifactId>

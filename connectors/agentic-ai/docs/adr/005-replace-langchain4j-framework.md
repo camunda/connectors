@@ -285,74 +285,134 @@ for provider-specific data when needed.
 
 ## Capability Matrix
 
-A YAML resource on the classpath records capabilities per supported model. The schema is
-oriented around what the runtime needs to decide:
+The capability matrix ships as a Spring Boot configuration — a bundled YAML resource is
+registered as a low-precedence `PropertySource` by an `EnvironmentPostProcessor` at startup,
+and library consumers override or extend any value via their own `application.yml` under the
+same prefix. No bespoke YAML parser; standard Spring property binding handles everything.
+
+**Configuration prefix**: `camunda.connector.agenticai.aiagent.framework.capabilities`.
+
+**Bundled resource**: `classpath:capabilities/model-capabilities.yaml`.
+
+**Structure** (per api family):
 
 ```yaml
-anthropic-messages:
-  models:
-    - id: claude-opus-4-7
-      aliases: [claude-opus-latest]
-      capabilities:
-        input_modalities:
-          user_message: [text, image, pdf]
-          tool_result:  [text, image]
-        output_modalities:
-          assistant_message: [text]
-        supports_reasoning: true
-        supports_reasoning_signature_roundtrip: true
-        supports_prompt_caching: true
-        supports_parallel_tool_calls: true
-        context_window: 200000
-        max_output_tokens: 64000
-    - pattern: claude-opus-*
-      capabilities: { ... }                            # best-effort family default
-    - pattern: claude-haiku-*
-      capabilities:
-        supports_reasoning: false                      # haiku family does not yet have extended thinking
-        ...
+camunda.connector.agenticai.aiagent.framework.capabilities:
+  anthropic-messages:
+    defaults:
+      input-modalities:
+        user-message: [text, image, pdf]
+        tool-result:  [text, image]
+      output-modalities:
+        assistant-message: [text]
+      supports-reasoning: false
+      supports-reasoning-signature-roundtrip: false
+      supports-prompt-caching: true
+      supports-parallel-tool-calls: true
+      context-window: 200000
+      max-output-tokens: 8192
+    models:
+      claude-opus-4-7:                    # map key is the id (no `pattern` field)
+        aliases: [claude-opus-latest]
+        capabilities:
+          supports-reasoning: true
+          supports-reasoning-signature-roundtrip: true
+          max-output-tokens: 32000
+      claude-opus-4:                      # map key is opaque; `pattern` carries the glob
+        pattern: claude-opus-4-*
+        capabilities:
+          supports-reasoning: true
+          max-output-tokens: 32000
+      claude-haiku:
+        pattern: [claude-haiku-4-*, claude-haiku-3-*]
+        capabilities: {}
 ```
 
+Each api family carries:
+- `defaults`: capability block applied to every entry in the family (deep-merged with
+  per-entry overlays at resolve time)
+- `models`: map of opaque identifiers → entries. Each entry has one of:
+  - explicit `id` (defaults to the map key when neither field is set), or
+  - explicit `pattern` — string OR list of strings, glob using `*` only.
+  Plus optional `aliases` (id entries only) and a `capabilities` overlay.
+
+**Map keys cannot contain `*` or `.`**: Spring Boot's `MapBinder` strips these characters,
+so glob patterns always live in the `pattern` field while the map key stays a stable
+override identifier.
+
 Modality vocabulary: `text | image | pdf | audio | video`. Modality lists per location
-(`user_message`, `tool_result`, `assistant_message`) are symmetric — every modality at every
+(`user-message`, `tool-result`, `assistant-message`) are symmetric — every modality at every
 location has an explicit answer for each model.
+
+### Merge semantics
+
+Spring Boot config defaults: maps merge recursively (sub-keys of `input-modalities` and
+`output-modalities` are inherited individually), lists replace wholesale, scalars and
+booleans replace. The same rules apply both within the bundled YAML (per-entry `capabilities`
+on top of `defaults`) and across PropertySources (consumer `application.yml` on top of
+bundled defaults).
 
 ### Resolution order
 
 Most-specific-first, scoped to the api family of the connector configuration:
 
-1. **Connector config override** — user-declared `modelCapabilities` block on the provider
-   configuration always wins.
-2. **Exact id or alias match** — the `id` field of an entry, or any string in its `aliases`
-   list, equals the requested model id.
-3. **Pattern match** — `pattern` (glob with `*` only) matches the requested model id;
-   longest-matching pattern wins.
+1. **Connector config override** — per-call `Optional<ModelCapabilities>` passed into
+   `ModelCapabilitiesResolver.resolve(...)`. Reserved hook; not yet wired from
+   `ChatOptions`.
+2. **Exact id or alias match** — the `id` field of an entry (or its derived map key),
+   or any string in its `aliases` list, equals the requested model id.
+3. **Pattern match** — any glob in the entry's `pattern` field matches the requested model
+   id; the entry's score is the length of the longest matching glob, and longest score wins
+   across entries.
 4. **Conservative defaults** — text-only across the board, all `supports_*` flags `false`,
    numeric limits null.
 
 Aliases resolve at step 2 directly (no pre-rewriting); patterns at step 3 match against
-the original requested id. Resolution at steps 3 or 4 logs an INFO message on first use so
-operators notice they are running on best-effort or default capabilities. Resolution at
-step 2 is silent — alias mappings are verified declarations.
+the original requested id. Resolution at steps 3 or 4 logs an INFO message once per
+(api family, model id) so operators notice they are running on best-effort or default
+capabilities. Resolution at step 2 is silent — alias mappings are verified declarations.
 
 ### Conservative defaults for unknown models
 
 ```yaml
-input_modalities:
-  user_message: [text]
-  tool_result:  [text]
-output_modalities:
-  assistant_message: [text]
-supports_reasoning: false
-supports_reasoning_signature_roundtrip: false
-supports_prompt_caching: false
-supports_parallel_tool_calls: false
-context_window: null
-max_output_tokens: null
+input-modalities:
+  user-message: [text]
+  tool-result:  [text]
+output-modalities:
+  assistant-message: [text]
+supports-reasoning: false
+supports-reasoning-signature-roundtrip: false
+supports-prompt-caching: false
+supports-parallel-tool-calls: false
+context-window: null
+max-output-tokens: null
 ```
 
-Unknown api families fail at validation, not at runtime — they have no factory bean to
-resolve, so requests can never start.
+Unknown api families fall through to the conservative defaults at lookup time (the
+resolver has no entry to match) and emit an INFO log so the operator notices.
+
+### Library-consumer overrides
+
+Consumers override or extend any value by declaring properties under the same prefix in
+their `application.yml`:
+
+```yaml
+camunda.connector.agenticai.aiagent.framework.capabilities:
+  anthropic-messages:
+    models:
+      claude-opus-4-7:
+        capabilities:
+          max-output-tokens: 64000        # tune existing entry
+      my-org-tuned-claude:                # add a new entry
+        capabilities:
+          supports-reasoning: true
+          max-output-tokens: 12345
+```
+
+Map-key reuse means a consumer override deep-merges into the bundled entry; a new map key
+adds a new entry. Modality lists replace wholesale (Spring Boot list semantics) — overriding
+`tool-result: [text]` discards the bundled `[text, image]`. To add a modality, restate the
+full list including the inherited entries.
 
 ## Tool Call Result Routing
 

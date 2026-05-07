@@ -13,7 +13,7 @@ package io.camunda.connector.agenticai.aiagent.framework.api;
  * retention; {@code NONE} strips cache markers entirely. Concrete breakpoint placement is
  * implementation-specific.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * <p>Part of the ADR-005 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
 public enum CacheRetention {

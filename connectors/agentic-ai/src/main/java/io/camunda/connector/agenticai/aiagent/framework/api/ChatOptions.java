@@ -28,7 +28,7 @@ import org.springframework.lang.Nullable;
  * caller-supplied value wins, otherwise the resolved {@link ModelCapabilities#maxOutputTokens()} is
  * used as a fallback, otherwise the implementation supplies its own per-API default.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * <p>Part of the ADR-005 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
 public record ChatOptions(

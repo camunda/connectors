@@ -21,7 +21,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
  * see a synchronous facade matching the previous {@code AiFrameworkAdapter} contract. In-process
  * observability hooks attach via {@link ChatStreamListener}; the public surface is blocking.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * <p>Part of the ADR-005 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
 public interface ChatClient {

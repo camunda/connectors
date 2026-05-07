@@ -16,7 +16,7 @@ import org.springframework.lang.Nullable;
  * the assembled {@link ChatResponse}, while {@link ErrorEvent} carries the error message plus any
  * partial content / usage accumulated before the failure.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * <p>Part of the ADR-005 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
 public sealed interface ChatModelEvent

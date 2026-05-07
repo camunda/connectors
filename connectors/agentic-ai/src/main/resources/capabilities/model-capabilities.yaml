@@ -25,13 +25,13 @@
 #                  map binding, so glob characters always live in the
 #                  `pattern` field, never in the map key.
 #
-# Merge semantics (Spring Boot config + ADR-004 capability matrix):
+# Merge semantics (Spring Boot config + ADR-005 capability matrix):
 #   * Maps merge recursively (sub-keys of input-modalities / output-modalities
 #     are inherited individually)
 #   * Lists replace wholesale
 #   * Scalars and booleans replace
 #
-# Resolution chain (per ADR-004 §"Resolution order"):
+# Resolution chain (per ADR-005 §"Resolution order"):
 #   1. Connector config override (per-call, future)
 #   2. Exact id or alias match
 #   3. Pattern (longest-match wins)

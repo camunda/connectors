@@ -17,7 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderCon
  * <p>Unknown provider types fail fast — there is no factory to resolve, so requests can never
  * start.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * <p>Part of the ADR-005 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
 public interface ChatModelApiRegistry {

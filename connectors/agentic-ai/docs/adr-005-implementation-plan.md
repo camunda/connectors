@@ -1,8 +1,8 @@
-# ADR-004 Phase 1 — Incremental Implementation Plan
+# ADR-005 Phase 1 — Incremental Implementation Plan
 
 ## Context
 
-[ADR-004](connectors/agentic-ai/docs/adr/004-replace-langchain4j-framework.md) replaces the
+[ADR-005](connectors/agentic-ai/docs/adr/005-replace-langchain4j-framework.md) replaces the
 LangChain4j-backed `AiFrameworkAdapter` with a native provider layer over official vendor SDKs.
 The ADR names this "Phase 1 — one shipping unit," but it is large enough to review and merge in
 chunks. This plan breaks it into eight green-build checkpoints (Phases A–H) on the working branch.
@@ -10,8 +10,12 @@ chunks. This plan breaks it into eight green-build checkpoints (Phases A–H) on
 **Plan revision (2026-05-07)** — re-ordered to ship two real native providers ahead of the
 capability/multimodality infrastructure. Validating the SPI against two divergent wire formats
 before generalising leads to a smaller, better-shaped abstraction in Phase E. Reasoning, prompt
-caching, multimodal user/tool-result content, Azure OpenAI, Anthropic cloud backends, Google GenAI
-and Bedrock-Converse are all explicitly **deferred** out of the first native cut.
+caching, Azure OpenAI, Anthropic cloud backends, Google GenAI and Bedrock-Converse are all
+explicitly **deferred** out of the first native cut.
+
+Phase E is split into four sub-phases that ship as independent commits (E1–E4 below). Phase E
+is layered on top of PR #6999 (`agentic-ai-document-tool-call-results`); our branch was rebased
+onto that PR while it was in active review.
 
 **Actual starting state** (`agentic-ai/custom-llm-layer`):
 - Phase 0 done: `AssistantMessage` gains `modelId`/`apiId`/`stopReason`/`usage`; `TokenUsage`
@@ -21,9 +25,17 @@ and Bedrock-Converse are all explicitly **deferred** out of the first native cut
   `ChatClient`; LangChain4j wired as the bridge `ChatModelApi` for all six provider discriminators
   (one factory bean per discriminator). `AiFrameworkAdapter` and `AiFrameworkChatResponse` already
   removed from the source tree (ahead of the original Phase F schedule).
-- Wire-format e2e regression tests added for Anthropic Messages API and OpenAI Responses API
-  (WireMock-based, currently exercising the bridge).
-- ADR-004 document committed.
+- **Phases B / C / D done**: native `AnthropicMessagesChatModelApi` (text-only),
+  `OpenAiChatCompletionsChatModelApi` (text-only), `OpenAiResponsesChatModelApi`
+  (text-only) plus the `apiFamily` switch on the `openai` discriminator and element template
+  bump 10 → 11.
+- **Phase E1 / E2 done**: capability matrix loaded as Spring Boot config (bundled
+  `model-capabilities.yaml` registered via `EnvironmentPostProcessor`); each native impl now
+  consumes a `ModelCapabilities` resolved at factory time.
+- Wire-format e2e regression tests added for the Anthropic Messages API, OpenAI Chat
+  Completions API and OpenAI Responses API (WireMock-based, currently exercising the native
+  impls).
+- ADR-005 document committed.
 
 **End state**: `BaseAgentRequestHandler` calls `ChatClient`. Native `ChatModelApi` impls ship for
 Anthropic Messages (direct), OpenAI Chat Completions, OpenAI Responses, Azure OpenAI, Anthropic
@@ -138,17 +150,19 @@ The first native cut deliberately ignores these — they re-enter in Phase E or 
 
 | Topic | Re-enters |
 |-------|-----------|
-| Multimodal user-message / tool-result content (image, PDF, audio, video) | E (capabilities + strategy) |
-| Reasoning content (signed thinking blocks, encrypted reasoning items) | E |
-| Prompt caching (`cache_control`, `prompt_cache_key`) | E |
-| Capability matrix YAML + resolver | E |
-| `ToolCallResultStrategy` (always inline-text in B–D) | E |
+| Capability matrix YAML + resolver | E1 (done) |
+| `ChatModelApi.capabilities()` resolved per call | E2 (done) |
+| `ToolCallResultStrategy` (always inline-text in B–D) | E3 |
+| Multimodal user-message / tool-result content — **image + PDF only** | E4 |
+| Multimodal — audio / video | G+ (when matching native impls land) |
+| Reasoning content (signed thinking blocks, encrypted reasoning items) | post-E (own sub-phase) |
+| Prompt caching (`cache_control`, `prompt_cache_key`) | post-E (own sub-phase) |
+| JDK `java.net.http.HttpClient` adapter for the Anthropic / OpenAI SDKs (replaces OkHttp transport) | post-E |
 | Azure OpenAI native impl | G |
 | Anthropic cloud backends (Bedrock / Vertex / Foundry) | G |
 | Google GenAI native impl | G |
 | Bedrock-Converse native impl (non-Anthropic models) | G |
 | `ProviderConfiguration` discriminator restructure + Jackson migration | F |
-| JDK `java.net.http.HttpClient` adapter for the Anthropic / OpenAI SDKs (replaces OkHttp transport) | E (follow-up) |
 
 Under this scope each native impl returns a hardcoded `ModelCapabilities` (text-only, no
 reasoning, no caching, parallel tool calls true). `ChatOptions.cacheRetention` and
@@ -267,43 +281,147 @@ pass against the native impl.
 
 ---
 
-## Phase E — Capability matrix + tool-result strategy + multimodality + reasoning + caching
+## Phase E — Capability matrix + tool-result strategy + multimodality
 
-**Goal**: re-enable the deferred features now that we have three real native impls and one bridge
-to generalise from.
+**Plan revision (2026-05-07)** — Phase E is split into four sub-phases that ship as independent
+commits. Reasoning and prompt caching are explicitly **deferred out of Phase E** to keep the cut
+focused; the matrix already declares the flags so the slot is reserved.
+
+Phase E is layered on top of the work from PR #6999 (`agentic-ai-document-tool-call-results`),
+which contributes the `ToolCallResultDocumentExtractor` (recursive walker over lists / maps /
+MCP-shaped content), per-handler extraction hooks on `GatewayToolHandler`, the synthetic
+`UserMessage` injection with `METADATA_TOOL_CALL_DOCUMENTS`, the XML document tags inserted in
+tool result message text, and the window-count handling that excludes synthetic document
+messages. Our branch was rebased onto that PR while it was in active review.
+
+### Sub-phase E1 — Capability matrix + resolver (done)
+
+Spring-Boot-native configuration: bundled YAML registered as a low-precedence
+`PropertySource` via `EnvironmentPostProcessor`, library consumers override via their own
+`application.yml` under the same prefix.
+
+**Configuration prefix**: `camunda.connector.agenticai.aiagent.framework.capabilities`.
+
+**Bundled YAML location**: `resources/capabilities/model-capabilities.yaml`.
+
+**Structure under `capabilities`** (each api family):
+- `defaults`: capability block applied to every model entry in the family
+- `models`: map of opaque identifiers → entries. Each entry has one of:
+  - explicit `id` (defaults to the map key when neither field is set), or
+  - explicit `pattern` — string OR list of strings, glob using `*` only.
+  Plus an optional `aliases` list (id entries only) and a `capabilities` overlay.
+
+  Note: `*` and `.` cannot appear in the map key (Spring Boot's `MapBinder` strips them).
+  Pattern entries always declare the glob in the `pattern` field while the map key stays a
+  stable, override-friendly identifier.
+
+**Merge semantics** (Spring Boot config + ADR-005 capability matrix):
+- Maps merge recursively (sub-keys of `input-modalities` / `output-modalities` are inherited
+  individually)
+- Lists replace wholesale
+- Scalars and booleans replace
+
+**Resolution chain**:
+1. Connector config override (per-call, future hook on `ChatOptions`)
+2. Exact id or alias match
+3. Pattern (longest matching glob across entries; entry score = longest matching glob in its
+   pattern list)
+4. Conservative defaults (text-only, all flags false)
+
+**Files added** (`framework/capabilities/`):
+- `AgenticAiFrameworkProperties` — `@ConfigurationProperties` record (sparse fields)
+- `ModelCapabilitiesYaml` — sparse capability block bound by Spring Boot, projected onto
+  `ModelCapabilities` after deep-merge
+- `CapabilityMatrixEnvironmentPostProcessor` — registers the bundled YAML at lowest precedence
+- `CapabilityMatrixFactory` — derives `id`/`pattern` from the entry shape, validates entries,
+  converts capability sub-trees to `JsonNode` for the resolver
+- `CapabilityMatrix` — built matrix used by the resolver
+- `ModelCapabilitiesResolver` — 4-step chain with INFO logs on pattern / default fall-throughs
+- `AgenticAiCapabilitiesConfiguration` — Spring config wiring
+
+**Tests added**: `ModelCapabilitiesResolverTest` (13 unit cases),
+`BundledCapabilityMatrixTest` (Spring `ApplicationContextRunner` integration, 9 cases),
+`CapabilityMatrixOverrideTest` (override deep-merge via `withPropertyValues`, 4 cases).
+
+### Sub-phase E2 — Wire `ChatModelApi.capabilities()` through the resolver (done)
+
+Each native impl (`AnthropicMessagesChatModelApi`,
+`OpenAiChatCompletionsChatModelApi`, `OpenAiResponsesChatModelApi`) accepts a
+`ModelCapabilities` via constructor instead of holding a hardcoded conservative profile. The
+factories (`AnthropicMessagesChatModelApiFactory`, `OpenAiChatModelApiFactory`,
+`OpenAiCompatibleChatModelApiFactory`) take a `ModelCapabilitiesResolver` dependency and resolve
+at `create()` time. The OpenAI native factory branches on `OpenAiConnection.apiFamily()` for the
+resolver lookup (`openai-completions` vs. `openai-responses`); the openaiCompatible factory
+always resolves under `openai-completions`. The L4J bridge keeps its own conservative defaults
+(it stays as a fallback path; replacing it through the resolver is not worth the change at this
+point).
+
+### Sub-phase E3 — `ToolCallResultStrategy`
+
+**Goal**: per-block routing of tool result content. Wired into `ChatClientImpl` so the impls
+receive a pre-routed request.
 
 **Files to create**:
-- `resources/capabilities/model-capabilities.yaml` — populated entries for Anthropic Claude
-  families, OpenAI Chat Completions models, OpenAI Responses models. Schema per ADR §"Capability
-  Matrix".
-- `ModelCapabilitiesResolver` — 4-step resolution chain: connector override → exact id/alias →
-  glob (longest match) → conservative defaults. INFO log on pattern or default use.
 - `ToolCallResultStrategy` — pure function `apply(ToolCallResult, ModelCapabilities)` returning
-  per-block routing decision (inline `contentBlocks` vs. synthetic `UserMessage` fallback through
-  the existing `AgentMessagesHandlerImpl` path from PR #6999).
+  a routing decision per content block. Decision is one of:
+  - `INLINE` — keep the block in `ToolCallResult.contentBlocks`; the native impl emits it as
+    provider-native multimodal content (E4)
+  - `EXTRACT_TO_USER_MESSAGE` — delegate to the doc-branch's
+    `ToolCallResultDocumentExtractor` synthesis path. The block is replaced in the tool result
+    body by an XML document tag; the original `DocumentContent` is appended to a synthetic
+    `UserMessage` with `METADATA_TOOL_CALL_DOCUMENTS`.
 
 **Files to modify**:
-- Each native `ChatModelApi`: replace the hardcoded `ModelCapabilities` with the resolved one;
-  start emitting/consuming the deferred features:
-  - **Anthropic**: extended thinking blocks (signed reasoning roundtrip), `cache_control` markers
-    on the last system / message / tool-definition block, image/PDF user content, image tool-result
-    content.
-  - **OpenAI Responses**: encrypted reasoning items roundtrip, `prompt_cache_key`, image input.
-  - **OpenAI Completions**: `prompt_cache_key`, image input.
-  - **L4J bridge**: keeps conservative defaults; cache → NONE.
-- `ChatClientImpl`: default `ChatOptions.cacheRetention` to `SHORT` (clamped to `NONE` when
-  `!supportsPromptCaching()`); query `capabilities()` once per call; apply
-  `ToolCallResultStrategy`.
+- `ChatClientImpl` — query `capabilities()`, apply `ToolCallResultStrategy` on tool-result
+  messages before the impl call
+- `AgentMessagesHandlerImpl` — adjust the existing PR #6999 synthesis call site so blocks
+  marked `INLINE` skip extraction
 
 **Tests to add**:
-- `ModelCapabilitiesResolverTest` — all 4 steps, alias match, glob longest-match.
-- `ToolCallResultStrategyTest` — table-driven across modality × capability combos.
-- YAML round-trip test (Jackson reads the resource, validates required fields).
-- Per-impl: extend tests with multimodal / reasoning / cache cases.
+- `ToolCallResultStrategyTest` — table-driven across modality × capability combos
+- `ChatClientImplTest` — extend with strategy wiring case
 
-**Verification**: `mvn clean test -pl connectors/agentic-ai`; both wire-format e2e tests still
-green; new multimodal / reasoning / cache cases added under `wireformat/` exercise the new code
-paths.
+### Sub-phase E4 — Multimodality in native impls (image + PDF only)
+
+**Scope** matches L4J parity (`DocumentToContentConverterImpl` supports text + image + PDF).
+Audio and video are **out of scope for E4**; the capability matrix slot remains for Phase G+.
+
+**Modality detection**: shared utility (or per-impl) maps Camunda
+`Document.metadata().contentType()` (MIME) → `ModelCapabilities.Modality`. Sealed Content
+hierarchy stays as-is — no new `ImageContent` / `PdfContent` subtypes; dispatch is MIME-based
+at conversion time.
+
+**Per-impl native encoding**:
+- **Anthropic Messages**: `ContentBlockParam.ofImage(...)` (base64 data + media_type),
+  `ContentBlockParam.ofDocument(...)` for PDFs. Tool result and user message both supported.
+- **OpenAI Chat Completions**: `ChatCompletionContentPart.ofImageUrl(...)` with data URL on
+  user messages. Tool messages are text-only (SDK enforces
+  `ChatCompletionContentPartText`-only for tool message content arrays); any image block in a
+  tool result must route through E3's `EXTRACT_TO_USER_MESSAGE`.
+- **OpenAI Responses**: `ResponseInputContent.ofInputImage(...)` (base64) and
+  `ofInputFile(...)` (PDF base64). Multimodal tool results via
+  `ResponseInputItem.FunctionCallOutput.Output.ofResponseFunctionCallOutputItemList(...)`.
+
+**User-message capability mismatch** (image in user prompt for a text-only model): fail loud
+with `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, ...)` and a clear message. Mirrors L4J's
+`DocumentConversionException` semantics for unsupported types.
+
+**Tests to add**: per-impl multimodal cases, including a wire-format e2e per provider that
+exercises the inline-native path; existing PR #6999 e2e covers the fallback path.
+
+### Deferred out of Phase E
+
+- **Reasoning** (extended thinking blocks, signed reasoning roundtrip, encrypted reasoning
+  items): kept on the matrix flag list but no impl work in E. Phase F or its own sub-phase.
+- **Prompt caching** (`cache_control` markers, `prompt_cache_key`): same.
+- **JDK `java.net.http.HttpClient` adapter** (replacing OkHttp): same — purely a transport
+  swap, no behavioural change.
+- **Audio + video modalities**: Phase G+ when the corresponding native impl lands (gpt-4o-audio
+  on Completions, Gemini for video).
+
+**Verification**: `mvn clean test -pl connectors/agentic-ai` after each sub-phase; the three
+wire-format e2e tests stay green; new multimodal cases under `wireformat/` exercise the
+inline-native path in E4.
 
 ---
 
@@ -386,7 +504,7 @@ green.
   by default. Document in release notes / `docs/reference/ai-agent.md`.
 - `AgenticAiConnectorsAutoConfiguration`: drop `AgenticAiLangchain4JFrameworkConfiguration`
   default import.
-- ADR-004 status: Proposed → Implemented (final date set when shipping).
+- ADR-005 status: Proposed → Implemented (final date set when shipping).
 - `docs/reference/ai-agent.md` + `AGENTS.md` (agentic-ai): `ChatModelApi` is the framework;
   LangChain4j bridge is legacy opt-in.
 
@@ -417,7 +535,7 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai   # full suite (
 | `element-templates/agenticai-aiagent-outbound-connector.json` | D (v11), F (v12) |
 | `element-templates/README.md` | D, F |
 | `AgenticAiConnectorsAutoConfiguration.java` | A (done), B–G (provider imports) |
-| `docs/adr/004-replace-langchain4j-framework.md` | H (status update) |
+| `docs/adr/005-replace-langchain4j-framework.md` | H (status update) |
 
 ## Reusable existing code
 

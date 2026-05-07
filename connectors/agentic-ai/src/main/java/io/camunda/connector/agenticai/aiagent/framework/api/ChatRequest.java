@@ -23,7 +23,7 @@ import org.springframework.lang.Nullable;
  * native shape; providers without a native structured-output mode (Anthropic Messages today) treat
  * the JSON variant as best-effort and rely on the system prompt to constrain output.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * <p>Part of the ADR-005 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
 public record ChatRequest(

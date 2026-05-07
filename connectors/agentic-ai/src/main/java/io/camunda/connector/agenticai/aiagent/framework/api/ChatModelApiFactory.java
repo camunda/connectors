@@ -23,7 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderCon
  * unchecked cast — a friendlier error than {@link ClassCastException} when a factory is
  * accidentally registered against the wrong discriminator.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * <p>Part of the ADR-005 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  *
  * @param <C> the {@link ProviderConfiguration} subtype this factory handles

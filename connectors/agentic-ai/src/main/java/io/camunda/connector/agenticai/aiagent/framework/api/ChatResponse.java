@@ -15,7 +15,7 @@ import io.camunda.connector.agenticai.model.message.AssistantMessage;
  * tool-use) populate the message with {@code stopReason = ERROR}; transport / SDK / auth failures
  * complete the future exceptionally instead.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * <p>Part of the ADR-005 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
 public record ChatResponse(AssistantMessage assistantMessage) {}
