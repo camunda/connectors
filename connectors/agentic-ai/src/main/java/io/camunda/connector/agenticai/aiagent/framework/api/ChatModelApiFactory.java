@@ -7,15 +7,16 @@
 package io.camunda.connector.agenticai.aiagent.framework.api;
 
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import java.util.Set;
 
 /**
  * Stateless factory that produces per-job {@link ChatModelApi} instances for a single wire-protocol
  * family ({@code anthropic-messages}, {@code bedrock-converse}, {@code openai-responses}, {@code
  * openai-completions}, {@code google-genai}).
  *
- * <p>One factory bean per family. The {@link ChatModelApiRegistry} routes a {@link
- * ProviderConfiguration} to the correct factory at request time using {@link #apiFamily} and {@link
- * #configurationType} as discriminators.
+ * <p>The {@link ChatModelApiRegistry} indexes factories by the {@link ProviderConfiguration#type
+ * providerType} strings each factory claims via {@link #supportedProviderTypes} and dispatches by
+ * exact match. {@link #apiFamily} is informational — used in logs and stream events.
  *
  * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime.
  *
@@ -25,7 +26,7 @@ public interface ChatModelApiFactory<C extends ProviderConfiguration> {
 
   String apiFamily();
 
-  Class<C> configurationType();
+  Set<String> supportedProviderTypes();
 
   ChatModelApi create(C configuration);
 }
