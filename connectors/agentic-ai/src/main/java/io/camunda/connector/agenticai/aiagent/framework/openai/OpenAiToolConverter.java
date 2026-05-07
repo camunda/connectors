@@ -11,6 +11,8 @@ import com.openai.models.FunctionDefinition;
 import com.openai.models.FunctionParameters;
 import com.openai.models.chat.completions.ChatCompletionFunctionTool;
 import com.openai.models.chat.completions.ChatCompletionTool;
+import com.openai.models.responses.FunctionTool;
+import com.openai.models.responses.Tool;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +46,35 @@ public final class OpenAiToolConverter {
 
   private static FunctionParameters toFunctionParameters(Map<String, Object> schemaMap) {
     final var builder = FunctionParameters.builder();
+    if (schemaMap == null || schemaMap.isEmpty()) {
+      return builder.putAdditionalProperty("type", JsonValue.from("object")).build();
+    }
+    schemaMap.forEach((key, value) -> builder.putAdditionalProperty(key, JsonValue.from(value)));
+    return builder.build();
+  }
+
+  /**
+   * Variant for the Responses API, which uses a different (but JSON-equivalent) Tool/Parameters
+   * shape.
+   */
+  public static List<Tool> toResponsesTools(List<ToolDefinition> definitions) {
+    if (definitions == null || definitions.isEmpty()) {
+      return List.of();
+    }
+    return definitions.stream().map(OpenAiToolConverter::toResponsesTool).toList();
+  }
+
+  public static Tool toResponsesTool(ToolDefinition definition) {
+    final var builder = FunctionTool.builder().name(definition.name()).strict(false);
+    if (definition.description() != null) {
+      builder.description(definition.description());
+    }
+    builder.parameters(toResponsesParameters(definition.inputSchema()));
+    return Tool.ofFunction(builder.build());
+  }
+
+  private static FunctionTool.Parameters toResponsesParameters(Map<String, Object> schemaMap) {
+    final var builder = FunctionTool.Parameters.builder();
     if (schemaMap == null || schemaMap.isEmpty()) {
       return builder.putAdditionalProperty("type", JsonValue.from("object")).build();
     }

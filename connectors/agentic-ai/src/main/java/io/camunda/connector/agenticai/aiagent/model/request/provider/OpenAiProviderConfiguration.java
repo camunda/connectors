@@ -32,7 +32,44 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
   public record OpenAiConnection(
       @Valid @NotNull OpenAiAuthentication authentication,
       @Valid TimeoutConfiguration timeouts,
-      @Valid @NotNull OpenAiModel model) {}
+      @Valid @NotNull OpenAiModel model,
+      @TemplateProperty(
+              group = "provider",
+              label = "API",
+              description =
+                  "Which OpenAI API family to use. Chat Completions is the default for backward compatibility; Responses is the newer endpoint with structured input/output items.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(
+                    label = "Chat Completions (default)",
+                    value = "completions"),
+                @TemplateProperty.DropdownPropertyChoice(label = "Responses", value = "responses")
+              },
+              feel = FeelMode.disabled,
+              optional = true,
+              defaultValue = "completions",
+              defaultValueType = TemplateProperty.DefaultValueType.String)
+          ApiFamily apiFamily) {
+
+    public OpenAiConnection {
+      if (apiFamily == null) {
+        apiFamily = ApiFamily.COMPLETIONS;
+      }
+    }
+
+    /** Convenience constructor used by existing call sites that pre-date the apiFamily field. */
+    public OpenAiConnection(
+        OpenAiAuthentication authentication, TimeoutConfiguration timeouts, OpenAiModel model) {
+      this(authentication, timeouts, model, ApiFamily.COMPLETIONS);
+    }
+  }
+
+  public enum ApiFamily {
+    @com.fasterxml.jackson.annotation.JsonProperty("completions")
+    COMPLETIONS,
+    @com.fasterxml.jackson.annotation.JsonProperty("responses")
+    RESPONSES
+  }
 
   public record OpenAiAuthentication(
       @NotBlank

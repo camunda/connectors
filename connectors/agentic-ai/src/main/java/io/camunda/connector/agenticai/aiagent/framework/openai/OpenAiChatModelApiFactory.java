@@ -12,6 +12,7 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.ApiFamily;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import java.time.Duration;
 import java.util.Optional;
@@ -29,7 +30,8 @@ import org.springframework.lang.Nullable;
  */
 public class OpenAiChatModelApiFactory implements ChatModelApiFactory<OpenAiProviderConfiguration> {
 
-  public static final String API_FAMILY = "openai-completions";
+  public static final String API_FAMILY_COMPLETIONS = "openai-completions";
+  public static final String API_FAMILY_RESPONSES = "openai-responses";
 
   private final ObjectMapper objectMapper;
   @Nullable private final Duration defaultTimeout;
@@ -46,7 +48,8 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory<OpenAiProv
 
   @Override
   public String apiFamily() {
-    return API_FAMILY;
+    // Default — actual family depends on the per-call config, so this is informational only.
+    return API_FAMILY_COMPLETIONS;
   }
 
   @Override
@@ -59,15 +62,18 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory<OpenAiProv
     final var connection = configuration.openai();
     final var client = buildClient(connection);
     final var parameters = connection.model().parameters();
-    return new OpenAiChatCompletionsChatModelApi(
-        client,
-        connection.model().model(),
-        objectMapper,
+    final var maxTokens =
         parameters != null && parameters.maxCompletionTokens() != null
             ? parameters.maxCompletionTokens().longValue()
-            : null,
-        parameters != null ? parameters.temperature() : null,
-        parameters != null ? parameters.topP() : null);
+            : null;
+    final var temperature = parameters != null ? parameters.temperature() : null;
+    final var topP = parameters != null ? parameters.topP() : null;
+
+    return connection.apiFamily() == ApiFamily.RESPONSES
+        ? new OpenAiResponsesChatModelApi(
+            client, connection.model().model(), objectMapper, maxTokens, temperature, topP)
+        : new OpenAiChatCompletionsChatModelApi(
+            client, connection.model().model(), objectMapper, maxTokens, temperature, topP);
   }
 
   private OpenAIClient buildClient(OpenAiConnection connection) {

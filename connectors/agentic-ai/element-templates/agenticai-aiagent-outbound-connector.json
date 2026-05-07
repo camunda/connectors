@@ -5,7 +5,7 @@
   "description" : "Execute a single AI-powered action with tool calling capabilities",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-  "version" : 10,
+  "version" : 11,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -660,6 +660,30 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "provider.openai.apiFamily",
+    "label" : "API",
+    "description" : "Which OpenAI API family to use. Chat Completions is the default for backward compatibility; Responses is the newer endpoint with structured input/output items.",
+    "optional" : true,
+    "value" : "completions",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.apiFamily",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Chat Completions (default)",
+      "value" : "completions"
+    }, {
+      "name" : "Responses",
+      "value" : "responses"
+    } ]
   }, {
     "id" : "provider.openaiCompatible.endpoint",
     "label" : "API endpoint",
@@ -1677,7 +1701,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "10",
+    "value" : "11",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
