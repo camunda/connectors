@@ -36,14 +36,11 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHtt
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AnthropicChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureOpenAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.BedrockChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -51,20 +48,14 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.A
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomAnthropicProviderConfig.CustomAnthropicChatModelProvider;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomAzureOpenAiProviderConfig.CustomAzureOpenAiChatModelProvider;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomBedrockProviderConfig.CustomBedrockChatModelProvider;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomGoogleVertexAiProviderConfig.CustomGoogleVertexAiChatModelProvider;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomOpenAiCompatibleProviderConfig.CustomOpenAiCompatibleChatModelProvider;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomOpenAiProviderConfig.CustomOpenAiChatModelProvider;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
@@ -109,15 +100,15 @@ class AgenticAiConnectorsAutoConfigurationTest {
           JobWorkerAgentRequestHandler.class,
           AiAgentJobWorker.class);
 
+  // L4J factory + provider beans for `anthropic`, `openai`, `openaiCompatible` were dropped when
+  // those providers landed native in ADR-005 Phase B/C/D — only the still-bridged providers
+  // (Bedrock, Azure OpenAI, Google Vertex AI) keep an L4J `ChatModelProvider` bean.
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
           ChatModelHttpProxySupport.class,
-          AnthropicChatModelProvider.class,
           AzureOpenAiChatModelProvider.class,
           BedrockChatModelProvider.class,
           GoogleVertexAiChatModelProvider.class,
-          OpenAiChatModelProvider.class,
-          OpenAiCompatibleChatModelProvider.class,
           ChatModelProviderRegistry.class,
           ChatModelFactory.class,
           DocumentToContentConverter.class,
@@ -309,12 +300,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
     }
 
     static Stream<ProviderOverrideCase> providerOverrideCases() {
+      // Only providers still backed by the L4J bridge declare a `ChatModelProvider<X>` bean and
+      // therefore support overriding it. `anthropic`, `openai`, and `openaiCompatible` have native
+      // factories now and no L4J `ChatModelProvider<X>` to replace.
       return Stream.of(
-          new ProviderOverrideCase(
-              CustomAnthropicProviderConfig.class,
-              "customAnthropicChatModelProvider",
-              AnthropicProviderConfiguration.class,
-              CustomAnthropicChatModelProvider.class),
           new ProviderOverrideCase(
               CustomAzureOpenAiProviderConfig.class,
               "customAzureOpenAiChatModelProvider",
@@ -329,17 +318,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
               CustomGoogleVertexAiProviderConfig.class,
               "customGoogleVertexAiChatModelProvider",
               GoogleVertexAiProviderConfiguration.class,
-              CustomGoogleVertexAiChatModelProvider.class),
-          new ProviderOverrideCase(
-              CustomOpenAiProviderConfig.class,
-              "customOpenAiChatModelProvider",
-              OpenAiProviderConfiguration.class,
-              CustomOpenAiChatModelProvider.class),
-          new ProviderOverrideCase(
-              CustomOpenAiCompatibleProviderConfig.class,
-              "customOpenAiCompatibleChatModelProvider",
-              OpenAiCompatibleProviderConfiguration.class,
-              CustomOpenAiCompatibleChatModelProvider.class));
+              CustomGoogleVertexAiChatModelProvider.class));
     }
 
     record ProviderOverrideCase(
@@ -351,27 +330,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
       @Override
       public String toString() {
         return providerConfigurationClass.getSimpleName();
-      }
-    }
-
-    static class CustomAnthropicProviderConfig {
-      @Bean
-      ChatModelProvider<AnthropicProviderConfiguration> customAnthropicChatModelProvider() {
-        return new CustomAnthropicChatModelProvider();
-      }
-
-      static class CustomAnthropicChatModelProvider
-          implements ChatModelProvider<AnthropicProviderConfiguration> {
-
-        @Override
-        public String type() {
-          return AnthropicProviderConfiguration.ANTHROPIC_ID;
-        }
-
-        @Override
-        public ChatModel createChatModel(AnthropicProviderConfiguration providerConfiguration) {
-          return mock(ChatModel.class);
-        }
       }
     }
 
@@ -435,50 +393,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
         @Override
         public ChatModel createChatModel(
             GoogleVertexAiProviderConfiguration providerConfiguration) {
-          return mock(ChatModel.class);
-        }
-      }
-    }
-
-    static class CustomOpenAiProviderConfig {
-      @Bean
-      ChatModelProvider<OpenAiProviderConfiguration> customOpenAiChatModelProvider() {
-        return new CustomOpenAiChatModelProvider();
-      }
-
-      static class CustomOpenAiChatModelProvider
-          implements ChatModelProvider<OpenAiProviderConfiguration> {
-
-        @Override
-        public String type() {
-          return OpenAiProviderConfiguration.OPENAI_ID;
-        }
-
-        @Override
-        public ChatModel createChatModel(OpenAiProviderConfiguration providerConfiguration) {
-          return mock(ChatModel.class);
-        }
-      }
-    }
-
-    static class CustomOpenAiCompatibleProviderConfig {
-      @Bean
-      ChatModelProvider<OpenAiCompatibleProviderConfiguration>
-          customOpenAiCompatibleChatModelProvider() {
-        return new CustomOpenAiCompatibleChatModelProvider();
-      }
-
-      static class CustomOpenAiCompatibleChatModelProvider
-          implements ChatModelProvider<OpenAiCompatibleProviderConfiguration> {
-
-        @Override
-        public String type() {
-          return OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
-        }
-
-        @Override
-        public ChatModel createChatModel(
-            OpenAiCompatibleProviderConfiguration providerConfiguration) {
           return mock(ChatModel.class);
         }
       }

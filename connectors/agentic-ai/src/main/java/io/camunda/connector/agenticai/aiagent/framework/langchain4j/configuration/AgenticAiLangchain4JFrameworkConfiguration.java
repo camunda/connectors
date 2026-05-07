@@ -21,12 +21,9 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCal
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverterImpl;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -85,23 +82,6 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean(name = "langchain4JAnthropicChatModelApiFactory")
-  public ChatModelApiFactory<AnthropicProviderConfiguration>
-      langchain4JAnthropicChatModelApiFactory(
-          ChatModelProvider<AnthropicProviderConfiguration> provider,
-          ChatMessageConverter chatMessageConverter,
-          ToolSpecificationConverter toolSpecificationConverter,
-          JsonSchemaConverter jsonSchemaConverter) {
-    return new Langchain4JChatModelApiFactory<>(
-        AnthropicProviderConfiguration.ANTHROPIC_ID,
-        AnthropicProviderConfiguration.class,
-        provider,
-        chatMessageConverter,
-        toolSpecificationConverter,
-        jsonSchemaConverter);
-  }
-
-  @Bean
   @ConditionalOnMissingBean(name = "langchain4JBedrockChatModelApiFactory")
   public ChatModelApiFactory<BedrockProviderConfiguration> langchain4JBedrockChatModelApiFactory(
       ChatModelProvider<BedrockProviderConfiguration> provider,
@@ -145,39 +125,6 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
     return new Langchain4JChatModelApiFactory<>(
         GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
         GoogleVertexAiProviderConfiguration.class,
-        provider,
-        chatMessageConverter,
-        toolSpecificationConverter,
-        jsonSchemaConverter);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(name = "langchain4JOpenAiChatModelApiFactory")
-  public ChatModelApiFactory<OpenAiProviderConfiguration> langchain4JOpenAiChatModelApiFactory(
-      ChatModelProvider<OpenAiProviderConfiguration> provider,
-      ChatMessageConverter chatMessageConverter,
-      ToolSpecificationConverter toolSpecificationConverter,
-      JsonSchemaConverter jsonSchemaConverter) {
-    return new Langchain4JChatModelApiFactory<>(
-        OpenAiProviderConfiguration.OPENAI_ID,
-        OpenAiProviderConfiguration.class,
-        provider,
-        chatMessageConverter,
-        toolSpecificationConverter,
-        jsonSchemaConverter);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(name = "langchain4JOpenAiCompatibleChatModelApiFactory")
-  public ChatModelApiFactory<OpenAiCompatibleProviderConfiguration>
-      langchain4JOpenAiCompatibleChatModelApiFactory(
-          ChatModelProvider<OpenAiCompatibleProviderConfiguration> provider,
-          ChatMessageConverter chatMessageConverter,
-          ToolSpecificationConverter toolSpecificationConverter,
-          JsonSchemaConverter jsonSchemaConverter) {
-    return new Langchain4JChatModelApiFactory<>(
-        OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID,
-        OpenAiCompatibleProviderConfiguration.class,
         provider,
         chatMessageConverter,
         toolSpecificationConverter,
