@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
-import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.StopReason;
@@ -63,23 +62,12 @@ import org.springframework.lang.Nullable;
  */
 public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
 
-  private static final ModelCapabilities CAPABILITIES =
-      new ModelCapabilities(
-          List.of(Modality.TEXT),
-          List.of(Modality.TEXT),
-          List.of(Modality.TEXT),
-          false,
-          false,
-          false,
-          true,
-          null,
-          null);
-
   private static final TypeReference<Map<String, Object>> MAP_TYPE_REF = new TypeReference<>() {};
 
   private final OpenAIClient client;
   private final String model;
   private final ObjectMapper objectMapper;
+  private final ModelCapabilities capabilities;
   @Nullable private final Long configuredMaxCompletionTokens;
   @Nullable private final Double temperature;
   @Nullable private final Double topP;
@@ -88,12 +76,14 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
       OpenAIClient client,
       String model,
       ObjectMapper objectMapper,
+      ModelCapabilities capabilities,
       @Nullable Long configuredMaxCompletionTokens,
       @Nullable Double temperature,
       @Nullable Double topP) {
     this.client = Objects.requireNonNull(client, "client");
     this.model = Objects.requireNonNull(model, "model");
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+    this.capabilities = Objects.requireNonNull(capabilities, "capabilities");
     this.configuredMaxCompletionTokens = configuredMaxCompletionTokens;
     this.temperature = temperature;
     this.topP = topP;
@@ -101,7 +91,7 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
 
   @Override
   public ModelCapabilities capabilities() {
-    return CAPABILITIES;
+    return capabilities;
   }
 
   @Override

@@ -11,6 +11,7 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
 import java.time.Duration;
@@ -29,11 +30,15 @@ public class OpenAiCompatibleChatModelApiFactory
   public static final String API_FAMILY = "openai-completions";
 
   private final ObjectMapper objectMapper;
+  private final ModelCapabilitiesResolver capabilitiesResolver;
   @Nullable private final Duration defaultTimeout;
 
   public OpenAiCompatibleChatModelApiFactory(
-      ObjectMapper objectMapper, @Nullable Duration defaultTimeout) {
+      ObjectMapper objectMapper,
+      ModelCapabilitiesResolver capabilitiesResolver,
+      @Nullable Duration defaultTimeout) {
     this.objectMapper = objectMapper;
+    this.capabilitiesResolver = capabilitiesResolver;
     this.defaultTimeout = defaultTimeout;
   }
 
@@ -57,10 +62,13 @@ public class OpenAiCompatibleChatModelApiFactory
     final var connection = configuration.openaiCompatible();
     final var client = buildClient(connection);
     final var parameters = connection.model().parameters();
+    final var capabilities =
+        capabilitiesResolver.resolve(API_FAMILY, connection.model().model(), Optional.empty());
     return new OpenAiChatCompletionsChatModelApi(
         client,
         connection.model().model(),
         objectMapper,
+        capabilities,
         parameters != null && parameters.maxCompletionTokens() != null
             ? parameters.maxCompletionTokens().longValue()
             : null,

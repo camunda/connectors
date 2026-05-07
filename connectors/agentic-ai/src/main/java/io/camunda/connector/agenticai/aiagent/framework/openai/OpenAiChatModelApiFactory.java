@@ -11,6 +11,7 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.ApiFamily;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
@@ -34,10 +35,15 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory<OpenAiProv
   public static final String API_FAMILY_RESPONSES = "openai-responses";
 
   private final ObjectMapper objectMapper;
+  private final ModelCapabilitiesResolver capabilitiesResolver;
   @Nullable private final Duration defaultTimeout;
 
-  public OpenAiChatModelApiFactory(ObjectMapper objectMapper, @Nullable Duration defaultTimeout) {
+  public OpenAiChatModelApiFactory(
+      ObjectMapper objectMapper,
+      ModelCapabilitiesResolver capabilitiesResolver,
+      @Nullable Duration defaultTimeout) {
     this.objectMapper = objectMapper;
+    this.capabilitiesResolver = capabilitiesResolver;
     this.defaultTimeout = defaultTimeout;
   }
 
@@ -69,11 +75,30 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory<OpenAiProv
     final var temperature = parameters != null ? parameters.temperature() : null;
     final var topP = parameters != null ? parameters.topP() : null;
 
+    final var apiFamily =
+        connection.apiFamily() == ApiFamily.RESPONSES
+            ? API_FAMILY_RESPONSES
+            : API_FAMILY_COMPLETIONS;
+    final var capabilities =
+        capabilitiesResolver.resolve(apiFamily, connection.model().model(), Optional.empty());
+
     return connection.apiFamily() == ApiFamily.RESPONSES
         ? new OpenAiResponsesChatModelApi(
-            client, connection.model().model(), objectMapper, maxTokens, temperature, topP)
+            client,
+            connection.model().model(),
+            objectMapper,
+            capabilities,
+            maxTokens,
+            temperature,
+            topP)
         : new OpenAiChatCompletionsChatModelApi(
-            client, connection.model().model(), objectMapper, maxTokens, temperature, topP);
+            client,
+            connection.model().model(),
+            objectMapper,
+            capabilities,
+            maxTokens,
+            temperature,
+            topP);
   }
 
   private OpenAIClient buildClient(OpenAiConnection connection) {

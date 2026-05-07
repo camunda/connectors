@@ -24,6 +24,8 @@ import com.openai.services.blocking.ResponseService;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatOptions;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
+import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
@@ -49,6 +51,18 @@ class OpenAiResponsesChatModelApiTest {
   private static final String MODEL_ID = "gpt-5";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+  private static final ModelCapabilities CAPABILITIES =
+      new ModelCapabilities(
+          List.of(Modality.TEXT, Modality.IMAGE),
+          List.of(Modality.TEXT, Modality.IMAGE, Modality.PDF),
+          List.of(Modality.TEXT),
+          true,
+          true,
+          true,
+          true,
+          400000,
+          128000);
+
   @Mock private OpenAIClient client;
   @Mock private ResponseService responseService;
 
@@ -59,7 +73,14 @@ class OpenAiResponsesChatModelApiTest {
   @BeforeEach
   void setUp() {
     when(client.responses()).thenReturn(responseService);
-    api = new OpenAiResponsesChatModelApi(client, MODEL_ID, OBJECT_MAPPER, 1024L, null, null);
+    api =
+        new OpenAiResponsesChatModelApi(
+            client, MODEL_ID, OBJECT_MAPPER, CAPABILITIES, 1024L, null, null);
+  }
+
+  @Test
+  void capabilitiesReturnsConfiguredInstance() {
+    assertThat(api.capabilities()).isSameAs(CAPABILITIES);
   }
 
   @Test

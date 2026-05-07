@@ -56,6 +56,18 @@ class AnthropicMessagesChatModelApiTest {
 
   private static final String MODEL_ID = "claude-sonnet-4-6";
 
+  private static final ModelCapabilities CAPABILITIES =
+      new ModelCapabilities(
+          List.of(Modality.TEXT, Modality.IMAGE, Modality.PDF),
+          List.of(Modality.TEXT, Modality.IMAGE),
+          List.of(Modality.TEXT),
+          true,
+          true,
+          true,
+          true,
+          200000,
+          64000);
+
   @Mock private AnthropicClient client;
   @Mock private MessageService messageService;
 
@@ -66,18 +78,13 @@ class AnthropicMessagesChatModelApiTest {
   @BeforeEach
   void setUp() {
     when(client.messages()).thenReturn(messageService);
-    api = new AnthropicMessagesChatModelApi(client, MODEL_ID, 1024L, null, null, null);
+    api =
+        new AnthropicMessagesChatModelApi(client, MODEL_ID, CAPABILITIES, 1024L, null, null, null);
   }
 
   @Test
-  void capabilitiesReturnsTextOnlyConservativeProfile() {
-    ModelCapabilities caps = api.capabilities();
-    assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT);
-    assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
-    assertThat(caps.assistantMessageModalities()).containsExactly(Modality.TEXT);
-    assertThat(caps.supportsReasoning()).isFalse();
-    assertThat(caps.supportsPromptCaching()).isFalse();
-    assertThat(caps.supportsParallelToolCalls()).isTrue();
+  void capabilitiesReturnsConfiguredInstance() {
+    assertThat(api.capabilities()).isSameAs(CAPABILITIES);
   }
 
   @Test

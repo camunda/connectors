@@ -10,6 +10,7 @@ import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
 import java.time.Duration;
@@ -31,9 +32,12 @@ public class AnthropicMessagesChatModelApiFactory
 
   public static final String API_FAMILY = "anthropic-messages";
 
+  private final ModelCapabilitiesResolver capabilitiesResolver;
   @Nullable private final Duration defaultTimeout;
 
-  public AnthropicMessagesChatModelApiFactory(@Nullable Duration defaultTimeout) {
+  public AnthropicMessagesChatModelApiFactory(
+      ModelCapabilitiesResolver capabilitiesResolver, @Nullable Duration defaultTimeout) {
+    this.capabilitiesResolver = capabilitiesResolver;
     this.defaultTimeout = defaultTimeout;
   }
 
@@ -57,9 +61,12 @@ public class AnthropicMessagesChatModelApiFactory
     final var connection = configuration.anthropic();
     final var client = buildClient(connection);
     final var parameters = connection.model().parameters();
+    final var capabilities =
+        capabilitiesResolver.resolve(API_FAMILY, connection.model().model(), Optional.empty());
     return new AnthropicMessagesChatModelApi(
         client,
         connection.model().model(),
+        capabilities,
         parameters != null && parameters.maxTokens() != null
             ? parameters.maxTokens().longValue()
             : null,

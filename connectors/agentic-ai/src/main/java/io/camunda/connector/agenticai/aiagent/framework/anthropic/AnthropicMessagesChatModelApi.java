@@ -27,7 +27,6 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
-import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.AssistantMessageBuilder;
@@ -68,20 +67,9 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
 
   private static final long DEFAULT_MAX_TOKENS = 4096L;
 
-  private static final ModelCapabilities CAPABILITIES =
-      new ModelCapabilities(
-          List.of(Modality.TEXT),
-          List.of(Modality.TEXT),
-          List.of(Modality.TEXT),
-          false,
-          false,
-          false,
-          true,
-          null,
-          null);
-
   private final AnthropicClient client;
   private final String model;
+  private final ModelCapabilities capabilities;
   @Nullable private final Long configuredMaxTokens;
   @Nullable private final Double temperature;
   @Nullable private final Double topP;
@@ -90,12 +78,14 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
   public AnthropicMessagesChatModelApi(
       AnthropicClient client,
       String model,
+      ModelCapabilities capabilities,
       @Nullable Long configuredMaxTokens,
       @Nullable Double temperature,
       @Nullable Double topP,
       @Nullable Long topK) {
     this.client = Objects.requireNonNull(client, "client");
     this.model = Objects.requireNonNull(model, "model");
+    this.capabilities = Objects.requireNonNull(capabilities, "capabilities");
     this.configuredMaxTokens = configuredMaxTokens;
     this.temperature = temperature;
     this.topP = topP;
@@ -104,7 +94,7 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
 
   @Override
   public ModelCapabilities capabilities() {
-    return CAPABILITIES;
+    return capabilities;
   }
 
   @Override

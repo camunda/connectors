@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
 import com.anthropic.client.AnthropicClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -28,8 +29,9 @@ public class AnthropicMessagesApiConfiguration {
   @Bean(name = "langchain4JAnthropicChatModelApiFactory")
   @ConditionalOnMissingBean(name = "langchain4JAnthropicChatModelApiFactory")
   public ChatModelApiFactory<AnthropicProviderConfiguration> anthropicMessagesChatModelApiFactory(
+      ModelCapabilitiesResolver capabilitiesResolver,
       AgenticAiConnectorsConfigurationProperties properties) {
     return new AnthropicMessagesChatModelApiFactory(
-        properties.aiagent().chatModel().api().defaultTimeout());
+        capabilitiesResolver, properties.aiagent().chatModel().api().defaultTimeout());
   }
 }

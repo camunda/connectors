@@ -28,6 +28,7 @@ import com.openai.services.blocking.chat.ChatCompletionService;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatOptions;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
+import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -55,6 +56,18 @@ class OpenAiChatCompletionsChatModelApiTest {
   private static final String MODEL_ID = "gpt-4o";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+  private static final ModelCapabilities CAPABILITIES =
+      new ModelCapabilities(
+          List.of(Modality.TEXT, Modality.IMAGE, Modality.AUDIO),
+          List.of(Modality.TEXT),
+          List.of(Modality.TEXT),
+          false,
+          false,
+          true,
+          true,
+          128000,
+          16384);
+
   @Mock private OpenAIClient client;
   @Mock private ChatService chatService;
   @Mock private ChatCompletionService chatCompletionService;
@@ -67,18 +80,14 @@ class OpenAiChatCompletionsChatModelApiTest {
   void setUp() {
     when(client.chat()).thenReturn(chatService);
     when(chatService.completions()).thenReturn(chatCompletionService);
-    api = new OpenAiChatCompletionsChatModelApi(client, MODEL_ID, OBJECT_MAPPER, 1024L, null, null);
+    api =
+        new OpenAiChatCompletionsChatModelApi(
+            client, MODEL_ID, OBJECT_MAPPER, CAPABILITIES, 1024L, null, null);
   }
 
   @Test
-  void capabilitiesAreTextOnly() {
-    var caps = api.capabilities();
-    assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT);
-    assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
-    assertThat(caps.assistantMessageModalities()).containsExactly(Modality.TEXT);
-    assertThat(caps.supportsReasoning()).isFalse();
-    assertThat(caps.supportsPromptCaching()).isFalse();
-    assertThat(caps.supportsParallelToolCalls()).isTrue();
+  void capabilitiesReturnsConfiguredInstance() {
+    assertThat(api.capabilities()).isSameAs(CAPABILITIES);
   }
 
   @Test

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.openai;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
@@ -33,9 +34,12 @@ public class OpenAiChatModelApiConfiguration {
   @ConditionalOnMissingBean(name = "langchain4JOpenAiChatModelApiFactory")
   public ChatModelApiFactory<OpenAiProviderConfiguration> openAiChatModelApiFactory(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
+      ModelCapabilitiesResolver capabilitiesResolver,
       AgenticAiConnectorsConfigurationProperties properties) {
     return new OpenAiChatModelApiFactory(
-        objectMapper, properties.aiagent().chatModel().api().defaultTimeout());
+        objectMapper,
+        capabilitiesResolver,
+        properties.aiagent().chatModel().api().defaultTimeout());
   }
 
   @Bean(name = "langchain4JOpenAiCompatibleChatModelApiFactory")
@@ -43,8 +47,11 @@ public class OpenAiChatModelApiConfiguration {
   public ChatModelApiFactory<OpenAiCompatibleProviderConfiguration>
       openAiCompatibleChatModelApiFactory(
           @ConnectorsObjectMapper ObjectMapper objectMapper,
+          ModelCapabilitiesResolver capabilitiesResolver,
           AgenticAiConnectorsConfigurationProperties properties) {
     return new OpenAiCompatibleChatModelApiFactory(
-        objectMapper, properties.aiagent().chatModel().api().defaultTimeout());
+        objectMapper,
+        capabilitiesResolver,
+        properties.aiagent().chatModel().api().defaultTimeout());
   }
 }
