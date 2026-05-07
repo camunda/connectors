@@ -70,8 +70,9 @@ public class PresetTargetExistsRule implements Rule {
       if (!idNode.isTextual()) {
         continue;
       }
-      String propertyId = idNode.asText();
-      Set<String> choices = new HashSet<>();
+      // Union choice sets across duplicate ids so the mutually-exclusive switching pattern
+      // (same id, different conditions, possibly different choices) does not lose values.
+      Set<String> choices = result.computeIfAbsent(idNode.asText(), k -> new HashSet<>());
       JsonNode choicesNode = prop.path("choices");
       if (choicesNode.isArray()) {
         for (JsonNode choice : choicesNode) {
@@ -81,7 +82,6 @@ public class PresetTargetExistsRule implements Rule {
           }
         }
       }
-      result.put(propertyId, choices);
     }
     return result;
   }

@@ -159,6 +159,57 @@ class PresetTargetExistsRuleTest {
   }
 
   @Test
+  void duplicateIdsWithDifferentChoices_unionAccepted() throws Exception {
+    // Mutually-exclusive switching pattern: same id "eventOperationType" appears twice with
+    // disjoint choices, gated on different operationGroup values. A preset value valid under
+    // either variant must not be flagged.
+    JsonNode template =
+        read(
+            """
+        {
+          "properties": [
+            { "id": "operationGroup", "choices": [
+              { "value": "actions" }, { "value": "issues" }
+            ]},
+            { "id": "eventOperationType",
+              "choices": [{ "value": "createWorkflowDispatchEvent" }],
+              "condition": { "property": "operationGroup", "equals": "actions" } },
+            { "id": "eventOperationType",
+              "choices": [{ "value": "createIssue" }, { "value": "closeIssue" }],
+              "condition": { "property": "operationGroup", "equals": "issues" } }
+          ],
+          "steps": [
+            { "steps": [ { "presets": {
+              "operationGroup": "issues",
+              "eventOperationType": "createIssue"
+            }}]}
+          ]
+        }
+        """);
+    assertThat(rule.apply(FILE, template)).isEmpty();
+  }
+
+  @Test
+  void duplicateIdsWithDifferentChoices_valueOutsideUnion_flagged() throws Exception {
+    JsonNode template =
+        read(
+            """
+        {
+          "properties": [
+            { "id": "eventOperationType", "choices": [{ "value": "a" }] },
+            { "id": "eventOperationType", "choices": [{ "value": "b" }] }
+          ],
+          "steps": [
+            { "steps": [ { "presets": { "eventOperationType": "c" } } ] }
+          ]
+        }
+        """);
+    List<Finding> findings = rule.apply(FILE, template);
+    assertThat(findings).hasSize(1);
+    assertThat(findings.get(0).message()).contains("\"c\"");
+  }
+
+  @Test
   void presetsAtTopLevel_alsoValidated() throws Exception {
     JsonNode template =
         read(

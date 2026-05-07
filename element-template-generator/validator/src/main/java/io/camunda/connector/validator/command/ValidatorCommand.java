@@ -59,6 +59,16 @@ public class ValidatorCommand implements Callable<Integer> {
           "Root directory to scan for element-templates/*.json files. Defaults to ./connectors.")
   private Path root = Path.of("connectors");
 
+  @CommandLine.Option(
+      names = "--schema-url",
+      description =
+          "Override the JSON-schema URL used by the schema rule. If unset, falls back to the "
+              + "CAMUNDA_TEMPLATE_SCHEMA_URL environment variable, then to the pinned default "
+              + "(zeebe-element-templates-json-schema@"
+              + SchemaRule.SCHEMA_VERSION
+              + ").")
+  private String schemaUrl;
+
   @Override
   public Integer call() {
     List<Path> all = TemplateFinder.findAll(root);
@@ -72,11 +82,23 @@ public class ValidatorCommand implements Callable<Integer> {
 
     Map<Path, JsonNode> templates = loaded.templates();
 
-    findings.addAll(runSingleFileRules(templates));
+    SchemaRule schemaRule = new SchemaRule(resolveSchemaUrl());
+    findings.addAll(runSingleFileRules(templates, schemaRule));
     findings.addAll(runMultiFileRules(templates));
 
     ReportPrinter.print(findings, templates.size(), System.out);
     return findings.stream().anyMatch(f -> f.severity() == Severity.ERROR) ? 1 : 0;
+  }
+
+  private String resolveSchemaUrl() {
+    if (schemaUrl != null && !schemaUrl.isBlank()) {
+      return schemaUrl;
+    }
+    String fromEnv = System.getenv("CAMUNDA_TEMPLATE_SCHEMA_URL");
+    if (fromEnv != null && !fromEnv.isBlank()) {
+      return fromEnv;
+    }
+    return SchemaRule.SCHEMA_URL;
   }
 
   private static LoadResult loadTemplates(List<Path> all) {
@@ -93,8 +115,7 @@ public class ValidatorCommand implements Callable<Integer> {
     return new LoadResult(templates, parseFindings);
   }
 
-  private static List<Finding> runSingleFileRules(Map<Path, JsonNode> templates) {
-    Rule schema = new SchemaRule();
+  private static List<Finding> runSingleFileRules(Map<Path, JsonNode> templates, Rule schema) {
     List<Rule> rules =
         List.of(
             new PresetTargetExistsRule(),

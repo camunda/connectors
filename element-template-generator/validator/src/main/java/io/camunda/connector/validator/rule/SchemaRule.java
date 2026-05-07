@@ -45,8 +45,18 @@ import java.util.Set;
 public class SchemaRule implements Rule {
 
   public static final String ID = "schema";
+
+  /**
+   * Pinned schema version. Bump deliberately (in lockstep with the connectors-team upgrade) rather
+   * than tracking {@code latest}, so validator behavior is reproducible across CI runs and local
+   * machines. Override at runtime via {@code --schema-url} or {@code CAMUNDA_TEMPLATE_SCHEMA_URL}.
+   */
+  public static final String SCHEMA_VERSION = "0.40.0";
+
   public static final String SCHEMA_URL =
-      "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json";
+      "https://unpkg.com/@camunda/zeebe-element-templates-json-schema@"
+          + SCHEMA_VERSION
+          + "/resources/schema.json";
 
   private final JsonSchema schema;
 

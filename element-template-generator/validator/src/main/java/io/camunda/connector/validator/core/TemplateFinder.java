@@ -17,11 +17,14 @@
 package io.camunda.connector.validator.core;
 
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 public final class TemplateFinder {
 
@@ -59,36 +62,50 @@ public final class TemplateFinder {
   }
 
   private static List<Path> walk(Path root, boolean includeVersioned) {
-    try (Stream<Path> walk = Files.walk(root)) {
-      return walk.filter(p -> isElementTemplateJson(p, includeVersioned)).sorted().toList();
+    List<Path> results = new ArrayList<>();
+    try {
+      Files.walkFileTree(
+          root,
+          new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+              Path name = dir.getFileName();
+              if (name == null) {
+                return FileVisitResult.CONTINUE;
+              }
+              String dirName = name.toString();
+              if (SKIPPED_DIRECTORIES.contains(dirName)
+                  || SKIPPED_CONNECTORS.contains(dirName)
+                  || (!includeVersioned && VERSIONED_SEGMENT.equals(dirName))) {
+                return FileVisitResult.SKIP_SUBTREE;
+              }
+              return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+              if (isElementTemplateJson(file)) {
+                results.add(file);
+              }
+              return FileVisitResult.CONTINUE;
+            }
+          });
     } catch (IOException e) {
       throw new RuntimeException("Failed to walk " + root, e);
     }
+    results.sort(null);
+    return results;
   }
 
-  private static boolean isElementTemplateJson(Path path, boolean includeVersioned) {
-    if (!Files.isRegularFile(path)) {
-      return false;
-    }
+  private static boolean isElementTemplateJson(Path path) {
     if (!path.getFileName().toString().endsWith(".json")) {
       return false;
     }
-    boolean inElementTemplates = false;
     for (Path segment : path) {
-      String name = segment.toString();
-      if (SKIPPED_DIRECTORIES.contains(name)) {
-        return false;
-      }
-      if (SKIPPED_CONNECTORS.contains(name)) {
-        return false;
-      }
-      if (!includeVersioned && VERSIONED_SEGMENT.equals(name)) {
-        return false;
-      }
-      if (ELEMENT_TEMPLATES_SEGMENT.equals(name)) {
-        inElementTemplates = true;
+      if (ELEMENT_TEMPLATES_SEGMENT.equals(segment.toString())) {
+        return true;
       }
     }
-    return inElementTemplates;
+    return false;
   }
 }

@@ -20,9 +20,19 @@ This produces an appassembler launcher at
 
 # scan a specific directory (overrides the default ./connectors)
 ./.../element-template-validator -d path/to/connectors
+
+# override the JSON-schema URL (e.g. point at a local copy)
+./.../element-template-validator --schema-url file:///path/to/schema.json
+# or via env var:
+CAMUNDA_TEMPLATE_SCHEMA_URL=file:///path/to/schema.json ./.../element-template-validator
 ```
 
 Exit code is `0` if no findings, `1` otherwise.
+
+The schema URL defaults to a **pinned** version
+(`@camunda/zeebe-element-templates-json-schema@<version>`) so validator behavior is reproducible
+across CI runs and local machines. Bump the constant in `SchemaRule.SCHEMA_VERSION` deliberately,
+in lockstep with the connectors-team upgrade.
 
 Files inside any `versioned/` directory are skipped by the single-file rules — they represent
 frozen historical releases and are not modifiable retroactively. Multi-file rules still see them.
