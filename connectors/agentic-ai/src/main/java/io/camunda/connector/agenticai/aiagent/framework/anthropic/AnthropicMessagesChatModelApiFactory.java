@@ -73,7 +73,7 @@ public class AnthropicMessagesChatModelApiFactory
         AnthropicOkHttpClient.builder().apiKey(connection.authentication().apiKey());
 
     if (StringUtils.isNotBlank(connection.endpoint())) {
-      builder.baseUrl(connection.endpoint());
+      builder.baseUrl(normalizeBaseUrl(connection.endpoint()));
     }
 
     final var timeout = resolveTimeout(connection);
@@ -87,5 +87,18 @@ public class AnthropicMessagesChatModelApiFactory
   @Nullable
   private Duration resolveTimeout(AnthropicConnection connection) {
     return Optional.ofNullable(connection.timeouts()).map(t -> t.timeout()).orElse(defaultTimeout);
+  }
+
+  /**
+   * The {@code anthropic-java} SDK expects {@code baseUrl} to be the host without the {@code /v1}
+   * prefix and appends the full {@code /v1/messages} path itself. The LangChain4j Anthropic client
+   * used the opposite convention (callers set {@code https://host/v1}, L4J appends just {@code
+   * /messages}). Strip a trailing {@code /v1} (with or without trailing slash) so existing
+   * element-template configurations keep working when users switch to the native impl.
+   */
+  static String normalizeBaseUrl(String endpoint) {
+    final var trimmed =
+        endpoint.endsWith("/") ? endpoint.substring(0, endpoint.length() - 1) : endpoint;
+    return trimmed.endsWith("/v1") ? trimmed.substring(0, trimmed.length() - 3) : trimmed;
   }
 }

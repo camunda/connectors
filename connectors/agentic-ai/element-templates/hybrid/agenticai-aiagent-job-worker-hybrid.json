@@ -711,6 +711,23 @@
       "value" : "responses"
     } ]
   }, {
+    "id" : "provider.openai.endpoint",
+    "label" : "Custom API endpoint",
+    "description" : "Optional. Override the default OpenAI base URL (e.g. for an OpenAI proxy or gateway). Leave blank to use the SDK default.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.openaiCompatible.endpoint",
     "label" : "API endpoint",
     "optional" : false,

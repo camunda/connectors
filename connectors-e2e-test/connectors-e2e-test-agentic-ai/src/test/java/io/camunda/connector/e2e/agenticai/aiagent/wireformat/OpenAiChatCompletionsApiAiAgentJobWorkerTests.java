@@ -29,27 +29,27 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * Wire-format regression test for the OpenAI Responses endpoint ({@code POST /v1/responses}).
- * Drives the {@code openai} discriminator with {@code apiFamily = responses}, exercising the native
- * {@code OpenAiResponsesChatModelApi} end-to-end against a WireMock-stubbed responses API.
+ * Wire-format regression test for the OpenAI Chat Completions endpoint ({@code POST
+ * /v1/chat/completions}). Uses the {@code openaiCompatible} provider so the test exercises the same
+ * wire format that the {@code openai} discriminator produces with {@code apiFamily = COMPLETIONS}.
  */
 @SlowTest
-public class OpenAiResponsesApiAiAgentJobWorkerTests extends BaseWireFormatAiAgentJobWorkerTest {
+public class OpenAiChatCompletionsApiAiAgentJobWorkerTests
+    extends BaseWireFormatAiAgentJobWorkerTest {
 
   @Override
   protected String llmApiPath() {
-    return "/v1/responses";
+    return "/v1/chat/completions";
   }
 
   @Override
   protected Map<String, String> elementTemplateProperties() {
     return Map.ofEntries(
         Map.entry("agentContext", "=agent.context"),
-        Map.entry("provider.type", "openai"),
-        Map.entry("provider.openai.apiFamily", "responses"),
-        Map.entry("provider.openai.endpoint", "http://localhost:" + wireMockPort + "/v1"),
-        Map.entry("provider.openai.authentication.apiKey", "test-api-key"),
-        Map.entry("provider.openai.model.model", "gpt-5"),
+        Map.entry("provider.type", "openaiCompatible"),
+        Map.entry("provider.openaiCompatible.endpoint", "http://localhost:" + wireMockPort + "/v1"),
+        Map.entry("provider.openaiCompatible.authentication.apiKey", "test-api-key"),
+        Map.entry("provider.openaiCompatible.model.model", "gpt-4o"),
         Map.entry(
             "data.systemPrompt.prompt",
             "=\"You are a helpful AI assistant. Answer all the questions, but always be nice.\""),
@@ -71,28 +71,34 @@ public class OpenAiResponsesApiAiAgentJobWorkerTests extends BaseWireFormatAiAge
   protected String toolCallResponseBody() {
     return """
         {
-          "id": "resp_abc123",
-          "object": "response",
-          "created_at": 1728933352,
-          "status": "completed",
-          "model": "gpt-5",
-          "parallel_tool_calls": true,
-          "tool_choice": "auto",
-          "tools": [],
-          "output": [
+          "id": "chatcmpl-abc123",
+          "object": "chat.completion",
+          "created": 1728933352,
+          "model": "gpt-4o",
+          "choices": [
             {
-              "type": "function_call",
-              "call_id": "call_xyz789",
-              "name": "SuperfluxProduct",
-              "arguments": "{\\"a\\": 5, \\"b\\": 3}"
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_xyz789",
+                    "type": "function",
+                    "function": {
+                      "name": "SuperfluxProduct",
+                      "arguments": "{\\"a\\": 5, \\"b\\": 3}"
+                    }
+                  }
+                ]
+              },
+              "finish_reason": "tool_calls"
             }
           ],
           "usage": {
-            "input_tokens": 100,
-            "output_tokens": 50,
-            "total_tokens": 150,
-            "input_tokens_details": { "cached_tokens": 0 },
-            "output_tokens_details": { "reasoning_tokens": 0 }
+            "prompt_tokens": 100,
+            "completion_tokens": 50,
+            "total_tokens": 150
           }
         }
         """;
@@ -102,31 +108,24 @@ public class OpenAiResponsesApiAiAgentJobWorkerTests extends BaseWireFormatAiAge
   protected String finalResponseBody() {
     return """
         {
-          "id": "resp_def456",
-          "object": "response",
-          "created_at": 1728933353,
-          "status": "completed",
-          "model": "gpt-5",
-          "parallel_tool_calls": true,
-          "tool_choice": "auto",
-          "tools": [],
-          "output": [
+          "id": "chatcmpl-def456",
+          "object": "chat.completion",
+          "created": 1728933353,
+          "model": "gpt-4o",
+          "choices": [
             {
-              "type": "message",
-              "id": "msg_1",
-              "status": "completed",
-              "role": "assistant",
-              "content": [
-                { "type": "output_text", "text": "%s", "annotations": [] }
-              ]
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "%s"
+              },
+              "finish_reason": "stop"
             }
           ],
           "usage": {
-            "input_tokens": 200,
-            "output_tokens": 30,
-            "total_tokens": 230,
-            "input_tokens_details": { "cached_tokens": 0 },
-            "output_tokens_details": { "reasoning_tokens": 0 }
+            "prompt_tokens": 200,
+            "completion_tokens": 30,
+            "total_tokens": 230
           }
         }
         """
@@ -134,7 +133,7 @@ public class OpenAiResponsesApiAiAgentJobWorkerTests extends BaseWireFormatAiAge
   }
 
   @Test
-  void executesAgentWithToolCallAgainstOpenAiResponsesApi() throws Exception {
+  void executesAgentWithToolCallAgainstOpenAiChatCompletionsApi() throws Exception {
     final var zeebeTest = runToolCallScenario();
 
     assertAgentResponse(

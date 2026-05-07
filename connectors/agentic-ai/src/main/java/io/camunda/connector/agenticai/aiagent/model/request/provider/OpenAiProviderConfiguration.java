@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OPENAI_ID;
 
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -49,7 +50,17 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
               optional = true,
               defaultValue = "completions",
               defaultValueType = TemplateProperty.DefaultValueType.String)
-          ApiFamily apiFamily) {
+          ApiFamily apiFamily,
+      @HttpUrl
+          @TemplateProperty(
+              group = "provider",
+              label = "Custom API endpoint",
+              description =
+                  "Optional. Override the default OpenAI base URL (e.g. for an OpenAI proxy or gateway). Leave blank to use the SDK default.",
+              type = TemplateProperty.PropertyType.String,
+              feel = FeelMode.optional,
+              optional = true)
+          String endpoint) {
 
     public OpenAiConnection {
       if (apiFamily == null) {
@@ -60,7 +71,7 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
     /** Convenience constructor used by existing call sites that pre-date the apiFamily field. */
     public OpenAiConnection(
         OpenAiAuthentication authentication, TimeoutConfiguration timeouts, OpenAiModel model) {
-      this(authentication, timeouts, model, ApiFamily.COMPLETIONS);
+      this(authentication, timeouts, model, ApiFamily.COMPLETIONS, null);
     }
   }
 

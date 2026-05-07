@@ -80,6 +80,9 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory<OpenAiProv
     final var builder = OpenAIOkHttpClient.builder();
     builder.apiKey(connection.authentication().apiKey());
 
+    if (StringUtils.isNotBlank(connection.endpoint())) {
+      builder.baseUrl(connection.endpoint());
+    }
     if (StringUtils.isNotBlank(connection.authentication().organizationId())) {
       builder.organization(connection.authentication().organizationId());
     }
