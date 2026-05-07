@@ -85,6 +85,9 @@ public class InboundConnectorRuntimeConfiguration {
   @Value("${camunda.connector.inbound.lane-count:128}")
   private int laneCount;
 
+  @Value("${camunda.connector.inbound.executable-timeout:PT1M}")
+  private Duration executableTimeout;
+
   @Bean
   public static InboundConnectorBeanDefinitionProcessor inboundConnectorBeanDefinitionProcessor(
       Environment environment) {
@@ -139,7 +142,8 @@ public class InboundConnectorRuntimeConfiguration {
         connectorContextFactory,
         connectorsInboundMetrics,
         webhookConnectorRegistry,
-        activityLogRegistry);
+        activityLogRegistry,
+        executableTimeout);
   }
 
   @Bean

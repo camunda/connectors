@@ -40,11 +40,13 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Fail
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,13 +57,19 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class BatchExecutableProcessor {
 
+  /**
+   * Default upper bound on how long a single {@code executable.activate(...)} or {@code
+   * executable.deactivate()} call may run before the runtime gives up waiting.
+   */
+  public static final Duration DEFAULT_EXECUTABLE_TIMEOUT = Duration.ofMinutes(1);
+
   private static final Logger LOG = LoggerFactory.getLogger(BatchExecutableProcessor.class);
   private final InboundConnectorFactory connectorFactory;
   private final InboundConnectorContextFactory connectorContextFactory;
   private final ConnectorsInboundMetrics connectorsInboundMetrics;
   private final WebhookConnectorRegistry webhookConnectorRegistry;
-
   private final ActivityLogWriter activityLogWriter;
+  private final Duration executableTimeout;
 
   public BatchExecutableProcessor(
       InboundConnectorFactory connectorFactory,
@@ -69,11 +77,28 @@ public class BatchExecutableProcessor {
       ConnectorsInboundMetrics connectorsInboundMetrics,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry,
       ActivityLogWriter activityLogWriter) {
+    this(
+        connectorFactory,
+        connectorContextFactory,
+        connectorsInboundMetrics,
+        webhookConnectorRegistry,
+        activityLogWriter,
+        DEFAULT_EXECUTABLE_TIMEOUT);
+  }
+
+  public BatchExecutableProcessor(
+      InboundConnectorFactory connectorFactory,
+      InboundConnectorContextFactory connectorContextFactory,
+      ConnectorsInboundMetrics connectorsInboundMetrics,
+      WebhookConnectorRegistry webhookConnectorRegistry,
+      ActivityLogWriter activityLogWriter,
+      Duration executableTimeout) {
     this.connectorFactory = connectorFactory;
     this.connectorContextFactory = connectorContextFactory;
     this.connectorsInboundMetrics = connectorsInboundMetrics;
     this.webhookConnectorRegistry = webhookConnectorRegistry;
     this.activityLogWriter = activityLogWriter;
+    this.executableTimeout = executableTimeout;
   }
 
   /**
@@ -211,7 +236,7 @@ public class BatchExecutableProcessor {
       boolean acceptedAsActive = webhookConnectorRegistry.register(activated);
       if (acceptedAsActive) {
         try {
-          executable.activate(context);
+          runWithTimeout("Connector activation", () -> executable.activate(context));
         } catch (Exception e) {
           try {
             webhookConnectorRegistry.deregister(activated);
@@ -223,9 +248,48 @@ public class BatchExecutableProcessor {
         }
       }
     } else {
-      executable.activate(context);
+      runWithTimeout("Connector activation", () -> executable.activate(context));
     }
     return activated;
+  }
+
+  /**
+   * Runs a single user-code call ({@code activate} or {@code deactivate}) on a separate virtual
+   * thread and waits up to {@link #executableTimeout} for it to complete. On timeout, interrupts
+   * the thread (best-effort) and throws a runtime exception with {@code label} so the caller can
+   * record the appropriate state. The lane thread itself just blocks on {@link
+   * Thread#join(Duration)} for the bounded duration.
+   *
+   * <p>Limitation: a connector that catches/ignores {@link InterruptedException} or runs in a
+   * CPU-bound loop without checking the interrupt flag may keep running after the timeout. The
+   * runtime stops tracking it but cannot force-stop the thread. Resource cleanup is the connector's
+   * responsibility.
+   */
+  private void runWithTimeout(String label, ThrowingRunnable task) throws Exception {
+    var failure = new AtomicReference<Throwable>();
+    var thread =
+        Thread.startVirtualThread(
+            () -> {
+              try {
+                task.run();
+              } catch (Throwable t) {
+                failure.set(t);
+              }
+            });
+    if (!thread.join(executableTimeout)) {
+      thread.interrupt();
+      throw new RuntimeException(label + " did not complete within " + executableTimeout);
+    }
+    var t = failure.get();
+    if (t == null) return;
+    if (t instanceof Exception e) throw e;
+    if (t instanceof Error err) throw err;
+    throw new RuntimeException(t);
+  }
+
+  @FunctionalInterface
+  private interface ThrowingRunnable {
+    void run() throws Exception;
   }
 
   /** Deactivates a single inbound connector. */
@@ -236,7 +300,7 @@ public class BatchExecutableProcessor {
           LOG.debug("Unregistering webhook: {}", activated.context().getDefinition().type());
           webhookConnectorRegistry.deregister(activated);
         }
-        activated.executable().deactivate();
+        runWithTimeout("Connector deactivation", () -> activated.executable().deactivate());
         log(
             executable.id(),
             Activity.newBuilder()
