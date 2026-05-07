@@ -302,7 +302,7 @@ camunda.connector.agenticai.aiagent.framework.capabilities:
     defaults:
       input-modalities:
         user-message: [text, image, pdf]
-        tool-result:  [text, image]
+        tool-result:  [text, image, pdf]
       output-modalities:
         assistant-message: [text]
       supports-reasoning: false
@@ -411,29 +411,95 @@ camunda.connector.agenticai.aiagent.framework.capabilities:
 
 Map-key reuse means a consumer override deep-merges into the bundled entry; a new map key
 adds a new entry. Modality lists replace wholesale (Spring Boot list semantics) — overriding
-`tool-result: [text]` discards the bundled `[text, image]`. To add a modality, restate the
-full list including the inherited entries.
+`tool-result: [text]` discards the bundled `[text, image, pdf]`. To add a modality, restate
+the full list including the inherited entries.
 
 ## Tool Call Result Routing
 
-`ToolCallResultStrategy` decides per tool result whether to pass `contentBlocks` through to
-the provider as native multimodal content or to fall back to the existing user-message
-extraction approach (PR #6999). The decision is per content block, driven by the capability
-matrix:
+`ToolCallResultStrategy` is the **single decision point** that routes every document found
+in a chat request to one of three outcomes, in one pass over the request. There is no
+extract-then-restore: documents are routed once at the SPI boundary based on the resolved
+`ModelCapabilities`.
+
+**Where it runs.** `ChatClientImpl.chat(...)` invokes the strategy after resolving the
+`ChatModelApi` and before dispatch:
 
 ```
-for each Content block in tool result:
-    modality = modalityOf(block)                              // text | image | pdf | audio | video
-    if modality in capabilities.toolResultModalities():
-        keep block inline as part of ToolCallResult.contentBlocks
-    else:
-        delegate to user-message fallback (synthetic UserMessage with DocumentContent)
+1. registry.resolve(provider) → ChatModelApi
+2. capabilities = chatModelApi.capabilities()
+3. (request, syntheticContextMessages) = strategy.apply(initialRequest, capabilities)
+4. syntheticContextMessages.forEach(runtimeMemory::addMessage)        ← side effect
+5. chatModelApi.complete(request, options, listener)
+6. agentContext metric update; return ChatClientResult
 ```
 
-Models with `supports_*_in_tool_result` modalities for a given media type get the native
-path. Models without — including all models served via the LangChain4j bridge — get the
-fallback. This makes PR #6999 the safe default and the multimodal-native path the
-opt-in-by-capability optimization.
+The synthetic-message memory write happens **inside** `ChatClient.chat(...)` so the
+pre-dispatch context is part of the persisted `agentContext.conversation` exactly as the
+model saw it. Replay across iterations is deterministic; the next iteration sees the
+synthetic `UserMessage` as ordinary history. Requires no signature change on `ChatClient`
+(it already takes `RuntimeMemory`).
+
+> **TODO (post-Phase E):** revisit the `ChatClient` ↔ `BaseAgentRequestHandler` boundary
+> once E3+E4 land. `ChatClient` now performs three jobs (request assembly, strategy routing
+> with memory mutation, dispatch + metrics). If the strategy responsibility grows further
+> we should consider either (a) extracting routing into a separate pre-chat step `BARQ`
+> owns directly, or (b) collapsing `ChatClient` into `BARQ` entirely. Defer until we see
+> how the multimodal path settles.
+
+**Strategy contract.** Pure function:
+
+```java
+record StrategyResult(ChatRequest request, List<UserMessage> syntheticContextMessages) {}
+
+StrategyResult apply(ChatRequest request, ModelCapabilities capabilities);
+```
+
+Walks every message in the request once. For each `Document` encountered (delegating to the
+existing PR #6999 walker / per-handler `extractDocuments` hook), three branches keyed on
+which message type the document lives in:
+
+1. **Tool-result-message documents** — modality vs. `capabilities.toolResultModalities()`:
+   * **Inline**: append the `DocumentContent` to `ToolCallResult.contentBlocks`. The native
+     impl emits it as provider-native multimodal content on the same tool result. The
+     textual rendering of the result still includes the document's representation (filename,
+     short id, etc.) so structure is preserved.
+   * **Fallback**: replace the document inline with an XML placeholder
+     (`<document tool-call-id="..." document-short-id="..." />`, today's PR #6999 format)
+     and append the original `DocumentContent` to a per-tool-result-message bucket.
+2. **User-message and event-message documents** — modality vs.
+   `capabilities.userMessageModalities()`:
+   * **Supported**: leave the document where it sits (today's inlining in the same
+     `UserMessage` content list — no change).
+   * **Unsupported**: **fail loud** with `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL,
+     ...)` and a clear message naming the document, modality, and resolved model. Mirrors
+     L4J `DocumentConversionException` semantics. There is no synthesis fallback for user
+     messages — the agent author must supply documents the model can read.
+
+**Synthesis output.** Whenever a tool-result message produced fallback documents, the
+strategy emits one synthetic `UserMessage` per affected tool-result message (same shape PR
+#6999 produces today: `METADATA_TOOL_CALL_DOCUMENTS=true`, header text, XML tag +
+`DocumentContent` pairs). These are the `syntheticContextMessages` returned to
+`ChatClientImpl`. `MessageWindowRuntimeMemory` already excludes messages with
+`METADATA_TOOL_CALL_DOCUMENTS=true` from the window count, so synthesis volume cannot
+push history out.
+
+**Single pass guarantees.**
+* Every document is visited exactly once.
+* Inline-eligible docs never enter the synthesis path.
+* Fallback docs never appear on `ToolCallResult.contentBlocks`.
+* Native impls (E4) read `ToolCallResult.contentBlocks` and emit blindly — they do **not**
+  consult capabilities.
+
+**Behavior of the L4J bridge.** Bridge-served providers report a conservative capability
+profile (`tool-result: [text]`, `user-message: [text]`); every document falls back to the
+synthetic `UserMessage`, identical to today's PR #6999 behavior — no regression.
+
+**Removal in `AgentMessagesHandlerImpl`.** The current PR #6999 call site
+(`createDocumentMessageForToolResults` invoked from `addUserMessages`) and the
+unconditional `documentExtractor` dependency move out — extraction is now solely the
+strategy's responsibility. The XML-tag generator (`DocumentXmlTag`), the recursive
+walker (`ContentTreeDocumentWalker`), and the per-handler `extractDocuments` hook on
+`GatewayToolHandler` are all reused unchanged; only the call site relocates.
 
 ## Reasoning Support
 

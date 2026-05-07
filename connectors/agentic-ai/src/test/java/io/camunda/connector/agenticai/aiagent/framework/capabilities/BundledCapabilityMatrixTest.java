@@ -59,7 +59,8 @@ class BundledCapabilityMatrixTest {
 
           assertThat(caps.userMessageModalities())
               .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
-          assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+          assertThat(caps.toolResultModalities())
+              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
           assertThat(caps.supportsPromptCaching()).isTrue();
@@ -75,7 +76,8 @@ class BundledCapabilityMatrixTest {
           final var caps = resolve(context, "anthropic-messages", "claude-haiku-4-5");
 
           assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
-          assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+          assertThat(caps.toolResultModalities())
+              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
           assertThat(caps.supportsReasoning()).isFalse();
         });
   }

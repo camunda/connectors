@@ -358,28 +358,89 @@ point).
 
 ### Sub-phase E3 — `ToolCallResultStrategy`
 
-**Goal**: per-block routing of tool result content. Wired into `ChatClientImpl` so the impls
-receive a pre-routed request.
+**Goal**: single-pass per-block routing for every document in a chat request, executed at
+the `ChatClient` boundary. No extract-then-restore: documents are routed once based on the
+resolved `ModelCapabilities` and the appropriate modality slot (tool-result vs. user-message).
+The synthetic context messages are written to `RuntimeMemory` inside `ChatClient.chat(...)`
+so they are part of the persisted `agentContext.conversation` exactly as the model saw them
+— replay across iterations is deterministic.
 
-**Files to create**:
-- `ToolCallResultStrategy` — pure function `apply(ToolCallResult, ModelCapabilities)` returning
-  a routing decision per content block. Decision is one of:
-  - `INLINE` — keep the block in `ToolCallResult.contentBlocks`; the native impl emits it as
-    provider-native multimodal content (E4)
-  - `EXTRACT_TO_USER_MESSAGE` — delegate to the doc-branch's
-    `ToolCallResultDocumentExtractor` synthesis path. The block is replaced in the tool result
-    body by an XML document tag; the original `DocumentContent` is appended to a synthetic
-    `UserMessage` with `METADATA_TOOL_CALL_DOCUMENTS`.
+> **TODO (post-Phase E):** revisit the `ChatClient`↔`BaseAgentRequestHandler` boundary
+> once E3+E4 land. `ChatClient` will then own three responsibilities (request assembly,
+> strategy routing with memory mutation, dispatch + metrics). If routing complexity grows
+> further, consider extracting routing into a step `BARQ` owns directly, or collapsing
+> `ChatClient` into `BARQ`. Don't chase this in Phase E.
+
+**Files to create** (`framework/strategy/`):
+- `ToolCallResultStrategy` — interface. Single method:
+  ```java
+  StrategyResult apply(ChatRequest request, ModelCapabilities capabilities);
+  ```
+  with `record StrategyResult(ChatRequest request, List<UserMessage> syntheticContextMessages)`.
+- `ToolCallResultStrategyImpl` — single-pass walker. Per document found via the existing
+  `ContentTreeDocumentWalker` / per-handler `extractDocuments` hook (PR #6999 reused
+  unchanged), routes:
+  1. **Tool-result-message docs** vs. `capabilities.toolResultModalities()`:
+     - `INLINE`: append `DocumentContent` to `ToolCallResult.contentBlocks`; document stays
+       in the tree for textual rendering.
+     - `FALLBACK`: replace document with `DocumentXmlTag.from(doc, toolCallId, toolName).toXml()`
+       inline, append the original `DocumentContent` to a per-message bucket. After the
+       walk, emit one synthetic `UserMessage` per affected tool-result message — header
+       text + XML tag + DocumentContent pairs, `METADATA_TOOL_CALL_DOCUMENTS=true`. Same
+       shape as PR #6999's `createDocumentMessageForToolResults` output.
+  2. **User-message / event-message docs** vs. `capabilities.userMessageModalities()`:
+     - `SUPPORTED`: leave the document where it sits (today's inlining in the same
+       `UserMessage` content list — no change).
+     - `UNSUPPORTED`: throw `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, ...)` with
+       a message naming the document, modality, and resolved model.
 
 **Files to modify**:
-- `ChatClientImpl` — query `capabilities()`, apply `ToolCallResultStrategy` on tool-result
-  messages before the impl call
-- `AgentMessagesHandlerImpl` — adjust the existing PR #6999 synthesis call site so blocks
-  marked `INLINE` skip extraction
+- `ChatClientImpl` — inject `ToolCallResultStrategy`. After `registry.resolve(provider)`
+  and before `api.complete(...)`:
+  ```java
+  var capabilities = api.capabilities();
+  var initialRequest = new ChatRequest(runtimeMemory.filteredMessages(), ...);
+  var routed = strategy.apply(initialRequest, capabilities);
+  routed.syntheticContextMessages().forEach(runtimeMemory::addMessage);
+  var chatResponse = joinChat(api.complete(routed.request(), options, listener));
+  ```
+- `AgentMessagesHandlerImpl` — **remove** the `documentExtractor` field, the
+  `ToolCallResultDocumentExtractor` constructor parameter, the
+  `createDocumentMessageForToolResults` private method, and the call from `addUserMessages`
+  (line 134 in the post-rebase code). Tool-result messages now reach `ChatClientImpl` with
+  unmodified content trees and empty `ToolCallResult.contentBlocks`.
+- `AgenticAiConnectorsAutoConfiguration` — drop the `ToolCallResultDocumentExtractor`
+  argument from the `AgentMessagesHandlerImpl` bean wiring; add a `ToolCallResultStrategy`
+  bean and inject into `ChatClientImpl`. The `ToolCallResultDocumentExtractor` bean stays
+  (now consumed by `ToolCallResultStrategyImpl`).
+
+**Behavior preserved on the bridge path**: Bridge-served providers report a conservative
+capability profile (`tool-result: [text]`, `user-message: [text]`); every document falls
+back to the synthetic `UserMessage`, identical to today's PR #6999 output. Bridge e2e
+tests stay green without modification.
 
 **Tests to add**:
-- `ToolCallResultStrategyTest` — table-driven across modality × capability combos
-- `ChatClientImplTest` — extend with strategy wiring case
+- `ToolCallResultStrategyImplTest` — pure-function table-driven cases. Covers:
+  - Tool-result image with `tool-result: [text, image, pdf]` → `INLINE`, no synthetic.
+  - Tool-result PDF with `tool-result: [text, image]` → `FALLBACK`, one synthetic UM with
+    one DocumentContent; XML placeholder substituted in tool result body.
+  - Mixed result (one image + one PDF in same tool result, capability `[text, image]`) →
+    image inline, PDF fallback, single synthetic UM with the PDF only.
+  - Multiple tool-result messages in one request, each with documents → one synthetic UM
+    per affected tool-result message, ordered.
+  - User-message PDF with `user-message: [text, image]` → throws `ConnectorException`
+    naming the doc + modality + model.
+  - Event-message image with `user-message: [text]` → throws.
+  - User-message text only → no-op, same `ChatRequest` returned.
+  - Nested documents in MCP / A2A tool result content (delegated to per-handler
+    `extractDocuments`) — image inline, PDF fallback works inside lists/maps.
+- `AgentMessagesHandlerImplTest` — adjust existing test cases that asserted on the synthetic
+  `UserMessage`: those move to `ToolCallResultStrategyImplTest`. Add a new test asserting
+  `addUserMessages` no longer produces a synthetic UM (extraction is no longer its
+  responsibility).
+- `ChatClientImplTest` — extend with: (a) strategy invoked with resolved capabilities,
+  (b) returned synthetic messages added to `RuntimeMemory` before dispatch, (c) request
+  passed to `api.complete` is the strategy's modified request.
 
 ### Sub-phase E4 — Multimodality in native impls (image + PDF only)
 

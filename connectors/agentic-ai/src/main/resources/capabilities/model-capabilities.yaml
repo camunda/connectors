@@ -51,7 +51,7 @@ camunda:
               defaults:
                 input-modalities:
                   user-message: [text, image, pdf]
-                  tool-result:  [text, image]
+                  tool-result:  [text, image, pdf]
                 output-modalities:
                   assistant-message: [text]
                 supports-reasoning: false
