@@ -45,8 +45,8 @@ jobs:
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: |
-            secret/data/products/connectors/ci/artifactory TOKEN | NEXUS_PASSWORD;
-            secret/data/products/connectors/ci/artifactory USER | NEXUS_USER;
+            secret/data/products/connectors/ci/nexus PASSWORD | NEXUS_PASSWORD;
+            secret/data/products/connectors/ci/nexus USER | NEXUS_USER;
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Restore Maven cache
         uses: actions/cache@v5
