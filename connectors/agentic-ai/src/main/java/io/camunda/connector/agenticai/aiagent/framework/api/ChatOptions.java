@@ -34,7 +34,8 @@ import org.springframework.lang.Nullable;
  * structured-output mode (Anthropic Messages today) treat {@link ResponseFormat.Json} as
  * best-effort and rely on the system prompt to constrain output.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime.
+ * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * ChatModelApiRegistry.
  */
 public record ChatOptions(
     @Nullable Integer maxOutputTokens,

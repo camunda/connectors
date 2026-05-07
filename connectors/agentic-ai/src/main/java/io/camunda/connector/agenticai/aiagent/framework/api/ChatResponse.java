@@ -18,7 +18,8 @@ import org.springframework.lang.Nullable;
  * where {@code stopReason == ERROR}; transport / SDK / auth failures complete the future
  * exceptionally instead.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime.
+ * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * ChatModelApiRegistry.
  */
 public record ChatResponse(
     AssistantMessage assistantMessage,

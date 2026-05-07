@@ -28,11 +28,13 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AnthropicChatModelProvider;
@@ -101,6 +103,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentLimitsValidator.class,
           AgentMessagesHandler.class,
           AgentResponseHandler.class,
+          ChatModelApiRegistry.class,
+          ChatClient.class,
           OutboundConnectorAgentRequestHandler.class,
           AiAgentFunction.class,
           JobWorkerAgentRequestHandler.class,
@@ -123,7 +127,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           JsonSchemaConverter.class,
           ToolSpecificationConverter.class,
           ChatMessageConverter.class,
-          Langchain4JAiFrameworkAdapter.class);
+          Langchain4JChatModelApiFactory.class);
 
   // this will need to be updated in case we support different frameworks
   private static final List<Class<?>> ALL_BEANS =

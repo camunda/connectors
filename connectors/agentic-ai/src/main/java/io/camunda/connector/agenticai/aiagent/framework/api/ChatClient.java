@@ -20,7 +20,8 @@ import java.util.concurrent.CompletableFuture;
  * <p>Replaces today's {@code AiFrameworkAdapter} call site. Mirroring its signature keeps the
  * cutover diff small.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime.
+ * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * ChatModelApiRegistry.
  */
 public interface ChatClient {
 

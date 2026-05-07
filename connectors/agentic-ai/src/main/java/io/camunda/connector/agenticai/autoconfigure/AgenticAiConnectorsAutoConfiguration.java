@@ -39,7 +39,11 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.ChatClientImpl;
+import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -257,6 +261,19 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ChatModelApiRegistry aiAgentChatModelApiRegistry(
+      List<ChatModelApiFactory<?>> chatModelApiFactories) {
+    return new ChatModelApiRegistryImpl(chatModelApiFactories);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ChatClient aiAgentChatClient(ChatModelApiRegistry chatModelApiRegistry) {
+    return new ChatClientImpl(chatModelApiRegistry);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
@@ -266,7 +283,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AiFrameworkAdapter<?> aiFrameworkAdapter,
+      ChatClient chatClient,
       AgentResponseHandler responseHandler) {
     return new OutboundConnectorAgentRequestHandler(
         agentInitializer,
@@ -274,7 +291,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         limitsValidator,
         messagesHandler,
         gatewayToolHandlers,
-        aiFrameworkAdapter,
+        chatClient,
         responseHandler);
   }
 
@@ -300,7 +317,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AiFrameworkAdapter<?> aiFrameworkAdapter,
+      ChatClient chatClient,
       AgentResponseHandler responseHandler) {
     return new JobWorkerAgentRequestHandler(
         agentInitializer,
@@ -308,7 +325,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         limitsValidator,
         messagesHandler,
         gatewayToolHandlers,
-        aiFrameworkAdapter,
+        chatClient,
         responseHandler);
   }
 

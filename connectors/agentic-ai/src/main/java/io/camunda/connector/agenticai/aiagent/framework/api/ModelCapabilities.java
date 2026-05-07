@@ -15,7 +15,8 @@ import org.springframework.lang.Nullable;
  * negotiation, and cache-marker placement. The vocabulary for {@link Modality} is fixed; modality
  * lists per location are symmetric so every location has an explicit answer.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime.
+ * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * ChatModelApiRegistry.
  */
 public record ModelCapabilities(
     List<Modality> userMessageModalities,

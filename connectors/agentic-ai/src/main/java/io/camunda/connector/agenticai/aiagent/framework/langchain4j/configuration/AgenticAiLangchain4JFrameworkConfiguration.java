@@ -12,7 +12,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageC
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverterImpl;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
@@ -79,12 +79,12 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public Langchain4JAiFrameworkAdapter langchain4JAiFrameworkAdapter(
+  public Langchain4JChatModelApiFactory langchain4JChatModelApiFactory(
       ChatModelFactory chatModelFactory,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
-    return new Langchain4JAiFrameworkAdapter(
+    return new Langchain4JChatModelApiFactory(
         chatModelFactory, chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
   }
 }

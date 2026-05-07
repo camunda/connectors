@@ -18,7 +18,8 @@ import java.util.Set;
  * providerType} strings each factory claims via {@link #supportedProviderTypes} and dispatches by
  * exact match. {@link #apiFamily} is informational — used in logs and stream events.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime.
+ * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * ChatModelApiRegistry.
  *
  * @param <C> the {@link ProviderConfiguration} subtype this factory handles
  */

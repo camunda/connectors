@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse.ToolCallElementActivation;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -39,7 +39,7 @@ public class JobWorkerAgentRequestHandler
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AiFrameworkAdapter<?> framework,
+      ChatClient chatClient,
       AgentResponseHandler responseHandler) {
     super(
         agentInitializer,
@@ -47,7 +47,7 @@ public class JobWorkerAgentRequestHandler
         limitsValidator,
         messagesHandler,
         gatewayToolHandlers,
-        framework,
+        chatClient,
         responseHandler);
   }
 

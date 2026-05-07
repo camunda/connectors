@@ -9,7 +9,9 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -17,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -27,6 +30,8 @@ import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +50,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentLimitsValidator limitsValidator;
   private final AgentMessagesHandler messagesHandler;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
-  private final AiFrameworkAdapter<?> framework;
+  private final ChatClient chatClient;
   private final AgentResponseHandler responseHandler;
 
   public BaseAgentRequestHandler(
@@ -54,14 +59,14 @@ public abstract class BaseAgentRequestHandler<
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AiFrameworkAdapter<?> framework,
+      ChatClient chatClient,
       AgentResponseHandler responseHandler) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.limitsValidator = limitsValidator;
     this.messagesHandler = messagesHandler;
     this.gatewayToolHandlers = gatewayToolHandlers;
-    this.framework = framework;
+    this.chatClient = chatClient;
     this.responseHandler = responseHandler;
   }
 
@@ -166,13 +171,19 @@ public abstract class BaseAgentRequestHandler<
 
     handleAddedUserMessages(executionContext, agentContext, userMessages);
 
-    // call framework with memory
-    LOGGER.debug("Executing chat request with AI framework");
-    final var frameworkChatResponse =
-        framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
-    agentContext = frameworkChatResponse.agentContext();
+    // dispatch via the chat client SPI; bridge / native impls live behind it
+    LOGGER.debug("Executing chat request");
+    final var chatResponse =
+        joinChat(
+            chatClient.chat(
+                executionContext, agentContext, runtimeMemory, ChatStreamListener.NOOP));
+    final var usage =
+        chatResponse.usage() != null ? chatResponse.usage() : AgentMetrics.TokenUsage.empty();
+    agentContext =
+        agentContext.withMetrics(
+            agentContext.metrics().incrementModelCalls(1).incrementTokenUsage(usage));
 
-    final var assistantMessage = frameworkChatResponse.assistantMessage();
+    final var assistantMessage = chatResponse.assistantMessage();
     LOGGER.debug(
         "Received assistant message containing {} tool call requests",
         assistantMessage.toolCalls() != null ? assistantMessage.toolCalls().size() : 0);
@@ -194,6 +205,19 @@ public abstract class BaseAgentRequestHandler<
 
     return responseHandler.createResponse(
         executionContext, agentContext, assistantMessage, processVariableToolCalls);
+  }
+
+  private static ChatResponse joinChat(CompletableFuture<ChatResponse> future) {
+    try {
+      return future.join();
+    } catch (CompletionException e) {
+      // unwrap so callers see the original ConnectorException (or other RuntimeException)
+      // rather than the CompletableFuture wrapper
+      if (e.getCause() instanceof RuntimeException re) {
+        throw re;
+      }
+      throw e;
+    }
   }
 
   protected abstract boolean modelCallPrerequisitesFulfilled(

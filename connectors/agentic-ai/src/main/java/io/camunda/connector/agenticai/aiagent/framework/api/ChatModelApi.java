@@ -17,7 +17,8 @@ import java.util.concurrent.CompletableFuture;
  * {@link CompletableFuture} surface to callers. The optional {@link ChatStreamListener} receives
  * discriminated stream events for in-process observability.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime.
+ * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * ChatModelApiRegistry.
  */
 public interface ChatModelApi {
 

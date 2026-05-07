@@ -21,7 +21,8 @@ import org.springframework.lang.Nullable;
  * Providers without a native structured-output mode (Anthropic Messages today) treat {@link Json}
  * as best-effort and rely on the system prompt to constrain output.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime.
+ * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * ChatModelApiRegistry.
  */
 public sealed interface ResponseFormat permits ResponseFormat.Text, ResponseFormat.Json {
 

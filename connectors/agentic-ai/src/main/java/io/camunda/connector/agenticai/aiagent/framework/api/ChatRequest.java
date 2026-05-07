@@ -17,8 +17,9 @@ import org.springframework.lang.Nullable;
  * tunables (max output tokens, stop sequences, reasoning, cache retention, vendor escape hatches)
  * live on {@link ChatOptions} so a request can be reused while options vary.
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime — concrete fields
- * will be finalised when the first native {@code ChatModelApi} implementation lands.
+ * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * ChatModelApiRegistry — concrete fields will be finalised when the first native {@code
+ * ChatModelApi} implementation lands.
  */
 public record ChatRequest(
     List<Message> messages, @Nullable String systemPrompt, List<ToolDefinition> tools) {}

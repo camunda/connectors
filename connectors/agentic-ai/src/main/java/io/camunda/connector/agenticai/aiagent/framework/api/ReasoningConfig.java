@@ -12,7 +12,8 @@ package io.camunda.connector.agenticai.aiagent.framework.api;
  * this onto provider-native fields (Anthropic adaptive effort / thinking budget, OpenAI Responses
  * reasoning effort, Gemini thinking budget, etc.).
  *
- * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime.
+ * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
+ * ChatModelApiRegistry.
  */
 public sealed interface ReasoningConfig
     permits ReasoningConfig.ReasoningEffort,

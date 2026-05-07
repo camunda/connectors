@@ -25,8 +25,8 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -50,6 +50,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -83,7 +84,7 @@ class OutboundConnectorAgentRequestHandlerTest {
   @Mock private AgentLimitsValidator limitsValidator;
   @Mock private AgentMessagesHandler messagesHandler;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
-  @Mock private AiFrameworkAdapter<?> framework;
+  @Mock private ChatClient chatClient;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private OutboundConnectorAgentExecutionContext agentExecutionContext;
 
@@ -118,7 +119,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(response.agentResponse()).isEqualTo(agentResponse);
 
     verifyNoInteractions(
-        limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
+        limitsValidator, messagesHandler, gatewayToolHandlers, chatClient, responseHandler);
   }
 
   @Test
@@ -384,26 +385,18 @@ class OutboundConnectorAgentRequestHandlerTest {
   }
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
-    when(framework.executeChatRequest(
-            eq(agentExecutionContext), any(AgentContext.class), runtimeMemoryCaptor.capture()))
+    when(chatClient.chat(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            runtimeMemoryCaptor.capture(),
+            any()))
         .thenAnswer(
-            i -> {
-              final var agentContext = i.getArgument(1, AgentContext.class);
-              return new TestFrameworkChatResponse(
-                  agentContext.withMetrics(
-                      agentContext
-                          .metrics()
-                          .incrementModelCalls(1)
-                          .incrementTokenUsage(
-                              TokenUsage.builder()
-                                  .inputTokenCount(10)
-                                  .outputTokenCount(20)
-                                  .build())),
-                  assistantMessage);
-            });
+            i ->
+                CompletableFuture.completedFuture(
+                    new ChatResponse(
+                        assistantMessage,
+                        assistantMessage.stopReason(),
+                        TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
+                        null)));
   }
-
-  private record TestFrameworkChatResponse(
-      AgentContext agentContext, AssistantMessage assistantMessage)
-      implements AiFrameworkChatResponse {}
 }
