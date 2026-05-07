@@ -16,7 +16,12 @@ the documents need to be represented in a way the model can actually interpret.
 The current implementation converts `ToolCallResult.content()` to a single JSON text string for LangChain4J's
 `ToolExecutionResultMessage`. Documents encountered during Jackson serialization are converted to a Claude-specific
 content block format (`DocumentToContentSerializer`) containing base64-encoded data embedded within the text. This
-approach does not work -- models cannot meaningfully interpret large base64 blobs embedded in tool result text.
+approach does not work -- models cannot meaningfully interpret large base64 blobs embedded in tool result text. The
+natural alternative — passing documents as native multi-modal content on the tool result — is also blocked today by
+how providers and LangChain4J interact: providers vary in what they accept as tool result content (e.g. the OpenAI
+Responses API and Anthropic accept rich content blocks; the OpenAI Chat Completions API is narrower), and LangChain4J's
+provider adapters only partially expose that capability (e.g. `OpenAiChatModel` surfaces images but not other binary
+types). See "Option 1" below for the full rationale.
 
 In contrast, documents provided via user messages already work correctly: they are converted to proper LangChain4J
 content types (`ImageContent`, `PdfFileContent`, `TextContent`) through `DocumentToContentConverterImpl` and arrive at
@@ -41,7 +46,11 @@ Extract documents from tool call results and add them as separate `Content` bloc
 
 **Rejected** because:
 
-- LangChain4J provider adapters have inconsistent support for multi-content tool results across providers.
+- Native multi-content tool results are limited by a combination of factors: providers themselves vary in what
+  they accept as tool result content (e.g. the OpenAI Responses API and Anthropic accept rich content blocks; the
+  OpenAI Chat Completions API is narrower), and LangChain4J's provider adapters only partially expose that
+  capability — `OpenAiChatModel`, for instance, surfaces images but not other binary types, and broader coverage
+  would require migrating to richer adapters such as `OpenAiResponsesChatModel`.
 - Changes would be invisible in the conversation history (only visible at the L4J wire format level).
 - Tightly couples the solution to LangChain4J capabilities.
 
