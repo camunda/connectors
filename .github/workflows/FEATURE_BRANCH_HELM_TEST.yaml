@@ -327,7 +327,7 @@ jobs:
 
       - name: Check for agentic-ai changes
         id: changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             ai:
