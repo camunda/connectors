@@ -644,8 +644,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void staticFields_areNotGeneratedAsProperties() {
-      var template =
-          generator.generate(MyConnectorFunction.WithStaticFields.class).getFirst();
+      var template = generator.generate(MyConnectorFunction.WithStaticFields.class).getFirst();
       var propertyIds =
           template.properties().stream().map(Property::getId).collect(Collectors.toSet());
 

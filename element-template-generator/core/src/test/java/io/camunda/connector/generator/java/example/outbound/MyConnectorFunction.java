@@ -26,6 +26,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction.WithStaticFields.StaticFieldInput;
 
 public abstract class MyConnectorFunction implements OutboundConnectorFunction {
 
