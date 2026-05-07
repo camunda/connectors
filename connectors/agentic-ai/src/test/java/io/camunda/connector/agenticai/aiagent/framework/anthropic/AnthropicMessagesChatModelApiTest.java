@@ -27,6 +27,7 @@ import com.anthropic.models.messages.TextCitation;
 import com.anthropic.models.messages.ToolUseBlock;
 import com.anthropic.models.messages.Usage;
 import com.anthropic.services.blocking.MessageService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatOptions;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
@@ -35,7 +36,13 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities.Mo
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
@@ -184,6 +191,66 @@ class AnthropicMessagesChatModelApiTest {
     assertThat(params.messages()).hasSize(4);
     assertThat(params.messages().get(1).role()).isEqualTo(MessageParam.Role.ASSISTANT);
     assertThat(params.messages().get(2).role()).isEqualTo(MessageParam.Role.USER);
+  }
+
+  @Test
+  void toolResultContentWithCamundaDocumentSerialisesViaConnectorsObjectMapper() {
+    // Regression: previously the impl called ToolResultBlockParam.contentAsJson(content), which
+    // delegated to the Anthropic SDK's internal ObjectMapper. That mapper has no document
+    // serialiser registered, so a CamundaDocument inside the content tree threw
+    // InvalidDefinitionException. The fix routes everything through serializedToolResultText,
+    // which uses our @ConnectorsObjectMapper (with JacksonModuleDocumentSerializer registered).
+    final var documentStore = InMemoryDocumentStore.INSTANCE;
+    documentStore.clear();
+    final var documentFactory = new DocumentFactoryImpl(documentStore);
+    final Document document =
+        documentFactory.create(
+            DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
+                .contentType("text/plain")
+                .fileName("greeting.txt")
+                .build());
+
+    final var documentAwareApi =
+        new AnthropicMessagesChatModelApi(
+            client,
+            MODEL_ID,
+            new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer()),
+            CAPABILITIES,
+            1024L,
+            null,
+            null,
+            null);
+
+    when(messageService.create((MessageCreateParams) paramsCaptor.capture()))
+        .thenReturn(textOnlyResponse("ack"));
+
+    final var prior =
+        assistantMessage(
+            "let me check",
+            List.of(ToolCall.builder().id("abc").name("getDocument").arguments(Map.of()).build()));
+    final var results =
+        toolCallResultMessage(
+            List.of(
+                ToolCallResult.builder()
+                    .id("abc")
+                    .name("getDocument")
+                    .content(Map.of("attachment", document))
+                    .build()));
+
+    documentAwareApi
+        .complete(
+            new ChatRequest(List.of(userMessage("show it"), prior, results), tools(), null),
+            defaultOptions(),
+            ChatStreamListener.NOOP)
+        .join();
+
+    final var params = paramsCaptor.getValue();
+    final var toolResultMessage = params.messages().get(2);
+    final var blocks = toolResultMessage.content().asBlockParams();
+    final var toolResultBlock = blocks.getFirst().asToolResult();
+    final var contentString = toolResultBlock.content().get().asString();
+    assertThat(contentString).contains("\"camunda.document.type\":\"camunda\"");
+    assertThat(contentString).contains("greeting.txt");
   }
 
   @Test

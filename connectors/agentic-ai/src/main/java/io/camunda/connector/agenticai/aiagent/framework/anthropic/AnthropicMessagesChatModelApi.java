@@ -300,14 +300,10 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
     if (inlineBlocks != null) {
       b.contentOfBlocks(inlineBlocks);
     } else {
-      final var content = result.content();
-      if (content == null) {
-        b.content(ToolCallResult.CONTENT_NO_RESULT);
-      } else if (content instanceof String s) {
-        b.content(s);
-      } else {
-        b.contentAsJson(content);
-      }
+      // Always serialise via our @ConnectorsObjectMapper (document-aware) instead of the SDK's
+      // internal mapper — `contentAsJson(content)` would route through Anthropic's own
+      // ObjectMapper which can't serialise CamundaDocument and friends.
+      b.content(serializedToolResultText(result));
     }
     final var interrupted =
         result.properties() != null
