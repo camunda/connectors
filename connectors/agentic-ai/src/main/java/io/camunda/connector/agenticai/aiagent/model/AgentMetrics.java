@@ -56,6 +56,10 @@ public record AgentMetrics(
       @JsonInclude(JsonInclude.Include.NON_DEFAULT) int reasoningTokenCount)
       implements AgentMetricsTokenUsageBuilder.With {
 
+    public TokenUsage(int inputTokenCount, int outputTokenCount) {
+      this(inputTokenCount, outputTokenCount, 0, 0, 0);
+    }
+
     public int totalTokenCount() {
       return inputTokenCount + outputTokenCount;
     }
