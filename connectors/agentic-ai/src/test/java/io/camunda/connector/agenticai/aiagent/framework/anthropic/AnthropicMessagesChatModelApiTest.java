@@ -79,7 +79,15 @@ class AnthropicMessagesChatModelApiTest {
   void setUp() {
     when(client.messages()).thenReturn(messageService);
     api =
-        new AnthropicMessagesChatModelApi(client, MODEL_ID, CAPABILITIES, 1024L, null, null, null);
+        new AnthropicMessagesChatModelApi(
+            client,
+            MODEL_ID,
+            new com.fasterxml.jackson.databind.ObjectMapper(),
+            CAPABILITIES,
+            1024L,
+            null,
+            null,
+            null);
   }
 
   @Test

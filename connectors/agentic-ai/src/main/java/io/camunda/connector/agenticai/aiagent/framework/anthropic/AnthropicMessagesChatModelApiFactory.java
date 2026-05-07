@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
@@ -32,11 +33,15 @@ public class AnthropicMessagesChatModelApiFactory
 
   public static final String API_FAMILY = "anthropic-messages";
 
+  private final ObjectMapper objectMapper;
   private final ModelCapabilitiesResolver capabilitiesResolver;
   @Nullable private final Duration defaultTimeout;
 
   public AnthropicMessagesChatModelApiFactory(
-      ModelCapabilitiesResolver capabilitiesResolver, @Nullable Duration defaultTimeout) {
+      ObjectMapper objectMapper,
+      ModelCapabilitiesResolver capabilitiesResolver,
+      @Nullable Duration defaultTimeout) {
+    this.objectMapper = objectMapper;
     this.capabilitiesResolver = capabilitiesResolver;
     this.defaultTimeout = defaultTimeout;
   }
@@ -66,6 +71,7 @@ public class AnthropicMessagesChatModelApiFactory
     return new AnthropicMessagesChatModelApi(
         client,
         connection.model().model(),
+        objectMapper,
         capabilities,
         parameters != null && parameters.maxTokens() != null
             ? parameters.maxTokens().longValue()

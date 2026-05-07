@@ -98,11 +98,7 @@ class AgentMessagesHandlerTest {
     // No stub for handlerForToolDefinition: the mocked registry returns Optional.empty() by
     // default, so the extractor falls back to the generic content-tree walker for every result.
     // Individual tests can override this when a gateway-handler-specific extraction is needed.
-    messagesHandler =
-        new AgentMessagesHandlerImpl(
-            gatewayToolHandlers,
-            systemPromptComposer,
-            new ToolCallResultDocumentExtractor(gatewayToolHandlers));
+    messagesHandler = new AgentMessagesHandlerImpl(gatewayToolHandlers, systemPromptComposer);
     runtimeMemory = spy(new DefaultRuntimeMemory());
   }
 
@@ -786,11 +782,13 @@ class AgentMessagesHandlerTest {
       }
 
       @Test
-      void createsDocumentUserMessageWhenToolResultsContainDocuments() {
+      void doesNotEmitSyntheticUserMessageEvenWhenToolResultsContainDocuments() {
+        // Document extraction is the responsibility of ToolCallResultStrategy at the ChatClient
+        // boundary (ADR-005 Phase E3). AgentMessagesHandlerImpl no longer creates synthetic
+        // UserMessages — it adds only the ToolCallResultMessage. Strategy-side assertions live in
+        // ToolCallResultStrategyImplTest.
         final var doc1 = createDocument("weather data", "text/plain", "weather.txt");
         final var doc2 = createDocument("time report", "application/pdf", "report.pdf");
-        final var shortId1 = documentShortId(doc1);
-        final var shortId2 = documentShortId(doc2);
 
         final var toolCallResultsWithDocs =
             List.of(
@@ -820,45 +818,7 @@ class AgentMessagesHandlerTest {
                 userPromptWithDocuments,
                 toolCallResultsWithDocs);
 
-        assertThat(addedMessages)
-            .hasSize(2)
-            .satisfiesExactly(
-                message -> assertThat(message).isInstanceOf(ToolCallResultMessage.class),
-                message ->
-                    assertThat(message)
-                        .isInstanceOfSatisfying(
-                            UserMessage.class,
-                            userMessage -> {
-                              assertThat(userMessage.metadata())
-                                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true)
-                                  .containsKey("timestamp");
-                              assertThat(userMessage.content())
-                                  .hasSize(5)
-                                  .satisfiesExactly(
-                                      c ->
-                                          assertThat(c)
-                                              .isEqualTo(
-                                                  textContent(
-                                                      "Documents extracted from tool call results:")),
-                                      c ->
-                                          assertThat(c)
-                                              .isEqualTo(
-                                                  textContent(
-                                                      "<document tool-name=\"getWeather\" tool-call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
-                                                          .formatted(shortId1))),
-                                      c ->
-                                          assertThat(c)
-                                              .isEqualTo(DocumentContent.documentContent(doc1)),
-                                      c ->
-                                          assertThat(c)
-                                              .isEqualTo(
-                                                  textContent(
-                                                      "<document tool-name=\"getDateTime\" tool-call-id=\"fedcba\" document-short-id=\"%s\" filename=\"report.pdf\" />"
-                                                          .formatted(shortId2))),
-                                      c ->
-                                          assertThat(c)
-                                              .isEqualTo(DocumentContent.documentContent(doc2)));
-                            }));
+        assertThat(addedMessages).hasSize(1).first().isInstanceOf(ToolCallResultMessage.class);
       }
 
       @Test
@@ -883,12 +843,15 @@ class AgentMessagesHandlerTest {
       }
 
       @Test
-      void ordersDocumentUserMessageBetweenToolResultsAndEvents() {
+      void preservesToolResultThenEventOrderWithoutSyntheticUserMessage() {
+        // After ADR-005 E3, AgentMessagesHandler emits [ToolCallResultMessage, EventMessages]
+        // only. ToolCallResultStrategy (ChatClient boundary) inserts the synthetic
+        // toolCallDocuments=true UserMessage between them at chat time; that path is covered
+        // in ChatClientImplTest + ToolCallResultStrategyImplTest.
         when(executionContext.events())
             .thenReturn(new EventHandlingConfiguration(WAIT_FOR_TOOL_CALL_RESULTS));
 
         final var doc = createDocument("weather data", "text/plain", "weather.txt");
-        final var shortId = documentShortId(doc);
         final var toolCallResultsWithDocsAndEvents =
             List.of(
                 ToolCallResult.builder()
@@ -914,33 +877,10 @@ class AgentMessagesHandlerTest {
                 userPromptWithDocuments,
                 toolCallResultsWithDocsAndEvents);
 
-        // order: ToolCallResultMessage -> document UserMessage -> event UserMessage
         assertThat(addedMessages)
-            .hasSize(3)
+            .hasSize(2)
             .satisfiesExactly(
                 message -> assertThat(message).isInstanceOf(ToolCallResultMessage.class),
-                message ->
-                    assertThat(message)
-                        .isInstanceOfSatisfying(
-                            UserMessage.class,
-                            um ->
-                                assertThat(um.content())
-                                    .hasSize(3)
-                                    .satisfiesExactly(
-                                        c ->
-                                            assertThat(c)
-                                                .isEqualTo(
-                                                    textContent(
-                                                        "Documents extracted from tool call results:")),
-                                        c ->
-                                            assertThat(c)
-                                                .isEqualTo(
-                                                    textContent(
-                                                        "<document tool-name=\"getWeather\" tool-call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
-                                                            .formatted(shortId))),
-                                        c ->
-                                            assertThat(c)
-                                                .isEqualTo(DocumentContent.documentContent(doc)))),
                 message ->
                     assertThat(message)
                         .isInstanceOfSatisfying(

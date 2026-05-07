@@ -13,7 +13,7 @@ before generalising leads to a smaller, better-shaped abstraction in Phase E. Re
 caching, Azure OpenAI, Anthropic cloud backends, Google GenAI and Bedrock-Converse are all
 explicitly **deferred** out of the first native cut.
 
-Phase E is split into four sub-phases that ship as independent commits (E1–E4 below). Phase E
+Phase E is split into three sub-phases (E1, E2 done; E3+E4 combined — see §"Phase E" below). Phase E
 is layered on top of PR #6999 (`agentic-ai-document-tool-call-results`); our branch was rebased
 onto that PR while it was in active review.
 
@@ -152,8 +152,8 @@ The first native cut deliberately ignores these — they re-enter in Phase E or 
 |-------|-----------|
 | Capability matrix YAML + resolver | E1 (done) |
 | `ChatModelApi.capabilities()` resolved per call | E2 (done) |
-| `ToolCallResultStrategy` (always inline-text in B–D) | E3 |
-| Multimodal user-message / tool-result content — **image + PDF only** | E4 |
+| `ToolCallResultStrategy` (always inline-text in B–D) | E3+E4 (combined) |
+| Multimodal user-message / tool-result content — **image + PDF only** | E3+E4 (combined) |
 | Multimodal — audio / video | G+ (when matching native impls land) |
 | Reasoning content (signed thinking blocks, encrypted reasoning items) | post-E (own sub-phase) |
 | Prompt caching (`cache_control`, `prompt_cache_key`) | post-E (own sub-phase) |
@@ -283,9 +283,13 @@ pass against the native impl.
 
 ## Phase E — Capability matrix + tool-result strategy + multimodality
 
-**Plan revision (2026-05-07)** — Phase E is split into four sub-phases that ship as independent
-commits. Reasoning and prompt caching are explicitly **deferred out of Phase E** to keep the cut
-focused; the matrix already declares the flags so the slot is reserved.
+**Plan revision (2026-05-07)** — Phase E is split into three sub-phases. E1 + E2 ship as
+independent commits; **E3 and E4 ship as one combined commit** because the strategy and the
+native multimodal emission depend on each other (the bundled matrix declares modalities that
+the impls have to actually emit, otherwise `ToolCallResult.contentBlocks` entries would be
+silently dropped between phases). Reasoning and prompt caching are explicitly **deferred out
+of Phase E** to keep the cut focused; the matrix already declares the flags so the slot is
+reserved.
 
 Phase E is layered on top of the work from PR #6999 (`agentic-ai-document-tool-call-results`),
 which contributes the `ToolCallResultDocumentExtractor` (recursive walker over lists / maps /
@@ -356,14 +360,13 @@ always resolves under `openai-completions`. The L4J bridge keeps its own conserv
 (it stays as a fallback path; replacing it through the resolver is not worth the change at this
 point).
 
-### Sub-phase E3 — `ToolCallResultStrategy`
+### Sub-phase E3 + E4 — `ToolCallResultStrategy` + native multimodal emission (combined)
 
-**Goal**: single-pass per-block routing for every document in a chat request, executed at
-the `ChatClient` boundary. No extract-then-restore: documents are routed once based on the
-resolved `ModelCapabilities` and the appropriate modality slot (tool-result vs. user-message).
-The synthetic context messages are written to `RuntimeMemory` inside `ChatClient.chat(...)`
-so they are part of the persisted `agentContext.conversation` exactly as the model saw them
-— replay across iterations is deterministic.
+**Goal**: single-pass per-block routing for every document in a chat request (E3), plus
+the native multimodal emission paths in each provider impl that consume the routed
+`ToolCallResult.contentBlocks` and emit images / PDFs on the wire (E4). Shipped together so
+the bundled capability matrix is honest — every modality the matrix declares for a family
+has a working emitter on the same commit.
 
 > **TODO (post-Phase E):** revisit the `ChatClient`↔`BaseAgentRequestHandler` boundary
 > once E3+E4 land. `ChatClient` will then own three responsibilities (request assembly,
@@ -442,33 +445,39 @@ tests stay green without modification.
   (b) returned synthetic messages added to `RuntimeMemory` before dispatch, (c) request
   passed to `api.complete` is the strategy's modified request.
 
-### Sub-phase E4 — Multimodality in native impls (image + PDF only)
+**Multimodal emission (E4 portion)** — scope matches L4J parity
+(`DocumentToContentConverterImpl` supports text + image + PDF). Audio and video are **out of
+scope for the combined E3+E4 phase**; the capability matrix slot remains for Phase G+.
 
-**Scope** matches L4J parity (`DocumentToContentConverterImpl` supports text + image + PDF).
-Audio and video are **out of scope for E4**; the capability matrix slot remains for Phase G+.
-
-**Modality detection**: shared utility (or per-impl) maps Camunda
-`Document.metadata().contentType()` (MIME) → `ModelCapabilities.Modality`. Sealed Content
-hierarchy stays as-is — no new `ImageContent` / `PdfContent` subtypes; dispatch is MIME-based
-at conversion time.
-
-**Per-impl native encoding**:
-- **Anthropic Messages**: `ContentBlockParam.ofImage(...)` (base64 data + media_type),
-  `ContentBlockParam.ofDocument(...)` for PDFs. Tool result and user message both supported.
+- **Modality detection**: shared utility maps Camunda `Document.metadata().contentType()`
+  (MIME) → `ModelCapabilities.Modality`. Sealed `Content` hierarchy stays as-is — no new
+  `ImageContent` / `PdfContent` subtypes; dispatch is MIME-based at conversion time. Used by
+  both the strategy (capability check) and the per-impl emitters (block construction).
+- **Anthropic Messages**: `ContentBlockParam.ofImage(...)` (base64 data + media_type) and
+  `ContentBlockParam.ofDocument(...)` for PDFs in user messages;
+  `ToolResultBlockParam.Content.Block.ofImage(...)` and `.ofDocument(...)` for tool results.
 - **OpenAI Chat Completions**: `ChatCompletionContentPart.ofImageUrl(...)` with data URL on
   user messages. Tool messages are text-only (SDK enforces
-  `ChatCompletionContentPartText`-only for tool message content arrays); any image block in a
-  tool result must route through E3's `EXTRACT_TO_USER_MESSAGE`.
+  `ChatCompletionContentPartText`-only for tool message content arrays). Bundled matrix:
+  `tool-result: [text]` for openai-completions — strategy always falls back tool-result
+  documents on this family.
 - **OpenAI Responses**: `ResponseInputContent.ofInputImage(...)` (base64) and
-  `ofInputFile(...)` (PDF base64). Multimodal tool results via
+  `ofInputFile(...)` (PDF base64) on user messages. Multimodal tool results via
   `ResponseInputItem.FunctionCallOutput.Output.ofResponseFunctionCallOutputItemList(...)`.
 
-**User-message capability mismatch** (image in user prompt for a text-only model): fail loud
-with `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, ...)` and a clear message. Mirrors L4J's
-`DocumentConversionException` semantics for unsupported types.
+**User-message capability mismatch** (image in user prompt for a text-only model): the
+strategy fails loud with `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, ...)` and a clear
+message — this is the strategy's responsibility (E3); native impls do **not** consult
+capabilities and emit blindly.
 
-**Tests to add**: per-impl multimodal cases, including a wire-format e2e per provider that
-exercises the inline-native path; existing PR #6999 e2e covers the fallback path.
+**Multimodal tests** (in addition to the strategy tests above):
+- `AnthropicMessagesChatModelApiTest` — image + PDF in user message; image + PDF in tool
+  result; mixed text + image + PDF tool-result content list.
+- `OpenAiResponsesChatModelApiTest` — same coverage as Anthropic.
+- `OpenAiChatCompletionsChatModelApiTest` — image in user message; assert tool-result with
+  any non-text block routes via the strategy fallback (no inline emission attempted).
+- Wire-format e2e per native family that exercises the inline-native path; existing PR #6999
+  e2e covers the fallback path.
 
 ### Deferred out of Phase E
 

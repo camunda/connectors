@@ -20,6 +20,9 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatOptions;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
+import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.framework.strategy.ToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -67,9 +70,22 @@ class ChatClientImplTest {
       assistantMessage("hello world")
           .withUsage(TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build());
 
+  private static final ModelCapabilities TEXT_ONLY_CAPABILITIES =
+      new ModelCapabilities(
+          List.of(Modality.TEXT),
+          List.of(Modality.TEXT),
+          List.of(Modality.TEXT),
+          false,
+          false,
+          false,
+          false,
+          null,
+          null);
+
   @Mock private ChatModelApiRegistry registry;
   @Mock private ChatModelApi chatModelApi;
   @Mock private AgentExecutionContext executionContext;
+  @Mock private ToolCallResultStrategy strategy;
 
   @Captor private ArgumentCaptor<ChatRequest> requestCaptor;
   @Captor private ArgumentCaptor<ChatOptions> optionsCaptor;
@@ -84,10 +100,13 @@ class ChatClientImplTest {
 
     when(executionContext.provider()).thenReturn(PROVIDER_CONFIG);
     when(registry.resolve(PROVIDER_CONFIG)).thenReturn(chatModelApi);
+    when(chatModelApi.capabilities()).thenReturn(TEXT_ONLY_CAPABILITIES);
     when(chatModelApi.complete(requestCaptor.capture(), optionsCaptor.capture(), any()))
         .thenReturn(CompletableFuture.completedFuture(new ChatResponse(ASSISTANT_MESSAGE)));
+    when(strategy.apply(any(), any()))
+        .thenAnswer(inv -> new ToolCallResultStrategy.Result(inv.getArgument(0), List.of()));
 
-    chatClient = new ChatClientImpl(registry);
+    chatClient = new ChatClientImpl(registry, strategy);
   }
 
   @Test

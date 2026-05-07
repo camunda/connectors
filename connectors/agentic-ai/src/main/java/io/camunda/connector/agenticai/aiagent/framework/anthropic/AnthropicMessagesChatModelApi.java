@@ -10,8 +10,12 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.core.JsonValue;
+import com.anthropic.models.messages.Base64ImageSource;
+import com.anthropic.models.messages.Base64PdfSource;
 import com.anthropic.models.messages.ContentBlock;
 import com.anthropic.models.messages.ContentBlockParam;
+import com.anthropic.models.messages.DocumentBlockParam;
+import com.anthropic.models.messages.ImageBlockParam;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.MessageParam;
@@ -21,12 +25,15 @@ import com.anthropic.models.messages.ToolResultBlockParam;
 import com.anthropic.models.messages.ToolUnion;
 import com.anthropic.models.messages.ToolUseBlockParam;
 import com.anthropic.models.messages.Usage;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatOptions;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.multimodal.DocumentModality;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.AssistantMessageBuilder;
@@ -35,11 +42,13 @@ import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -69,6 +78,7 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
 
   private final AnthropicClient client;
   private final String model;
+  private final ObjectMapper objectMapper;
   private final ModelCapabilities capabilities;
   @Nullable private final Long configuredMaxTokens;
   @Nullable private final Double temperature;
@@ -78,6 +88,7 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
   public AnthropicMessagesChatModelApi(
       AnthropicClient client,
       String model,
+      ObjectMapper objectMapper,
       ModelCapabilities capabilities,
       @Nullable Long configuredMaxTokens,
       @Nullable Double temperature,
@@ -85,6 +96,7 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
       @Nullable Long topK) {
     this.client = Objects.requireNonNull(client, "client");
     this.model = Objects.requireNonNull(model, "model");
+    this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.capabilities = Objects.requireNonNull(capabilities, "capabilities");
     this.configuredMaxTokens = configuredMaxTokens;
     this.temperature = temperature;
@@ -159,7 +171,7 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
   }
 
   private MessageParam toMessageParam(UserMessage message) {
-    final var blocks = textOnlyBlocks(message.content());
+    final var blocks = messageContentBlocks(message.content());
     return MessageParam.builder().role(MessageParam.Role.USER).contentOfBlockParams(blocks).build();
   }
 
@@ -180,11 +192,49 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
   }
 
   private MessageParam toMessageParam(ToolCallResultMessage message) {
-    final var blocks =
-        message.results().stream().map(AnthropicMessagesChatModelApi::toolResultBlock).toList();
+    final var blocks = message.results().stream().map(this::toolResultBlock).toList();
     return MessageParam.builder().role(MessageParam.Role.USER).contentOfBlockParams(blocks).build();
   }
 
+  /**
+   * User-message blocks: text + multimodal documents (image, PDF). The {@link
+   * io.camunda.connector.agenticai.aiagent.framework.strategy.ToolCallResultStrategy} has already
+   * validated user-message documents against the model's {@code userMessageModalities}, so any
+   * {@link DocumentContent} reaching this point is known to be supported.
+   */
+  private static List<ContentBlockParam> messageContentBlocks(List<Content> content) {
+    if (content == null) {
+      return List.of();
+    }
+    final var blocks = new ArrayList<ContentBlockParam>();
+    for (var c : content) {
+      blocks.add(messageContentBlock(c));
+    }
+    return blocks;
+  }
+
+  private static ContentBlockParam messageContentBlock(Content content) {
+    if (content instanceof DocumentContent doc) {
+      final var modality = DocumentModality.of(doc.document());
+      return switch (modality) {
+        case IMAGE -> ContentBlockParam.ofImage(imageBlockParam(doc.document()));
+        case PDF -> ContentBlockParam.ofDocument(pdfBlockParam(doc.document()));
+        default ->
+            throw new IllegalArgumentException(
+                "Document modality "
+                    + modality
+                    + " is not supported in Anthropic user/tool messages "
+                    + "(only image + PDF emit natively); the strategy should have routed this "
+                    + "document to a synthetic UserMessage or rejected it.");
+      };
+    }
+    return textOnlyBlock(content);
+  }
+
+  /**
+   * Assistant-message blocks: text only (assistant turns we send back to the model don't carry
+   * documents). Used by the assistant-message conversion path.
+   */
   private static List<ContentBlockParam> textOnlyBlocks(List<Content> content) {
     if (content == null) {
       return List.of();
@@ -209,6 +259,35 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
             + content.getClass().getSimpleName());
   }
 
+  private static ImageBlockParam imageBlockParam(Document document) {
+    final var mimeType = document.metadata().getContentType();
+    return ImageBlockParam.builder()
+        .source(
+            Base64ImageSource.builder()
+                .data(document.asBase64())
+                .mediaType(toAnthropicImageMediaType(mimeType))
+                .build())
+        .build();
+  }
+
+  private static DocumentBlockParam pdfBlockParam(Document document) {
+    return DocumentBlockParam.builder()
+        .source(Base64PdfSource.builder().data(document.asBase64()).build())
+        .build();
+  }
+
+  private static Base64ImageSource.MediaType toAnthropicImageMediaType(String mimeType) {
+    return switch (mimeType.toLowerCase().trim()) {
+      case "image/jpeg" -> Base64ImageSource.MediaType.IMAGE_JPEG;
+      case "image/png" -> Base64ImageSource.MediaType.IMAGE_PNG;
+      case "image/gif" -> Base64ImageSource.MediaType.IMAGE_GIF;
+      case "image/webp" -> Base64ImageSource.MediaType.IMAGE_WEBP;
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported image MIME type for Anthropic image source: " + mimeType);
+    };
+  }
+
   private static ContentBlockParam toolUseBlock(ToolCall call) {
     final var inputBuilder = ToolUseBlockParam.Input.builder();
     if (call.arguments() != null) {
@@ -223,15 +302,20 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
             .build());
   }
 
-  private static ContentBlockParam toolResultBlock(ToolCallResult result) {
+  private ContentBlockParam toolResultBlock(ToolCallResult result) {
     final var b = ToolResultBlockParam.builder().toolUseId(result.id());
-    final var content = result.content();
-    if (content == null) {
-      b.content(ToolCallResult.CONTENT_NO_RESULT);
-    } else if (content instanceof String s) {
-      b.content(s);
+    final var inlineBlocks = toolResultContentBlocks(result);
+    if (inlineBlocks != null) {
+      b.contentOfBlocks(inlineBlocks);
     } else {
-      b.contentAsJson(content);
+      final var content = result.content();
+      if (content == null) {
+        b.content(ToolCallResult.CONTENT_NO_RESULT);
+      } else if (content instanceof String s) {
+        b.content(s);
+      } else {
+        b.contentAsJson(content);
+      }
     }
     final var interrupted =
         result.properties() != null
@@ -240,6 +324,66 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
       b.isError(true);
     }
     return ContentBlockParam.ofToolResult(b.build());
+  }
+
+  /**
+   * Builds the {@code [text, image, document]} block list for a tool result whose {@code
+   * contentBlocks} were populated by the strategy with inline-supported documents. Returns null
+   * when no inline routing happened — caller falls back to the string / JSON content path.
+   *
+   * <p>Shape: one text block with the serialised tool-result content (so the model still sees the
+   * structured JSON the result came from, with document references in place), followed by one image
+   * / document block per inline document.
+   */
+  private List<ToolResultBlockParam.Content.Block> toolResultContentBlocks(ToolCallResult result) {
+    if (result.contentBlocks() == null || result.contentBlocks().isEmpty()) {
+      return null;
+    }
+    final var blocks = new ArrayList<ToolResultBlockParam.Content.Block>();
+    blocks.add(
+        ToolResultBlockParam.Content.Block.ofText(
+            TextBlockParam.builder().text(serializedToolResultText(result)).build()));
+    for (var block : result.contentBlocks()) {
+      if (!(block instanceof DocumentContent doc)) {
+        throw new IllegalArgumentException(
+            "Unsupported inline tool-result content block type: "
+                + block.getClass().getSimpleName());
+      }
+      final var modality = DocumentModality.of(doc.document());
+      switch (modality) {
+        case IMAGE ->
+            blocks.add(ToolResultBlockParam.Content.Block.ofImage(imageBlockParam(doc.document())));
+        case PDF ->
+            blocks.add(
+                ToolResultBlockParam.Content.Block.ofDocument(pdfBlockParam(doc.document())));
+        default ->
+            throw new IllegalArgumentException(
+                "Document modality "
+                    + modality
+                    + " is not supported in Anthropic tool result blocks (only image + PDF emit "
+                    + "natively); the strategy should have routed this document to a synthetic "
+                    + "UserMessage.");
+      }
+    }
+    return blocks;
+  }
+
+  private String serializedToolResultText(ToolCallResult result) {
+    final var content = result.content();
+    if (content == null) {
+      return ToolCallResult.CONTENT_NO_RESULT;
+    }
+    if (content instanceof String s) {
+      return s;
+    }
+    try {
+      return objectMapper.writeValueAsString(content);
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_MODEL_CALL,
+          "Failed to serialise tool call result content to JSON for tool '%s': %s"
+              .formatted(result.name(), e.getOriginalMessage()));
+    }
   }
 
   private ToolUnion toToolUnion(ToolDefinition definition) {

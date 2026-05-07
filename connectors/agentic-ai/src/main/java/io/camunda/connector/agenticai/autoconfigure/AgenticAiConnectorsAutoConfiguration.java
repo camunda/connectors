@@ -49,6 +49,8 @@ import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiCa
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.strategy.ToolCallResultStrategy;
+import io.camunda.connector.agenticai.aiagent.framework.strategy.ToolCallResultStrategyImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
@@ -251,11 +253,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentMessagesHandler aiAgentMessagesHandler(
-      GatewayToolHandlerRegistry gatewayToolHandlers,
-      SystemPromptComposer systemPromptComposer,
-      ToolCallResultDocumentExtractor documentExtractor) {
-    return new AgentMessagesHandlerImpl(
-        gatewayToolHandlers, systemPromptComposer, documentExtractor);
+      GatewayToolHandlerRegistry gatewayToolHandlers, SystemPromptComposer systemPromptComposer) {
+    return new AgentMessagesHandlerImpl(gatewayToolHandlers, systemPromptComposer);
   }
 
   @Bean
@@ -274,8 +273,16 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatClient aiAgentChatClient(ChatModelApiRegistry chatModelApiRegistry) {
-    return new ChatClientImpl(chatModelApiRegistry);
+  public ToolCallResultStrategy aiAgentToolCallResultStrategy(
+      ToolCallResultDocumentExtractor documentExtractor) {
+    return new ToolCallResultStrategyImpl(documentExtractor);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ChatClient aiAgentChatClient(
+      ChatModelApiRegistry chatModelApiRegistry, ToolCallResultStrategy toolCallResultStrategy) {
+    return new ChatClientImpl(chatModelApiRegistry, toolCallResultStrategy);
   }
 
   @Bean

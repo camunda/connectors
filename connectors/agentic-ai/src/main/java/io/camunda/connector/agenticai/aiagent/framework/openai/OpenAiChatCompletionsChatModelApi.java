@@ -13,6 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionAssistantMessageParam;
+import com.openai.models.chat.completions.ChatCompletionContentPart;
+import com.openai.models.chat.completions.ChatCompletionContentPartImage;
+import com.openai.models.chat.completions.ChatCompletionContentPartText;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.models.chat.completions.ChatCompletionMessageFunctionToolCall;
 import com.openai.models.chat.completions.ChatCompletionMessageToolCall;
@@ -24,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.multimodal.DocumentModality;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.StopReason;
@@ -31,10 +35,12 @@ import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -121,7 +127,7 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
       for (var message : messages) {
         switch (message) {
           case SystemMessage system -> builder.addSystemMessage(systemPrompt(system));
-          case UserMessage user -> builder.addUserMessage(extractText(user.content()));
+          case UserMessage user -> addUserMessage(builder, user);
           case AssistantMessage assistant -> builder.addMessage(toAssistantParam(assistant));
           case ToolCallResultMessage toolResults -> addToolResultMessages(builder, toolResults);
           default ->
@@ -149,6 +155,94 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
 
   private static String systemPrompt(SystemMessage system) {
     return extractText(system.content());
+  }
+
+  /**
+   * Routes a {@link UserMessage} onto either the legacy text-only {@code addUserMessage(String)}
+   * path or the multimodal {@code addUserMessageOfArrayOfContentParts(...)} path. The latter is
+   * used when the message contains at least one {@link DocumentContent} (image / PDF, validated
+   * upstream by {@code ToolCallResultStrategy}).
+   */
+  private static void addUserMessage(ChatCompletionCreateParams.Builder builder, UserMessage user) {
+    final var content = user.content();
+    if (!hasMultimodalContent(content)) {
+      builder.addUserMessage(extractText(content));
+      return;
+    }
+    final var parts = new ArrayList<ChatCompletionContentPart>();
+    for (var c : content) {
+      switch (c) {
+        case TextContent t ->
+            parts.add(
+                ChatCompletionContentPart.ofText(
+                    ChatCompletionContentPartText.builder().text(t.text()).build()));
+        case ObjectContent o ->
+            parts.add(
+                ChatCompletionContentPart.ofText(
+                    ChatCompletionContentPartText.builder()
+                        .text(String.valueOf(o.content()))
+                        .build()));
+        case DocumentContent doc -> parts.add(documentPart(doc.document()));
+        default ->
+            throw new IllegalArgumentException(
+                "Unsupported content block for OpenAI Chat Completions user message: "
+                    + c.getClass().getSimpleName());
+      }
+    }
+    builder.addUserMessageOfArrayOfContentParts(parts);
+  }
+
+  private static boolean hasMultimodalContent(List<Content> content) {
+    if (content == null) {
+      return false;
+    }
+    for (var c : content) {
+      if (c instanceof DocumentContent) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static ChatCompletionContentPart documentPart(Document document) {
+    final var modality = DocumentModality.of(document);
+    return switch (modality) {
+      case IMAGE ->
+          ChatCompletionContentPart.ofImageUrl(
+              ChatCompletionContentPartImage.builder()
+                  .imageUrl(
+                      ChatCompletionContentPartImage.ImageUrl.builder()
+                          .url(toDataUrl(document))
+                          .detail(ChatCompletionContentPartImage.ImageUrl.Detail.AUTO)
+                          .build())
+                  .build());
+      case PDF ->
+          ChatCompletionContentPart.ofFile(
+              ChatCompletionContentPart.File.builder()
+                  .file(
+                      ChatCompletionContentPart.File.FileObject.builder()
+                          .fileData(toDataUrl(document))
+                          .filename(safeFilename(document))
+                          .build())
+                  .build());
+      default ->
+          throw new IllegalArgumentException(
+              "Document modality "
+                  + modality
+                  + " is not supported in OpenAI Chat Completions user-message content (only image "
+                  + "+ PDF emit natively); the strategy should have rejected this user-message "
+                  + "document.");
+    };
+  }
+
+  private static String toDataUrl(Document document) {
+    final var mimeType = document.metadata().getContentType();
+    return "data:" + mimeType + ";base64," + document.asBase64();
+  }
+
+  private static String safeFilename(Document document) {
+    final var name = document.metadata() != null ? document.metadata().getFileName() : null;
+    return StringUtils.isNotBlank(name) ? name : "document";
   }
 
   private static String extractText(List<Content> content) {

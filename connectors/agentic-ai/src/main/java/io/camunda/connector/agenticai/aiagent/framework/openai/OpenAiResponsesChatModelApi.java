@@ -14,8 +14,16 @@ import com.openai.client.OpenAIClient;
 import com.openai.models.responses.EasyInputMessage;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
+import com.openai.models.responses.ResponseFunctionCallOutputItem;
 import com.openai.models.responses.ResponseFunctionToolCall;
+import com.openai.models.responses.ResponseInputContent;
+import com.openai.models.responses.ResponseInputFile;
+import com.openai.models.responses.ResponseInputFileContent;
+import com.openai.models.responses.ResponseInputImage;
+import com.openai.models.responses.ResponseInputImageContent;
 import com.openai.models.responses.ResponseInputItem;
+import com.openai.models.responses.ResponseInputText;
+import com.openai.models.responses.ResponseInputTextContent;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
 import com.openai.models.responses.ResponseUsage;
@@ -25,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.multimodal.DocumentModality;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.StopReason;
@@ -32,10 +41,12 @@ import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -122,13 +133,7 @@ public class OpenAiResponsesChatModelApi implements ChatModelApi {
       for (var message : messages) {
         switch (message) {
           case SystemMessage system -> builder.instructions(extractText(system.content()));
-          case UserMessage user ->
-              inputItems.add(
-                  ResponseInputItem.ofEasyInputMessage(
-                      EasyInputMessage.builder()
-                          .role(EasyInputMessage.Role.USER)
-                          .content(extractText(user.content()))
-                          .build()));
+          case UserMessage user -> inputItems.add(toUserInputItem(user));
           case AssistantMessage assistant -> addAssistantInputItems(inputItems, assistant);
           case ToolCallResultMessage toolResults ->
               addToolResultInputItems(inputItems, toolResults);
@@ -216,15 +221,164 @@ public class OpenAiResponsesChatModelApi implements ChatModelApi {
     if (result.id() != null) {
       b.callId(result.id());
     }
-    final var content = result.content();
-    if (content == null) {
-      b.output(ToolCallResult.CONTENT_NO_RESULT);
-    } else if (content instanceof String s) {
-      b.output(s);
+    final var inlineItems = toolResultMultimodalItems(result);
+    if (inlineItems != null) {
+      b.outputOfResponseFunctionCallOutputItemList(inlineItems);
     } else {
-      b.output(toJsonString(content));
+      final var content = result.content();
+      if (content == null) {
+        b.output(ToolCallResult.CONTENT_NO_RESULT);
+      } else if (content instanceof String s) {
+        b.output(s);
+      } else {
+        b.output(toJsonString(content));
+      }
     }
     return b.build();
+  }
+
+  /**
+   * Builds the {@code [text, image, file]} list for a tool result whose {@code contentBlocks} were
+   * populated by the strategy with inline-supported documents. Returns null when no inline routing
+   * happened — caller falls back to the string content path.
+   *
+   * <p>Shape: a single text item with the serialised tool-result content (JSON / string), followed
+   * by one image / file item per inline document.
+   */
+  private List<ResponseFunctionCallOutputItem> toolResultMultimodalItems(ToolCallResult result) {
+    if (result.contentBlocks() == null || result.contentBlocks().isEmpty()) {
+      return null;
+    }
+    final var items = new ArrayList<ResponseFunctionCallOutputItem>();
+    items.add(
+        ResponseFunctionCallOutputItem.ofInputText(
+            ResponseInputTextContent.builder().text(serializedToolResultText(result)).build()));
+    for (var block : result.contentBlocks()) {
+      if (!(block instanceof DocumentContent doc)) {
+        throw new IllegalArgumentException(
+            "Unsupported inline tool-result content block type: "
+                + block.getClass().getSimpleName());
+      }
+      final var modality = DocumentModality.of(doc.document());
+      switch (modality) {
+        case IMAGE ->
+            items.add(
+                ResponseFunctionCallOutputItem.ofInputImage(
+                    ResponseInputImageContent.builder()
+                        .imageUrl(toDataUrl(doc.document()))
+                        .detail(ResponseInputImageContent.Detail.AUTO)
+                        .build()));
+        case PDF ->
+            items.add(
+                ResponseFunctionCallOutputItem.ofInputFile(
+                    ResponseInputFileContent.builder()
+                        .fileData(toDataUrl(doc.document()))
+                        .filename(safeFilename(doc.document()))
+                        .build()));
+        default ->
+            throw new IllegalArgumentException(
+                "Document modality "
+                    + modality
+                    + " is not supported in OpenAI Responses tool-result content (only image + PDF "
+                    + "emit natively); the strategy should have routed this document to a synthetic "
+                    + "UserMessage.");
+      }
+    }
+    return items;
+  }
+
+  private String serializedToolResultText(ToolCallResult result) {
+    final var content = result.content();
+    if (content == null) {
+      return ToolCallResult.CONTENT_NO_RESULT;
+    }
+    return content instanceof String s ? s : toJsonString(content);
+  }
+
+  /**
+   * Builds the {@link ResponseInputItem} for a user message. Pure-text messages keep the legacy
+   * {@code content(String)} path; messages with multimodal content blocks (image / PDF, validated
+   * by the strategy) emit a {@code List<ResponseInputContent>} on the same {@code
+   * EasyInputMessage}.
+   */
+  private ResponseInputItem toUserInputItem(UserMessage user) {
+    final var content = user.content();
+    if (!hasMultimodalContent(content)) {
+      return ResponseInputItem.ofEasyInputMessage(
+          EasyInputMessage.builder()
+              .role(EasyInputMessage.Role.USER)
+              .content(extractText(content))
+              .build());
+    }
+    final var items = new ArrayList<ResponseInputContent>();
+    for (var c : content) {
+      switch (c) {
+        case TextContent t ->
+            items.add(
+                ResponseInputContent.ofInputText(
+                    ResponseInputText.builder().text(t.text()).build()));
+        case ObjectContent o ->
+            items.add(
+                ResponseInputContent.ofInputText(
+                    ResponseInputText.builder().text(String.valueOf(o.content())).build()));
+        case DocumentContent doc -> items.add(documentInputContent(doc.document()));
+        default ->
+            throw new IllegalArgumentException(
+                "Unsupported content block for OpenAI Responses user message: "
+                    + c.getClass().getSimpleName());
+      }
+    }
+    return ResponseInputItem.ofEasyInputMessage(
+        EasyInputMessage.builder()
+            .role(EasyInputMessage.Role.USER)
+            .contentOfResponseInputMessageContentList(items)
+            .build());
+  }
+
+  private static boolean hasMultimodalContent(List<Content> content) {
+    if (content == null) {
+      return false;
+    }
+    for (var c : content) {
+      if (c instanceof DocumentContent) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static ResponseInputContent documentInputContent(Document document) {
+    final var modality = DocumentModality.of(document);
+    return switch (modality) {
+      case IMAGE ->
+          ResponseInputContent.ofInputImage(
+              ResponseInputImage.builder()
+                  .imageUrl(toDataUrl(document))
+                  .detail(ResponseInputImage.Detail.AUTO)
+                  .build());
+      case PDF ->
+          ResponseInputContent.ofInputFile(
+              ResponseInputFile.builder()
+                  .fileData(toDataUrl(document))
+                  .filename(safeFilename(document))
+                  .build());
+      default ->
+          throw new IllegalArgumentException(
+              "Document modality "
+                  + modality
+                  + " is not supported in OpenAI Responses user message content (only image + PDF "
+                  + "emit natively); the strategy should have rejected this user-message document.");
+    };
+  }
+
+  private static String toDataUrl(Document document) {
+    final var mimeType = document.metadata().getContentType();
+    return "data:" + mimeType + ";base64," + document.asBase64();
+  }
+
+  private static String safeFilename(Document document) {
+    final var name = document.metadata() != null ? document.metadata().getFileName() : null;
+    return StringUtils.isNotBlank(name) ? name : "document";
   }
 
   private String toJsonString(Object value) {

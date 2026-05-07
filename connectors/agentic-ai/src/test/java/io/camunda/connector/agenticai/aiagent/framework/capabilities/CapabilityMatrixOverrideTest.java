@@ -70,7 +70,7 @@ class CapabilityMatrixOverrideTest {
               assertThat(caps.userMessageModalities())
                   .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
               assertThat(caps.toolResultModalities())
-                  .containsExactly(Modality.TEXT, Modality.IMAGE);
+                  .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
             });
   }
 
