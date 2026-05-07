@@ -156,8 +156,8 @@ class ToolCallResultDocumentExtractorTest {
     assertThat(extracted.getFirst())
         .satisfies(
             e -> {
-              assertThat(e.toolCallId()).isEmpty();
-              assertThat(e.toolCallName()).isEqualTo("unknown");
+              assertThat(e.toolCallId()).isNull();
+              assertThat(e.toolCallName()).isNull();
             });
   }
 

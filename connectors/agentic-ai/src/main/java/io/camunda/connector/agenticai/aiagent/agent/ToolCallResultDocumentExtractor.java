@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * Extracts {@link Document} instances from a list of tool call results, grouped by tool call.
@@ -45,11 +44,7 @@ public class ToolCallResultDocumentExtractor {
     for (ToolCallResult toolCallResult : toolCallResults) {
       final var documents = extractFromToolCallResult(toolCallResult);
       if (!documents.isEmpty()) {
-        result.add(
-            new ToolCallDocuments(
-                StringUtils.defaultString(toolCallResult.id()),
-                StringUtils.defaultIfBlank(toolCallResult.name(), "unknown"),
-                documents));
+        result.add(new ToolCallDocuments(toolCallResult.id(), toolCallResult.name(), documents));
       }
     }
 
