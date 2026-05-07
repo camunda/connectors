@@ -90,7 +90,7 @@ public record AgentResponse(
         AssistantMessage.builder()
             .content(singleTextContent("This is a sample response text from the AI agent."))
             .modelId("gpt-5")
-            .apiId("chatcmpl-123")
+            .messageId("chatcmpl-123")
             .stopReason(StopReason.STOP)
             .usage(AgentMetrics.TokenUsage.builder().inputTokenCount(5).outputTokenCount(6).build())
             .metadata(Map.of("timestamp", ZonedDateTime.parse("2025-01-15T10:30:00Z")))

@@ -140,11 +140,11 @@ leading to the following result
   },
   "responseMessage" : {
     "role" : "assistant",
-    "apiId" : "chatcmpl-123",
     "content" : [ {
       "type" : "text",
       "text" : "This is a sample response text from the AI agent."
     } ],
+    "messageId" : "chatcmpl-123",
     "metadata" : {
       "timestamp" : "2025-01-15T10:30:00Z"
     },

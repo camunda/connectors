@@ -33,7 +33,8 @@ public sealed interface ChatModelEvent
         ChatModelEvent.DoneEvent,
         ChatModelEvent.ErrorEvent {
 
-  record StartEvent(@Nullable String modelId, @Nullable String apiId) implements ChatModelEvent {}
+  record StartEvent(@Nullable String apiFamily, @Nullable String modelId)
+      implements ChatModelEvent {}
 
   record TextStartEvent(int blockIndex) implements ChatModelEvent {}
 

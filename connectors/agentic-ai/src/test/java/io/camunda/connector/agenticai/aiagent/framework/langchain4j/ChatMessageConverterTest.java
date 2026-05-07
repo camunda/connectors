@@ -231,7 +231,7 @@ class ChatMessageConverterTest {
     assertThat((ZonedDateTime) result.metadata().get("timestamp"))
         .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
 
-    assertThat(result.apiId()).isEqualTo("chatcmpl-123");
+    assertThat(result.messageId()).isEqualTo("chatcmpl-123");
     assertThat(result.stopReason()).isEqualTo(StopReason.STOP);
     assertThat(result.usage())
         .isEqualTo(
@@ -257,7 +257,7 @@ class ChatMessageConverterTest {
     assertThat(result.content()).isEmpty();
 
     assertThat(result.metadata()).containsOnlyKeys("timestamp");
-    assertThat(result.apiId()).isEqualTo("chatcmpl-123");
+    assertThat(result.messageId()).isEqualTo("chatcmpl-123");
     assertThat(result.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
     assertThat(result.usage())
         .isEqualTo(
@@ -283,7 +283,7 @@ class ChatMessageConverterTest {
     final var result = chatMessageConverter.toAssistantMessage(chatResponse);
 
     assertThat(result.metadata()).containsOnlyKeys("timestamp");
-    assertThat(result.apiId()).isNull();
+    assertThat(result.messageId()).isNull();
     assertThat(result.stopReason()).isNull();
     assertThat(result.usage()).isNull();
   }
@@ -390,7 +390,7 @@ class ChatMessageConverterTest {
 
     final var result = chatMessageConverter.toAssistantMessage(chatResponse);
 
-    assertThat(result.apiId()).isEqualTo("msg-abc");
+    assertThat(result.messageId()).isEqualTo("msg-abc");
     assertThat(result.modelId()).isEqualTo("claude-3-7-sonnet");
     assertThat(result.stopReason()).isEqualTo(StopReason.STOP);
     assertThat(result.usage())

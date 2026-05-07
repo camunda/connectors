@@ -20,12 +20,12 @@ import org.springframework.lang.Nullable;
 @AgenticAiRecord
 @JsonDeserialize(builder = AssistantMessage.AssistantMessageJacksonProxyBuilder.class)
 public record AssistantMessage(
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCall> toolCalls,
     @Nullable String modelId,
-    @Nullable String apiId,
+    @Nullable String messageId,
     @Nullable StopReason stopReason,
     @Nullable AgentMetrics.TokenUsage usage,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCall> toolCalls,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements AssistantMessageBuilder.With, Message, ContentMessage {
 

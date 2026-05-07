@@ -133,7 +133,9 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       Optional.ofNullable(metadata.modelName())
           .filter(StringUtils::isNotBlank)
           .ifPresent(builder::modelId);
-      Optional.ofNullable(metadata.id()).filter(StringUtils::isNotBlank).ifPresent(builder::apiId);
+      Optional.ofNullable(metadata.id())
+          .filter(StringUtils::isNotBlank)
+          .ifPresent(builder::messageId);
       Optional.ofNullable(metadata.finishReason())
           .map(this::toStopReason)
           .ifPresent(builder::stopReason);

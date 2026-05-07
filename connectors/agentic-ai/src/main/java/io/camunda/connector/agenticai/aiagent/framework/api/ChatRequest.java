@@ -14,8 +14,8 @@ import org.springframework.lang.Nullable;
 /**
  * Inputs to a {@link ChatModelApi#complete} call assembled by {@code ChatClient}. Carries the
  * conversation messages, an optional system prompt, and the resolved tool definitions; per-call
- * tunables (max tokens, temperature, reasoning, cache retention, vendor escape hatches) live on
- * {@link ChatOptions} so a request can be reused while options vary.
+ * tunables (max output tokens, stop sequences, reasoning, cache retention, vendor escape hatches)
+ * live on {@link ChatOptions} so a request can be reused while options vary.
  *
  * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime — concrete fields
  * will be finalised when the first native {@code ChatModelApi} implementation lands.
