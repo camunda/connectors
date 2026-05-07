@@ -148,6 +148,7 @@ The first native cut deliberately ignores these — they re-enter in Phase E or 
 | Google GenAI native impl | G |
 | Bedrock-Converse native impl (non-Anthropic models) | G |
 | `ProviderConfiguration` discriminator restructure + Jackson migration | F |
+| JDK `java.net.http.HttpClient` adapter for the Anthropic / OpenAI SDKs (replaces OkHttp transport) | E (follow-up) |
 
 Under this scope each native impl returns a hardcoded `ModelCapabilities` (text-only, no
 reasoning, no caching, parallel tool calls true). `ChatOptions.cacheRetention` and

@@ -41,6 +41,7 @@ import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentReques
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.framework.ChatClientImpl;
 import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicMessagesApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
@@ -82,6 +83,7 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
 @Import({
+  AnthropicMessagesApiConfiguration.class,
   AgenticAiLangchain4JFrameworkConfiguration.class,
   McpDiscoveryConfiguration.class,
   McpClientConfiguration.class,
