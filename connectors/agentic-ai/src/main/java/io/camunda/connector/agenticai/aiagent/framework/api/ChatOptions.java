@@ -28,10 +28,17 @@ import org.springframework.lang.Nullable;
  * caller-supplied value wins, otherwise the resolved {@link ModelCapabilities#maxOutputTokens()} is
  * used as a fallback, otherwise the implementation supplies its own per-API default.
  *
+ * <p><strong>Note on {@link #responseFormat}:</strong> {@code null} leaves the provider default in
+ * place (matches today's behaviour, where no explicit format is sent for the text case).
+ * Implementations translate the value onto the provider's native shape; providers without a native
+ * structured-output mode (Anthropic Messages today) treat {@link ResponseFormat.Json} as
+ * best-effort and rely on the system prompt to constrain output.
+ *
  * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Not yet wired into the runtime.
  */
 public record ChatOptions(
     @Nullable Integer maxOutputTokens,
     @Nullable ReasoningConfig reasoning,
     @Nullable CacheRetention cacheRetention,
+    @Nullable ResponseFormat responseFormat,
     Map<String, Object> providerOptions) {}
