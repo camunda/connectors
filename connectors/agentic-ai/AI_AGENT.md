@@ -140,20 +140,19 @@ leading to the following result
   },
   "responseMessage" : {
     "role" : "assistant",
+    "apiId" : "chatcmpl-123",
     "content" : [ {
       "type" : "text",
       "text" : "This is a sample response text from the AI agent."
     } ],
     "metadata" : {
-      "framework" : {
-        "finishReason" : "STOP",
-        "id" : "chatcmpl-123",
-        "tokenUsage" : {
-          "inputTokenCount" : 5,
-          "outputTokenCount" : 6,
-          "totalTokenCount" : 11
-        }
-      }
+      "timestamp" : "2025-01-15T10:30:00Z"
+    },
+    "modelId" : "gpt-5",
+    "stopReason" : "STOP",
+    "usage" : {
+      "inputTokenCount" : 5,
+      "outputTokenCount" : 6
     }
   },
   "toolCalls" : [ ]

@@ -73,10 +73,8 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ChatMessageConverter langchain4JChatMessageConverter(
-      ContentConverter contentConverter,
-      ToolCallConverter toolCallConverter,
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new ChatMessageConverterImpl(contentConverter, toolCallConverter, objectMapper);
+      ContentConverter contentConverter, ToolCallConverter toolCallConverter) {
+    return new ChatMessageConverterImpl(contentConverter, toolCallConverter);
   }
 
   @Bean

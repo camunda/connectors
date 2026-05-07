@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.doReturn;
@@ -17,18 +16,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.http.client.SuccessfulHttpResponse;
 import dev.langchain4j.model.anthropic.AnthropicTokenUsage;
 import dev.langchain4j.model.bedrock.BedrockTokenUsage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.openai.OpenAiChatResponseMetadata;
 import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
@@ -48,11 +44,9 @@ import io.camunda.connector.api.document.Document;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -60,7 +54,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,7 +61,6 @@ class ChatMessageConverterTest {
 
   @Mock private ToolCallConverter toolCallConverter;
   @Mock private ContentConverter contentConverter;
-  @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
   @InjectMocks private ChatMessageConverterImpl chatMessageConverter;
 
@@ -235,64 +227,15 @@ class ChatMessageConverterTest {
                   .isEqualTo("AI response");
             });
 
-    assertThat(result.metadata()).containsKey("timestamp");
+    assertThat(result.metadata()).containsOnlyKeys("timestamp");
     assertThat((ZonedDateTime) result.metadata().get("timestamp"))
         .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-    assertThat(result.metadata()).containsKey("framework");
-    assertThat(result.metadata().get("framework"))
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsExactly(
-            entry("id", "chatcmpl-123"),
-            entry("finishReason", "STOP"),
-            entry(
-                "tokenUsage",
-                Map.of("inputTokenCount", 10, "outputTokenCount", 20, "totalTokenCount", 30)));
-  }
 
-  @Test
-  void toAssistantMessage_containsOnlyBasicMetadata() {
-    final var aiMessage = AiMessage.builder().text("AI response").build();
-
-    final var chatResponseMetadata =
-        OpenAiChatResponseMetadata.builder()
-            .id("chatcmpl-123")
-            .finishReason(FinishReason.TOOL_EXECUTION)
-            .tokenUsage(
-                OpenAiTokenUsage.builder()
-                    .inputTokenCount(10)
-                    .inputTokensDetails(
-                        OpenAiTokenUsage.InputTokensDetails.builder().cachedTokens(1).build())
-                    .outputTokenCount(20)
-                    .totalTokenCount(30)
-                    .build())
-            .serviceTier("super-premium")
-            .rawHttpResponse(
-                SuccessfulHttpResponse.builder()
-                    .statusCode(200)
-                    .headers(Map.of("x-my-header", List.of("dummy")))
-                    .body("AI response")
-                    .build())
-            .build();
-
-    final var chatResponse =
-        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
-
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
-
-    final var expectedTokenUsage = new LinkedHashMap<String, Object>();
-    expectedTokenUsage.put("inputTokenCount", 10);
-    expectedTokenUsage.put("inputTokensDetails", Map.of("cachedTokens", 1));
-    expectedTokenUsage.put("outputTokenCount", 20);
-    expectedTokenUsage.put("outputTokensDetails", null);
-    expectedTokenUsage.put("totalTokenCount", 30);
-
-    assertThat(result.metadata().get("framework"))
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsExactly(
-            entry("id", "chatcmpl-123"),
-            entry("finishReason", "TOOL_EXECUTION"),
-            entry("tokenUsage", expectedTokenUsage))
-        .doesNotContainKeys("serviceTier", "rawHttpResponse");
+    assertThat(result.apiId()).isEqualTo("chatcmpl-123");
+    assertThat(result.stopReason()).isEqualTo(StopReason.STOP);
+    assertThat(result.usage())
+        .isEqualTo(
+            AgentMetrics.TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build());
   }
 
   @Test
@@ -313,15 +256,12 @@ class ChatMessageConverterTest {
 
     assertThat(result.content()).isEmpty();
 
-    assertThat(result.metadata()).containsKey("framework");
-    assertThat(result.metadata().get("framework"))
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsExactly(
-            entry("id", "chatcmpl-123"),
-            entry("finishReason", "CONTENT_FILTER"),
-            entry(
-                "tokenUsage",
-                Map.of("inputTokenCount", 10, "outputTokenCount", 0, "totalTokenCount", 10)));
+    assertThat(result.metadata()).containsOnlyKeys("timestamp");
+    assertThat(result.apiId()).isEqualTo("chatcmpl-123");
+    assertThat(result.stopReason()).isEqualTo(StopReason.CONTENT_FILTERED);
+    assertThat(result.usage())
+        .isEqualTo(
+            AgentMetrics.TokenUsage.builder().inputTokenCount(10).outputTokenCount(0).build());
   }
 
   @Test
@@ -342,11 +282,10 @@ class ChatMessageConverterTest {
 
     final var result = chatMessageConverter.toAssistantMessage(chatResponse);
 
-    assertThat(result.metadata()).containsKey("framework");
-    assertThat(result.metadata().get("framework"))
-        .isNotNull()
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .isEmpty();
+    assertThat(result.metadata()).containsOnlyKeys("timestamp");
+    assertThat(result.apiId()).isNull();
+    assertThat(result.stopReason()).isNull();
+    assertThat(result.usage()).isNull();
   }
 
   @Test
