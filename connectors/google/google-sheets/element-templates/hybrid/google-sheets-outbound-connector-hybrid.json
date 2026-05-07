@@ -5,7 +5,7 @@
   "description" : "Manage spreadsheets with Google Sheets",
   "keywords" : [ "create spreadsheet", "add values to spreadsheet", "create row", "create column", "create worksheet", "delete worksheet", "get row", "get spreadsheet details", "get worksheet data", "delete column", "spreadsheet", "excel" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -631,7 +631,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "operation.columnIndexType",
+        "property" : "columnIndexType",
         "equals" : "NUMBERS",
         "type" : "simple"
       }, {
@@ -654,7 +654,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "operation.columnIndexType",
+        "property" : "columnIndexType",
         "equals" : "LETTERS",
         "type" : "simple"
       }, {
@@ -825,7 +825,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

@@ -144,3 +144,8 @@ jobs:
             exit 1
           fi
         shell: bash
+
+      - name: Validate element templates
+        run: |
+          mvn --batch-mode -pl element-template-generator/validator -am package -DskipTests
+          ./element-template-generator/validator/target/appassembler/bin/element-template-validator

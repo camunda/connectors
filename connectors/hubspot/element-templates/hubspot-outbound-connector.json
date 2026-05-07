@@ -29,7 +29,7 @@
     "marketing"
   ],
   "id": "io.camunda.connectors.HubSpot.v1",
-  "version": 2,
+  "version": 3,
   "documentationRef": "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/hubspot/",
   "category": {
     "id": "connectors",
@@ -562,7 +562,7 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "post-/crm/v3/objects/contacts/batch/read_doSearch",
+        "equals": "post-/crm/v3/objects/contacts/batch/read",
         "type": "simple"
       },
       "type": "Hidden"
@@ -600,7 +600,6 @@
     {
       "id": "post-/crm/v3/objects/contacts/batch/read_body",
       "value": "={\"inputs\": for id in batchReadIds   return { id:  id  } }",
-      "group": "requestBody",
       "binding": {
         "name": "body",
         "type": "zeebe:input"
@@ -723,7 +722,6 @@
     {
       "id": "post-/crm/v3/objects/contacts/search_doSearch_body",
       "value": "={\n    \"filterGroups\": [\n    {\n      \"filters\": [\n        {\n          \"highValue\": \"string\",\n          \"propertyName\": searchField,\n          \"value\": searchValue,\n          \"operator\": \"EQ\"\n        }\n      ]\n    }\n  ]\n}",
-      "group": "requestBody",
       "binding": {
         "name": "body",
         "type": "zeebe:input"
@@ -1189,7 +1187,6 @@
     {
       "id": "post-/crm/v3/associations/contact/company/batch_body",
       "value": "={\n    \"inputs\":[\n        {\n            \"from\":\n                {\"id\":contactId}, \n            \"to\":\n                {\"id\":companyId},  \n            \"type\":\"contact_to_company\"}\n        ]\n}",
-      "group": "requestBody",
       "binding": {
         "name": "body",
         "type": "zeebe:input"
@@ -1411,7 +1408,6 @@
     {
       "id": "post-/crm/v3/objects/companies/search_doSearch_body",
       "value": "={\n    \"filterGroups\": [\n    {\n      \"filters\": [\n        {\n          \"highValue\": \"string\",\n          \"propertyName\": searchField,\n          \"value\": searchValue,\n          \"operator\": \"EQ\"\n        }\n      ]\n    }\n  ]\n}",
-      "group": "requestBody",
       "binding": {
         "name": "body",
         "type": "zeebe:input"
@@ -1876,7 +1872,6 @@
     {
       "id": "post-/crm/v3/objects/deals/search_doSearch_body",
       "value": "={\n    \"filterGroups\": [\n    {\n      \"filters\": [\n        {\n          \"highValue\": \"string\",\n          \"propertyName\": searchField,\n          \"value\": searchValue,\n          \"operator\": \"EQ\"\n        }\n      ]\n    }\n  ]\n}",
-      "group": "requestBody",
       "binding": {
         "name": "body",
         "type": "zeebe:input"
