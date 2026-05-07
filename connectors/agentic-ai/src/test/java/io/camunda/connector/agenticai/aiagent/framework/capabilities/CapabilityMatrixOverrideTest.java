@@ -17,18 +17,15 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 /**
  * Verifies that consumer-supplied properties (higher precedence than the bundled YAML) deep-merge
- * into the capability matrix. Uses {@link ApplicationContextRunner} with both the bundled {@link
- * CapabilityMatrixEnvironmentPostProcessor} and {@code withPropertyValues(...)} overrides — exactly
- * the layering a library consumer gets when adding entries to their {@code application.yml}.
+ * into the capability matrix. {@link AgenticAiCapabilitiesConfiguration} loads the bundled YAML
+ * itself during {@code setEnvironment(...)}, so importing it plus {@code withPropertyValues(...)}
+ * mirrors the layering a library consumer gets when adding entries to their {@code
+ * application.yml}.
  */
 class CapabilityMatrixOverrideTest {
 
   private final ApplicationContextRunner baseRunner =
       new ApplicationContextRunner()
-          .withInitializer(
-              context ->
-                  new CapabilityMatrixEnvironmentPostProcessor()
-                      .postProcessEnvironment(context.getEnvironment(), null))
           .withUserConfiguration(TestObjectMapperConfig.class)
           .withUserConfiguration(AgenticAiCapabilitiesConfiguration.class);
 

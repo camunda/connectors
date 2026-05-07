@@ -20,21 +20,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Spring-Boot-style integration test for the bundled capability matrix. Runs the {@link
- * CapabilityMatrixEnvironmentPostProcessor} against the test {@link
- * org.springframework.context.ConfigurableApplicationContext} so the bundled YAML is loaded as a
- * {@link org.springframework.core.env.PropertySource}, then exercises the full {@link
- * AgenticAiFrameworkProperties} → {@link CapabilityMatrixFactory} → {@link
- * ModelCapabilitiesResolver} pipeline.
+ * Spring-Boot-style integration test for the bundled capability matrix. {@link
+ * AgenticAiCapabilitiesConfiguration} loads the bundled YAML as a {@link
+ * org.springframework.core.env.PropertySource} during its own {@code setEnvironment(...)} callback,
+ * so importing the configuration class is enough — no manual environment post-processing needed.
+ * The test then exercises the full {@link AgenticAiFrameworkProperties} → {@link
+ * CapabilityMatrixFactory} → {@link ModelCapabilitiesResolver} pipeline.
  */
 class BundledCapabilityMatrixTest {
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
-          .withInitializer(
-              context ->
-                  new CapabilityMatrixEnvironmentPostProcessor()
-                      .postProcessEnvironment(context.getEnvironment(), null))
           .withUserConfiguration(TestObjectMapperConfig.class)
           .withUserConfiguration(AgenticAiCapabilitiesConfiguration.class);
 

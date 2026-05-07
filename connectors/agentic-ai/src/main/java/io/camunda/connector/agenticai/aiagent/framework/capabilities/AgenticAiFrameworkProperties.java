@@ -18,7 +18,8 @@ import org.springframework.lang.Nullable;
  * <ol>
  *   <li>Bundled defaults: {@code resources/capabilities/model-capabilities.yaml}, registered as a
  *       low-precedence {@link org.springframework.core.env.PropertySource} by {@link
- *       CapabilityMatrixEnvironmentPostProcessor} at startup.
+ *       AgenticAiCapabilitiesConfiguration#setEnvironment} when the configuration bean is
+ *       instantiated.
  *   <li>Application overrides: any property under {@code
  *       camunda.connector.agenticai.aiagent.framework.capabilities.*} declared by the library
  *       consumer (typically in their own {@code application.yml}). Library consumers can override

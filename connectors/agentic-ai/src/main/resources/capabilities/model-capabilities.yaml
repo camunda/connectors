@@ -1,9 +1,10 @@
 # Model capability matrix for the agentic-ai connector.
 #
-# This file is loaded as a Spring Boot PropertySource at startup (lowest
-# precedence) by `CapabilityMatrixEnvironmentPostProcessor`. Library consumers
-# can override or extend any value via `application.yml` using the same
-# property prefix, no full-file replacement required:
+# This file is loaded as a low-precedence Spring PropertySource by
+# `AgenticAiCapabilitiesConfiguration#setEnvironment` when the configuration
+# bean is instantiated. Library consumers can override or extend any value via
+# `application.yml` using the same property prefix, no full-file replacement
+# required:
 #
 #   camunda.connector.agenticai.aiagent.framework.capabilities:
 #     anthropic-messages:

@@ -46,6 +46,13 @@ public class ToolCallResultStrategyImpl implements ToolCallResultStrategy {
 
   @Override
   public Result apply(ChatRequest request, ModelCapabilities capabilities) {
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "Applying tool-call-result strategy with resolved capabilities — "
+              + "userMessageModalities={}, toolResultModalities={}",
+          capabilities.userMessageModalities(),
+          capabilities.toolResultModalities());
+    }
     final var rewrittenMessages = new ArrayList<Message>(request.messages().size());
     final var syntheticContextMessages = new ArrayList<UserMessage>();
 
@@ -110,6 +117,17 @@ public class ToolCallResultStrategyImpl implements ToolCallResultStrategy {
         } else {
           fallback.add(doc);
         }
+      }
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "Routing tool result id={} name={}: documents={}, inlined={}, fallback={}, "
+                + "toolResultModalities={}",
+            result.id(),
+            result.name(),
+            entry.documents().size(),
+            inline.size(),
+            fallback.size(),
+            capabilities.toolResultModalities());
       }
 
       rewrittenResults.add(inline.isEmpty() ? result : appendInlineContentBlocks(result, inline));
