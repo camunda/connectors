@@ -37,7 +37,7 @@
 #   3. Pattern (longest-match wins)
 #   4. Conservative defaults (text-only, all flags false)
 #
-# Modality vocabulary: text | image | pdf | audio | video. Modality lists per
+# Modality vocabulary: text | image | document | audio | video. Modality lists per
 # location (user-message, tool-result, assistant-message) are symmetric.
 
 camunda:
@@ -50,8 +50,8 @@ camunda:
             anthropic-messages:
               defaults:
                 input-modalities:
-                  user-message: [text, image, pdf]
-                  tool-result:  [text, image, pdf]
+                  user-message: [text, image, document]
+                  tool-result:  [text, image, document]
                 output-modalities:
                   assistant-message: [text]
                 supports-reasoning: false
@@ -105,7 +105,7 @@ camunda:
             openai-completions:
               defaults:
                 input-modalities:
-                  user-message: [text, image, pdf]
+                  user-message: [text, image, document]
                   tool-result:  [text]
                 output-modalities:
                   assistant-message: [text]
@@ -161,8 +161,8 @@ camunda:
             openai-responses:
               defaults:
                 input-modalities:
-                  user-message: [text, image, pdf]
-                  tool-result:  [text, image, pdf]
+                  user-message: [text, image, document]
+                  tool-result:  [text, image, document]
                 output-modalities:
                   assistant-message: [text]
                 supports-reasoning: false

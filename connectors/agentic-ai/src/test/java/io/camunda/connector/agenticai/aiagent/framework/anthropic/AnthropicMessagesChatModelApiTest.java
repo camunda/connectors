@@ -58,7 +58,7 @@ class AnthropicMessagesChatModelApiTest {
 
   private static final ModelCapabilities CAPABILITIES =
       new ModelCapabilities(
-          List.of(Modality.TEXT, Modality.IMAGE, Modality.PDF),
+          List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
           List.of(Modality.TEXT, Modality.IMAGE),
           List.of(Modality.TEXT),
           true,

@@ -45,8 +45,8 @@ class ToolCallResultStrategyImplTest {
 
   private static final ModelCapabilities INLINE_IMAGE_PDF =
       capabilities(
-          List.of(Modality.TEXT, Modality.IMAGE, Modality.PDF),
-          List.of(Modality.TEXT, Modality.IMAGE, Modality.PDF));
+          List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
+          List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT));
   private static final ModelCapabilities INLINE_IMAGE_ONLY =
       capabilities(List.of(Modality.TEXT, Modality.IMAGE), List.of(Modality.TEXT, Modality.IMAGE));
   private static final ModelCapabilities TEXT_ONLY =
@@ -200,7 +200,7 @@ class ToolCallResultStrategyImplTest {
 
       assertThatThrownBy(() -> strategy.apply(request, INLINE_IMAGE_ONLY))
           .isInstanceOf(ConnectorException.class)
-          .hasMessageContaining("PDF")
+          .hasMessageContaining("DOCUMENT")
           .hasMessageContaining("does not");
     }
 

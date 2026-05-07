@@ -301,8 +301,8 @@ camunda.connector.agenticai.aiagent.framework.capabilities:
   anthropic-messages:
     defaults:
       input-modalities:
-        user-message: [text, image, pdf]
-        tool-result:  [text, image, pdf]
+        user-message: [text, image, document]
+        tool-result:  [text, image, document]
       output-modalities:
         assistant-message: [text]
       supports-reasoning: false
@@ -340,7 +340,7 @@ Each api family carries:
 so glob patterns always live in the `pattern` field while the map key stays a stable
 override identifier.
 
-Modality vocabulary: `text | image | pdf | audio | video`. Modality lists per location
+Modality vocabulary: `text | image | document | audio | video`. Modality lists per location
 (`user-message`, `tool-result`, `assistant-message`) are symmetric — every modality at every
 location has an explicit answer for each model.
 
@@ -411,7 +411,7 @@ camunda.connector.agenticai.aiagent.framework.capabilities:
 
 Map-key reuse means a consumer override deep-merges into the bundled entry; a new map key
 adds a new entry. Modality lists replace wholesale (Spring Boot list semantics) — overriding
-`tool-result: [text]` discards the bundled `[text, image, pdf]`. To add a modality, restate
+`tool-result: [text]` discards the bundled `[text, image, document]`. To add a modality, restate
 the full list including the inherited entries.
 
 ## Tool Call Result Routing

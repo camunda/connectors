@@ -27,8 +27,8 @@ import org.apache.commons.lang3.StringUtils;
  * <p>Coverage parity with the LangChain4j path ({@code DocumentToContentConverterImpl}): {@code
  * text/*}, {@code application/json}, {@code application/xml}, {@code application/yaml} → {@link
  * Modality#TEXT}; the four common image MIME types → {@link Modality#IMAGE}; {@code
- * application/pdf} → {@link Modality#PDF}. Audio + video MIME types map for completeness but no
- * emitter consumes them yet (Phase G+).
+ * application/pdf} → {@link Modality#DOCUMENT}. Audio + video MIME types map for completeness but
+ * no emitter consumes them yet (Phase G+).
  */
 public final class DocumentModality {
 
@@ -74,7 +74,7 @@ public final class DocumentModality {
       return Optional.of(Modality.IMAGE);
     }
     if ("application/pdf".equals(bareType)) {
-      return Optional.of(Modality.PDF);
+      return Optional.of(Modality.DOCUMENT);
     }
     if (bareType.startsWith("audio/")) {
       return Optional.of(Modality.AUDIO);

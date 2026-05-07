@@ -35,8 +35,8 @@ public record ModelCapabilities(
     TEXT,
     @JsonProperty("image")
     IMAGE,
-    @JsonProperty("pdf")
-    PDF,
+    @JsonProperty("document")
+    DOCUMENT,
     @JsonProperty("audio")
     AUDIO,
     @JsonProperty("video")

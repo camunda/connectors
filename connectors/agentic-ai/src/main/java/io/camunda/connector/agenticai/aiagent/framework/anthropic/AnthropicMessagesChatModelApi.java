@@ -197,7 +197,7 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
   }
 
   /**
-   * User-message blocks: text + multimodal documents (image, PDF). The {@link
+   * User-message blocks: text + multimodal documents (image, document/PDF). The {@link
    * io.camunda.connector.agenticai.aiagent.framework.strategy.ToolCallResultStrategy} has already
    * validated user-message documents against the model's {@code userMessageModalities}, so any
    * {@link DocumentContent} reaching this point is known to be supported.
@@ -218,14 +218,14 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
       final var modality = DocumentModality.of(doc.document());
       return switch (modality) {
         case IMAGE -> ContentBlockParam.ofImage(imageBlockParam(doc.document()));
-        case PDF -> ContentBlockParam.ofDocument(pdfBlockParam(doc.document()));
+        case DOCUMENT -> ContentBlockParam.ofDocument(documentBlockParam(doc.document()));
         default ->
             throw new IllegalArgumentException(
                 "Document modality "
                     + modality
                     + " is not supported in Anthropic user/tool messages "
-                    + "(only image + PDF emit natively); the strategy should have routed this "
-                    + "document to a synthetic UserMessage or rejected it.");
+                    + "(only image + document emit natively); the strategy should have routed "
+                    + "this document to a synthetic UserMessage or rejected it.");
       };
     }
     return textOnlyBlock(content);
@@ -270,7 +270,7 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
         .build();
   }
 
-  private static DocumentBlockParam pdfBlockParam(Document document) {
+  private static DocumentBlockParam documentBlockParam(Document document) {
     return DocumentBlockParam.builder()
         .source(Base64PdfSource.builder().data(document.asBase64()).build())
         .build();
@@ -353,16 +353,16 @@ public class AnthropicMessagesChatModelApi implements ChatModelApi {
       switch (modality) {
         case IMAGE ->
             blocks.add(ToolResultBlockParam.Content.Block.ofImage(imageBlockParam(doc.document())));
-        case PDF ->
+        case DOCUMENT ->
             blocks.add(
-                ToolResultBlockParam.Content.Block.ofDocument(pdfBlockParam(doc.document())));
+                ToolResultBlockParam.Content.Block.ofDocument(documentBlockParam(doc.document())));
         default ->
             throw new IllegalArgumentException(
                 "Document modality "
                     + modality
-                    + " is not supported in Anthropic tool result blocks (only image + PDF emit "
-                    + "natively); the strategy should have routed this document to a synthetic "
-                    + "UserMessage.");
+                    + " is not supported in Anthropic tool result blocks (only image + document "
+                    + "emit natively); the strategy should have routed this document to a "
+                    + "synthetic UserMessage.");
       }
     }
     return blocks;

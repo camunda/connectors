@@ -89,11 +89,11 @@ class ModelCapabilitiesResolverTest {
 
   @Test
   void exactIdMatchInheritsDefaultsAndAppliesOverrides() {
-    // defaults: PDF in user_message, max_output_tokens=8192, no reasoning
+    // defaults: DOCUMENT in user_message, max_output_tokens=8192, no reasoning
     // override on claude-opus-4-7: enable reasoning, max_output_tokens=32000
     final var defaults =
         fullDefaults(
-            List.of(Modality.TEXT, Modality.IMAGE, Modality.PDF),
+            List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
             List.of(Modality.TEXT, Modality.IMAGE));
     final var override = new ModelCapabilitiesYaml(null, null, true, true, null, null, null, 32000);
 
@@ -111,7 +111,7 @@ class ModelCapabilitiesResolverTest {
     final var caps = resolver.resolve("anthropic-messages", "claude-opus-4-7", Optional.empty());
 
     assertThat(caps.userMessageModalities())
-        .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
+        .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
     assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
     assertThat(caps.supportsReasoning()).isTrue();
     assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();

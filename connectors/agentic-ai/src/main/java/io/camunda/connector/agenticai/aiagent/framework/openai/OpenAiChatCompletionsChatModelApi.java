@@ -160,8 +160,8 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
   /**
    * Routes a {@link UserMessage} onto either the legacy text-only {@code addUserMessage(String)}
    * path or the multimodal {@code addUserMessageOfArrayOfContentParts(...)} path. The latter is
-   * used when the message contains at least one {@link DocumentContent} (image / PDF, validated
-   * upstream by {@code ToolCallResultStrategy}).
+   * used when the message contains at least one {@link DocumentContent} (image / document,
+   * validated upstream by {@code ToolCallResultStrategy}).
    */
   private static void addUserMessage(ChatCompletionCreateParams.Builder builder, UserMessage user) {
     final var content = user.content();
@@ -216,7 +216,7 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
                           .detail(ChatCompletionContentPartImage.ImageUrl.Detail.AUTO)
                           .build())
                   .build());
-      case PDF ->
+      case DOCUMENT ->
           ChatCompletionContentPart.ofFile(
               ChatCompletionContentPart.File.builder()
                   .file(
@@ -229,9 +229,9 @@ public class OpenAiChatCompletionsChatModelApi implements ChatModelApi {
           throw new IllegalArgumentException(
               "Document modality "
                   + modality
-                  + " is not supported in OpenAI Chat Completions user-message content (only image "
-                  + "+ PDF emit natively); the strategy should have rejected this user-message "
-                  + "document.");
+                  + " is not supported in OpenAI Chat Completions user-message content (only "
+                  + "image + document emit natively); the strategy should have rejected this "
+                  + "user-message document.");
     };
   }
 

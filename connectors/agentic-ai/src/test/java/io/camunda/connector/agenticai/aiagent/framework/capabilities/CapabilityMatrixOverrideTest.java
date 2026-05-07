@@ -48,7 +48,7 @@ class CapabilityMatrixOverrideTest {
               // Other bundled fields untouched:
               assertThat(caps.supportsReasoning()).isTrue();
               assertThat(caps.userMessageModalities())
-                  .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
+                  .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
             });
   }
 
@@ -68,9 +68,9 @@ class CapabilityMatrixOverrideTest {
               assertThat(caps.supportsReasoning()).isTrue();
               // Inherited from anthropic-messages defaults:
               assertThat(caps.userMessageModalities())
-                  .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
+                  .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
               assertThat(caps.toolResultModalities())
-                  .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
+                  .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
             });
   }
 

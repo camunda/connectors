@@ -268,7 +268,7 @@ public class OpenAiResponsesChatModelApi implements ChatModelApi {
                         .imageUrl(toDataUrl(doc.document()))
                         .detail(ResponseInputImageContent.Detail.AUTO)
                         .build()));
-        case PDF ->
+        case DOCUMENT ->
             items.add(
                 ResponseFunctionCallOutputItem.ofInputFile(
                     ResponseInputFileContent.builder()
@@ -279,9 +279,9 @@ public class OpenAiResponsesChatModelApi implements ChatModelApi {
             throw new IllegalArgumentException(
                 "Document modality "
                     + modality
-                    + " is not supported in OpenAI Responses tool-result content (only image + PDF "
-                    + "emit natively); the strategy should have routed this document to a synthetic "
-                    + "UserMessage.");
+                    + " is not supported in OpenAI Responses tool-result content (only image + "
+                    + "document emit natively); the strategy should have routed this document to "
+                    + "a synthetic UserMessage.");
       }
     }
     return items;
@@ -297,8 +297,8 @@ public class OpenAiResponsesChatModelApi implements ChatModelApi {
 
   /**
    * Builds the {@link ResponseInputItem} for a user message. Pure-text messages keep the legacy
-   * {@code content(String)} path; messages with multimodal content blocks (image / PDF, validated
-   * by the strategy) emit a {@code List<ResponseInputContent>} on the same {@code
+   * {@code content(String)} path; messages with multimodal content blocks (image / document,
+   * validated by the strategy) emit a {@code List<ResponseInputContent>} on the same {@code
    * EasyInputMessage}.
    */
   private ResponseInputItem toUserInputItem(UserMessage user) {
@@ -356,7 +356,7 @@ public class OpenAiResponsesChatModelApi implements ChatModelApi {
                   .imageUrl(toDataUrl(document))
                   .detail(ResponseInputImage.Detail.AUTO)
                   .build());
-      case PDF ->
+      case DOCUMENT ->
           ResponseInputContent.ofInputFile(
               ResponseInputFile.builder()
                   .fileData(toDataUrl(document))
@@ -366,8 +366,9 @@ public class OpenAiResponsesChatModelApi implements ChatModelApi {
           throw new IllegalArgumentException(
               "Document modality "
                   + modality
-                  + " is not supported in OpenAI Responses user message content (only image + PDF "
-                  + "emit natively); the strategy should have rejected this user-message document.");
+                  + " is not supported in OpenAI Responses user message content (only image + "
+                  + "document emit natively); the strategy should have rejected this user-message "
+                  + "document.");
     };
   }
 

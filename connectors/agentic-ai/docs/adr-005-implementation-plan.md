@@ -424,7 +424,7 @@ tests stay green without modification.
 
 **Tests to add**:
 - `ToolCallResultStrategyImplTest` — pure-function table-driven cases. Covers:
-  - Tool-result image with `tool-result: [text, image, pdf]` → `INLINE`, no synthetic.
+  - Tool-result image with `tool-result: [text, image, document]` → `INLINE`, no synthetic.
   - Tool-result PDF with `tool-result: [text, image]` → `FALLBACK`, one synthetic UM with
     one DocumentContent; XML placeholder substituted in tool result body.
   - Mixed result (one image + one PDF in same tool result, capability `[text, image]`) →

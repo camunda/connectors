@@ -58,9 +58,9 @@ class BundledCapabilityMatrixTest {
           final var caps = resolve(context, "anthropic-messages", "claude-sonnet-4-6");
 
           assertThat(caps.userMessageModalities())
-              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
+              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
           assertThat(caps.toolResultModalities())
-              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
+              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
           assertThat(caps.supportsPromptCaching()).isTrue();
@@ -77,7 +77,7 @@ class BundledCapabilityMatrixTest {
 
           assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
           assertThat(caps.toolResultModalities())
-              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
+              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
           assertThat(caps.supportsReasoning()).isFalse();
         });
   }
@@ -89,7 +89,7 @@ class BundledCapabilityMatrixTest {
           final var caps = resolve(context, "anthropic-messages", "claude-some-future-model");
 
           assertThat(caps.userMessageModalities())
-              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
+              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
           assertThat(caps.supportsPromptCaching()).isTrue();
         });
   }
@@ -118,7 +118,7 @@ class BundledCapabilityMatrixTest {
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
           assertThat(caps.toolResultModalities())
-              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
+              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
         });
   }
 
@@ -132,7 +132,7 @@ class BundledCapabilityMatrixTest {
           assertThat(caps.userMessageModalities())
               .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.AUDIO);
           assertThat(caps.toolResultModalities())
-              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.PDF);
+              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
           assertThat(caps.supportsReasoning()).isFalse();
         });
   }
