@@ -7,20 +7,19 @@
 package io.camunda.connector.agenticai.aiagent.framework;
 
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClientResult;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatOptions;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest;
-import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
-import io.camunda.connector.agenticai.aiagent.framework.api.ResponseFormat;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import org.springframework.lang.Nullable;
+import java.util.Optional;
+import java.util.concurrent.CompletionException;
 
 public class ChatClientImpl implements ChatClient {
 
@@ -31,34 +30,50 @@ public class ChatClientImpl implements ChatClient {
   }
 
   @Override
-  public CompletableFuture<ChatResponse> chat(
+  public ChatClientResult chat(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
       RuntimeMemory runtimeMemory,
       ChatStreamListener listener) {
-    try {
-      final var api = registry.resolve(executionContext.provider());
-      final var request =
-          new ChatRequest(runtimeMemory.filteredMessages(), null, agentContext.toolDefinitions());
-      final var options =
-          new ChatOptions(
-              null, null, null, toResponseFormat(executionContext.response()), Map.of());
-      return api.complete(request, options, listener != null ? listener : ChatStreamListener.NOOP);
-    } catch (RuntimeException e) {
-      return CompletableFuture.failedFuture(e);
-    }
+    final var api = registry.resolve(executionContext.provider());
+    final var request =
+        new ChatRequest(
+            runtimeMemory.filteredMessages(),
+            agentContext.toolDefinitions(),
+            Optional.ofNullable(executionContext.response())
+                .map(ResponseConfiguration::format)
+                .orElse(null));
+    final var options = new ChatOptions(null, null, null, Map.of());
+
+    final var chatResponse =
+        joinChat(
+            api.complete(request, options, listener != null ? listener : ChatStreamListener.NOOP));
+
+    final var assistantMessage = chatResponse.assistantMessage();
+    final var usage =
+        assistantMessage.usage() != null
+            ? assistantMessage.usage()
+            : AgentMetrics.TokenUsage.empty();
+    final var updatedAgentContext =
+        agentContext.withMetrics(
+            agentContext.metrics().incrementModelCalls(1).incrementTokenUsage(usage));
+
+    return new ChatClientResult(updatedAgentContext, assistantMessage);
   }
 
-  private static @Nullable ResponseFormat toResponseFormat(
-      @Nullable ResponseConfiguration response) {
-    if (response == null || response.format() == null) {
-      return null;
+  private static io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse joinChat(
+      java.util.concurrent.CompletableFuture<
+              io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse>
+          future) {
+    try {
+      return future.join();
+    } catch (CompletionException e) {
+      // unwrap so callers see the original ConnectorException (or other RuntimeException) rather
+      // than the CompletableFuture wrapper
+      if (e.getCause() instanceof RuntimeException re) {
+        throw re;
+      }
+      throw e;
     }
-    if (response.format() instanceof JsonResponseFormatConfiguration json) {
-      return new ResponseFormat.Json(json.schemaName(), json.schema());
-    }
-    // TextResponseFormatConfiguration → null preserves "no explicit format on the wire"
-    // behaviour. Implementations choose their default text mode.
-    return null;
   }
 }

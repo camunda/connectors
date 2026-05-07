@@ -9,23 +9,24 @@ package io.camunda.connector.agenticai.aiagent.framework.api;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import java.util.concurrent.CompletableFuture;
 
 /**
- * High-level facade called by {@code BaseAgentRequestHandler} once Phase 1 lands. Resolves the
- * model and capabilities via {@link ChatModelApiRegistry}, applies the tool-result strategy,
- * assembles the {@link ChatRequest} from the runtime memory, and dispatches to {@link
- * ChatModelApi#complete}.
+ * High-level facade called by {@code BaseAgentRequestHandler}. Resolves the {@link ChatModelApi}
+ * for the request, applies the tool-result strategy, assembles a {@link ChatRequest} + {@link
+ * ChatOptions} from the runtime memory and the execution / agent context, dispatches to {@link
+ * ChatModelApi#complete}, joins the resulting future, increments {@link AgentContext#metrics()}
+ * based on the assistant message, and wraps everything in a {@link ChatClientResult}.
  *
- * <p>Replaces today's {@code AiFrameworkAdapter} call site. Mirroring its signature keeps the
- * cutover diff small.
+ * <p>The asynchronous nature of {@link ChatModelApi#complete} is an implementation detail — callers
+ * see a synchronous facade matching the previous {@code AiFrameworkAdapter} contract. In-process
+ * observability hooks attach via {@link ChatStreamListener}; the public surface is blocking.
  *
  * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
 public interface ChatClient {
 
-  CompletableFuture<ChatResponse> chat(
+  ChatClientResult chat(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
       RuntimeMemory runtimeMemory,

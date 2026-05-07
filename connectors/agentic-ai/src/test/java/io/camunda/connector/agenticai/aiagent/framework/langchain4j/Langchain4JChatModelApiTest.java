@@ -27,10 +27,12 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatOptions;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
-import io.camunda.connector.agenticai.aiagent.framework.api.ResponseFormat;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
@@ -107,7 +109,7 @@ class Langchain4JChatModelApiTest {
 
   @Test
   void modelRequestContainsMessagesAndToolSpecifications() {
-    complete(textOptions());
+    complete(null);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.messages()).containsExactlyElementsOf(L4J_MESSAGES);
@@ -122,7 +124,7 @@ class Langchain4JChatModelApiTest {
     final var cause = new ModelNotFoundException("Model 'dummy' was not found");
     doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
 
-    assertThatThrownBy(() -> complete(textOptions()).join())
+    assertThatThrownBy(() -> complete(null).join())
         .isInstanceOfSatisfying(
             CompletionException.class,
             wrapper ->
@@ -145,7 +147,7 @@ class Langchain4JChatModelApiTest {
     final var cause = new UnresolvedModelServerException((String) null);
     doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
 
-    assertThatThrownBy(() -> complete(textOptions()).join())
+    assertThatThrownBy(() -> complete(null).join())
         .isInstanceOfSatisfying(
             CompletionException.class,
             wrapper ->
@@ -161,22 +163,22 @@ class Langchain4JChatModelApiTest {
   }
 
   @Test
-  void doesNotExplicitlyConfigureResponseFormatForText() {
-    complete(textOptions());
+  void doesNotExplicitlyConfigureResponseFormatWhenNull() {
+    complete(null);
 
     assertThat(chatRequestCaptor.getValue().responseFormat()).isNull();
   }
 
   @Test
-  void doesNotExplicitlyConfigureResponseFormatWhenNull() {
-    complete(options(null));
+  void doesNotExplicitlyConfigureResponseFormatForText() {
+    complete(new TextResponseFormatConfiguration(false));
 
     assertThat(chatRequestCaptor.getValue().responseFormat()).isNull();
   }
 
   @Test
   void requestsJsonResponseWhenConfigured() {
-    complete(options(new ResponseFormat.Json(null, null)));
+    complete(new JsonResponseFormatConfiguration(null, null));
 
     final var format = chatRequestCaptor.getValue().responseFormat();
     assertThat(format.type()).isEqualTo(ResponseFormatType.JSON);
@@ -191,7 +193,7 @@ class Langchain4JChatModelApiTest {
     final var jsonObjectSchema = JsonObjectSchema.builder().description("My schema").build();
     when(jsonSchemaConverter.mapToSchema(schema)).thenReturn(jsonObjectSchema);
 
-    complete(options(new ResponseFormat.Json(schemaName, schema)));
+    complete(new JsonResponseFormatConfiguration(schema, schemaName));
 
     final var format = chatRequestCaptor.getValue().responseFormat();
     assertThat(format.type()).isEqualTo(ResponseFormatType.JSON);
@@ -209,7 +211,7 @@ class Langchain4JChatModelApiTest {
     final var jsonObjectSchema = JsonObjectSchema.builder().description("My schema").build();
     when(jsonSchemaConverter.mapToSchema(schema)).thenReturn(jsonObjectSchema);
 
-    complete(options(new ResponseFormat.Json(schemaName, schema)));
+    complete(new JsonResponseFormatConfiguration(schema, schemaName));
 
     final var format = chatRequestCaptor.getValue().responseFormat();
     assertThat(format.type()).isEqualTo(ResponseFormatType.JSON);
@@ -219,31 +221,22 @@ class Langchain4JChatModelApiTest {
   }
 
   @Test
-  void responseCarriesUsageAndStopReasonFromAssistantMessage() {
-    final var response = complete(textOptions()).join();
+  void responseCarriesAssistantMessageWithUsage() {
+    final var response = complete(null).join();
 
     assertThat(response.assistantMessage()).isNotNull();
-    assertThat(response.usage())
+    assertThat(response.assistantMessage().usage())
         .isEqualTo(
             AgentMetrics.TokenUsage.builder().inputTokenCount(5).outputTokenCount(6).build());
-    assertThat(response.errorMessage()).isNull();
   }
 
   private java.util.concurrent.CompletableFuture<
           io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse>
-      complete(ChatOptions options) {
+      complete(ResponseFormatConfiguration responseFormat) {
     return api.complete(
         new io.camunda.connector.agenticai.aiagent.framework.api.ChatRequest(
-            INPUT_MESSAGES, null, TOOL_DEFINITIONS),
-        options,
+            INPUT_MESSAGES, TOOL_DEFINITIONS, responseFormat),
+        new ChatOptions(null, null, null, Map.of()),
         ChatStreamListener.NOOP);
-  }
-
-  private static ChatOptions textOptions() {
-    return options(new ResponseFormat.Text());
-  }
-
-  private static ChatOptions options(ResponseFormat responseFormat) {
-    return new ChatOptions(null, null, null, responseFormat, Map.of());
   }
 }

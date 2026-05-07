@@ -10,9 +10,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderCon
 
 /**
  * Resolves a {@link ChatModelApi} for a given {@link ProviderConfiguration}. Composed of all
- * registered {@link ChatModelApiFactory} beans, indexed by the {@link ProviderConfiguration#type
- * providerType} strings each factory advertises via {@link
- * ChatModelApiFactory#supportedProviderTypes}; lookup is exact-match on the configuration's
+ * registered {@link ChatModelApiFactory} beans, indexed by the strings each factory advertises via
+ * {@link ChatModelApiFactory#providerTypes()}; lookup is exact-match on the configuration's
  * provider type.
  *
  * <p>Unknown provider types fail fast — there is no factory to resolve, so requests can never

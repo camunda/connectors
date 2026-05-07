@@ -7,16 +7,21 @@
 package io.camunda.connector.agenticai.aiagent.framework.api;
 
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
-import java.util.Set;
 
 /**
- * Stateless factory that produces per-job {@link ChatModelApi} instances for a single wire-protocol
- * family ({@code anthropic-messages}, {@code bedrock-converse}, {@code openai-responses}, {@code
- * openai-completions}, {@code google-genai}).
+ * Stateless factory that produces per-job {@link ChatModelApi} instances for a single {@link
+ * ProviderConfiguration#providerType()} discriminator. The bridge for a multi-provider framework
+ * (e.g. LangChain4j) is registered as one factory bean per discriminator it handles.
  *
- * <p>The {@link ChatModelApiRegistry} indexes factories by the {@link ProviderConfiguration#type
- * providerType} strings each factory claims via {@link #supportedProviderTypes} and dispatches by
- * exact match. {@link #apiFamily} is informational — used in logs and stream events.
+ * <p>The {@link ChatModelApiRegistry} indexes factories by {@link #providerType()} and dispatches
+ * by exact match. Two factories claiming the same discriminator fail at startup; user overrides
+ * happen via {@code @ConditionalOnMissingBean} on the built-in bean rather than silent shadowing.
+ *
+ * <p>{@link #apiFamily()} is informational telemetry (logs, {@link
+ * io.camunda.connector.agenticai.aiagent.framework.api.event.ChatModelEvent.StartEvent}) — not used
+ * for routing. {@link #configurationType()} acts as a defensive runtime check before the registry's
+ * unchecked cast — a friendlier error than {@link ClassCastException} when a factory is
+ * accidentally registered against the wrong discriminator.
  *
  * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
@@ -25,9 +30,11 @@ import java.util.Set;
  */
 public interface ChatModelApiFactory<C extends ProviderConfiguration> {
 
+  String providerType();
+
   String apiFamily();
 
-  Set<String> supportedProviderTypes();
+  Class<C> configurationType();
 
   ChatModelApi create(C configuration);
 }

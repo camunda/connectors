@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
@@ -18,9 +19,10 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.api.ModelCapabilities.Modality;
-import io.camunda.connector.agenticai.aiagent.framework.api.ResponseFormat;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Optional;
@@ -80,12 +82,12 @@ public class Langchain4JChatModelApi implements ChatModelApi {
     try {
       final var l4jMessages = chatMessageConverter.map(request.messages());
       final var toolSpecifications =
-          toolSpecificationConverter.asToolSpecifications(request.tools());
+          toolSpecificationConverter.asToolSpecifications(request.toolDefinitions());
 
       final var l4jRequestBuilder =
           ChatRequest.builder().messages(l4jMessages).toolSpecifications(toolSpecifications);
 
-      final var l4jResponseFormat = toL4jResponseFormat(options.responseFormat());
+      final var l4jResponseFormat = toL4jResponseFormat(request.responseFormat());
       if (l4jResponseFormat != null) {
         l4jRequestBuilder.responseFormat(l4jResponseFormat);
       }
@@ -93,9 +95,7 @@ public class Langchain4JChatModelApi implements ChatModelApi {
       final var l4jResponse = chatModel.chat(l4jRequestBuilder.build());
       final var assistantMessage = chatMessageConverter.toAssistantMessage(l4jResponse);
 
-      return CompletableFuture.completedFuture(
-          new ChatResponse(
-              assistantMessage, assistantMessage.stopReason(), assistantMessage.usage(), null));
+      return CompletableFuture.completedFuture(new ChatResponse(assistantMessage));
     } catch (Exception e) {
       final var message =
           Optional.ofNullable(e.getMessage())
@@ -107,16 +107,15 @@ public class Langchain4JChatModelApi implements ChatModelApi {
     }
   }
 
-  private @Nullable dev.langchain4j.model.chat.request.ResponseFormat toL4jResponseFormat(
-      @Nullable ResponseFormat responseFormat) {
-    if (!(responseFormat instanceof ResponseFormat.Json json)) {
-      // Both null and ResponseFormat.Text leave the format unset — matches the previous adapter,
-      // which avoided sending TEXT explicitly because some models reject it.
+  private @Nullable ResponseFormat toL4jResponseFormat(
+      @Nullable ResponseFormatConfiguration responseFormat) {
+    // Do not explicitly configure response format to TEXT — depending on the model this can lead
+    // to exceptions. Leaving the format unset preserves the previous adapter's behaviour.
+    if (!(responseFormat instanceof JsonResponseFormatConfiguration json)) {
       return null;
     }
 
-    final var builder =
-        dev.langchain4j.model.chat.request.ResponseFormat.builder().type(ResponseFormatType.JSON);
+    final var builder = ResponseFormat.builder().type(ResponseFormatType.JSON);
 
     if (json.schema() != null) {
       final var name = StringUtils.isNotBlank(json.schemaName()) ? json.schemaName() : "Response";

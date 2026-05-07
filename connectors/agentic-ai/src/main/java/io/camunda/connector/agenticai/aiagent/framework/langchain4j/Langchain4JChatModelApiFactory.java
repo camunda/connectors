@@ -9,48 +9,51 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
-import java.util.Set;
 
 /**
- * Bridge factory that produces a {@link Langchain4JChatModelApi} for every built-in {@link
- * ProviderConfiguration} subtype. Until per-family native implementations ship, every chat call
- * lands here.
+ * LangChain4j bridge factory: produces a {@link Langchain4JChatModelApi} for one specific {@link
+ * ProviderConfiguration} subtype using the matching {@link ChatModelProvider} bean. One factory
+ * bean per discriminator — the provider type, configuration class, and {@link ChatModelProvider}
+ * are wired explicitly per bean in {@code AgenticAiLangchain4JFrameworkConfiguration}, so there is
+ * no {@code switch} on provider type inside the factory.
+ *
+ * <p>Public so customers can compose it from their own {@link ChatModelApiFactory} bean — e.g. to
+ * wire a LangChain4j-supported provider we don't ship by passing in their own {@link
+ * ChatModelProvider} alongside the framework's converter beans.
  */
-public class Langchain4JChatModelApiFactory implements ChatModelApiFactory<ProviderConfiguration> {
+public class Langchain4JChatModelApiFactory<C extends ProviderConfiguration>
+    implements ChatModelApiFactory<C> {
 
   public static final String API_FAMILY = "langchain4j";
 
-  private static final Set<String> SUPPORTED_PROVIDER_TYPES =
-      Set.of(
-          AnthropicProviderConfiguration.ANTHROPIC_ID,
-          BedrockProviderConfiguration.BEDROCK_ID,
-          AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID,
-          GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
-          OpenAiProviderConfiguration.OPENAI_ID,
-          OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID);
-
-  private final ChatModelFactory chatModelFactory;
+  private final String providerType;
+  private final Class<C> configurationType;
+  private final ChatModelProvider<C> chatModelProvider;
   private final ChatMessageConverter chatMessageConverter;
   private final ToolSpecificationConverter toolSpecificationConverter;
   private final JsonSchemaConverter jsonSchemaConverter;
 
   public Langchain4JChatModelApiFactory(
-      ChatModelFactory chatModelFactory,
+      String providerType,
+      Class<C> configurationType,
+      ChatModelProvider<C> chatModelProvider,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
-    this.chatModelFactory = chatModelFactory;
+    this.providerType = providerType;
+    this.configurationType = configurationType;
+    this.chatModelProvider = chatModelProvider;
     this.chatMessageConverter = chatMessageConverter;
     this.toolSpecificationConverter = toolSpecificationConverter;
     this.jsonSchemaConverter = jsonSchemaConverter;
+  }
+
+  @Override
+  public String providerType() {
+    return providerType;
   }
 
   @Override
@@ -59,13 +62,13 @@ public class Langchain4JChatModelApiFactory implements ChatModelApiFactory<Provi
   }
 
   @Override
-  public Set<String> supportedProviderTypes() {
-    return SUPPORTED_PROVIDER_TYPES;
+  public Class<C> configurationType() {
+    return configurationType;
   }
 
   @Override
-  public ChatModelApi create(ProviderConfiguration configuration) {
-    final var chatModel = chatModelFactory.createChatModel(configuration);
+  public ChatModelApi create(C configuration) {
+    final var chatModel = chatModelProvider.createChatModel(configuration);
     return new Langchain4JChatModelApi(
         chatModel, chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
   }

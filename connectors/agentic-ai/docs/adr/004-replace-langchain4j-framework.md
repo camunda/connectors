@@ -185,7 +185,7 @@ Three classes of failure with distinct surface behavior:
 
 | Class                      | Examples                                                                       | Surface                                                                                                 |
 |----------------------------|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
-| Model-side terminal        | `stop_reason: refusal`, content filter, max-tokens hit, malformed tool-use     | `CompletableFuture` completes normally with `ChatResponse{stopReason=ERROR, errorMessage, content, usage}` |
+| Model-side terminal        | `stop_reason: refusal`, content filter, max-tokens hit, malformed tool-use     | `CompletableFuture` completes normally with `ChatResponse{assistantMessage{stopReason=ERROR, content, usage, ...}}` |
 | Transport / SDK / I/O      | Connection refused, read timeout, TLS failure, malformed wire response         | `CompletableFuture` completes exceptionally with `ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, ...)` |
 | Auth / config              | Bad API key, region not enabled, model not found                                | `CompletableFuture` completes exceptionally with a distinct error code                                 |
 
@@ -233,7 +233,7 @@ public record AssistantMessage(
     List<Content> content,
     List<ToolCall> toolCalls,
     @Nullable String modelId,                          // NEW
-    @Nullable String apiId,                            // NEW
+    @Nullable String messageId,                        // NEW (provider-assigned message id)
     @Nullable StopReason stopReason,                   // NEW
     @Nullable TokenUsage usage,                        // NEW (per-message)
     Map<String, Object> metadata                       // existing — escape hatch
@@ -510,7 +510,7 @@ Two phases:
 ### Phase 0 — Domain model extensions (additive, behavior-preserving)
 
 * Add `ReasoningContent` to the `Content` sealed hierarchy.
-* Add optional `modelId`, `apiId`, `stopReason`, `usage` fields to `AssistantMessage`.
+* Add optional `modelId`, `messageId`, `stopReason`, `usage` fields to `AssistantMessage`.
 * Add optional `contentBlocks` field to `ToolCallResult`.
 * Add `cacheReadInputTokens`, `cacheCreationInputTokens`, `reasoningTokens` to `TokenUsage`.
 * Drop `AiFrameworkChatResponse#rawChatResponse()`.
@@ -522,7 +522,9 @@ No call-site changes. Existing tests pass with no behavior change.
 ### Phase 1 — Complete replacement (one shipping unit)
 
 * New SPI: `ChatModelApiFactory<C>`, `ChatModelApiRegistry`, `ChatModelApi`, `ChatClient`
-  facade, `ChatModelEvent` sealed hierarchy, `ChatStreamListener`.
+  facade returning `ChatClientResult`, `ChatModelEvent` sealed hierarchy, `ChatStreamListener`.
+  Multi-provider bridges (e.g. LangChain4j) register one `ChatModelApiFactory` bean per
+  `providerType()` discriminator.
 * Capability matrix YAML + resolution chain (config override → exact id / alias → pattern
   → conservative defaults).
 * `ToolCallResultStrategy` (multimodal-native and user-message-fallback policies).

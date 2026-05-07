@@ -20,7 +20,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicPr
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ChatModelApiRegistryImplTest {
@@ -34,18 +33,6 @@ class ChatModelApiRegistryImplTest {
     final var otherFactory = factoryFor("other");
 
     final var registry = new ChatModelApiRegistryImpl(List.of(anthropicFactory, otherFactory));
-
-    assertThat(registry.resolve(validAnthropicConfig())).isSameAs(resolvedApi);
-  }
-
-  @Test
-  void resolvesFactoryClaimingMultipleProviderTypes() {
-    final var multiTypeFactory =
-        factoryFor(AnthropicProviderConfiguration.ANTHROPIC_ID, "openai", "bedrock");
-    final var resolvedApi = mock(ChatModelApi.class);
-    when(multiTypeFactory.create(any())).thenReturn(resolvedApi);
-
-    final var registry = new ChatModelApiRegistryImpl(List.of(multiTypeFactory));
 
     assertThat(registry.resolve(validAnthropicConfig())).isSameAs(resolvedApi);
   }
@@ -71,11 +58,12 @@ class ChatModelApiRegistryImplTest {
         .hasMessageContaining("Two chat model API factories claim provider type 'duplicate'");
   }
 
-  @SuppressWarnings("unchecked")
-  private static ChatModelApiFactory<ProviderConfiguration> factoryFor(String... providerTypes) {
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static ChatModelApiFactory<ProviderConfiguration> factoryFor(String providerType) {
     final ChatModelApiFactory<ProviderConfiguration> factory = mock(ChatModelApiFactory.class);
-    when(factory.supportedProviderTypes()).thenReturn(Set.of(providerTypes));
+    when(factory.providerType()).thenReturn(providerType);
     when(factory.apiFamily()).thenReturn("test");
+    when(factory.configurationType()).thenReturn((Class) ProviderConfiguration.class);
     return factory;
   }
 

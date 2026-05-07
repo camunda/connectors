@@ -6,16 +6,16 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.api;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 
 /**
- * Output of {@link ChatModelApi#complete}. Carries the assembled assistant message; {@link
- * AssistantMessage#stopReason()} and {@link AssistantMessage#usage()} convey the normalized stop
- * reason and per-call token usage. Model-side terminal failures (refusal, content filter, malformed
- * tool-use) populate the message with {@code stopReason = ERROR}; transport / SDK / auth failures
- * complete the future exceptionally instead.
+ * Result of {@link ChatClient#chat}. Carries the agent context with model-call metrics and token
+ * usage already incremented, plus the assistant message produced by the underlying {@link
+ * ChatModelApi}. Replaces {@code AiFrameworkChatResponse} at the {@code BaseAgentRequestHandler}
+ * call site so the cutover stays a 1:1 swap.
  *
  * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
  * ChatModelApiRegistry.
  */
-public record ChatResponse(AssistantMessage assistantMessage) {}
+public record ChatClientResult(AgentContext agentContext, AssistantMessage assistantMessage) {}

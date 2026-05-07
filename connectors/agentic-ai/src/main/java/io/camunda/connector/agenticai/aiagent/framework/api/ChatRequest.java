@@ -6,20 +6,27 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.api;
 
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 import org.springframework.lang.Nullable;
 
 /**
- * Inputs to a {@link ChatModelApi#complete} call assembled by {@code ChatClient}. Carries the
- * conversation messages, an optional system prompt, and the resolved tool definitions; per-call
- * tunables (max output tokens, stop sequences, reasoning, cache retention, vendor escape hatches)
- * live on {@link ChatOptions} so a request can be reused while options vary.
+ * Inputs to a {@link ChatModelApi#complete} call assembled by {@code ChatClient}: the conversation
+ * messages (system message inline at the head when present), resolved tool definitions, and the
+ * requested response format. Per-call tunables (max output tokens, reasoning, cache retention,
+ * vendor escape hatches) live on {@link ChatOptions} so a request can be reused while options vary.
+ *
+ * <p>{@code responseFormat} reuses the connector-config type {@link ResponseFormatConfiguration}
+ * directly. Implementations translate the {@code Json}/{@code Text} variants onto the provider's
+ * native shape; providers without a native structured-output mode (Anthropic Messages today) treat
+ * the JSON variant as best-effort and rely on the system prompt to constrain output.
  *
  * <p>Part of the ADR-004 Phase 1 SPI scaffolding. Wired by ChatClientImpl, dispatched via
- * ChatModelApiRegistry — concrete fields will be finalised when the first native {@code
- * ChatModelApi} implementation lands.
+ * ChatModelApiRegistry.
  */
 public record ChatRequest(
-    List<Message> messages, @Nullable String systemPrompt, List<ToolDefinition> tools) {}
+    List<Message> messages,
+    List<ToolDefinition> toolDefinitions,
+    @Nullable ResponseFormatConfiguration responseFormat) {}

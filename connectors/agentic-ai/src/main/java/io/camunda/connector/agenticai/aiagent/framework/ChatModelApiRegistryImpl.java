@@ -30,21 +30,20 @@ public class ChatModelApiRegistryImpl implements ChatModelApiRegistry {
       List<? extends ChatModelApiFactory<?>> factories) {
     final Map<String, ChatModelApiFactory<?>> index = new HashMap<>();
     for (ChatModelApiFactory<?> factory : factories) {
-      for (String providerType : factory.supportedProviderTypes()) {
-        final var existing = index.get(providerType);
-        if (existing != null) {
-          throw new IllegalStateException(
-              "Two chat model API factories claim provider type '%s': %s and %s. To override the default factory, exclude the built-in bean (e.g. via @ConditionalOnMissingBean) before contributing your own."
-                  .formatted(
-                      providerType, existing.getClass().getName(), factory.getClass().getName()));
-        }
-        index.put(providerType, factory);
-        LOGGER.debug(
-            "Registered chat model API factory for provider type '{}': {} (apiFamily={})",
-            providerType,
-            factory.getClass().getName(),
-            factory.apiFamily());
+      final var providerType = factory.providerType();
+      final var existing = index.get(providerType);
+      if (existing != null) {
+        throw new IllegalStateException(
+            "Two chat model API factories claim provider type '%s': %s and %s. To override the default factory, exclude the built-in bean (e.g. via @ConditionalOnMissingBean) before contributing your own."
+                .formatted(
+                    providerType, existing.getClass().getName(), factory.getClass().getName()));
       }
+      index.put(providerType, factory);
+      LOGGER.debug(
+          "Registered chat model API factory for provider type '{}': {} (apiFamily={})",
+          providerType,
+          factory.getClass().getName(),
+          factory.apiFamily());
     }
     return Map.copyOf(index);
   }
@@ -57,6 +56,15 @@ public class ChatModelApiRegistryImpl implements ChatModelApiRegistry {
     if (factory == null) {
       throw new IllegalStateException(
           "No chat model API factory registered for provider type '%s'".formatted(providerType));
+    }
+    if (!factory.configurationType().isInstance(configuration)) {
+      throw new IllegalStateException(
+          "Chat model API factory %s claims provider type '%s' but expects configurationType %s, got %s"
+              .formatted(
+                  factory.getClass().getName(),
+                  providerType,
+                  factory.configurationType().getName(),
+                  configuration.getClass().getName()));
     }
     return ((ChatModelApiFactory<ProviderConfiguration>) factory).create(configuration);
   }
