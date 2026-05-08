@@ -71,7 +71,7 @@ public record GoogleGenAiProviderConfiguration(@Valid @NotNull GoogleGenAiConnec
       }
     }
 
-    @AssertFalse(message = "Google Vertex AI is not supported on SaaS")
+    @AssertFalse(message = "Google GenAI is not supported on SaaS")
     public boolean isUsedInSaaS() {
       return ConnectorUtils.isSaaS()
           && authentication
