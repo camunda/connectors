@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
@@ -200,12 +201,16 @@ class ProviderConfigurationTest {
       assertThat(validator.validate(connection)).isEmpty();
     }
 
-    @Test
-    void validationShouldFail_WhenClientCredentialsAuthUsedWithDirectBackend() {
+    @ParameterizedTest
+    @EnumSource(
+        value = AnthropicBackend.class,
+        names = {"DIRECT", "BEDROCK", "VERTEX"})
+    void validationShouldFail_WhenClientCredentialsAuthUsedWithNonFoundryBackend(
+        AnthropicBackend backend) {
       var connection =
           new AnthropicConnection(
               null,
-              AnthropicBackend.DIRECT,
+              backend,
               new AnthropicClientCredentialsAuthentication(
                   "client-id", "client-secret", "tenant-id", null),
               TIMEOUT,

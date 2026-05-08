@@ -94,7 +94,6 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
       defaultValue = "apiKey",
       description = "Specify the Anthropic authentication strategy.")
   public sealed interface AnthropicAuthentication {
-
     @TemplateSubType(id = "apiKey", label = "API key")
     record AnthropicApiKeyAuthentication(
         @NotBlank
@@ -108,7 +107,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
         implements AnthropicAuthentication {
 
       @Override
-      public String toString() {
+      public @NotNull String toString() {
         return "AnthropicApiKeyAuthentication{apiKey=[REDACTED]}";
       }
     }
