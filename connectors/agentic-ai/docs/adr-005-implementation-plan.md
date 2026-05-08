@@ -513,7 +513,16 @@ Element template version bump 11 → 12 (after D's bump).
   (forwarding to the Anthropic factory if it is).
 - New `ProviderConfigurationDeserializer extends StdDeserializer<ProviderConfiguration>`:
   pre-processes JSON node before delegating. Migration rules per ADR table. Pattern:
-  `JsonSchemaElementDeserializer.java:52` (tree-walking dispatch). Register via Jackson `Module`.
+  `JsonSchemaElementDeserializer.java:52` (tree-walking dispatch). **Wire via type-level
+  `@JsonDeserialize(using = ProviderConfigurationDeserializer.class)` on the abstract
+  `ProviderConfiguration` itself — not via a Jackson `Module`.** The connector runtime composes
+  `@ConnectorsObjectMapper` in `ConnectorsAutoConfiguration` with a hard-coded module list and
+  exposes no `Module` bean discovery, so module-based registration from agentic-ai isn't possible.
+  Type-level `@JsonDeserialize` works on any `ObjectMapper` without contributing to a global module
+  list. Serialization continues to use the standard `@JsonTypeInfo` / `@JsonSubTypes` mechanism on
+  the new shape — `@JsonDeserialize` only affects the read path. Inside the deserializer, dispatch
+  to concrete subtypes via `mapper.treeToValue(migrated, SubType.class)`; that doesn't re-enter the
+  custom deserializer because Jackson's `BeanDeserializer` for the resolved subtype takes over.
 - `element-templates/agenticai-aiagent-outbound-connector.json`: bump 11 → 12; add conditional UI
   groups for `backend`. Maven regenerates the versioned snapshot + job-worker template.
 - `element-templates/README.md`: replace top row again (or insert new row if Camunda min version
@@ -521,7 +530,12 @@ Element template version bump 11 → 12 (after D's bump).
 
 **Tests to add**:
 - `ProviderConfigurationDeserializerTest` — every row of the migration table round-trips to new
-  shape; forward serialization writes new shape.
+  shape; forward serialization writes new shape; idempotence (deserialize old → re-serialize →
+  re-deserialize gives the same canonical instance).
+- One test that round-trips a `ProviderConfiguration` containing a `Document`-typed field through
+  the actual `@ConnectorsObjectMapper` (with `JacksonModuleDocumentDeserializer` and
+  `JacksonModuleFeelFunction` registered) to confirm the type-level `@JsonDeserialize` doesn't
+  collide with the runtime modules already layered on the mapper.
 
 **Verification**: `mvn clean install -pl connectors/agentic-ai`; manual inspect
 `versioned/agenticai-aiagent-outbound-connector-11.json` created; deserialization smoke test
