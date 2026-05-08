@@ -50,12 +50,12 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomAzureOpenAiProviderConfig.CustomAzureOpenAiChatModelProvider;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomBedrockProviderConfig.CustomBedrockChatModelProvider;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomGoogleVertexAiProviderConfig.CustomGoogleVertexAiChatModelProvider;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomChatModelProviderOverrides.CustomGoogleGenAiProviderConfig.CustomGoogleGenAiChatModelProvider;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
@@ -315,10 +315,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
               BedrockProviderConfiguration.class,
               CustomBedrockChatModelProvider.class),
           new ProviderOverrideCase(
-              CustomGoogleVertexAiProviderConfig.class,
-              "customGoogleVertexAiChatModelProvider",
-              GoogleVertexAiProviderConfiguration.class,
-              CustomGoogleVertexAiChatModelProvider.class));
+              CustomGoogleGenAiProviderConfig.class,
+              "customGoogleGenAiChatModelProvider",
+              GoogleGenAiProviderConfiguration.class,
+              CustomGoogleGenAiChatModelProvider.class));
     }
 
     record ProviderOverrideCase(
@@ -375,24 +375,22 @@ class AgenticAiConnectorsAutoConfigurationTest {
       }
     }
 
-    static class CustomGoogleVertexAiProviderConfig {
+    static class CustomGoogleGenAiProviderConfig {
       @Bean
-      ChatModelProvider<GoogleVertexAiProviderConfiguration>
-          customGoogleVertexAiChatModelProvider() {
-        return new CustomGoogleVertexAiChatModelProvider();
+      ChatModelProvider<GoogleGenAiProviderConfiguration> customGoogleGenAiChatModelProvider() {
+        return new CustomGoogleGenAiChatModelProvider();
       }
 
-      static class CustomGoogleVertexAiChatModelProvider
-          implements ChatModelProvider<GoogleVertexAiProviderConfiguration> {
+      static class CustomGoogleGenAiChatModelProvider
+          implements ChatModelProvider<GoogleGenAiProviderConfiguration> {
 
         @Override
         public String type() {
-          return GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
+          return GoogleGenAiProviderConfiguration.GOOGLE_GENAI_ID;
         }
 
         @Override
-        public ChatModel createChatModel(
-            GoogleVertexAiProviderConfiguration providerConfiguration) {
+        public ChatModel createChatModel(GoogleGenAiProviderConfiguration providerConfiguration) {
           return mock(ChatModel.class);
         }
       }

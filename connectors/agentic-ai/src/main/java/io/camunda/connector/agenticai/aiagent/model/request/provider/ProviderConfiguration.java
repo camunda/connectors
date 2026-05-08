@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.ANTHROPIC_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BEDROCK_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GOOGLE_GENAI_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OPENAI_ID;
 
@@ -22,7 +22,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
   @JsonSubTypes.Type(value = AnthropicProviderConfiguration.class, name = ANTHROPIC_ID),
   @JsonSubTypes.Type(value = BedrockProviderConfiguration.class, name = BEDROCK_ID),
   @JsonSubTypes.Type(value = AzureOpenAiProviderConfiguration.class, name = AZURE_OPENAI_ID),
-  @JsonSubTypes.Type(value = GoogleVertexAiProviderConfiguration.class, name = GOOGLE_VERTEX_AI_ID),
+  @JsonSubTypes.Type(value = GoogleGenAiProviderConfiguration.class, name = GOOGLE_GENAI_ID),
   @JsonSubTypes.Type(value = OpenAiProviderConfiguration.class, name = OPENAI_ID),
   @JsonSubTypes.Type(
       value = OpenAiCompatibleProviderConfiguration.class,
@@ -38,7 +38,7 @@ public sealed interface ProviderConfiguration
     permits AnthropicProviderConfiguration,
         BedrockProviderConfiguration,
         AzureOpenAiProviderConfiguration,
-        GoogleVertexAiProviderConfiguration,
+        GoogleGenAiProviderConfiguration,
         OpenAiProviderConfiguration,
         OpenAiCompatibleProviderConfiguration {
 

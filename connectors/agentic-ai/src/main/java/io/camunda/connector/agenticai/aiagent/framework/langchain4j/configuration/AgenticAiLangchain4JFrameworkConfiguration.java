@@ -23,7 +23,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpe
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverterImpl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -116,15 +116,15 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(name = "langchain4JGoogleVertexAiChatModelApiFactory")
-  public ChatModelApiFactory<GoogleVertexAiProviderConfiguration>
+  public ChatModelApiFactory<GoogleGenAiProviderConfiguration>
       langchain4JGoogleVertexAiChatModelApiFactory(
-          ChatModelProvider<GoogleVertexAiProviderConfiguration> provider,
+          ChatModelProvider<GoogleGenAiProviderConfiguration> provider,
           ChatMessageConverter chatMessageConverter,
           ToolSpecificationConverter toolSpecificationConverter,
           JsonSchemaConverter jsonSchemaConverter) {
     return new Langchain4JChatModelApiFactory<>(
-        GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID,
-        GoogleVertexAiProviderConfiguration.class,
+        GoogleGenAiProviderConfiguration.GOOGLE_GENAI_ID,
+        GoogleGenAiProviderConfiguration.class,
         provider,
         chatMessageConverter,
         toolSpecificationConverter,

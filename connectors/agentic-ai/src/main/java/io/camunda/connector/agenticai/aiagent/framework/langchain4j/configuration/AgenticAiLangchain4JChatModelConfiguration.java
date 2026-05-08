@@ -16,7 +16,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Cha
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.util.List;
@@ -56,7 +56,7 @@ public class AgenticAiLangchain4JChatModelConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProvider<GoogleVertexAiProviderConfiguration>
+  public ChatModelProvider<GoogleGenAiProviderConfiguration>
       langchain4JGoogleVertexAiChatModelProvider() {
     return new GoogleVertexAiChatModelProvider();
   }

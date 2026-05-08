@@ -6,8 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GOOGLE_GENAI_ID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.util.ConnectorUtils;
@@ -21,19 +22,27 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Google Vertex AI")
-public record GoogleVertexAiProviderConfiguration(
-    @Valid @NotNull GoogleVertexAiConnection googleVertexAi) implements ProviderConfiguration {
+@TemplateSubType(id = GOOGLE_GENAI_ID, label = "Google GenAI")
+public record GoogleGenAiProviderConfiguration(@Valid @NotNull GoogleGenAiConnection googleGenAi)
+    implements ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
-  public static final String GOOGLE_VERTEX_AI_ID = "google-vertex-ai";
+  public static final String GOOGLE_GENAI_ID = "googleGenAi";
 
   @Override
   public String providerType() {
-    return GOOGLE_VERTEX_AI_ID;
+    return GOOGLE_GENAI_ID;
   }
 
-  public record GoogleVertexAiConnection(
+  public enum GoogleBackend {
+    @JsonProperty("developer-api")
+    DEVELOPER_API,
+
+    @JsonProperty("vertex")
+    VERTEX
+  }
+
+  public record GoogleGenAiConnection(
       @NotBlank
           @TemplateProperty(
               group = "provider",
@@ -52,24 +61,31 @@ public record GoogleVertexAiProviderConfiguration(
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String region,
-      @Valid @NotNull GoogleVertexAiAuthentication authentication,
-      @Valid @NotNull GoogleVertexAiProviderConfiguration.GoogleVertexAiModel model) {
+      @Valid @NotNull GoogleGenAiAuthentication authentication,
+      @Valid @NotNull GoogleGenAiModel model,
+      @TemplateProperty(ignore = true) GoogleBackend backend) {
+
+    public GoogleGenAiConnection {
+      if (backend == null) {
+        backend = GoogleBackend.VERTEX;
+      }
+    }
 
     @AssertFalse(message = "Google Vertex AI is not supported on SaaS")
     public boolean isUsedInSaaS() {
       return ConnectorUtils.isSaaS()
           && authentication
-              instanceof GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+              instanceof GoogleGenAiAuthentication.ApplicationDefaultCredentialsAuthentication;
     }
   }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
     @JsonSubTypes.Type(
-        value = GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication.class,
+        value = GoogleGenAiAuthentication.ServiceAccountCredentialsAuthentication.class,
         name = "serviceAccountCredentials"),
     @JsonSubTypes.Type(
-        value = GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication.class,
+        value = GoogleGenAiAuthentication.ApplicationDefaultCredentialsAuthentication.class,
         name = "applicationDefaultCredentials"),
   })
   @TemplateDiscriminatorProperty(
@@ -78,7 +94,7 @@ public record GoogleVertexAiProviderConfiguration(
       name = "type",
       defaultValue = "serviceAccountCredentials",
       description = "Specify the Google Vertex AI authentication strategy.")
-  public sealed interface GoogleVertexAiAuthentication {
+  public sealed interface GoogleGenAiAuthentication {
     @TemplateSubType(id = "serviceAccountCredentials", label = "Service account credentials")
     record ServiceAccountCredentialsAuthentication(
         @NotBlank
@@ -89,7 +105,7 @@ public record GoogleVertexAiProviderConfiguration(
                 feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String jsonKey)
-        implements GoogleVertexAiAuthentication {
+        implements GoogleGenAiAuthentication {
       @Override
       public String toString() {
         return "ServiceAccountCredentialsAuthentication{jsonKey=[REDACTED]}";
@@ -99,10 +115,10 @@ public record GoogleVertexAiProviderConfiguration(
     @TemplateSubType(
         id = "applicationDefaultCredentials",
         label = "Application default credentials (Hybrid/Self-Managed only)")
-    record ApplicationDefaultCredentialsAuthentication() implements GoogleVertexAiAuthentication {}
+    record ApplicationDefaultCredentialsAuthentication() implements GoogleGenAiAuthentication {}
   }
 
-  public record GoogleVertexAiModel(
+  public record GoogleGenAiModel(
       @NotBlank
           @TemplateProperty(
               group = "model",
@@ -113,9 +129,9 @@ public record GoogleVertexAiProviderConfiguration(
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
-      @Valid GoogleVertexAiModelParameters parameters) {
+      @Valid GoogleGenAiModelParameters parameters) {
 
-    public record GoogleVertexAiModelParameters(
+    public record GoogleGenAiModelParameters(
         @Min(0)
             @TemplateProperty(
                 group = "model",

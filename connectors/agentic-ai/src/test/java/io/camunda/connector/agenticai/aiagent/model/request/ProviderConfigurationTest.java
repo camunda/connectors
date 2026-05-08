@@ -21,11 +21,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiModel.GoogleGenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel;
@@ -322,7 +322,7 @@ class ProviderConfigurationTest {
   }
 
   @Nested
-  class GoogleVertexAiConnectionTest {
+  class GoogleGenAiConnectionTest {
 
     @Test
     void validationShouldSucceed_WhenNotSaaS() {
@@ -353,22 +353,24 @@ class ProviderConfigurationTest {
       assertThat(validator.validate(connection)).isEmpty();
     }
 
-    private static GoogleVertexAiConnection createConnectionWithApplicationDefaultCredentials() {
-      return new GoogleVertexAiConnection(
+    private static GoogleGenAiConnection createConnectionWithApplicationDefaultCredentials() {
+      return new GoogleGenAiConnection(
           "my-project-id",
           "us-central1",
           new ApplicationDefaultCredentialsAuthentication(),
-          new GoogleVertexAiModel(
-              "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
+          new GoogleGenAiModel(
+              "gemini-1.5-flash", new GoogleGenAiModelParameters(null, null, null, null)),
+          null);
     }
 
-    private static GoogleVertexAiConnection createConnectionWithServiceAccountCredentials() {
-      return new GoogleVertexAiConnection(
+    private static GoogleGenAiConnection createConnectionWithServiceAccountCredentials() {
+      return new GoogleGenAiConnection(
           "my-project-id",
           "us-central1",
           new ServiceAccountCredentialsAuthentication("{}"),
-          new GoogleVertexAiModel(
-              "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
+          new GoogleGenAiModel(
+              "gemini-1.5-flash", new GoogleGenAiModelParameters(null, null, null, null)),
+          null);
     }
   }
 

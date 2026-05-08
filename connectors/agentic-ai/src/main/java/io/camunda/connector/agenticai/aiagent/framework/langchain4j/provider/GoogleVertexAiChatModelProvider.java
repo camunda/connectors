@@ -9,8 +9,8 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -20,19 +20,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GoogleVertexAiChatModelProvider
-    implements ChatModelProvider<GoogleVertexAiProviderConfiguration> {
+    implements ChatModelProvider<GoogleGenAiProviderConfiguration> {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(GoogleVertexAiChatModelProvider.class);
 
   @Override
   public String type() {
-    return GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
+    return GoogleGenAiProviderConfiguration.GOOGLE_GENAI_ID;
   }
 
   @Override
-  public ChatModel createChatModel(GoogleVertexAiProviderConfiguration vertexAi) {
-    final var connection = vertexAi.googleVertexAi();
+  public ChatModel createChatModel(GoogleGenAiProviderConfiguration vertexAi) {
+    final var connection = vertexAi.googleGenAi();
     final var builder =
         VertexAiGeminiChatModel.builder()
             .project(connection.projectId())
