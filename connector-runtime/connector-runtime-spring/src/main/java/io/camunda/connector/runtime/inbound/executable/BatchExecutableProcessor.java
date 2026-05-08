@@ -16,13 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
-import io.camunda.connector.api.inbound.Activity;
-import io.camunda.connector.api.inbound.ActivityBuilder;
-import io.camunda.connector.api.inbound.ActivityLogTag;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.inbound.Severity;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
@@ -41,11 +35,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Inva
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -268,14 +258,16 @@ public class BatchExecutableProcessor {
   private void runWithTimeout(String label, ThrowingRunnable task) throws Exception {
     var failure = new AtomicReference<Throwable>();
     var thread =
-        Thread.startVirtualThread(
-            () -> {
-              try {
-                task.run();
-              } catch (Throwable t) {
-                failure.set(t);
-              }
-            });
+        Thread.ofVirtual()
+            .name(label)
+            .start(
+                () -> {
+                  try {
+                    task.run();
+                  } catch (Throwable t) {
+                    failure.set(t);
+                  }
+                });
     if (!thread.join(executableTimeout)) {
       thread.interrupt();
       throw new RuntimeException(label + " did not complete within " + executableTimeout);
@@ -285,11 +277,6 @@ public class BatchExecutableProcessor {
     if (t instanceof Exception e) throw e;
     if (t instanceof Error err) throw err;
     throw new RuntimeException(t);
-  }
-
-  @FunctionalInterface
-  private interface ThrowingRunnable {
-    void run() throws Exception;
   }
 
   /** Deactivates a single inbound connector. */
@@ -330,5 +317,10 @@ public class BatchExecutableProcessor {
     final var activityLogEntry =
         new ActivityLogEntry(id, ActivitySource.RUNTIME, activityBuilder.build());
     activityLogWriter.log(activityLogEntry);
+  }
+
+  @FunctionalInterface
+  private interface ThrowingRunnable {
+    void run() throws Exception;
   }
 }

@@ -76,7 +76,10 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   @Override
   public void publishEvent(InboundExecutableEvent event) {
     if (event instanceof InboundExecutableEvent.ProcessStateChanged stateChanged) {
-      LOG.debug("Routing event to lane: {}", event);
+      LOG.debug(
+          "Routing event with changes for process {} and tenant {}",
+          stateChanged.bpmnProcessId(),
+          stateChanged.tenantId());
       dispatcher.submit(
           ProcessKey.of(stateChanged), () -> lifecycle.applyProcessStateChange(stateChanged));
       return;

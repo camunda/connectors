@@ -50,15 +50,20 @@ public class WebhookConnectorRegistry {
           Thread.ofVirtual().name("inbound-webhook-coordinator").factory());
 
   public Optional<RegisteredExecutable.Activated> getActiveWebhook(String context) {
+    LOG.debug("Looking up active webhook for context '{}'", context);
     return runOnCoordinator(
         () -> {
           var executables = executablesByContext.get(context);
           if (executables == null) {
+            LOG.debug("No executables registered for context '{}'", context);
             return Optional.empty();
           }
           try {
-            return Optional.ofNullable(executables.getActiveWebhook());
+            var active = executables.getActiveWebhook();
+            LOG.debug("Found active webhook for context '{}': {}", context, active);
+            return Optional.ofNullable(active);
           } catch (IllegalStateException ignored) {
+            LOG.debug("No active webhook for context '{}' (illegal state)", context);
             return Optional.empty();
           }
         });
@@ -74,22 +79,29 @@ public class WebhookConnectorRegistry {
 
   public boolean register(RegisteredExecutable.Activated connector) {
     var context = getContext(connector);
+    LOG.debug("Registering webhook connector for context '{}'", context);
     WebhookConnectorValidationUtil.logIfWebhookPathDeprecated(connector, context);
 
     return runOnCoordinator(
         () -> {
           var existing = executablesByContext.get(context);
           if (existing == null) {
+            LOG.debug("No existing executables for context '{}', creating new entry", context);
             executablesByContext.put(context, new WebhookExecutables(connector, context));
           } else {
+            LOG.debug(
+                "Existing executables found for context '{}', marking down and adding", context);
             existing.markAsDownAndAdd(connector);
           }
-          return registeredAsActiveConnector(connector, context);
+          var isActive = registeredAsActiveConnector(connector, context);
+          LOG.debug("Connector registered for context '{}', isActive={}", context, isActive);
+          return isActive;
         });
   }
 
   public void deregister(RegisteredExecutable.Activated connector) {
     var context = getContext(connector);
+    LOG.debug("Deregistering webhook connector for context '{}'", context);
     runOnCoordinator(
         () -> {
           var executables = executablesByContext.get(context);
@@ -99,7 +111,12 @@ public class WebhookConnectorRegistry {
             throw new RuntimeException(logMessage);
           }
           var hasActiveConnector = executables.deregister(connector);
+          LOG.debug(
+              "After deregister for context '{}', hasActiveConnector={}",
+              context,
+              hasActiveConnector);
           if (!hasActiveConnector) {
+            LOG.debug("No more connectors for context '{}', removing entry", context);
             executablesByContext.remove(context);
           }
           return null;
@@ -107,9 +124,13 @@ public class WebhookConnectorRegistry {
   }
 
   public void reset() {
+    LOG.debug(
+        "Resetting webhook connector registry, clearing {} context(s)",
+        executablesByContext.size());
     runOnCoordinator(
         () -> {
           executablesByContext.clear();
+          LOG.debug("Registry reset complete");
           return null;
         });
   }

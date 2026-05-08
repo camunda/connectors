@@ -93,6 +93,13 @@ public class VirtualThreadLaneDispatcher implements LaneDispatcher {
   }
 
   private ExecutorService laneFor(ProcessKey key) {
+    int index = laneIndexFor(key);
+    LOG.debug(
+        "Routing task for {} to lane {} (hash {}, lane count {})",
+        key,
+        index,
+        key.hashCode(),
+        lanes.length);
     return lanes[laneIndexFor(key)];
   }
 
