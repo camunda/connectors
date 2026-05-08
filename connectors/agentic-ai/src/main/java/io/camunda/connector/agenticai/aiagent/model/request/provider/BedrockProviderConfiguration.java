@@ -63,6 +63,14 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
       return ConnectorUtils.isSaaS()
           && authentication instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
     }
+
+    @AssertFalse(
+        message =
+            "Anthropic models must be configured via the Anthropic provider with backend = BEDROCK")
+    @SuppressWarnings("unused")
+    public boolean isAnthropicModelUsed() {
+      return model != null && model.model() != null && model.model().startsWith("anthropic.");
+    }
   }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")

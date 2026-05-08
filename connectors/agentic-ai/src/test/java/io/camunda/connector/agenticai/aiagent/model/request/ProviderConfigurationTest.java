@@ -129,6 +129,30 @@ class ProviderConfigurationTest {
           .contains(HTTP_URL_VALIDATION_MESSAGE);
     }
 
+    @Test
+    void validationShouldFail_WhenAnthropicModelUsedWithBedrock() {
+      var connection =
+          createConnection(
+              null,
+              new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"),
+              "anthropic.claude-sonnet-4-5");
+      assertThat(validator.validate(connection))
+          .hasSize(1)
+          .extracting(ConstraintViolation::getMessage)
+          .containsExactly(
+              "Anthropic models must be configured via the Anthropic provider with backend = BEDROCK");
+    }
+
+    @Test
+    void validationShouldSucceed_WhenNonAnthropicModelUsedWithBedrock() {
+      var connection =
+          createConnection(
+              null,
+              new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"),
+              "amazon.nova-pro-v1:0");
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
     private BedrockConnection createConnection(String endpoint, AwsAuthentication authentication) {
       return new BedrockConnection(
           "eu-central-1",
@@ -137,6 +161,19 @@ class ProviderConfigurationTest {
           TIMEOUT,
           new BedrockProviderConfiguration.BedrockModel(
               "test",
+              new BedrockProviderConfiguration.BedrockModel.BedrockModelParameters(
+                  null, null, null)));
+    }
+
+    private BedrockConnection createConnection(
+        String endpoint, AwsAuthentication authentication, String modelId) {
+      return new BedrockConnection(
+          "eu-central-1",
+          endpoint,
+          authentication,
+          TIMEOUT,
+          new BedrockProviderConfiguration.BedrockModel(
+              modelId,
               new BedrockProviderConfiguration.BedrockModel.BedrockModelParameters(
                   null, null, null)));
     }
