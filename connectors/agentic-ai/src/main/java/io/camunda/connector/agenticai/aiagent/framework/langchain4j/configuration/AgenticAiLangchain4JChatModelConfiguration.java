@@ -14,9 +14,12 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Bed
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiDispatchingChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.util.List;
@@ -38,12 +41,14 @@ public class AgenticAiLangchain4JChatModelConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProvider<AzureOpenAiProviderConfiguration>
-      langchain4JAzureOpenAiChatModelProvider(
-          AgenticAiConnectorsConfigurationProperties config,
-          ChatModelHttpProxySupport chatModelHttpProxySupport) {
-    return new AzureOpenAiChatModelProvider(
-        config.aiagent().chatModel(), chatModelHttpProxySupport);
+  public ChatModelProvider<OpenAiProviderConfiguration> langchain4JAzureOpenAiChatModelProvider(
+      AgenticAiConnectorsConfigurationProperties config,
+      ChatModelHttpProxySupport chatModelHttpProxySupport) {
+    final var chatModelProperties = config.aiagent().chatModel();
+    return new OpenAiDispatchingChatModelProvider(
+        new OpenAiChatModelProvider(chatModelProperties, chatModelHttpProxySupport),
+        new AzureOpenAiChatModelProvider(chatModelProperties, chatModelHttpProxySupport),
+        new OpenAiCompatibleChatModelProvider(chatModelProperties, chatModelHttpProxySupport));
   }
 
   @Bean
