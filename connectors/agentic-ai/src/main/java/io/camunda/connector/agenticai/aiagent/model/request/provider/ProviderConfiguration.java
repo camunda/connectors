@@ -7,26 +7,26 @@
 package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.ANTHROPIC_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BEDROCK_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GOOGLE_GENAI_ID;
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OPENAI_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 
+@JsonDeserialize(using = ProviderConfigurationDeserializer.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = AnthropicProviderConfiguration.class, name = ANTHROPIC_ID),
   @JsonSubTypes.Type(value = BedrockProviderConfiguration.class, name = BEDROCK_ID),
-  @JsonSubTypes.Type(value = AzureOpenAiProviderConfiguration.class, name = AZURE_OPENAI_ID),
   @JsonSubTypes.Type(value = GoogleGenAiProviderConfiguration.class, name = GOOGLE_GENAI_ID),
   @JsonSubTypes.Type(value = OpenAiProviderConfiguration.class, name = OPENAI_ID),
-  @JsonSubTypes.Type(
-      value = OpenAiCompatibleProviderConfiguration.class,
-      name = OPENAI_COMPATIBLE_ID)
+  // Legacy type IDs — routed through ProviderConfigurationDeserializer for migration
+  @JsonSubTypes.Type(value = GoogleGenAiProviderConfiguration.class, name = "googleVertexAi"),
+  @JsonSubTypes.Type(value = OpenAiProviderConfiguration.class, name = "azureOpenAi"),
+  @JsonSubTypes.Type(value = OpenAiProviderConfiguration.class, name = "openaiCompatible"),
 })
 @TemplateDiscriminatorProperty(
     label = "Provider",
@@ -37,10 +37,8 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 public sealed interface ProviderConfiguration
     permits AnthropicProviderConfiguration,
         BedrockProviderConfiguration,
-        AzureOpenAiProviderConfiguration,
         GoogleGenAiProviderConfiguration,
-        OpenAiProviderConfiguration,
-        OpenAiCompatibleProviderConfiguration {
+        OpenAiProviderConfiguration {
 
   /** Type of the provider implementation used to resolve the backing chat model. */
   String providerType();
