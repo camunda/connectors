@@ -22,6 +22,7 @@ import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
@@ -48,7 +49,7 @@ class OpenAiChatModelProviderTest {
   private static final String OPEN_AI_MODEL = "openAiModel";
 
   private static final OpenAiModelParameters DEFAULT_MODEL_PARAMETERS =
-      new OpenAiModelParameters(10, 1.0, 0.8);
+      new OpenAiModelParameters(10, 1.0, 0.8, null);
 
   private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
   private final ChatModelHttpProxySupport proxySupport =
@@ -66,7 +67,7 @@ class OpenAiChatModelProviderTest {
     final var providerConfig =
         new OpenAiProviderConfiguration(
             new OpenAiConnection(
-                new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                new OpenAiApiKeyAuthentication(OPEN_AI_API_KEY, null, null),
                 MODEL_TIMEOUT,
                 new OpenAiProviderConfiguration.OpenAiModel(
                     OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
@@ -97,8 +98,7 @@ class OpenAiChatModelProviderTest {
     final var providerConfig =
         new OpenAiProviderConfiguration(
             new OpenAiConnection(
-                new OpenAiProviderConfiguration.OpenAiAuthentication(
-                    OPEN_AI_API_KEY, "MY_ORG_ID", "MY_PROJECT_ID"),
+                new OpenAiApiKeyAuthentication(OPEN_AI_API_KEY, "MY_ORG_ID", "MY_PROJECT_ID"),
                 MODEL_TIMEOUT,
                 new OpenAiProviderConfiguration.OpenAiModel(
                     OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
@@ -118,7 +118,7 @@ class OpenAiChatModelProviderTest {
     final var providerConfig =
         new OpenAiProviderConfiguration(
             new OpenAiConnection(
-                new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                new OpenAiApiKeyAuthentication(OPEN_AI_API_KEY, null, null),
                 MODEL_TIMEOUT,
                 new OpenAiProviderConfiguration.OpenAiModel(OPEN_AI_MODEL, modelParameters)));
 
@@ -148,7 +148,7 @@ class OpenAiChatModelProviderTest {
     final var providerConfig =
         new OpenAiProviderConfiguration(
             new OpenAiConnection(
-                new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                new OpenAiApiKeyAuthentication(OPEN_AI_API_KEY, null, null),
                 timeouts,
                 new OpenAiProviderConfiguration.OpenAiModel(OPEN_AI_MODEL, null)));
 
@@ -177,6 +177,6 @@ class OpenAiChatModelProviderTest {
   }
 
   static Stream<OpenAiModelParameters> nullModelParameters() {
-    return Stream.of(new OpenAiModelParameters(null, null, null));
+    return Stream.of(new OpenAiModelParameters(null, null, null, null));
   }
 }

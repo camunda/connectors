@@ -12,17 +12,23 @@ import com.azure.identity.ClientSecretCredentialBuilder;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiBackend;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * LangChain4j bridge provider for the Azure AI Foundry (FOUNDRY) backend of the unified {@link
+ * OpenAiProviderConfiguration}. Handles OpenAiProviderConfiguration instances where {@code backend
+ * == FOUNDRY} by building an {@link AzureOpenAiChatModel}.
+ */
 public class AzureOpenAiChatModelProvider
-    implements ChatModelProvider<AzureOpenAiProviderConfiguration> {
+    implements ChatModelProvider<OpenAiProviderConfiguration> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureOpenAiChatModelProvider.class);
 
@@ -37,16 +43,21 @@ public class AzureOpenAiChatModelProvider
 
   @Override
   public String type() {
-    return AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
+    return OpenAiProviderConfiguration.OPENAI_ID;
   }
 
   @Override
-  public ChatModel createChatModel(AzureOpenAiProviderConfiguration azureOpenAi) {
-    final var connection = azureOpenAi.azureOpenAi();
+  public ChatModel createChatModel(OpenAiProviderConfiguration openAi) {
+    if (openAi.openai().backend() != OpenAiBackend.FOUNDRY) {
+      throw new IllegalArgumentException(
+          "AzureOpenAiChatModelProvider only supports OpenAiBackend.FOUNDRY, got: "
+              + openAi.openai().backend());
+    }
+    final var connection = openAi.openai();
     final var builder =
         AzureOpenAiChatModel.builder()
             .endpoint(connection.endpoint())
-            .deploymentName(connection.model().deploymentName())
+            .deploymentName(connection.model().model())
             .timeout(
                 deriveTimeoutSetting(
                     "Azure OpenAI model call", config, connection.timeouts(), LOGGER));
@@ -54,9 +65,8 @@ public class AzureOpenAiChatModelProvider
     proxySupport.createAzureProxyOptions(connection.endpoint()).ifPresent(builder::proxyOptions);
 
     switch (connection.authentication()) {
-      case AzureApiKeyAuthentication azureApiKeyAuthentication ->
-          builder.apiKey(azureApiKeyAuthentication.apiKey());
-      case AzureClientCredentialsAuthentication auth -> {
+      case OpenAiApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
+      case OpenAiClientCredentialsAuthentication auth -> {
         ClientSecretCredentialBuilder clientSecretCredentialBuilder =
             new ClientSecretCredentialBuilder()
                 .clientId(auth.clientId())
@@ -71,7 +81,7 @@ public class AzureOpenAiChatModelProvider
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
-      Optional.ofNullable(modelParameters.maxTokens()).ifPresent(builder::maxTokens);
+      Optional.ofNullable(modelParameters.maxCompletionTokens()).ifPresent(builder::maxTokens);
       Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
       Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
     }

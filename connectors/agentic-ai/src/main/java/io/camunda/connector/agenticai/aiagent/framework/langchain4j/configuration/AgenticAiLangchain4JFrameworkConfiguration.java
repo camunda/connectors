@@ -21,9 +21,9 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCal
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverterImpl;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -98,16 +98,16 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean(name = "langchain4JAzureOpenAiChatModelApiFactory")
-  public ChatModelApiFactory<AzureOpenAiProviderConfiguration>
-      langchain4JAzureOpenAiChatModelApiFactory(
-          ChatModelProvider<AzureOpenAiProviderConfiguration> provider,
-          ChatMessageConverter chatMessageConverter,
-          ToolSpecificationConverter toolSpecificationConverter,
-          JsonSchemaConverter jsonSchemaConverter) {
+  @ConditionalOnMissingBean(
+      name = {"langchain4JAzureOpenAiChatModelApiFactory", "langchain4JOpenAiChatModelApiFactory"})
+  public ChatModelApiFactory<OpenAiProviderConfiguration> langchain4JAzureOpenAiChatModelApiFactory(
+      ChatModelProvider<OpenAiProviderConfiguration> provider,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
     return new Langchain4JChatModelApiFactory<>(
-        AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID,
-        AzureOpenAiProviderConfiguration.class,
+        OpenAiProviderConfiguration.OPENAI_ID,
+        OpenAiProviderConfiguration.class,
         provider,
         chatMessageConverter,
         toolSpecificationConverter,

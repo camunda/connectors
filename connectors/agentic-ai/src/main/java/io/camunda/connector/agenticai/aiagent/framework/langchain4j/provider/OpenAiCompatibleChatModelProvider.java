@@ -12,16 +12,23 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiBackend;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * LangChain4j bridge provider for the CUSTOM backend of the unified {@link
+ * OpenAiProviderConfiguration}. Handles OpenAiProviderConfiguration instances where {@code backend
+ * == CUSTOM} by building an OpenAI-compatible chat model with a custom base URL, optional API key,
+ * and custom headers / query params.
+ */
 public class OpenAiCompatibleChatModelProvider
-    implements ChatModelProvider<OpenAiCompatibleProviderConfiguration> {
+    implements ChatModelProvider<OpenAiProviderConfiguration> {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(OpenAiCompatibleChatModelProvider.class);
@@ -37,12 +44,17 @@ public class OpenAiCompatibleChatModelProvider
 
   @Override
   public String type() {
-    return OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
+    return OpenAiProviderConfiguration.OPENAI_ID;
   }
 
   @Override
-  public ChatModel createChatModel(OpenAiCompatibleProviderConfiguration openaiCompatible) {
-    final var connection = openaiCompatible.openaiCompatible();
+  public ChatModel createChatModel(OpenAiProviderConfiguration openAi) {
+    if (openAi.openai().backend() != OpenAiBackend.CUSTOM) {
+      throw new IllegalArgumentException(
+          "OpenAiCompatibleChatModelProvider only supports OpenAiBackend.CUSTOM, got: "
+              + openAi.openai().backend());
+    }
+    final var connection = openAi.openai();
 
     final var builder =
         OpenAiChatModel.builder()
@@ -54,7 +66,8 @@ public class OpenAiCompatibleChatModelProvider
             .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
 
     Optional.ofNullable(connection.authentication())
-        .map(OpenAiCompatibleAuthentication::apiKey)
+        .filter(auth -> auth instanceof OpenAiApiKeyAuthentication)
+        .map(auth -> ((OpenAiApiKeyAuthentication) auth).apiKey())
         .filter(StringUtils::isNotBlank)
         .ifPresent(
             apiKey -> {

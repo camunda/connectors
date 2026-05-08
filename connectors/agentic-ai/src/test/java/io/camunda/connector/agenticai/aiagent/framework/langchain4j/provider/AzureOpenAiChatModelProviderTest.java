@@ -23,11 +23,14 @@ import com.azure.identity.ClientSecretCredential;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureOpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureOpenAiModel.AzureOpenAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.ApiFamily;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -56,8 +59,8 @@ class AzureOpenAiChatModelProviderTest {
   private static final String CLIENT_SECRET = "clientSecret";
   private static final String TENANT_ID = "tenantId";
 
-  private static final AzureOpenAiModelParameters DEFAULT_MODEL_PARAMETERS =
-      new AzureOpenAiModelParameters(10, 1.0, 0.8);
+  private static final OpenAiModelParameters DEFAULT_MODEL_PARAMETERS =
+      new OpenAiModelParameters(10, 1.0, 0.8, null);
 
   private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
   private final ChatModelHttpProxySupport proxySupport =
@@ -73,20 +76,23 @@ class AzureOpenAiChatModelProviderTest {
   @Test
   void createsAzureOpenAiChatModelWithApiKey() {
     final var providerConfig =
-        new AzureOpenAiProviderConfiguration(
-            new AzureOpenAiConnection(
-                AZURE_OPENAI_ENDPOINT,
-                new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
+        new OpenAiProviderConfiguration(
+            new OpenAiConnection(
+                OpenAiBackend.FOUNDRY,
+                new OpenAiApiKeyAuthentication(AZURE_OPENAI_API_KEY, null, null),
                 MODEL_TIMEOUT,
-                new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
-                    AZURE_OPENAI_DEPLOYMENT_NAME, DEFAULT_MODEL_PARAMETERS)));
+                new OpenAiModel(AZURE_OPENAI_DEPLOYMENT_NAME, DEFAULT_MODEL_PARAMETERS),
+                ApiFamily.COMPLETIONS,
+                AZURE_OPENAI_ENDPOINT,
+                null,
+                null));
 
     testAzureOpenAiChatModelBuilder(
         providerConfig,
         (builder) -> {
           verify(builder).timeout(MODEL_TIMEOUT.timeout());
           verify(builder).apiKey(AZURE_OPENAI_API_KEY);
-          verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
+          verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxCompletionTokens());
           verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
           verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
           verify(builder, never()).tokenCredential(any());
@@ -98,20 +104,23 @@ class AzureOpenAiChatModelProviderTest {
   @ValueSource(strings = {"https://some-authortiy-host"})
   void createsAzureOpenAiChatModelWithClientCredentials(String authorityHost) {
     final var providerConfig =
-        new AzureOpenAiProviderConfiguration(
-            new AzureOpenAiConnection(
-                AZURE_OPENAI_ENDPOINT,
-                new AzureClientCredentialsAuthentication(
+        new OpenAiProviderConfiguration(
+            new OpenAiConnection(
+                OpenAiBackend.FOUNDRY,
+                new OpenAiClientCredentialsAuthentication(
                     CLIENT_ID, CLIENT_SECRET, TENANT_ID, authorityHost),
                 MODEL_TIMEOUT,
-                new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
-                    AZURE_OPENAI_DEPLOYMENT_NAME, DEFAULT_MODEL_PARAMETERS)));
+                new OpenAiModel(AZURE_OPENAI_DEPLOYMENT_NAME, DEFAULT_MODEL_PARAMETERS),
+                ApiFamily.COMPLETIONS,
+                AZURE_OPENAI_ENDPOINT,
+                null,
+                null));
 
     testAzureOpenAiChatModelBuilder(
         providerConfig,
         (builder) -> {
           verify(builder, never()).apiKey(any());
-          verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
+          verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxCompletionTokens());
           verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
           verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
           verify(builder).tokenCredential(tokenCredentialsCapture.capture());
@@ -123,16 +132,19 @@ class AzureOpenAiChatModelProviderTest {
   @ParameterizedTest
   @NullSource
   @MethodSource("nullModelParameters")
-  void createsAzureOpenAiChatModelWithNullModelParameters(
-      AzureOpenAiModelParameters modelParameters) {
+  void createsAzureOpenAiChatModelWithNullModelParameters(OpenAiModelParameters modelParameters) {
     final var providerConfig =
-        new AzureOpenAiProviderConfiguration(
-            new AzureOpenAiConnection(
-                AZURE_OPENAI_ENDPOINT,
-                new AzureClientCredentialsAuthentication(CLIENT_ID, CLIENT_SECRET, TENANT_ID, null),
+        new OpenAiProviderConfiguration(
+            new OpenAiConnection(
+                OpenAiBackend.FOUNDRY,
+                new OpenAiClientCredentialsAuthentication(
+                    CLIENT_ID, CLIENT_SECRET, TENANT_ID, null),
                 MODEL_TIMEOUT,
-                new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
-                    AZURE_OPENAI_DEPLOYMENT_NAME, modelParameters)));
+                new OpenAiModel(AZURE_OPENAI_DEPLOYMENT_NAME, modelParameters),
+                ApiFamily.COMPLETIONS,
+                AZURE_OPENAI_ENDPOINT,
+                null,
+                null));
 
     testAzureOpenAiChatModelBuilder(
         providerConfig,
@@ -149,20 +161,24 @@ class AzureOpenAiChatModelProviderTest {
       "io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport#defaultTimeoutYieldingConfigs")
   void createsAzureOpenAiChatModelWithUnspecifiedTimeouts(TimeoutConfiguration timeouts) {
     final var providerConfig =
-        new AzureOpenAiProviderConfiguration(
-            new AzureOpenAiConnection(
-                AZURE_OPENAI_ENDPOINT,
-                new AzureClientCredentialsAuthentication(CLIENT_ID, CLIENT_SECRET, TENANT_ID, null),
+        new OpenAiProviderConfiguration(
+            new OpenAiConnection(
+                OpenAiBackend.FOUNDRY,
+                new OpenAiClientCredentialsAuthentication(
+                    CLIENT_ID, CLIENT_SECRET, TENANT_ID, null),
                 timeouts,
-                new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
-                    AZURE_OPENAI_DEPLOYMENT_NAME, null)));
+                new OpenAiModel(AZURE_OPENAI_DEPLOYMENT_NAME, null),
+                ApiFamily.COMPLETIONS,
+                AZURE_OPENAI_ENDPOINT,
+                null,
+                null));
 
     testAzureOpenAiChatModelBuilder(
         providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
   }
 
   private void testAzureOpenAiChatModelBuilder(
-      AzureOpenAiProviderConfiguration providerConfig,
+      OpenAiProviderConfiguration providerConfig,
       ThrowingConsumer<AzureOpenAiChatModel.Builder> builderAssertions) {
     final var chatModelBuilder = spy(AzureOpenAiChatModel.builder());
     final var chatModelResultCaptor = new ResultCaptor<AzureOpenAiChatModel>();
@@ -183,7 +199,7 @@ class AzureOpenAiChatModelProviderTest {
     }
   }
 
-  static Stream<AzureOpenAiModelParameters> nullModelParameters() {
-    return Stream.of(new AzureOpenAiModelParameters(null, null, null));
+  static Stream<OpenAiModelParameters> nullModelParameters() {
+    return Stream.of(new OpenAiModelParameters(null, null, null, null));
   }
 }

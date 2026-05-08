@@ -23,9 +23,13 @@ import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel.OpenAiCompatibleModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.ApiFamily;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -52,8 +56,8 @@ class OpenAiCompatibleChatModelProviderTest {
   private static final String ENDPOINT = "https://compatible.local/v1";
   private static final String MODEL = "some-compatible-model";
 
-  private static final OpenAiCompatibleModelParameters DEFAULT_MODEL_PARAMETERS =
-      new OpenAiCompatibleModelParameters(10, 1.0, 0.8, Map.of("my-param", "my-value"));
+  private static final OpenAiModelParameters DEFAULT_MODEL_PARAMETERS =
+      new OpenAiModelParameters(10, 1.0, 0.8, Map.of("my-param", "my-value"));
 
   private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
   private final ChatModelHttpProxySupport proxySupport =
@@ -66,18 +70,33 @@ class OpenAiCompatibleChatModelProviderTest {
 
   @Captor private ArgumentCaptor<OpenAiChatRequestParameters> modelParametersArgumentCaptor;
 
+  private OpenAiProviderConfiguration makeConfig(
+      String apiKey,
+      Map<String, String> headers,
+      Map<String, String> queryParams,
+      TimeoutConfiguration timeouts,
+      OpenAiModelParameters modelParameters) {
+    return new OpenAiProviderConfiguration(
+        new OpenAiConnection(
+            OpenAiBackend.CUSTOM,
+            new OpenAiApiKeyAuthentication(apiKey, null, null),
+            timeouts,
+            new OpenAiModel(MODEL, modelParameters),
+            ApiFamily.COMPLETIONS,
+            ENDPOINT,
+            headers,
+            queryParams));
+  }
+
   @Test
   void createsOpenAiCompatibleChatModelWithApiKeyAndHeaders() {
     final var providerConfig =
-        new OpenAiCompatibleProviderConfiguration(
-            new OpenAiCompatibleConnection(
-                ENDPOINT,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
-                Map.of("my-header", "my-value"),
-                null,
-                MODEL_TIMEOUT,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
-                    MODEL, DEFAULT_MODEL_PARAMETERS)));
+        makeConfig(
+            API_KEY,
+            Map.of("my-header", "my-value"),
+            null,
+            MODEL_TIMEOUT,
+            DEFAULT_MODEL_PARAMETERS);
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig,
@@ -108,15 +127,7 @@ class OpenAiCompatibleChatModelProviderTest {
   @Test
   void createsOpenAiCompatibleChatModelWithoutApiKey() {
     final var providerConfig =
-        new OpenAiCompatibleProviderConfiguration(
-            new OpenAiCompatibleConnection(
-                ENDPOINT,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(null),
-                null,
-                null,
-                MODEL_TIMEOUT,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
-                    MODEL, DEFAULT_MODEL_PARAMETERS)));
+        makeConfig(null, null, null, MODEL_TIMEOUT, DEFAULT_MODEL_PARAMETERS);
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig,
@@ -132,17 +143,9 @@ class OpenAiCompatibleChatModelProviderTest {
   @NullSource
   @MethodSource("nullModelParameters")
   void createsOpenAiCompatibleChatModelWithNullModelParameters(
-      OpenAiCompatibleModelParameters modelParameters) {
+      OpenAiModelParameters modelParameters) {
     final var providerConfig =
-        new OpenAiCompatibleProviderConfiguration(
-            new OpenAiCompatibleConnection(
-                ENDPOINT,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
-                Map.of(),
-                Map.of(),
-                MODEL_TIMEOUT,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
-                    MODEL, modelParameters)));
+        makeConfig(API_KEY, Map.of(), Map.of(), MODEL_TIMEOUT, modelParameters);
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig,
@@ -168,15 +171,7 @@ class OpenAiCompatibleChatModelProviderTest {
   @MethodSource(
       "io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport#defaultTimeoutYieldingConfigs")
   void createsOpenAiCompatibleChatModelWithUnspecifiedTimeouts(TimeoutConfiguration timeouts) {
-    final var providerConfig =
-        new OpenAiCompatibleProviderConfiguration(
-            new OpenAiCompatibleConnection(
-                ENDPOINT,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
-                Map.of(),
-                Map.of(),
-                timeouts,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(MODEL, null)));
+    final var providerConfig = makeConfig(API_KEY, Map.of(), Map.of(), timeouts, null);
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
@@ -186,15 +181,12 @@ class OpenAiCompatibleChatModelProviderTest {
   void createsOpenAiCompatibleChatModelWithApiKeyAndAuthorizationHeader() {
     final var authHeaderValue = "Bearer token123";
     final var providerConfig =
-        new OpenAiCompatibleProviderConfiguration(
-            new OpenAiCompatibleConnection(
-                ENDPOINT,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
-                Map.of("Authorization", authHeaderValue),
-                Collections.emptyMap(),
-                MODEL_TIMEOUT,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
-                    MODEL, DEFAULT_MODEL_PARAMETERS)));
+        makeConfig(
+            API_KEY,
+            Map.of("Authorization", authHeaderValue),
+            Collections.emptyMap(),
+            MODEL_TIMEOUT,
+            DEFAULT_MODEL_PARAMETERS);
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig,
@@ -218,15 +210,12 @@ class OpenAiCompatibleChatModelProviderTest {
     final var authHeaderValue = "Bearer token123";
     final var customQueryParameters = Map.of("foo", "bar", "foo2", "bar2");
     final var providerConfig =
-        new OpenAiCompatibleProviderConfiguration(
-            new OpenAiCompatibleConnection(
-                ENDPOINT,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
-                Map.of("Authorization", authHeaderValue),
-                customQueryParameters,
-                null,
-                new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
-                    MODEL, DEFAULT_MODEL_PARAMETERS)));
+        makeConfig(
+            API_KEY,
+            Map.of("Authorization", authHeaderValue),
+            customQueryParameters,
+            null,
+            DEFAULT_MODEL_PARAMETERS);
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig,
@@ -248,7 +237,7 @@ class OpenAiCompatibleChatModelProviderTest {
   }
 
   private void testOpenAiCompatibleChatModelBuilder(
-      OpenAiCompatibleProviderConfiguration providerConfig,
+      OpenAiProviderConfiguration providerConfig,
       ThrowingConsumer<OpenAiChatModelBuilder> builderAssertions) {
     final var chatModelBuilder = spy(OpenAiChatModel.builder());
     final var chatModelResultCaptor = new ResultCaptor<OpenAiChatModel>();
@@ -267,7 +256,7 @@ class OpenAiCompatibleChatModelProviderTest {
     }
   }
 
-  static Stream<OpenAiCompatibleModelParameters> nullModelParameters() {
-    return Stream.of(new OpenAiCompatibleModelParameters(null, null, null, null));
+  static Stream<OpenAiModelParameters> nullModelParameters() {
+    return Stream.of(new OpenAiModelParameters(null, null, null, null));
   }
 }

@@ -560,9 +560,10 @@ fields.
 ## Provider Configuration Restructure
 
 Configurations are restructured by wire format. The `ProviderConfiguration` sealed type
-retains six members (matching today's count) but each gains a discriminator for backend or
-api-family choice. Element template UI groups conditional fields under each discriminator
-value.
+reduces from six to **four** members. The three separate OpenAI-family configs (`openai`,
+`azureOpenAi`, `openaiCompatible`) are merged into a single `OpenAiProviderConfiguration`
+with a backend discriminator, mirroring the Anthropic pattern. Element template UI groups
+conditional fields under each discriminator value.
 
 ```
 ProviderConfiguration
@@ -575,22 +576,25 @@ ProviderConfiguration
 │     auth (existing AWS chain)
 │     model: BedrockModel
 ├── OpenAiProviderConfiguration            api: openai-{responses|completions}
-│     apiFamily: { responses | completions }               ← NEW (default: responses)
-│     auth (API key)
+│     backend: { openai | foundry | custom }               ← NEW (replaces 3 separate configs)
+│     apiFamily: { responses | completions }               ← present for all backends
+│     auth conditional on backend:
+│       openai:   apiKey (+ optional organizationId, projectId)
+│       foundry:  apiKey | clientCredentials (Entra ID / Client Credentials)
+│       custom:   apiKey (optional)
+│     endpoint: required for foundry and custom backends
+│     headers, queryParameters, customParameters: Map (custom backend only)
 │     model: OpenAiModel
-├── AzureOpenAiProviderConfiguration       api: openai-{responses|completions}
-│     apiFamily: { responses | completions }               ← NEW
-│     auth (existing — endpoint, key)
-│     model: AzureModel
-├── OpenAiCompatibleProviderConfiguration  api: openai-{responses|completions}
-│     apiFamily: { responses | completions }               ← NEW (default: completions)
-│     auth (existing — endpoint, optional key)
-│     model: OpenAiCompatibleModel
 └── GoogleGenAiProviderConfiguration       api: google-genai
       backend: { developer-api | vertex }                  ← NEW
       auth fields conditional on backend
       model: GeminiModel
 ```
+
+`AzureOpenAiProviderConfiguration` and `OpenAiCompatibleProviderConfiguration` are removed
+as sealed interface members. Their saved shapes are rewritten by the migration deserializer
+(see table below), and their discriminators (`azureOpenAi`, `openaiCompatible`) are dropped
+from `@JsonSubTypes`.
 
 `GoogleVertexAiProviderConfiguration` is renamed to `GoogleGenAiProviderConfiguration` since
 the same configuration now covers both backends.
@@ -605,19 +609,29 @@ A custom `StdDeserializer<ProviderConfiguration>` rewrites legacy configuration 
 the new structure at deserialization time. Existing process instances continue to work
 without manual intervention.
 
-| Saved shape                                                                | Rewritten to                                                                              | Detection             |
-|----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|-----------------------|
-| `{type: bedrock, bedrock.model.model: "anthropic.claude-..."}`             | `{type: anthropic, anthropic.backend: bedrock, anthropic.model.model: "anthropic..."}`    | model-id prefix       |
-| `{type: bedrock, bedrock.model.model: "amazon.nova-..." \| "meta..." }`    | passthrough                                                                               | model-id prefix       |
-| `{type: googleVertexAi, ...}`                                              | `{type: googleGenAi, googleGenAi.backend: vertex, ...}`                                   | discriminator rename  |
-| `{type: anthropic, ...}` (no backend)                                      | `{type: anthropic, anthropic.backend: direct, ...}`                                       | missing field default |
-| `{type: openai, ...}` (no apiFamily)                                       | `{type: openai, openai.apiFamily: completions, ...}`                                      | missing field default |
-| `{type: azureOpenAi, ...}` (no apiFamily)                                  | same with `apiFamily: completions`                                                        | missing field default |
-| `{type: openAiCompatible, ...}` (no apiFamily)                             | same with `apiFamily: completions`                                                        | missing field default |
+| Saved shape                                                                | Rewritten to                                                                                                          | Detection             |
+|----------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|-----------------------|
+| `{type: bedrock, bedrock.model.model: "anthropic.claude-..."}`             | `{type: anthropic, anthropic.backend: bedrock, anthropic.model.model: "anthropic..."}`                                | model-id prefix       |
+| `{type: bedrock, bedrock.model.model: "amazon.nova-..." \| "meta..." }`    | passthrough                                                                                                           | model-id prefix       |
+| `{type: googleVertexAi, ...}`                                              | `{type: googleGenAi, googleGenAi.backend: vertex, ...}`                                                               | discriminator rename  |
+| `{type: anthropic, ...}` (no backend)                                      | `{type: anthropic, anthropic.backend: direct, ...}`                                                                   | missing field default |
+| `{type: anthropic, anthropic.authentication: {apiKey: "..."}}` (no auth `type`) | `{type: anthropic, anthropic.authentication: {type: apiKey, apiKey: "..."}, ...}`                                | missing nested discriminator |
+| `{type: openai, ...}` (no backend)                                         | `{type: openai, openai.backend: openai, openai.apiFamily: completions, ...}`                                          | missing field default |
+| `{type: azureOpenAi, ...}`                                                 | `{type: openai, openai.backend: foundry, openai.apiFamily: completions, ...}` with auth + endpoint field mapping      | discriminator rename  |
+| `{type: openaiCompatible, ...}`                                            | `{type: openai, openai.backend: custom, openai.apiFamily: completions, ...}` with auth + custom field mapping         | discriminator rename  |
 
-Defaults during migration preserve current behavior (Chat Completions for OpenAI variants,
+Auth field mapping for `azureOpenAi` → `foundry`: the `azureOpenAi.auth` sub-tree (apiKey
+or clientCredentials shape) maps directly onto `openai.auth`; `azureOpenAi.endpoint` maps
+to `openai.endpoint`.
+
+Auth and custom field mapping for `openaiCompatible` → `custom`: `openaiCompatible.auth.apiKey`
+maps to `openai.auth.apiKey`; `openaiCompatible.endpoint` maps to `openai.endpoint`;
+`openaiCompatible.headers`, `openaiCompatible.queryParameters`, and
+`openaiCompatible.customParameters` map to the same-named fields under `openai`.
+
+Defaults during migration preserve current behavior (Chat Completions for all OpenAI variants,
 direct for Anthropic). Newly created configurations pick up the new defaults (Responses API
-for OpenAI direct).
+for the openai backend).
 
 The migration deserializer is permanent infrastructure — kept indefinitely so that stale
 process variables remain readable.

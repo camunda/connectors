@@ -500,13 +500,39 @@ inline-native path in E4.
 **Goal**: introduce the canonical discriminator scheme without breaking saved process state.
 Element template version bump 11 → 12 (after D's bump).
 
-**Files to modify**:
+**Files to modify / create**:
 - `AnthropicProviderConfiguration`: add `AnthropicBackend { DIRECT, BEDROCK, VERTEX, FOUNDRY }`;
-  conditional auth fields per backend.
-- `OpenAiProviderConfiguration`: `apiFamily` already added in Phase D — extend handling here as
-  needed.
-- `AzureOpenAiProviderConfiguration`: add `apiFamily` matching the OpenAI shape.
-- `OpenAiCompatibleProviderConfiguration`: stays Completions-only (no `apiFamily` field).
+  conditional auth fields per backend. `AnthropicAuthentication` is converted from a flat record
+  to a `sealed interface` with a `type` discriminator — same pattern as `AzureAuthentication` in
+  `AzureOpenAiProviderConfiguration`. Two non-platform variants:
+  - `AnthropicApiKeyAuthentication(@NotBlank String apiKey)` — preserves the current single field.
+    Valid for **DIRECT** and **FOUNDRY** backends.
+  - `AnthropicClientCredentialsAuthentication(@NotBlank String clientId, @NotBlank String clientSecret,
+    @NotBlank String tenantId, String authorityHost)` — exact field-for-field mirror of
+    `AzureClientCredentialsAuthentication` (`authorityHost` optional). Valid for **FOUNDRY** only.
+  Backend × auth validity enforced at construction time: reject `(DIRECT, clientCredentials)` and
+  any `(BEDROCK | VERTEX, apiKey | clientCredentials)` pairing with a clear error. BEDROCK and
+  VERTEX auth shapes (AWS credentials chain and Google service-account / ADC) follow the patterns
+  established in `BedrockProviderConfiguration` and `GoogleVertexAiProviderConfiguration`.
+- `OpenAiProviderConfiguration`: consolidates the three existing OpenAI-family configs into one.
+  - Add `OpenAiBackend { OPENAI, FOUNDRY, CUSTOM }` enum + `backend` field.
+  - `apiFamily` (already added in Phase D) stays and is present for all backends.
+  - Auth becomes conditional on backend:
+    - `OPENAI`: existing apiKey (+ optional organizationId, projectId).
+    - `FOUNDRY`: apiKey **or** clientCredentials (Entra ID / Client Credentials, same shape as the
+      existing `AzureAuthentication` sealed type).
+    - `CUSTOM`: apiKey (optional).
+  - `endpoint`: required for FOUNDRY and CUSTOM backends.
+  - `headers`, `queryParameters`, `customParameters` (`Map<String,Object>`): CUSTOM backend only,
+    carried over from `OpenAiCompatibleProviderConfiguration`.
+  - Discriminator stays `openai`; model type stays `OpenAiModel`.
+- **Remove** `AzureOpenAiProviderConfiguration` and `OpenAiCompatibleProviderConfiguration` as
+  sealed interface members; drop their `@JsonSubTypes` entries. Existing Java source files are
+  deleted; the migration deserializer handles their saved shapes.
+- **Remove** `OpenAiCompatibleChatModelApiFactory`: its logic (custom base URL + optional API key)
+  folds into `OpenAiChatModelApiFactory` under the `CUSTOM` backend branch. The `OpenAiChatModelApiFactory`
+  now branches on `backend` (to build the right `OpenAIClient`) and then on `apiFamily` (to pick
+  the impl class).
 - `GoogleVertexAiProviderConfiguration` → `GoogleGenAiProviderConfiguration`: add
   `GoogleBackend { DEVELOPER_API, VERTEX }`; rename discriminator `googleVertexAi` → `googleGenAi`.
 - `BedrockProviderConfiguration`: validate at construction that model ID is non-Anthropic
@@ -523,8 +549,12 @@ Element template version bump 11 → 12 (after D's bump).
   the new shape — `@JsonDeserialize` only affects the read path. Inside the deserializer, dispatch
   to concrete subtypes via `mapper.treeToValue(migrated, SubType.class)`; that doesn't re-enter the
   custom deserializer because Jackson's `BeanDeserializer` for the resolved subtype takes over.
-- `element-templates/agenticai-aiagent-outbound-connector.json`: bump 11 → 12; add conditional UI
-  groups for `backend`. Maven regenerates the versioned snapshot + job-worker template.
+- `element-templates/agenticai-aiagent-outbound-connector.json`: bump 11 → 12. The three separate
+  OpenAI provider entries (`openai`, `azureOpenAi`, `openaiCompatible`) are collapsed into one
+  `openai` entry with a `backend` dropdown (OpenAI / Azure AI Foundry / Custom). Anthropic gains a
+  `backend` dropdown (Direct / Bedrock / Vertex / Foundry). Google is renamed and gains a `backend`
+  dropdown (Developer API / Vertex). Auth fields are conditionally shown per backend. Maven
+  regenerates the versioned snapshot + job-worker template.
 - `element-templates/README.md`: replace top row again (or insert new row if Camunda min version
   changes).
 
@@ -551,11 +581,12 @@ covers a saved `agentContext` from a v10/v11 instance.
    `backend = bedrock | vertex | foundry` (SDK modules: `anthropic-java-bedrock`,
    `anthropic-java-vertex`, `anthropic-java-foundry`). Same wire format; only client construction
    differs.
-2. **Native Azure OpenAI** — `AzureOpenAiChatModelApiFactory` builds the Azure-flavored
-   `OpenAIClient` (API key or Entra/AAD auth) and hands to the existing `OpenAiChatCompletions`
-   / `OpenAiResponses` impl classes. Branches on `config.apiFamily()` exactly like the OpenAI
-   factory. (If openai-java's Azure variant lags Responses endpoint coverage, Azure stays
-   Completions-only for one release.)
+2. **OpenAI FOUNDRY backend** — extend `OpenAiChatModelApiFactory` to build an Azure-flavored
+   `OpenAIClient` when `config.backend() == FOUNDRY` (API key or Entra/AAD clientCredentials auth,
+   endpoint from config). Hands to the existing `OpenAiChatCompletions` / `OpenAiResponses` impl
+   classes; branches on `config.apiFamily()` as today. No separate factory class needed. (If
+   openai-java's Azure variant lags Responses endpoint coverage, FOUNDRY stays Completions-only for
+   one release.)
 3. **Native Google GenAI** — `google-genai-java` SDK; backend toggle (`developer-api` / `vertex`).
    Reasoning via `thoughtSignature`; thinking budget via `ThinkingConfig.thinkingBudget`.
 4. **Native Bedrock-Converse** — AWS SDK v2 `bedrockruntime`. Non-Anthropic models only.

@@ -13,6 +13,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiApiKeyAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -42,15 +43,16 @@ public class OpenAiChatModelProvider implements ChatModelProvider<OpenAiProvider
 
     final var builder =
         OpenAiChatModel.builder()
-            .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
             .timeout(
                 deriveTimeoutSetting("OpenAI model call", config, connection.timeouts(), LOGGER))
             .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
 
-    Optional.ofNullable(connection.authentication().organizationId())
-        .ifPresent(builder::organizationId);
-    Optional.ofNullable(connection.authentication().projectId()).ifPresent(builder::projectId);
+    if (connection.authentication() instanceof OpenAiApiKeyAuthentication apiKeyAuth) {
+      builder.apiKey(apiKeyAuth.apiKey());
+      Optional.ofNullable(apiKeyAuth.organizationId()).ifPresent(builder::organizationId);
+      Optional.ofNullable(apiKeyAuth.projectId()).ifPresent(builder::projectId);
+    }
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
