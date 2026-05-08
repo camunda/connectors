@@ -14,6 +14,8 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.ApiFamily;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import java.time.Duration;
 import java.util.Optional;
@@ -22,12 +24,11 @@ import org.springframework.lang.Nullable;
 
 /**
  * Native OpenAI factory for the {@code openai} discriminator. Builds an {@link OpenAIClient}
- * (OkHttp transport) from {@link OpenAiProviderConfiguration} and instantiates an {@link
- * OpenAiChatCompletionsChatModelApi}.
+ * (OkHttp transport) from {@link OpenAiProviderConfiguration} and dispatches to the appropriate
+ * backend-specific client builder ({@code OPENAI}, {@code FOUNDRY}, or {@code CUSTOM}).
  *
- * <p>Phase D will add the {@code apiFamily} branch: when the config selects {@code apiFamily =
- * RESPONSES}, the factory will build {@code OpenAiResponsesChatModelApi} instead, sharing this
- * client construction.
+ * <p>The {@code create()} method branches on {@code apiFamily} to pick {@link
+ * OpenAiResponsesChatModelApi} vs {@link OpenAiChatCompletionsChatModelApi}.
  */
 public class OpenAiChatModelApiFactory implements ChatModelApiFactory<OpenAiProviderConfiguration> {
 
@@ -102,17 +103,77 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory<OpenAiProv
   }
 
   private OpenAIClient buildClient(OpenAiConnection connection) {
+    return switch (connection.backend()) {
+      case OPENAI -> buildOpenAiClient(connection);
+      case FOUNDRY -> buildFoundryClient(connection);
+      case CUSTOM -> buildCustomClient(connection);
+    };
+  }
+
+  private OpenAIClient buildOpenAiClient(OpenAiConnection connection) {
     final var builder = OpenAIOkHttpClient.builder();
-    builder.apiKey(connection.authentication().apiKey());
+
+    if (connection.authentication() instanceof OpenAiApiKeyAuthentication apiKeyAuth) {
+      builder.apiKey(apiKeyAuth.apiKey());
+      if (StringUtils.isNotBlank(apiKeyAuth.organizationId())) {
+        builder.organization(apiKeyAuth.organizationId());
+      }
+      if (StringUtils.isNotBlank(apiKeyAuth.projectId())) {
+        builder.project(apiKeyAuth.projectId());
+      }
+    } else {
+      builder.apiKey("no-key");
+    }
 
     if (StringUtils.isNotBlank(connection.endpoint())) {
       builder.baseUrl(connection.endpoint());
     }
-    if (StringUtils.isNotBlank(connection.authentication().organizationId())) {
-      builder.organization(connection.authentication().organizationId());
+
+    final var timeout = resolveTimeout(connection);
+    if (timeout != null) {
+      builder.timeout(timeout);
     }
-    if (StringUtils.isNotBlank(connection.authentication().projectId())) {
-      builder.project(connection.authentication().projectId());
+
+    return builder.build();
+  }
+
+  private OpenAIClient buildFoundryClient(OpenAiConnection connection) {
+    if (connection.authentication() instanceof OpenAiClientCredentialsAuthentication) {
+      throw new UnsupportedOperationException(
+          "Client credentials for FOUNDRY backend requires Phase G Azure SDK integration");
+    }
+
+    final var builder = OpenAIOkHttpClient.builder().baseUrl(connection.endpoint());
+
+    if (connection.authentication() instanceof OpenAiApiKeyAuthentication apiKeyAuth) {
+      builder.apiKey(apiKeyAuth.apiKey());
+    } else {
+      builder.apiKey("no-key");
+    }
+
+    final var timeout = resolveTimeout(connection);
+    if (timeout != null) {
+      builder.timeout(timeout);
+    }
+
+    return builder.build();
+  }
+
+  private OpenAIClient buildCustomClient(OpenAiConnection connection) {
+    final var builder = OpenAIOkHttpClient.builder().baseUrl(connection.endpoint());
+
+    final var apiKey =
+        connection.authentication() instanceof OpenAiApiKeyAuthentication apiKeyAuth
+                && StringUtils.isNotBlank(apiKeyAuth.apiKey())
+            ? apiKeyAuth.apiKey()
+            : "no-key";
+    builder.apiKey(apiKey);
+
+    if (connection.headers() != null && !connection.headers().isEmpty()) {
+      connection.headers().forEach(builder::putHeader);
+    }
+    if (connection.queryParameters() != null && !connection.queryParameters().isEmpty()) {
+      connection.queryParameters().forEach(builder::putQueryParam);
     }
 
     final var timeout = resolveTimeout(connection);

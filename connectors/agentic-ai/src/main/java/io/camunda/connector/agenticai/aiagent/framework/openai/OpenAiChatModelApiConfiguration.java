@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -20,11 +19,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Registers the native OpenAI factories under the same Spring bean names as the LangChain4j bridge
- * factories ({@code langchain4JOpenAiChatModelApiFactory} and {@code
- * langchain4JOpenAiCompatibleChatModelApiFactory}). The bridge configuration uses
- * {@code @ConditionalOnMissingBean(name = ...)}, so these native beans take over whenever the
- * OpenAI SDK is on the classpath. Azure OpenAI stays on the bridge for now (Phase G).
+ * Registers the native OpenAI factory under the same Spring bean name as the LangChain4j bridge
+ * factory ({@code langchain4JOpenAiChatModelApiFactory}). The bridge configuration uses
+ * {@code @ConditionalOnMissingBean(name = ...)}, so this native bean takes over whenever the OpenAI
+ * SDK is on the classpath.
  */
 @Configuration
 @ConditionalOnClass(OpenAIClient.class)
@@ -37,19 +35,6 @@ public class OpenAiChatModelApiConfiguration {
       ModelCapabilitiesResolver capabilitiesResolver,
       AgenticAiConnectorsConfigurationProperties properties) {
     return new OpenAiChatModelApiFactory(
-        objectMapper,
-        capabilitiesResolver,
-        properties.aiagent().chatModel().api().defaultTimeout());
-  }
-
-  @Bean(name = "langchain4JOpenAiCompatibleChatModelApiFactory")
-  @ConditionalOnMissingBean(name = "langchain4JOpenAiCompatibleChatModelApiFactory")
-  public ChatModelApiFactory<OpenAiCompatibleProviderConfiguration>
-      openAiCompatibleChatModelApiFactory(
-          @ConnectorsObjectMapper ObjectMapper objectMapper,
-          ModelCapabilitiesResolver capabilitiesResolver,
-          AgenticAiConnectorsConfigurationProperties properties) {
-    return new OpenAiCompatibleChatModelApiFactory(
         objectMapper,
         capabilitiesResolver,
         properties.aiagent().chatModel().api().defaultTimeout());
