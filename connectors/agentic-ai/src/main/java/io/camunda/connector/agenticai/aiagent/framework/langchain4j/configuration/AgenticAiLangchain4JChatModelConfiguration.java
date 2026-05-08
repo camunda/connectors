@@ -41,7 +41,7 @@ public class AgenticAiLangchain4JChatModelConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProvider<OpenAiProviderConfiguration> langchain4JAzureOpenAiChatModelProvider(
+  public ChatModelProvider<OpenAiProviderConfiguration> langchain4JOpenAiChatModelProvider(
       AgenticAiConnectorsConfigurationProperties config,
       ChatModelHttpProxySupport chatModelHttpProxySupport) {
     final var chatModelProperties = config.aiagent().chatModel();
