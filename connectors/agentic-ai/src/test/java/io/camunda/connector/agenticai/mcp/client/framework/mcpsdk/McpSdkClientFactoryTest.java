@@ -37,7 +37,9 @@ import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpC
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.modelcontextprotocol.client.McpSyncClient;
+import io.modelcontextprotocol.client.transport.ServerParameters;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,6 +100,19 @@ class McpSdkClientFactoryTest {
             CLIENT_ID, createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
 
     assertClientIsOfCorrectType(client);
+  }
+
+  @Test
+  void forwardsConfiguredStdioEnvironmentVariablesToServerParameters() {
+    final var stdioConfig =
+        new StdioMcpClientTransportConfiguration(
+            "command", List.of("arg1"), Map.of("MCP_TOKEN", "secret-token"));
+
+    final var transport =
+        ReflectionTestUtils.invokeMethod(factory, "createStdioTransport", stdioConfig);
+    final var serverParameters = extractServerParameters(transport);
+
+    assertThat(serverParameters.env()).containsEntry("MCP_TOKEN", "secret-token");
   }
 
   @ParameterizedTest
@@ -201,6 +216,22 @@ class McpSdkClientFactoryTest {
   private static StdioMcpClientTransportConfiguration createStdioMcpClientTransportConfiguration(
       List<String> args) {
     return new StdioMcpClientTransportConfiguration("command", args, Map.of("ENV_VAR", "value"));
+  }
+
+  private static ServerParameters extractServerParameters(Object transport) {
+    return Arrays.stream(transport.getClass().getDeclaredFields())
+        .filter(field -> field.getType().equals(ServerParameters.class))
+        .findFirst()
+        .map(
+            field -> {
+              field.setAccessible(true);
+              try {
+                return (ServerParameters) field.get(transport);
+              } catch (IllegalAccessException e) {
+                throw new IllegalStateException("Unable to read ServerParameters field", e);
+              }
+            })
+        .orElseThrow(() -> new IllegalStateException("No ServerParameters field found"));
   }
 
   private static StreamableHttpMcpClientTransportConfiguration
