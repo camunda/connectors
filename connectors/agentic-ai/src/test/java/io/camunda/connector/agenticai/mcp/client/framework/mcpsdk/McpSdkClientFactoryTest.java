@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.ServerParameters;
+import io.modelcontextprotocol.spec.McpClientTransport;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -107,9 +108,12 @@ class McpSdkClientFactoryTest {
     final var stdioConfig =
         new StdioMcpClientTransportConfiguration(
             "command", List.of("arg1"), Map.of("MCP_TOKEN", "secret-token"));
+    final var client =
+        factory.createClient(
+            CLIENT_ID, createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
 
-    final var transport =
-        ReflectionTestUtils.invokeMethod(factory, "createStdioTransport", stdioConfig);
+    final var internalClient = (McpSyncClient) ReflectionTestUtils.getField(client, "delegate");
+    final var transport = extractFieldByType(internalClient, McpClientTransport.class);
     final var serverParameters = extractServerParameters(transport);
 
     assertThat(serverParameters.env()).containsEntry("MCP_TOKEN", "secret-token");
@@ -219,19 +223,23 @@ class McpSdkClientFactoryTest {
   }
 
   private static ServerParameters extractServerParameters(Object transport) {
-    return Arrays.stream(transport.getClass().getDeclaredFields())
-        .filter(field -> field.getType().equals(ServerParameters.class))
+    return extractFieldByType(transport, ServerParameters.class);
+  }
+
+  private static <T> T extractFieldByType(Object source, Class<T> type) {
+    return Arrays.stream(source.getClass().getDeclaredFields())
+        .filter(field -> type.isAssignableFrom(field.getType()))
         .findFirst()
         .map(
             field -> {
               field.setAccessible(true);
               try {
-                return (ServerParameters) field.get(transport);
+                return type.cast(field.get(source));
               } catch (IllegalAccessException e) {
-                throw new IllegalStateException("Unable to read ServerParameters field", e);
+                throw new IllegalStateException("Unable to read %s field".formatted(type), e);
               }
             })
-        .orElseThrow(() -> new IllegalStateException("No ServerParameters field found"));
+        .orElseThrow(() -> new IllegalStateException("No %s field found".formatted(type)));
   }
 
   private static StreamableHttpMcpClientTransportConfiguration
