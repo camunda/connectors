@@ -49,7 +49,21 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
   }
 
   public record OpenAiConnection(
-      @TemplateProperty(ignore = true) OpenAiBackend backend,
+      @TemplateProperty(
+              group = "provider",
+              label = "Backend",
+              description = "Specify the OpenAI backend to use.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              defaultValue = "openai",
+              defaultValueType = TemplateProperty.DefaultValueType.String,
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(label = "OpenAI", value = "openai"),
+                @TemplateProperty.DropdownPropertyChoice(
+                    label = "Azure AI Foundry",
+                    value = "foundry"),
+                @TemplateProperty.DropdownPropertyChoice(label = "Custom", value = "custom")
+              })
+          OpenAiBackend backend,
       @Valid @NotNull OpenAiAuthentication authentication,
       @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull OpenAiModel model,

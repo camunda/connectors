@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AI Agent Task",
-  "id" : "io.camunda.connectors.agenticai.aiagent.v1-hybrid",
+  "name" : "AI Agent Task",
+  "id" : "io.camunda.connectors.agenticai.aiagent.v1",
   "description" : "Execute a single AI-powered action with tool calling capabilities",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-  "version" : 12,
+  "version" : 11,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "provider",
     "label" : "Model provider",
     "openByDefault" : false
@@ -71,14 +68,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda.agenticai:aiagent:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "provider.type",
     "label" : "Provider",
@@ -120,36 +115,6 @@
       "type" : "simple"
     },
     "type" : "String"
-  }, {
-    "id" : "provider.anthropic.backend",
-    "label" : "Backend",
-    "description" : "Specify the Anthropic backend to use.",
-    "optional" : false,
-    "value" : "direct",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.anthropic.backend",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Direct (Anthropic API)",
-      "value" : "direct"
-    }, {
-      "name" : "AWS Bedrock",
-      "value" : "bedrock"
-    }, {
-      "name" : "Google Vertex AI",
-      "value" : "vertex"
-    }, {
-      "name" : "Azure AI Foundry",
-      "value" : "foundry"
-    } ]
   }, {
     "id" : "provider.anthropic.authentication.type",
     "label" : "Authentication",
@@ -563,57 +528,6 @@
       } ]
     },
     "type" : "String"
-  }, {
-    "id" : "provider.googleGenAi.backend",
-    "label" : "Backend",
-    "description" : "Specify the Google GenAI backend to use.",
-    "optional" : false,
-    "value" : "vertex",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.googleGenAi.backend",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "googleGenAi",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Vertex AI",
-      "value" : "vertex"
-    }, {
-      "name" : "Developer API (Google AI Studio)",
-      "value" : "developer-api"
-    } ]
-  }, {
-    "id" : "provider.openai.backend",
-    "label" : "Backend",
-    "description" : "Specify the OpenAI backend to use.",
-    "optional" : false,
-    "value" : "openai",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.backend",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "OpenAI",
-      "value" : "openai"
-    }, {
-      "name" : "Azure AI Foundry",
-      "value" : "foundry"
-    }, {
-      "name" : "Custom",
-      "value" : "custom"
-    } ]
   }, {
     "id" : "provider.openai.authentication.type",
     "label" : "Authentication",
@@ -1684,7 +1598,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "12",
+    "value" : "11",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

@@ -63,7 +63,20 @@ public record GoogleGenAiProviderConfiguration(@Valid @NotNull GoogleGenAiConnec
           String region,
       @Valid @NotNull GoogleGenAiAuthentication authentication,
       @Valid @NotNull GoogleGenAiModel model,
-      @TemplateProperty(ignore = true) GoogleBackend backend) {
+      @TemplateProperty(
+              group = "provider",
+              label = "Backend",
+              description = "Specify the Google GenAI backend to use.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              defaultValue = "vertex",
+              defaultValueType = TemplateProperty.DefaultValueType.String,
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(label = "Vertex AI", value = "vertex"),
+                @TemplateProperty.DropdownPropertyChoice(
+                    label = "Developer API (Google AI Studio)",
+                    value = "developer-api")
+              })
+          GoogleBackend backend) {
 
     public GoogleGenAiConnection {
       if (backend == null) {

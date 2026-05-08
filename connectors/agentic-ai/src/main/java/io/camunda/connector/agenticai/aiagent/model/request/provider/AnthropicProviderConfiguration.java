@@ -58,7 +58,26 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
               feel = FeelMode.optional,
               optional = true)
           String endpoint,
-      @TemplateProperty(ignore = true) AnthropicBackend backend,
+      @TemplateProperty(
+              group = "provider",
+              label = "Backend",
+              description = "Specify the Anthropic backend to use.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              defaultValue = "direct",
+              defaultValueType = TemplateProperty.DefaultValueType.String,
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(
+                    label = "Direct (Anthropic API)",
+                    value = "direct"),
+                @TemplateProperty.DropdownPropertyChoice(label = "AWS Bedrock", value = "bedrock"),
+                @TemplateProperty.DropdownPropertyChoice(
+                    label = "Google Vertex AI",
+                    value = "vertex"),
+                @TemplateProperty.DropdownPropertyChoice(
+                    label = "Azure AI Foundry",
+                    value = "foundry")
+              })
+          AnthropicBackend backend,
       @Valid @NotNull AnthropicAuthentication authentication,
       @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull AnthropicModel model) {
