@@ -37,15 +37,21 @@ import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpC
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.modelcontextprotocol.client.McpSyncClient;
+import io.modelcontextprotocol.client.transport.ServerParameters;
+import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
+import org.mockito.MockedConstruction;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -81,23 +87,47 @@ class McpSdkClientFactoryTest {
 
   @Test
   void createsStdioMcpClient() {
-    final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"));
-    final var client =
-        factory.createClient(
-            CLIENT_ID, createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
+    final var stdioConfig =
+        createStdioMcpClientTransportConfiguration(
+            List.of("arg1", "arg2"), Map.of("ENV_VAR", "value"));
 
-    assertClientIsOfCorrectType(client);
-    verifyNoInteractions(httpClientProxyConfigurator);
+    final var serverParameters =
+        captureStdioServerParameters(
+            client -> {
+              assertClientIsOfCorrectType(client);
+              verifyNoInteractions(httpClientProxyConfigurator);
+            },
+            stdioConfig);
+
+    assertThat(serverParameters.getCommand()).isEqualTo("command");
+    assertThat(serverParameters.getArgs()).containsExactly("arg1", "arg2");
+    assertThat(serverParameters.getEnv()).containsEntry("ENV_VAR", "value");
   }
 
   @Test
   void createsStdioMcpClientWithoutArguments() {
-    final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of());
-    final var client =
-        factory.createClient(
-            CLIENT_ID, createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
+    final var stdioConfig =
+        createStdioMcpClientTransportConfiguration(List.of(), Map.of("ENV_VAR", "value"));
 
-    assertClientIsOfCorrectType(client);
+    final var serverParameters =
+        captureStdioServerParameters(this::assertClientIsOfCorrectType, stdioConfig);
+
+    assertThat(serverParameters.getCommand()).isEqualTo("command");
+    assertThat(serverParameters.getArgs()).isEmpty();
+    assertThat(serverParameters.getEnv()).containsEntry("ENV_VAR", "value");
+  }
+
+  @Test
+  void createsStdioMcpClientWithoutEnvironmentVariables() {
+    final var stdioConfig =
+        createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"), Map.of());
+
+    final var serverParameters =
+        captureStdioServerParameters(this::assertClientIsOfCorrectType, stdioConfig);
+
+    assertThat(serverParameters.getCommand()).isEqualTo("command");
+    assertThat(serverParameters.getArgs()).containsExactly("arg1", "arg2");
+    assertThat(serverParameters.getEnv()).doesNotContainKey("ENV_VAR");
   }
 
   @ParameterizedTest
@@ -166,7 +196,7 @@ class McpSdkClientFactoryTest {
 
   @Test
   void doesNotFailWithNullTimeouts() {
-    final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of());
+    final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), Map.of());
     final var client =
         factory.createClient(
             CLIENT_ID,
@@ -199,8 +229,27 @@ class McpSdkClientFactoryTest {
   }
 
   private static StdioMcpClientTransportConfiguration createStdioMcpClientTransportConfiguration(
-      List<String> args) {
-    return new StdioMcpClientTransportConfiguration("command", args, Map.of("ENV_VAR", "value"));
+      List<String> args, Map<String, String> env) {
+    return new StdioMcpClientTransportConfiguration("command", args, env);
+  }
+
+  private ServerParameters captureStdioServerParameters(
+      Consumer<McpClientDelegate> clientAssertions,
+      StdioMcpClientTransportConfiguration stdioConfig) {
+    final var captured = new AtomicReference<ServerParameters>();
+    try (MockedConstruction<StdioClientTransport> ignored =
+        Mockito.mockConstruction(
+            StdioClientTransport.class,
+            ctx -> Mockito.withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS),
+            (mock, ctx) -> captured.set((ServerParameters) ctx.arguments().get(0)))) {
+      final var client =
+          factory.createClient(
+              CLIENT_ID,
+              createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
+      clientAssertions.accept(client);
+    }
+    assertThat(captured.get()).isNotNull();
+    return captured.get();
   }
 
   private static StreamableHttpMcpClientTransportConfiguration
