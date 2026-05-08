@@ -76,7 +76,10 @@ public class McpSdkClientFactory implements McpClientFactory {
       McpClientConfigurationProperties.StdioMcpClientTransportConfiguration stdioConfig) {
 
     return new StdioClientTransport(
-        ServerParameters.builder(stdioConfig.command()).args(stdioConfig.args()).build(),
+        ServerParameters.builder(stdioConfig.command())
+            .args(stdioConfig.args())
+            .env(stdioConfig.env())
+            .build(),
         McpJsonDefaults.getMapper());
   }
 
