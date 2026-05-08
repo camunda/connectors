@@ -14,6 +14,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.provider.Open
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -85,8 +86,12 @@ public class ProviderConfigurationDeserializer extends StdDeserializer<ProviderC
     // concrete connection type (e.g. AnthropicConnection, not AnthropicProviderConfiguration).
     // This avoids routing through ObjectMapper.treeToValue(ProviderConfiguration subtype), which
     // would re-trigger the interface-level @JsonTypeInfo + @JsonDeserialize and cause recursion.
-    ObjectNode innerNode =
-        newType != null ? (ObjectNode) migrated.path(newType) : mapper.createObjectNode();
+    JsonNode rawInner = newType != null ? migrated.path(newType) : mapper.createObjectNode();
+    if (!rawInner.isObject()) {
+      throw JsonMappingException.from(
+          jp, "Provider configuration is missing connection object for type: " + newType);
+    }
+    ObjectNode innerNode = (ObjectNode) rawInner;
 
     if (ANTHROPIC_ID.equals(newType)) {
       return new AnthropicProviderConfiguration(
