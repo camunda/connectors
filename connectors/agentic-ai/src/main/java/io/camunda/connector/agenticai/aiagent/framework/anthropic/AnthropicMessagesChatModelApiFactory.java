@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication.AnthropicApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
 import java.time.Duration;
 import java.util.Optional;
@@ -82,8 +83,12 @@ public class AnthropicMessagesChatModelApiFactory
   }
 
   private AnthropicClient buildClient(AnthropicConnection connection) {
-    final var builder =
-        AnthropicOkHttpClient.builder().apiKey(connection.authentication().apiKey());
+    if (!(connection.authentication() instanceof AnthropicApiKeyAuthentication apiKeyAuth)) {
+      throw new IllegalArgumentException(
+          "Unsupported authentication type for DIRECT backend: "
+              + connection.authentication().getClass().getSimpleName());
+    }
+    final var builder = AnthropicOkHttpClient.builder().apiKey(apiKeyAuth.apiKey());
 
     if (StringUtils.isNotBlank(connection.endpoint())) {
       builder.baseUrl(normalizeBaseUrl(connection.endpoint()));

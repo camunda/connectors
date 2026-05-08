@@ -10,7 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication.AnthropicApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication.AnthropicClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication;
@@ -150,7 +152,8 @@ class ProviderConfigurationTest {
       var connection =
           new AnthropicConnection(
               endpoint,
-              new AnthropicAuthentication("key"),
+              null,
+              new AnthropicApiKeyAuthentication("key"),
               TIMEOUT,
               new AnthropicModel("model", null));
       assertThat(validator.validate(connection)).isEmpty();
@@ -163,12 +166,55 @@ class ProviderConfigurationTest {
       var connection =
           new AnthropicConnection(
               endpoint,
-              new AnthropicAuthentication("key"),
+              null,
+              new AnthropicApiKeyAuthentication("key"),
               TIMEOUT,
               new AnthropicModel("model", null));
       assertThat(validator.validate(connection))
           .extracting(ConstraintViolation::getMessage)
           .contains(HTTP_URL_VALIDATION_MESSAGE);
+    }
+
+    @Test
+    void validationShouldSucceed_WhenApiKeyAuthenticationUsed() {
+      var connection =
+          new AnthropicConnection(
+              null,
+              null,
+              new AnthropicApiKeyAuthentication("my-api-key"),
+              TIMEOUT,
+              new AnthropicModel("model", null));
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @Test
+    void validationShouldSucceed_WhenClientCredentialsAuthUsedWithFoundryBackend() {
+      var connection =
+          new AnthropicConnection(
+              null,
+              AnthropicBackend.FOUNDRY,
+              new AnthropicClientCredentialsAuthentication(
+                  "client-id", "client-secret", "tenant-id", null),
+              TIMEOUT,
+              new AnthropicModel("model", null));
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @Test
+    void validationShouldFail_WhenClientCredentialsAuthUsedWithDirectBackend() {
+      var connection =
+          new AnthropicConnection(
+              null,
+              AnthropicBackend.DIRECT,
+              new AnthropicClientCredentialsAuthentication(
+                  "client-id", "client-secret", "tenant-id", null),
+              TIMEOUT,
+              new AnthropicModel("model", null));
+      assertThat(validator.validate(connection))
+          .hasSize(1)
+          .extracting(ConstraintViolation::getMessage)
+          .containsExactly(
+              "Client credentials authentication is only supported for the FOUNDRY backend");
     }
   }
 

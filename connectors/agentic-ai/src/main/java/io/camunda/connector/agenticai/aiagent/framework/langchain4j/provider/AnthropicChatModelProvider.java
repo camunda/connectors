@@ -12,6 +12,7 @@ import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication.AnthropicApiKeyAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -40,9 +41,14 @@ public class AnthropicChatModelProvider
   public ChatModel createChatModel(AnthropicProviderConfiguration anthropic) {
     final var connection = anthropic.anthropic();
 
+    if (!(connection.authentication() instanceof AnthropicApiKeyAuthentication apiKeyAuth)) {
+      throw new IllegalArgumentException(
+          "Unsupported authentication type for Anthropic LangChain4j provider: "
+              + connection.authentication().getClass().getSimpleName());
+    }
     final var builder =
         AnthropicChatModel.builder()
-            .apiKey(connection.authentication().apiKey())
+            .apiKey(apiKeyAuth.apiKey())
             .modelName(connection.model().model())
             .timeout(
                 deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER))
