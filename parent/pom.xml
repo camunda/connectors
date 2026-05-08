@@ -94,12 +94,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.44.0</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.44.4</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.43.2</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.44.4</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.43.2</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.44.4</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -107,13 +107,13 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.1.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260405-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260428-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.46.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20260415-2.0.0</version.google-api-services-docs>
+    <version.google-auth-library-oauth2-http>1.47.0</version.google-auth-library-oauth2-http>
+    <version.google-api-services-docs>v1-rev20260427-2.0.0</version.google-api-services-docs>
     <version.google-libraries-bom>26.80.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20260213-2.0.0</version.google-api-services-sheets>
-    <version.google-cloud-storage>2.67.0</version.google-cloud-storage>
+    <version.google-cloud-storage>2.68.0</version.google-cloud-storage>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
@@ -127,7 +127,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.2.0</version.kafka-clients>
 
-    <version.microsoft-graph>6.63.0</version.microsoft-graph>
+    <version.microsoft-graph>6.64.0</version.microsoft-graph>
     <version.azure-identity>1.18.3</version.azure-identity>
 
     <version.bouncycastle>1.84</version.bouncycastle>
@@ -150,8 +150,8 @@ limitations under the License.</license.inlineheader>
     <version.system-stubs-jupiter>2.1.8</version.system-stubs-jupiter>
 
     <version.auth0.jwt>4.5.2</version.auth0.jwt>
-    <version.auth0.jwks>0.23.1</version.auth0.jwks>
-
+    <version.auth0.jwks>0.24.0</version.auth0.jwks>
+    
     <version.langchain4j>1.14.1</version.langchain4j>
 
     <!-- maven plugins (not managed by parent) -->
