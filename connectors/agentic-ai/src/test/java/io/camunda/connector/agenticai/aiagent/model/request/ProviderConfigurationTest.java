@@ -15,9 +15,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicPr
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureOpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureOpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
@@ -26,9 +23,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiModel.GoogleGenAiModelParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication.OpenAiClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
@@ -42,7 +41,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
@@ -261,100 +259,205 @@ class ProviderConfigurationTest {
   }
 
   @Nested
-  class AzureOpenAiConnectionTest {
+  class OpenAiConnectionTest {
+
+    @Test
+    void validationShouldSucceed_WhenOpenAIBackendWithApiKeyAuth() {
+      var connection =
+          new OpenAiConnection(
+              OpenAiBackend.OPENAI,
+              new OpenAiApiKeyAuthentication("my-api-key", null, null),
+              TIMEOUT,
+              new OpenAiModel("gpt-4o", null),
+              null,
+              null,
+              null,
+              null);
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @Test
+    void validationShouldSucceed_WhenFoundryBackendWithClientCredentialsAuth() {
+      var connection =
+          new OpenAiConnection(
+              OpenAiBackend.FOUNDRY,
+              new OpenAiClientCredentialsAuthentication(
+                  "client-id", "client-secret", "tenant-id", null),
+              TIMEOUT,
+              new OpenAiModel("gpt-4o", null),
+              null,
+              "https://my-foundry-endpoint.azure.com",
+              null,
+              null);
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @Test
+    void validationShouldSucceed_WhenFoundryBackendWithApiKeyAuth() {
+      var connection =
+          new OpenAiConnection(
+              OpenAiBackend.FOUNDRY,
+              new OpenAiApiKeyAuthentication("my-api-key", null, null),
+              TIMEOUT,
+              new OpenAiModel("gpt-4o", null),
+              null,
+              "https://my-foundry-endpoint.azure.com",
+              null,
+              null);
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @Test
+    void validationShouldSucceed_WhenCustomBackendWithApiKeyAuth() {
+      var connection =
+          new OpenAiConnection(
+              OpenAiBackend.CUSTOM,
+              new OpenAiApiKeyAuthentication(null, null, null),
+              TIMEOUT,
+              new OpenAiModel("some-model", null),
+              null,
+              "https://custom-endpoint.local/v1",
+              null,
+              null);
+      // apiKey may be null for CUSTOM
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+        value = OpenAiBackend.class,
+        names = {"OPENAI", "CUSTOM"})
+    void validationShouldFail_WhenClientCredentialsAuthUsedWithNonFoundryBackend(
+        OpenAiBackend backend) {
+      var connection =
+          new OpenAiConnection(
+              backend,
+              new OpenAiClientCredentialsAuthentication(
+                  "client-id", "client-secret", "tenant-id", null),
+              TIMEOUT,
+              new OpenAiModel("gpt-4o", null),
+              null,
+              "https://some-endpoint.local",
+              null,
+              null);
+      assertThat(validator.validate(connection))
+          .hasSize(1)
+          .extracting(ConstraintViolation::getMessage)
+          .containsExactly(
+              "Client credentials authentication is only supported for the FOUNDRY backend");
+    }
 
     @ParameterizedTest
     @MethodSource(
         "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#validHttpUrls")
+    @NullSource
     void shouldAcceptValidEndpoint(String endpoint) {
       var connection =
-          new AzureOpenAiConnection(
-              endpoint,
-              new AzureAuthentication.AzureApiKeyAuthentication("key"),
+          new OpenAiConnection(
+              OpenAiBackend.OPENAI,
+              new OpenAiApiKeyAuthentication("key", null, null),
               TIMEOUT,
-              new AzureOpenAiModel("deployment", null));
+              new OpenAiModel("gpt-4o", null),
+              null,
+              endpoint,
+              null,
+              null);
       assertThat(validator.validate(connection)).isEmpty();
     }
 
     @ParameterizedTest
     @MethodSource(
         "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#invalidHttpUrls")
-    void shouldRejectInvalidUrlEndpoint(String endpoint) {
+    void shouldRejectInvalidEndpoint(String endpoint) {
       var connection =
-          new AzureOpenAiConnection(
-              endpoint,
-              new AzureAuthentication.AzureApiKeyAuthentication("key"),
+          new OpenAiConnection(
+              OpenAiBackend.OPENAI,
+              new OpenAiApiKeyAuthentication("key", null, null),
               TIMEOUT,
-              new AzureOpenAiModel("deployment", null));
+              new OpenAiModel("gpt-4o", null),
+              null,
+              endpoint,
+              null,
+              null);
       assertThat(validator.validate(connection))
           .extracting(ConstraintViolation::getMessage)
           .contains(HTTP_URL_VALIDATION_MESSAGE);
     }
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    void shouldRejectBlankEndpoint(String endpoint) {
+    @Test
+    void validationShouldSucceed_WhenNullBackendDefaultsToOpenAI() {
+      // Compact constructor sets null backend → OPENAI
       var connection =
-          new AzureOpenAiConnection(
-              endpoint,
-              new AzureAuthentication.AzureApiKeyAuthentication("key"),
+          new OpenAiConnection(
+              new OpenAiApiKeyAuthentication("my-api-key", null, null),
               TIMEOUT,
-              new AzureOpenAiModel("deployment", null));
-      assertThat(validator.validate(connection))
-          .extracting(ConstraintViolation::getMessage)
-          .contains("must not be blank");
-    }
-  }
-
-  @Nested
-  class OpenAiCompatibleConnectionTest {
-
-    @ParameterizedTest
-    @MethodSource(
-        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#validHttpUrls")
-    void shouldAcceptValidEndpoint(String endpoint) {
-      var connection =
-          new OpenAiCompatibleConnection(
-              endpoint,
-              new OpenAiCompatibleAuthentication("key"),
-              null,
-              null,
-              TIMEOUT,
-              new OpenAiCompatibleModel("model", null));
+              new OpenAiModel("gpt-4o", null));
+      assertThat(connection.backend()).isEqualTo(OpenAiBackend.OPENAI);
       assertThat(validator.validate(connection)).isEmpty();
     }
 
     @ParameterizedTest
-    @MethodSource(
-        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#invalidHttpUrls")
-    void shouldRejectInvalidUrlEndpoint(String endpoint) {
+    @EnumSource(
+        value = OpenAiBackend.class,
+        names = {"FOUNDRY", "CUSTOM"})
+    void validationShouldFail_WhenEndpointMissingForBackendThatRequiresIt(OpenAiBackend backend) {
       var connection =
-          new OpenAiCompatibleConnection(
-              endpoint,
-              new OpenAiCompatibleAuthentication("key"),
-              null,
-              null,
+          new OpenAiConnection(
+              backend,
+              new OpenAiApiKeyAuthentication("my-api-key", null, null),
               TIMEOUT,
-              new OpenAiCompatibleModel("model", null));
+              new OpenAiModel("gpt-4o", null),
+              null,
+              null,
+              null,
+              null);
       assertThat(validator.validate(connection))
+          .hasSize(1)
           .extracting(ConstraintViolation::getMessage)
-          .contains(HTTP_URL_VALIDATION_MESSAGE);
+          .containsExactly("Endpoint is required for FOUNDRY and CUSTOM backends");
     }
 
     @ParameterizedTest
-    @NullAndEmptySource
-    void shouldRejectBlankEndpoint(String endpoint) {
+    @EnumSource(
+        value = OpenAiBackend.class,
+        names = {"FOUNDRY", "CUSTOM"})
+    void validationShouldFail_WhenEndpointBlankForBackendThatRequiresIt(OpenAiBackend backend) {
       var connection =
-          new OpenAiCompatibleConnection(
-              endpoint,
-              new OpenAiCompatibleAuthentication("key"),
-              null,
-              null,
+          new OpenAiConnection(
+              backend,
+              new OpenAiApiKeyAuthentication("my-api-key", null, null),
               TIMEOUT,
-              new OpenAiCompatibleModel("model", null));
+              new OpenAiModel("gpt-4o", null),
+              null,
+              "   ",
+              null,
+              null);
+      // Both @HttpUrl and @AssertFalse validations trigger for blank endpoint
       assertThat(validator.validate(connection))
+          .hasSize(2)
           .extracting(ConstraintViolation::getMessage)
-          .contains("must not be blank");
+          .containsExactlyInAnyOrder(
+              "Must be an HTTP or HTTPS URL",
+              "Endpoint is required for FOUNDRY and CUSTOM backends");
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+        value = OpenAiBackend.class,
+        names = {"FOUNDRY", "CUSTOM"})
+    void validationShouldSucceed_WhenEndpointProvidedForBackendThatRequiresIt(
+        OpenAiBackend backend) {
+      var connection =
+          new OpenAiConnection(
+              backend,
+              new OpenAiApiKeyAuthentication("my-api-key", null, null),
+              TIMEOUT,
+              new OpenAiModel("gpt-4o", null),
+              null,
+              "https://my-endpoint.local/v1",
+              null,
+              null);
+      assertThat(validator.validate(connection)).isEmpty();
     }
   }
 
