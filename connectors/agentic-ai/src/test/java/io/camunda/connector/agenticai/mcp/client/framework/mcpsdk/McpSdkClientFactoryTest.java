@@ -84,39 +84,52 @@ class McpSdkClientFactoryTest {
 
   @Test
   void createsStdioMcpClient() {
-    final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"));
+    final var stdioConfig =
+        createStdioMcpClientTransportConfiguration(
+            List.of("arg1", "arg2"), Map.of("ENV_VAR", "value"));
     final var client =
         factory.createClient(
             CLIENT_ID, createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
 
     assertClientIsOfCorrectType(client);
     verifyNoInteractions(httpClientProxyConfigurator);
+
+    final var serverParameters = extractStdioServerParameters(client);
+    assertThat(serverParameters.getCommand()).isEqualTo("command");
+    assertThat(serverParameters.getArgs()).containsExactly("arg1", "arg2");
+    assertThat(serverParameters.getEnv()).containsEntry("ENV_VAR", "value");
   }
 
   @Test
   void createsStdioMcpClientWithoutArguments() {
-    final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of());
+    final var stdioConfig =
+        createStdioMcpClientTransportConfiguration(List.of(), Map.of("ENV_VAR", "value"));
     final var client =
         factory.createClient(
             CLIENT_ID, createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
 
     assertClientIsOfCorrectType(client);
+
+    final var serverParameters = extractStdioServerParameters(client);
+    assertThat(serverParameters.getCommand()).isEqualTo("command");
+    assertThat(serverParameters.getArgs()).isEmpty();
+    assertThat(serverParameters.getEnv()).containsEntry("ENV_VAR", "value");
   }
 
   @Test
-  void forwardsConfiguredStdioEnvironmentVariablesToServerParameters() {
+  void createsStdioMcpClientWithoutEnvironmentVariables() {
     final var stdioConfig =
-        new StdioMcpClientTransportConfiguration(
-            "command", List.of("arg1"), Map.of("MCP_TOKEN", "secret-token"));
+        createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"), Map.of());
     final var client =
         factory.createClient(
             CLIENT_ID, createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
 
-    final var internalClient = (McpSyncClient) ReflectionTestUtils.getField(client, "delegate");
-    final var transport = extractFieldByType(internalClient, McpClientTransport.class);
-    final var serverParameters = extractServerParameters(transport);
+    assertClientIsOfCorrectType(client);
 
-    assertThat(serverParameters.env()).containsEntry("MCP_TOKEN", "secret-token");
+    final var serverParameters = extractStdioServerParameters(client);
+    assertThat(serverParameters.getCommand()).isEqualTo("command");
+    assertThat(serverParameters.getArgs()).containsExactly("arg1", "arg2");
+    assertThat(serverParameters.getEnv()).doesNotContainKey("ENV_VAR");
   }
 
   @ParameterizedTest
@@ -185,7 +198,7 @@ class McpSdkClientFactoryTest {
 
   @Test
   void doesNotFailWithNullTimeouts() {
-    final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of());
+    final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), Map.of());
     final var client =
         factory.createClient(
             CLIENT_ID,
@@ -218,11 +231,14 @@ class McpSdkClientFactoryTest {
   }
 
   private static StdioMcpClientTransportConfiguration createStdioMcpClientTransportConfiguration(
-      List<String> args) {
-    return new StdioMcpClientTransportConfiguration("command", args, Map.of("ENV_VAR", "value"));
+      List<String> args, Map<String, String> env) {
+    return new StdioMcpClientTransportConfiguration("command", args, env);
   }
 
-  private static ServerParameters extractServerParameters(Object transport) {
+  private static ServerParameters extractStdioServerParameters(McpClientDelegate clientDelegate) {
+    final var syncClient = (McpSyncClient) ReflectionTestUtils.getField(clientDelegate, "delegate");
+    final var asyncClient = ReflectionTestUtils.getField(syncClient, "delegate");
+    final var transport = extractFieldByType(asyncClient, McpClientTransport.class);
     return extractFieldByType(transport, ServerParameters.class);
   }
 
