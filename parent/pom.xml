@@ -111,7 +111,7 @@ limitations under the License.</license.inlineheader>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.47.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260427-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.80.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.81.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20260213-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.68.0</version.google-cloud-storage>
     <version.gson-extras>3.3.0</version.gson-extras>
