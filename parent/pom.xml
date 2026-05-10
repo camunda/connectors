@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.9.4</version.camunda>
+    <version.camunda>8.9.5</version.camunda>
     <version.feel-engine>1.21.0</version.feel-engine>
     <version.camunda-xml-model>7.24.0</version.camunda-xml-model>
 
@@ -118,7 +118,7 @@ limitations under the License.</license.inlineheader>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.47.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260427-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.80.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.81.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20260213-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <version.jsr305>3.0.2</version.jsr305>
