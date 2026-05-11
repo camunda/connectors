@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.jobhandling.JobWorkerManager;
 import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -74,7 +74,7 @@ public class OutboundConnectorRuntimeConfiguration {
   public OutboundConnectorManager outboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
-      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
+      JobCallbackCommandWrapperFactory jobCallbackCommandWrapperFactory,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
@@ -83,7 +83,7 @@ public class OutboundConnectorRuntimeConfiguration {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
-        commandExceptionHandlingStrategy,
+        jobCallbackCommandWrapperFactory,
         secretProviderAggregator,
         validationProvider,
         documentFactory,
