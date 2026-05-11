@@ -14,6 +14,7 @@ jobs:
   fork-guard:
     name: Skip if external fork
     runs-on: ubuntu-latest
+    permissions: {}
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
     steps:
       - name: Explain skip in logs
