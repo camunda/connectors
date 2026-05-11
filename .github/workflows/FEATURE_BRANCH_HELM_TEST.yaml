@@ -11,9 +11,20 @@ on:
       - converted_to_draft
 
 jobs:
+  fork-guard:
+    name: Skip if external fork
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+    steps:
+      - name: Explain skip in logs
+        run: |
+          echo "🛑 External fork; skipping secrets-dependent feature branch Helm workflow."
+          echo "Push to a branch in the main repository to run this workflow."
+
   build-image:
     name: Build and Publish Connectors Docker Image
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
