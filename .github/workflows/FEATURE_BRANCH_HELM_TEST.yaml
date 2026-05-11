@@ -166,7 +166,6 @@ jobs:
     steps:
       - name: Add Helm debugging guidance on failure
         run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
           {
             echo "## SM E2E / Helm Integration Tests Failed"
