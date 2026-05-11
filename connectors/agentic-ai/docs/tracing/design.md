@@ -58,23 +58,22 @@ visualization, and auditability.
   activations remain visible as immutable facts.
 - **Metrics support**: Produce the data required to fuel the metrics defined in the
   [Agent Visibility Metrics Reference](metrics.md).
-- **Resilience**: Events are pushed best-effort during execution and re-pushed on job completion.
-  Server-side deduplication ensures correctness without requiring exactly-once delivery.
+- **Resilience**: Events are pushed best-effort during execution. The API supports idempotent
+  retries — server-side deduplication ensures correctness without requiring exactly-once delivery,
+  so the client can re-push on transient failures (or at well-defined checkpoints) without risking
+  duplicate facts.
 - **Backwards compatibility**: Agents that started on a pre-tracing version (e.g., 8.9) continue
   to work after upgrade. Tracing activates transparently on the first post-upgrade job activation.
 - **Decoupled contract**: Event payloads are properly typed DTOs that form the contract between
   the agent runtime and the backend. The backend does not need to understand the agent's
   internal execution model (windowing algorithm, eviction rules, etc.). The message, content,
-  and tool types referenced in trace events will be provided by the **Camunda SDK** as shared
+  and tool types referenced in trace events are provided by the **Camunda SDK** as shared
   API contract types, and the agent runtime maps from its internal types into those SDK types
-  at emit time — isolating the wire contract from agent-internal evolution. Within this
-  connectors repository, the PoC defines PoC-local mirror types that stand in for the eventual
-  SDK types; those mirrors are intended to be replaced by SDK-provided types before the feature
-  is productionized. The contract is a **metrics-driven subset** of the runtime shape, not a
-  mandated 1:1 copy: the runtime may carry additional fields (internal state, debug metadata,
-  in-progress features) that are intentionally not part of the API contract. Extending the
-  contract is a deliberate action driven by new metric requirements; the absence of a runtime
-  field in the contract types is not drift.
+  at emit time — isolating the wire contract from agent-internal evolution. The contract is a
+  **metrics-driven subset** of the runtime shape, not a mandated 1:1 copy: the runtime may carry
+  additional fields (internal state, debug metadata, in-progress features) that are intentionally
+  not part of the API contract. Extending the contract is a deliberate action driven by new metric
+  requirements; the absence of a runtime field in the contract types is not drift.
 
 ### Non-Goals
 
@@ -103,6 +102,20 @@ call the LLM again and update the entity to "tokens consumed: 1200" (the retry's
 **silently erasing** the first attempt's token spend. For auditability and accurate cost tracking,
 both attempts must be visible.
 
+Token usage is not the only failure mode. The same turn may also emit a tool call into the
+conversation and record a status change before the parse failure — facts that, from the
+**process** perspective, never actually happened (the retry replaces them with its own tool call
+and status, drawn from the pre-failure `AgentContext`). An entity model has no clean way to
+represent this: it must either retract those emissions (losing the audit trail of what the agent
+attempted on the failed attempt) or keep them (incorrectly suggesting the tool call and status
+were part of the successful execution). The event model records every emission as an immutable
+fact tagged with its activation and attempt; **correlation with job completion is performed
+server-side**, so the audit view distinguishes facts from successful attempts from those of
+failed or superseded ones without ever rewriting history. The same correlation lets the server
+**aggregate** token consumption across attempts (preserving total spend without overwriting any
+single value) and present a coherent timeline of the successful execution path while keeping the
+full attempt history queryable.
+
 ### Why entity updates fail in this execution model
 
 | Scenario | Entity update behavior | Event behavior |
@@ -124,6 +137,27 @@ This aligns with the auditability goal: the event stream is a complete, ordered 
 everything that happened during the agent execution, including failed attempts, retried jobs,
 and superseded activations. An entity-based model can only show the current state; an event-based
 model shows the full history of how we got there.
+
+### Core principles
+
+Three principles flow from treating the trace as an append-only log. These are foundational —
+every other section in this document either implements or assumes them.
+
+1. **Append-only.** Events are immutable facts. The server aggregates them into derived views
+   (token totals, conversation timeline, agent status) but never mutates the underlying record.
+   Status, totals, and conversation reconstruction are **derivations**, not state.
+2. **Client idempotency, server-side deduplication.** Every event carries a deduplication key.
+   The client may re-emit any event without risk — the server is the single source of truth for
+   uniqueness. This makes best-effort pushes safe, removes the need for exactly-once delivery,
+   and lets the client retry transient failures or re-emit at checkpoints with no coordination.
+   The full deduplication contract — key derivation, server-side semantics, and the scenarios
+   that motivate it — is in [§8](#8-deduplication-strategy).
+3. **Job-completion correlation.** Events from failed or superseded jobs remain in the audit log
+   (so the history of *what was attempted* survives). Server-side derivations that need a
+   coherent state view — conversation reconstruction, agent status (D4), iteration counting —
+   join against Zeebe job-completion data and filter to completed jobs only. Aggregates such as
+   token totals operate on **all** events to preserve true spend across attempts. The filtering
+   rule is in [§8.5](#85-event-application-for-state-derivation).
 
 ### The parent entity is still needed
 
@@ -280,29 +314,29 @@ Twelve event types are defined, grouped by lifecycle phase.
 
 | Phase | Event type | Emitted when |
 |-------|-----------|--------------|
-| **Discovery** | `TOOL_DISCOVERY_STARTED` | Agent detects gateway tool elements on first activation |
+| **Tool discovery** | `TOOL_DISCOVERY_STARTED` | Agent detects gateway tool elements on first activation |
 | **Tool registry** | `TOOL_DEFINITIONS_CHANGED` | Tool set is established (once at the end of init: immediately if no discovery, after discovery if present) or updated mid-execution on process migration |
-| **Init lifecycle** | `AGENT_INITIALIZED` | Agent completed initialization and transitions to READY; paired with (immediately follows) the init `TOOL_DEFINITIONS_CHANGED` |
+| **Outbound tool calls** | `TOOL_CALLS_EMITTED` | LLM requested tool calls; agent is about to activate BPMN elements |
 | **Tool results** | `TOOL_CALL_RESULT_RECEIVED` | Each tool call result is received (including partial-result no-op turns) |
+| **Init lifecycle** | `AGENT_INITIALIZED` | Agent completed initialization and transitions to READY; paired with (immediately follows) the init `TOOL_DEFINITIONS_CHANGED` |
 | **Model interaction** | `MODEL_CALL_STARTED` | Agent is about to call the LLM; carries the delta input |
 | | `MODEL_CALL_COMPLETED` | LLM call returned successfully; carries response + tokens + duration |
 | | `MODEL_CALL_FAILED` | LLM call threw an exception |
-| **Outbound tool calls** | `TOOL_CALLS_EMITTED` | LLM requested tool calls; agent is about to activate BPMN elements |
 | **Iteration boundary** | `ITERATION_COMPLETED` | A READY-mode job activation that called the LLM finished processing. Not emitted for discovery-only or partial-result no-op jobs. |
 | **Limits** | `LIMIT_HIT` | A configured limit was violated (emitted before the exception is thrown) |
 | **Conversation reset** | `CONVERSATION_SNAPSHOT` | Full conversation state emitted at a point in time (mid-flight upgrade, future compaction) |
-| **Configuration** | `SYSTEM_PROMPT_CHANGED` | System prompt changed mid-execution *(event type defined, wiring deferred)* |
+| **Configuration** | `SYSTEM_PROMPT_CHANGED` | System prompt changed mid-execution |
 
 ```java
 public enum AgentTraceEventType {
     TOOL_DISCOVERY_STARTED,
     TOOL_DEFINITIONS_CHANGED,
-    AGENT_INITIALIZED,
+    TOOL_CALLS_EMITTED,
     TOOL_CALL_RESULT_RECEIVED,
+    AGENT_INITIALIZED,
     MODEL_CALL_STARTED,
     MODEL_CALL_COMPLETED,
     MODEL_CALL_FAILED,
-    TOOL_CALLS_EMITTED,
     ITERATION_COMPLETED,
     LIMIT_HIT,
     CONVERSATION_SNAPSHOT,
@@ -318,9 +352,7 @@ public enum AgentTraceEventType {
 
 All payloads implement a sealed interface. Message, content, and tool types referenced by the
 payloads (`Message`, `AssistantMessage`, `Content`, `ToolDefinition`, ...) are the API contract
-types described in §6.5. The production contract types will be owned by the Camunda SDK; this
-PoC defines local stand-ins in the connectors repo that mirror the agent runtime model without
-depending on it, to be replaced by SDK types ahead of productionization.
+types described in §6.5 — owned by the Camunda SDK.
 
 ```java
 public sealed interface AgentTraceEventPayload {
@@ -343,13 +375,13 @@ public sealed interface AgentTraceEventPayload {
     ) implements AgentTraceEventPayload {}
 
     /**
-     * The agent has completed initialization and transitions to READY state.
-     * Emitted once per execution, paired with (immediately following) the
-     * init TOOL_DEFINITIONS_CHANGED. Empty payload — all relevant context
-     * is carried on CreateAgentExecutionRequest (provider, limits, system
-     * prompt) and on the paired TOOL_DEFINITIONS_CHANGED (tool set).
+     * The LLM requested tool calls. The toolCalls here are the same ToolCall
+     * records used inside AssistantMessage, with the elementId populated
+     * (post gateway-transform).
      */
-    record AgentInitialized() implements AgentTraceEventPayload {}
+    record ToolCallsEmitted(
+        List<ToolCall> toolCalls
+    ) implements AgentTraceEventPayload {}
 
     /**
      * A single tool call result has been received. Emitted per result,
@@ -362,6 +394,15 @@ public sealed interface AgentTraceEventPayload {
         Object content,
         @Nullable Instant completedAt
     ) implements AgentTraceEventPayload {}
+
+    /**
+     * The agent has completed initialization and transitions to READY state.
+     * Emitted once per execution, paired with (immediately following) the
+     * init TOOL_DEFINITIONS_CHANGED. Empty payload — all relevant context
+     * is carried on CreateAgentExecutionRequest (provider, limits, system
+     * prompt) and on the paired TOOL_DEFINITIONS_CHANGED (tool set).
+     */
+    record AgentInitialized() implements AgentTraceEventPayload {}
 
     /**
      * A model call is starting. Carries the delta messages added in this turn
@@ -392,15 +433,6 @@ public sealed interface AgentTraceEventPayload {
     record ModelCallFailed(
         String errorClass,
         String errorMessage
-    ) implements AgentTraceEventPayload {}
-
-    /**
-     * The LLM requested tool calls. The toolCalls here are the same ToolCall
-     * records used inside AssistantMessage, with the elementId populated
-     * (post gateway-transform).
-     */
-    record ToolCallsEmitted(
-        List<ToolCall> toolCalls
     ) implements AgentTraceEventPayload {}
 
     /**
@@ -440,7 +472,7 @@ public sealed interface AgentTraceEventPayload {
         List<Message> messages
     ) implements AgentTraceEventPayload {}
 
-    /** The system prompt was changed. Wiring deferred. */
+    /** The system prompt was changed mid-execution. */
     record SystemPromptChanged(
         String systemPrompt
     ) implements AgentTraceEventPayload {}
@@ -464,12 +496,10 @@ public record TokenUsageInfo(
 ### 6.5 API contract types (mirrored from the agent runtime)
 
 Message, content, and tool types referenced by trace event payloads are **API contract types**
-that will be provided by the Camunda SDK once the feature is productionized. For this PoC they
-are defined locally in the connectors repo as stand-ins, sharing canonical names with the
-agent runtime model (`Message`, `AssistantMessage`, `Content`, `TextContent`, `DocumentContent`,
-`ObjectContent`, `Document`, `DocumentReference`, `ToolCall`, `ToolDefinition`, `ToolCallResult`)
-so the eventual SDK types can drop in by replacing imports. Separation from the agent runtime
-types is by package, not by name prefix.
+provided by the Camunda SDK. They share canonical names with the agent runtime model
+(`Message`, `AssistantMessage`, `Content`, `TextContent`, `DocumentContent`, `ObjectContent`,
+`Document`, `DocumentReference`, `ToolCall`, `ToolDefinition`, `ToolCallResult`); separation
+from the agent runtime types is by package, not by name prefix.
 
 The agent runtime maps from its internal types into the contract types at emit time. The
 contract types evolve independently of the runtime model (and vice versa) when that decoupling
@@ -754,7 +784,7 @@ monotonic within a job and an explicit sort is cheap.
 
 **Token and cost aggregates**: sum across *all* events for the execution regardless of job
 state. Failed attempts that consumed tokens before failing contribute to true token spend (see
-§15.3). Order-independent.
+§15.4). Order-independent.
 
 > **Load-bearing invariant — AHSP one-at-a-time completion.** The AHSP execution model
 > guarantees that at most one inner job completes per AHSP instance at any time; therefore,
@@ -1528,10 +1558,10 @@ sequenceDiagram
 
 > **Persistence location on `AgentContext` is an implementation detail, TBD.** The design doc
 > describes `schemaVersion` and `agentExecutionKey` as fields tracked on `AgentContext`; the
-> PoC may stash them inside the existing `properties` map (which old runtime versions preserve
-> verbatim through round-trip) or add them as top-level record fields. This choice affects
-> resilience to mixed-version clusters during staged upgrades but does not affect the API
-> contract described in this document.
+> implementation may stash them inside the existing `properties` map (which old runtime versions
+> preserve verbatim through round-trip) or add them as top-level record fields. This choice
+> affects resilience to mixed-version clusters during staged upgrades but does not affect the
+> API contract described in this document.
 
 ### 13.3 Element template BC
 
@@ -1554,25 +1584,40 @@ compute each metric from the [Agent Visibility Metrics Reference](https://github
 
 ## 15. Feature Gaps & Planned Work
 
-### 15.1 Agent runtime features needed for full metrics coverage
+### 15.1 Agent runtime features needed for basic coverage
+
+These are the foundational runtime changes delivered by this solution doc — the prerequisites
+for emitting a coherent event stream, correlating events across turns, and surviving upgrade
+from pre-tracing agents.
+
+| Feature | Purpose | Notes |
+|---------|---------|-------|
+| **`Message.id` (UUIDv7)** | Stable dedup of replayed messages; windowing reference (`firstIncludedMessageId`) | Assigned at every message construction site in the runtime. `@Nullable` on the wire to preserve BC for pre-tracing data. |
+| **`ToolCall.traceId` (UUIDv7)** | Tool-result correlation across no-op turns; dedup key for `TOOL_CALL_RESULT_RECEIVED` | Stamped at process-variable serialization time (§11.6); propagated via element template `outputElement` (`traceId: toolCall._meta.traceId`). |
+| **`AgentContext.schemaVersion` (int)** | Detect pre-tracing data on first post-upgrade activation; trigger one-time `CONVERSATION_SNAPSHOT` | `0` = legacy, `1` = tracing-enabled. Persistence location is an implementation detail (§13.2). |
+| **`AgentContext.agentExecutionKey` (@Nullable Long)** | Server-assigned execution identity referenced by every event | Populated after `createExecution()`; carried verbatim through process variables across turns. |
+| **`MODEL_CALL_STARTED.historyTruncated` (boolean)** | Disambiguate "no prior message ID exists" vs "history was evicted" when `firstIncludedMessageId` is null | Set at emit time based on whether eviction occurred this turn. |
+| **Model call duration timing** | Metric #10 (model call duration) | Wrap `framework.executeChatRequest()` with `System.nanoTime()`. |
+| **Element template `completedAt`** | Metric #4 (tool call duration) | Add `completedAt: now()` to the element template `outputElement`. |
+| **`LIMIT_HIT` emission** | Metrics #14, #35, #36 | Emit in `AgentLimitsValidatorImpl.validateConfiguredLimits()` before throwing. Session available on the execution context. |
+| **`CONVERSATION_SNAPSHOT` on mid-flight upgrade** | Catch-up for missed history when pre-tracing agents continue post-upgrade | Emitted once on first post-upgrade activation; `schemaVersion` bumped to `CURRENT_SCHEMA_VERSION` after emission. |
+| **`SYSTEM_PROMPT_CHANGED` emission** | Detect system prompt changes mid-execution (task-flavor config re-evaluation per iteration, sub-process flavor via process migration) | Compare current system prompt against the previous turn's value; emit on change. Previous value tracked on `AgentContext` (persistence location is an implementation detail, §13.2). |
+
+### 15.2 Agent runtime features needed for full metrics coverage
 
 | Feature | Metrics unlocked | Status |
 |---------|-----------------|--------|
 | **Reasoning token tracking** | #8, #20, #27-29 (reasoning component), D6 | Not started. Two parts: (1) Extend `TokenUsageInfo` with `reasoningTokenCount` — requires Langchain4j `TokenUsage` to expose it per provider. (2) Extract reasoning/thinking text from the LLM response into a dedicated list of content blocks (separate from the assistant message content). Provider-dependent: Anthropic returns thinking blocks, OpenAI returns reasoning tokens separately. |
 | **Cached token tracking** | Caching tokens (pending #) | Not started. Two parts: (1) Extend `TokenUsageInfo` with `cachedTokenCount` — same Langchain4j dependency. (2) Caching configuration (e.g., prompt caching settings) must be tracked so the server can correlate cached token counts with caching behavior. |
-| **Max tokens limit** | Extends #14 (limit hits), D11 (limit config) | Not started. New limit type in `LimitsConfiguration`. See §15.3 for enforcement accuracy considerations. |
-| **Model call duration timing** | #10 | **In scope of this solution doc.** Wrap `framework.executeChatRequest()`. |
-| **Element template `completedAt`** | #4 (tool call duration) | **In scope of this solution doc.** Add `completedAt: now()` to `outputElement`. |
-| **Limit hit event** | #14, #35, #36 | **In scope of this solution doc.** Emit `LIMIT_HIT` in `AgentLimitsValidatorImpl.validateConfiguredLimits()` before throwing the exception. The session is available on the execution context at that point. |
-| **System prompt change detection** | `SYSTEM_PROMPT_CHANGED` event | Event type defined, wiring deferred. |
+| **Max tokens limit** | Extends #14 (limit hits), D11 (limit config) | Not started. New limit type in `LimitsConfiguration`. See §15.4 for enforcement accuracy considerations. |
 
-### 15.2 Planned features that interact with tracing
+### 15.3 Planned features that interact with tracing
 
 | Feature | Interaction with tracing |
 |---------|------------------------|
 | **Conversation compaction** | Replacing older messages with a summary message to reduce conversation size. When implemented, the compaction code emits a `CONVERSATION_SNAPSHOT` event with the compacted message set. The server treats it as a reset point for conversation reconstruction. No detection heuristics needed — the emit is explicit. Compaction will involve an auxiliary LLM call (to generate the summary), which produces its own `MODEL_CALL_COMPLETED` event for token tracking but no `ITERATION_COMPLETED` — so it is not counted as an iteration. |
 
-### 15.3 Limit enforcement accuracy
+### 15.4 Limit enforcement accuracy
 
 Both the current `maxModelCalls` limit and a future `maxTokens` limit are enforced against
 `AgentMetrics` — the local counter persisted in `AgentContext`. This counter is updated only by
@@ -1629,6 +1674,8 @@ all senses; the followup should explicitly choose and document the tradeoff.
 - Schema version migration logic in `AgentInitializerImpl`
 - `LIMIT_HIT` emission in `AgentLimitsValidatorImpl`
 - `CONVERSATION_SNAPSHOT` emission on mid-flight upgrade
+- `SYSTEM_PROMPT_CHANGED` emission on mid-execution prompt changes (per-iteration compare
+  against the previous turn's value tracked on `AgentContext`)
 - Backwards compatibility for all field additions, including legacy-fallback dedup key for
   tool results without `traceId`
 
@@ -1637,7 +1684,6 @@ all senses; the followup should explicitly choose and document the tradeoff.
 - Real HTTP client (replaced by in-memory + logging)
 - Reasoning tokens, cached tokens, max tokens limit
 - Chain of thought / reasoning text extraction
-- `SYSTEM_PROMPT_CHANGED` wiring (event type defined only)
 - Conversation compaction / summarization
 - Server-side aggregation, visualization, alerting
-- Event-aggregate-based limit enforcement (see §15.3)
+- Event-aggregate-based limit enforcement (see §15.4)
