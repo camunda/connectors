@@ -141,6 +141,8 @@ limitations under the License.</license.inlineheader>
     <version.awaitility>4.3.0</version.awaitility>
     <version.json-path>2.10.0</version.json-path>
 
+    <version.netty-codec-dns>4.1.133.Final</version.netty-codec-dns>
+
     <version.snappy-java>1.1.10.8</version.snappy-java>
     <version.commons-codec>1.22.0</version.commons-codec>
     <version.guava>33.6.0-jre</version.guava>
@@ -580,6 +582,13 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
         <version>3.20.0</version>
+      </dependency>
+
+      <!-- CVE-2026-42579 fix: pin netty-codec-dns to 4.1.133.Final -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec-dns</artifactId>
+        <version>${version.netty-codec-dns}</version>
       </dependency>
 
       <!-- Fixes CWE-770 -->
