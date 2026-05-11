@@ -1,10 +1,14 @@
 name: Feature branch Helm test
 
 on:
-  push:
-    branches:
-      - '**'
-      - '!main'
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
 
 jobs:
   build-image:
@@ -152,6 +156,25 @@ jobs:
       connectors-version: ${{ needs.build-image.outputs.connectors-version }}
       release-branch: main
 
+  sm-e2e-debug-summary:
+    name: Add SM E2E debugging guidance on failure
+    needs: trigger-sm-e2e
+    if: needs.trigger-sm-e2e.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions: {}
+    steps:
+      - name: Add Helm debugging guidance on failure
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
+          {
+            echo "## SM E2E / Helm Integration Tests Failed"
+            echo ""
+            echo "### Full debugging guide"
+            echo "[CI Debugging Cookbook — Helm Chart Setup/Integration failures](${COOKBOOK_URL}#failure-type-3--helm-chart-setup--integration-tests) · [Helm Chart E2E failures](${COOKBOOK_URL}#failure-type-4--helm-chart-e2e-tests)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   trigger-saas-e2e:
     name: Trigger SaaS E2E tests
     runs-on: ubuntu-latest
@@ -161,6 +184,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
         uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
@@ -199,6 +223,7 @@ jobs:
                       "optimizeVersion": "8-SNAPSHOT"
                   }
                 }'
+
       - name: Observe build status
         if: always()
         continue-on-error: true
@@ -315,6 +340,22 @@ jobs:
           else
             echo "No downstream workflow run URL found." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      - name: Add debugging guidance on failure
+        if: steps.wait-downstream.outcome == 'failure'
+        run: |
+          DOWNSTREAM_URL="${{ steps.wait-downstream.outputs.downstream_run_url }}"
+          COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
+          {
+            echo ""
+            echo "### Debugging the SaaS E2E Failure"
+            echo ""
+            if [ -n "$DOWNSTREAM_URL" ]; then
+              echo "**Downstream run:** [$DOWNSTREAM_URL]($DOWNSTREAM_URL)"
+              echo ""
+            fi
+            echo "**Full guide:** [CI Debugging Cookbook — SaaS E2E section](${COOKBOOK_URL}#failure-type-5--saas-e2e-tests)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   run-ai-agent-cpt:
     name: AI Agent E2E Tests (CPT)
