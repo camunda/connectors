@@ -170,7 +170,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.2</version.auth0.jwt>
     <version.auth0.jwks>0.23.1</version.auth0.jwks>
 
-    <version.langchain4j>1.14.0</version.langchain4j>
+    <version.langchain4j>1.14.1</version.langchain4j>
     <version.mcp-sdk>1.1.2</version.mcp-sdk>
     <version.elasticsearch-java-client>8.19.15</version.elasticsearch-java-client>
 
@@ -215,6 +215,13 @@ limitations under the License.</license.inlineheader>
         <version>${version.spring-boot}</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+
+      <!-- Override Spring Boot BOM postgresql pin -->
+      <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.7.11</version>
       </dependency>
 
       <!-- gRPC BOM - the version has to be equal or greater than the one from the Camunda client -->
@@ -852,6 +859,12 @@ limitations under the License.</license.inlineheader>
         <artifactId>system-stubs-jupiter</artifactId>
         <version>${version.system-stubs}</version>
         <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.opennlp</groupId>
+        <artifactId>opennlp-tools</artifactId>
+        <version>2.5.9</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
