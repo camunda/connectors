@@ -22,6 +22,7 @@ import io.camunda.connector.api.annotation.Variable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,8 +59,11 @@ public class ReflectionUtil {
   }
 
   public static List<Field> getAllFields(List<Field> fields, Class<?> type) {
-    fields.addAll(Arrays.asList(type.getDeclaredFields()));
-
+    for (Field field : type.getDeclaredFields()) {
+      if (!Modifier.isStatic(field.getModifiers())) {
+        fields.add(field);
+      }
+    }
     if (type.getSuperclass() != null) {
       getAllFields(fields, type.getSuperclass());
     }
