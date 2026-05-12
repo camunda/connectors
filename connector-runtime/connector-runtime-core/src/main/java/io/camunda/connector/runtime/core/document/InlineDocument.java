@@ -80,12 +80,12 @@ public class InlineDocument implements Document {
 
           @Override
           public String getProcessDefinitionId() {
-            return "";
+            return null;
           }
 
           @Override
           public Long getProcessInstanceKey() {
-            return 0L;
+            return null;
           }
 
           @Override
@@ -137,6 +137,6 @@ public class InlineDocument implements Document {
 
   @Override
   public String generateLink(DocumentLinkParameters parameters) {
-    return null;
+    throw new UnsupportedOperationException("Inline documents do not support link generation");
   }
 }

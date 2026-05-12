@@ -17,6 +17,9 @@
 package io.camunda.connector.runtime.core.document;
 
 import java.net.URLConnection;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Resolves MIME content types from filenames using the JDK's built-in {@link
@@ -28,20 +31,24 @@ import java.net.URLConnection;
  */
 public final class MimeTypeResolver {
 
+  private static final Logger LOG = LoggerFactory.getLogger(MimeTypeResolver.class);
   static final String OCTET_STREAM = "application/octet-stream";
 
   private MimeTypeResolver() {}
 
   public static String resolveContentType(String explicitContentType, String fileName) {
-    if (explicitContentType != null && !explicitContentType.isBlank()) {
+    if (StringUtils.isNotBlank(explicitContentType)) {
+      LOG.debug("Using explicit content type: {}", explicitContentType);
       return explicitContentType;
     }
-    if (fileName != null && !fileName.isBlank()) {
+    if (StringUtils.isNotBlank(fileName)) {
       String guessed = URLConnection.guessContentTypeFromName(fileName);
       if (guessed != null) {
+        LOG.debug("Resolved content type '{}' from file name '{}'", guessed, fileName);
         return guessed;
       }
     }
+    LOG.debug("Could not resolve content type, falling back to '{}'", OCTET_STREAM);
     return OCTET_STREAM;
   }
 }

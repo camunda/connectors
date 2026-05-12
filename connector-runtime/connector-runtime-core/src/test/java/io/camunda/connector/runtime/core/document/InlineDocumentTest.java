@@ -128,9 +128,11 @@ class InlineDocumentTest {
   }
 
   @Test
-  void generateLink_returnsNull() {
+  void generateLink_throwsException() {
     InlineDocument doc = new InlineDocument("x", "x.txt", null);
 
-    assertThat(doc.generateLink(null)).isNull();
+    assertThatThrownBy(() -> doc.generateLink(null))
+        .isInstanceOf(UnsupportedOperationException.class)
+        .hasMessageContaining("Inline documents do not support link generation");
   }
 }

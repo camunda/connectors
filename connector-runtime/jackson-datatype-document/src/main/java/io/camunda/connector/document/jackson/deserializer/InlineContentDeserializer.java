@@ -24,8 +24,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
 
 /**
- * Captures inline document content directly as the byte representation the connector will upload.
- * Avoids the deserialize-then-re-serialize roundtrip that would otherwise be needed.
+ * Allows inline document content to be provided either as a JSON string or as arbitrary JSON.
+ * String values are used as-is; non-string JSON values are captured as compact JSON text.
  */
 public class InlineContentDeserializer extends JsonDeserializer<String> {
 
