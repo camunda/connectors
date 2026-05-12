@@ -184,6 +184,13 @@ limitations under the License.</license.inlineheader>
         <type>pom</type>
       </dependency>
 
+      <!-- Override Spring Boot BOM postgresql pin -->
+      <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.7.11</version>
+      </dependency>
+
       <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-core</artifactId>
