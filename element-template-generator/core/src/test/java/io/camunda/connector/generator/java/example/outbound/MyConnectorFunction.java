@@ -26,6 +26,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction.WithStaticFields.StaticFieldInput;
 
 public abstract class MyConnectorFunction implements OutboundConnectorFunction {
 
@@ -148,6 +149,18 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       inputDataClass = DuplicatePropertyConnectorInput.class,
       icon = "my-connector-icon.png")
   public static class WithDuplicatePropertyIds extends MyConnectorFunction {}
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = StaticFieldInput.class)
+  public static class WithStaticFields extends MyConnectorFunction {
+    record StaticFieldInput(String instanceField) {
+      static final String STATIC_CONSTANT = "constant";
+    }
+  }
 
   @OutboundConnector(name = "my-connector", type = "my-connector-type")
   @ElementTemplate(
