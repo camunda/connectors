@@ -855,6 +855,12 @@ limitations under the License.</license.inlineheader>
         <version>${version.system-stubs}</version>
         <scope>test</scope>
       </dependency>
+
+      <dependency>
+        <groupId>org.apache.opennlp</groupId>
+        <artifactId>opennlp-tools</artifactId>
+        <version>2.5.9</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
