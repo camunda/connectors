@@ -58,8 +58,10 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common DOCKERHUB_USER;
             secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Restore cache
@@ -88,8 +90,8 @@ jobs:
           servers: |
             [{
                "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
-               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
