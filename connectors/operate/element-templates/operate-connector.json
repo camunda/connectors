@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Camunda Operate Outbound connector",
   "id": "io.camunda.connectors.CamundaOperate.v1",
-  "version": 6,
+  "version": 7,
   "engines": {
     "camunda": "^8.3"
   },
@@ -51,6 +51,10 @@
     {
       "id": "parameters",
       "label": "Parameters"
+    },
+    {
+      "id": "connector",
+      "label": "Connector"
     },
     {
       "id": "output",

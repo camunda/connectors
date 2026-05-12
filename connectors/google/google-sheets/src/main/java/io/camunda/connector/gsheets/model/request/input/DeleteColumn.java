@@ -61,8 +61,7 @@ public record DeleteColumn(
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.columnNumberIndex"),
-            condition =
-                @PropertyCondition(property = "operation.columnIndexType", equals = "NUMBERS"))
+            condition = @PropertyCondition(property = "columnIndexType", equals = "NUMBERS"))
         Integer columnNumberIndex,
     @TemplateProperty(
             label = "Column letter index",
@@ -71,8 +70,7 @@ public record DeleteColumn(
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.columnLetterIndex"),
-            condition =
-                @PropertyCondition(property = "operation.columnIndexType", equals = "LETTERS"))
+            condition = @PropertyCondition(property = "columnIndexType", equals = "LETTERS"))
         String columnLetterIndex)
     implements Input {
 

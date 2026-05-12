@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHub Webhook Receive Task Connector",
-  "id": "io.camunda.connectors.webhook.GithubWebhookConnectorIntermediate.v1",
-  "version": 4,
+  "id": "io.camunda.connectors.webhook.GithubWebhookConnectorReceive.v1",
+  "version": 1,
   "engines": {
     "camunda": "^8.3"
   },

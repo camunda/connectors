@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Twilio Receive Task Connector",
-  "id": "io.camunda.connectors.Twilio.Webhook.Intermediate.v1",
-  "version": 4,
+  "id": "io.camunda.connectors.Twilio.Webhook.Receive.v1",
+  "version": 1,
   "engines": {
     "camunda": "^8.3"
   },

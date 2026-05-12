@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "OpenAI Outbound Connector",
   "id": "io.camunda.connectors.OpenAI.v1",
-  "version": 6,
+  "version": 7,
   "engines": {
     "camunda": "^8.3"
   },
@@ -43,6 +43,10 @@
     {
       "id": "input",
       "label": "Payload"
+    },
+    {
+      "id": "connector",
+      "label": "Connector"
     },
     {
       "id": "output",
@@ -130,7 +134,6 @@
     },
     {
       "id": "method",
-      "group": "endpoint",
       "type": "Hidden",
       "value": "post",
       "binding": {
@@ -139,7 +142,6 @@
       }
     },
     {
-      "group": "endpoint",
       "type": "Hidden",
       "value": "https://api.openai.com/v1/chat/completions",
       "binding": {
@@ -152,7 +154,6 @@
       }
     },
     {
-      "group": "endpoint",
       "type": "Hidden",
       "value": "https://api.openai.com/v1/moderations",
       "binding": {

@@ -12,7 +12,7 @@
     "trigger automation"
   ],
   "id": "camunda.connectors.rpa",
-  "version": 1,
+  "version": 2,
   "appliesTo": [
     "bpmn:Task"
   ],
@@ -141,7 +141,8 @@
     {
       "type": "Hidden",
       "binding": {
-        "type": "zeebe:taskDefinition:type"
+        "type": "zeebe:taskDefinition",
+        "property": "type"
       },
       "value": "={\n  label: if (camundaRpaWorkerLabel = null or camundaRpaWorkerLabel = \"\") then \"default\" else camundaRpaWorkerLabel,\n  baseName: \"camunda::RPA-Task::\",\n  definitionType: baseName + label\n}.definitionType"
     },

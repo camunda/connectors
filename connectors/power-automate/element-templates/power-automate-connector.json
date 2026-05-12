@@ -6,7 +6,7 @@
     "message": "Replace with 'Power Automate' template.",
     "documentationRef": "https://marketplace.camunda.com/en-US/apps/427601/power-automate-connector"
   },
-  "version": 3,
+  "version": 4,
   "description": "Orchestrate your Power Automate flows with Camunda",
   "keywords": [
     "trigger flow run",
@@ -106,18 +106,6 @@
       }
     },
     {
-      "type": "Hidden",
-      "value": "=organizationUri + \"/.default\"",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.scopes"
-      },
-      "condition": {
-        "property": "authenticationType",
-        "equals": "oauth-client-credentials-flow"
-      }
-    },
-    {
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
@@ -136,6 +124,18 @@
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.type"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=organizationUri + \"/.default\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.scopes"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
       }
     },
     {

@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "WhatsApp Business Outbound Connector",
   "id": "io.camunda.connectors.WhatsApp.v1",
-  "version": 3,
+  "version": 4,
   "engines": {
     "camunda": "^8.3"
   },
@@ -36,16 +36,12 @@
       "label": "Authentication"
     },
     {
-      "id": "endpoint",
-      "label": "HTTP endpoint"
-    },
-    {
       "id": "input",
       "label": "Payload"
     },
     {
-      "id": "timeout",
-      "label": "Connect timeout"
+      "id": "connector",
+      "label": "Connector"
     },
     {
       "id": "output",
@@ -61,7 +57,8 @@
       "type": "Hidden",
       "value": "io.camunda:http-json:1",
       "binding": {
-        "type": "zeebe:taskDefinition:type"
+        "type": "zeebe:taskDefinition",
+        "property": "type"
       }
     },
     {
@@ -112,7 +109,7 @@
       "group": "input",
       "id": "messageType",
       "type": "Dropdown",
-      "value": "messageType",
+      "value": "plainText",
       "choices": [
         {
           "name": "Plain text",
