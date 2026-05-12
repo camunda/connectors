@@ -28,11 +28,10 @@ import java.lang.annotation.Target;
  * marker, a {@code bindingType} dropdown, a {@code resourceId} string field, and a conditional
  * {@code versionTag} string field shown only when {@code bindingType} is {@code "versionTag"}.
  *
- * <p>Supported on both operation-based connectors ({@link
- * io.camunda.connector.api.outbound.OutboundConnectorProvider} with {@link
- * io.camunda.connector.api.annotation.Operation}-annotated methods) and class-based connectors
- * ({@link io.camunda.connector.api.outbound.OutboundConnectorFunction} implementations). Not
- * supported on inbound connectors — {@code zeebe:linkedResource} is a service-task extension.
+ * <p>Supported on both operation-based connectors ({@code OutboundConnectorProvider} with
+ * {@code @Operation}-annotated methods) and class-based connectors ({@code
+ * OutboundConnectorFunction} implementations). Not supported on inbound connectors — {@code
+ * zeebe:linkedResource} is a service-task extension.
  *
  * <p>This annotation is repeatable via {@link TemplateLinkedResources}.
  */
