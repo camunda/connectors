@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.MultiFileRule;
 import io.camunda.connector.validator.core.TemplateFinder;
@@ -37,13 +38,6 @@ import java.util.Map;
  */
 public class CurrentVersionBumpRule implements MultiFileRule {
 
-  public static final String ID = "current-version-bump";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Map<Path, JsonNode> templates) {
     Map<String, Integer> highestSnapshotByScope = new HashMap<>();
@@ -56,7 +50,7 @@ public class CurrentVersionBumpRule implements MultiFileRule {
       if (scopeKey == null) {
         continue;
       }
-      JsonNode versionNode = entry.getValue().path("version");
+      JsonNode versionNode = entry.getValue().path(ElementTemplate.VERSION);
       if (!versionNode.isNumber()) {
         continue;
       }
@@ -78,14 +72,14 @@ public class CurrentVersionBumpRule implements MultiFileRule {
         continue;
       }
       int expected = maxSnapshot + 1;
-      JsonNode versionNode = entry.getValue().path("version");
-      String tmplId = entry.getValue().path("id").asText();
+      JsonNode versionNode = entry.getValue().path(ElementTemplate.VERSION);
+      String tmplId = entry.getValue().path(ElementTemplate.ID).asText();
       if (!versionNode.isNumber()) {
         findings.add(
             Finding.error(
                 path,
                 "/version",
-                ID,
+                id(),
                 "Current template missing 'version' field; highest versioned snapshot with id \""
                     + tmplId
                     + "\" is "
@@ -101,7 +95,7 @@ public class CurrentVersionBumpRule implements MultiFileRule {
             Finding.error(
                 path,
                 "/version",
-                ID,
+                id(),
                 "Current template version is "
                     + current
                     + " but highest versioned snapshot with id \""
@@ -117,7 +111,7 @@ public class CurrentVersionBumpRule implements MultiFileRule {
   }
 
   private static String scopeKey(Path path, JsonNode template) {
-    String tmplId = template.path("id").asText("");
+    String tmplId = template.path(ElementTemplate.ID).asText("");
     if (tmplId.isEmpty()) {
       return null;
     }

@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.JsonPointers;
 import io.camunda.connector.validator.core.Rule;
@@ -40,13 +41,6 @@ import java.util.Set;
  */
 public class ConditionValueInChoicesRule implements Rule {
 
-  public static final String ID = "condition-value-in-choices";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
     Map<String, Set<String>> choicesById = collectChoiceUnion(template);
@@ -60,19 +54,19 @@ public class ConditionValueInChoicesRule implements Rule {
 
   private Map<String, Set<String>> collectChoiceUnion(JsonNode template) {
     Map<String, Set<String>> result = new HashMap<>();
-    JsonNode props = template.path("properties");
+    JsonNode props = template.path(ElementTemplate.PROPERTIES);
     if (!props.isArray()) {
       return result;
     }
     for (JsonNode prop : props) {
-      JsonNode idNode = prop.path("id");
-      JsonNode choicesNode = prop.path("choices");
+      JsonNode idNode = prop.path(ElementTemplate.ID);
+      JsonNode choicesNode = prop.path(ElementTemplate.CHOICES);
       if (!idNode.isTextual() || !choicesNode.isArray()) {
         continue;
       }
       Set<String> choices = result.computeIfAbsent(idNode.asText(), k -> new HashSet<>());
       for (JsonNode c : choicesNode) {
-        JsonNode v = c.path("value");
+        JsonNode v = c.path(ElementTemplate.VALUE);
         if (v.isTextual()) {
           choices.add(v.asText());
         }
@@ -90,7 +84,7 @@ public class ConditionValueInChoicesRule implements Rule {
     if (node.isObject()) {
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
         String childPointer = pointer + "/" + JsonPointers.escape(entry.getKey());
-        if ("condition".equals(entry.getKey()) && entry.getValue().isObject()) {
+        if (ElementTemplate.CONDITION.equals(entry.getKey()) && entry.getValue().isObject()) {
           checkCondition(entry.getValue(), childPointer, file, choicesById, findings);
         }
         walk(entry.getValue(), childPointer, file, choicesById, findings);
@@ -108,25 +102,25 @@ public class ConditionValueInChoicesRule implements Rule {
       Path file,
       Map<String, Set<String>> choicesById,
       List<Finding> findings) {
-    JsonNode propertyRef = condition.path("property");
+    JsonNode propertyRef = condition.path(ElementTemplate.PROPERTY);
     if (propertyRef.isTextual()) {
       String referencedId = propertyRef.asText();
       Set<String> choices = choicesById.get(referencedId);
       if (choices != null && !choices.isEmpty()) {
-        JsonNode equals = condition.path("equals");
+        JsonNode equals = condition.path(ElementTemplate.EQUALS);
         if (equals.isTextual() && !choices.contains(equals.asText())) {
           findings.add(
               Finding.error(
                   file,
                   conditionPointer + "/equals",
-                  ID,
+                  id(),
                   "Condition value \""
                       + equals.asText()
                       + "\" is not a declared choice of property \""
                       + referencedId
                       + "\"."));
         }
-        JsonNode oneOf = condition.path("oneOf");
+        JsonNode oneOf = condition.path(ElementTemplate.ONE_OF);
         if (oneOf.isArray()) {
           for (int i = 0; i < oneOf.size(); i++) {
             JsonNode v = oneOf.get(i);
@@ -135,7 +129,7 @@ public class ConditionValueInChoicesRule implements Rule {
                   Finding.error(
                       file,
                       conditionPointer + "/oneOf/" + i,
-                      ID,
+                      id(),
                       "Condition value \""
                           + v.asText()
                           + "\" is not a declared choice of property \""
@@ -147,7 +141,7 @@ public class ConditionValueInChoicesRule implements Rule {
       }
     }
 
-    JsonNode allMatch = condition.path("allMatch");
+    JsonNode allMatch = condition.path(ElementTemplate.ALL_MATCH);
     if (allMatch.isArray()) {
       for (int i = 0; i < allMatch.size(); i++) {
         JsonNode sub = allMatch.get(i);

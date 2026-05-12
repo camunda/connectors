@@ -44,8 +44,6 @@ import java.util.Set;
  */
 public class SchemaRule implements Rule {
 
-  public static final String ID = "schema";
-
   /**
    * Pinned schema version. Bump deliberately (in lockstep with the connectors-team upgrade) rather
    * than tracking {@code latest}, so validator behavior is reproducible across CI runs and local
@@ -69,15 +67,10 @@ public class SchemaRule implements Rule {
   }
 
   @Override
-  public String id() {
-    return ID;
-  }
-
-  @Override
   public List<Finding> apply(Path file, JsonNode template) {
     Set<ValidationMessage> messages = schema.validate(template);
     return messages.stream()
-        .map(m -> Finding.error(file, m.getInstanceLocation().toString(), ID, m.getMessage()))
+        .map(m -> Finding.error(file, m.getInstanceLocation().toString(), id(), m.getMessage()))
         .toList();
   }
 

@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.Rule;
 import java.nio.file.Path;
@@ -31,20 +32,13 @@ import java.util.Set;
  */
 public class GroupTargetExistsRule implements Rule {
 
-  public static final String ID = "group-target-exists";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
     Set<String> groupIds = new HashSet<>();
-    JsonNode groups = template.path("groups");
+    JsonNode groups = template.path(ElementTemplate.GROUPS);
     if (groups.isArray()) {
       for (JsonNode g : groups) {
-        JsonNode idNode = g.path("id");
+        JsonNode idNode = g.path(ElementTemplate.ID);
         if (idNode.isTextual()) {
           groupIds.add(idNode.asText());
         }
@@ -52,13 +46,13 @@ public class GroupTargetExistsRule implements Rule {
     }
 
     List<Finding> findings = new ArrayList<>();
-    JsonNode properties = template.path("properties");
+    JsonNode properties = template.path(ElementTemplate.PROPERTIES);
     if (!properties.isArray()) {
       return findings;
     }
     for (int i = 0; i < properties.size(); i++) {
       JsonNode property = properties.get(i);
-      JsonNode groupRef = property.path("group");
+      JsonNode groupRef = property.path(ElementTemplate.GROUP);
       if (!groupRef.isTextual()) {
         continue;
       }
@@ -68,7 +62,7 @@ public class GroupTargetExistsRule implements Rule {
             Finding.error(
                 file,
                 "/properties/" + i + "/group",
-                ID,
+                id(),
                 "Property references group \""
                     + referenced
                     + "\" which is not declared in groups[]."));

@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.MultiFileRule;
 import java.nio.file.Path;
@@ -37,20 +38,13 @@ import java.util.stream.Collectors;
  */
 public class UniqueIdVersionRule implements MultiFileRule {
 
-  public static final String ID = "unique-id-version";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Map<Path, JsonNode> templates) {
     Map<String, List<Path>> byKey = new LinkedHashMap<>();
     for (Map.Entry<Path, JsonNode> entry : templates.entrySet()) {
       JsonNode template = entry.getValue();
-      JsonNode idNode = template.path("id");
-      JsonNode versionNode = template.path("version");
+      JsonNode idNode = template.path(ElementTemplate.ID);
+      JsonNode versionNode = template.path(ElementTemplate.VERSION);
       if (!idNode.isTextual() || !versionNode.isNumber()) {
         continue;
       }
@@ -76,7 +70,7 @@ public class UniqueIdVersionRule implements MultiFileRule {
             Finding.error(
                 p,
                 "/",
-                ID,
+                id(),
                 "Duplicate id+version: id=\""
                     + tmplId
                     + "\", version="

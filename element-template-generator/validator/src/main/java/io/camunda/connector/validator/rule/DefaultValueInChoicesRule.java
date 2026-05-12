@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.Rule;
 import java.nio.file.Path;
@@ -31,42 +32,35 @@ import java.util.Set;
  */
 public class DefaultValueInChoicesRule implements Rule {
 
-  public static final String ID = "default-value-in-choices";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    JsonNode properties = template.path("properties");
+    JsonNode properties = template.path(ElementTemplate.PROPERTIES);
     if (!properties.isArray()) {
       return List.of();
     }
     List<Finding> findings = new ArrayList<>();
     for (int i = 0; i < properties.size(); i++) {
       JsonNode property = properties.get(i);
-      JsonNode type = property.path("type");
-      JsonNode defaultValue = property.path("value");
-      JsonNode choices = property.path("choices");
+      JsonNode type = property.path(ElementTemplate.TYPE);
+      JsonNode defaultValue = property.path(ElementTemplate.VALUE);
+      JsonNode choices = property.path(ElementTemplate.CHOICES);
       if (!"Dropdown".equals(type.asText("")) || !defaultValue.isTextual() || !choices.isArray()) {
         continue;
       }
       Set<String> choiceValues = new HashSet<>();
       for (JsonNode c : choices) {
-        JsonNode v = c.path("value");
+        JsonNode v = c.path(ElementTemplate.VALUE);
         if (v.isTextual()) {
           choiceValues.add(v.asText());
         }
       }
       if (!choiceValues.isEmpty() && !choiceValues.contains(defaultValue.asText())) {
-        String propertyId = property.path("id").asText("");
+        String propertyId = property.path(ElementTemplate.ID).asText("");
         findings.add(
             Finding.error(
                 file,
                 "/properties/" + i + "/value",
-                ID,
+                id(),
                 "Default value \""
                     + defaultValue.asText()
                     + "\" of property \""

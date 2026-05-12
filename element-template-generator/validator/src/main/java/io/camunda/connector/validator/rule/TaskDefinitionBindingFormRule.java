@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.Rule;
 import java.nio.file.Path;
@@ -33,34 +34,27 @@ import java.util.List;
  * patterns can still drift to the legacy form — this rule prevents that.
  */
 public class TaskDefinitionBindingFormRule implements Rule {
-
-  public static final String ID = "task-definition-binding-form";
   private static final String LEGACY_BINDING_TYPE = "zeebe:taskDefinition:type";
 
   @Override
-  public String id() {
-    return ID;
-  }
-
-  @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    JsonNode properties = template.path("properties");
+    JsonNode properties = template.path(ElementTemplate.PROPERTIES);
     if (!properties.isArray()) {
       return List.of();
     }
     List<Finding> findings = new ArrayList<>();
     for (int i = 0; i < properties.size(); i++) {
-      JsonNode binding = properties.get(i).path("binding");
+      JsonNode binding = properties.get(i).path(ElementTemplate.BINDING);
       if (!binding.isObject()) {
         continue;
       }
-      JsonNode bindingType = binding.path("type");
+      JsonNode bindingType = binding.path(ElementTemplate.TYPE);
       if (bindingType.isTextual() && LEGACY_BINDING_TYPE.equals(bindingType.asText())) {
         findings.add(
             Finding.error(
                 file,
                 "/properties/" + i + "/binding/type",
-                ID,
+                id(),
                 "Legacy binding type \""
                     + LEGACY_BINDING_TYPE
                     + "\" is not allowed. Use { \"type\": \"zeebe:taskDefinition\", \"property\":"

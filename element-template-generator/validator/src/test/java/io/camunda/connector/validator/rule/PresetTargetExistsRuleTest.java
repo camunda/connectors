@@ -86,7 +86,7 @@ class PresetTargetExistsRuleTest {
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
-    assertThat(f.ruleId()).isEqualTo(PresetTargetExistsRule.ID);
+    assertThat(f.ruleId()).isEqualTo("preset-target-exists");
     assertThat(f.jsonPointer()).isEqualTo("/steps/0/steps/0/presets/operationGruop");
     assertThat(f.message()).contains("operationGruop");
   }

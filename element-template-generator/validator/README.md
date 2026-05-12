@@ -20,14 +20,35 @@ This produces an appassembler launcher at
 
 # scan a specific directory (overrides the default ./connectors)
 ./.../element-template-validator -d path/to/connectors
-
-# override the JSON-schema URL (e.g. point at a local copy)
-./.../element-template-validator --schema-url file:///path/to/schema.json
-# or via env var:
-CAMUNDA_TEMPLATE_SCHEMA_URL=file:///path/to/schema.json ./.../element-template-validator
 ```
 
 Exit code is `0` if no findings, `1` otherwise.
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-d`, `--directory` | `./connectors` | Root directory to scan for `element-templates/*.json` files. |
+| `--schema-url` | pinned unpkg.com URL | HTTP/HTTPS URL of the JSON schema. Falls back to `CAMUNDA_TEMPLATE_SCHEMA_URL` env var, then the pinned default. Only `http`/`https` URLs are supported. |
+| `--skip-directory` | `target, node_modules, .git, .idea, .m2` | Directory names pruned during traversal (by exact name, not path). Repeatable or comma-separated. When specified, replaces the default set entirely. |
+| `--skip-connector` | `agentic-ai` | Connector directory names skipped entirely. Repeatable or comma-separated. When specified, replaces the default set entirely. |
+| `--no-color` | off | Disable ANSI color in the output. Color is also auto-disabled when no console is attached (e.g. when output is piped or captured by CI). |
+
+```bash
+# override the schema URL
+./.../element-template-validator --schema-url https://example.com/schema.json
+# or via env var:
+CAMUNDA_TEMPLATE_SCHEMA_URL=https://example.com/schema.json ./.../element-template-validator
+
+# add a custom directory to skip (replaces the default set — include defaults if you still want them)
+./.../element-template-validator --skip-directory target,node_modules,.git,.idea,.m2,my-dir
+
+# skip an additional connector
+./.../element-template-validator --skip-connector agentic-ai --skip-connector my-connector
+
+# disable color (e.g. when piping output)
+./.../element-template-validator --no-color | tee report.txt
+```
 
 The schema URL defaults to a **pinned** version
 (`@camunda/zeebe-element-templates-json-schema@<version>`) so validator behavior is reproducible
@@ -37,9 +58,9 @@ in lockstep with the connectors-team upgrade.
 Files inside any `versioned/` directory are skipped by the single-file rules — they represent
 frozen historical releases and are not modifiable retroactively. Multi-file rules still see them.
 
-Templates under `connectors/agentic-ai/` are skipped entirely — those are generated/maintained
-outside the standard connector workflow and intentionally diverge from the conventions enforced
-here.
+Connector directories listed in `--skip-connector` are skipped entirely. The default (`agentic-ai`)
+covers templates generated/maintained outside the standard connector workflow that intentionally
+diverge from the conventions enforced here.
 
 ## Rules
 

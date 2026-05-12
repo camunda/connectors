@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.Rule;
 import java.nio.file.Path;
@@ -30,24 +31,17 @@ import java.util.Set;
  */
 public class EmptyGroupRule implements Rule {
 
-  public static final String ID = "empty-group";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    JsonNode groups = template.path("groups");
+    JsonNode groups = template.path(ElementTemplate.GROUPS);
     if (!groups.isArray()) {
       return List.of();
     }
     Set<String> referenced = new HashSet<>();
-    JsonNode properties = template.path("properties");
+    JsonNode properties = template.path(ElementTemplate.PROPERTIES);
     if (properties.isArray()) {
       for (JsonNode prop : properties) {
-        JsonNode g = prop.path("group");
+        JsonNode g = prop.path(ElementTemplate.GROUP);
         if (g.isTextual()) {
           referenced.add(g.asText());
         }
@@ -56,7 +50,7 @@ public class EmptyGroupRule implements Rule {
 
     List<Finding> findings = new ArrayList<>();
     for (int i = 0; i < groups.size(); i++) {
-      JsonNode idNode = groups.get(i).path("id");
+      JsonNode idNode = groups.get(i).path(ElementTemplate.ID);
       if (!idNode.isTextual()) {
         continue;
       }
@@ -66,7 +60,7 @@ public class EmptyGroupRule implements Rule {
             Finding.error(
                 file,
                 "/groups/" + i + "/id",
-                ID,
+                id(),
                 "Group \"" + groupId + "\" is declared but no property references it."));
       }
     }

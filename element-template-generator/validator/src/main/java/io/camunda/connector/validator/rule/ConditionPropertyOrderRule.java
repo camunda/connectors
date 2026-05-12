@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.JsonPointers;
 import io.camunda.connector.validator.core.Rule;
@@ -42,22 +43,15 @@ import java.util.Map;
  */
 public class ConditionPropertyOrderRule implements Rule {
 
-  public static final String ID = "condition-property-order";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    JsonNode properties = template.path("properties");
+    JsonNode properties = template.path(ElementTemplate.PROPERTIES);
     if (!properties.isArray()) {
       return List.of();
     }
     Map<String, Integer> firstIndexById = new HashMap<>();
     for (int i = 0; i < properties.size(); i++) {
-      JsonNode idNode = properties.get(i).path("id");
+      JsonNode idNode = properties.get(i).path(ElementTemplate.ID);
       if (idNode.isTextual()) {
         firstIndexById.putIfAbsent(idNode.asText(), i);
       }
@@ -79,7 +73,7 @@ public class ConditionPropertyOrderRule implements Rule {
     if (node.isObject()) {
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
         String childPointer = pointer + "/" + JsonPointers.escape(entry.getKey());
-        if ("condition".equals(entry.getKey()) && entry.getValue().isObject()) {
+        if (ElementTemplate.CONDITION.equals(entry.getKey()) && entry.getValue().isObject()) {
           checkCondition(
               entry.getValue(), childPointer, ownerIndex, firstIndexById, file, findings);
         }
@@ -99,7 +93,7 @@ public class ConditionPropertyOrderRule implements Rule {
       Map<String, Integer> firstIndexById,
       Path file,
       List<Finding> findings) {
-    JsonNode propertyRef = condition.path("property");
+    JsonNode propertyRef = condition.path(ElementTemplate.PROPERTY);
     if (propertyRef.isTextual()) {
       String referencedId = propertyRef.asText();
       Integer referencedIndex = firstIndexById.get(referencedId);
@@ -112,7 +106,7 @@ public class ConditionPropertyOrderRule implements Rule {
             Finding.error(
                 file,
                 conditionPointer + "/property",
-                ID,
+                id(),
                 "Condition references \""
                     + referencedId
                     + "\" — "
@@ -120,7 +114,7 @@ public class ConditionPropertyOrderRule implements Rule {
                     + ". Conditions must reference properties that appear earlier in properties[]."));
       }
     }
-    JsonNode allMatch = condition.path("allMatch");
+    JsonNode allMatch = condition.path(ElementTemplate.ALL_MATCH);
     if (allMatch.isArray()) {
       for (int j = 0; j < allMatch.size(); j++) {
         JsonNode sub = allMatch.get(j);

@@ -30,26 +30,39 @@ public final class TemplateFinder {
 
   public static final String VERSIONED_SEGMENT = "versioned";
   private static final String ELEMENT_TEMPLATES_SEGMENT = "element-templates";
-  private static final Set<String> SKIPPED_DIRECTORIES =
+
+  /** Directory names pruned during traversal when no override is supplied. */
+  public static final Set<String> DEFAULT_SKIPPED_DIRECTORIES =
       Set.of("target", "node_modules", ".git", ".idea", ".m2");
 
   /**
-   * Connector directories whose templates the validator skips entirely. Agentic-AI templates are
-   * generated/maintained outside the standard connector workflow and intentionally diverge from the
-   * conventions enforced here.
+   * Connector directories whose templates the validator skips entirely by default. Agentic-AI
+   * templates are generated/maintained outside the standard connector workflow and intentionally
+   * diverge from the conventions enforced here.
    */
-  private static final Set<String> SKIPPED_CONNECTORS = Set.of("agentic-ai");
+  public static final Set<String> DEFAULT_SKIPPED_CONNECTORS = Set.of("agentic-ai");
 
   private TemplateFinder() {}
 
   /** Files inside any {@code versioned/} directory are excluded. */
   public static List<Path> find(Path root) {
-    return walk(root, false);
+    return walk(root, false, DEFAULT_SKIPPED_DIRECTORIES, DEFAULT_SKIPPED_CONNECTORS);
+  }
+
+  /** Files inside any {@code versioned/} directory are excluded. */
+  public static List<Path> find(Path root, Set<String> skippedDirs, Set<String> skippedConnectors) {
+    return walk(root, false, skippedDirs, skippedConnectors);
   }
 
   /** All element-template JSONs, including those inside {@code versioned/}. */
   public static List<Path> findAll(Path root) {
-    return walk(root, true);
+    return walk(root, true, DEFAULT_SKIPPED_DIRECTORIES, DEFAULT_SKIPPED_CONNECTORS);
+  }
+
+  /** All element-template JSONs, including those inside {@code versioned/}. */
+  public static List<Path> findAll(
+      Path root, Set<String> skippedDirs, Set<String> skippedConnectors) {
+    return walk(root, true, skippedDirs, skippedConnectors);
   }
 
   public static boolean isVersioned(Path path) {
@@ -61,7 +74,8 @@ public final class TemplateFinder {
     return false;
   }
 
-  private static List<Path> walk(Path root, boolean includeVersioned) {
+  private static List<Path> walk(
+      Path root, boolean includeVersioned, Set<String> skippedDirs, Set<String> skippedConnectors) {
     List<Path> results = new ArrayList<>();
     try {
       Files.walkFileTree(
@@ -74,8 +88,8 @@ public final class TemplateFinder {
                 return FileVisitResult.CONTINUE;
               }
               String dirName = name.toString();
-              if (SKIPPED_DIRECTORIES.contains(dirName)
-                  || SKIPPED_CONNECTORS.contains(dirName)
+              if (skippedDirs.contains(dirName)
+                  || skippedConnectors.contains(dirName)
                   || (!includeVersioned && VERSIONED_SEGMENT.equals(dirName))) {
                 return FileVisitResult.SKIP_SUBTREE;
               }

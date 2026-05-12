@@ -42,8 +42,10 @@ import io.camunda.connector.validator.rule.VersionedTemplateConsistencyRule;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 
@@ -60,6 +62,35 @@ public class ValidatorCommand implements Callable<Integer> {
   private Path root = Path.of("connectors");
 
   @CommandLine.Option(
+      names = "--skip-directory",
+      split = ",",
+      description =
+          "Directory names pruned during template discovery (by exact name, not path). "
+              + "Repeatable; comma-separated values are also accepted. "
+              + "When specified, replaces the default set entirely. "
+              + "Default: target, node_modules, .git, .idea, .m2.")
+  private Set<String> skippedDirectories =
+      new LinkedHashSet<>(TemplateFinder.DEFAULT_SKIPPED_DIRECTORIES);
+
+  @CommandLine.Option(
+      names = "--skip-connector",
+      split = ",",
+      description =
+          "Connector directory names whose templates are skipped entirely (by exact name, not path). "
+              + "Repeatable; comma-separated values are also accepted. "
+              + "When specified, replaces the default set entirely. "
+              + "Default: agentic-ai.")
+  private Set<String> skippedConnectors =
+      new LinkedHashSet<>(TemplateFinder.DEFAULT_SKIPPED_CONNECTORS);
+
+  @CommandLine.Option(
+      names = "--no-color",
+      description =
+          "Disable ANSI color in the output. Color is auto-disabled when no console is attached "
+              + "(e.g. when output is redirected to a file or CI log capture).")
+  private boolean noColor;
+
+  @CommandLine.Option(
       names = "--schema-url",
       description =
           "Override the JSON-schema URL used by the schema rule. If unset, falls back to the "
@@ -71,7 +102,7 @@ public class ValidatorCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    List<Path> all = TemplateFinder.findAll(root);
+    List<Path> all = TemplateFinder.findAll(root, skippedDirectories, skippedConnectors);
     if (all.isEmpty()) {
       System.out.printf("No element-templates/*.json files found under %s%n", root);
       return 0;
@@ -86,7 +117,8 @@ public class ValidatorCommand implements Callable<Integer> {
     findings.addAll(runSingleFileRules(templates, schemaRule));
     findings.addAll(runMultiFileRules(templates));
 
-    ReportPrinter.print(findings, templates.size(), System.out);
+    boolean colorEnabled = !noColor && System.console() != null;
+    ReportPrinter.print(findings, templates.size(), System.out, colorEnabled);
     return findings.stream().anyMatch(f -> f.severity() == Severity.ERROR) ? 1 : 0;
   }
 

@@ -61,7 +61,7 @@ class DefaultValueInChoicesRuleTest {
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
-    assertThat(f.ruleId()).isEqualTo(DefaultValueInChoicesRule.ID);
+    assertThat(f.ruleId()).isEqualTo("default-value-in-choices");
     assertThat(f.jsonPointer()).isEqualTo("/properties/0/value");
     assertThat(f.message()).contains("c").contains("x");
   }

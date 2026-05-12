@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.JsonPointers;
 import io.camunda.connector.validator.core.Rule;
@@ -44,13 +45,6 @@ import java.util.Set;
  */
 public class PresetTargetExistsRule implements Rule {
 
-  public static final String ID = "preset-target-exists";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
     Map<String, Set<String>> propertyChoices = collectPropertyChoices(template);
@@ -61,22 +55,22 @@ public class PresetTargetExistsRule implements Rule {
 
   private Map<String, Set<String>> collectPropertyChoices(JsonNode template) {
     Map<String, Set<String>> result = new HashMap<>();
-    JsonNode props = template.path("properties");
+    JsonNode props = template.path(ElementTemplate.PROPERTIES);
     if (!props.isArray()) {
       return result;
     }
     for (JsonNode prop : props) {
-      JsonNode idNode = prop.path("id");
+      JsonNode idNode = prop.path(ElementTemplate.ID);
       if (!idNode.isTextual()) {
         continue;
       }
       // Union choice sets across duplicate ids so the mutually-exclusive switching pattern
       // (same id, different conditions, possibly different choices) does not lose values.
       Set<String> choices = result.computeIfAbsent(idNode.asText(), k -> new HashSet<>());
-      JsonNode choicesNode = prop.path("choices");
+      JsonNode choicesNode = prop.path(ElementTemplate.CHOICES);
       if (choicesNode.isArray()) {
         for (JsonNode choice : choicesNode) {
-          JsonNode value = choice.path("value");
+          JsonNode value = choice.path(ElementTemplate.VALUE);
           if (value.isTextual()) {
             choices.add(value.asText());
           }
@@ -95,7 +89,7 @@ public class PresetTargetExistsRule implements Rule {
     if (node.isObject()) {
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
         String childPointer = pointer + "/" + JsonPointers.escape(entry.getKey());
-        if ("presets".equals(entry.getKey()) && entry.getValue().isObject()) {
+        if (ElementTemplate.PRESETS.equals(entry.getKey()) && entry.getValue().isObject()) {
           checkPresets(entry.getValue(), childPointer, file, propertyChoices, findings);
         }
         walk(entry.getValue(), childPointer, file, propertyChoices, findings);
@@ -123,7 +117,7 @@ public class PresetTargetExistsRule implements Rule {
             Finding.error(
                 file,
                 entryPointer,
-                ID,
+                id(),
                 "Preset references property \""
                     + propertyId
                     + "\" which does not exist in this template."));
@@ -139,7 +133,7 @@ public class PresetTargetExistsRule implements Rule {
             Finding.error(
                 file,
                 entryPointer,
-                ID,
+                id(),
                 "Preset value \""
                     + value.asText()
                     + "\" is not one of the declared choices for property \""

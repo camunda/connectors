@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.MultiFileRule;
 import io.camunda.connector.validator.core.TemplateFinder;
@@ -36,8 +37,6 @@ import java.util.Set;
  */
 public class HybridParityRule implements MultiFileRule {
 
-  public static final String ID = "hybrid-parity";
-
   /** Properties / groups that are by design present only in the hybrid sibling (self-managed). */
   private static final Set<String> HYBRID_ONLY_ALLOWED =
       Set.of("taskDefinitionType", "connectorType");
@@ -54,11 +53,6 @@ public class HybridParityRule implements MultiFileRule {
           "messageTtl");
 
   @Override
-  public String id() {
-    return ID;
-  }
-
-  @Override
   public List<Finding> apply(Map<Path, JsonNode> templates) {
     List<Finding> findings = new ArrayList<>();
     for (Map.Entry<Path, JsonNode> entry : templates.entrySet()) {
@@ -72,7 +66,7 @@ public class HybridParityRule implements MultiFileRule {
             Finding.error(
                 hybrid,
                 "/",
-                ID,
+                id(),
                 "Hybrid template has no matching non-hybrid sibling at "
                     + expectedSiblingHint(hybrid)
                     + "."));
@@ -108,7 +102,7 @@ public class HybridParityRule implements MultiFileRule {
           Finding.error(
               hybrid,
               "/" + collectionField,
-              ID,
+              id(),
               "Hybrid declares "
                   + collectionField
                   + " not present in non-hybrid sibling ("
@@ -122,7 +116,7 @@ public class HybridParityRule implements MultiFileRule {
           Finding.error(
               hybrid,
               "/" + collectionField,
-              ID,
+              id(),
               "Non-hybrid sibling ("
                   + mainPath.getFileName()
                   + ") declares "
@@ -138,7 +132,7 @@ public class HybridParityRule implements MultiFileRule {
     JsonNode arr = template.path(field);
     if (arr.isArray()) {
       for (JsonNode item : arr) {
-        JsonNode id = item.path("id");
+        JsonNode id = item.path(ElementTemplate.ID);
         if (id.isTextual()) {
           ids.add(id.asText());
         }

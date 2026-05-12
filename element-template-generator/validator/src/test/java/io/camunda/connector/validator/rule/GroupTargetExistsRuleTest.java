@@ -57,7 +57,7 @@ class GroupTargetExistsRuleTest {
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
-    assertThat(f.ruleId()).isEqualTo(GroupTargetExistsRule.ID);
+    assertThat(f.ruleId()).isEqualTo("group-target-exists");
     assertThat(f.jsonPointer()).isEqualTo("/properties/0/group");
     assertThat(f.message()).contains("operatoin");
   }

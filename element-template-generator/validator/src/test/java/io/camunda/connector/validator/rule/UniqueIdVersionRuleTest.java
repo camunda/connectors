@@ -58,7 +58,7 @@ class UniqueIdVersionRuleTest {
         read("{ \"id\": \"io.foo\", \"version\": 5 }"));
     List<Finding> findings = rule.apply(templates);
     assertThat(findings).hasSize(2);
-    assertThat(findings).allMatch(f -> f.ruleId().equals(UniqueIdVersionRule.ID));
+    assertThat(findings).allMatch(f -> f.ruleId().equals("unique-id-version"));
     assertThat(findings.get(0).message()).contains("io.foo").contains("5");
     assertThat(findings.get(0).message()).contains(findings.get(1).file().toString());
   }

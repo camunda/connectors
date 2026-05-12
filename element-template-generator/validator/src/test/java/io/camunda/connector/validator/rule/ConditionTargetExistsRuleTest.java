@@ -71,7 +71,7 @@ class ConditionTargetExistsRuleTest {
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
-    assertThat(f.ruleId()).isEqualTo(ConditionTargetExistsRule.ID);
+    assertThat(f.ruleId()).isEqualTo("condition-target-exists");
     assertThat(f.jsonPointer()).isEqualTo("/properties/1/condition/property");
     assertThat(f.message()).contains("opGruop");
   }

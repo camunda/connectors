@@ -25,29 +25,69 @@ import java.util.TreeMap;
 
 public final class ReportPrinter {
 
+  private static final String RESET = "\033[0m";
+  private static final String BOLD = "\033[1m";
+  private static final String RED = "\033[31m";
+  private static final String YELLOW = "\033[33m";
+  private static final String CYAN = "\033[36m";
+  private static final String GREEN = "\033[32m";
+
   private ReportPrinter() {}
 
-  public static void print(List<Finding> findings, int filesScanned, PrintStream out) {
+  /**
+   * Prints the validation report. Color is enabled when a real console is attached; pass {@code
+   * colorEnabled = false} to suppress (e.g. via {@code --no-color}).
+   */
+  public static void print(
+      List<Finding> findings, int filesScanned, PrintStream out, boolean colorEnabled) {
     Map<Path, List<Finding>> byFile = new TreeMap<>();
     for (Finding f : findings) {
       byFile.computeIfAbsent(f.file(), k -> new ArrayList<>()).add(f);
     }
 
     for (Map.Entry<Path, List<Finding>> e : byFile.entrySet()) {
-      out.println(e.getKey());
+      out.println(color(BOLD, e.getKey().toString(), colorEnabled));
       for (Finding f : e.getValue()) {
-        out.printf("  %-5s  %-32s  %s%n", f.severity(), f.ruleId(), f.jsonPointer());
+        String severity = colorBySeverity(f.severity(), colorEnabled);
+        String ruleId = color(CYAN, f.ruleId(), colorEnabled);
+        out.printf("  %-5s  %-40s  %s%n", severity, ruleId, f.jsonPointer());
         out.printf("         %s%n", f.message());
       }
       out.println();
     }
 
     if (findings.isEmpty()) {
-      out.printf("Scanned %d template(s). No findings.%n", filesScanned);
+      out.println(
+          color(GREEN, "Scanned " + filesScanned + " template(s). No findings.", colorEnabled));
     } else {
-      out.printf(
-          "Scanned %d template(s). %d finding(s) in %d file(s). Run failed.%n",
-          filesScanned, findings.size(), byFile.size());
+      out.println(
+          color(
+              RED,
+              "Scanned "
+                  + filesScanned
+                  + " template(s). "
+                  + findings.size()
+                  + " finding(s) in "
+                  + byFile.size()
+                  + " file(s). Run failed.",
+              colorEnabled));
     }
+  }
+
+  /** Convenience overload — auto-detects color support via {@code System.console()}. */
+  public static void print(List<Finding> findings, int filesScanned, PrintStream out) {
+    print(findings, filesScanned, out, System.console() != null);
+  }
+
+  private static String colorBySeverity(Severity severity, boolean colorEnabled) {
+    String label = severity.name();
+    return switch (severity) {
+      case ERROR -> color(RED, label, colorEnabled);
+      case WARN -> color(YELLOW, label, colorEnabled);
+    };
+  }
+
+  private static String color(String ansi, String text, boolean colorEnabled) {
+    return colorEnabled ? ansi + text + RESET : text;
   }
 }

@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.MultiFileRule;
 import io.camunda.connector.validator.core.TemplateFinder;
@@ -42,14 +43,7 @@ import java.util.regex.Pattern;
  */
 public class VersionedTemplateConsistencyRule implements MultiFileRule {
 
-  public static final String ID = "versioned-template-consistency";
-
   private static final Pattern VERSIONED_NAME = Pattern.compile("^(.+)-(\\d+)\\.json$");
-
-  @Override
-  public String id() {
-    return ID;
-  }
 
   @Override
   public List<Finding> apply(Map<Path, JsonNode> templates) {
@@ -65,7 +59,7 @@ public class VersionedTemplateConsistencyRule implements MultiFileRule {
             Finding.error(
                 path,
                 "/",
-                ID,
+                id(),
                 "Versioned template filename does not follow the {base}-{version}.json pattern."));
         continue;
       }
@@ -78,7 +72,7 @@ public class VersionedTemplateConsistencyRule implements MultiFileRule {
             Finding.error(
                 path,
                 "/",
-                ID,
+                id(),
                 "Versioned template filename suffix \""
                     + filenameVersionStr
                     + "\" is not a valid version number."));
@@ -87,7 +81,7 @@ public class VersionedTemplateConsistencyRule implements MultiFileRule {
       boolean preVersioningSnapshot = filenameVersionStr.startsWith("0");
 
       JsonNode template = entry.getValue();
-      JsonNode versionNode = template.path("version");
+      JsonNode versionNode = template.path(ElementTemplate.VERSION);
       boolean versionMissing = !versionNode.isNumber();
       if (versionMissing && preVersioningSnapshot) {
         continue;
@@ -97,7 +91,7 @@ public class VersionedTemplateConsistencyRule implements MultiFileRule {
             Finding.error(
                 path,
                 "/version",
-                ID,
+                id(),
                 "Filename suffix says version "
                     + filenameVersion
                     + " but the template declares "

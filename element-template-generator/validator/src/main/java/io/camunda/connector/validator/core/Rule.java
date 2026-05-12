@@ -22,7 +22,11 @@ import java.util.List;
 
 public interface Rule {
 
-  String id();
+  default String id() {
+    String name = getClass().getSimpleName();
+    if (name.endsWith("Rule")) name = name.substring(0, name.length() - 4);
+    return name.replaceAll("([A-Z])", "-$1").toLowerCase().replaceFirst("^-", "");
+  }
 
   List<Finding> apply(Path file, JsonNode template);
 }

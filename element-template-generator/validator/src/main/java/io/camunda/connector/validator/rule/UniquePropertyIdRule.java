@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.Rule;
 import java.nio.file.Path;
@@ -42,22 +43,15 @@ import java.util.Set;
  */
 public class UniquePropertyIdRule implements Rule {
 
-  public static final String ID = "unique-property-id";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    JsonNode properties = template.path("properties");
+    JsonNode properties = template.path(ElementTemplate.PROPERTIES);
     if (!properties.isArray()) {
       return List.of();
     }
     Map<String, List<Integer>> indicesById = new LinkedHashMap<>();
     for (int i = 0; i < properties.size(); i++) {
-      JsonNode idNode = properties.get(i).path("id");
+      JsonNode idNode = properties.get(i).path(ElementTemplate.ID);
       if (!idNode.isTextual()) {
         continue;
       }
@@ -81,7 +75,7 @@ public class UniquePropertyIdRule implements Rule {
             Finding.error(
                 file,
                 "/properties/" + duplicateIndex + "/id",
-                ID,
+                id(),
                 "Property id \""
                     + propertyId
                     + "\" is already declared at /properties/"
@@ -94,12 +88,12 @@ public class UniquePropertyIdRule implements Rule {
 
   private static boolean allPairsMutuallyExclusive(List<Integer> indices, JsonNode properties) {
     for (int i = 0; i < indices.size(); i++) {
-      JsonNode condA = properties.get(indices.get(i)).path("condition");
+      JsonNode condA = properties.get(indices.get(i)).path(ElementTemplate.CONDITION);
       if (!condA.isObject()) {
         return false;
       }
       for (int j = i + 1; j < indices.size(); j++) {
-        JsonNode condB = properties.get(indices.get(j)).path("condition");
+        JsonNode condB = properties.get(indices.get(j)).path(ElementTemplate.CONDITION);
         if (!condB.isObject()) {
           return false;
         }
@@ -112,8 +106,8 @@ public class UniquePropertyIdRule implements Rule {
   }
 
   private static boolean mutuallyExclusive(JsonNode c1, JsonNode c2) {
-    JsonNode p1 = c1.path("property");
-    JsonNode p2 = c2.path("property");
+    JsonNode p1 = c1.path(ElementTemplate.PROPERTY);
+    JsonNode p2 = c2.path(ElementTemplate.PROPERTY);
     if (p1.isTextual() && p2.isTextual() && p1.asText().equals(p2.asText())) {
       Set<String> v1 = collectSimpleValues(c1);
       Set<String> v2 = collectSimpleValues(c2);
@@ -121,7 +115,7 @@ public class UniquePropertyIdRule implements Rule {
         return true;
       }
     }
-    JsonNode am1 = c1.path("allMatch");
+    JsonNode am1 = c1.path(ElementTemplate.ALL_MATCH);
     if (am1.isArray()) {
       for (JsonNode sub : am1) {
         if (sub.isObject() && mutuallyExclusive(sub, c2)) {
@@ -129,7 +123,7 @@ public class UniquePropertyIdRule implements Rule {
         }
       }
     }
-    JsonNode am2 = c2.path("allMatch");
+    JsonNode am2 = c2.path(ElementTemplate.ALL_MATCH);
     if (am2.isArray()) {
       for (JsonNode sub : am2) {
         if (sub.isObject() && mutuallyExclusive(c1, sub)) {
@@ -142,11 +136,11 @@ public class UniquePropertyIdRule implements Rule {
 
   private static Set<String> collectSimpleValues(JsonNode condition) {
     Set<String> values = new HashSet<>();
-    JsonNode equals = condition.path("equals");
+    JsonNode equals = condition.path(ElementTemplate.EQUALS);
     if (equals.isTextual()) {
       values.add(equals.asText());
     }
-    JsonNode oneOf = condition.path("oneOf");
+    JsonNode oneOf = condition.path(ElementTemplate.ONE_OF);
     if (oneOf.isArray()) {
       for (JsonNode v : oneOf) {
         if (v.isTextual()) {

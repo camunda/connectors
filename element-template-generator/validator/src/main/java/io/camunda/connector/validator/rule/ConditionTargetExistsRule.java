@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.JsonPointers;
 import io.camunda.connector.validator.core.Rule;
@@ -41,13 +42,6 @@ import java.util.Set;
  */
 public class ConditionTargetExistsRule implements Rule {
 
-  public static final String ID = "condition-target-exists";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
     Set<String> propertyIds = collectPropertyIds(template);
@@ -58,12 +52,12 @@ public class ConditionTargetExistsRule implements Rule {
 
   private Set<String> collectPropertyIds(JsonNode template) {
     Set<String> ids = new HashSet<>();
-    JsonNode props = template.path("properties");
+    JsonNode props = template.path(ElementTemplate.PROPERTIES);
     if (!props.isArray()) {
       return ids;
     }
     for (JsonNode prop : props) {
-      JsonNode idNode = prop.path("id");
+      JsonNode idNode = prop.path(ElementTemplate.ID);
       if (idNode.isTextual()) {
         ids.add(idNode.asText());
       }
@@ -76,7 +70,7 @@ public class ConditionTargetExistsRule implements Rule {
     if (node.isObject()) {
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
         String childPointer = pointer + "/" + JsonPointers.escape(entry.getKey());
-        if ("condition".equals(entry.getKey()) && entry.getValue().isObject()) {
+        if (ElementTemplate.CONDITION.equals(entry.getKey()) && entry.getValue().isObject()) {
           checkCondition(entry.getValue(), childPointer, file, propertyIds, findings);
         }
         walk(entry.getValue(), childPointer, file, propertyIds, findings);
@@ -94,7 +88,7 @@ public class ConditionTargetExistsRule implements Rule {
       Path file,
       Set<String> propertyIds,
       List<Finding> findings) {
-    JsonNode propertyRef = condition.path("property");
+    JsonNode propertyRef = condition.path(ElementTemplate.PROPERTY);
     if (propertyRef.isTextual()) {
       String referencedId = propertyRef.asText();
       if (!propertyIds.contains(referencedId)) {
@@ -102,14 +96,14 @@ public class ConditionTargetExistsRule implements Rule {
             Finding.error(
                 file,
                 conditionPointer + "/property",
-                ID,
+                id(),
                 "Condition references property \""
                     + referencedId
                     + "\" which does not exist in this template."));
       }
     }
 
-    JsonNode allMatch = condition.path("allMatch");
+    JsonNode allMatch = condition.path(ElementTemplate.ALL_MATCH);
     if (allMatch.isArray()) {
       for (int i = 0; i < allMatch.size(); i++) {
         JsonNode sub = allMatch.get(i);

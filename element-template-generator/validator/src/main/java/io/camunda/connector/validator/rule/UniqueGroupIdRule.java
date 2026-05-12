@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.Rule;
 import java.nio.file.Path;
@@ -28,23 +29,16 @@ import java.util.Map;
 /** Each entry in {@code groups[]} must have a unique {@code id}. */
 public class UniqueGroupIdRule implements Rule {
 
-  public static final String ID = "unique-group-id";
-
-  @Override
-  public String id() {
-    return ID;
-  }
-
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    JsonNode groups = template.path("groups");
+    JsonNode groups = template.path(ElementTemplate.GROUPS);
     if (!groups.isArray()) {
       return List.of();
     }
     Map<String, Integer> firstSeen = new HashMap<>();
     List<Finding> findings = new ArrayList<>();
     for (int i = 0; i < groups.size(); i++) {
-      JsonNode idNode = groups.get(i).path("id");
+      JsonNode idNode = groups.get(i).path(ElementTemplate.ID);
       if (!idNode.isTextual()) {
         continue;
       }
@@ -55,7 +49,7 @@ public class UniqueGroupIdRule implements Rule {
             Finding.error(
                 file,
                 "/groups/" + i + "/id",
-                ID,
+                id(),
                 "Duplicate group id \""
                     + groupId
                     + "\" — first declared at /groups/"
