@@ -44,6 +44,12 @@ public class OperationBasedConnectorUtil {
   public static String OPERATION_PROPERTY_SEPARATOR = ":";
   public static String VARIABLE_PATH_SEPARATOR = ".";
 
+  private static final List<DropdownProperty.DropdownChoice> BINDING_TYPE_CHOICES =
+      List.of(
+          new DropdownProperty.DropdownChoice("Latest", "latest"),
+          new DropdownProperty.DropdownChoice("Deployment", "deployment"),
+          new DropdownProperty.DropdownChoice("Version tag", "versionTag"));
+
   public static PropertyBuilder createOperationsProperty(
       List<MethodWithAnnotation<Operation>> methods) {
     if (methods.isEmpty()) {
@@ -127,44 +133,80 @@ public class OperationBasedConnectorUtil {
     if (annotations.length == 0) {
       return List.of();
     }
-
     String operationId = getOperationId(operation);
-    PropertyCondition operationCondition =
-        new PropertyCondition.AllMatch(
-            List.of(new PropertyCondition.Equals(OPERATION_PROPERTY_ID, operationId)));
+    String idPrefix = operationId + OPERATION_PROPERTY_SEPARATOR;
+    PropertyCondition.Equals baseCondition =
+        new PropertyCondition.Equals(OPERATION_PROPERTY_ID, operationId);
+    return buildLinkedResourcePropertiesCore(
+        annotations, idPrefix, baseCondition, OPERATION_GROUP_ID);
+  }
+
+  public static List<PropertyBuilder> buildClassBasedLinkedResourceProperties(Class<?> type) {
+    TemplateLinkedResource[] annotations = type.getAnnotationsByType(TemplateLinkedResource.class);
+    if (annotations.length == 0) {
+      return List.of();
+    }
+    // defaultGroup is null: class-based connectors have no shared operation group to fall back to,
+    // unlike the operation-based path which defaults blank groups to OPERATION_GROUP_ID.
+    return buildLinkedResourcePropertiesCore(annotations, "", null, null);
+  }
+
+  private static List<PropertyBuilder> buildLinkedResourcePropertiesCore(
+      TemplateLinkedResource[] annotations,
+      String idPrefix,
+      PropertyCondition.Equals baseCondition,
+      String defaultGroup) {
+
+    // baseCondition == null for class-based (no operation scope); non-null for operation-based.
+    // Regular properties are wrapped in AllMatch([baseCondition]) when present, null otherwise.
+    // versionTag adds its own Equals on top, forming AllMatch([baseCondition, versionTagEquals]).
+    PropertyCondition propertyCondition =
+        baseCondition == null ? null : new PropertyCondition.AllMatch(List.of(baseCondition));
 
     List<PropertyBuilder> result = new ArrayList<>();
     for (TemplateLinkedResource lr : annotations) {
-      String group = lr.group().isBlank() ? OPERATION_GROUP_ID : lr.group();
+      String group = lr.group().isBlank() ? defaultGroup : lr.group();
+      String bindingTypeId = idPrefix + lr.linkName() + ".bindingType";
 
       result.add(
           HiddenProperty.builder()
               .value(lr.resourceType())
               .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "resourceType"))
-              .condition(operationCondition));
+              .condition(propertyCondition));
 
       result.add(
           DropdownProperty.builder()
-              .choices(
-                  List.of(
-                      new DropdownProperty.DropdownChoice("Latest", "latest"),
-                      new DropdownProperty.DropdownChoice("Deployment", "deployment"),
-                      new DropdownProperty.DropdownChoice("Version tag", "versionTag")))
-              .id(concatenateOperationIdAndPropertyId(operationId, lr.linkName() + ".bindingType"))
+              .choices(BINDING_TYPE_CHOICES)
+              .id(bindingTypeId)
               .label(lr.bindingTypeLabel().isBlank() ? "Resource binding" : lr.bindingTypeLabel())
               .value("latest")
               .group(group)
               .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "bindingType"))
-              .condition(operationCondition));
+              .condition(propertyCondition));
 
       result.add(
           StringProperty.builder()
-              .id(concatenateOperationIdAndPropertyId(operationId, lr.linkName() + ".resourceId"))
+              .id(idPrefix + lr.linkName() + ".resourceId")
               .label(lr.resourceIdLabel().isBlank() ? "Resource ID" : lr.resourceIdLabel())
               .description(lr.resourceIdDescription().isBlank() ? null : lr.resourceIdDescription())
               .group(group)
               .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "resourceId"))
-              .condition(operationCondition));
+              .condition(propertyCondition));
+
+      PropertyCondition.Equals versionTagEquals =
+          new PropertyCondition.Equals(bindingTypeId, "versionTag");
+      PropertyCondition versionTagCondition =
+          baseCondition == null
+              ? versionTagEquals
+              : new PropertyCondition.AllMatch(List.of(baseCondition, versionTagEquals));
+
+      result.add(
+          StringProperty.builder()
+              .id(idPrefix + lr.linkName() + ".versionTag")
+              .label("Version tag")
+              .group(group)
+              .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "versionTag"))
+              .condition(versionTagCondition));
     }
     return result;
   }

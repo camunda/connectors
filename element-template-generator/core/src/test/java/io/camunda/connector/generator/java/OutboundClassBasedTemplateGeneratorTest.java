@@ -47,6 +47,7 @@ import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.example.outbound.ClassBasedConnectorWithLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithLinkedResource;
@@ -1044,7 +1045,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
   class LinkedResource {
 
     @Test
-    void singleLinkedResource_emitsThreeProperties() {
+    void singleLinkedResource_emitsFourProperties() {
       var template =
           generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
       var linkedResourceProps =
@@ -1056,7 +1057,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
                           && am.allMatch()
                               .contains(new PropertyCondition.Equals("operation", "op1")))
               .toList();
-      assertThat(linkedResourceProps).hasSize(3);
+      assertThat(linkedResourceProps).hasSize(4);
     }
 
     @Test
@@ -1127,7 +1128,27 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
-    void multipleLinkedResources_emitsSixProperties() {
+    void linkedResource_versionTagProperty_shownOnlyWhenBindingTypeIsVersionTag() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var versionTag = getPropertyById("op1:formDefinition.versionTag", template);
+
+      assertThat(versionTag).isInstanceOf(StringProperty.class);
+      assertThat(versionTag.getLabel()).isEqualTo("Version tag");
+      assertThat(versionTag.getGroup()).isEqualTo("form");
+      assertThat(((ZeebeLinkedResource) versionTag.getBinding()).linkName())
+          .isEqualTo("formDefinition");
+      assertThat(((ZeebeLinkedResource) versionTag.getBinding()).property())
+          .isEqualTo("versionTag");
+      assertThat(versionTag.getCondition()).isInstanceOf(PropertyCondition.AllMatch.class);
+      var allMatch = ((PropertyCondition.AllMatch) versionTag.getCondition()).allMatch();
+      assertThat(allMatch).contains(new PropertyCondition.Equals("operation", "op1"));
+      assertThat(allMatch)
+          .contains(new PropertyCondition.Equals("op1:formDefinition.bindingType", "versionTag"));
+    }
+
+    @Test
+    void multipleLinkedResources_emitsEightProperties() {
       var template =
           generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
       var op2LinkedResourceProps =
@@ -1139,7 +1160,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
                           && am.allMatch()
                               .contains(new PropertyCondition.Equals("operation", "op2")))
               .toList();
-      assertThat(op2LinkedResourceProps).hasSize(6);
+      assertThat(op2LinkedResourceProps).hasSize(8);
     }
 
     @Test
@@ -1182,6 +1203,86 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               .findFirst()
               .orElseThrow();
       assertThat(attachmentBHidden.getValue()).isEqualTo("file");
+    }
+  }
+
+  @Nested
+  class ClassBasedLinkedResource {
+
+    @Test
+    void classBased_emitsFourLinkedResourceProperties() {
+      var template = generator.generate(ClassBasedConnectorWithLinkedResource.class).getFirst();
+      var linkedResourceProps =
+          template.properties().stream()
+              .filter(p -> "zeebe:linkedResource".equals(p.getBinding().type()))
+              .toList();
+      assertThat(linkedResourceProps).hasSize(4);
+    }
+
+    @Test
+    void classBased_hiddenResourceType_hasNoCondition() {
+      var template = generator.generate(ClassBasedConnectorWithLinkedResource.class).getFirst();
+      var hidden =
+          template.properties().stream()
+              .filter(
+                  p ->
+                      "zeebe:linkedResource".equals(p.getBinding().type())
+                          && p instanceof HiddenProperty)
+              .findFirst()
+              .orElseThrow();
+
+      assertThat(hidden.getValue()).isEqualTo("form");
+      assertThat(hidden.getCondition()).isNull();
+      assertThat(((ZeebeLinkedResource) hidden.getBinding()).linkName())
+          .isEqualTo("formDefinition");
+      assertThat(((ZeebeLinkedResource) hidden.getBinding()).property()).isEqualTo("resourceType");
+    }
+
+    @Test
+    void classBased_bindingTypeDropdown_hasNoCondition() {
+      var template = generator.generate(ClassBasedConnectorWithLinkedResource.class).getFirst();
+      var bindingType = (DropdownProperty) getPropertyById("formDefinition.bindingType", template);
+
+      assertThat(bindingType.getLabel()).isEqualTo("Form binding");
+      assertThat(bindingType.getGroup()).isEqualTo("form");
+      assertThat(bindingType.getValue()).isEqualTo("latest");
+      assertThat(bindingType.getCondition()).isNull();
+      assertThat(((ZeebeLinkedResource) bindingType.getBinding()).property())
+          .isEqualTo("bindingType");
+      assertThat(bindingType.getChoices())
+          .containsExactly(
+              new DropdownProperty.DropdownChoice("Latest", "latest"),
+              new DropdownProperty.DropdownChoice("Deployment", "deployment"),
+              new DropdownProperty.DropdownChoice("Version tag", "versionTag"));
+    }
+
+    @Test
+    void classBased_resourceIdString_hasNoCondition() {
+      var template = generator.generate(ClassBasedConnectorWithLinkedResource.class).getFirst();
+      var resourceId = getPropertyById("formDefinition.resourceId", template);
+
+      assertThat(resourceId).isInstanceOf(StringProperty.class);
+      assertThat(resourceId.getLabel()).isEqualTo("Form ID");
+      assertThat(resourceId.getDescription())
+          .isEqualTo("Select a form to render as an adaptive card");
+      assertThat(resourceId.getGroup()).isEqualTo("form");
+      assertThat(resourceId.getCondition()).isNull();
+      assertThat(((ZeebeLinkedResource) resourceId.getBinding()).property())
+          .isEqualTo("resourceId");
+    }
+
+    @Test
+    void classBased_versionTagProperty_shownOnlyWhenBindingTypeIsVersionTag() {
+      var template = generator.generate(ClassBasedConnectorWithLinkedResource.class).getFirst();
+      var versionTag = getPropertyById("formDefinition.versionTag", template);
+
+      assertThat(versionTag).isInstanceOf(StringProperty.class);
+      assertThat(versionTag.getLabel()).isEqualTo("Version tag");
+      assertThat(versionTag.getGroup()).isEqualTo("form");
+      assertThat(versionTag.getCondition())
+          .isEqualTo(new PropertyCondition.Equals("formDefinition.bindingType", "versionTag"));
+      assertThat(((ZeebeLinkedResource) versionTag.getBinding()).property())
+          .isEqualTo("versionTag");
     }
   }
 

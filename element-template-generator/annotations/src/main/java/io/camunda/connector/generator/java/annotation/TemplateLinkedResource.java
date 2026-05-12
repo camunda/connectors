@@ -23,10 +23,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Declares a {@code zeebe:linkedResource} block for the annotated request class. Placing this on a
- * connector input record causes the element-template generator to emit three properties for the
- * linked resource: a hidden {@code resourceType} marker, a {@code bindingType} dropdown, and a
- * {@code resourceId} string field.
+ * Declares a {@code zeebe:linkedResource} block for the annotated request class. The
+ * element-template generator emits four properties per annotation: a hidden {@code resourceType}
+ * marker, a {@code bindingType} dropdown, a {@code resourceId} string field, and a conditional
+ * {@code versionTag} string field shown only when {@code bindingType} is {@code "versionTag"}.
+ *
+ * <p>Supported on both operation-based connectors ({@link
+ * io.camunda.connector.api.outbound.OutboundConnectorProvider} with {@link
+ * io.camunda.connector.api.annotation.Operation}-annotated methods) and class-based connectors
+ * ({@link io.camunda.connector.api.outbound.OutboundConnectorFunction} implementations). Not
+ * supported on inbound connectors — {@code zeebe:linkedResource} is a service-task extension.
  *
  * <p>This annotation is repeatable via {@link TemplateLinkedResources}.
  */
@@ -46,12 +52,12 @@ public @interface TemplateLinkedResource {
   /** Property group for the visible fields (bindingType dropdown and resourceId input). */
   String group() default "";
 
-  /** Label for the resource ID input. Defaults to {@code "Form ID"} if blank. */
+  /** Label for the resource ID input. Defaults to {@code "Resource ID"} if blank. */
   String resourceIdLabel() default "";
 
   /** Description for the resource ID input. Omitted if blank. */
   String resourceIdDescription() default "";
 
-  /** Label for the binding-type dropdown. Defaults to {@code "Form binding"} if blank. */
+  /** Label for the binding-type dropdown. Defaults to {@code "Resource binding"} if blank. */
   String bindingTypeLabel() default "";
 }
