@@ -109,16 +109,10 @@ jobs:
           MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           BASE_VERSION="${MAVEN_VERSION%-SNAPSHOT}"
 
-          PR_NUMBER="$(
-            curl -fsSL \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
-            | jq -r '.[0].number // empty'
-          )" || PR_NUMBER=""
+          PR_NUMBER="${{ github.event.pull_request.number }}"
 
           if [[ -z "$PR_NUMBER" ]]; then
-            echo "::notice::No PR found for ${GITHUB_SHA}. Will not push PR-tagged images."
+            echo "::notice::No PR number available. Will not push PR-tagged images."
             echo "should-push=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
