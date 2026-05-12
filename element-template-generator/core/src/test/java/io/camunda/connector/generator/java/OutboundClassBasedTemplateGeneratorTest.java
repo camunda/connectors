@@ -33,6 +33,7 @@ import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
 import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.NumberProperty;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
@@ -632,6 +633,16 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
                 assertThat(p.getValue()).isEqualTo("value2");
                 assertThat(p.getCondition()).isEqualTo(new Equals("booleanProperty", false));
               });
+    }
+
+    @Test
+    void staticFields_areNotGeneratedAsProperties() {
+      var template = generator.generate(MyConnectorFunction.WithStaticFields.class).getFirst();
+      var propertyIds =
+          template.properties().stream().map(Property::getId).collect(Collectors.toSet());
+
+      assertThat(propertyIds).contains("instanceField");
+      assertThat(propertyIds).doesNotContain("STATIC_CONSTANT");
     }
   }
 
