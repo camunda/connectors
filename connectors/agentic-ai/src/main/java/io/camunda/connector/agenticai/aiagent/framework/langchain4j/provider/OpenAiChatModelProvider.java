@@ -39,14 +39,15 @@ public class OpenAiChatModelProvider implements ChatModelProvider<OpenAiProvider
   @Override
   public ChatModel createChatModel(OpenAiProviderConfiguration openai) {
     final var connection = openai.openai();
+    final var apiTimeout =
+        deriveTimeoutSetting("OpenAI model call", config, connection.timeouts(), LOGGER);
 
     final var builder =
         OpenAiChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
-            .timeout(
-                deriveTimeoutSetting("OpenAI model call", config, connection.timeouts(), LOGGER))
-            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
+            .timeout(apiTimeout)
+            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder(apiTimeout, apiTimeout));
 
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);

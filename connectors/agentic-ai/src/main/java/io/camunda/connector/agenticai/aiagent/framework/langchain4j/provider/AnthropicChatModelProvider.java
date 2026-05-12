@@ -39,14 +39,15 @@ public class AnthropicChatModelProvider
   @Override
   public ChatModel createChatModel(AnthropicProviderConfiguration anthropic) {
     final var connection = anthropic.anthropic();
+    final var apiTimeout =
+        deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER);
 
     final var builder =
         AnthropicChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
-            .timeout(
-                deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER))
-            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
+            .timeout(apiTimeout)
+            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder(apiTimeout, apiTimeout));
 
     Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 

@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,6 +25,7 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration.ProxyDetails;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +56,9 @@ class ChatModelHttpProxySupportTest {
   private static final String NON_PROXY_HOST_127 = "127\\.0\\.0\\.1";
   private static final String NON_PROXY_HOST_INTERNAL = "*.internal.com";
 
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(20);
+  private static final Duration READ_TIMEOUT = Duration.ofMinutes(3);
+
   @Mock private ProxyConfiguration proxyConfiguration;
   @Mock private JdkHttpClientProxyConfigurator jdkProxyConfigurator;
 
@@ -75,6 +80,17 @@ class ChatModelHttpProxySupportTest {
       // then
       assertThat(result).isNotNull();
       verify(jdkProxyConfigurator).configure(any(HttpClient.Builder.class));
+    }
+
+    @Test
+    void shouldApplyExplicitConnectAndReadTimeouts() {
+      // when
+      JdkHttpClientBuilder result =
+          proxySupport.createJdkHttpClientBuilder(CONNECT_TIMEOUT, READ_TIMEOUT);
+
+      // then
+      assertThat(result.connectTimeout()).isEqualTo(CONNECT_TIMEOUT);
+      assertThat(result.readTimeout()).isEqualTo(READ_TIMEOUT);
     }
   }
 
@@ -125,6 +141,50 @@ class ChatModelHttpProxySupportTest {
         // then
         assertThat(result).isNotNull();
         verify(proxyConfiguration).getProxyDetails(SCHEME_HTTP);
+      }
+    }
+
+    @Test
+    void shouldApplyExplicitConnectionAndSocketTimeoutsToApacheClient() {
+      // given
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
+
+      ApacheHttpClient.Builder httpClientBuilder =
+          Mockito.mock(ApacheHttpClient.Builder.class, Answers.RETURNS_SELF);
+      when(httpClientBuilder.build()).thenReturn(Mockito.mock(SdkHttpClient.class));
+
+      try (MockedStatic<ApacheHttpClient> apacheMock = mockStatic(ApacheHttpClient.class)) {
+        apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
+
+        // when
+        proxySupport.createAwsHttpClient(
+            URI.create("https://bedrock.amazonaws.com"), CONNECT_TIMEOUT, READ_TIMEOUT);
+
+        // then
+        verify(httpClientBuilder).connectionTimeout(CONNECT_TIMEOUT);
+        verify(httpClientBuilder).socketTimeout(READ_TIMEOUT);
+      }
+    }
+
+    @Test
+    void shouldNotApplyTimeoutsOnApacheClientWhenNotProvided() {
+      // given
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
+
+      ApacheHttpClient.Builder httpClientBuilder =
+          Mockito.mock(ApacheHttpClient.Builder.class, Answers.RETURNS_SELF);
+      when(httpClientBuilder.build()).thenReturn(Mockito.mock(SdkHttpClient.class));
+
+      try (MockedStatic<ApacheHttpClient> apacheMock = mockStatic(ApacheHttpClient.class)) {
+        apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
+
+        // when
+        proxySupport.createAwsHttpClient(URI.create("https://bedrock.amazonaws.com"));
+
+        // then — the no-timeout overload should not configure socket/connection timeout, leaving
+        // the AWS SDK defaults in place (used by non-LLM callers such as the AgentCore client)
+        verify(httpClientBuilder, never()).connectionTimeout(any());
+        verify(httpClientBuilder, never()).socketTimeout(any());
       }
     }
 

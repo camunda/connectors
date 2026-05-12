@@ -43,15 +43,15 @@ public class OpenAiCompatibleChatModelProvider
   @Override
   public ChatModel createChatModel(OpenAiCompatibleProviderConfiguration openaiCompatible) {
     final var connection = openaiCompatible.openaiCompatible();
+    final var apiTimeout =
+        deriveTimeoutSetting("OpenAI compatible model call", config, connection.timeouts(), LOGGER);
 
     final var builder =
         OpenAiChatModel.builder()
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint())
-            .timeout(
-                deriveTimeoutSetting(
-                    "OpenAI compatible model call", config, connection.timeouts(), LOGGER))
-            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
+            .timeout(apiTimeout)
+            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder(apiTimeout, apiTimeout));
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)

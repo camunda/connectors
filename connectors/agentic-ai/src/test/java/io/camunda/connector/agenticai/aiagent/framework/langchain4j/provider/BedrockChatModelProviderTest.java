@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provi
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.createDefaultChatModelProperties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mockStatic;
@@ -300,7 +301,9 @@ class BedrockChatModelProviderTest {
       assertThat(chatModel).isNotNull().isInstanceOf(BedrockChatModel.class);
       assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
-      verify(proxySupport).createAwsHttpClient(expectedEndpointOverride);
+      verify(proxySupport)
+          .createAwsHttpClient(
+              eq(expectedEndpointOverride), any(Duration.class), any(Duration.class));
       builderAssertions.accept(builders);
     }
   }
