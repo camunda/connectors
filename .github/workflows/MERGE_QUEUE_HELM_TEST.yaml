@@ -1,26 +1,10 @@
-name: Feature branch Helm test
+name: Merge queue Helm test
 
 on:
   workflow_dispatch:
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
-      - converted_to_draft
+  merge_group:
 
 jobs:
-  fork-guard:
-    name: Skip if external fork
-    runs-on: ubuntu-latest
-    permissions: {}
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
-    steps:
-      - name: Explain skip in logs
-        run: |
-          echo "🛑 External fork; skipping secrets-dependent feature branch Helm workflow."
-          echo "Push to a branch in the main repository to run this workflow."
   build-image:
     name: Build and Publish Connectors Docker Image
     runs-on: ubuntu-latest
@@ -101,16 +85,18 @@ jobs:
         id: connectors-version
         env:
           GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.merge_group.head_ref }}
         run: |
           set -euo pipefail
 
           MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           BASE_VERSION="${MAVEN_VERSION%-SNAPSHOT}"
 
-           PR_NUMBER="${{ github.event.pull_request.number }}"
+          # merge_group.head_ref looks like refs/heads/gh-readonly-queue/<base>/pr-<N>-<sha>
+          PR_NUMBER=$(printf '%s' "$HEAD_REF" | sed -nE 's|.*/pr-([0-9]+)-.*|\1|p')
 
           if [[ -z "$PR_NUMBER" ]]; then
-            echo "::notice::No PR found for ${GITHUB_SHA}. Will not push PR-tagged images."
+            echo "::notice::No PR number could be extracted from merge_group head_ref: $HEAD_REF"
             echo "should-push=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
