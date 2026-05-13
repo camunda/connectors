@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
@@ -47,8 +48,17 @@ public record AgentMetrics(
 
   @AgenticAiRecord
   @JsonDeserialize(builder = TokenUsage.AgentMetricsTokenUsageJacksonProxyBuilder.class)
-  public record TokenUsage(int inputTokenCount, int outputTokenCount)
+  public record TokenUsage(
+      int inputTokenCount,
+      int outputTokenCount,
+      @JsonInclude(JsonInclude.Include.NON_DEFAULT) int cacheReadInputTokenCount,
+      @JsonInclude(JsonInclude.Include.NON_DEFAULT) int cacheCreationInputTokenCount,
+      @JsonInclude(JsonInclude.Include.NON_DEFAULT) int reasoningTokenCount)
       implements AgentMetricsTokenUsageBuilder.With {
+
+    public TokenUsage(int inputTokenCount, int outputTokenCount) {
+      this(inputTokenCount, outputTokenCount, 0, 0, 0);
+    }
 
     public int totalTokenCount() {
       return inputTokenCount + outputTokenCount;
@@ -59,7 +69,14 @@ public record AgentMetrics(
           builder ->
               builder
                   .inputTokenCount(builder.inputTokenCount() + tokenUsage.inputTokenCount())
-                  .outputTokenCount(builder.outputTokenCount() + tokenUsage.outputTokenCount()));
+                  .outputTokenCount(builder.outputTokenCount() + tokenUsage.outputTokenCount())
+                  .cacheReadInputTokenCount(
+                      builder.cacheReadInputTokenCount() + tokenUsage.cacheReadInputTokenCount())
+                  .cacheCreationInputTokenCount(
+                      builder.cacheCreationInputTokenCount()
+                          + tokenUsage.cacheCreationInputTokenCount())
+                  .reasoningTokenCount(
+                      builder.reasoningTokenCount() + tokenUsage.reasoningTokenCount()));
     }
 
     public static TokenUsage empty() {

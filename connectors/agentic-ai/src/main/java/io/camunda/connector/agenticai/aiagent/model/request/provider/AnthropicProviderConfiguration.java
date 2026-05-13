@@ -8,12 +8,17 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.ANTHROPIC_ID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -30,6 +35,20 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
     return ANTHROPIC_ID;
   }
 
+  public enum AnthropicBackend {
+    @JsonProperty("direct")
+    DIRECT,
+
+    @JsonProperty("bedrock")
+    BEDROCK,
+
+    @JsonProperty("vertex")
+    VERTEX,
+
+    @JsonProperty("foundry")
+    FOUNDRY
+  }
+
   public record AnthropicConnection(
       @HttpUrl
           @TemplateProperty(
@@ -39,23 +58,124 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
               feel = FeelMode.optional,
               optional = true)
           String endpoint,
+      @TemplateProperty(
+              group = "provider",
+              label = "Backend",
+              description = "Specify the Anthropic backend to use.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              defaultValue = "direct",
+              defaultValueType = TemplateProperty.DefaultValueType.String,
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(
+                    label = "Direct (Anthropic API)",
+                    value = "direct"),
+                @TemplateProperty.DropdownPropertyChoice(label = "AWS Bedrock", value = "bedrock"),
+                @TemplateProperty.DropdownPropertyChoice(
+                    label = "Google Vertex AI",
+                    value = "vertex"),
+                @TemplateProperty.DropdownPropertyChoice(
+                    label = "Azure AI Foundry",
+                    value = "foundry")
+              })
+          AnthropicBackend backend,
       @Valid @NotNull AnthropicAuthentication authentication,
       @Valid TimeoutConfiguration timeouts,
-      @Valid @NotNull AnthropicModel model) {}
+      @Valid @NotNull AnthropicModel model) {
 
-  public record AnthropicAuthentication(
-      @NotBlank
-          @TemplateProperty(
-              group = "provider",
-              label = "Anthropic API key",
-              type = TemplateProperty.PropertyType.String,
-              feel = FeelMode.optional,
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-          String apiKey) {
+    public AnthropicConnection {
+      if (backend == null) {
+        backend = AnthropicBackend.DIRECT;
+      }
+    }
 
-    @Override
-    public String toString() {
-      return "AnthropicAuthentication{apiKey=[REDACTED]}";
+    @AssertFalse(
+        message = "Client credentials authentication is only supported for the FOUNDRY backend")
+    public boolean isClientCredentialsUsedWithNonFoundryBackend() {
+      return authentication
+              instanceof AnthropicAuthentication.AnthropicClientCredentialsAuthentication
+          && backend != AnthropicBackend.FOUNDRY;
+    }
+  }
+
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+  @JsonSubTypes({
+    @JsonSubTypes.Type(
+        value = AnthropicAuthentication.AnthropicApiKeyAuthentication.class,
+        name = "apiKey"),
+    @JsonSubTypes.Type(
+        value = AnthropicAuthentication.AnthropicClientCredentialsAuthentication.class,
+        name = "clientCredentials")
+  })
+  @TemplateDiscriminatorProperty(
+      label = "Authentication",
+      group = "provider",
+      name = "type",
+      defaultValue = "apiKey",
+      description = "Specify the Anthropic authentication strategy.")
+  public sealed interface AnthropicAuthentication {
+    @TemplateSubType(id = "apiKey", label = "API key")
+    record AnthropicApiKeyAuthentication(
+        @NotBlank
+            @TemplateProperty(
+                group = "provider",
+                label = "Anthropic API key",
+                type = TemplateProperty.PropertyType.String,
+                feel = FeelMode.optional,
+                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+            String apiKey)
+        implements AnthropicAuthentication {
+
+      @Override
+      public @NotNull String toString() {
+        return "AnthropicApiKeyAuthentication{apiKey=[REDACTED]}";
+      }
+    }
+
+    @TemplateSubType(id = "clientCredentials", label = "Client credentials")
+    record AnthropicClientCredentialsAuthentication(
+        @NotBlank
+            @TemplateProperty(
+                group = "provider",
+                label = "Client ID",
+                description = "ID of a Microsoft Entra application",
+                type = TemplateProperty.PropertyType.String,
+                feel = FeelMode.optional,
+                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+            String clientId,
+        @NotBlank
+            @TemplateProperty(
+                group = "provider",
+                label = "Client secret",
+                description = "Secret of a Microsoft Entra application",
+                type = TemplateProperty.PropertyType.String,
+                feel = FeelMode.optional,
+                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+            String clientSecret,
+        @NotBlank
+            @TemplateProperty(
+                group = "provider",
+                label = "Tenant ID",
+                description =
+                    "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
+                type = TemplateProperty.PropertyType.String,
+                feel = FeelMode.optional)
+            String tenantId,
+        @TemplateProperty(
+                group = "provider",
+                label = "Authority host",
+                description =
+                    "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+                type = TemplateProperty.PropertyType.String,
+                feel = FeelMode.optional,
+                optional = true)
+            String authorityHost)
+        implements AnthropicAuthentication {
+
+      @Override
+      public String toString() {
+        return "AnthropicClientCredentialsAuthentication{clientId=%s, clientSecret=[REDACTED], tenantId=%s, authorityHost=%s}"
+            .formatted(clientId, tenantId, authorityHost);
+      }
     }
   }
 

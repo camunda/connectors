@@ -9,7 +9,8 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatStreamListener;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -45,7 +46,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentLimitsValidator limitsValidator;
   private final AgentMessagesHandler messagesHandler;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
-  private final AiFrameworkAdapter<?> framework;
+  private final ChatClient chatClient;
   private final AgentResponseHandler responseHandler;
 
   public BaseAgentRequestHandler(
@@ -54,14 +55,14 @@ public abstract class BaseAgentRequestHandler<
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AiFrameworkAdapter<?> framework,
+      ChatClient chatClient,
       AgentResponseHandler responseHandler) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.limitsValidator = limitsValidator;
     this.messagesHandler = messagesHandler;
     this.gatewayToolHandlers = gatewayToolHandlers;
-    this.framework = framework;
+    this.chatClient = chatClient;
     this.responseHandler = responseHandler;
   }
 
@@ -166,13 +167,13 @@ public abstract class BaseAgentRequestHandler<
 
     handleAddedUserMessages(executionContext, agentContext, userMessages);
 
-    // call framework with memory
-    LOGGER.debug("Executing chat request with AI framework");
-    final var frameworkChatResponse =
-        framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
-    agentContext = frameworkChatResponse.agentContext();
+    // dispatch via the chat client SPI; bridge / native impls live behind it
+    LOGGER.debug("Executing chat request");
+    final var chatClientResult =
+        chatClient.chat(executionContext, agentContext, runtimeMemory, ChatStreamListener.NOOP);
+    agentContext = chatClientResult.agentContext();
 
-    final var assistantMessage = frameworkChatResponse.assistantMessage();
+    final var assistantMessage = chatClientResult.assistantMessage();
     LOGGER.debug(
         "Received assistant message containing {} tool call requests",
         assistantMessage.toolCalls() != null ? assistantMessage.toolCalls().size() : 0);

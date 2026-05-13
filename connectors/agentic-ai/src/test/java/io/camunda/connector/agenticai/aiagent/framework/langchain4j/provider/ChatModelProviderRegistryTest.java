@@ -12,7 +12,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication.AnthropicApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
@@ -92,7 +92,8 @@ class ChatModelProviderRegistryTest {
     return new AnthropicProviderConfiguration(
         new AnthropicConnection(
             null,
-            new AnthropicAuthentication("api-key"),
+            null,
+            new AnthropicApiKeyAuthentication("api-key"),
             null,
             new AnthropicModel("claude", null)));
   }

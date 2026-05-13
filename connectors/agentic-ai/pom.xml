@@ -22,6 +22,8 @@
     <version.groovy>5.0.5</version.groovy>
     <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
+    <version.anthropic-java>2.16.1</version.anthropic-java>
+    <version.openai-java>4.17.0</version.openai-java>
   </properties>
 
   <licenses>
@@ -130,6 +132,28 @@
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-http-client-jdk</artifactId>
+    </dependency>
+
+    <!-- Native vendor SDKs (ADR-005) -->
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-core</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java-client-okhttp</artifactId>
+      <version>${version.anthropic-java}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java-core</artifactId>
+      <version>${version.openai-java}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java-client-okhttp</artifactId>
+      <version>${version.openai-java}</version>
     </dependency>
 
     <!-- Native MCP Java SDK -->

@@ -23,7 +23,7 @@ import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuil
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication.AnthropicApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel.AnthropicModelParameters;
@@ -66,7 +66,8 @@ class AnthropicChatModelProviderTest {
         new AnthropicProviderConfiguration(
             new AnthropicConnection(
                 null,
-                new AnthropicAuthentication(ANTHROPIC_API_KEY),
+                null,
+                new AnthropicApiKeyAuthentication(ANTHROPIC_API_KEY),
                 MODEL_TIMEOUT,
                 new AnthropicModel(ANTHROPIC_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -90,7 +91,8 @@ class AnthropicChatModelProviderTest {
         new AnthropicProviderConfiguration(
             new AnthropicConnection(
                 "https://my-custom-endpoint.local",
-                new AnthropicAuthentication(ANTHROPIC_API_KEY),
+                null,
+                new AnthropicApiKeyAuthentication(ANTHROPIC_API_KEY),
                 MODEL_TIMEOUT,
                 new AnthropicModel(ANTHROPIC_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -109,7 +111,8 @@ class AnthropicChatModelProviderTest {
         new AnthropicProviderConfiguration(
             new AnthropicConnection(
                 null,
-                new AnthropicAuthentication(ANTHROPIC_API_KEY),
+                null,
+                new AnthropicApiKeyAuthentication(ANTHROPIC_API_KEY),
                 MODEL_TIMEOUT,
                 new AnthropicModel(ANTHROPIC_MODEL, modelParameters)));
 
@@ -132,7 +135,8 @@ class AnthropicChatModelProviderTest {
         new AnthropicProviderConfiguration(
             new AnthropicConnection(
                 null,
-                new AnthropicAuthentication(ANTHROPIC_API_KEY),
+                null,
+                new AnthropicApiKeyAuthentication(ANTHROPIC_API_KEY),
                 timeouts,
                 new AnthropicModel(ANTHROPIC_MODEL, null)));
 

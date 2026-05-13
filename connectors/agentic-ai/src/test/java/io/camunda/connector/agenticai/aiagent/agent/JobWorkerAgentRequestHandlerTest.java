@@ -29,8 +29,8 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClientResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -93,7 +93,7 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock private AgentLimitsValidator limitsValidator;
   @Mock private AgentMessagesHandler messagesHandler;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
-  @Mock private AiFrameworkAdapter<?> framework;
+  @Mock private ChatClient chatClient;
   @Mock private AgentResponseHandler responseHandler;
 
   private ConversationStore conversationStore;
@@ -136,7 +136,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.responseValue()).isNotNull().isEqualTo(agentResponse);
 
     verifyNoInteractions(
-        limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
+        limitsValidator, messagesHandler, gatewayToolHandlers, chatClient, responseHandler);
   }
 
   @Test
@@ -182,7 +182,9 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build()));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -248,7 +250,9 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build()));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -345,7 +349,9 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build()));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -424,7 +430,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.cancelRemainingInstances()).isFalse();
     assertThat(response.elementActivations()).isEmpty();
 
-    verifyNoInteractions(framework);
+    verifyNoInteractions(chatClient);
   }
 
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
@@ -518,25 +524,25 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
-    when(framework.executeChatRequest(
-            eq(agentExecutionContext), any(AgentContext.class), runtimeMemoryCaptor.capture()))
+    when(chatClient.chat(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            runtimeMemoryCaptor.capture(),
+            any()))
         .thenAnswer(
             i -> {
               final var agentContext = i.getArgument(1, AgentContext.class);
-              return new TestFrameworkChatResponse(
+              return new ChatClientResult(
                   agentContext.withMetrics(
                       agentContext
                           .metrics()
                           .incrementModelCalls(1)
-                          .incrementTokenUsage(new TokenUsage(10, 20))),
-                  assistantMessage,
-                  Map.of("message", assistantMessage.content()));
+                          .incrementTokenUsage(
+                              TokenUsage.builder()
+                                  .inputTokenCount(10)
+                                  .outputTokenCount(20)
+                                  .build())),
+                  assistantMessage);
             });
   }
-
-  private record TestFrameworkChatResponse(
-      AgentContext agentContext,
-      AssistantMessage assistantMessage,
-      Map<String, Object> rawChatResponse)
-      implements AiFrameworkChatResponse<Map<String, Object>> {}
 }

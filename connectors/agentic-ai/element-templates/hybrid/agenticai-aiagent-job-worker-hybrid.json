@@ -5,7 +5,7 @@
   "description" : "Run a multi-step AI reasoning loop with dynamic tool selection",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/",
-  "version" : 10,
+  "version" : 12,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -118,17 +118,11 @@
       "name" : "AWS Bedrock",
       "value" : "bedrock"
     }, {
-      "name" : "Azure OpenAI",
-      "value" : "azureOpenAi"
-    }, {
-      "name" : "Google Vertex AI",
-      "value" : "google-vertex-ai"
+      "name" : "Google GenAI",
+      "value" : "googleGenAi"
     }, {
       "name" : "OpenAI",
       "value" : "openai"
-    }, {
-      "name" : "OpenAI Compatible",
-      "value" : "openaiCompatible"
     } ]
   }, {
     "id" : "provider.anthropic.endpoint",
@@ -148,6 +142,59 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.anthropic.backend",
+    "label" : "Backend",
+    "description" : "Specify the Anthropic backend to use.",
+    "optional" : false,
+    "value" : "direct",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Direct (Anthropic API)",
+      "value" : "direct"
+    }, {
+      "name" : "AWS Bedrock",
+      "value" : "bedrock"
+    }, {
+      "name" : "Google Vertex AI",
+      "value" : "vertex"
+    }, {
+      "name" : "Azure AI Foundry",
+      "value" : "foundry"
+    } ]
+  }, {
+    "id" : "provider.anthropic.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Anthropic authentication strategy.",
+    "value" : "apiKey",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "Client credentials",
+      "value" : "clientCredentials"
+    } ]
+  }, {
     "id" : "provider.anthropic.authentication.apiKey",
     "label" : "Anthropic API key",
     "optional" : false,
@@ -161,9 +208,116 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "provider.anthropic.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "ID of a Microsoft Entra application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Secret of a Microsoft Entra application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.authentication.tenantId",
+    "label" : "Tenant ID",
+    "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.authentication.tenantId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.authentication.authorityHost",
+    "label" : "Authority host",
+    "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.authentication.authorityHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -342,193 +496,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.azureOpenAi.endpoint",
-    "label" : "Endpoint",
-    "description" : "Specify Azure OpenAI endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureOpenAi.endpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureOpenAi.authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify the Azure OpenAI authentication strategy.",
-    "value" : "apiKey",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureOpenAi.authentication.type",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "API key",
-      "value" : "apiKey"
-    }, {
-      "name" : "Client credentials",
-      "value" : "clientCredentials"
-    } ]
-  }, {
-    "id" : "provider.azureOpenAi.authentication.apiKey",
-    "label" : "API key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureOpenAi.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureOpenAi.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureOpenAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureOpenAi.authentication.clientId",
-    "label" : "Client ID",
-    "description" : "ID of a Microsoft Entra application",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureOpenAi.authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureOpenAi.authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureOpenAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureOpenAi.authentication.clientSecret",
-    "label" : "Client secret",
-    "description" : "Secret of a Microsoft Entra application",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureOpenAi.authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureOpenAi.authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureOpenAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureOpenAi.authentication.tenantId",
-    "label" : "Tenant ID",
-    "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureOpenAi.authentication.tenantId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureOpenAi.authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureOpenAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureOpenAi.authentication.authorityHost",
-    "label" : "Authority host",
-    "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureOpenAi.authentication.authorityHost",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.azureOpenAi.authentication.type",
-        "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "azureOpenAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureOpenAi.timeouts.timeout",
-    "label" : "Timeout",
-    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.azureOpenAi.timeouts.timeout",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.googleVertexAi.projectId",
+    "id" : "provider.googleGenAi.projectId",
     "label" : "Project ID",
     "description" : "Specify Google Cloud project ID",
     "optional" : false,
@@ -538,17 +506,17 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.googleVertexAi.projectId",
+      "name" : "provider.googleGenAi.projectId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "google-vertex-ai",
+      "equals" : "googleGenAi",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "provider.googleVertexAi.region",
+    "id" : "provider.googleGenAi.region",
     "label" : "Region",
     "description" : "Specify the region where AI inference should take place",
     "optional" : false,
@@ -558,28 +526,28 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.googleVertexAi.region",
+      "name" : "provider.googleGenAi.region",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "google-vertex-ai",
+      "equals" : "googleGenAi",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "provider.googleVertexAi.authentication.type",
+    "id" : "provider.googleGenAi.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Google Vertex AI authentication strategy.",
     "value" : "serviceAccountCredentials",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.googleVertexAi.authentication.type",
+      "name" : "provider.googleGenAi.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "google-vertex-ai",
+      "equals" : "googleGenAi",
       "type" : "simple"
     },
     "type" : "Dropdown",
@@ -591,7 +559,7 @@
       "value" : "applicationDefaultCredentials"
     } ]
   }, {
-    "id" : "provider.googleVertexAi.authentication.jsonKey",
+    "id" : "provider.googleGenAi.authentication.jsonKey",
     "label" : "JSON key of the service account",
     "description" : "This is the key of the service account in JSON format.",
     "optional" : false,
@@ -601,28 +569,99 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.googleVertexAi.authentication.jsonKey",
+      "name" : "provider.googleGenAi.authentication.jsonKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.googleVertexAi.authentication.type",
+        "property" : "provider.googleGenAi.authentication.type",
         "equals" : "serviceAccountCredentials",
         "type" : "simple"
       }, {
         "property" : "provider.type",
-        "equals" : "google-vertex-ai",
+        "equals" : "googleGenAi",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.authentication.apiKey",
-    "label" : "OpenAI API key",
+    "id" : "provider.googleGenAi.backend",
+    "label" : "Backend",
+    "description" : "Specify the Google GenAI backend to use.",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
+    "value" : "vertex",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGenAi.backend",
+      "type" : "zeebe:input"
     },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "googleGenAi",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Vertex AI",
+      "value" : "vertex"
+    }, {
+      "name" : "Developer API (Google AI Studio)",
+      "value" : "developer-api"
+    } ]
+  }, {
+    "id" : "provider.openai.backend",
+    "label" : "Backend",
+    "description" : "Specify the OpenAI backend to use.",
+    "optional" : false,
+    "value" : "openai",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "OpenAI",
+      "value" : "openai"
+    }, {
+      "name" : "Azure AI Foundry",
+      "value" : "foundry"
+    }, {
+      "name" : "Custom",
+      "value" : "custom"
+    } ]
+  }, {
+    "id" : "provider.openai.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the OpenAI authentication strategy.",
+    "value" : "apiKey",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "Client credentials",
+      "value" : "clientCredentials"
+    } ]
+  }, {
+    "id" : "provider.openai.authentication.apiKey",
+    "label" : "API key",
+    "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
@@ -630,9 +669,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "provider.openai.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -647,9 +692,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "provider.openai.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -664,9 +715,116 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "provider.openai.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "ID of a Microsoft Entra application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Secret of a Microsoft Entra application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.authentication.tenantId",
+    "label" : "Tenant ID",
+    "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.authentication.tenantId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.authentication.authorityHost",
+    "label" : "Authority host",
+    "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.authentication.authorityHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -687,90 +845,77 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openaiCompatible.endpoint",
-    "label" : "API endpoint",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.openai.apiFamily",
+    "label" : "API",
+    "description" : "Which OpenAI API family to use. Chat Completions is the default for backward compatibility; Responses is the newer endpoint with structured input/output items.",
+    "optional" : true,
+    "value" : "completions",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openaiCompatible.endpoint",
+      "name" : "provider.openai.apiFamily",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "openaiCompatible",
+      "equals" : "openai",
       "type" : "simple"
     },
-    "tooltip" : "Specify an endpoint to use the connector with an OpenAI compatible API. ",
-    "type" : "String"
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Chat Completions (default)",
+      "value" : "completions"
+    }, {
+      "name" : "Responses",
+      "value" : "responses"
+    } ]
   }, {
-    "id" : "provider.openaiCompatible.authentication.apiKey",
-    "label" : "API key",
+    "id" : "provider.openai.endpoint",
+    "label" : "Endpoint",
+    "description" : "Optional. Override the default OpenAI base URL (e.g. for an OpenAI proxy or gateway). Leave blank to use the SDK default.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openaiCompatible.authentication.apiKey",
+      "name" : "provider.openai.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "openaiCompatible",
+      "equals" : "openai",
       "type" : "simple"
     },
-    "tooltip" : "Leave blank if using HTTP headers for authentication.<br>If an Authorization header is specified in the headers, then the API key is ignored.",
     "type" : "String"
   }, {
-    "id" : "provider.openaiCompatible.headers",
+    "id" : "provider.openai.headers",
     "label" : "Headers",
     "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openaiCompatible.headers",
+      "name" : "provider.openai.headers",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "openaiCompatible",
+      "equals" : "openai",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "provider.openaiCompatible.queryParameters",
+    "id" : "provider.openai.queryParameters",
     "label" : "Query Parameters",
     "description" : "Map of query parameters to add to the request URL.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openaiCompatible.queryParameters",
+      "name" : "provider.openai.queryParameters",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "openaiCompatible",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.openaiCompatible.timeouts.timeout",
-    "label" : "Timeout",
-    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openaiCompatible.timeouts.timeout",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openaiCompatible",
+      "equals" : "openai",
       "type" : "simple"
     },
     "type" : "String"
@@ -936,78 +1081,7 @@
     "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "provider.azureOpenAi.model.deploymentName",
-    "label" : "Model deployment name",
-    "description" : "Specify the model deployment name. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureOpenAi.model.deploymentName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureOpenAi.model.parameters.maxTokens",
-    "label" : "Maximum tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureOpenAi.model.parameters.maxTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.azureOpenAi.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureOpenAi.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.azureOpenAi.model.parameters.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureOpenAi.model.parameters.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.googleVertexAi.model.model",
+    "id" : "provider.googleGenAi.model.model",
     "label" : "Model",
     "description" : "Specify the model ID. Details in the <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -1017,79 +1091,79 @@
     "feel" : "optional",
     "group" : "model",
     "binding" : {
-      "name" : "provider.googleVertexAi.model.model",
+      "name" : "provider.googleGenAi.model.model",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "google-vertex-ai",
+      "equals" : "googleGenAi",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "provider.googleVertexAi.model.parameters.maxOutputTokens",
+    "id" : "provider.googleGenAi.model.parameters.maxOutputTokens",
     "label" : "Maximum output tokens",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "provider.googleVertexAi.model.parameters.maxOutputTokens",
+      "name" : "provider.googleGenAi.model.parameters.maxOutputTokens",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "google-vertex-ai",
+      "equals" : "googleGenAi",
       "type" : "simple"
     },
     "tooltip" : "Maximum number of tokens that can be generated in the response. <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "provider.googleVertexAi.model.parameters.temperature",
+    "id" : "provider.googleGenAi.model.parameters.temperature",
     "label" : "Temperature",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "provider.googleVertexAi.model.parameters.temperature",
+      "name" : "provider.googleGenAi.model.parameters.temperature",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "google-vertex-ai",
+      "equals" : "googleGenAi",
       "type" : "simple"
     },
     "tooltip" : "Controls the degree of randomness in token selection. <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "provider.googleVertexAi.model.parameters.topP",
+    "id" : "provider.googleGenAi.model.parameters.topP",
     "label" : "top P",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "provider.googleVertexAi.model.parameters.topP",
+      "name" : "provider.googleGenAi.model.parameters.topP",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "google-vertex-ai",
+      "equals" : "googleGenAi",
       "type" : "simple"
     },
     "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "provider.googleVertexAi.model.parameters.topK",
+    "id" : "provider.googleGenAi.model.parameters.topK",
     "label" : "top K",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "provider.googleVertexAi.model.parameters.topK",
+      "name" : "provider.googleGenAi.model.parameters.topK",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "google-vertex-ai",
+      "equals" : "googleGenAi",
       "type" : "simple"
     },
     "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
@@ -1167,91 +1241,19 @@
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "provider.openaiCompatible.model.model",
-    "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
-    "value" : "gpt-4o",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openaiCompatible.model.model",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openaiCompatible",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.openaiCompatible.model.parameters.maxCompletionTokens",
-    "label" : "Maximum completion tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openaiCompatible.model.parameters.maxCompletionTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openaiCompatible",
-      "type" : "simple"
-    },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.openaiCompatible.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openaiCompatible.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openaiCompatible",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.openaiCompatible.model.parameters.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openaiCompatible.model.parameters.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openaiCompatible",
-      "type" : "simple"
-    },
-    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.openaiCompatible.model.parameters.customParameters",
+    "id" : "provider.openai.model.parameters.customParameters",
     "label" : "Custom parameters",
     "description" : "Map of additional request parameters to include.",
     "optional" : true,
     "feel" : "required",
     "group" : "model",
     "binding" : {
-      "name" : "provider.openaiCompatible.model.parameters.customParameters",
+      "name" : "provider.openai.model.parameters.customParameters",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "openaiCompatible",
+      "equals" : "openai",
       "type" : "simple"
     },
     "type" : "String"
@@ -1708,7 +1710,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "10",
+    "value" : "12",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

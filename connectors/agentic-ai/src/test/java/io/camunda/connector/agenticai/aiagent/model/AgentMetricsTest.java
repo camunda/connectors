@@ -20,6 +20,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 class AgentMetricsTest {
   private static final AgentMetrics EMPTY_METRICS = AgentMetrics.empty();
 
+  private static TokenUsage tokenUsage(int input, int output) {
+    return TokenUsage.builder().inputTokenCount(input).outputTokenCount(output).build();
+  }
+
   @Test
   void emptyMetrics() {
     final var metrics = AgentMetrics.empty();
@@ -53,25 +57,54 @@ class AgentMetricsTest {
   @Test
   void withTokenUsage() {
     final var initialMetrics = AgentMetrics.empty();
-    final var updatedMetrics = initialMetrics.withTokenUsage(new TokenUsage(10, 20));
+    final var updatedMetrics = initialMetrics.withTokenUsage(tokenUsage(10, 20));
 
     assertThat(updatedMetrics).isNotEqualTo(initialMetrics);
     assertThat(initialMetrics.tokenUsage()).isEqualTo(EMPTY_METRICS.tokenUsage());
 
-    assertThat(updatedMetrics.tokenUsage()).isEqualTo(new TokenUsage(10, 20));
+    assertThat(updatedMetrics.tokenUsage()).isEqualTo(tokenUsage(10, 20));
     assertThat(updatedMetrics.tokenUsage().totalTokenCount()).isEqualTo(30);
   }
 
   @Test
   void incrementTokenUsage() {
-    final var initialMetrics = AgentMetrics.empty().withTokenUsage(new TokenUsage(10, 20));
-    final var updatedMetrics = initialMetrics.incrementTokenUsage(new TokenUsage(1, 2));
+    final var initialMetrics = AgentMetrics.empty().withTokenUsage(tokenUsage(10, 20));
+    final var updatedMetrics = initialMetrics.incrementTokenUsage(tokenUsage(1, 2));
 
     assertThat(updatedMetrics).isNotEqualTo(initialMetrics);
-    assertThat(initialMetrics.tokenUsage()).isEqualTo(new TokenUsage(10, 20));
+    assertThat(initialMetrics.tokenUsage()).isEqualTo(tokenUsage(10, 20));
 
-    assertThat(updatedMetrics.tokenUsage()).isEqualTo(new TokenUsage(11, 22));
+    assertThat(updatedMetrics.tokenUsage()).isEqualTo(tokenUsage(11, 22));
     assertThat(updatedMetrics.tokenUsage().totalTokenCount()).isEqualTo(33);
+  }
+
+  @Test
+  void tokenUsage_addRollsUpAllFields() {
+    final var first =
+        TokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(20)
+            .cacheReadInputTokenCount(3)
+            .cacheCreationInputTokenCount(5)
+            .reasoningTokenCount(2)
+            .build();
+    final var second =
+        TokenUsage.builder()
+            .inputTokenCount(1)
+            .outputTokenCount(2)
+            .cacheReadInputTokenCount(4)
+            .cacheCreationInputTokenCount(6)
+            .reasoningTokenCount(7)
+            .build();
+
+    final var result = first.add(second);
+
+    assertThat(result.inputTokenCount()).isEqualTo(11);
+    assertThat(result.outputTokenCount()).isEqualTo(22);
+    assertThat(result.cacheReadInputTokenCount()).isEqualTo(7);
+    assertThat(result.cacheCreationInputTokenCount()).isEqualTo(11);
+    assertThat(result.reasoningTokenCount()).isEqualTo(9);
+    assertThat(result.totalTokenCount()).isEqualTo(33);
   }
 
   @ParameterizedTest

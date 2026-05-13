@@ -9,15 +9,21 @@ package io.camunda.connector.agenticai.model.message;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import java.util.List;
 import java.util.Map;
+import org.springframework.lang.Nullable;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = AssistantMessage.AssistantMessageJacksonProxyBuilder.class)
 public record AssistantMessage(
+    @Nullable String modelId,
+    @Nullable String messageId,
+    @Nullable StopReason stopReason,
+    @Nullable AgentMetrics.TokenUsage usage,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCall> toolCalls,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)

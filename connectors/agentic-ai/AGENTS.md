@@ -69,8 +69,14 @@ agent/
 └── AgentLimitsValidatorImpl    # Safety limits (max model calls)
 
 framework/
-├── AiFrameworkAdapter          # Abstract LLM interface (RuntimeMemory → response)
-└── langchain4j/                # LangChain4J implementation
+├── api/                        # Provider-neutral SPI
+│   ├── ChatClient              # Facade called by BaseAgentRequestHandler
+│   ├── ChatModelApi            # Per-job model client: capabilities() + complete(...)
+│   ├── ChatModelApiFactory     # One bean per provider discriminator
+│   └── ChatModelApiRegistry    # Resolves provider config → factory
+├── ChatClientImpl              # Assembles ChatRequest/ChatOptions, dispatches, accumulates metrics
+├── ChatModelApiRegistryImpl    # Indexes factories by providerType()
+└── langchain4j/                # LangChain4j-backed ChatModelApi (one factory bean per provider)
 
 memory/
 ├── conversation/

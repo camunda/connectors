@@ -23,12 +23,12 @@ import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleGenAiProviderConfiguration.GoogleGenAiModel.GoogleGenAiModelParameters;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Test;
@@ -47,20 +47,21 @@ class GoogleVertexAiChatModelProviderTest {
   private static final String REGION = "us-central1";
   private static final String MODEL = "gemini-2.5-pro";
 
-  private static final GoogleVertexAiModelParameters DEFAULT_MODEL_PARAMETERS =
-      new GoogleVertexAiModelParameters(10, 1.0F, 0.8F, 100);
+  private static final GoogleGenAiModelParameters DEFAULT_MODEL_PARAMETERS =
+      new GoogleGenAiModelParameters(10, 1.0F, 0.8F, 100);
 
   private final GoogleVertexAiChatModelProvider provider = new GoogleVertexAiChatModelProvider();
 
   @Test
   void createsGoogleVertexAiChatModel() {
     final var providerConfig =
-        new GoogleVertexAiProviderConfiguration(
-            new GoogleVertexAiConnection(
+        new GoogleGenAiProviderConfiguration(
+            new GoogleGenAiConnection(
                 PROJECT_ID,
                 REGION,
                 new ApplicationDefaultCredentialsAuthentication(),
-                new GoogleVertexAiModel(MODEL, DEFAULT_MODEL_PARAMETERS)));
+                new GoogleGenAiModel(MODEL, DEFAULT_MODEL_PARAMETERS),
+                null));
 
     testGoogleVertexAiChatModelBuilder(
         providerConfig,
@@ -79,14 +80,15 @@ class GoogleVertexAiChatModelProviderTest {
   @NullSource
   @MethodSource("nullModelParameters")
   void createsGoogleVertexAiChatModelWithNullModelParameters(
-      GoogleVertexAiModelParameters modelParameters) {
+      GoogleGenAiModelParameters modelParameters) {
     final var providerConfig =
-        new GoogleVertexAiProviderConfiguration(
-            new GoogleVertexAiConnection(
+        new GoogleGenAiProviderConfiguration(
+            new GoogleGenAiConnection(
                 PROJECT_ID,
                 REGION,
                 new ApplicationDefaultCredentialsAuthentication(),
-                new GoogleVertexAiModel(MODEL, modelParameters)));
+                new GoogleGenAiModel(MODEL, modelParameters),
+                null));
 
     testGoogleVertexAiChatModelBuilder(
         providerConfig,
@@ -101,12 +103,13 @@ class GoogleVertexAiChatModelProviderTest {
   @Test
   void createsGoogleVertexAiChatModelWithServiceAccountCredential() {
     final var providerConfig =
-        new GoogleVertexAiProviderConfiguration(
-            new GoogleVertexAiConnection(
+        new GoogleGenAiProviderConfiguration(
+            new GoogleGenAiConnection(
                 PROJECT_ID,
                 REGION,
                 new ServiceAccountCredentialsAuthentication("{}"),
-                new GoogleVertexAiModel(MODEL, DEFAULT_MODEL_PARAMETERS)));
+                new GoogleGenAiModel(MODEL, DEFAULT_MODEL_PARAMETERS),
+                null));
 
     try (final var staticMockedSac = mockStatic(ServiceAccountCredentials.class)) {
       final var mockedSac = mock(ServiceAccountCredentials.class);
@@ -131,7 +134,7 @@ class GoogleVertexAiChatModelProviderTest {
   }
 
   private void testGoogleVertexAiChatModelBuilder(
-      GoogleVertexAiProviderConfiguration providerConfig,
+      GoogleGenAiProviderConfiguration providerConfig,
       ThrowingConsumer<VertexAiGeminiChatModelBuilder> builderAssertions) {
     final var chatModelBuilder = spy(VertexAiGeminiChatModel.builder());
     final var chatModelResultCaptor = new ResultCaptor<VertexAiGeminiChatModel>();
@@ -149,7 +152,7 @@ class GoogleVertexAiChatModelProviderTest {
     }
   }
 
-  static Stream<GoogleVertexAiModelParameters> nullModelParameters() {
-    return Stream.of(new GoogleVertexAiModelParameters(null, null, null, null));
+  static Stream<GoogleGenAiModelParameters> nullModelParameters() {
+    return Stream.of(new GoogleGenAiModelParameters(null, null, null, null));
   }
 }

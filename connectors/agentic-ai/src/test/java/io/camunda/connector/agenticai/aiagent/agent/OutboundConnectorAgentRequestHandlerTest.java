@@ -25,8 +25,8 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClientResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -83,7 +83,7 @@ class OutboundConnectorAgentRequestHandlerTest {
   @Mock private AgentLimitsValidator limitsValidator;
   @Mock private AgentMessagesHandler messagesHandler;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
-  @Mock private AiFrameworkAdapter<?> framework;
+  @Mock private ChatClient chatClient;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private OutboundConnectorAgentExecutionContext agentExecutionContext;
 
@@ -118,7 +118,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(response.agentResponse()).isEqualTo(agentResponse);
 
     verifyNoInteractions(
-        limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
+        limitsValidator, messagesHandler, gatewayToolHandlers, chatClient, responseHandler);
   }
 
   @Test
@@ -163,7 +163,9 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build()));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -224,7 +226,9 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build()));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -380,25 +384,25 @@ class OutboundConnectorAgentRequestHandlerTest {
   }
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
-    when(framework.executeChatRequest(
-            eq(agentExecutionContext), any(AgentContext.class), runtimeMemoryCaptor.capture()))
+    when(chatClient.chat(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            runtimeMemoryCaptor.capture(),
+            any()))
         .thenAnswer(
             i -> {
               final var agentContext = i.getArgument(1, AgentContext.class);
-              return new TestFrameworkChatResponse(
+              return new ChatClientResult(
                   agentContext.withMetrics(
                       agentContext
                           .metrics()
                           .incrementModelCalls(1)
-                          .incrementTokenUsage(new TokenUsage(10, 20))),
-                  assistantMessage,
-                  Map.of("message", assistantMessage.content()));
+                          .incrementTokenUsage(
+                              TokenUsage.builder()
+                                  .inputTokenCount(10)
+                                  .outputTokenCount(20)
+                                  .build())),
+                  assistantMessage);
             });
   }
-
-  private record TestFrameworkChatResponse(
-      AgentContext agentContext,
-      AssistantMessage assistantMessage,
-      Map<String, Object> rawChatResponse)
-      implements AiFrameworkChatResponse<Map<String, Object>> {}
 }

@@ -34,7 +34,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -59,15 +58,11 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final SystemPromptComposer systemPromptComposer;
-  private final ToolCallResultDocumentExtractor documentExtractor;
 
   public AgentMessagesHandlerImpl(
-      GatewayToolHandlerRegistry gatewayToolHandlers,
-      SystemPromptComposer systemPromptComposer,
-      ToolCallResultDocumentExtractor documentExtractor) {
+      GatewayToolHandlerRegistry gatewayToolHandlers, SystemPromptComposer systemPromptComposer) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.systemPromptComposer = systemPromptComposer;
-    this.documentExtractor = documentExtractor;
   }
 
   @Override
@@ -131,10 +126,6 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       // if message is null, we wait on further tool call results to be added
       if (toolCallResultMessage != null) {
         messages.add(toolCallResultMessage);
-        var documentMessage = createDocumentMessageForToolResults(toolCallResultMessage.results());
-        if (documentMessage != null) {
-          messages.add(documentMessage);
-        }
         messages.addAll(eventMessages);
       }
     } else {
@@ -213,29 +204,6 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
         .results(orderedToolCallResults)
         .metadata(defaultMessageMetadata())
         .build();
-  }
-
-  private UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
-    final var toolCallDocuments = documentExtractor.extractDocuments(results);
-    if (toolCallDocuments.isEmpty()) {
-      return null;
-    }
-
-    final var content = new ArrayList<Content>();
-    content.add(textContent("Documents extracted from tool call results:"));
-    for (var entry : toolCallDocuments) {
-      for (var doc : entry.documents()) {
-        content.add(
-            textContent(
-                DocumentXmlTag.from(doc, entry.toolCallId(), entry.toolCallName()).toXml()));
-        content.add(DocumentContent.documentContent(doc));
-      }
-    }
-
-    final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
-    metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-
-    return UserMessage.builder().content(content).metadata(metadata).build();
   }
 
   private Message createEventMessage(

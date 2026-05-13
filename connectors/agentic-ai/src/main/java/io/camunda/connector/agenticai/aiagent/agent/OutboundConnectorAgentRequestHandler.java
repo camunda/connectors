@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
 
 import io.camunda.connector.agenticai.aiagent.AiAgentTaskConnectorResponse;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatClient;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -30,7 +30,7 @@ public class OutboundConnectorAgentRequestHandler
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AiFrameworkAdapter<?> framework,
+      ChatClient chatClient,
       AgentResponseHandler responseHandler) {
     super(
         agentInitializer,
@@ -38,7 +38,7 @@ public class OutboundConnectorAgentRequestHandler
         limitsValidator,
         messagesHandler,
         gatewayToolHandlers,
-        framework,
+        chatClient,
         responseHandler);
   }
 
