@@ -70,6 +70,10 @@
         "property" : "operation",
         "equals" : "sendMessage",
         "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
+        "type" : "simple"
       } ]
     },
     "type" : "Hidden"
@@ -256,6 +260,30 @@
     },
     "type" : "Text"
   }, {
+    "id" : "sendMessage:formDefinition.include",
+    "label" : "Include formDefinition?",
+    "value" : "false",
+    "group" : "form",
+    "binding" : {
+      "key" : "formDefinition.include",
+      "type" : "zeebe:taskHeader"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "No",
+      "value" : "false"
+    }, {
+      "name" : "Yes",
+      "value" : "true"
+    } ]
+  }, {
     "id" : "sendMessage:formDefinition.bindingType",
     "label" : "Form binding",
     "value" : "latest",
@@ -269,6 +297,10 @@
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
         "type" : "simple"
       } ]
     },
@@ -298,6 +330,10 @@
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
         "type" : "simple"
       } ]
     },
