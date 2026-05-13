@@ -1,12 +1,26 @@
 name: Feature branch Helm test
 
 on:
-  push:
-    branches:
-      - '**'
-      - '!main'
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
 
 jobs:
+  fork-guard:
+    name: Skip if external fork
+    runs-on: ubuntu-latest
+    permissions: {}
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+    steps:
+      - name: Explain skip in logs
+        run: |
+          echo "🛑 External fork; skipping secrets-dependent feature branch Helm workflow."
+          echo "Push to a branch in the main repository to run this workflow."
   build-image:
     name: Build and Publish Connectors Docker Image
     runs-on: ubuntu-latest
@@ -93,13 +107,7 @@ jobs:
           MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           BASE_VERSION="${MAVEN_VERSION%-SNAPSHOT}"
 
-          PR_NUMBER="$(
-            curl -fsSL \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
-            | jq -r '.[0].number // empty'
-          )" || PR_NUMBER=""
+           PR_NUMBER="${{ github.event.pull_request.number }}"
 
           if [[ -z "$PR_NUMBER" ]]; then
             echo "::notice::No PR found for ${GITHUB_SHA}. Will not push PR-tagged images."
@@ -122,6 +130,7 @@ jobs:
 
       # Publish Docker images for Preview environments
       - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-default
+        if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
         uses: docker/build-push-action@v6
@@ -152,6 +161,24 @@ jobs:
       connectors-version: ${{ needs.build-image.outputs.connectors-version }}
       release-branch: main
       helm-dir: camunda-platform-8.7
+
+  sm-e2e-debug-summary:
+    name: Add SM E2E debugging guidance on failure
+    needs: trigger-sm-e2e
+    if: needs.trigger-sm-e2e.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions: {}
+    steps:
+      - name: Add Helm debugging guidance on failure
+        run: |
+          COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
+          {
+            echo "## SM E2E / Helm Integration Tests Failed"
+            echo ""
+            echo "### Full debugging guide"
+            echo "[CI Debugging Cookbook — Helm Chart Setup/Integration failures](${COOKBOOK_URL}#failure-type-3--helm-chart-setup--integration-tests) · [Helm Chart E2E failures](${COOKBOOK_URL}#failure-type-4--helm-chart-e2e-tests)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   trigger-saas-e2e:
     name: Trigger SaaS E2E tests
@@ -316,3 +343,19 @@ jobs:
           else
             echo "No downstream workflow run URL found." >> "$GITHUB_STEP_SUMMARY"
           fi
+          
+      - name: Add debugging guidance on failure
+        if: steps.wait-downstream.outcome == 'failure'
+        run: |
+          DOWNSTREAM_URL="${{ steps.wait-downstream.outputs.downstream_run_url }}"
+          COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
+          {
+            echo ""
+            echo "### Debugging the SaaS E2E Failure"
+            echo ""
+            if [ -n "$DOWNSTREAM_URL" ]; then
+              echo "**Downstream run:** [$DOWNSTREAM_URL]($DOWNSTREAM_URL)"
+              echo ""
+            fi
+            echo "**Full guide:** [CI Debugging Cookbook — SaaS E2E section](${COOKBOOK_URL}#failure-type-5--saas-e2e-tests)"
+          } >> "$GITHUB_STEP_SUMMARY"
