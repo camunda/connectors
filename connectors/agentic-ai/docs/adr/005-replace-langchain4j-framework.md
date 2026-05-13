@@ -5,7 +5,11 @@
 
 ## Status
 
-**Proposed**
+**Proposed** — design accepted; a working prototype implementing Phases 0, A–D, E (E1+E2+E3+E4),
+and F lives on the hackdays branch `agentic-ai/custom-llm-layer` (PR #7151) for reference. The
+prototype branch is not for merge; the design is being re-landed on `main` in smaller,
+reviewable units tracked under the ADR-005 parent issue. Status will move to **Implemented**
+once Phase G + Phase H land.
 
 ## Context and Problem Statement
 
