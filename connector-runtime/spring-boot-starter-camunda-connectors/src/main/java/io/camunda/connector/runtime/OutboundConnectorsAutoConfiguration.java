@@ -38,7 +38,7 @@ import org.springframework.context.annotation.Import;
 @Import({OutboundConnectorRuntimeConfiguration.class, InstanceForwardingConfiguration.class})
 public class OutboundConnectorsAutoConfiguration {
 
-  @Bean
+  @Bean(name = {"connectorCamundaClientExecutorService", "camundaClientExecutorService"})
   @ConditionalOnMissingBean
   @ConditionalOnProperty(
       name = "camunda.connector.virtual-threads.enabled",

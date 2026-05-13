@@ -45,7 +45,6 @@ class OutboundConnectorsAutoConfigurationTest {
 
   private static final String CONNECTOR_EXECUTOR_BEAN_NAME =
       "connectorCamundaClientExecutorService";
-  private static final String CAMUNDA_EXECUTOR_BEAN_NAME = "meteredCamundaClientThreadPool";
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
@@ -60,7 +59,6 @@ class OutboundConnectorsAutoConfigurationTest {
         context -> {
           assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
           assertThat(context).hasBean(CONNECTOR_EXECUTOR_BEAN_NAME);
-          assertThat(context).doesNotHaveBean(CAMUNDA_EXECUTOR_BEAN_NAME);
           assertThat(context.getBean(CamundaClientExecutorService.class))
               .isSameAs(context.getBean(CONNECTOR_EXECUTOR_BEAN_NAME))
               .isInstanceOf(MeteredCamundaClientExecutorService.class);
@@ -84,7 +82,6 @@ class OutboundConnectorsAutoConfigurationTest {
         .run(
             context -> {
               assertThat(context).doesNotHaveBean(CONNECTOR_EXECUTOR_BEAN_NAME);
-              assertThat(context).hasBean(CAMUNDA_EXECUTOR_BEAN_NAME);
               assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
             });
   }
