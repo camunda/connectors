@@ -6,5 +6,4 @@
  */
 package io.camunda.connector.appintegrations.model;
 
-public record SendMessageResult(String conversation // always null for Teams (Phase 1)
-    ) {}
+public record SendMessageResult(String conversation) {}

@@ -14,11 +14,15 @@ public record AppIntegrationsConfiguration(
         @TemplateProperty(
             group = "configuration",
             label = "Base URL",
-            description = "App Integrations backend URL. Use secrets.APP_INTEGRATIONS_BASE_URL.")
+            description = "App Integrations backend URL.",
+            tooltip =
+                "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.")
         String baseUrl,
     @NotEmpty
         @TemplateProperty(
             group = "configuration",
             label = "Token",
-            description = "Bearer token for authentication. Use secrets.APP_INTEGRATIONS_TOKEN.")
+            description = "Bearer token for authentication.",
+            tooltip =
+                "Tip: store the token as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_TOKEN</code>.")
         String token) {}
