@@ -157,16 +157,45 @@ public class OperationBasedConnectorUtil {
       PropertyCondition.Equals baseCondition,
       String defaultGroup) {
 
-    // baseCondition == null for class-based (no operation scope); non-null for operation-based.
-    // Regular properties are wrapped in AllMatch([baseCondition]) when present, null otherwise.
-    // versionTag adds its own Equals on top, forming AllMatch([baseCondition, versionTagEquals]).
-    PropertyCondition propertyCondition =
-        baseCondition == null ? null : new PropertyCondition.AllMatch(List.of(baseCondition));
-
     List<PropertyBuilder> result = new ArrayList<>();
     for (TemplateLinkedResource lr : annotations) {
       String group = lr.group().isBlank() ? defaultGroup : lr.group();
       String bindingTypeId = idPrefix + lr.linkName() + ".bindingType";
+
+      // When optional=true, prepend a Yes/No toggle (zeebe:taskHeader). All linked-resource
+      // properties are then conditioned on the toggle so no linkedResource block is written when
+      // the user leaves it at the default "No", avoiding a Zeebe deploy-time validation error.
+      PropertyCondition propertyCondition;
+      if (lr.optional()) {
+        String toggleId = idPrefix + lr.linkName() + ".include";
+        String toggleLabel =
+            lr.toggleLabel().isBlank() ? "Include " + lr.linkName() + "?" : lr.toggleLabel();
+        result.add(
+            DropdownProperty.builder()
+                .choices(
+                    List.of(
+                        new DropdownProperty.DropdownChoice("No", "false"),
+                        new DropdownProperty.DropdownChoice("Yes", "true")))
+                .id(toggleId)
+                .label(toggleLabel)
+                .value("false")
+                .group(group)
+                .binding(new PropertyBinding.ZeebeTaskHeader(lr.linkName() + ".include"))
+                .condition(
+                    baseCondition == null
+                        ? null
+                        : new PropertyCondition.AllMatch(List.of(baseCondition))));
+
+        PropertyCondition.Equals toggleEquals = new PropertyCondition.Equals(toggleId, "true");
+        propertyCondition =
+            baseCondition == null
+                ? new PropertyCondition.AllMatch(List.of(toggleEquals))
+                : new PropertyCondition.AllMatch(List.of(baseCondition, toggleEquals));
+      } else {
+        // baseCondition == null for class-based (no operation scope); non-null for operation-based.
+        propertyCondition =
+            baseCondition == null ? null : new PropertyCondition.AllMatch(List.of(baseCondition));
+      }
 
       result.add(
           HiddenProperty.builder()
@@ -195,10 +224,18 @@ public class OperationBasedConnectorUtil {
 
       PropertyCondition.Equals versionTagEquals =
           new PropertyCondition.Equals(bindingTypeId, "versionTag");
-      PropertyCondition versionTagCondition =
-          baseCondition == null
-              ? versionTagEquals
-              : new PropertyCondition.AllMatch(List.of(baseCondition, versionTagEquals));
+      // versionTag condition = propertyCondition + versionTagEquals.
+      // When propertyCondition is null (non-optional class-based), just use versionTagEquals alone.
+      // Otherwise extend the existing AllMatch with versionTagEquals.
+      PropertyCondition versionTagCondition;
+      if (propertyCondition == null) {
+        versionTagCondition = versionTagEquals;
+      } else {
+        List<PropertyCondition> versionTagConditions =
+            new ArrayList<>(((PropertyCondition.AllMatch) propertyCondition).allMatch());
+        versionTagConditions.add(versionTagEquals);
+        versionTagCondition = new PropertyCondition.AllMatch(versionTagConditions);
+      }
 
       result.add(
           StringProperty.builder()

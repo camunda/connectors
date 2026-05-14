@@ -67,6 +67,25 @@ public class OperationAnnotatedConnectorWithLinkedResource implements OutboundCo
   record RequestWithDefaultLabels(
       @TemplateProperty(group = "form", label = "Field") String field) {}
 
+  @TemplateLinkedResource(
+      linkName = "formDefinition",
+      resourceType = "form",
+      group = "form",
+      optional = true,
+      toggleLabel = "Include form?",
+      resourceIdLabel = "Form ID",
+      bindingTypeLabel = "Form binding")
+  record RequestWithOptionalLinkedResource(
+      @TemplateProperty(group = "form", label = "Message") String message) {}
+
+  @TemplateLinkedResource(
+      linkName = "attachment",
+      resourceType = "form",
+      group = "form",
+      optional = true)
+  record RequestWithOptionalDefaultLabels(
+      @TemplateProperty(group = "form", label = "Field") String field) {}
+
   @Operation(id = "op1", name = "Operation 1")
   public String op1(@Variable RequestWithLinkedResource request) {
     return null;
@@ -79,6 +98,16 @@ public class OperationAnnotatedConnectorWithLinkedResource implements OutboundCo
 
   @Operation(id = "op3", name = "Operation 3")
   public String op3(@Variable RequestWithDefaultLabels request) {
+    return null;
+  }
+
+  @Operation(id = "op4", name = "Operation 4")
+  public String op4(@Variable RequestWithOptionalLinkedResource request) {
+    return null;
+  }
+
+  @Operation(id = "op5", name = "Operation 5")
+  public String op5(@Variable RequestWithOptionalDefaultLabels request) {
     return null;
   }
 }

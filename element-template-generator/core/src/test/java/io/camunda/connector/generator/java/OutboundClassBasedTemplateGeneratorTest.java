@@ -1176,6 +1176,74 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void optionalLinkedResource_emitsFiveProperties_firstIsToggle() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var op4Props =
+          template.properties().stream()
+              .filter(
+                  p ->
+                      p.getCondition() instanceof PropertyCondition.AllMatch am
+                          && am.allMatch()
+                              .contains(new PropertyCondition.Equals("operation", "op4")))
+              .toList();
+      // 1 regular Variable property (message) + 1 toggle + 4 linked resource = 6 total,
+      // but only the 5 (toggle + linked resource) have zeebe:taskHeader or zeebe:linkedResource
+      var toggle = getPropertyById("op4:formDefinition.include", template);
+      assertThat(toggle).isInstanceOf(DropdownProperty.class);
+      assertThat(toggle.getLabel()).isEqualTo("Include form?");
+      assertThat(toggle.getValue()).isEqualTo("false");
+      assertThat(toggle.getBinding().type()).isEqualTo("zeebe:taskHeader");
+      assertThat(((DropdownProperty) toggle).getChoices())
+          .containsExactly(
+              new DropdownProperty.DropdownChoice("No", "false"),
+              new DropdownProperty.DropdownChoice("Yes", "true"));
+    }
+
+    @Test
+    void optionalLinkedResource_linkedResourcePropertiesConditionedOnToggle() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var toggleCondition = new PropertyCondition.Equals("op4:formDefinition.include", "true");
+
+      var resourceType =
+          template.properties().stream()
+              .filter(
+                  p ->
+                      p instanceof HiddenProperty
+                          && "zeebe:linkedResource".equals(p.getBinding().type())
+                          && "formDefinition"
+                              .equals(((ZeebeLinkedResource) p.getBinding()).linkName())
+                          && p.getCondition() instanceof PropertyCondition.AllMatch am
+                          && am.allMatch()
+                              .contains(new PropertyCondition.Equals("operation", "op4")))
+              .findFirst()
+              .orElseThrow();
+      assertThat(((PropertyCondition.AllMatch) resourceType.getCondition()).allMatch())
+          .contains(new PropertyCondition.Equals("operation", "op4"))
+          .contains(toggleCondition);
+
+      var resourceId = getPropertyById("op4:formDefinition.resourceId", template);
+      assertThat(((PropertyCondition.AllMatch) resourceId.getCondition()).allMatch())
+          .contains(new PropertyCondition.Equals("operation", "op4"))
+          .contains(toggleCondition);
+
+      var versionTag = getPropertyById("op4:formDefinition.versionTag", template);
+      assertThat(((PropertyCondition.AllMatch) versionTag.getCondition()).allMatch())
+          .contains(new PropertyCondition.Equals("operation", "op4"))
+          .contains(toggleCondition)
+          .contains(new PropertyCondition.Equals("op4:formDefinition.bindingType", "versionTag"));
+    }
+
+    @Test
+    void optionalLinkedResource_blankToggleLabel_defaultsToIncludeLinkName() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
+      var toggle = getPropertyById("op5:attachment.include", template);
+      assertThat(toggle.getLabel()).isEqualTo("Include attachment?");
+    }
+
+    @Test
     void multipleLinkedResources_correctLinkNamesAndResourceTypes() {
       var template =
           generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();

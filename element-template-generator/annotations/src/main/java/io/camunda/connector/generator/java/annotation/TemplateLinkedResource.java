@@ -23,10 +23,17 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Declares a {@code zeebe:linkedResource} block for the annotated request class. The
- * element-template generator emits four properties per annotation: a hidden {@code resourceType}
- * marker, a {@code bindingType} dropdown, a {@code resourceId} string field, and a conditional
- * {@code versionTag} string field shown only when {@code bindingType} is {@code "versionTag"}.
+ * Declares a {@code zeebe:linkedResource} block for the annotated request class.
+ *
+ * <p>When {@link #optional} is {@code false} (the default), the generator emits four properties: a
+ * hidden {@code resourceType} marker, a {@code bindingType} dropdown, a {@code resourceId} string
+ * field, and a conditional {@code versionTag} string field shown only when {@code bindingType} is
+ * {@code "versionTag"}.
+ *
+ * <p>When {@link #optional} is {@code true}, a fifth property is prepended: a Yes/No toggle (bound
+ * as a {@code zeebe:taskHeader}). All four linked-resource properties are conditioned on the toggle
+ * being {@code "true"}, so when the user leaves it at the default {@code "false"} no {@code
+ * zeebe:linkedResource} block is written to the BPMN and Zeebe accepts the process without a form.
  *
  * <p>Supported on both operation-based connectors ({@code OutboundConnectorProvider} with
  * {@code @Operation}-annotated methods) and class-based connectors ({@code
@@ -59,4 +66,17 @@ public @interface TemplateLinkedResource {
 
   /** Label for the binding-type dropdown. Defaults to {@code "Resource binding"} if blank. */
   String bindingTypeLabel() default "";
+
+  /**
+   * When {@code true}, emits a Yes/No toggle before the other linked-resource properties. All four
+   * linked-resource properties are shown and written only when the toggle is set to {@code "Yes"},
+   * making the entire linked resource optional at deploy time.
+   */
+  boolean optional() default false;
+
+  /**
+   * Label for the optional toggle. Only used when {@link #optional} is {@code true}. Defaults to
+   * {@code "Include <linkName>?"} if blank.
+   */
+  String toggleLabel() default "";
 }
