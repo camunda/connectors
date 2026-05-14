@@ -55,7 +55,7 @@ except in compliance with the proprietary license.</license.inlineheader>
               <files>
                 <file>
                   <templateId>io.camunda.connector.AppIntegrations.v1</templateId>
-                  <templateFileName>app-integrations-connector-generated.json</templateFileName>
+                  <templateFileName>app-integrations-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>

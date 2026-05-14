@@ -33,7 +33,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@OutboundConnector(name = "App Integrations", type = "io.camunda:app-integrations:1")
+@OutboundConnector(name = "App Integrations", type = "io.camunda:app-integrations")
 @ElementTemplate(
     id = "io.camunda.connector.AppIntegrations.v1",
     name = "App Integrations Connector",
@@ -74,8 +74,7 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
 
   @Operation(id = "sendMessage", name = "Send Message")
   public SendMessageResult sendMessage(
-      @Variable SendMessageRequest request,
-      OutboundConnectorContext context /* reserved for future auth via context.getSecret() */) {
+      @Variable SendMessageRequest request, OutboundConnectorContext context) {
     LOGGER.debug("Sending message via App Integrations connector");
 
     try {
