@@ -20,7 +20,9 @@ import jakarta.validation.constraints.NotNull;
     resourceIdLabel = "Form ID",
     resourceIdDescription =
         "Optional. ID of the Camunda form to render as an adaptive card in the Teams message. Leave blank to send a plain text message or adaptive card.",
-    bindingTypeLabel = "Form binding")
+    bindingTypeLabel = "Form binding",
+    optional = true,
+    toggleLabel = "Include form?")
 public record SendMessageRequest(
     @NotNull @Valid AppIntegrationsConfiguration configuration,
     @TemplateProperty(

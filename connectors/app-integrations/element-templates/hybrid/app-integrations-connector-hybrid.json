@@ -3,9 +3,6 @@
   "name" : "Hybrid App Integrations Connector",
   "id" : "io.camunda.connector.AppIntegrations.v1-hybrid",
   "description" : "Send notifications and manage channels via Microsoft Teams",
-  "metadata" : {
-    "keywords" : [ ]
-  },
   "version" : 1,
   "category" : {
     "id" : "connectors",
@@ -51,7 +48,7 @@
   } ],
   "properties" : [ {
     "id" : "taskDefinitionType",
-    "value" : "io.camunda:app-integrations:1",
+    "value" : "io.camunda:app-integrations",
     "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
@@ -59,10 +56,29 @@
     },
     "type" : "String"
   }, {
+    "value" : "form",
+    "binding" : {
+      "linkName" : "formDefinition",
+      "property" : "resourceType",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "operation",
     "label" : "Operation",
     "description" : "The operation to execute",
-    "value" : "sendMessage",
+    "value" : "createChannel",
     "group" : "operation",
     "binding" : {
       "key" : "operation",
@@ -70,60 +86,16 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Send Message",
-      "value" : "sendMessage"
-    }, {
       "name" : "Create Channel",
       "value" : "createChannel"
+    }, {
+      "name" : "Send Message",
+      "value" : "sendMessage"
     } ]
-  }, {
-    "id" : "sendMessage:configuration.baseUrl",
-    "label" : "Base URL",
-    "description" : "App Integrations backend URL. Use secrets.APP_INTEGRATIONS_BASE_URL.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "configuration",
-    "binding" : {
-      "name" : "configuration.baseUrl",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "sendMessage:configuration.token",
-    "label" : "Token",
-    "description" : "Bearer token for authentication. Use secrets.APP_INTEGRATIONS_TOKEN.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "configuration",
-    "binding" : {
-      "name" : "configuration.token",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
   }, {
     "id" : "createChannel:configuration.baseUrl",
     "label" : "Base URL",
-    "description" : "App Integrations backend URL. Use secrets.APP_INTEGRATIONS_BASE_URL.",
+    "description" : "App Integrations backend URL.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -141,11 +113,12 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.",
     "type" : "String"
   }, {
     "id" : "createChannel:configuration.token",
     "label" : "Token",
-    "description" : "Bearer token for authentication. Use secrets.APP_INTEGRATIONS_TOKEN.",
+    "description" : "Bearer token for authentication.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -163,6 +136,53 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Tip: store the token as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_TOKEN</code>.",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:configuration.baseUrl",
+    "label" : "Base URL",
+    "description" : "App Integrations backend URL.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.baseUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:configuration.token",
+    "label" : "Token",
+    "description" : "Bearer token for authentication.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.token",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Tip: store the token as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_TOKEN</code>.",
     "type" : "String"
   }, {
     "id" : "sendMessage:email",
@@ -241,37 +261,51 @@
     },
     "type" : "Text"
   }, {
-    "type" : "Hidden",
+    "id" : "sendMessage:formDefinition.include",
+    "label" : "Include form?",
+    "value" : "false",
+    "group" : "form",
     "binding" : {
-      "type" : "zeebe:linkedResource",
-      "property" : "resourceType",
-      "linkName" : "formDefinition"
+      "key" : "formDefinition.include",
+      "type" : "zeebe:taskHeader"
     },
-    "value" : "form",
     "condition" : {
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
         "type" : "simple"
       } ]
-    }
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "No",
+      "value" : "false"
+    }, {
+      "name" : "Yes",
+      "value" : "true"
+    } ]
   }, {
     "id" : "sendMessage:formDefinition.bindingType",
     "label" : "Form binding",
-    "group" : "form",
     "value" : "latest",
+    "group" : "form",
     "binding" : {
-      "type" : "zeebe:linkedResource",
       "linkName" : "formDefinition",
-      "property" : "bindingType"
+      "property" : "bindingType",
+      "type" : "zeebe:linkedResource"
     },
     "condition" : {
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
         "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
+        "type" : "simple"
       } ]
     },
+    "type" : "Dropdown",
     "choices" : [ {
       "name" : "Latest",
       "value" : "latest"
@@ -281,22 +315,51 @@
     }, {
       "name" : "Version tag",
       "value" : "versionTag"
-    } ],
-    "type" : "Dropdown"
+    } ]
   }, {
     "id" : "sendMessage:formDefinition.resourceId",
     "label" : "Form ID",
     "description" : "Optional. ID of the Camunda form to render as an adaptive card in the Teams message. Leave blank to send a plain text message or adaptive card.",
+    "feel" : "optional",
     "group" : "form",
     "binding" : {
-      "type" : "zeebe:linkedResource",
       "linkName" : "formDefinition",
-      "property" : "resourceId"
+      "property" : "resourceId",
+      "type" : "zeebe:linkedResource"
     },
     "condition" : {
       "allMatch" : [ {
         "property" : "operation",
         "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:formDefinition.versionTag",
+    "label" : "Version tag",
+    "group" : "form",
+    "binding" : {
+      "linkName" : "formDefinition",
+      "property" : "versionTag",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.bindingType",
+        "equals" : "versionTag",
         "type" : "simple"
       } ]
     },
@@ -367,8 +430,10 @@
   }, {
     "id" : "createChannel:membershipType",
     "label" : "Channel type",
-    "description" : "Standard channels are visible to all team members. Private channels are invite-only.",
+    "description" : "Membership type: standard (visible to all), private (invite-only), or shared.",
+    "optional" : false,
     "value" : "standard",
+    "feel" : "optional",
     "group" : "channel",
     "binding" : {
       "name" : "membershipType",
@@ -381,17 +446,7 @@
         "type" : "simple"
       } ]
     },
-    "choices" : [ {
-      "name" : "Standard",
-      "value" : "standard"
-    }, {
-      "name" : "Private",
-      "value" : "private"
-    }, {
-      "name" : "Shared",
-      "value" : "shared"
-    } ],
-    "type" : "Dropdown"
+    "type" : "String"
   }, {
     "id" : "version",
     "label" : "Version",
@@ -417,7 +472,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "key" : "resultVariable",
@@ -427,7 +482,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "output",
     "binding" : {
