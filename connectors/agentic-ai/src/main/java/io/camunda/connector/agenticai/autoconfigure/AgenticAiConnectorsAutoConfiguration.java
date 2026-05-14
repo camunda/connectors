@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agentcoreharness.AgentCoreHarnessJobWorker;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
@@ -308,5 +309,26 @@ public class AgenticAiConnectorsAutoConfiguration {
       matchIfMissing = true)
   public AiAgentJobWorker aiAgentJobWorker(JobWorkerAgentRequestHandler agentRequestHandler) {
     return new AiAgentJobWorker(agentRequestHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.agentcore-harness.enabled",
+      matchIfMissing = true)
+  public AgentCoreHarnessJobWorker agentCoreHarnessJobWorker(
+      AgentInitializer agentInitializer,
+      ConversationStoreRegistry conversationStoreRegistry,
+      AgentLimitsValidator limitsValidator,
+      AgentMessagesHandler messagesHandler,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentResponseHandler responseHandler) {
+    return new AgentCoreHarnessJobWorker(
+        agentInitializer,
+        conversationStoreRegistry,
+        limitsValidator,
+        messagesHandler,
+        gatewayToolHandlers,
+        responseHandler);
   }
 }

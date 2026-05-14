@@ -170,7 +170,7 @@ public class JobWorkerAgentRequestHandler
               if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Activating tool {}: {}", toolCall.metadata().name(), toolCall);
               } else {
-                LOGGER.debug("Activating tool {}", toolCall.metadata().name());
+                LOGGER.info("Activating tool {}", toolCall.metadata().name());
               }
 
               return (ElementActivation)

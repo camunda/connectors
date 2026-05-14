@@ -1,0 +1,247 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "AgentCore Managed Agent",
+  "id": "io.camunda.connectors.agenticai.agentcore.harness.v1",
+  "description": "Drive an AWS Bedrock AgentCore Harness through a re-entrant tool-call loop, exposing the AHSP inner elements as inline_function tools.",
+  "keywords": ["AI", "AI Agent", "AWS", "AgentCore", "Harness", "Bedrock"],
+  "version": 1,
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": ["bpmn:SubProcess"],
+  "elementType": {
+    "value": "bpmn:AdHocSubProcess"
+  },
+  "engines": {
+    "camunda": "^8.9"
+  },
+  "groups": [
+    {
+      "id": "harness",
+      "label": "Harness",
+      "openByDefault": true
+    },
+    {
+      "id": "authentication",
+      "label": "AWS credentials",
+      "openByDefault": true
+    },
+    {
+      "id": "userPrompt",
+      "label": "User prompt",
+      "openByDefault": true
+    },
+    {
+      "id": "advanced",
+      "label": "Advanced",
+      "openByDefault": false
+    },
+    {
+      "id": "output",
+      "label": "Output mapping"
+    },
+    {
+      "id": "error",
+      "label": "Error handling"
+    }
+  ],
+  "properties": [
+    {
+      "value": "io.camunda.agenticai:agentcore-harness:1",
+      "binding": {
+        "property": "type",
+        "type": "zeebe:taskDefinition"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "outputCollection",
+      "binding": {
+        "property": "outputCollection",
+        "type": "zeebe:adHoc"
+      },
+      "value": "toolCallResults",
+      "type": "Hidden"
+    },
+    {
+      "id": "outputElement",
+      "binding": {
+        "property": "outputElement",
+        "type": "zeebe:adHoc"
+      },
+      "value": "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult\n}",
+      "type": "Hidden"
+    },
+    {
+      "id": "harness.harnessArn",
+      "label": "Harness ARN",
+      "description": "Full ARN of the deployed AgentCore Harness, e.g. arn:aws:bedrock-agentcore:us-west-2:111122223333:harness/helpdesk-9aBcDeFgHi.",
+      "feel": "optional",
+      "group": "harness",
+      "binding": {
+        "name": "harness.harnessArn",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "type": "String"
+    },
+    {
+      "id": "harness.region",
+      "label": "Region",
+      "description": "AWS region of the harness (e.g. us-west-2). Inferred from harnessArn when omitted.",
+      "optional": true,
+      "feel": "optional",
+      "group": "harness",
+      "binding": {
+        "name": "harness.region",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "harness.allowedTools",
+      "label": "Allowed tools (FEEL list)",
+      "description": "Optional list of tool names to scope the harness to (typically the AHSP inner element ids). Leave empty to use harness defaults.",
+      "optional": true,
+      "feel": "required",
+      "group": "harness",
+      "binding": {
+        "name": "harness.allowedTools",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.type",
+      "label": "Authentication",
+      "description": "How to authenticate against AWS.",
+      "value": "credentials",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.type",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Static credentials",
+          "value": "credentials"
+        },
+        {
+          "name": "Default credentials chain",
+          "value": "defaultCredentialsChain"
+        }
+      ]
+    },
+    {
+      "id": "authentication.accessKey",
+      "label": "Access key ID",
+      "description": "AWS access key id, e.g. {{secrets.AWS_ACCESS_KEY_ID}}.",
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.accessKey",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "credentials",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.secretKey",
+      "label": "Secret key",
+      "description": "AWS secret access key, e.g. {{secrets.AWS_SECRET_ACCESS_KEY}}.",
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.secretKey",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "credentials",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "userPrompt",
+      "label": "User prompt",
+      "description": "First-turn user message sent to the harness. Continuation turns are driven by tool results from the AHSP inner elements.",
+      "feel": "optional",
+      "group": "userPrompt",
+      "binding": {
+        "name": "userPrompt",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "type": "Text"
+    },
+    {
+      "id": "maxIterations",
+      "label": "Max iterations",
+      "description": "Maximum number of tool-call iterations before forcing completion.",
+      "optional": true,
+      "feel": "optional",
+      "group": "advanced",
+      "binding": {
+        "name": "maxIterations",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "resultVariable",
+      "label": "Result variable",
+      "description": "Name of variable to store the response in",
+      "value": "response",
+      "group": "output",
+      "binding": {
+        "source": "=agent",
+        "type": "zeebe:output"
+      },
+      "type": "String"
+    },
+    {
+      "id": "resultExpression",
+      "label": "Result expression",
+      "description": "Expression to map the response into process variables",
+      "feel": "required",
+      "group": "output",
+      "binding": {
+        "key": "resultExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
+    },
+    {
+      "id": "errorExpression",
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>.",
+      "feel": "required",
+      "group": "error",
+      "binding": {
+        "key": "errorExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzIzMkYzRSI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4em0tMS0xM2gydjZoLTJ6bTAgOGgydjJoLTJ6Ii8+PC9zdmc+"
+  }
+}

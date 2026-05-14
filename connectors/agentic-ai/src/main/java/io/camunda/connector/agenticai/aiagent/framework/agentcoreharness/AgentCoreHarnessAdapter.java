@@ -47,16 +47,19 @@ public class AgentCoreHarnessAdapter
   private final HarnessMessageConverter messageConverter;
   private final HarnessToolConverter toolConverter;
   private final String harnessArn;
+  private final List<String> allowedTools;
 
   public AgentCoreHarnessAdapter(
       BedrockAgentCoreAsyncClient client,
       HarnessMessageConverter messageConverter,
       HarnessToolConverter toolConverter,
-      String harnessArn) {
+      String harnessArn,
+      List<String> allowedTools) {
     this.client = client;
     this.messageConverter = messageConverter;
     this.toolConverter = toolConverter;
     this.harnessArn = harnessArn;
+    this.allowedTools = allowedTools;
   }
 
   @Override
@@ -84,22 +87,38 @@ public class AgentCoreHarnessAdapter
       requestBuilder.systemPrompt(systemPrompt);
     }
 
+    if (allowedTools != null && !allowedTools.isEmpty()) {
+      requestBuilder.allowedTools(allowedTools);
+    }
+
     var request = requestBuilder.build();
 
-    LOGGER.debug(
-        "Invoking Harness {} with {} messages and {} tools",
+    LOGGER.info(
+        "Invoking Harness {} with {} messages and {} tools (names={}), allowedTools={}",
         harnessArn,
         harnessMessages.size(),
-        harnessTools.size());
+        harnessTools.size(),
+        harnessTools.stream().map(t -> t.name()).toList(),
+        allowedTools);
 
     // Process streaming response
     var responseData = invokeHarness(request);
 
-    // Build assistant message from response
-    var assistantMessage = buildAssistantMessage(responseData);
+    // Get the names of our inline_function tools (BPMN elements)
+    var inlineToolNames =
+        agentContext.toolDefinitions().stream()
+            .map(td -> td.name())
+            .collect(java.util.stream.Collectors.toSet());
 
-    LOGGER.debug(
-        "Received response with {} tool calls",
+    // Build assistant message from response, filtering to only inline_function tool calls
+    var assistantMessage = buildAssistantMessage(responseData, inlineToolNames);
+
+    LOGGER.info(
+        "Received response with stopReason={}, text={}, {} tool calls",
+        responseData.getStopReason(),
+        responseData.getText() != null
+            ? responseData.getText().substring(0, Math.min(100, responseData.getText().length()))
+            : "null",
         assistantMessage.toolCalls() != null ? assistantMessage.toolCalls().size() : 0);
 
     // Update metrics
@@ -160,6 +179,12 @@ public class AgentCoreHarnessAdapter
                                         }
                                       })
                                   .onContentBlockStop(e -> responseData.finishCurrentToolUse())
+                                  .onMessageStop(
+                                      e -> {
+                                        if (e.stopReason() != null) {
+                                          responseData.setStopReason(e.stopReasonAsString());
+                                        }
+                                      })
                                   .onMetadata(
                                       e -> {
                                         if (e.usage() != null) {
@@ -189,15 +214,31 @@ public class AgentCoreHarnessAdapter
     return responseData;
   }
 
-  private AssistantMessage buildAssistantMessage(HarnessResponseData responseData) {
+  private AssistantMessage buildAssistantMessage(
+      HarnessResponseData responseData, java.util.Set<String> inlineToolNames) {
     var builder = AssistantMessage.builder();
 
     if (StringUtils.isNotBlank(responseData.getText())) {
       builder.content(List.of(TextContent.textContent(responseData.getText())));
     }
 
-    if (!responseData.getToolCalls().isEmpty()) {
-      builder.toolCalls(responseData.getToolCalls());
+    // Only include tool calls if stopReason is "tool_use" and filter to only inline_function tools
+    // Built-in tools (shell, browser, etc.) are executed by Harness internally
+    if ("tool_use".equals(responseData.getStopReason()) && !responseData.getToolCalls().isEmpty()) {
+      var inlineToolCalls =
+          responseData.getToolCalls().stream()
+              .filter(tc -> inlineToolNames.contains(tc.name()))
+              .toList();
+
+      LOGGER.info(
+          "Filtered {} tool calls to {} inline_function calls (names={})",
+          responseData.getToolCalls().size(),
+          inlineToolCalls.size(),
+          inlineToolCalls.stream().map(ToolCall::name).toList());
+
+      if (!inlineToolCalls.isEmpty()) {
+        builder.toolCalls(inlineToolCalls);
+      }
     }
 
     return builder.build();
@@ -212,6 +253,7 @@ public class AgentCoreHarnessAdapter
     private final StringBuilder currentToolInputBuilder = new StringBuilder();
     private int inputTokens = 0;
     private int outputTokens = 0;
+    private String stopReason;
 
     void appendText(String text) {
       textBuilder.append(text);
@@ -269,12 +311,20 @@ public class AgentCoreHarnessAdapter
       this.outputTokens = output != null ? output : 0;
     }
 
+    void setStopReason(String stopReason) {
+      this.stopReason = stopReason;
+    }
+
     String getText() {
       return textBuilder.toString();
     }
 
     List<ToolCall> getToolCalls() {
       return toolCalls;
+    }
+
+    String getStopReason() {
+      return stopReason;
     }
 
     int inputTokens() {
