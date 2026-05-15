@@ -31,7 +31,6 @@ import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Parameter;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
