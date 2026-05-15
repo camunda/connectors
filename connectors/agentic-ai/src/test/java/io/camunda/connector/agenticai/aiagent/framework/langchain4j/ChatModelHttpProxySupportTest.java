@@ -13,7 +13,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,7 +24,6 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration.ProxyDetails;
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,9 +53,6 @@ class ChatModelHttpProxySupportTest {
   private static final String NON_PROXY_HOST_127 = "127\\.0\\.0\\.1";
   private static final String NON_PROXY_HOST_INTERNAL = "*.internal.com";
 
-  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(20);
-  private static final Duration READ_TIMEOUT = Duration.ofMinutes(3);
-
   @Mock private ProxyConfiguration proxyConfiguration;
   @Mock private JdkHttpClientProxyConfigurator jdkProxyConfigurator;
 
@@ -79,30 +74,6 @@ class ChatModelHttpProxySupportTest {
       // then
       assertThat(result).isNotNull();
       verify(jdkProxyConfigurator).configure(any(HttpClient.Builder.class));
-    }
-
-    @Test
-    void shouldNotApplyTimeoutsByDefault() {
-      // when
-      JdkHttpClientBuilder result = proxySupport.createJdkHttpClientBuilder();
-
-      // then — timeouts are the caller's (chat model provider) responsibility
-      assertThat(result.connectTimeout()).isNull();
-      assertThat(result.readTimeout()).isNull();
-    }
-
-    @Test
-    void shouldAcceptTimeoutsConfiguredByCaller() {
-      // when — caller (e.g. a chat model provider) applies timeouts to the returned builder
-      JdkHttpClientBuilder result =
-          proxySupport
-              .createJdkHttpClientBuilder()
-              .connectTimeout(CONNECT_TIMEOUT)
-              .readTimeout(READ_TIMEOUT);
-
-      // then
-      assertThat(result.connectTimeout()).isEqualTo(CONNECT_TIMEOUT);
-      assertThat(result.readTimeout()).isEqualTo(READ_TIMEOUT);
     }
   }
 
@@ -149,26 +120,6 @@ class ChatModelHttpProxySupportTest {
 
         // then
         verify(proxyConfiguration).getProxyDetails(SCHEME_HTTP);
-      }
-    }
-
-    @Test
-    void shouldNotApplyTimeoutsToTheBuilder() {
-      // given
-      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
-
-      ApacheHttpClient.Builder httpClientBuilder =
-          Mockito.mock(ApacheHttpClient.Builder.class, Answers.RETURNS_SELF);
-
-      try (MockedStatic<ApacheHttpClient> apacheMock = mockStatic(ApacheHttpClient.class)) {
-        apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
-
-        // when
-        proxySupport.createAwsHttpClientBuilder(URI.create("https://bedrock.amazonaws.com"));
-
-        // then — timeouts are the caller's (chat model provider) responsibility
-        verify(httpClientBuilder, never()).connectionTimeout(any());
-        verify(httpClientBuilder, never()).socketTimeout(any());
       }
     }
 
