@@ -300,7 +300,7 @@ class BedrockChatModelProviderTest {
       assertThat(chatModel).isNotNull().isInstanceOf(BedrockChatModel.class);
       assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
-      verify(proxySupport).createAwsHttpClient(expectedEndpointOverride);
+      verify(proxySupport).createAwsHttpClientBuilder(expectedEndpointOverride);
       builderAssertions.accept(builders);
     }
   }

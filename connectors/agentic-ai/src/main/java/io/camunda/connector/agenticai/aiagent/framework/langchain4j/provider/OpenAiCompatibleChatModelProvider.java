@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.CONNECT_TIMEOUT;
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import dev.langchain4j.model.chat.ChatModel;
@@ -43,15 +44,19 @@ public class OpenAiCompatibleChatModelProvider
   @Override
   public ChatModel createChatModel(OpenAiCompatibleProviderConfiguration openaiCompatible) {
     final var connection = openaiCompatible.openaiCompatible();
+    final var apiTimeout =
+        deriveTimeoutSetting("OpenAI compatible model call", config, connection.timeouts(), LOGGER);
 
     final var builder =
         OpenAiChatModel.builder()
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint())
-            .timeout(
-                deriveTimeoutSetting(
-                    "OpenAI compatible model call", config, connection.timeouts(), LOGGER))
-            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
+            .timeout(apiTimeout)
+            .httpClientBuilder(
+                proxySupport
+                    .createJdkHttpClientBuilder()
+                    .connectTimeout(CONNECT_TIMEOUT)
+                    .readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
