@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.CONNECT_TIMEOUT;
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import dev.langchain4j.model.bedrock.BedrockChatModel;
@@ -79,11 +80,13 @@ public class BedrockChatModelProvider implements ChatModelProvider<BedrockProvid
 
     // Align the underlying Apache HTTP socket timeout with the high-level API call timeout so
     // long-running LLM responses (e.g. Claude Sonnet > 30s) are not killed by the Apache default
-    // socket timeout of 30 seconds. See issue #7193.
+    // socket timeout of 30 seconds. The TCP connect timeout is kept at a small constant since it
+    // covers infrastructure availability (DNS / firewall / proxy), not model latency. See issue
+    // #7193.
     SdkHttpClient httpClient =
         proxySupport
             .createAwsHttpClientBuilder(endpointOverride)
-            .connectionTimeout(apiTimeout)
+            .connectionTimeout(CONNECT_TIMEOUT)
             .socketTimeout(apiTimeout)
             .build();
     bedrockClientBuilder.httpClient(httpClient);
