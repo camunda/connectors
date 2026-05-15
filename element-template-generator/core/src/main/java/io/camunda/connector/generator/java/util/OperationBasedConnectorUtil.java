@@ -241,6 +241,7 @@ public class OperationBasedConnectorUtil {
           StringProperty.builder()
               .id(idPrefix + lr.linkName() + ".versionTag")
               .label("Version tag")
+              .feel(FeelMode.disabled)
               .group(group)
               .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "versionTag"))
               .condition(versionTagCondition));
