@@ -18,7 +18,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 public class ChatModelHttpProxySupport {
@@ -40,12 +39,10 @@ public class ChatModelHttpProxySupport {
     return new JdkHttpClientBuilder().httpClientBuilder(httpClientBuilder);
   }
 
-  public SdkHttpClient createAwsHttpClient(URI endpointOverride) {
+  public ApacheHttpClient.Builder createAwsHttpClientBuilder(URI endpointOverride) {
     String schemeName =
         endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
-    return ApacheHttpClient.builder()
-        .proxyConfiguration(createAwsProxyConfiguration(schemeName))
-        .build();
+    return ApacheHttpClient.builder().proxyConfiguration(createAwsProxyConfiguration(schemeName));
   }
 
   software.amazon.awssdk.http.apache.ProxyConfiguration createAwsProxyConfiguration(
