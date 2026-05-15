@@ -1185,16 +1185,6 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     void optionalLinkedResource_emitsFiveProperties_firstIsToggle() {
       var template =
           generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
-      var op4Props =
-          template.properties().stream()
-              .filter(
-                  p ->
-                      p.getCondition() instanceof PropertyCondition.AllMatch am
-                          && am.allMatch()
-                              .contains(new PropertyCondition.Equals("operation", "op4")))
-              .toList();
-      // 1 regular Variable property (message) + 1 toggle + 4 linked resource = 6 total,
-      // but only the 5 (toggle + linked resource) have zeebe:taskHeader or zeebe:linkedResource
       var toggle = getPropertyById("op4:formDefinition.include", template);
       assertThat(toggle).isInstanceOf(DropdownProperty.class);
       assertThat(toggle.getLabel()).isEqualTo("Include form?");

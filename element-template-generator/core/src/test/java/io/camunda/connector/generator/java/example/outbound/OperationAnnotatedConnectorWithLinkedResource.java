@@ -87,26 +87,31 @@ public class OperationAnnotatedConnectorWithLinkedResource implements OutboundCo
       @TemplateProperty(group = "form", label = "Field") String field) {}
 
   @Operation(id = "op1", name = "Operation 1")
+  @SuppressWarnings("unused")
   public String op1(@Variable RequestWithLinkedResource request) {
     return null;
   }
 
   @Operation(id = "op2", name = "Operation 2")
+  @SuppressWarnings("unused")
   public String op2(@Variable RequestWithMultipleLinkedResources request) {
     return null;
   }
 
   @Operation(id = "op3", name = "Operation 3")
+  @SuppressWarnings("unused")
   public String op3(@Variable RequestWithDefaultLabels request) {
     return null;
   }
 
   @Operation(id = "op4", name = "Operation 4")
+  @SuppressWarnings("unused")
   public String op4(@Variable RequestWithOptionalLinkedResource request) {
     return null;
   }
 
   @Operation(id = "op5", name = "Operation 5")
+  @SuppressWarnings("unused")
   public String op5(@Variable RequestWithOptionalDefaultLabels request) {
     return null;
   }
