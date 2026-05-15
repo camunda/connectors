@@ -37,7 +37,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 @ExtendWith(MockitoExtension.class)
@@ -83,10 +82,23 @@ class ChatModelHttpProxySupportTest {
     }
 
     @Test
-    void shouldApplyExplicitConnectAndReadTimeouts() {
+    void shouldNotApplyTimeoutsByDefault() {
       // when
+      JdkHttpClientBuilder result = proxySupport.createJdkHttpClientBuilder();
+
+      // then — timeouts are the caller's (chat model provider) responsibility
+      assertThat(result.connectTimeout()).isNull();
+      assertThat(result.readTimeout()).isNull();
+    }
+
+    @Test
+    void shouldAcceptTimeoutsConfiguredByCaller() {
+      // when — caller (e.g. a chat model provider) applies timeouts to the returned builder
       JdkHttpClientBuilder result =
-          proxySupport.createJdkHttpClientBuilder(CONNECT_TIMEOUT, READ_TIMEOUT);
+          proxySupport
+              .createJdkHttpClientBuilder()
+              .connectTimeout(CONNECT_TIMEOUT)
+              .readTimeout(READ_TIMEOUT);
 
       // then
       assertThat(result.connectTimeout()).isEqualTo(CONNECT_TIMEOUT);
@@ -95,26 +107,25 @@ class ChatModelHttpProxySupportTest {
   }
 
   @Nested
-  class CreateAwsHttpClient {
+  class CreateAwsHttpClientBuilder {
 
     @Test
-    void shouldCreateAwsHttpClientWithHttpsEndpoint() {
+    void shouldConfigureProxyForHttpsEndpoint() {
       // given
       when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
 
       ApacheHttpClient.Builder httpClientBuilder =
           Mockito.mock(ApacheHttpClient.Builder.class, Answers.RETURNS_SELF);
-      when(httpClientBuilder.build()).thenReturn(Mockito.mock(SdkHttpClient.class));
 
       try (MockedStatic<ApacheHttpClient> apacheMock = mockStatic(ApacheHttpClient.class)) {
         apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
 
         // when
-        SdkHttpClient result =
-            proxySupport.createAwsHttpClient(URI.create("https://bedrock.amazonaws.com"));
+        ApacheHttpClient.Builder result =
+            proxySupport.createAwsHttpClientBuilder(URI.create("https://bedrock.amazonaws.com"));
 
         // then
-        assertThat(result).isNotNull();
+        assertThat(result).isSameAs(httpClientBuilder);
         verify(proxyConfiguration).getProxyDetails(SCHEME_HTTPS);
         verify(httpClientBuilder)
             .proxyConfiguration(
@@ -123,88 +134,59 @@ class ChatModelHttpProxySupportTest {
     }
 
     @Test
-    void shouldCreateAwsHttpClientWithHttpEndpoint() {
+    void shouldConfigureProxyForHttpEndpoint() {
       // given
       when(proxyConfiguration.getProxyDetails(SCHEME_HTTP)).thenReturn(Optional.empty());
 
       ApacheHttpClient.Builder httpClientBuilder =
           Mockito.mock(ApacheHttpClient.Builder.class, Answers.RETURNS_SELF);
-      when(httpClientBuilder.build()).thenReturn(Mockito.mock(SdkHttpClient.class));
 
       try (MockedStatic<ApacheHttpClient> apacheMock = mockStatic(ApacheHttpClient.class)) {
         apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
 
         // when
-        SdkHttpClient result =
-            proxySupport.createAwsHttpClient(URI.create("http://localhost:8080"));
+        proxySupport.createAwsHttpClientBuilder(URI.create("http://localhost:8080"));
 
         // then
-        assertThat(result).isNotNull();
         verify(proxyConfiguration).getProxyDetails(SCHEME_HTTP);
       }
     }
 
     @Test
-    void shouldApplyExplicitConnectionAndSocketTimeoutsToApacheClient() {
+    void shouldNotApplyTimeoutsToTheBuilder() {
       // given
       when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
 
       ApacheHttpClient.Builder httpClientBuilder =
           Mockito.mock(ApacheHttpClient.Builder.class, Answers.RETURNS_SELF);
-      when(httpClientBuilder.build()).thenReturn(Mockito.mock(SdkHttpClient.class));
 
       try (MockedStatic<ApacheHttpClient> apacheMock = mockStatic(ApacheHttpClient.class)) {
         apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
 
         // when
-        proxySupport.createAwsHttpClient(
-            URI.create("https://bedrock.amazonaws.com"), CONNECT_TIMEOUT, READ_TIMEOUT);
+        proxySupport.createAwsHttpClientBuilder(URI.create("https://bedrock.amazonaws.com"));
 
-        // then
-        verify(httpClientBuilder).connectionTimeout(CONNECT_TIMEOUT);
-        verify(httpClientBuilder).socketTimeout(READ_TIMEOUT);
-      }
-    }
-
-    @Test
-    void shouldNotApplyTimeoutsOnApacheClientWhenNotProvided() {
-      // given
-      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
-
-      ApacheHttpClient.Builder httpClientBuilder =
-          Mockito.mock(ApacheHttpClient.Builder.class, Answers.RETURNS_SELF);
-      when(httpClientBuilder.build()).thenReturn(Mockito.mock(SdkHttpClient.class));
-
-      try (MockedStatic<ApacheHttpClient> apacheMock = mockStatic(ApacheHttpClient.class)) {
-        apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
-
-        // when
-        proxySupport.createAwsHttpClient(URI.create("https://bedrock.amazonaws.com"));
-
-        // then — the no-timeout overload should not configure socket/connection timeout, leaving
-        // the AWS SDK defaults in place (used by non-LLM callers such as the AgentCore client)
+        // then — timeouts are the caller's (chat model provider) responsibility
         verify(httpClientBuilder, never()).connectionTimeout(any());
         verify(httpClientBuilder, never()).socketTimeout(any());
       }
     }
 
     @Test
-    void shouldCreateAwsHttpClientWithNullEndpointDefaultingToHttps() {
+    void shouldDefaultToHttpsSchemeWhenEndpointIsNull() {
       // given
       when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
 
       ApacheHttpClient.Builder httpClientBuilder =
           Mockito.mock(ApacheHttpClient.Builder.class, Answers.RETURNS_SELF);
-      when(httpClientBuilder.build()).thenReturn(Mockito.mock(SdkHttpClient.class));
 
       try (MockedStatic<ApacheHttpClient> apacheMock = mockStatic(ApacheHttpClient.class)) {
         apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
 
         // when
-        SdkHttpClient result = proxySupport.createAwsHttpClient(null);
+        proxySupport.createAwsHttpClientBuilder(null);
 
         // then
-        assertThat(result).isNotNull();
         verify(proxyConfiguration).getProxyDetails(SCHEME_HTTPS);
       }
     }

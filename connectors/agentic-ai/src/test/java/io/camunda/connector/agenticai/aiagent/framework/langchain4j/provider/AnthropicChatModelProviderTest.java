@@ -155,7 +155,7 @@ class AnthropicChatModelProviderTest {
       assertThat(chatModel).isNotNull().isInstanceOf(AnthropicChatModel.class);
       assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
-      verify(proxySupport).createJdkHttpClientBuilder(any(Duration.class), any(Duration.class));
+      verify(proxySupport).createJdkHttpClientBuilder();
       builderAssertions.accept(chatModelBuilder);
     }
   }

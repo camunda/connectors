@@ -47,7 +47,11 @@ public class OpenAiChatModelProvider implements ChatModelProvider<OpenAiProvider
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
             .timeout(apiTimeout)
-            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder(apiTimeout, apiTimeout));
+            .httpClientBuilder(
+                proxySupport
+                    .createJdkHttpClientBuilder()
+                    .connectTimeout(apiTimeout)
+                    .readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);

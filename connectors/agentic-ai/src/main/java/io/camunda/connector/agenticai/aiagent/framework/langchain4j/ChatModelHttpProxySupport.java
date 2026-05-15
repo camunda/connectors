@@ -14,12 +14,10 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 public class ChatModelHttpProxySupport {
@@ -41,24 +39,7 @@ public class ChatModelHttpProxySupport {
     return new JdkHttpClientBuilder().httpClientBuilder(httpClientBuilder);
   }
 
-  public JdkHttpClientBuilder createJdkHttpClientBuilder(
-      Duration connectTimeout, Duration readTimeout) {
-    return createJdkHttpClientBuilder().connectTimeout(connectTimeout).readTimeout(readTimeout);
-  }
-
-  public SdkHttpClient createAwsHttpClient(URI endpointOverride) {
-    return awsHttpClientBuilder(endpointOverride).build();
-  }
-
-  public SdkHttpClient createAwsHttpClient(
-      URI endpointOverride, Duration connectionTimeout, Duration socketTimeout) {
-    return awsHttpClientBuilder(endpointOverride)
-        .connectionTimeout(connectionTimeout)
-        .socketTimeout(socketTimeout)
-        .build();
-  }
-
-  private ApacheHttpClient.Builder awsHttpClientBuilder(URI endpointOverride) {
+  public ApacheHttpClient.Builder createAwsHttpClientBuilder(URI endpointOverride) {
     String schemeName =
         endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
     return ApacheHttpClient.builder().proxyConfiguration(createAwsProxyConfiguration(schemeName));

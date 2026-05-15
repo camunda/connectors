@@ -81,7 +81,11 @@ public class BedrockChatModelProvider implements ChatModelProvider<BedrockProvid
     // long-running LLM responses (e.g. Claude Sonnet > 30s) are not killed by the Apache default
     // socket timeout of 30 seconds. See issue #7193.
     SdkHttpClient httpClient =
-        proxySupport.createAwsHttpClient(endpointOverride, apiTimeout, apiTimeout);
+        proxySupport
+            .createAwsHttpClientBuilder(endpointOverride)
+            .connectionTimeout(apiTimeout)
+            .socketTimeout(apiTimeout)
+            .build();
     bedrockClientBuilder.httpClient(httpClient);
 
     bedrockClientBuilder.overrideConfiguration(overrideClientConfigurationBuilder.build());

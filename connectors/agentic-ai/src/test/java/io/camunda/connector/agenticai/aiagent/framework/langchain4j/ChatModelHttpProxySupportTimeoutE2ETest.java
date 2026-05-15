@@ -30,12 +30,13 @@ import software.amazon.awssdk.http.SdkHttpFullRequest;
 import software.amazon.awssdk.http.SdkHttpMethod;
 
 /**
- * End-to-end style timeout test for the Apache HTTP client created by {@link
- * ChatModelHttpProxySupport}.
+ * End-to-end style timeout test for the Apache HTTP client returned by {@link
+ * ChatModelHttpProxySupport#createAwsHttpClientBuilder(URI)} after a chat model provider applies
+ * its timeouts.
  *
  * <p>Spins up a real WireMock server that delays its response well beyond the configured socket
- * timeout, then asserts the Apache HTTP client (used by Bedrock) respects the configured socket
- * timeout instead of falling back to the AWS SDK default of 30s.
+ * timeout, then asserts the Apache HTTP client (used by Bedrock) respects the caller-configured
+ * socket timeout instead of falling back to the AWS SDK default of 30s.
  *
  * <p>Regression test for <a href="https://github.com/camunda/connectors/issues/7193">issue
  * #7193</a> where Bedrock calls were being killed by Apache's default 30s socket timeout even
@@ -54,16 +55,21 @@ class ChatModelHttpProxySupportTimeoutE2ETest {
           ProxyConfiguration.NONE, new JdkHttpClientProxyConfigurator(ProxyConfiguration.NONE));
 
   @Test
-  void apacheHttpClientShouldRespectConfiguredSocketTimeout(WireMockRuntimeInfo wm) {
+  void apacheHttpClientShouldRespectCallerConfiguredSocketTimeout(WireMockRuntimeInfo wm) {
     // given — WireMock simulates a slow LLM endpoint, longer than the configured socket timeout
     stubFor(
         any(anyUrl())
             .willReturn(
                 aResponse().withStatus(200).withFixedDelay((int) SIMULATED_LLM_DELAY.toMillis())));
 
+    // simulates what BedrockChatModelProvider does: derive the API timeout and apply it to the
+    // builder returned by ChatModelHttpProxySupport
     try (SdkHttpClient client =
-        proxySupport.createAwsHttpClient(
-            URI.create(wm.getHttpBaseUrl()), CONNECT_TIMEOUT, SHORT_SOCKET_TIMEOUT)) {
+        proxySupport
+            .createAwsHttpClientBuilder(URI.create(wm.getHttpBaseUrl()))
+            .connectionTimeout(CONNECT_TIMEOUT)
+            .socketTimeout(SHORT_SOCKET_TIMEOUT)
+            .build()) {
       // when / then — request should fail close to the configured socket timeout, not the AWS
       // default of 30s, and well before the simulated LLM response delay
       final var start = Instant.now();
@@ -91,8 +97,11 @@ class ChatModelHttpProxySupportTimeoutE2ETest {
                     .withFixedDelay((int) SIMULATED_LLM_DELAY.toMillis())));
 
     try (SdkHttpClient client =
-        proxySupport.createAwsHttpClient(
-            URI.create(wm.getHttpBaseUrl()), CONNECT_TIMEOUT, GENEROUS_SOCKET_TIMEOUT)) {
+        proxySupport
+            .createAwsHttpClientBuilder(URI.create(wm.getHttpBaseUrl()))
+            .connectionTimeout(CONNECT_TIMEOUT)
+            .socketTimeout(GENEROUS_SOCKET_TIMEOUT)
+            .build()) {
       // when
       final HttpExecuteResponse response = executeAwsRequest(client, wm.getHttpBaseUrl());
 

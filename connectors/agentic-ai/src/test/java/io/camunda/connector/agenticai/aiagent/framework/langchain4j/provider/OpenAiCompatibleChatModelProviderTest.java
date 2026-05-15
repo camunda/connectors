@@ -262,7 +262,7 @@ class OpenAiCompatibleChatModelProviderTest {
       assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
       assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
-      verify(proxySupport).createJdkHttpClientBuilder(any(Duration.class), any(Duration.class));
+      verify(proxySupport).createJdkHttpClientBuilder();
       builderAssertions.accept(chatModelBuilder);
     }
   }

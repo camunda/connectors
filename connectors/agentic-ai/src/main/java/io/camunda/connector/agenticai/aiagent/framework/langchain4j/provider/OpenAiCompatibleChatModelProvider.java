@@ -51,7 +51,11 @@ public class OpenAiCompatibleChatModelProvider
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint())
             .timeout(apiTimeout)
-            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder(apiTimeout, apiTimeout));
+            .httpClientBuilder(
+                proxySupport
+                    .createJdkHttpClientBuilder()
+                    .connectTimeout(apiTimeout)
+                    .readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
