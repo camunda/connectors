@@ -36,6 +36,7 @@ import io.camunda.process.test.api.CamundaAssert;
 import java.time.Duration;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -180,7 +181,9 @@ public class L4JAiAgentConnectorHttpTimeoutTests extends BaseAiAgentConnectorTes
           zeebeTest,
           incident -> {
             assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
-            assertThat(incident.getErrorMessage()).isNotBlank();
+            assertThat(incident.getErrorMessage())
+                .containsPattern(Pattern.compile("timed out|timeout"));
+            assertThat(incident.getErrorMessage()).contains("FAILED_MODEL_CALL");
           });
       assertThat(userFeedbackJobWorkerCounter.get())
           .as("user feedback must not be reached on a timeout failure")
