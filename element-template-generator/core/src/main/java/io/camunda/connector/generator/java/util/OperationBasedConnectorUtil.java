@@ -33,7 +33,9 @@ import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class OperationBasedConnectorUtil {
@@ -43,6 +45,11 @@ public class OperationBasedConnectorUtil {
   public static String OPERATION_TASK_HEADER_KEY = OPERATION_PROPERTY_ID;
   public static String OPERATION_PROPERTY_SEPARATOR = ":";
   public static String VARIABLE_PATH_SEPARATOR = ".";
+
+  private static final String SUFFIX_INCLUDE = ".include";
+  private static final String SUFFIX_BINDING_TYPE = ".bindingType";
+  private static final String SUFFIX_RESOURCE_ID = ".resourceId";
+  private static final String SUFFIX_VERSION_TAG = ".versionTag";
 
   private static final List<DropdownProperty.DropdownChoice> BINDING_TYPE_CHOICES =
       List.of(
@@ -141,6 +148,7 @@ public class OperationBasedConnectorUtil {
         annotations, idPrefix, baseCondition, OPERATION_GROUP_ID);
   }
 
+  /** Entry point for class-based ({@code OutboundConnectorFunction}) connectors. */
   public static List<PropertyBuilder> buildClassBasedLinkedResourceProperties(Class<?> type) {
     TemplateLinkedResource[] annotations = type.getAnnotationsByType(TemplateLinkedResource.class);
     if (annotations.length == 0) {
@@ -157,19 +165,41 @@ public class OperationBasedConnectorUtil {
       PropertyCondition.Equals baseCondition,
       String defaultGroup) {
 
+    Set<String> seenLinkNames = new HashSet<>();
+    for (TemplateLinkedResource linkedResource : annotations) {
+      if (linkedResource.linkName().isBlank()) {
+        throw new IllegalArgumentException(
+            "@TemplateLinkedResource has a blank linkName. Please provide a non-blank linkName.");
+      }
+      if (linkedResource.resourceType().isBlank()) {
+        throw new IllegalArgumentException(
+            "@TemplateLinkedResource(linkName='"
+                + linkedResource.linkName()
+                + "') has a blank resourceType. Please provide a non-blank resourceType.");
+      }
+      if (!seenLinkNames.add(linkedResource.linkName())) {
+        throw new IllegalArgumentException(
+            "Duplicate @TemplateLinkedResource linkName '"
+                + linkedResource.linkName()
+                + "'. Each linked resource on the same class must have a unique linkName.");
+      }
+    }
+
     List<PropertyBuilder> result = new ArrayList<>();
-    for (TemplateLinkedResource lr : annotations) {
-      String group = lr.group().isBlank() ? defaultGroup : lr.group();
-      String bindingTypeId = idPrefix + lr.linkName() + ".bindingType";
+    for (TemplateLinkedResource linkedResource : annotations) {
+      String group = linkedResource.group().isBlank() ? defaultGroup : linkedResource.group();
+      String bindingTypeId = idPrefix + linkedResource.linkName() + SUFFIX_BINDING_TYPE;
 
       // When optional=true, prepend a Yes/No toggle (zeebe:taskHeader). All linked-resource
       // properties are then conditioned on the toggle so no linkedResource block is written when
       // the user leaves it at the default "No", avoiding a Zeebe deploy-time validation error.
       PropertyCondition propertyCondition;
-      if (lr.optional()) {
-        String toggleId = idPrefix + lr.linkName() + ".include";
+      if (linkedResource.optional()) {
+        String toggleId = idPrefix + linkedResource.linkName() + SUFFIX_INCLUDE;
         String toggleLabel =
-            lr.toggleLabel().isBlank() ? "Include " + lr.linkName() + "?" : lr.toggleLabel();
+            linkedResource.toggleLabel().isBlank()
+                ? "Include " + linkedResource.linkName() + "?"
+                : linkedResource.toggleLabel();
         result.add(
             DropdownProperty.builder()
                 .choices(
@@ -180,7 +210,8 @@ public class OperationBasedConnectorUtil {
                 .label(toggleLabel)
                 .value("false")
                 .group(group)
-                .binding(new PropertyBinding.ZeebeTaskHeader(lr.linkName() + ".include"))
+                .binding(
+                    new PropertyBinding.ZeebeTaskHeader(linkedResource.linkName() + SUFFIX_INCLUDE))
                 .condition(
                     baseCondition == null
                         ? null
@@ -199,27 +230,40 @@ public class OperationBasedConnectorUtil {
 
       result.add(
           HiddenProperty.builder()
-              .value(lr.resourceType())
-              .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "resourceType"))
+              .value(linkedResource.resourceType())
+              .binding(
+                  new PropertyBinding.ZeebeLinkedResource(
+                      linkedResource.linkName(), "resourceType"))
               .condition(propertyCondition));
 
       result.add(
           DropdownProperty.builder()
               .choices(BINDING_TYPE_CHOICES)
               .id(bindingTypeId)
-              .label(lr.bindingTypeLabel().isBlank() ? "Resource binding" : lr.bindingTypeLabel())
+              .label(
+                  linkedResource.bindingTypeLabel().isBlank()
+                      ? "Resource binding"
+                      : linkedResource.bindingTypeLabel())
               .value("latest")
               .group(group)
-              .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "bindingType"))
+              .binding(
+                  new PropertyBinding.ZeebeLinkedResource(linkedResource.linkName(), "bindingType"))
               .condition(propertyCondition));
 
       result.add(
           StringProperty.builder()
-              .id(idPrefix + lr.linkName() + ".resourceId")
-              .label(lr.resourceIdLabel().isBlank() ? "Resource ID" : lr.resourceIdLabel())
-              .description(lr.resourceIdDescription().isBlank() ? null : lr.resourceIdDescription())
+              .id(idPrefix + linkedResource.linkName() + SUFFIX_RESOURCE_ID)
+              .label(
+                  linkedResource.resourceIdLabel().isBlank()
+                      ? "Resource ID"
+                      : linkedResource.resourceIdLabel())
+              .description(
+                  linkedResource.resourceIdDescription().isBlank()
+                      ? null
+                      : linkedResource.resourceIdDescription())
               .group(group)
-              .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "resourceId"))
+              .binding(
+                  new PropertyBinding.ZeebeLinkedResource(linkedResource.linkName(), "resourceId"))
               .condition(propertyCondition));
 
       PropertyCondition.Equals versionTagEquals =
@@ -239,11 +283,12 @@ public class OperationBasedConnectorUtil {
 
       result.add(
           StringProperty.builder()
-              .id(idPrefix + lr.linkName() + ".versionTag")
+              .id(idPrefix + linkedResource.linkName() + SUFFIX_VERSION_TAG)
               .label("Version tag")
               .feel(FeelMode.disabled)
               .group(group)
-              .binding(new PropertyBinding.ZeebeLinkedResource(lr.linkName(), "versionTag"))
+              .binding(
+                  new PropertyBinding.ZeebeLinkedResource(linkedResource.linkName(), "versionTag"))
               .condition(versionTagCondition));
     }
     return result;

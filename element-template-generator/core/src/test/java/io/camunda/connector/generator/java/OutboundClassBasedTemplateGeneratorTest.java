@@ -19,11 +19,15 @@ package io.camunda.connector.generator.java;
 import static io.camunda.connector.generator.java.util.TemplateGenerationStringUtil.camelCaseToSpaces;
 import static java.nio.file.Files.readAllBytes;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -46,7 +50,9 @@ import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.annotation.BpmnType;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.ClassBasedConnectorWithLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
@@ -1352,6 +1358,28 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(((ZeebeLinkedResource) versionTag.getBinding()).property())
           .isEqualTo("versionTag");
     }
+
+    @Test
+    void blankLinkName_throwsIllegalArgumentException() {
+      assertThatThrownBy(() -> generator.generate(BlankLinkNameConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("blank linkName");
+    }
+
+    @Test
+    void blankResourceType_throwsIllegalArgumentException() {
+      assertThatThrownBy(() -> generator.generate(BlankResourceTypeConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("blank resourceType");
+    }
+
+    @Test
+    void duplicateLinkName_throwsIllegalArgumentException() {
+      assertThatThrownBy(() -> generator.generate(DuplicateLinkNameConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Duplicate")
+          .hasMessageContaining("form");
+    }
   }
 
   @Nested
@@ -1464,6 +1492,57 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           .isEqualTo(new PropertyBinding.ZeebeTaskHeader("b"));
       assertThat(propertyAWithHeaderAndTemplateProperty.getLabel()).isEqualTo("a prop");
       assertThat(propertyBWithHeaderAndTemplateProperty.getLabel()).isEqualTo("b prop");
+    }
+  }
+
+  // Fixtures for linked-resource validation tests
+
+  @TemplateLinkedResource(linkName = "", resourceType = "form")
+  private record BlankLinkNameRequest() {}
+
+  @OutboundConnector(name = "Test", type = "test:blank-link")
+  @ElementTemplate(
+      id = "test-blank-link",
+      name = "Test",
+      version = 1,
+      inputDataClass = BlankLinkNameRequest.class)
+  private static class BlankLinkNameConnector implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @TemplateLinkedResource(linkName = "myResource", resourceType = "")
+  private record BlankResourceTypeRequest() {}
+
+  @OutboundConnector(name = "Test", type = "test:blank-resource-type")
+  @ElementTemplate(
+      id = "test-blank-resource-type",
+      name = "Test",
+      version = 1,
+      inputDataClass = BlankResourceTypeRequest.class)
+  private static class BlankResourceTypeConnector implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @TemplateLinkedResource(linkName = "form", resourceType = "form")
+  @TemplateLinkedResource(linkName = "form", resourceType = "form")
+  private record DuplicateLinkNameRequest() {}
+
+  @OutboundConnector(name = "Test", type = "test:duplicate-link")
+  @ElementTemplate(
+      id = "test-duplicate-link",
+      name = "Test",
+      version = 1,
+      inputDataClass = DuplicateLinkNameRequest.class)
+  private static class DuplicateLinkNameConnector implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
     }
   }
 }
