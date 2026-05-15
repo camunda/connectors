@@ -24,6 +24,7 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration.ProxyDetails;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,7 @@ class ChatModelHttpProxySupportTest {
 
   private static final String HTTPS_ENDPOINT = "https://example.com";
   private static final String HTTP_ENDPOINT = "http://example.com";
+  private static final Duration AWS_HTTP_CLIENT_TIMEOUT = Duration.ofSeconds(145);
 
   private static final String NON_PROXY_HOST_LOCALHOST = "localhost";
   private static final String NON_PROXY_HOST_LOCALHOST_REGEX = "localhost.*";
@@ -95,7 +97,8 @@ class ChatModelHttpProxySupportTest {
 
         // when
         SdkHttpClient result =
-            proxySupport.createAwsHttpClient(URI.create("https://bedrock.amazonaws.com"));
+            proxySupport.createAwsHttpClient(
+                URI.create("https://bedrock.amazonaws.com"), AWS_HTTP_CLIENT_TIMEOUT);
 
         // then
         assertThat(result).isNotNull();
@@ -103,6 +106,9 @@ class ChatModelHttpProxySupportTest {
         verify(httpClientBuilder)
             .proxyConfiguration(
                 notNull(software.amazon.awssdk.http.apache.ProxyConfiguration.class));
+        verify(httpClientBuilder).connectionTimeout(AWS_HTTP_CLIENT_TIMEOUT);
+        verify(httpClientBuilder).connectionAcquisitionTimeout(AWS_HTTP_CLIENT_TIMEOUT);
+        verify(httpClientBuilder).socketTimeout(AWS_HTTP_CLIENT_TIMEOUT);
       }
     }
 

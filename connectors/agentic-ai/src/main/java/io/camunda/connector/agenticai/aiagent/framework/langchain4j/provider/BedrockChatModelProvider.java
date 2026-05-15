@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHtt
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,13 +45,14 @@ public class BedrockChatModelProvider implements ChatModelProvider<BedrockProvid
   @Override
   public ChatModel createChatModel(BedrockProviderConfiguration bedrock) {
     final var connection = bedrock.bedrock();
+    final var timeout =
+        deriveTimeoutSetting("Bedrock model call", config, connection.timeouts(), LOGGER);
 
     final var builder =
         BedrockChatModel.builder()
-            .client(createBedrockClient(connection))
+            .client(createBedrockClient(connection, timeout))
             .modelId(connection.model().model())
-            .timeout(
-                deriveTimeoutSetting("Bedrock model call", config, connection.timeouts(), LOGGER));
+            .timeout(timeout);
 
     applyBedrockModelParametersIfPresent(connection, builder);
 
@@ -58,7 +60,7 @@ public class BedrockChatModelProvider implements ChatModelProvider<BedrockProvid
   }
 
   private BedrockRuntimeClient createBedrockClient(
-      BedrockProviderConfiguration.BedrockConnection connection) {
+      BedrockProviderConfiguration.BedrockConnection connection, Duration timeout) {
     var bedrockClientBuilder =
         BedrockRuntimeClient.builder().region(Region.of(connection.region()));
     var overrideClientConfigurationBuilder = ClientOverrideConfiguration.builder();
@@ -73,10 +75,9 @@ public class BedrockChatModelProvider implements ChatModelProvider<BedrockProvid
       bedrockClientBuilder.endpointOverride(endpointOverride);
     }
 
-    overrideClientConfigurationBuilder.apiCallTimeout(
-        deriveTimeoutSetting("Bedrock API call", config, connection.timeouts(), LOGGER));
+    overrideClientConfigurationBuilder.apiCallTimeout(timeout);
 
-    SdkHttpClient httpClient = proxySupport.createAwsHttpClient(endpointOverride);
+    SdkHttpClient httpClient = proxySupport.createAwsHttpClient(endpointOverride, timeout);
     bedrockClientBuilder.httpClient(httpClient);
 
     bedrockClientBuilder.overrideConfiguration(overrideClientConfigurationBuilder.build());
