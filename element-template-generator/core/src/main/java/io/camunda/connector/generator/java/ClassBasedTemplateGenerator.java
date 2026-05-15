@@ -33,6 +33,7 @@ import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor;
 import io.camunda.connector.generator.java.util.*;
+import io.camunda.connector.generator.java.util.LinkedResourcePropertiesUtil;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
 import io.camunda.connector.util.reflection.ReflectionUtil;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
