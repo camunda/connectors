@@ -300,9 +300,19 @@ class BedrockChatModelProviderTest {
       assertThat(chatModel).isNotNull().isInstanceOf(BedrockChatModel.class);
       assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
-      verify(proxySupport).createAwsHttpClient(expectedEndpointOverride);
+      verify(proxySupport)
+          .createAwsHttpClient(expectedEndpointOverride, expectedTimeout(providerConfig));
       builderAssertions.accept(builders);
     }
+  }
+
+  private Duration expectedTimeout(BedrockProviderConfiguration providerConfig) {
+    var timeouts = providerConfig.bedrock().timeouts();
+    if (timeouts != null && timeouts.timeout() != null && timeouts.timeout().isPositive()) {
+      return timeouts.timeout();
+    }
+
+    return Duration.ofMinutes(3);
   }
 
   static Stream<BedrockModelParameters> nullModelParameters() {

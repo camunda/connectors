@@ -14,6 +14,7 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -41,11 +42,23 @@ public class ChatModelHttpProxySupport {
   }
 
   public SdkHttpClient createAwsHttpClient(URI endpointOverride) {
+    return createAwsHttpClient(endpointOverride, null);
+  }
+
+  public SdkHttpClient createAwsHttpClient(URI endpointOverride, Duration timeout) {
     String schemeName =
         endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
-    return ApacheHttpClient.builder()
-        .proxyConfiguration(createAwsProxyConfiguration(schemeName))
-        .build();
+    var httpClientBuilder =
+        ApacheHttpClient.builder().proxyConfiguration(createAwsProxyConfiguration(schemeName));
+
+    if (timeout != null && timeout.isPositive()) {
+      httpClientBuilder
+          .connectionTimeout(timeout)
+          .connectionAcquisitionTimeout(timeout)
+          .socketTimeout(timeout);
+    }
+
+    return httpClientBuilder.build();
   }
 
   software.amazon.awssdk.http.apache.ProxyConfiguration createAwsProxyConfiguration(
