@@ -43,6 +43,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
@@ -149,6 +150,11 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .overrideConfiguration(
                 ClientOverrideConfiguration.builder()
                     .apiCallTimeout(DEFAULT_MODEL_CALL_TIMEOUT)
+                    .build())
+            .httpClient(
+                ApacheHttpClient.builder()
+                    .connectionTimeout(Duration.ofSeconds(15))
+                    .socketTimeout(DEFAULT_MODEL_CALL_TIMEOUT)
                     .build())
             .region(Region.of(connection.region()));
 
