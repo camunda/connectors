@@ -33,6 +33,7 @@ import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor;
 import io.camunda.connector.generator.java.util.*;
+import io.camunda.connector.generator.java.util.LinkedResourcePropertiesUtil;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
 import io.camunda.connector.util.reflection.ReflectionUtil;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
@@ -110,7 +111,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       // zeebe:linkedResource is a service-task extension; skip it for inbound connectors
       if (OutboundConnectorFunction.class.isAssignableFrom(connectorDefinition)) {
         properties.addAll(
-            OperationBasedConnectorUtil.buildClassBasedLinkedResourceProperties(connectorInput));
+            LinkedResourcePropertiesUtil.buildClassBasedLinkedResourceProperties(connectorInput));
       }
     } else if (OutboundConnectorProvider.class.isAssignableFrom(connectorDefinition)) {
       List<MethodWithAnnotation<Operation>> methods =

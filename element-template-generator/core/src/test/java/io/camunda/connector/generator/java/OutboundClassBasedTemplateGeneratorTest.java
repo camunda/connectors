@@ -1080,7 +1080,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               .orElseThrow();
 
       assertThat(hidden.getValue()).isEqualTo("form");
-      assertThat(hidden.getGroup()).isNull();
+      assertThat(hidden.getGroup()).isEqualTo("form");
       assertThat(((ZeebeLinkedResource) hidden.getBinding()).linkName())
           .isEqualTo("formDefinition");
       assertThat(((ZeebeLinkedResource) hidden.getBinding()).property()).isEqualTo("resourceType");
@@ -1204,6 +1204,27 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           .containsExactly(
               new DropdownProperty.DropdownChoice("No", "false"),
               new DropdownProperty.DropdownChoice("Yes", "true"));
+
+      // Property.equals() excludes condition, so indexOf is unreliable for properties that share
+      // the same binding/value across operations. Use index-based stream instead.
+      var allProps = template.properties();
+      int toggleIndex = -1;
+      int firstLinkedResourceIndex = Integer.MAX_VALUE;
+      for (int i = 0; i < allProps.size(); i++) {
+        var p = allProps.get(i);
+        if (toggleIndex == -1 && "op4:formDefinition.include".equals(p.getId())) {
+          toggleIndex = i;
+        }
+        if ("zeebe:linkedResource".equals(p.getBinding().type())
+            && p.getCondition() instanceof PropertyCondition.AllMatch am
+            && am.allMatch().contains(new PropertyCondition.Equals("operation", "op4"))
+            && i < firstLinkedResourceIndex) {
+          firstLinkedResourceIndex = i;
+        }
+      }
+      assertThat(toggleIndex).isGreaterThan(-1);
+      assertThat(firstLinkedResourceIndex).isLessThan(Integer.MAX_VALUE);
+      assertThat(toggleIndex).isLessThan(firstLinkedResourceIndex);
     }
 
     @Test
@@ -1380,6 +1401,16 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           .hasMessageContaining("Duplicate")
           .hasMessageContaining("form");
     }
+
+    @Test
+    void inboundConnector_linkedResourceAnnotationOnRequest_producesNoLinkedResourceProperties() {
+      var template = generator.generate(InboundConnectorWithLinkedResourceRequest.class).getFirst();
+      var linkedResourceProps =
+          template.properties().stream()
+              .filter(p -> "zeebe:linkedResource".equals(p.getBinding().type()))
+              .toList();
+      assertThat(linkedResourceProps).isEmpty();
+    }
   }
 
   @Nested
@@ -1544,5 +1575,29 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     public Object execute(OutboundConnectorContext context) {
       return null;
     }
+  }
+
+  // Fixture for inbound connector linked-resource test
+
+  @TemplateLinkedResource(linkName = "form", resourceType = "form")
+  private record InboundLinkedResourceRequest() {}
+
+  @io.camunda.connector.api.annotation.InboundConnector(
+      name = "Test Inbound",
+      type = "test:inbound-linked-resource")
+  @ElementTemplate(
+      id = "test-inbound-linked-resource",
+      name = "Test Inbound",
+      version = 1,
+      inputDataClass = InboundLinkedResourceRequest.class)
+  private static class InboundConnectorWithLinkedResourceRequest
+      implements io.camunda.connector.api.inbound.InboundConnectorExecutable<
+          io.camunda.connector.api.inbound.InboundConnectorContext> {
+    @Override
+    public void activate(io.camunda.connector.api.inbound.InboundConnectorContext context)
+        throws Exception {}
+
+    @Override
+    public void deactivate() {}
   }
 }
