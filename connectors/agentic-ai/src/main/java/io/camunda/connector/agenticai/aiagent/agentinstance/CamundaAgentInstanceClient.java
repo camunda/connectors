@@ -70,7 +70,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         }
 
         final Duration delay =
-            ExponentialBackoffRetry.delayBeforeAttempt(attempt, INITIAL_RETRY_DELAY);
+            ExponentialBackoffRetry.delayBeforeAttempt(attempt + 1, INITIAL_RETRY_DELAY);
         LOGGER.warn(
             "Attempt {}/{} to create agent instance for element instance key {} failed, retrying in {}ms: {}",
             attempt,

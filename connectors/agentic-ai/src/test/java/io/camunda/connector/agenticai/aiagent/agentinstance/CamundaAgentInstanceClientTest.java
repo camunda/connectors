@@ -142,6 +142,7 @@ class CamundaAgentInstanceClientTest {
 
     assertThat(key).isEqualTo(999L);
     assertThat(recordedSleeps).hasSize(1);
+    assertThat(recordedSleeps).containsExactly(Duration.ofSeconds(1));
     verify(camundaClient, times(2)).newCreateAgentInstanceCommand();
   }
 
@@ -160,8 +161,14 @@ class CamundaAgentInstanceClientTest {
               assertThat(connectorException.getMessage()).contains("after 5 attempt(s)");
             });
 
-    // 5 total attempts → 4 sleeps
+    // 5 total attempts → 4 sleeps: before attempts 2, 3, 4, 5
     assertThat(recordedSleeps).hasSize(4);
+    assertThat(recordedSleeps)
+        .containsExactly(
+            Duration.ofSeconds(1),
+            Duration.ofSeconds(2),
+            Duration.ofSeconds(4),
+            Duration.ofSeconds(8));
     verify(camundaClient, times(5)).newCreateAgentInstanceCommand();
   }
 

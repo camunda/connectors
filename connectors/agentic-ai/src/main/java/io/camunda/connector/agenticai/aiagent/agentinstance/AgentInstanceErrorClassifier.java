@@ -18,46 +18,32 @@ public final class AgentInstanceErrorClassifier {
   }
 
   public static Decision classify(Throwable t) {
-    // 1. HTTP errors via ClientHttpException (parent of ProblemException)
-    if (t instanceof ClientHttpException httpEx) {
-      int status = httpEx.code();
-      if (status == 404) {
+    Throwable current = t;
+    while (current != null) {
+      if (current instanceof ClientHttpException httpEx) {
+        int status = httpEx.code();
+        if (status == 404) {
+          return Decision.RETRYABLE;
+        }
+        if (status >= 400 && status < 500) {
+          return Decision.PERMANENT;
+        }
+        if (status >= 500) {
+          return Decision.RETRYABLE;
+        }
+      }
+
+      if (isIoException(current)) {
         return Decision.RETRYABLE;
       }
-      if (status >= 400 && status < 500) {
-        return Decision.PERMANENT;
+
+      Throwable cause = current.getCause();
+      if (cause == current) {
+        break;
       }
-      if (status >= 500) {
-        return Decision.RETRYABLE;
-      }
+      current = cause;
     }
 
-    // Also check cause chain for ClientHttpException
-    Throwable cause = t.getCause();
-    if (cause instanceof ClientHttpException httpCause) {
-      int status = httpCause.code();
-      if (status == 404) {
-        return Decision.RETRYABLE;
-      }
-      if (status >= 400 && status < 500) {
-        return Decision.PERMANENT;
-      }
-      if (status >= 500) {
-        return Decision.RETRYABLE;
-      }
-    }
-
-    // 2. IO-level transport errors
-    if (isIoException(t)) {
-      return Decision.RETRYABLE;
-    }
-
-    // 3. RuntimeException wrapping a transport-level exception
-    if (t instanceof RuntimeException && isIoException(t.getCause())) {
-      return Decision.RETRYABLE;
-    }
-
-    // 4. Default: fail-safe permanent
     return Decision.PERMANENT;
   }
 
