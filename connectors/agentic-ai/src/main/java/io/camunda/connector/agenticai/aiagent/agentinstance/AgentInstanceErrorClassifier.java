@@ -8,13 +8,16 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.ClientHttpException;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 
 public final class AgentInstanceErrorClassifier {
 
   public enum Decision {
     RETRYABLE,
-    PERMANENT
+    PERMANENT;
+
+    public boolean isRetryable() {
+      return this == RETRYABLE;
+    }
   }
 
   public static Decision classify(Throwable t) {
@@ -48,7 +51,7 @@ public final class AgentInstanceErrorClassifier {
   }
 
   private static boolean isIoException(Throwable t) {
-    return t instanceof InterruptedIOException || t instanceof IOException;
+    return t instanceof IOException;
   }
 
   private AgentInstanceErrorClassifier() {}

@@ -32,74 +32,72 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   @Override
   public long create(CreateAgentInstanceParams params) {
     final int maxAttempts = MAX_RETRIES + 1;
-
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        final var command =
-            camundaClient
-                .newCreateAgentInstanceCommand()
-                .elementInstanceKey(params.elementInstanceKey())
-                .model(params.model())
-                .provider(params.provider())
-                .systemPrompt(params.systemPrompt());
-
-        final var finalCommand =
-            (params.maxModelCalls() != null)
-                ? command.maxModelCalls(params.maxModelCalls())
-                : command;
-
-        return finalCommand.send().join().getAgentInstanceKey();
-
+        return executeCreate(params);
       } catch (Exception e) {
         final Decision decision = AgentInstanceErrorClassifier.classify(e);
-        final boolean isLastAttempt = attempt == maxAttempts;
-
-        if (decision == Decision.PERMANENT || isLastAttempt) {
-          final String message;
-          if (decision == Decision.PERMANENT) {
-            message =
-                "Failed to create agent instance for element instance key %d: %s"
-                    .formatted(params.elementInstanceKey(), e.getMessage());
-          } else {
-            // isLastAttempt == true, decision == RETRYABLE
-            message =
-                "Failed to create agent instance for element instance key %d after %d attempt(s): %s"
-                    .formatted(params.elementInstanceKey(), attempt, e.getMessage());
-          }
-          throw new ConnectorException(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED, message, e);
+        if (!decision.isRetryable() || areRetriesExhausted(attempt)) {
+          throw buildException(params, e, decision, attempt);
         }
-
-        final Duration delay =
-            ExponentialBackoffRetry.delayBeforeAttempt(attempt + 1, INITIAL_RETRY_DELAY);
-        LOGGER.warn(
-            "Attempt {}/{} to create agent instance for element instance key {} failed, retrying in {}ms: {}",
-            attempt,
-            maxAttempts,
-            params.elementInstanceKey(),
-            delay.toMillis(),
-            e.getMessage());
-
-        try {
-          sleep(delay);
-        } catch (InterruptedException ie) {
-          Thread.currentThread().interrupt();
-          throw new ConnectorException(
-              ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED,
-              "Interrupted while waiting to retry agent instance creation for element instance key %d"
-                  .formatted(params.elementInstanceKey()),
-              ie);
-        }
+        scheduleRetry(params, e, attempt);
       }
     }
-
-    // Unreachable: loop always returns or throws above
     throw new IllegalStateException("Unexpected end of retry loop");
   }
 
-  /**
-   * Sleeps for the given duration. Extracted for testability — subclasses may override to skip the
-   * actual sleep.
-   */
+  private static boolean areRetriesExhausted(int attempt) {
+    return attempt == 5;
+  }
+
+  private long executeCreate(CreateAgentInstanceParams params) {
+    var command =
+        camundaClient
+            .newCreateAgentInstanceCommand()
+            .elementInstanceKey(params.elementInstanceKey())
+            .model(params.model())
+            .provider(params.provider())
+            .systemPrompt(params.systemPrompt());
+    final var limits = params.limits();
+    if (limits != null && limits.maxModelCalls() != null) {
+      command = command.maxModelCalls(limits.maxModelCalls());
+    }
+    return command.send().join().getAgentInstanceKey();
+  }
+
+  private ConnectorException buildException(
+      CreateAgentInstanceParams params, Exception e, Decision decision, int attempt) {
+    final String message =
+        (decision == Decision.PERMANENT)
+            ? "Failed to create agent instance for element instance key %d: %s"
+                .formatted(params.elementInstanceKey(), e.getMessage())
+            : "Failed to create agent instance for element instance key %d after %d attempt(s): %s"
+                .formatted(params.elementInstanceKey(), attempt, e.getMessage());
+    return new ConnectorException(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED, message, e);
+  }
+
+  private void scheduleRetry(CreateAgentInstanceParams params, Exception e, int attempt) {
+    final Duration delay =
+        ExponentialBackoffRetry.delayBeforeAttempt(attempt + 1, INITIAL_RETRY_DELAY);
+    LOGGER.warn(
+        "Attempt {}/{} to create agent instance for element instance key {} failed, retrying in {}ms: {}",
+        attempt,
+        CamundaAgentInstanceClient.MAX_RETRIES + 1,
+        params.elementInstanceKey(),
+        delay.toMillis(),
+        e.getMessage());
+    try {
+      sleep(delay);
+    } catch (InterruptedException ie) {
+      Thread.currentThread().interrupt();
+      throw new ConnectorException(
+          ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED,
+          "Interrupted while waiting to retry agent instance creation for element instance key %d"
+              .formatted(params.elementInstanceKey()),
+          ie);
+    }
+  }
+
   protected void sleep(Duration delay) throws InterruptedException {
     Thread.sleep(delay.toMillis());
   }

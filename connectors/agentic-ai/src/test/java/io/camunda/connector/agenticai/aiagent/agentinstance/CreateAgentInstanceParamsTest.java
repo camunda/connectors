@@ -56,7 +56,8 @@ class CreateAgentInstanceParamsTest {
     assertThat(params.model()).isEqualTo("gpt-4o");
     assertThat(params.provider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
     assertThat(params.systemPrompt()).isEqualTo("You are a helpful assistant.");
-    assertThat(params.maxModelCalls()).isEqualTo(10);
+    assertThat(params.limits()).isNotNull();
+    assertThat(params.limits().maxModelCalls()).isEqualTo(10);
   }
 
   @Test
@@ -66,7 +67,7 @@ class CreateAgentInstanceParamsTest {
 
     final var params = CreateAgentInstanceParams.from(executionContext);
 
-    assertThat(params.maxModelCalls()).isNull();
+    assertThat(params.limits()).isNull();
   }
 
   @Test
@@ -76,7 +77,8 @@ class CreateAgentInstanceParamsTest {
 
     final var params = CreateAgentInstanceParams.from(executionContext);
 
-    assertThat(params.maxModelCalls()).isEqualTo(10);
+    assertThat(params.limits()).isNotNull();
+    assertThat(params.limits().maxModelCalls()).isEqualTo(10);
   }
 
   @Test

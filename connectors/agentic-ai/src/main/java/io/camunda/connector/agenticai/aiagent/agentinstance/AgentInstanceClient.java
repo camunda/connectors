@@ -18,9 +18,4 @@ public interface AgentInstanceClient {
    *     or a non-retryable error occurs
    */
   long create(CreateAgentInstanceParams params);
-
-  // Future seams (not implemented now):
-  // void updateMetrics(long agentInstanceKey, ...);
-  // void updateConversation(long agentInstanceKey, ...);
-  // void updateToolDefinitions(long agentInstanceKey, ...);
 }

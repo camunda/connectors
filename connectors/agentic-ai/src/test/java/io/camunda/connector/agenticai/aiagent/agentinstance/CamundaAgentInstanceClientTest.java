@@ -40,7 +40,12 @@ class CamundaAgentInstanceClientTest {
 
   private static final long ELEMENT_INSTANCE_KEY = 77L;
   private static final CreateAgentInstanceParams PARAMS =
-      new CreateAgentInstanceParams(ELEMENT_INSTANCE_KEY, "gpt-4o", "openai", "system prompt", 10);
+      new CreateAgentInstanceParams(
+          ELEMENT_INSTANCE_KEY,
+          "gpt-4o",
+          "openai",
+          "system prompt",
+          new CreateAgentInstanceParams.Limits(10));
   private static final CreateAgentInstanceParams PARAMS_NULL_MAX_MODEL_CALLS =
       new CreateAgentInstanceParams(
           ELEMENT_INSTANCE_KEY, "gpt-4o", "openai", "system prompt", null);
@@ -198,7 +203,8 @@ class CamundaAgentInstanceClientTest {
     when(future.join()).thenThrow(new ClientHttpException(503, "Service Unavailable"));
 
     // Ensure thread interrupt flag is clear before the test
-    Thread.interrupted();
+    boolean interrupted = Thread.interrupted();
+    assertThat(interrupted).isTrue();
 
     assertThatThrownBy(() -> interruptableClient.create(PARAMS))
         .isInstanceOf(ConnectorException.class)
