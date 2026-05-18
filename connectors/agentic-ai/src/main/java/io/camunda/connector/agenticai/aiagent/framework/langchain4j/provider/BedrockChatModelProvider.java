@@ -21,7 +21,6 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
@@ -83,13 +82,11 @@ public class BedrockChatModelProvider implements ChatModelProvider<BedrockProvid
     // socket timeout of 30 seconds. The TCP connect timeout is kept at a small constant since it
     // covers infrastructure availability (DNS / firewall / proxy), not model latency. See issue
     // #7193.
-    SdkHttpClient httpClient =
+    bedrockClientBuilder.httpClientBuilder(
         proxySupport
             .createAwsHttpClientBuilder(endpointOverride)
             .connectionTimeout(CONNECT_TIMEOUT)
-            .socketTimeout(apiTimeout)
-            .build();
-    bedrockClientBuilder.httpClient(httpClient);
+            .socketTimeout(apiTimeout));
 
     bedrockClientBuilder.overrideConfiguration(overrideClientConfigurationBuilder.build());
 
