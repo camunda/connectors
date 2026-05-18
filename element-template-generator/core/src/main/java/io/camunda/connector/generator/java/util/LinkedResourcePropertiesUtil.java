@@ -110,7 +110,8 @@ public class LinkedResourcePropertiesUtil {
                 .value("false")
                 .group(group)
                 .binding(
-                    new PropertyBinding.ZeebeTaskHeader(linkedResource.linkName() + SUFFIX_INCLUDE))
+                    new PropertyBinding.ZeebeTaskHeader(
+                        idPrefix + linkedResource.linkName() + SUFFIX_INCLUDE))
                 .condition(
                     baseCondition == null
                         ? null
