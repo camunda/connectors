@@ -80,7 +80,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             e.getMessage());
 
         try {
-          Thread.sleep(delay.toMillis());
+          sleep(delay);
         } catch (InterruptedException ie) {
           Thread.currentThread().interrupt();
           throw new ConnectorException(
@@ -94,5 +94,13 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
 
     // Unreachable: loop always returns or throws above
     throw new IllegalStateException("Unexpected end of retry loop");
+  }
+
+  /**
+   * Sleeps for the given duration. Extracted for testability — subclasses may override to skip the
+   * actual sleep.
+   */
+  protected void sleep(Duration delay) throws InterruptedException {
+    Thread.sleep(delay.toMillis());
   }
 }

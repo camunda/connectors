@@ -9,9 +9,14 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -21,10 +26,16 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinit
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.CreateAgentInstanceParams;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -33,6 +44,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +60,8 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 class AgentInitializerTest {
@@ -88,6 +102,7 @@ class AgentInitializerTest {
 
   @Mock private AgentToolsResolver toolsResolver;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
+  @Mock private AgentInstanceClient agentInstanceClient;
   @Mock private JobContext jobContext;
   @InjectMocks private AgentInitializerImpl agentInitializer;
 
@@ -136,13 +151,24 @@ class AgentInitializerTest {
     @Test
     void handlesNullInitialAgentContext() {
       // When initialAgentContext is null, creates new context with INITIALIZING state
-      // which triggers initiateToolDiscovery flow
+      // which triggers agent instance creation then initiateToolDiscovery flow
+      when(agentInstanceClient.create(any())).thenReturn(12345L);
+      // Provider required for CreateAgentInstanceParams.from
+      when(executionContext.provider())
+          .thenReturn(
+              new OpenAiProviderConfiguration(
+                  new OpenAiConnection(
+                      new OpenAiAuthentication("key", null, null),
+                      null,
+                      new OpenAiModel("gpt-4o", null))));
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
       final var result = agentInitializer.initializeAgent(executionContext);
 
+      final var expectedMetadata =
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 12345L);
       assertThat(result)
           .isInstanceOfSatisfying(
               AgentContextInitializationResult.class,
@@ -152,7 +178,7 @@ class AgentInitializerTest {
                     .isEqualTo(
                         AgentContext.empty()
                             .withState(AgentState.READY)
-                            .withMetadata(EXECUTION_METADATA));
+                            .withMetadata(expectedMetadata));
                 assertThat(res.toolCallResults()).isEmpty();
               });
 
@@ -182,8 +208,11 @@ class AgentInitializerTest {
   @Nested
   class ToolDiscoveryInitiation {
 
+    // Agent instance key already set → ensureAgentInstanceRegistered is a no-op for these tests
     private static final AgentContext AGENT_CONTEXT =
-        AgentContext.empty().withProperty("hello", "world");
+        AgentContext.empty()
+            .withProperty("hello", "world")
+            .withMetadata(new AgentMetadata(null, null, 99999L));
 
     @BeforeEach
     void setUp() {
@@ -559,6 +588,78 @@ class AgentInitializerTest {
               });
 
       verifyNoInteractions(toolsResolver, gatewayToolHandlers);
+    }
+  }
+
+  @Nested
+  @MockitoSettings(strictness = Strictness.LENIENT)
+  class AgentInstanceCreation {
+
+    private static final long PROCESS_DEFINITION_KEY = 100L;
+    private static final long PROCESS_INSTANCE_KEY = 200L;
+    private static final long ELEMENT_INSTANCE_KEY = 300L;
+    private static final OpenAiProviderConfiguration OPENAI_PROVIDER =
+        new OpenAiProviderConfiguration(
+            new OpenAiConnection(
+                new OpenAiAuthentication("api-key", null, null),
+                null,
+                new OpenAiModel("gpt-4o", null)));
+
+    @BeforeEach
+    void setUp() {
+      // Provide a fully initializing context (null initialAgentContext → new INITIALIZING context)
+      // or an explicit INITIALIZING context without agentInstanceKey
+      when(executionContext.jobContext()).thenReturn(jobContext);
+      when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
+      when(jobContext.getProcessInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
+      when(jobContext.getElementInstanceKey()).thenReturn(ELEMENT_INSTANCE_KEY);
+      when(executionContext.provider()).thenReturn(OPENAI_PROVIDER);
+      // Default: no system prompt, no limits
+    }
+
+    @Test
+    void shouldCreateAgentInstanceOnFirstInitialization() {
+      // null initialAgentContext → creates INITIALIZING context without agentInstanceKey
+      when(agentInstanceClient.create(any(CreateAgentInstanceParams.class))).thenReturn(12345L);
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
+      agentInitializer.initializeAgent(executionContext);
+
+      verify(agentInstanceClient, times(1)).create(any(CreateAgentInstanceParams.class));
+    }
+
+    @Test
+    void shouldSkipAgentInstanceCreationWhenKeyAlreadyPresent() {
+      // Context already has agentInstanceKey → ensureAgentInstanceRegistered is a no-op
+      final var existingMetadata =
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 99L);
+      final var agentContext =
+          AgentContext.empty().withState(AgentState.INITIALIZING).withMetadata(existingMetadata);
+      when(executionContext.initialAgentContext()).thenReturn(agentContext);
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
+      agentInitializer.initializeAgent(executionContext);
+
+      verify(agentInstanceClient, never()).create(any());
+    }
+
+    @Test
+    void shouldPropagateConnectorExceptionWhenAgentInstanceCreationFails() {
+      final var failure =
+          new ConnectorException(
+              ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED, "Failed to create agent instance");
+      when(agentInstanceClient.create(any(CreateAgentInstanceParams.class))).thenThrow(failure);
+
+      assertThatThrownBy(() -> agentInitializer.initializeAgent(executionContext))
+          .isInstanceOf(ConnectorException.class)
+          .satisfies(
+              e ->
+                  assertThat(((ConnectorException) e).getErrorCode())
+                      .isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED));
     }
   }
 

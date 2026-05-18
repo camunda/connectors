@@ -159,8 +159,11 @@ public class AgentInitializerImpl implements AgentInitializer {
     long agentInstanceKey =
         agentInstanceClient.create(CreateAgentInstanceParams.from(executionContext));
 
-    return agentContext.withMetadata(
-        agentContext.metadata().withAgentInstanceKey(agentInstanceKey));
+    final var existingMetadata =
+        agentContext.metadata() != null
+            ? agentContext.metadata()
+            : AgentMetadata.of(executionContext.jobContext());
+    return agentContext.withMetadata(existingMetadata.withAgentInstanceKey(agentInstanceKey));
   }
 
   private static boolean agentInstanceAlreadyRegistered(AgentContext context) {
