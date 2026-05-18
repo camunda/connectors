@@ -468,6 +468,11 @@ limitations under the License.</license.inlineheader>
         <artifactId>regions</artifactId>
         <version>${version.software-aws-java-sdk}</version>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>apache-client</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
 
       <dependency>
         <groupId>com.google.api-client</groupId>
