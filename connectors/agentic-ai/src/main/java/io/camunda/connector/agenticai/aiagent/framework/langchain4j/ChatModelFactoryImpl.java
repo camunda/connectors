@@ -49,6 +49,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelFactoryImpl.class);
 
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
+
   private final AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties;
   private final ChatModelHttpProxySupport proxySupport;
 
@@ -79,12 +81,18 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       AnthropicProviderConfiguration configuration) {
     final var connection = configuration.anthropic();
 
+    final var apiTimeout = deriveTimeoutSetting(connection.timeouts());
+
     final var builder =
         AnthropicChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
-            .timeout(deriveTimeoutSetting(connection.timeouts()))
-            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
+            .timeout(apiTimeout)
+            .httpClientBuilder(
+                proxySupport
+                    .createJdkHttpClientBuilder()
+                    .connectTimeout(CONNECT_TIMEOUT)
+                    .readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 
@@ -102,11 +110,14 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
   protected AzureOpenAiChatModel.Builder createAzureOpenAiChatModelBuilder(
       AzureOpenAiProviderConfiguration configuration) {
     final var connection = configuration.azureOpenAi();
+
+    final var apiTimeout = deriveTimeoutSetting(connection.timeouts());
+
     final var builder =
         AzureOpenAiChatModel.builder()
             .endpoint(connection.endpoint())
             .deploymentName(configuration.azureOpenAi().model().deploymentName())
-            .timeout(deriveTimeoutSetting(connection.timeouts()));
+            .timeout(apiTimeout);
 
     proxySupport.createAzureProxyOptions(connection.endpoint()).ifPresent(builder::proxyOptions);
 
@@ -140,17 +151,19 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       BedrockProviderConfiguration configuration) {
     final var connection = configuration.bedrock();
 
+    final var apiTimeout = deriveTimeoutSetting(connection.timeouts());
+
     final var builder =
         BedrockChatModel.builder()
-            .client(createBedrockClient(connection))
+            .client(createBedrockClient(connection, apiTimeout))
             .modelId(connection.model().model())
-            .timeout(deriveTimeoutSetting(connection.timeouts()));
+            .timeout(apiTimeout);
 
     return applyBedrockModelParametersIfPresent(connection, builder);
   }
 
   private BedrockRuntimeClient createBedrockClient(
-      BedrockProviderConfiguration.BedrockConnection connection) {
+      BedrockProviderConfiguration.BedrockConnection connection, Duration apiTimeout) {
     var bedrockClientBuilder =
         BedrockRuntimeClient.builder().region(Region.of(connection.region()));
     var overrideClientConfigurationBuilder = ClientOverrideConfiguration.builder();
@@ -167,7 +180,12 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     overrideClientConfigurationBuilder.apiCallTimeout(deriveTimeoutSetting(connection.timeouts()));
 
-    SdkHttpClient httpClient = proxySupport.createAwsHttpClient(endpointOverride);
+    SdkHttpClient httpClient =
+        proxySupport
+            .createAwsHttpClientBuilder(endpointOverride)
+            .connectionTimeout(CONNECT_TIMEOUT)
+            .socketTimeout(apiTimeout)
+            .build();
     bedrockClientBuilder.httpClient(httpClient);
 
     bedrockClientBuilder.overrideConfiguration(overrideClientConfigurationBuilder.build());
@@ -234,12 +252,18 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       OpenAiProviderConfiguration configuration) {
     final var connection = configuration.openai();
 
+    final var apiTimeout = deriveTimeoutSetting(connection.timeouts());
+
     final var builder =
         OpenAiChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
-            .timeout(deriveTimeoutSetting(connection.timeouts()))
-            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
+            .timeout(apiTimeout)
+            .httpClientBuilder(
+                proxySupport
+                    .createJdkHttpClientBuilder()
+                    .connectTimeout(CONNECT_TIMEOUT)
+                    .readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
@@ -264,12 +288,18 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       OpenAiCompatibleProviderConfiguration configuration) {
     final var connection = configuration.openaiCompatible();
 
+    final var apiTimeout = deriveTimeoutSetting(connection.timeouts());
+
     final var builder =
         OpenAiChatModel.builder()
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint())
-            .timeout(deriveTimeoutSetting(connection.timeouts()))
-            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
+            .timeout(apiTimeout)
+            .httpClientBuilder(
+                proxySupport
+                    .createJdkHttpClientBuilder()
+                    .connectTimeout(CONNECT_TIMEOUT)
+                    .readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
