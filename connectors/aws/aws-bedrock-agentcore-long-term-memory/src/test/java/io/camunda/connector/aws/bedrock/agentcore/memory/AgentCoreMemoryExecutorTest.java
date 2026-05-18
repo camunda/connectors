@@ -30,8 +30,8 @@ import software.amazon.awssdk.services.bedrockagentcore.model.BedrockAgentCoreEx
 import software.amazon.awssdk.services.bedrockagentcore.model.ListMemoryRecordsRequest;
 import software.amazon.awssdk.services.bedrockagentcore.model.ListMemoryRecordsResponse;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryContent;
-import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordSummary;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordMetadataValue;
+import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordSummary;
 import software.amazon.awssdk.services.bedrockagentcore.model.RetrieveMemoryRecordsRequest;
 import software.amazon.awssdk.services.bedrockagentcore.model.RetrieveMemoryRecordsResponse;
 
