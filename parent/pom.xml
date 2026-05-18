@@ -99,7 +99,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.43.1</version.aws-sdk2>
+    <version.aws-sdk2>2.44.7</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -114,11 +114,11 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.1.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260405-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260428-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.46.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20260415-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.80.0</version.google-libraries-bom>
+    <version.google-auth-library-oauth2-http>1.47.0</version.google-auth-library-oauth2-http>
+    <version.google-api-services-docs>v1-rev20260427-2.0.0</version.google-api-services-docs>
+    <version.google-libraries-bom>26.83.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20260213-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <version.jsr305>3.0.2</version.jsr305>
@@ -136,12 +136,12 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.2.0</version.kafka-clients>
 
-    <version.microsoft-graph>6.63.0</version.microsoft-graph>
+    <version.microsoft-graph>6.64.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.2</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
-    <version.azure-identity>1.18.2</version.azure-identity>
+    <version.azure-identity>1.18.3</version.azure-identity>
     <version.azure-core>1.58.0</version.azure-core>
-    <version.azure-cosmos>4.79.1</version.azure-cosmos>
+    <version.azure-cosmos>4.80.0</version.azure-cosmos>
 
     <version.bouncycastle>1.84</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
@@ -168,9 +168,9 @@ limitations under the License.</license.inlineheader>
     <version.system-stubs>2.1.8</version.system-stubs>
 
     <version.auth0.jwt>4.5.2</version.auth0.jwt>
-    <version.auth0.jwks>0.23.1</version.auth0.jwks>
+    <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
-    <version.langchain4j>1.14.1</version.langchain4j>
+    <version.langchain4j>1.15.0</version.langchain4j>
     <version.mcp-sdk>1.1.2</version.mcp-sdk>
     <version.elasticsearch-java-client>8.19.15</version.elasticsearch-java-client>
 
@@ -185,7 +185,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.5</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.4.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.5.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
 
     <plugin.version.maven-dependency-plugin>3.10.0</plugin.version.maven-dependency-plugin>
