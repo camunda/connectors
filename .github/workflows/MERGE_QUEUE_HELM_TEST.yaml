@@ -159,7 +159,6 @@ jobs:
     name: Trigger SM E2E tests
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
@@ -176,7 +175,6 @@ jobs:
     if: always() && needs.trigger-sm-e2e.result == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions: {}
     steps:
       - name: Add Helm debugging guidance on failure
@@ -195,7 +193,6 @@ jobs:
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
     timeout-minutes: 25
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions: { }
     steps:
       - name: Checkout repository
