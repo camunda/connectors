@@ -17,7 +17,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.azure.core.http.ProxyOptions;
-import dev.langchain4j.http.client.jdk.JdkHttpClientBuilder;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -64,15 +63,18 @@ class ChatModelHttpProxySupportTest {
   }
 
   @Nested
-  class CreateJdkHttpClientBuilder {
+  class CreateJdkHttpClient {
 
     @Test
-    void shouldCreateJdkHttpClientBuilderWithProxyConfiguration() {
+    void shouldCreateJdkHttpClientWithProxyConfiguration() {
       // when
-      JdkHttpClientBuilder result = proxySupport.createJdkHttpClientBuilder();
+      ChatModelHttpProxySupport.JdkHttpClientHandle result =
+          proxySupport.createJdkHttpClient(java.time.Duration.ofSeconds(15));
 
       // then
       assertThat(result).isNotNull();
+      assertThat(result.httpClient()).isNotNull();
+      assertThat(result.builder()).isNotNull();
       verify(jdkProxyConfigurator).configure(any(HttpClient.Builder.class));
     }
   }

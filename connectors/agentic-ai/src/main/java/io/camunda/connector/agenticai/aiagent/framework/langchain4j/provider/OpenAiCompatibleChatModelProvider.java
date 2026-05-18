@@ -13,6 +13,7 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
@@ -47,16 +48,13 @@ public class OpenAiCompatibleChatModelProvider
     final var apiTimeout =
         deriveTimeoutSetting("OpenAI compatible model call", config, connection.timeouts(), LOGGER);
 
+    final var http = proxySupport.createJdkHttpClient(CONNECT_TIMEOUT);
     final var builder =
         OpenAiChatModel.builder()
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint())
             .timeout(apiTimeout)
-            .httpClientBuilder(
-                proxySupport
-                    .createJdkHttpClientBuilder()
-                    .connectTimeout(CONNECT_TIMEOUT)
-                    .readTimeout(apiTimeout));
+            .httpClientBuilder(http.builder().readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
@@ -90,6 +88,6 @@ public class OpenAiCompatibleChatModelProvider
       builder.defaultRequestParameters(requestParametersBuilder.build());
     }
 
-    return builder.build();
+    return new CloseableChatModelDelegate(builder.build(), http.httpClient());
   }
 }

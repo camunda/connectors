@@ -11,11 +11,18 @@ import dev.langchain4j.http.client.jdk.JdkHttpClientBuilder;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import java.net.Authenticator;
+import java.net.CookieHandler;
 import java.net.InetSocketAddress;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
@@ -33,10 +40,94 @@ public class ChatModelHttpProxySupport {
     this.jdkHttpClientProxyConfigurator = jdkHttpClientProxyConfigurator;
   }
 
-  public JdkHttpClientBuilder createJdkHttpClientBuilder() {
-    final var httpClientBuilder = HttpClient.newBuilder();
+  /**
+   * Builds a JDK {@link HttpClient} and returns it together with a {@link JdkHttpClientBuilder}
+   * configured to reuse that exact instance. Callers can close the returned {@code httpClient}
+   * after the request to release the connection pool and selector thread.
+   *
+   * <p>The supplied {@code connectTimeout} is applied to the real client before construction so
+   * that the inner {@link JdkHttpClientBuilder} does not build a second client when {@code
+   * JdkHttpClient} is constructed from the builder.
+   */
+  public JdkHttpClientHandle createJdkHttpClient(Duration connectTimeout) {
+    final var httpClientBuilder = HttpClient.newBuilder().connectTimeout(connectTimeout);
     jdkHttpClientProxyConfigurator.configure(httpClientBuilder);
-    return new JdkHttpClientBuilder().httpClientBuilder(httpClientBuilder);
+    final var httpClient = httpClientBuilder.build();
+    final var jdkBuilder =
+        new JdkHttpClientBuilder().httpClientBuilder(new PrebuiltHttpClientBuilder(httpClient));
+    return new JdkHttpClientHandle(httpClient, jdkBuilder);
+  }
+
+  /** Pairs the pre-built {@link HttpClient} with a {@link JdkHttpClientBuilder} wrapping it. */
+  public record JdkHttpClientHandle(HttpClient httpClient, JdkHttpClientBuilder builder) {}
+
+  /**
+   * Wraps a pre-built {@link HttpClient} behind the {@link HttpClient.Builder} interface. All
+   * configuration calls are no-ops — settings were already applied before the client was built.
+   * {@link #build()} returns the pre-built instance so {@code JdkHttpClient} reuses it rather than
+   * creating a second one.
+   */
+  private static final class PrebuiltHttpClientBuilder implements HttpClient.Builder {
+    private final HttpClient httpClient;
+
+    PrebuiltHttpClientBuilder(HttpClient httpClient) {
+      this.httpClient = httpClient;
+    }
+
+    @Override
+    public HttpClient.Builder cookieHandler(CookieHandler cookieHandler) {
+      return this;
+    }
+
+    @Override
+    public HttpClient.Builder connectTimeout(Duration duration) {
+      return this;
+    }
+
+    @Override
+    public HttpClient.Builder sslContext(SSLContext sslContext) {
+      return this;
+    }
+
+    @Override
+    public HttpClient.Builder sslParameters(SSLParameters sslParameters) {
+      return this;
+    }
+
+    @Override
+    public HttpClient.Builder executor(Executor executor) {
+      return this;
+    }
+
+    @Override
+    public HttpClient.Builder followRedirects(HttpClient.Redirect policy) {
+      return this;
+    }
+
+    @Override
+    public HttpClient.Builder version(HttpClient.Version version) {
+      return this;
+    }
+
+    @Override
+    public HttpClient.Builder priority(int priority) {
+      return this;
+    }
+
+    @Override
+    public HttpClient.Builder proxy(ProxySelector proxySelector) {
+      return this;
+    }
+
+    @Override
+    public HttpClient.Builder authenticator(Authenticator authenticator) {
+      return this;
+    }
+
+    @Override
+    public HttpClient build() {
+      return httpClient;
+    }
   }
 
   public ApacheHttpClient.Builder createAwsHttpClientBuilder(URI endpointOverride) {

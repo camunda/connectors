@@ -11,8 +11,9 @@ import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provi
 
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
-import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.net.URI;
@@ -43,20 +44,21 @@ public class BedrockChatModelProvider implements ChatModelProvider<BedrockProvid
   }
 
   @Override
-  public ChatModel createChatModel(BedrockProviderConfiguration bedrock) {
+  public CloseableChatModel createChatModel(BedrockProviderConfiguration bedrock) {
     final var connection = bedrock.bedrock();
     final var apiTimeout =
         deriveTimeoutSetting("Bedrock model call", config, connection.timeouts(), LOGGER);
 
+    final var bedrockRuntimeClient = createBedrockClient(connection, apiTimeout);
     final var builder =
         BedrockChatModel.builder()
-            .client(createBedrockClient(connection, apiTimeout))
+            .client(bedrockRuntimeClient)
             .modelId(connection.model().model())
             .timeout(apiTimeout);
 
     applyBedrockModelParametersIfPresent(connection, builder);
 
-    return builder.build();
+    return new CloseableChatModelDelegate(builder.build(), bedrockRuntimeClient);
   }
 
   private BedrockRuntimeClient createBedrockClient(

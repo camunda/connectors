@@ -76,6 +76,8 @@ public class AzureOpenAiChatModelProvider
       Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
     }
 
+    // AzureOpenAiChatModel / OpenAIClient / NettyAsyncHttpClient expose no close/dispose API,
+    // so we cannot wrap the result in CloseableChatModelDelegate here.
     return builder.build();
   }
 }

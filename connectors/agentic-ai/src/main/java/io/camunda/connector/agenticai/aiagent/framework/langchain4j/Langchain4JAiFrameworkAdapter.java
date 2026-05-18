@@ -28,9 +28,13 @@ import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Langchain4JAiFrameworkAdapter
     implements AiFrameworkAdapter<Langchain4JAiFrameworkChatResponse> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(Langchain4JAiFrameworkAdapter.class);
 
   private final ChatModelFactory chatModelFactory;
   private final ChatMessageConverter chatMessageConverter;
@@ -62,18 +66,29 @@ public class Langchain4JAiFrameworkAdapter
     configureResponseFormat(chatRequestBuilder, executionContext.response());
 
     final ChatModel chatModel = chatModelFactory.createChatModel(executionContext.provider());
-    final ChatResponse chatResponse = doChat(chatModel, chatRequestBuilder);
-    final AssistantMessage assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse);
+    try {
+      final ChatResponse chatResponse = doChat(chatModel, chatRequestBuilder);
+      final AssistantMessage assistantMessage =
+          chatMessageConverter.toAssistantMessage(chatResponse);
 
-    final var updatedAgentContext =
-        agentContext.withMetrics(
-            agentContext
-                .metrics()
-                .incrementModelCalls(1)
-                .incrementTokenUsage(tokenUsage(chatResponse.tokenUsage())));
+      final var updatedAgentContext =
+          agentContext.withMetrics(
+              agentContext
+                  .metrics()
+                  .incrementModelCalls(1)
+                  .incrementTokenUsage(tokenUsage(chatResponse.tokenUsage())));
 
-    return new Langchain4JAiFrameworkChatResponse(
-        updatedAgentContext, assistantMessage, chatResponse);
+      return new Langchain4JAiFrameworkChatResponse(
+          updatedAgentContext, assistantMessage, chatResponse);
+    } finally {
+      if (chatModel instanceof AutoCloseable closeable) {
+        try {
+          closeable.close();
+        } catch (Exception e) {
+          LOGGER.warn("Failed to close chat model", e);
+        }
+      }
+    }
   }
 
   private void configureResponseFormat(

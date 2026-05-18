@@ -130,6 +130,13 @@ class GoogleVertexAiChatModelProviderTest {
     }
   }
 
+  @Test
+  void vertexAiGeminiChatModelImplementsAutoCloseable() {
+    // VertexAiGeminiChatModel implements Closeable; the adapter closes it via instanceof check.
+    // This test guards against a future langchain4j upgrade silently removing that interface.
+    assertThat(AutoCloseable.class.isAssignableFrom(VertexAiGeminiChatModel.class)).isTrue();
+  }
+
   private void testGoogleVertexAiChatModelBuilder(
       GoogleVertexAiProviderConfiguration providerConfig,
       ThrowingConsumer<VertexAiGeminiChatModelBuilder> builderAssertions) {

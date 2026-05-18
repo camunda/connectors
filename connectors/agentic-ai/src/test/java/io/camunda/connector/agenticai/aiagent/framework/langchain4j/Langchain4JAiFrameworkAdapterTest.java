@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -297,6 +298,47 @@ class Langchain4JAiFrameworkAdapterTest {
     assertThat(adapterResponse.agentContext())
         .usingRecursiveComparison()
         .isEqualTo(AGENT_CONTEXT.withMetrics(AGENT_CONTEXT.metrics().withModelCalls(6)));
+  }
+
+  @Test
+  void closesChatModelAfterSuccessfulCall() throws Exception {
+    // chatModel.chat stub from @BeforeEach is unused — this test uses closeableChatModel
+    reset(chatModel);
+
+    final var closeableChatModel = mock(CloseableChatModel.class);
+    when(chatModelFactory.createChatModel(any())).thenReturn(closeableChatModel);
+    when(closeableChatModel.chat(any(ChatRequest.class))).thenReturn(chatResponse);
+
+    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
+
+    verify(closeableChatModel).close();
+  }
+
+  @Test
+  void closesChatModelEvenWhenChatCallThrows() throws Exception {
+    // chatModel.chat, chatResponse and toAssistantMessage stubs from @BeforeEach are unused here
+    reset(chatModel, chatResponse, chatMessageConverter);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+
+    final var closeableChatModel = mock(CloseableChatModel.class);
+    when(chatModelFactory.createChatModel(any())).thenReturn(closeableChatModel);
+    doThrow(new RuntimeException("model unavailable"))
+        .when(closeableChatModel)
+        .chat(any(ChatRequest.class));
+
+    assertThatThrownBy(
+            () ->
+                adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
+        .isInstanceOf(ConnectorException.class);
+
+    verify(closeableChatModel).close();
+  }
+
+  @Test
+  void doesNotAttemptToCloseNonCloseableChatModel() {
+    // chatModel from @BeforeEach is a plain ChatModel mock (not AutoCloseable)
+    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
+    // no exception expected — verifies the instanceof guard works
   }
 
   private AgentExecutionContext createExecutionContext() {

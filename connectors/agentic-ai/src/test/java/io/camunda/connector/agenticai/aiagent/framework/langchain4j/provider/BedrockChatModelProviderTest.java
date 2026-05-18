@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -21,6 +22,8 @@ import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
@@ -241,6 +244,36 @@ class BedrockChatModelProviderTest {
         (builder) -> verify(builder.chatModelBuilder).timeout(Duration.ofMinutes(3)));
   }
 
+  @Test
+  void closingChatModelClosesBedrockRuntimeClient() {
+    final var providerConfig =
+        new BedrockProviderConfiguration(
+            new BedrockConnection(
+                BEDROCK_REGION,
+                null,
+                new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                MODEL_TIMEOUT,
+                new BedrockModel(BEDROCK_MODEL, null)));
+
+    final var mockClient = mock(BedrockRuntimeClient.class);
+    final var clientBuilder = spy(BedrockRuntimeClient.builder());
+    doAnswer(inv -> mockClient).when(clientBuilder).build();
+
+    try (MockedStatic<BedrockRuntimeClient> clientMock =
+            mockStatic(BedrockRuntimeClient.class, Answers.CALLS_REAL_METHODS);
+        MockedStatic<BedrockChatModel> chatModelMock =
+            mockStatic(BedrockChatModel.class, Answers.CALLS_REAL_METHODS)) {
+      clientMock.when(BedrockRuntimeClient::builder).thenReturn(clientBuilder);
+
+      final var chatModel = provider.createChatModel(providerConfig);
+      assertThat(chatModel).isInstanceOf(CloseableChatModel.class);
+
+      chatModel.close();
+
+      verify(mockClient).close();
+    }
+  }
+
   private void testCreateBedrockChatModelWithCredentials(
       BedrockProviderConfiguration providerConfig,
       ThrowingConsumer<AwsCredentialsProvider> credentialsProviderAssertions) {
@@ -297,8 +330,11 @@ class BedrockChatModelProviderTest {
           new BedrockBuilderContext(clientBuilder, clientResultCaptor, chatModelBuilder);
 
       final var chatModel = provider.createChatModel(providerConfig);
-      assertThat(chatModel).isNotNull().isInstanceOf(BedrockChatModel.class);
-      assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+      assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModel.class);
+      assertThat(((CloseableChatModelDelegate) chatModel).delegate())
+          .isSameAs(chatModelResultCaptor.getResult());
+      assertThat(((CloseableChatModelDelegate) chatModel).resource())
+          .isSameAs(clientResultCaptor.getResult());
 
       verify(proxySupport).createAwsHttpClientBuilder(expectedEndpointOverride);
       builderAssertions.accept(builders);
