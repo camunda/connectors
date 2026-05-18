@@ -95,6 +95,10 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>4.0.6</version.spring-boot>
+    <!-- CVE override: Spring Boot 4.0.6 ships Tomcat 11.0.21 which has a known vulnerability.
+         Remove once Spring Boot upgrades to Tomcat >= 11.0.22 (likely in 4.0.7).
+         Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
+    <version.tomcat>11.0.22</version.tomcat>
     <version.netty>4.2.13.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.0.2</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
@@ -207,6 +211,23 @@ limitations under the License.</license.inlineheader>
         <groupId>com.fasterxml.jackson.datatype</groupId>
         <artifactId>jackson-datatype-jsr310</artifactId>
         <version>${version.jackson-datatype-jsr310}</version>
+      </dependency>
+
+      <!-- CVE override for Tomcat - remove when version.tomcat property is removed -->
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-core</artifactId>
+        <version>${version.tomcat}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-el</artifactId>
+        <version>${version.tomcat}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-websocket</artifactId>
+        <version>${version.tomcat}</version>
       </dependency>
 
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
@@ -967,6 +988,18 @@ limitations under the License.</license.inlineheader>
               <requirePluginVersions>
                 <banSnapshots>false</banSnapshots>
               </requirePluginVersions>
+              <!-- CVE override reminder: fail build when Spring Boot is bumped past 4.0.6
+                   so we remember to check if the Tomcat override (version.tomcat) can be removed.
+                   Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>4\.0\.6</regex>
+                <regexMessage>
+Spring Boot version was bumped! Check if the Tomcat CVE override (version.tomcat in parent/pom.xml) can be removed.
+If the new Spring Boot version ships Tomcat >= 11.0.22, remove version.tomcat property and the tomcat-embed-* dependencyManagement entries.
+Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575
+                </regexMessage>
+              </requireProperty>
             </rules>
           </configuration>
           <executions>
