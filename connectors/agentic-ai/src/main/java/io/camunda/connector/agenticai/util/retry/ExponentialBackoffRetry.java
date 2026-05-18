@@ -15,35 +15,22 @@ public final class ExponentialBackoffRetry {
   /**
    * Computes the delay before the given attempt using exponential backoff.
    *
-   * <p>The delay is {@code initial * 2^(attempt-2)}, yielding {@code initial} for attempt 2, {@code
-   * 2*initial} for attempt 3, {@code 4*initial} for attempt 4, etc.
+   * <p>The delay is {@code initial * round(2^(attempt-2))}, where {@code round} is {@link
+   * Math#round(double)}. This yields:
    *
-   * @param attempt the current attempt number (1-based; must be &gt;= 2 to produce a positive
-   *     delay)
+   * <ul>
+   *   <li>attempt 1: {@code initial * 1} (since {@code 2^(-1) = 0.5} rounds to {@code 1})
+   *   <li>attempt 2: {@code initial * 1} (since {@code 2^0 = 1})
+   *   <li>attempt 3: {@code initial * 2} (since {@code 2^1 = 2})
+   *   <li>attempt 4: {@code initial * 4} (since {@code 2^2 = 4})
+   * </ul>
+   *
+   * @param attempt the current attempt number (1-based)
    * @param initial the base delay for the first retry
    * @return the computed delay duration
    */
   public static Duration delayBeforeAttempt(int attempt, Duration initial) {
     return initial.multipliedBy(
         Math.round(Math.pow(2, attempt - 2))); // 2^0 (x1), 2^1 (x2), 2^2 (x4), ...
-  }
-
-  /**
-   * Sleeps for the exponential backoff delay before the given attempt.
-   *
-   * <p>If the thread is interrupted during the sleep, the interrupt flag is restored and a {@link
-   * RuntimeException} is thrown.
-   *
-   * @param attempt the current attempt number (1-based)
-   * @param initial the base delay for the first retry
-   * @throws RuntimeException if the thread is interrupted while waiting
-   */
-  public static void waitBeforeAttempt(int attempt, Duration initial) {
-    try {
-      Thread.sleep(delayBeforeAttempt(attempt, initial));
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(ex);
-    }
   }
 }

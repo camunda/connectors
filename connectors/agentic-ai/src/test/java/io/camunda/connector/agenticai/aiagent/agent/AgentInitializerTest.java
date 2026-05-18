@@ -99,7 +99,7 @@ class AgentInitializerTest {
     private static final Long PROCESS_DEFINITION_KEY = 123456789L;
     private static final Long PROCESS_INSTANCE_KEY = 987654321L;
     private static final AgentMetadata EXECUTION_METADATA =
-        new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+        new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
 
     @BeforeEach
     void setUp() {
@@ -493,7 +493,7 @@ class AgentInitializerTest {
       final var result = agentInitializer.initializeAgent(executionContext);
 
       final var expectedMetadata =
-          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
       assertThat(result)
           .isInstanceOfSatisfying(
               AgentContextInitializationResult.class,
@@ -506,7 +506,7 @@ class AgentInitializerTest {
     @Test
     void triggersToolUpdateWhenProcessDefinitionKeyChanged() {
       final var originalMetadata =
-          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
       final var agentContext =
           AgentContext.empty()
               .withState(AgentState.READY)
@@ -524,7 +524,7 @@ class AgentInitializerTest {
       final var result = agentInitializer.initializeAgent(executionContext);
 
       final var expectedMetadata =
-          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
       assertThat(result)
           .isInstanceOfSatisfying(
               AgentContextInitializationResult.class,
@@ -536,7 +536,8 @@ class AgentInitializerTest {
 
     @Test
     void skipsToolUpdateWhenProcessDefinitionKeyMatches() {
-      final var metadata = new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+      final var metadata =
+          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
       final var agentContext =
           AgentContext.empty()
               .withState(AgentState.READY)

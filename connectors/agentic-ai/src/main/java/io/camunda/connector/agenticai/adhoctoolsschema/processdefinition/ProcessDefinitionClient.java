@@ -43,7 +43,16 @@ public class ProcessDefinitionClient {
               attempt,
               1 + retriesProperties.maxRetries(),
               retryDelay);
-          ExponentialBackoffRetry.waitBeforeAttempt(attempt, retriesProperties.initialRetryDelay());
+          try {
+            Thread.sleep(retryDelay.toMillis());
+          } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new ConnectorException(
+                ERROR_CODE_AD_HOC_SUB_PROCESS_XML_FETCH_ERROR,
+                "Interrupted while retrying to fetch process definition XML with key '%s'."
+                    .formatted(processDefinitionKey),
+                ex);
+          }
         }
 
         return camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).send().join();
