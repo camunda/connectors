@@ -21,6 +21,7 @@ import static io.camunda.connector.util.reflection.ReflectionUtil.getAllFields;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Variable;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.PropertyBinding;
@@ -60,6 +61,15 @@ public class TemplatePropertiesUtil {
 
     var type = parameter.getType();
     var annotation = parameter.getAnnotation(TemplateProperty.class);
+    var documentAnnotation = parameter.getAnnotation(TemplateDocumentProperty.class);
+    if (documentAnnotation != null) {
+      var documentProperties =
+          handleTemplateDocumentProperty(
+              parameter, parameter.getName(), type, documentAnnotation, context);
+      if (documentProperties != null) {
+        return documentProperties;
+      }
+    }
     if (!isContainerType(parameter.getType(), annotation)) {
       // If the type is a primitive, String, Enum or Number, return a single property
       var property = buildProperty(parameter, parameter.getName(), type, context);
@@ -113,6 +123,16 @@ public class TemplatePropertiesUtil {
     var properties = new ArrayList<PropertyBuilder>();
 
     for (Field field : fields) {
+      var documentAnnotation = field.getAnnotation(TemplateDocumentProperty.class);
+      if (documentAnnotation != null) {
+        var documentProperties =
+            handleTemplateDocumentProperty(
+                field, field.getName(), field.getType(), documentAnnotation, context);
+        if (documentProperties != null) {
+          properties.addAll(documentProperties);
+          continue;
+        }
+      }
       if (isContainerType(field.getType(), field.getAnnotation(TemplateProperty.class))) {
         var nestedPropertiesAnnotation = field.getAnnotation(NestedProperties.class);
         boolean hasPathPrefix =
@@ -183,6 +203,62 @@ public class TemplatePropertiesUtil {
                     .label(transformIdIntoLabel(entry.getKey()))
                     .properties(entry.getValue()))
         .toList();
+  }
+
+  /**
+   * Routes a {@code Document} / {@code List<Document>} field or parameter to {@link
+   * DocumentPropertyHandler}. Returns {@code null} when the element's reflective metadata is
+   * insufficient to determine the {@code List} element type — the caller will then fall through to
+   * the normal handling path.
+   */
+  private static List<PropertyBuilder> handleTemplateDocumentProperty(
+      java.lang.reflect.AnnotatedElement element,
+      String declaredName,
+      Class<?> declaredType,
+      TemplateDocumentProperty annotation,
+      TemplateGenerationContext context) {
+    if (Document.class.isAssignableFrom(declaredType)) {
+      return DocumentPropertyHandler.handleDocumentProperty(
+          declaredType, declaredName, annotation, context);
+    }
+    if (Collection.class.isAssignableFrom(declaredType)) {
+      Class<?> elementType = getListElementType(element);
+      if (elementType == null) {
+        throw new IllegalStateException(
+            "@TemplateDocumentProperty on '"
+                + declaredName
+                + "' must declare its element type (e.g. List<Document>), got raw "
+                + declaredType.getSimpleName());
+      }
+      return DocumentPropertyHandler.handleListDocumentProperty(
+          elementType, declaredName, annotation, context);
+    }
+    throw new IllegalStateException(
+        "@TemplateDocumentProperty on '"
+            + declaredName
+            + "' requires type Document or List<Document>, got "
+            + declaredType.getSimpleName());
+  }
+
+  /**
+   * Extracts the element type of a generic {@code List<X>} field or parameter via {@link
+   * java.lang.reflect.ParameterizedType}. Returns {@code null} when the generic type information is
+   * not available.
+   */
+  private static Class<?> getListElementType(java.lang.reflect.AnnotatedElement element) {
+    java.lang.reflect.Type genericType = null;
+    if (element instanceof Field field) {
+      genericType = field.getGenericType();
+    } else if (element instanceof Parameter parameter) {
+      genericType = parameter.getParameterizedType();
+    }
+    if (genericType instanceof java.lang.reflect.ParameterizedType parameterized) {
+      java.lang.reflect.Type[] typeArgs = parameterized.getActualTypeArguments();
+      if (typeArgs.length == 1 && typeArgs[0] instanceof Class<?> classArg) {
+        return classArg;
+      }
+    }
+    return null;
   }
 
   private static PropertyBuilder buildProperty(
@@ -572,14 +648,14 @@ public class TemplatePropertiesUtil {
         && type != String.class
         && type != Object.class
         && type != JsonNode.class
+        && !Document.class.isAssignableFrom(type)
         && !type.isEnum()
         && !type.isArray()
         && !Collection.class.isAssignableFrom(type)
         && !Map.class.isAssignableFrom(type);
   }
 
-  private static PropertyBinding createBinding(
-      String propertyName, TemplateGenerationContext context) {
+  static PropertyBinding createBinding(String propertyName, TemplateGenerationContext context) {
     if (context instanceof Outbound) {
       return new ZeebeInput(propertyName);
     } else {

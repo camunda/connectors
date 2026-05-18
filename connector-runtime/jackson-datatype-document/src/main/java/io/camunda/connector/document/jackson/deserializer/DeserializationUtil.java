@@ -30,6 +30,23 @@ public class DeserializationUtil {
     return node.has(DocumentReferenceModel.DISCRIMINATOR_KEY);
   }
 
+  /**
+   * True if {@code node} is a {@code @TemplateDocumentProperty}-generated wrapper around a single
+   * Document — has a {@code documentSource} discriminator (values: camunda/inline/external) plus
+   * the per-source sub-fields produced by the template generator.
+   */
+  public static boolean isDocumentSourceWrapper(JsonNode node) {
+    return node.isObject() && node.has("documentSource");
+  }
+
+  /**
+   * True if {@code node} is a {@code @TemplateDocumentProperty}-generated wrapper around a {@code
+   * List<Document>} — has a {@code documentMode} discriminator (values: single/multiple).
+   */
+  public static boolean isDocumentModeWrapper(JsonNode node) {
+    return node.isObject() && node.has("documentMode");
+  }
+
   public static boolean isIntrinsicFunction(JsonNode node) {
     return node.has(IntrinsicFunctionModel.DISCRIMINATOR_KEY);
   }
