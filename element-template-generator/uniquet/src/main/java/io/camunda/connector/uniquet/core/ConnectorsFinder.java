@@ -35,6 +35,7 @@ public class ConnectorsFinder {
 
   private static final String ELEMENT_TEMPLATES = "element-templates";
   private static final String VERSIONED = "versioned";
+  private static final String JSON_EXTENSION = ".json";
   private final List<Connector> connectors;
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private List<String> IGNORED_TEMPLATE_IDS = new ArrayList<>();
@@ -83,11 +84,13 @@ public class ConnectorsFinder {
             versionedDirectory ->
                 Arrays.stream(files)
                     .filter(File::isFile)
+                    .filter(ConnectorsFinder::isJsonFile)
                     .filter(this::isIgnoredTemplate)
                     .map(currentFile -> this.mapToConnector(currentFile, versionedDirectory)))
         .orElse(
             Arrays.stream(files)
                 .filter(File::isFile)
+                .filter(ConnectorsFinder::isJsonFile)
                 .filter(this::isIgnoredTemplate)
                 .map(currentFile -> new Connector(currentFile, List.of())));
   }
@@ -96,8 +99,14 @@ public class ConnectorsFinder {
     return new Connector(
         current,
         Arrays.stream(Objects.requireNonNull(versionedDirectory.listFiles()))
+            .filter(File::isFile)
+            .filter(ConnectorsFinder::isJsonFile)
             .filter(file -> getBaseName(file).contains(getBaseName(current)))
             .toList());
+  }
+
+  private static boolean isJsonFile(File file) {
+    return file.getName().endsWith(JSON_EXTENSION);
   }
 
   private boolean containsElementTemplates(File directory) {
