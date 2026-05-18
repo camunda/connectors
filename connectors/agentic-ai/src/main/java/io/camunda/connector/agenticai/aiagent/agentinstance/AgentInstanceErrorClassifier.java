@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import io.camunda.client.api.command.ClientHttpException;
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.net.SocketTimeoutException;
 
 public final class AgentInstanceErrorClassifier {
 
@@ -63,9 +62,7 @@ public final class AgentInstanceErrorClassifier {
   }
 
   private static boolean isIoException(Throwable t) {
-    return t instanceof SocketTimeoutException
-        || t instanceof InterruptedIOException
-        || t instanceof IOException;
+    return t instanceof InterruptedIOException || t instanceof IOException;
   }
 
   private AgentInstanceErrorClassifier() {}

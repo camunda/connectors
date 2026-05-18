@@ -20,7 +20,7 @@ public record CreateAgentInstanceParams(
         executionContext.jobContext().getElementInstanceKey(),
         ProviderModelExtractor.extract(executionContext.provider()),
         executionContext.provider().providerType(),
-        executionContext.systemPrompt().prompt(),
+        executionContext.systemPrompt() != null ? executionContext.systemPrompt().prompt() : null,
         executionContext.limits() != null ? executionContext.limits().maxModelCalls() : null);
   }
 }

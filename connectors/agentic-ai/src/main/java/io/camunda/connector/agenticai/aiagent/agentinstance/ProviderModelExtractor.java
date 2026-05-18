@@ -24,9 +24,6 @@ public final class ProviderModelExtractor {
       case GoogleVertexAiProviderConfiguration p -> p.googleVertexAi().model().model();
       case OpenAiProviderConfiguration p -> p.openai().model().model();
       case OpenAiCompatibleProviderConfiguration p -> p.openaiCompatible().model().model();
-      default ->
-          throw new IllegalArgumentException(
-              "Unsupported provider: " + provider.getClass().getName());
     };
   }
 

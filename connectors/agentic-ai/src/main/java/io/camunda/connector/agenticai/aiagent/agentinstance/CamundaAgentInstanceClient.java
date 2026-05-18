@@ -55,12 +55,17 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         final boolean isLastAttempt = attempt == maxAttempts;
 
         if (decision == Decision.PERMANENT || isLastAttempt) {
-          final String message =
-              isLastAttempt && decision != Decision.PERMANENT
-                  ? "Failed to create agent instance for element instance key %d after %d attempt(s): %s"
-                      .formatted(params.elementInstanceKey(), attempt, e.getMessage())
-                  : "Failed to create agent instance for element instance key %d: %s"
-                      .formatted(params.elementInstanceKey(), e.getMessage());
+          final String message;
+          if (decision == Decision.PERMANENT) {
+            message =
+                "Failed to create agent instance for element instance key %d: %s"
+                    .formatted(params.elementInstanceKey(), e.getMessage());
+          } else {
+            // isLastAttempt == true, decision == RETRYABLE
+            message =
+                "Failed to create agent instance for element instance key %d after %d attempt(s): %s"
+                    .formatted(params.elementInstanceKey(), attempt, e.getMessage());
+          }
           throw new ConnectorException(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED, message, e);
         }
 
