@@ -43,6 +43,22 @@ class ConnectorsFinderTest {
   }
 
   @Test
+  void nonJsonFilesAreIgnored() {
+    // README.md files exist alongside the JSON templates in element-templates/ and
+    // element-templates/versioned/; ConnectorsFinder must skip them without throwing.
+    ConnectorsFinder connectorsFinder =
+        ConnectorsFinder.create(Path.of("src/test/resources"), null);
+    List<Connector> connectors = connectorsFinder.getAllConnectors();
+    assertEquals(1, connectors.size());
+    connectors.forEach(
+        c -> {
+          assertTrue(c.currentElementTemplate().getName().endsWith(".json"));
+          c.versionedElementTemplate()
+              .forEach(v -> assertTrue(v.getName().endsWith(".json")));
+        });
+  }
+
+  @Test
   void next() {
     ConnectorsFinder connectorsFinder =
         ConnectorsFinder.create(Path.of("src/test/resources"), null);
