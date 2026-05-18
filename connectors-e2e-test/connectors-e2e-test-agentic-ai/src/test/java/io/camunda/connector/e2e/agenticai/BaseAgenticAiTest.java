@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.agenticai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.Incident;
@@ -104,6 +105,49 @@ public abstract class BaseAgenticAiTest {
             .join();
 
     assertThat(incidents.items()).hasSize(1).first().satisfies(assertion);
+  }
+
+  /**
+   * Polls the engine until the {@code agent} process variable contains a non-null {@code
+   * agentInstanceKey} in {@code agent.context.metadata.agentInstanceKey}.
+   *
+   * <p>This assertion is gated on camunda/camunda#53271, which introduces engine-side agent
+   * instance creation. Until that PR is merged and consumed here the {@code agentInstanceKey} field
+   * will always be {@code null}, so any test calling this helper must be annotated with
+   * {@code @Disabled}.
+   */
+  protected void assertAgentInstanceKeyPersisted(long processInstanceKey) {
+    await()
+        .alias("agent.context.metadata.agentInstanceKey is set")
+        .atMost(Duration.ofSeconds(30))
+        .untilAsserted(
+            () -> {
+              final var variables =
+                  camundaClient
+                      .newVariableSearchRequest()
+                      .filter(
+                          f ->
+                              f.processInstanceKey(processInstanceKey)
+                                  .scopeKey(processInstanceKey)
+                                  .name("agent"))
+                      .send()
+                      .join()
+                      .items();
+
+              assertThat(variables).as("'agent' variable must exist").isNotEmpty();
+
+              final var agentVariableValue = variables.getFirst().getValue();
+              final JsonNode agentNode = objectMapper.readTree(agentVariableValue);
+              final JsonNode agentInstanceKeyNode =
+                  agentNode.path("context").path("metadata").path("agentInstanceKey");
+
+              assertThat(agentInstanceKeyNode.isNull())
+                  .as("agent.context.metadata.agentInstanceKey must not be null")
+                  .isFalse();
+              assertThat(agentInstanceKeyNode.asLong())
+                  .as("agent.context.metadata.agentInstanceKey must be a positive key")
+                  .isPositive();
+            });
   }
 
   protected Resource testFileResource(String filename) {

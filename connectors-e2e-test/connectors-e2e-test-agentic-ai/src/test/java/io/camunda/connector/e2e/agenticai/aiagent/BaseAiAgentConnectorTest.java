@@ -25,6 +25,8 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.util.Map;
 import org.assertj.core.api.ThrowingConsumer;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 
@@ -59,5 +61,15 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
                   objectMapper.convertValue(agentResponseMap, AgentResponse.class);
               assertions.accept(agentResponse);
             });
+  }
+
+  @Test
+  @Disabled(
+      "Requires camunda/camunda#53271 to be merged and consumed in the connector runtime dependency")
+  void agentInstanceIsCreatedOnFirstExecution() throws Exception {
+    final var zeebeTest =
+        createProcessInstance(Map.of("userPrompt", "Write a haiku about the sea"));
+    zeebeTest.waitForProcessCompletion();
+    assertAgentInstanceKeyPersisted(zeebeTest.getProcessInstanceEvent().getProcessInstanceKey());
   }
 }
