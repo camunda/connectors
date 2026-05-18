@@ -53,8 +53,7 @@ class ConnectorsFinderTest {
     connectors.forEach(
         c -> {
           assertTrue(c.currentElementTemplate().getName().endsWith(".json"));
-          c.versionedElementTemplate()
-              .forEach(v -> assertTrue(v.getName().endsWith(".json")));
+          c.versionedElementTemplate().forEach(v -> assertTrue(v.getName().endsWith(".json")));
         });
   }
 
