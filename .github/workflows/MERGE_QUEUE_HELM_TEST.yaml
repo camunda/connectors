@@ -156,7 +156,6 @@ jobs:
     name: Trigger SM E2E tests
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
