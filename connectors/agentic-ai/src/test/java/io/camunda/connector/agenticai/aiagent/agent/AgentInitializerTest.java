@@ -625,9 +625,11 @@ class AgentInitializerTest {
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
-      agentInitializer.initializeAgent(executionContext);
+      final var result =
+          (AgentContextInitializationResult) agentInitializer.initializeAgent(executionContext);
 
       verify(agentInstanceClient, times(1)).create(any(CreateAgentInstanceParams.class));
+      assertThat(result.agentContext().metadata().agentInstanceKey()).isEqualTo(12345L);
     }
 
     @Test

@@ -41,6 +41,9 @@ class CamundaAgentInstanceClientTest {
   private static final long ELEMENT_INSTANCE_KEY = 77L;
   private static final CreateAgentInstanceParams PARAMS =
       new CreateAgentInstanceParams(ELEMENT_INSTANCE_KEY, "gpt-4o", "openai", "system prompt", 10);
+  private static final CreateAgentInstanceParams PARAMS_NULL_MAX_MODEL_CALLS =
+      new CreateAgentInstanceParams(
+          ELEMENT_INSTANCE_KEY, "gpt-4o", "openai", "system prompt", null);
 
   @Mock private CamundaClient camundaClient;
   @Mock private CreateAgentInstanceCommandStep1 step1;
@@ -91,14 +94,28 @@ class CamundaAgentInstanceClientTest {
   }
 
   @Test
-  void permanentError400_throwsConnectorExceptionImmediately() {
+  void successOnFirstAttempt_withNullMaxModelCalls() {
+    // When maxModelCalls is null the command skips the maxModelCalls() step and calls send()
+    // directly on the step5 object returned by systemPrompt() — no maxModelCalls() stub needed.
     when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(step1);
     when(step1.elementInstanceKey(anyLong())).thenReturn(step2);
     when(step2.model(anyString())).thenReturn(step3);
     when(step3.provider(anyString())).thenReturn(step4);
     when(step4.systemPrompt(anyString())).thenReturn(step5);
-    when(step5.maxModelCalls(anyInt())).thenReturn(step5);
     when(step5.send()).thenReturn(future);
+    when(future.join()).thenReturn(response);
+    when(response.getAgentInstanceKey()).thenReturn(67890L);
+
+    final long key = client.create(PARAMS_NULL_MAX_MODEL_CALLS);
+
+    assertThat(key).isEqualTo(67890L);
+    assertThat(recordedSleeps).isEmpty();
+    verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
+  }
+
+  @Test
+  void permanentError400_throwsConnectorExceptionImmediately() {
+    setupCommandChain();
     when(future.join()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
     assertThatThrownBy(() -> client.create(PARAMS))
