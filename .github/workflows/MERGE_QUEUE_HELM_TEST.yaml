@@ -1,8 +1,17 @@
 name: Merge queue Helm test
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
   merge_group:
+
+# Limit workflow to 1 concurrent run per ref (branch) and trigger event: new commit -> old runs are canceled to save costs.
+# Exception for main + stable/* branches: complete builds for every commit needed for confidence.
+concurrency:
+  group: ${{ format('{0}-{1}-{2}', github.workflow, github.event_name, (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/stable/')) && github.sha || github.ref) }}
+  cancel-in-progress: true
 
 jobs:
   build-image:
@@ -84,7 +93,7 @@ jobs:
           username: ${{ steps.secrets.outputs.CI_HARBOR_USR }}
           password: ${{ steps.secrets.outputs.CI_HARBOR_PSW }}
 
-      - name: Set connectors version (PR tag only)
+      - name: Set connectors version
         id: connectors-version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -95,18 +104,24 @@ jobs:
           MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           BASE_VERSION="${MAVEN_VERSION%-SNAPSHOT}"
 
-          # merge_group.head_ref looks like refs/heads/gh-readonly-queue/<base>/pr-<N>-<sha>
-          PR_NUMBER=$(printf '%s' "$HEAD_REF" | sed -nE 's|.*/pr-([0-9]+)-.*|\1|p')
-
-          if [[ -z "$PR_NUMBER" ]]; then
-            echo "::notice::No PR number could be extracted from merge_group head_ref: $HEAD_REF"
-            echo "should-push=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [[ "${{ github.event_name }}" == "merge_group" ]]; then
+            # merge_group.head_ref looks like refs/heads/gh-readonly-queue/<base>/pr-<N>-<sha>
+            PR_NUMBER=$(printf '%s' "$HEAD_REF" | sed -nE 's|.*/pr-([0-9]+)-.*|\1|p')
+            if [[ -z "$PR_NUMBER" ]]; then
+              echo "::notice::No PR number could be extracted from merge_group head_ref: $HEAD_REF"
+              echo "should-push=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # For manual dispatch: <base>-dispatch-run<run_id>-a<run_attempt>
+            TAG="${BASE_VERSION}-dispatch-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+          else
+            # For push to main: <base>-main-run<run_id>-a<run_attempt>
+            TAG="${BASE_VERSION}-main-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
           fi
 
-          TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
-          echo "::notice::PR tag: ${TAG}"
-
+          echo "::notice::Tag: ${TAG}"
           echo "connectors-version=${TAG}" >> "$GITHUB_OUTPUT"
           echo "should-push=true" >> "$GITHUB_OUTPUT"
 
@@ -202,7 +217,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.github-token.outputs.token }}
           CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
+          IMAGE_TAG: ${{ needs.build-image.outputs.connectors-version }}
         run: |
+          # Use the image tag as the generation name to match filter patterns
+          # e.g., "8.10.0-main-run12345678-a1" matches "**-main-run**-a**"
+          GEN_NAME="${IMAGE_TAG}"
+
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -213,6 +233,7 @@ jobs:
                       "correlation_id": "'"$CORRELATION_ID"'",
                       "source_repo": "${{ github.repository }}",
                       "source_sha": "${{ github.sha }}",
+                      "gen_name": "'"${GEN_NAME}"'",
                       "c8Version": "8.10",
                       "zeebeVersion": "SNAPSHOT",
                       "operateVersion": "SNAPSHOT",
