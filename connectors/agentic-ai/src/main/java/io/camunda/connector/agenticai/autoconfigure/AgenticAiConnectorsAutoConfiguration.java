@@ -38,6 +38,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
@@ -175,9 +177,17 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public AgentInstanceClient agentInstanceClient(CamundaClient camundaClient) {
+    return new CamundaAgentInstanceClient(camundaClient);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentInitializer aiAgentInitializer(
-      AgentToolsResolver toolsResolver, GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentInitializerImpl(toolsResolver, gatewayToolHandlers);
+      AgentToolsResolver toolsResolver,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentInstanceClient agentInstanceClient) {
+    return new AgentInitializerImpl(toolsResolver, gatewayToolHandlers, agentInstanceClient);
   }
 
   @Bean

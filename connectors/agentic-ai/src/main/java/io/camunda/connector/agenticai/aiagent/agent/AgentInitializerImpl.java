@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.CreateAgentInstanceParams;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -31,11 +33,15 @@ public class AgentInitializerImpl implements AgentInitializer {
 
   private final AgentToolsResolver toolsResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final AgentInstanceClient agentInstanceClient;
 
   public AgentInitializerImpl(
-      AgentToolsResolver toolsResolver, GatewayToolHandlerRegistry gatewayToolHandlers) {
+      AgentToolsResolver toolsResolver,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentInstanceClient agentInstanceClient) {
     this.toolsResolver = toolsResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.agentInstanceClient = agentInstanceClient;
   }
 
   @Override
@@ -51,7 +57,10 @@ public class AgentInitializerImpl implements AgentInitializer {
         Optional.ofNullable(executionContext.initialToolCallResults()).orElseGet(List::of);
 
     return switch (agentContext.state()) {
-      case INITIALIZING -> initiateToolDiscovery(executionContext, agentContext, toolCallResults);
+      case INITIALIZING -> {
+        agentContext = ensureAgentInstanceRegistered(executionContext, agentContext);
+        yield initiateToolDiscovery(executionContext, agentContext, toolCallResults);
+      }
       case TOOL_DISCOVERY -> handleToolDiscoveryResults(agentContext, toolCallResults);
       default -> handleReadyState(executionContext, agentContext, toolCallResults);
     };
@@ -130,5 +139,31 @@ public class AgentInitializerImpl implements AgentInitializer {
     return new AgentContextInitializationResult(
         gatewayToolDiscoveryResult.agentContext().withState(AgentState.READY),
         gatewayToolDiscoveryResult.remainingToolCallResults());
+  }
+
+  /**
+   * Registers this agent on the engine on first initialization, recording the returned key in the
+   * agent context's metadata. Idempotent: returns the context unchanged when the agent instance has
+   * already been registered.
+   *
+   * @throws io.camunda.connector.api.error.ConnectorException with code {@code
+   *     AGENT_INSTANCE_CREATION_FAILED} when retries are exhausted or a non-retryable error occurs
+   */
+  private AgentContext ensureAgentInstanceRegistered(
+      AgentExecutionContext executionContext, AgentContext agentContext) {
+
+    if (agentInstanceAlreadyRegistered(agentContext)) {
+      return agentContext;
+    }
+
+    long agentInstanceKey =
+        agentInstanceClient.create(CreateAgentInstanceParams.from(executionContext));
+
+    return agentContext.withMetadata(
+        agentContext.metadata().withAgentInstanceKey(agentInstanceKey));
+  }
+
+  private static boolean agentInstanceAlreadyRegistered(AgentContext context) {
+    return context.metadata() != null && context.metadata().agentInstanceKey() != null;
   }
 }
