@@ -95,6 +95,7 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>4.0.6</version.spring-boot>
+    <version.netty>4.2.13.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.0.2</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
 
@@ -206,6 +207,15 @@ limitations under the License.</license.inlineheader>
         <groupId>com.fasterxml.jackson.datatype</groupId>
         <artifactId>jackson-datatype-jsr310</artifactId>
         <version>${version.jackson-datatype-jsr310}</version>
+      </dependency>
+
+      <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${version.netty}</version>
+        <scope>import</scope>
+        <type>pom</type>
       </dependency>
 
       <!-- Spring Boot BOM -->
