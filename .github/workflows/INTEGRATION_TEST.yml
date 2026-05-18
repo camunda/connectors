@@ -15,6 +15,16 @@ on:
         description: 'Connectors release branch containing code to test. Used to determine the Helm chart directory via helm-git-refs.json'
         required: true
         type: string
+      scenario:
+        description: 'Helm test scenario passed through to camunda-platform-helm test-integration-template (e.g. keycloak-original, alwaysgreen)'
+        required: false
+        type: string
+        default: 'keycloak-original'
+      shortname:
+        description: 'Short identifier used in the namespace prefix (paired with scenario)'
+        required: false
+        type: string
+        default: 'keyco'
       helm-dir:
         description: 'The camunda-platform-helm/charts directory of the Helm chart to test against. If not provided, the directory is determined based on the ref this workflow was triggered on (see helm-git-refs.json)'
         required: false
@@ -176,10 +186,12 @@ jobs:
       test-enabled: true
       # e2e-enabled is our way to disable E2E tests if needed.
       e2e-enabled: true
-      # This scenario installs a full Camunda 8 cluster with Keycloak and Elasticsearch being external. 
-      # This keycloak realm and elasticsearch prefixes are all randomly generated at installation time.
-      scenario: keycloak-original
-      shortname: keyco
+      # Scenario + shortname are caller-overridable. The default (keycloak-original / keyco) installs a
+      # full Camunda 8 cluster with external Keycloak and Elasticsearch, with randomly-generated realm
+      # and ES prefix per install. Merge-queue runs pass 'alwaysgreen' / 'agrn' to route deploys to the
+      # dedicated AlwaysGreen GKE namespace/node pool that finance tracks.
+      scenario: ${{ inputs.scenario }}
+      shortname: ${{ inputs.shortname }}
       # Github does not guarantee that the cleanup job will run. So we need to use flags. Within the helm CI the max ttl for a namespace is set.
       # That max ttl can be overridden by setting the deployment-ttl to a non-empty value.
       # When always-delete-namespace is true, and ttl is empty, the namespace is deleted after the test run.
