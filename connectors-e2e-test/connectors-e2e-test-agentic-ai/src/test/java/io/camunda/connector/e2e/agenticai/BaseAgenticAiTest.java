@@ -141,6 +141,9 @@ public abstract class BaseAgenticAiTest {
               final JsonNode agentInstanceKeyNode =
                   agentNode.path("context").path("metadata").path("agentInstanceKey");
 
+              assertThat(agentInstanceKeyNode.isMissingNode())
+                  .as("agent.context.metadata.agentInstanceKey must be present")
+                  .isFalse();
               assertThat(agentInstanceKeyNode.isNull())
                   .as("agent.context.metadata.agentInstanceKey must not be null")
                   .isFalse();
