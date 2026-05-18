@@ -14,13 +14,15 @@ import io.camunda.connector.api.outbound.JobContext;
  *
  * @param processDefinitionKey The key of the process definition this agent was initialized with
  * @param processInstanceKey The key of the process instance this agent is executing in
+ * @param agentInstanceKey The key of the agent instance created on the engine, if any
  */
 @AgenticAiRecord
-public record AgentMetadata(Long processDefinitionKey, Long processInstanceKey)
+public record AgentMetadata(
+    Long processDefinitionKey, Long processInstanceKey, Long agentInstanceKey)
     implements AgentMetadataBuilder.With {
 
   public static AgentMetadata of(JobContext jobContext) {
     return new AgentMetadata(
-        jobContext.getProcessDefinitionKey(), jobContext.getProcessInstanceKey());
+        jobContext.getProcessDefinitionKey(), jobContext.getProcessInstanceKey(), null);
   }
 }
