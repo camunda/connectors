@@ -20,7 +20,7 @@
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <version.picocli>4.7.7</version.picocli>
-    <version.json-schema-validator>1.5.4</version.json-schema-validator>
+    <version.json-schema-validator>1.5.9</version.json-schema-validator>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
