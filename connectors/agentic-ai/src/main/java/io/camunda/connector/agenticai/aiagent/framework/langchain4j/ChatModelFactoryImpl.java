@@ -151,11 +151,10 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
                 ClientOverrideConfiguration.builder()
                     .apiCallTimeout(DEFAULT_MODEL_CALL_TIMEOUT)
                     .build())
-            .httpClient(
+            .httpClientBuilder(
                 ApacheHttpClient.builder()
                     .connectionTimeout(Duration.ofSeconds(15))
-                    .socketTimeout(DEFAULT_MODEL_CALL_TIMEOUT)
-                    .build())
+                    .socketTimeout(DEFAULT_MODEL_CALL_TIMEOUT))
             .region(Region.of(connection.region()));
 
     if (connection.endpoint() != null) {
