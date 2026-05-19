@@ -9,10 +9,10 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.CONNECT_TIMEOUT;
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
@@ -39,7 +39,7 @@ public class OpenAiChatModelProvider implements ChatModelProvider<OpenAiProvider
   }
 
   @Override
-  public ChatModel createChatModel(OpenAiProviderConfiguration openai) {
+  public CloseableChatModel createChatModel(OpenAiProviderConfiguration openai) {
     final var connection = openai.openai();
     final var apiTimeout =
         deriveTimeoutSetting("OpenAI model call", config, connection.timeouts(), LOGGER);

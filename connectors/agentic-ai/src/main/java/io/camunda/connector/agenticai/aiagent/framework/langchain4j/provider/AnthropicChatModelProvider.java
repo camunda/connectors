@@ -10,8 +10,8 @@ import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provi
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
-import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
@@ -39,7 +39,7 @@ public class AnthropicChatModelProvider
   }
 
   @Override
-  public ChatModel createChatModel(AnthropicProviderConfiguration anthropic) {
+  public CloseableChatModel createChatModel(AnthropicProviderConfiguration anthropic) {
     final var connection = anthropic.anthropic();
     final var apiTimeout =
         deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER);

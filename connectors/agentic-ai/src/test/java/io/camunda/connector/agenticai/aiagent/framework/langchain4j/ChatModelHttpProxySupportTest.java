@@ -63,10 +63,10 @@ class ChatModelHttpProxySupportTest {
   }
 
   @Nested
-  class CreateJdkHttpClient {
+  class CreateJdkHttpClientBuilder {
 
     @Test
-    void shouldCreateJdkHttpClientWithProxyConfiguration() {
+    void shouldCreateJdkHttpClientBuilderWithProxyConfiguration() {
       // when
       ChatModelHttpProxySupport.CloseableJdkHttpClientBuilder result =
           proxySupport.createJdkHttpClientBuilder();

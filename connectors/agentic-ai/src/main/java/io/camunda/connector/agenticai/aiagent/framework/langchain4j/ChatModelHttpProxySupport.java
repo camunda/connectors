@@ -150,6 +150,9 @@ public class ChatModelHttpProxySupport {
 
       @Override
       public HttpClient build() {
+        if (builtClient != null) {
+          throw new IllegalStateException("HttpClient has already been built");
+        }
         return builtClient = delegate.build();
       }
     }

@@ -22,7 +22,6 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.exception.ModelNotFoundException;
 import dev.langchain4j.exception.UnresolvedModelServerException;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
@@ -103,7 +102,7 @@ class Langchain4JAiFrameworkAdapterTest {
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
   @Mock private JsonSchemaConverter jsonSchemaConverter;
 
-  @Mock private ChatModel chatModel;
+  @Mock private CloseableChatModel chatModel;
   @Mock private ChatResponse chatResponse;
 
   @Captor private ArgumentCaptor<ChatRequest> chatRequestCaptor;
@@ -302,43 +301,22 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void closesChatModelAfterSuccessfulCall() throws Exception {
-    // chatModel.chat stub from @BeforeEach is unused — this test uses closeableChatModel
-    reset(chatModel);
-
-    final var closeableChatModel = mock(CloseableChatModel.class);
-    when(chatModelFactory.createChatModel(any())).thenReturn(closeableChatModel);
-    when(closeableChatModel.chat(any(ChatRequest.class))).thenReturn(chatResponse);
-
     adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
-
-    verify(closeableChatModel).close();
+    verify(chatModel).close();
   }
 
   @Test
   void closesChatModelEvenWhenChatCallThrows() throws Exception {
-    // chatModel.chat, chatResponse and toAssistantMessage stubs from @BeforeEach are unused here
     reset(chatModel, chatResponse, chatMessageConverter);
     when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
-
-    final var closeableChatModel = mock(CloseableChatModel.class);
-    when(chatModelFactory.createChatModel(any())).thenReturn(closeableChatModel);
-    doThrow(new RuntimeException("model unavailable"))
-        .when(closeableChatModel)
-        .chat(any(ChatRequest.class));
+    doThrow(new RuntimeException("model unavailable")).when(chatModel).chat(any(ChatRequest.class));
 
     assertThatThrownBy(
             () ->
                 adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
         .isInstanceOf(ConnectorException.class);
 
-    verify(closeableChatModel).close();
-  }
-
-  @Test
-  void doesNotAttemptToCloseNonCloseableChatModel() {
-    // chatModel from @BeforeEach is a plain ChatModel mock (not AutoCloseable)
-    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
-    // no exception expected — verifies the instanceof guard works
+    verify(chatModel).close();
   }
 
   private AgentExecutionContext createExecutionContext() {

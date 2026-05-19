@@ -65,8 +65,7 @@ public class Langchain4JAiFrameworkAdapter
         ChatRequest.builder().messages(messages).toolSpecifications(toolSpecifications);
     configureResponseFormat(chatRequestBuilder, executionContext.response());
 
-    final ChatModel chatModel = chatModelFactory.createChatModel(executionContext.provider());
-    try {
+    try (final var chatModel = chatModelFactory.createChatModel(executionContext.provider())) {
       final ChatResponse chatResponse = doChat(chatModel, chatRequestBuilder);
       final AssistantMessage assistantMessage =
           chatMessageConverter.toAssistantMessage(chatResponse);
@@ -80,14 +79,6 @@ public class Langchain4JAiFrameworkAdapter
 
       return new Langchain4JAiFrameworkChatResponse(
           updatedAgentContext, assistantMessage, chatResponse);
-    } finally {
-      if (chatModel instanceof AutoCloseable closeable) {
-        try {
-          closeable.close();
-        } catch (Exception e) {
-          LOGGER.warn("Failed to close chat model", e);
-        }
-      }
     }
   }
 
