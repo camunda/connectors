@@ -42,6 +42,10 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sts</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>aws-core</artifactId>
       <version>${version.aws-sdk2}</version>
     </dependency>
