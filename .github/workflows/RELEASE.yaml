@@ -117,12 +117,12 @@ jobs:
 
         # Maven build & version bump
       - name: Set Connectors release version
-        run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
+        run: ./mvnw -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
           RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Compile and Test
-        run: mvn -B -U package generate-sources source:jar javadoc:jar -Pe2eExcluded
+        run: ./mvnw -B -U package generate-sources source:jar javadoc:jar -Pe2eExcluded
 
       - name: Publish Test Report
         if: always()
@@ -137,7 +137,7 @@ jobs:
 
       - name: Generate sbom reports
         run: |
-          mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
+          ./mvnw cyclonedx:makeAggregateBom -pl bundle/default-bundle
 
       - name: Import Secrets
         id: vault-secrets
@@ -247,7 +247,7 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Install artifacts
-        run: mvn -B install -DskipTests -DskipChecks -Pe2eExcluded
+        run: ./mvnw -B install -DskipTests -DskipChecks -Pe2eExcluded
 
       - name: Install Node.js
         uses: actions/setup-node@v6
@@ -258,7 +258,7 @@ jobs:
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
       - name: Run E2E tests
-        run: mvn -B verify -f connectors-e2e-test/pom.xml
+        run: ./mvnw -B verify -f connectors-e2e-test/pom.xml
 
       - name: Publish Test Report
         if: always()
@@ -420,7 +420,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(inputs.version, 'rc')"
-        run: mvn -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
+        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -430,7 +430,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory
         if: "contains(inputs.version, 'rc')"
-        run: mvn -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
+        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}

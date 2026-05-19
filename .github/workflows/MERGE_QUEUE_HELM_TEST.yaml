@@ -75,7 +75,7 @@ jobs:
       - name: Package Connectors
         env:
           PROJECTS: bundle/default-bundle,bundle/camunda-saas-bundle
-        run: mvn --batch-mode compile generate-sources package -DskipTests --projects "${PROJECTS}" --also-make
+        run: ./mvnw --batch-mode compile generate-sources package -DskipTests --projects "${PROJECTS}" --also-make
 
       - name: Check default-bundle jar exists
         run: ls -lh bundle/default-bundle/target/
@@ -101,7 +101,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          MAVEN_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
           BASE_VERSION="${MAVEN_VERSION%-SNAPSHOT}"
 
           if [[ "${{ github.event_name }}" == "merge_group" ]]; then
@@ -464,7 +464,7 @@ jobs:
           CONNECTORS_IMAGE_VERSION: ${{ needs.build-image.outputs.connectors-version }}
           OPENAI_API_KEY: ${{ steps.secrets.outputs.OPENAI_API_KEY }}
         run: |
-          mvn verify \
+          ./mvnw verify \
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
             -am \
             -Pit-real-llm \
