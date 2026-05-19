@@ -100,7 +100,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.44.7</version.aws-sdk2>
+    <version.aws-sdk2>2.44.8</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -139,7 +139,7 @@ limitations under the License.</license.inlineheader>
 
     <version.microsoft-graph>6.64.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.2</version.microsoft-kiota-abstraction>
-    <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
+    <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.3</version.azure-identity>
     <version.azure-core>1.58.0</version.azure-core>
     <version.azure-cosmos>4.80.0</version.azure-cosmos>
@@ -153,7 +153,7 @@ limitations under the License.</license.inlineheader>
     <version.wss4j>4.0.1</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
-    <version.slack>1.48.1</version.slack>
+    <version.slack>1.49.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
@@ -178,7 +178,7 @@ limitations under the License.</license.inlineheader>
     <version.scala>3.8.3</version.scala>
 
     <!-- maven plugins (not managed by parent) -->
-    <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
+    <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.6.3</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
     <plugin.version.license>5.0.0</plugin.version.license>
