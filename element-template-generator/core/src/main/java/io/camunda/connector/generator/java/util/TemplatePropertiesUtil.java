@@ -63,12 +63,8 @@ public class TemplatePropertiesUtil {
     var annotation = parameter.getAnnotation(TemplateProperty.class);
     var documentAnnotation = parameter.getAnnotation(TemplateDocumentProperty.class);
     if (documentAnnotation != null) {
-      var documentProperties =
-          handleTemplateDocumentProperty(
-              parameter, parameter.getName(), type, documentAnnotation, context);
-      if (documentProperties != null) {
-        return documentProperties;
-      }
+      return handleTemplateDocumentProperty(
+          parameter, parameter.getName(), type, documentAnnotation);
     }
     if (!isContainerType(parameter.getType(), annotation)) {
       // If the type is a primitive, String, Enum or Number, return a single property
@@ -125,13 +121,10 @@ public class TemplatePropertiesUtil {
     for (Field field : fields) {
       var documentAnnotation = field.getAnnotation(TemplateDocumentProperty.class);
       if (documentAnnotation != null) {
-        var documentProperties =
+        properties.addAll(
             handleTemplateDocumentProperty(
-                field, field.getName(), field.getType(), documentAnnotation, context);
-        if (documentProperties != null) {
-          properties.addAll(documentProperties);
-          continue;
-        }
+                field, field.getName(), field.getType(), documentAnnotation));
+        continue;
       }
       if (isContainerType(field.getType(), field.getAnnotation(TemplateProperty.class))) {
         var nestedPropertiesAnnotation = field.getAnnotation(NestedProperties.class);
@@ -213,11 +206,9 @@ public class TemplatePropertiesUtil {
       java.lang.reflect.AnnotatedElement element,
       String declaredName,
       Class<?> declaredType,
-      TemplateDocumentProperty annotation,
-      TemplateGenerationContext context) {
+      TemplateDocumentProperty annotation) {
     if (Document.class.isAssignableFrom(declaredType)) {
-      return DocumentPropertyHandler.handleDocumentProperty(
-          declaredType, declaredName, annotation, context);
+      return DocumentPropertyHandler.handleDocumentProperty(declaredType, declaredName, annotation);
     }
     if (Collection.class.isAssignableFrom(declaredType)) {
       Class<?> elementType = getListElementType(element);
@@ -229,7 +220,7 @@ public class TemplatePropertiesUtil {
                 + declaredType.getSimpleName());
       }
       return DocumentPropertyHandler.handleListDocumentProperty(
-          elementType, declaredName, annotation, context);
+          elementType, declaredName, annotation);
     }
     throw new IllegalStateException(
         "@TemplateDocumentProperty on '"

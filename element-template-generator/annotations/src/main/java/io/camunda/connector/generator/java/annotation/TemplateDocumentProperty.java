@@ -30,7 +30,11 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
 public @interface TemplateDocumentProperty {
 
-  /** Custom property ID that can be referenced in conditions. */
+  /**
+   * Id of the hidden composer property (the property bound to the canonical document path). Set
+   * this to preserve the id used by the equivalent {@code @TemplateProperty} on main, so element
+   * templates that previously identified this field keep the same root id.
+   */
   String id() default "";
 
   /** Custom binding name of the property. Defines the binding root for the generated sub-fields. */

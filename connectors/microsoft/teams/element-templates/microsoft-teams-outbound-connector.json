@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -1120,7 +1120,7 @@
   }, {
     "id" : "data.documents_documentMode",
     "label" : "Number of documents",
-    "value" : "single",
+    "value" : "none",
     "group" : "data",
     "binding" : {
       "name" : "data.documents_documentMode",
@@ -1139,6 +1139,9 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
       "name" : "Single document",
       "value" : "single"
     }, {
@@ -1392,8 +1395,8 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.documents__composer",
-    "value" : "=if documents_documentMode = \"multiple\" then documents_multiple_expression else if documents_single_documentSource = \"camunda\" then [documents_single_camundaReference] else if documents_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: documents_single_inline_content, name: documents_single_inline_fileName, contentType: documents_single_inline_contentType }] else if documents_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: documents_single_external_url, name: documents_single_external_fileName }] else []",
+    "id" : "data.sendMessageToChannel.documents",
+    "value" : "=if documents_documentMode = \"multiple\" then documents_multiple_expression else if documents_documentMode = \"single\" then (if documents_single_documentSource = \"camunda\" then [documents_single_camundaReference] else if documents_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: documents_single_inline_content, name: documents_single_inline_fileName, contentType: documents_single_inline_contentType }] else if documents_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: documents_single_external_url, name: documents_single_external_fileName }] else null) else null",
     "group" : "data",
     "binding" : {
       "name" : "data.documents",

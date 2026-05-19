@@ -8,7 +8,6 @@ package io.camunda.connector.textract.model;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
-import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
@@ -53,13 +52,17 @@ public record TextractRequestData(
                     property = "input.documentLocationType",
                     equals = "S3"))
         String documentVersion,
-    @TemplateDocumentProperty(
+    @TemplateProperty(
             group = "document",
+            label = "Camunda Document",
             description = "The Camunda document of the process that should be analyzed.",
+            feel = FeelMode.required,
+            type = TemplateProperty.PropertyType.String,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.documentLocationType",
-                    equals = "UPLOADED"))
+                    equals = "UPLOADED"),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         Document document,
     @TemplateProperty(
             label = "Execution type",
@@ -68,7 +71,11 @@ public record TextractRequestData(
             defaultValue = "POLLING",
             feel = FeelMode.disabled,
             description =
-                "How the document should be processes. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">documentation</a>.")
+                "How the document should be processes. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">documentation</a>.",
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.documentLocationType",
+                    equals = "S3"))
         @NotNull
         TextractExecutionType executionType,
     @TemplateProperty(

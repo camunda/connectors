@@ -21,7 +21,7 @@ import java.util.function.Function;
     inputVariables = {"authentication", "configuration", "actionDiscriminator", "action"},
     type = "io.camunda:aws-s3:1")
 @ElementTemplate(
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.aws.s3.v1",
     name = "AWS S3 Outbound Connector",
     description = "Execute S3 requests",

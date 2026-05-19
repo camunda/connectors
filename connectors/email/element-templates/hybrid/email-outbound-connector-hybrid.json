@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -695,9 +695,9 @@
     "type" : "Text"
   }, {
     "id" : "data_smtpAction_attachments_documentMode",
-    "label" : "Attachment",
+    "label" : "Number of documents",
     "description" : "Email's attachment. e.g., =[ document1, document2]",
-    "value" : "single",
+    "value" : "none",
     "group" : "sendEmailSmtp",
     "binding" : {
       "name" : "data.smtpAction.data_smtpAction_attachments_documentMode",
@@ -717,6 +717,9 @@
     "tooltip" : "Email's attachments, should be set as a list ",
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
       "name" : "Single document",
       "value" : "single"
     }, {
@@ -726,7 +729,6 @@
   }, {
     "id" : "data_smtpAction_attachments_single_documentSource",
     "label" : "Document source",
-    "description" : "Email's attachment. e.g., =[ document1, document2]",
     "value" : "camunda",
     "group" : "sendEmailSmtp",
     "binding" : {
@@ -748,7 +750,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's attachments, should be set as a list ",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda Document",
@@ -972,8 +973,8 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.smtpAction.attachments__composer",
-    "value" : "=if data_smtpAction_attachments_documentMode = \"multiple\" then data_smtpAction_attachments_multiple_expression else if data_smtpAction_attachments_single_documentSource = \"camunda\" then [data_smtpAction_attachments_single_camundaReference] else if data_smtpAction_attachments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_smtpAction_attachments_single_inline_content, name: data_smtpAction_attachments_single_inline_fileName, contentType: data_smtpAction_attachments_single_inline_contentType }] else if data_smtpAction_attachments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_smtpAction_attachments_single_external_url, name: data_smtpAction_attachments_single_external_fileName }] else []",
+    "id" : "attachmentsSmtp",
+    "value" : "=if data_smtpAction_attachments_documentMode = \"multiple\" then data_smtpAction_attachments_multiple_expression else if data_smtpAction_attachments_documentMode = \"single\" then (if data_smtpAction_attachments_single_documentSource = \"camunda\" then [data_smtpAction_attachments_single_camundaReference] else if data_smtpAction_attachments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_smtpAction_attachments_single_inline_content, name: data_smtpAction_attachments_single_inline_fileName, contentType: data_smtpAction_attachments_single_inline_contentType }] else if data_smtpAction_attachments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_smtpAction_attachments_single_external_url, name: data_smtpAction_attachments_single_external_fileName }] else null) else null",
     "group" : "sendEmailSmtp",
     "binding" : {
       "name" : "data.smtpAction.attachments",

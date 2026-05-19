@@ -21,7 +21,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
     inputVariables = {"authentication", "protocol", "data"},
     type = "io.camunda:email:1")
 @ElementTemplate(
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.email.v1",
     name = "Email Connector",
     description = "Execute email requests",

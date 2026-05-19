@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -234,9 +234,9 @@
     "type" : "Text"
   }, {
     "id" : "attachments_documentMode",
-    "label" : "attachments",
+    "label" : "Number of documents",
     "description" : "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>",
-    "value" : "single",
+    "value" : "none",
     "group" : "content",
     "binding" : {
       "name" : "attachments_documentMode",
@@ -244,6 +244,9 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
       "name" : "Single document",
       "value" : "single"
     }, {
@@ -253,7 +256,6 @@
   }, {
     "id" : "attachments_single_documentSource",
     "label" : "Document source",
-    "description" : "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>",
     "value" : "camunda",
     "group" : "content",
     "binding" : {
@@ -430,8 +432,8 @@
     },
     "type" : "String"
   }, {
-    "id" : "attachments__composer",
-    "value" : "=if attachments_documentMode = \"multiple\" then attachments_multiple_expression else if attachments_single_documentSource = \"camunda\" then [attachments_single_camundaReference] else if attachments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: attachments_single_inline_content, name: attachments_single_inline_fileName, contentType: attachments_single_inline_contentType }] else if attachments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: attachments_single_external_url, name: attachments_single_external_fileName }] else []",
+    "id" : "attachments",
+    "value" : "=if attachments_documentMode = \"multiple\" then attachments_multiple_expression else if attachments_documentMode = \"single\" then (if attachments_single_documentSource = \"camunda\" then [attachments_single_camundaReference] else if attachments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: attachments_single_inline_content, name: attachments_single_inline_fileName, contentType: attachments_single_inline_contentType }] else if attachments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: attachments_single_external_url, name: attachments_single_external_fileName }] else null) else null",
     "group" : "content",
     "binding" : {
       "name" : "attachments",

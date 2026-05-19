@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -192,9 +192,9 @@
     "type" : "String"
   }, {
     "id" : "data_documents_documentMode",
-    "label" : "attachments",
+    "label" : "Number of documents",
     "description" : "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments",
-    "value" : "single",
+    "value" : "none",
     "group" : "message",
     "binding" : {
       "name" : "data.data_documents_documentMode",
@@ -207,6 +207,9 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
       "name" : "Single document",
       "value" : "single"
     }, {
@@ -216,7 +219,6 @@
   }, {
     "id" : "data_documents_single_documentSource",
     "label" : "Document source",
-    "description" : "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments",
     "value" : "camunda",
     "group" : "message",
     "binding" : {
@@ -429,8 +431,8 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.documents__composer",
-    "value" : "=if data_documents_documentMode = \"multiple\" then data_documents_multiple_expression else if data_documents_single_documentSource = \"camunda\" then [data_documents_single_camundaReference] else if data_documents_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_documents_single_inline_content, name: data_documents_single_inline_fileName, contentType: data_documents_single_inline_contentType }] else if data_documents_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_documents_single_external_url, name: data_documents_single_external_fileName }] else []",
+    "id" : "data.documents",
+    "value" : "=if data_documents_documentMode = \"multiple\" then data_documents_multiple_expression else if data_documents_documentMode = \"single\" then (if data_documents_single_documentSource = \"camunda\" then [data_documents_single_camundaReference] else if data_documents_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_documents_single_inline_content, name: data_documents_single_inline_fileName, contentType: data_documents_single_inline_contentType }] else if data_documents_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_documents_single_external_url, name: data_documents_single_external_fileName }] else null) else null",
     "group" : "message",
     "binding" : {
       "name" : "data.documents",

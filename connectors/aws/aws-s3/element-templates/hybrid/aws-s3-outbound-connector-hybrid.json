@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -403,7 +403,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "action.document__composer",
+    "id" : "uploadActionDocument",
     "value" : "=if action_document_documentSource = \"camunda\" then action_document_camundaReference else if action_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: action_document_inline_content, name: action_document_inline_fileName, contentType: action_document_inline_contentType } else if action_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: action_document_external_url, name: action_document_external_fileName } else null",
     "group" : "uploadObject",
     "binding" : {

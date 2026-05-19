@@ -10,7 +10,6 @@ import static io.camunda.connector.model.operation.EmbedDocumentOperation.EMBED_
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
-import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
@@ -43,10 +42,13 @@ public record EmbedDocumentOperation(
                     property = "vectorDatabaseConnectorOperation.documentSource",
                     equals = "PlainText"))
         String documentSourceFromProcessVariable,
-    @TemplateDocumentProperty(
+    @TemplateProperty(
+            label = "Documents",
             group = "document",
             id = "newDocuments",
+            feel = FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "newDocuments"),
+            constraints = @PropertyConstraints(notEmpty = true),
             condition =
                 @PropertyCondition(
                     property = "vectorDatabaseConnectorOperation.documentSource",

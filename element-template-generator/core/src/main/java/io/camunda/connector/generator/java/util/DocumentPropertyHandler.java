@@ -39,12 +39,6 @@ import org.apache.commons.lang3.StringUtils;
  * sub-fields (source dropdown, per-source content/url/etc.) bound to flat helper variables, plus a
  * trailing {@code Hidden} composer input mapping that assembles those helpers into the canonical
  * {@code DocumentReferenceModel} JSON at the field's actual binding path.
- *
- * <p>Composition happens at the Zeebe input-mapping level. Zeebe transforms every {@code
- * <zeebe:input>} on a task into a single FEEL context expression, evaluated in declared order
- * (since <a href="https://github.com/camunda/zeebe/pull/4079">camunda/zeebe#4079</a>), so each
- * mapping's source can reference variables produced by earlier mappings. The composer is placed
- * last so all sub-field locals are available when its FEEL runs.
  */
 final class DocumentPropertyHandler {
 
@@ -53,12 +47,16 @@ final class DocumentPropertyHandler {
   static final String CHOICE_EXTERNAL = "external";
   static final String CHOICE_SINGLE = "single";
   static final String CHOICE_MULTIPLE = "multiple";
+  static final String CHOICE_NONE = "none";
+  static final String CHOICE_YES = "yes";
+  static final String CHOICE_NO = "no";
 
   private static final String DOCUMENT_TYPE_KEY = "camunda.document.type";
   private static final String DOCUMENT_TYPE_INLINE = "inline";
   private static final String DOCUMENT_TYPE_EXTERNAL = "external";
 
-  private static final String DEFAULT_LIST_LABEL = "Number of documents";
+  private static final String LIST_MODE_LABEL = "Number of documents";
+  private static final String OPTIONAL_SINGLE_LABEL = "Attach document?";
 
   private static final List<DropdownChoice> SOURCE_CHOICES =
       List.of(
@@ -66,18 +64,25 @@ final class DocumentPropertyHandler {
           new DropdownChoice("Inline Content", CHOICE_INLINE),
           new DropdownChoice("From URL", CHOICE_EXTERNAL));
 
-  private static final List<DropdownChoice> MODE_CHOICES =
-      List.of(
-          new DropdownChoice("Single document", CHOICE_SINGLE),
-          new DropdownChoice("Multiple documents", CHOICE_MULTIPLE));
+  private static final DropdownChoice CHOICE_SINGLE_ENTRY =
+      new DropdownChoice("Single document", CHOICE_SINGLE);
+  private static final DropdownChoice CHOICE_MULTIPLE_ENTRY =
+      new DropdownChoice("Multiple documents", CHOICE_MULTIPLE);
+  private static final DropdownChoice CHOICE_NONE_ENTRY = new DropdownChoice("None", CHOICE_NONE);
+
+  private static final List<DropdownChoice> LIST_MODE_CHOICES_MANDATORY =
+      List.of(CHOICE_SINGLE_ENTRY, CHOICE_MULTIPLE_ENTRY);
+
+  private static final List<DropdownChoice> LIST_MODE_CHOICES_OPTIONAL =
+      List.of(CHOICE_NONE_ENTRY, CHOICE_SINGLE_ENTRY, CHOICE_MULTIPLE_ENTRY);
+
+  private static final List<DropdownChoice> SINGLE_OPTIONAL_MODE_CHOICES =
+      List.of(new DropdownChoice("No", CHOICE_NO), new DropdownChoice("Yes", CHOICE_YES));
 
   private DocumentPropertyHandler() {}
 
   static List<PropertyBuilder> handleDocumentProperty(
-      Class<?> declaredType,
-      String declaredName,
-      TemplateDocumentProperty annotation,
-      TemplateGenerationContext context) {
+      Class<?> declaredType, String declaredName, TemplateDocumentProperty annotation) {
     if (!Document.class.isAssignableFrom(declaredType)) {
       throw new IllegalStateException(
           "@TemplateDocumentProperty on '"
@@ -93,25 +98,84 @@ final class DocumentPropertyHandler {
 
     SingleDocFields fields = singleDocFields(localPrefix);
 
+    if (annotation.optional()) {
+      return buildOptionalSingleProperty(
+          localPrefix, targetPath, targetParent, group, parentCondition, annotation, fields);
+    }
+
     var dependants = new ArrayList<PropertyBuilder>();
-    addSingleSubProperties(
-        dependants, fields, parentCondition, annotation, group, targetParent, context);
+    addSingleSubProperties(dependants, fields, parentCondition, annotation, group, targetParent);
 
     var result = new ArrayList<PropertyBuilder>();
     result.add(
         buildSingleSourceDropdown(
-            fields, parentCondition, annotation, group, targetParent, dependants));
+            fields,
+            parentCondition,
+            blankToNull(annotation.description()),
+            blankToNull(annotation.tooltip()),
+            group,
+            targetParent,
+            dependants));
     result.addAll(dependants);
     result.add(
-        composerProperty(targetPath, singleDocComposerExpression(fields), parentCondition, group));
+        composerProperty(
+            targetPath,
+            singleDocComposerExpression(fields),
+            parentCondition,
+            group,
+            resolveComposerId(annotation, targetPath)));
+    return result;
+  }
+
+  private static List<PropertyBuilder> buildOptionalSingleProperty(
+      String localPrefix,
+      String targetPath,
+      String targetParent,
+      String group,
+      PropertyCondition parentCondition,
+      TemplateDocumentProperty annotation,
+      SingleDocFields fields) {
+    String modeId = localPrefix + "_documentMode";
+    PropertyCondition yesCondition = combine(parentCondition, new Equals(modeId, CHOICE_YES));
+
+    var subFields = new ArrayList<PropertyBuilder>();
+    addSingleSubProperties(subFields, fields, yesCondition, annotation, group, targetParent);
+
+    var sourceDropdown =
+        buildSingleSourceDropdown(fields, yesCondition, null, null, group, targetParent, subFields);
+
+    var modeDependants = new ArrayList<PropertyBuilder>();
+    modeDependants.add(sourceDropdown);
+    modeDependants.addAll(subFields);
+
+    var modeDropdown = new DiscriminatorPropertyBuilder().dependantProperties(modeDependants);
+    modeDropdown.choices(SINGLE_OPTIONAL_MODE_CHOICES);
+    modeDropdown.feel(FeelMode.disabled);
+    modeDropdown
+        .id(modeId)
+        .label(OPTIONAL_SINGLE_LABEL)
+        .description(blankToNull(annotation.description()))
+        .tooltip(blankToNull(annotation.tooltip()))
+        .value(CHOICE_NO)
+        .binding(bindingFor(modeId, targetParent))
+        .group(group)
+        .condition(parentCondition);
+
+    var result = new ArrayList<PropertyBuilder>();
+    result.add(modeDropdown);
+    result.addAll(modeDependants);
+    result.add(
+        composerProperty(
+            targetPath,
+            optionalSingleDocComposerExpression(modeId, fields),
+            parentCondition,
+            group,
+            resolveComposerId(annotation, targetPath)));
     return result;
   }
 
   static List<PropertyBuilder> handleListDocumentProperty(
-      Class<?> elementType,
-      String declaredName,
-      TemplateDocumentProperty annotation,
-      TemplateGenerationContext context) {
+      Class<?> elementType, String declaredName, TemplateDocumentProperty annotation) {
     if (!Document.class.isAssignableFrom(elementType)) {
       throw new IllegalStateException(
           "@TemplateDocumentProperty on '"
@@ -137,11 +201,11 @@ final class DocumentPropertyHandler {
 
     var singleSubFields = new ArrayList<PropertyBuilder>();
     addSingleSubProperties(
-        singleSubFields, single, singleModeCondition, annotation, group, targetParent, context);
+        singleSubFields, single, singleModeCondition, annotation, group, targetParent);
 
     var singleSourceDropdown =
         buildSingleSourceDropdown(
-            single, singleModeCondition, annotation, group, targetParent, singleSubFields);
+            single, singleModeCondition, null, null, group, targetParent, singleSubFields);
 
     var multipleExpression =
         StringProperty.builder().feel(FeelMode.required).constraints(notEmpty());
@@ -157,15 +221,16 @@ final class DocumentPropertyHandler {
     modeDependants.addAll(singleSubFields);
     modeDependants.add(multipleExpression);
 
+    boolean optional = annotation.optional();
     var modeDropdown = new DiscriminatorPropertyBuilder().dependantProperties(modeDependants);
-    modeDropdown.choices(MODE_CHOICES);
+    modeDropdown.choices(optional ? LIST_MODE_CHOICES_OPTIONAL : LIST_MODE_CHOICES_MANDATORY);
     modeDropdown.feel(FeelMode.disabled);
     modeDropdown
         .id(modeId)
-        .label(DEFAULT_LIST_LABEL)
+        .label(LIST_MODE_LABEL)
         .description(blankToNull(annotation.description()))
         .tooltip(blankToNull(annotation.tooltip()))
-        .value(CHOICE_SINGLE)
+        .value(optional ? CHOICE_NONE : CHOICE_SINGLE)
         .binding(bindingFor(modeId, targetParent))
         .group(group)
         .condition(parentCondition);
@@ -175,14 +240,21 @@ final class DocumentPropertyHandler {
     result.addAll(modeDependants);
 
     String composerExpression = listDocComposerExpression(modeId, single, multipleExpressionId);
-    result.add(composerProperty(targetPath, composerExpression, parentCondition, group));
+    result.add(
+        composerProperty(
+            targetPath,
+            composerExpression,
+            parentCondition,
+            group,
+            resolveComposerId(annotation, targetPath)));
     return result;
   }
 
   private static DiscriminatorPropertyBuilder buildSingleSourceDropdown(
       SingleDocFields fields,
       PropertyCondition condition,
-      TemplateDocumentProperty annotation,
+      String description,
+      String tooltip,
       String group,
       String targetParent,
       List<PropertyBuilder> dependants) {
@@ -192,8 +264,8 @@ final class DocumentPropertyHandler {
     dropdown
         .id(fields.sourceId)
         .label("Document source")
-        .description(blankToNull(annotation.description()))
-        .tooltip(blankToNull(annotation.tooltip()))
+        .description(description)
+        .tooltip(tooltip)
         .value(CHOICE_CAMUNDA)
         .binding(bindingFor(fields.sourceId, targetParent))
         .group(group)
@@ -207,8 +279,7 @@ final class DocumentPropertyHandler {
       PropertyCondition parentCondition,
       TemplateDocumentProperty annotation,
       String group,
-      String targetParent,
-      TemplateGenerationContext context) {
+      String targetParent) {
 
     PropertyCondition camundaCondition =
         combine(parentCondition, new Equals(fields.sourceId, CHOICE_CAMUNDA));
@@ -315,10 +386,14 @@ final class DocumentPropertyHandler {
   }
 
   private static PropertyBuilder composerProperty(
-      String targetPath, String feelExpression, PropertyCondition condition, String group) {
+      String targetPath,
+      String feelExpression,
+      PropertyCondition condition,
+      String group,
+      String composerId) {
     var composer = HiddenProperty.builder();
     composer
-        .id(targetPath + "__composer")
+        .id(composerId)
         .value("=" + feelExpression)
         .binding(new ZeebeInput(targetPath))
         .group(group)
@@ -326,67 +401,65 @@ final class DocumentPropertyHandler {
     return composer;
   }
 
+  private static String resolveComposerId(TemplateDocumentProperty annotation, String targetPath) {
+    String custom = blankToNull(annotation.id());
+    return custom != null ? custom : targetPath + "__composer";
+  }
+
   private static String singleDocComposerExpression(SingleDocFields fields) {
-    return "if "
-        + fields.sourceId
-        + " = \"camunda\" then "
-        + fields.camundaRefId
-        + " else if "
-        + fields.sourceId
-        + " = \"inline\" then "
-        + inlineObjectLiteral(fields)
-        + " else if "
-        + fields.sourceId
-        + " = \"external\" then "
-        + externalObjectLiteral(fields)
-        + " else null";
+    return """
+        if %1$s = "camunda" then %2$s \
+        else if %1$s = "inline" then %3$s \
+        else if %1$s = "external" then %4$s \
+        else null"""
+        .formatted(
+            fields.sourceId,
+            fields.camundaRefId,
+            inlineObjectLiteral(fields),
+            externalObjectLiteral(fields));
+  }
+
+  private static String optionalSingleDocComposerExpression(String modeId, SingleDocFields fields) {
+    return """
+        if %1$s = "yes" then (%2$s) \
+        else null"""
+        .formatted(modeId, singleDocComposerExpression(fields));
   }
 
   private static String listDocComposerExpression(
       String modeId, SingleDocFields single, String multipleExpressionId) {
-    return "if "
-        + modeId
-        + " = \"multiple\" then "
-        + multipleExpressionId
-        + " else if "
-        + single.sourceId
-        + " = \"camunda\" then ["
-        + single.camundaRefId
-        + "] else if "
-        + single.sourceId
-        + " = \"inline\" then ["
-        + inlineObjectLiteral(single)
-        + "] else if "
-        + single.sourceId
-        + " = \"external\" then ["
-        + externalObjectLiteral(single)
-        + "] else []";
+    return """
+        if %1$s = "multiple" then %2$s \
+        else if %1$s = "single" then (if %3$s = "camunda" then [%4$s] \
+        else if %3$s = "inline" then [%5$s] \
+        else if %3$s = "external" then [%6$s] \
+        else null) \
+        else null"""
+        .formatted(
+            modeId,
+            multipleExpressionId,
+            single.sourceId,
+            single.camundaRefId,
+            inlineObjectLiteral(single),
+            externalObjectLiteral(single));
   }
 
   private static String inlineObjectLiteral(SingleDocFields f) {
-    return "{ \""
-        + DOCUMENT_TYPE_KEY
-        + "\": \""
-        + DOCUMENT_TYPE_INLINE
-        + "\", content: "
-        + f.inlineContentId
-        + ", name: "
-        + f.inlineFileNameId
-        + ", contentType: "
-        + f.inlineContentTypeId
-        + " }";
+    return """
+        { "%s": "%s", content: %s, name: %s, contentType: %s }"""
+        .formatted(
+            DOCUMENT_TYPE_KEY,
+            DOCUMENT_TYPE_INLINE,
+            f.inlineContentId,
+            f.inlineFileNameId,
+            f.inlineContentTypeId);
   }
 
   private static String externalObjectLiteral(SingleDocFields f) {
-    return "{ \""
-        + DOCUMENT_TYPE_KEY
-        + "\": \""
-        + DOCUMENT_TYPE_EXTERNAL
-        + "\", url: "
-        + f.externalUrlId
-        + ", name: "
-        + f.externalFileNameId
-        + " }";
+    return """
+        { "%s": "%s", url: %s, name: %s }"""
+        .formatted(
+            DOCUMENT_TYPE_KEY, DOCUMENT_TYPE_EXTERNAL, f.externalUrlId, f.externalFileNameId);
   }
 
   private static SingleDocFields singleDocFields(String prefix) {

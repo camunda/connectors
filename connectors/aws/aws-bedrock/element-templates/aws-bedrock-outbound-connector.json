@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -300,8 +300,8 @@
     "type" : "Number"
   }, {
     "id" : "data_newDocuments_documentMode",
-    "label" : "documents",
-    "value" : "single",
+    "label" : "Number of documents",
+    "value" : "none",
     "group" : "converse",
     "binding" : {
       "name" : "data.data_newDocuments_documentMode",
@@ -314,6 +314,9 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
       "name" : "Single document",
       "value" : "single"
     }, {
@@ -535,8 +538,8 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.newDocuments__composer",
-    "value" : "=if data_newDocuments_documentMode = \"multiple\" then data_newDocuments_multiple_expression else if data_newDocuments_single_documentSource = \"camunda\" then [data_newDocuments_single_camundaReference] else if data_newDocuments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_newDocuments_single_inline_content, name: data_newDocuments_single_inline_fileName, contentType: data_newDocuments_single_inline_contentType }] else if data_newDocuments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_newDocuments_single_external_url, name: data_newDocuments_single_external_fileName }] else []",
+    "id" : "data.newDocuments",
+    "value" : "=if data_newDocuments_documentMode = \"multiple\" then data_newDocuments_multiple_expression else if data_newDocuments_documentMode = \"single\" then (if data_newDocuments_single_documentSource = \"camunda\" then [data_newDocuments_single_camundaReference] else if data_newDocuments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_newDocuments_single_inline_content, name: data_newDocuments_single_inline_fileName, contentType: data_newDocuments_single_inline_contentType }] else if data_newDocuments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_newDocuments_single_external_url, name: data_newDocuments_single_external_fileName }] else null) else null",
     "group" : "converse",
     "binding" : {
       "name" : "data.newDocuments",

@@ -26,7 +26,7 @@ import java.util.function.Function;
     },
     type = "io.camunda:google-gcs:1")
 @ElementTemplate(
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.google.gcp.v1",
     name = "Google Cloud Storage Outbound Connector",
     description = "Upload and download files from Google Cloud Storage.",
