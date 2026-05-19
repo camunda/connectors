@@ -112,12 +112,12 @@ jobs:
 
         # Maven build & version bump
       - name: Set Connectors release version
-        run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
+        run: ./mvnw -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
           RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Compile and Test
-        run: mvn -B -U package generate-sources source:jar javadoc:jar
+        run: ./mvnw -B -U package generate-sources source:jar javadoc:jar
 
       - name: Publish Test Report
         if: always()
@@ -132,7 +132,7 @@ jobs:
 
       - name: Generate sbom reports
         run: |
-          mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
+          ./mvnw cyclonedx:makeAggregateBom -pl bundle/default-bundle
 
       - name: Import Secrets
         id: vault-secrets
@@ -187,7 +187,6 @@ jobs:
           name: repository
           path: .
           include-hidden-files: 'true'
-
 
   version-bump-docs-links:
     needs: setup
@@ -333,7 +332,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(inputs.version, 'rc')"
-        run: mvn -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
+        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -343,7 +342,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory
         if: "contains(inputs.version, 'rc')"
-        run: mvn -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
+        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
