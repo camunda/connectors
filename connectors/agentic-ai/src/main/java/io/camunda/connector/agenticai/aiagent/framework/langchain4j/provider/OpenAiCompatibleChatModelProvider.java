@@ -48,13 +48,13 @@ public class OpenAiCompatibleChatModelProvider
     final var apiTimeout =
         deriveTimeoutSetting("OpenAI compatible model call", config, connection.timeouts(), LOGGER);
 
-    final var http = proxySupport.createJdkHttpClient(CONNECT_TIMEOUT);
+    final var http = proxySupport.createJdkHttpClientBuilder();
     final var builder =
         OpenAiChatModel.builder()
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint())
             .timeout(apiTimeout)
-            .httpClientBuilder(http.builder().readTimeout(apiTimeout));
+            .httpClientBuilder(http.connectTimeout(CONNECT_TIMEOUT).readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
@@ -88,6 +88,6 @@ public class OpenAiCompatibleChatModelProvider
       builder.defaultRequestParameters(requestParametersBuilder.build());
     }
 
-    return new CloseableChatModelDelegate(builder.build(), http.httpClient());
+    return new CloseableChatModelDelegate(builder.build(), http);
   }
 }

@@ -44,13 +44,13 @@ public class AnthropicChatModelProvider
     final var apiTimeout =
         deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER);
 
-    final var http = proxySupport.createJdkHttpClient(CONNECT_TIMEOUT);
+    final var http = proxySupport.createJdkHttpClientBuilder();
     final var builder =
         AnthropicChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
             .timeout(apiTimeout)
-            .httpClientBuilder(http.builder().readTimeout(apiTimeout));
+            .httpClientBuilder(http.connectTimeout(CONNECT_TIMEOUT).readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 
@@ -62,6 +62,6 @@ public class AnthropicChatModelProvider
       Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
     }
 
-    return new CloseableChatModelDelegate(builder.build(), http.httpClient());
+    return new CloseableChatModelDelegate(builder.build(), http);
   }
 }

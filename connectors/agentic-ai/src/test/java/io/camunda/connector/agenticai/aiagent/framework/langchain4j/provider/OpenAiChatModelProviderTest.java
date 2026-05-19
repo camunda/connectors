@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
-import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.CONNECT_TIMEOUT;
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.MODEL_TIMEOUT;
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.createDefaultChatModelProperties;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -206,7 +205,7 @@ class OpenAiChatModelProviderTest {
       assertThat(((CloseableChatModelDelegate) chatModel).delegate())
           .isSameAs(chatModelResultCaptor.getResult());
 
-      verify(proxySupport).createJdkHttpClient(CONNECT_TIMEOUT);
+      verify(proxySupport).createJdkHttpClientBuilder();
       builderAssertions.accept(chatModelBuilder);
     }
   }

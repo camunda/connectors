@@ -41,92 +41,117 @@ public class ChatModelHttpProxySupport {
   }
 
   /**
-   * Builds a JDK {@link HttpClient} and returns it together with a {@link JdkHttpClientBuilder}
-   * configured to reuse that exact instance. Callers can close the returned {@code httpClient}
-   * after the request to release the connection pool and selector thread.
-   *
-   * <p>The supplied {@code connectTimeout} is applied to the real client before construction so
-   * that the inner {@link JdkHttpClientBuilder} does not build a second client when {@code
-   * JdkHttpClient} is constructed from the builder.
+   * Configures an {@link HttpClient.Builder} with proxy settings, then wraps it in a {@link
+   * CloseableJdkHttpClientBuilder}. Callers set timeouts on the returned builder directly (e.g.
+   * {@code .connectTimeout(...).readTimeout(...)}), pass it to a langchain4j model builder as the
+   * {@code httpClientBuilder}, then pass it to {@link CloseableChatModelDelegate} as the resource
+   * to close.
    */
-  public JdkHttpClientHandle createJdkHttpClient(Duration connectTimeout) {
-    final var httpClientBuilder = HttpClient.newBuilder().connectTimeout(connectTimeout);
+  public CloseableJdkHttpClientBuilder createJdkHttpClientBuilder() {
+    final var httpClientBuilder = HttpClient.newBuilder();
     jdkHttpClientProxyConfigurator.configure(httpClientBuilder);
-    final var httpClient = httpClientBuilder.build();
-    final var jdkBuilder =
-        new JdkHttpClientBuilder().httpClientBuilder(new PrebuiltHttpClientBuilder(httpClient));
-    return new JdkHttpClientHandle(httpClient, jdkBuilder);
+    return new CloseableJdkHttpClientBuilder(httpClientBuilder);
   }
 
-  /** Pairs the pre-built {@link HttpClient} with a {@link JdkHttpClientBuilder} wrapping it. */
-  public record JdkHttpClientHandle(HttpClient httpClient, JdkHttpClientBuilder builder) {}
-
   /**
-   * Wraps a pre-built {@link HttpClient} behind the {@link HttpClient.Builder} interface. All
-   * configuration calls are no-ops — settings were already applied before the client was built.
-   * {@link #build()} returns the pre-built instance so {@code JdkHttpClient} reuses it rather than
-   * creating a second one.
+   * A {@link JdkHttpClientBuilder} that wraps a configured {@link HttpClient.Builder} and captures
+   * the {@link HttpClient} produced when langchain4j calls {@link HttpClient.Builder#build()}.
+   * Extends {@link JdkHttpClientBuilder} so it can be passed directly to langchain4j model
+   * builders. Implements {@link AutoCloseable} so it can be passed directly to {@link
+   * CloseableChatModelDelegate}.
+   *
+   * <p>All {@link HttpClient.Builder} method calls are forwarded to the real builder so any
+   * configuration langchain4j applies (SSL context, version, executor, etc.) takes effect on the
+   * actual client. {@link CapturingBridge#build()} captures the resulting instance for {@link
+   * #close()}.
    */
-  private static final class PrebuiltHttpClientBuilder implements HttpClient.Builder {
-    private final HttpClient httpClient;
+  public static final class CloseableJdkHttpClientBuilder extends JdkHttpClientBuilder
+      implements AutoCloseable {
 
-    PrebuiltHttpClientBuilder(HttpClient httpClient) {
-      this.httpClient = httpClient;
+    private HttpClient builtClient;
+
+    CloseableJdkHttpClientBuilder(HttpClient.Builder delegate) {
+      httpClientBuilder(new CapturingBridge(delegate));
     }
 
     @Override
-    public HttpClient.Builder cookieHandler(CookieHandler cookieHandler) {
-      return this;
+    public void close() {
+      if (builtClient != null) {
+        builtClient.close();
+      }
     }
 
-    @Override
-    public HttpClient.Builder connectTimeout(Duration duration) {
-      return this;
-    }
+    private final class CapturingBridge implements HttpClient.Builder {
+      private final HttpClient.Builder delegate;
 
-    @Override
-    public HttpClient.Builder sslContext(SSLContext sslContext) {
-      return this;
-    }
+      CapturingBridge(HttpClient.Builder delegate) {
+        this.delegate = delegate;
+      }
 
-    @Override
-    public HttpClient.Builder sslParameters(SSLParameters sslParameters) {
-      return this;
-    }
+      @Override
+      public HttpClient.Builder cookieHandler(CookieHandler cookieHandler) {
+        delegate.cookieHandler(cookieHandler);
+        return this;
+      }
 
-    @Override
-    public HttpClient.Builder executor(Executor executor) {
-      return this;
-    }
+      @Override
+      public HttpClient.Builder connectTimeout(Duration duration) {
+        delegate.connectTimeout(duration);
+        return this;
+      }
 
-    @Override
-    public HttpClient.Builder followRedirects(HttpClient.Redirect policy) {
-      return this;
-    }
+      @Override
+      public HttpClient.Builder sslContext(SSLContext sslContext) {
+        delegate.sslContext(sslContext);
+        return this;
+      }
 
-    @Override
-    public HttpClient.Builder version(HttpClient.Version version) {
-      return this;
-    }
+      @Override
+      public HttpClient.Builder sslParameters(SSLParameters sslParameters) {
+        delegate.sslParameters(sslParameters);
+        return this;
+      }
 
-    @Override
-    public HttpClient.Builder priority(int priority) {
-      return this;
-    }
+      @Override
+      public HttpClient.Builder executor(Executor executor) {
+        delegate.executor(executor);
+        return this;
+      }
 
-    @Override
-    public HttpClient.Builder proxy(ProxySelector proxySelector) {
-      return this;
-    }
+      @Override
+      public HttpClient.Builder followRedirects(HttpClient.Redirect policy) {
+        delegate.followRedirects(policy);
+        return this;
+      }
 
-    @Override
-    public HttpClient.Builder authenticator(Authenticator authenticator) {
-      return this;
-    }
+      @Override
+      public HttpClient.Builder version(HttpClient.Version version) {
+        delegate.version(version);
+        return this;
+      }
 
-    @Override
-    public HttpClient build() {
-      return httpClient;
+      @Override
+      public HttpClient.Builder priority(int priority) {
+        delegate.priority(priority);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder proxy(ProxySelector proxySelector) {
+        delegate.proxy(proxySelector);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder authenticator(Authenticator authenticator) {
+        delegate.authenticator(authenticator);
+        return this;
+      }
+
+      @Override
+      public HttpClient build() {
+        return builtClient = delegate.build();
+      }
     }
   }
 

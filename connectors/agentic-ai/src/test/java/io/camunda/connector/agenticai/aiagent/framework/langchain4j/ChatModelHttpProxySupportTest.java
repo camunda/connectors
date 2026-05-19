@@ -68,13 +68,11 @@ class ChatModelHttpProxySupportTest {
     @Test
     void shouldCreateJdkHttpClientWithProxyConfiguration() {
       // when
-      ChatModelHttpProxySupport.JdkHttpClientHandle result =
-          proxySupport.createJdkHttpClient(java.time.Duration.ofSeconds(15));
+      ChatModelHttpProxySupport.CloseableJdkHttpClientBuilder result =
+          proxySupport.createJdkHttpClientBuilder();
 
       // then
       assertThat(result).isNotNull();
-      assertThat(result.httpClient()).isNotNull();
-      assertThat(result.builder()).isNotNull();
       verify(jdkProxyConfigurator).configure(any(HttpClient.Builder.class));
     }
   }
