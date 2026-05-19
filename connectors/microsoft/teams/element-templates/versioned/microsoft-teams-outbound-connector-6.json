@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Microsoft Teams Outbound Connector",
-  "id" : "io.camunda.connectors.MSTeams.v1-hybrid",
+  "name" : "Microsoft Teams Outbound Connector",
+  "id" : "io.camunda.connectors.MSTeams.v1",
   "description" : "Create, update, and send a message to your Microsoft Teams",
   "keywords" : [ "create chat", "get chat by ID", "list chats", "list chat members", "send message in chat", "list messages in chat", "create channel", "get channel", "list channels", "send message to channel", "list channel messages", "list message replies", "list members", "chat", "messaging", "team", "channel", "notification" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
-  "version" : 7,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.9"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -43,14 +40,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:connector-microsoft-teams:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.type",
     "label" : "Type",
@@ -1123,282 +1118,10 @@
     },
     "type" : "Text"
   }, {
-    "id" : "data.documents_documentMode",
-    "label" : "Number of documents",
-    "value" : "single",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.documents_documentMode",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Single document",
-      "value" : "single"
-    }, {
-      "name" : "Multiple documents",
-      "value" : "multiple"
-    } ]
-  }, {
-    "id" : "data.documents_single_documentSource",
-    "label" : "Document source",
-    "value" : "camunda",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.documents_single_documentSource",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.documents_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Camunda Document",
-      "value" : "camunda"
-    }, {
-      "name" : "Inline Content",
-      "value" : "inline"
-    }, {
-      "name" : "From URL",
-      "value" : "external"
-    } ]
-  }, {
-    "id" : "data.documents_single_camundaReference",
-    "label" : "Camunda document",
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "id" : "data.sendMessageToChannel.documents",
+    "label" : "documents",
+    "optional" : true,
     "feel" : "required",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.documents_single_camundaReference",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.documents_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data.documents_single_documentSource",
-        "equals" : "camunda",
-        "type" : "simple"
-      }, {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.documents_single_inline_content",
-    "label" : "Content",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.documents_single_inline_content",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.documents_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data.documents_single_documentSource",
-        "equals" : "inline",
-        "type" : "simple"
-      }, {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.documents_single_inline_fileName",
-    "label" : "File name",
-    "feel" : "optional",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.documents_single_inline_fileName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.documents_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data.documents_single_documentSource",
-        "equals" : "inline",
-        "type" : "simple"
-      }, {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.documents_single_inline_contentType",
-    "label" : "Content type",
-    "feel" : "optional",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.documents_single_inline_contentType",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.documents_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data.documents_single_documentSource",
-        "equals" : "inline",
-        "type" : "simple"
-      }, {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.documents_single_external_url",
-    "label" : "URL",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.documents_single_external_url",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.documents_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data.documents_single_documentSource",
-        "equals" : "external",
-        "type" : "simple"
-      }, {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.documents_single_external_fileName",
-    "label" : "File name",
-    "feel" : "optional",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.documents_single_external_fileName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.documents_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data.documents_single_documentSource",
-        "equals" : "external",
-        "type" : "simple"
-      }, {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.documents_multiple_expression",
-    "label" : "Documents",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.documents_multiple_expression",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.documents_documentMode",
-        "equals" : "multiple",
-        "type" : "simple"
-      }, {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.documents__composer",
-    "value" : "=if documents_documentMode = \"multiple\" then documents_multiple_expression else if documents_single_documentSource = \"camunda\" then [documents_single_camundaReference] else if documents_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: documents_single_inline_content, name: documents_single_inline_fileName, contentType: documents_single_inline_contentType }] else if documents_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: documents_single_external_url, name: documents_single_external_fileName }] else []",
     "group" : "data",
     "binding" : {
       "name" : "data.documents",
@@ -1415,7 +1138,7 @@
         "type" : "simple"
       } ]
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "data.sendMessageToChannel.attachments",
     "label" : "Attachments",
@@ -1763,7 +1486,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "7",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

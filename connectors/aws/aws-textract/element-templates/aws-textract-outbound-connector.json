@@ -5,7 +5,7 @@
   "description" : "Extract text and data using AWS Textract.",
   "keywords" : [ "extract text", "extract data", "extract text from image", "extract data from image", "ocr", "OCR", "document processing", "text extraction", "analyze document", "asynchronous", "real-time" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-textract/",
-  "version" : 4,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.6"
+    "camunda" : "^8.9"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -213,14 +213,169 @@
     },
     "type" : "String"
   }, {
-    "id" : "input.document",
-    "label" : "Camunda Document",
+    "id" : "input.document_documentSource",
+    "label" : "Document source",
     "description" : "The Camunda document of the process that should be analyzed.",
-    "optional" : false,
+    "value" : "camunda",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document_documentSource",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.documentLocationType",
+      "equals" : "UPLOADED",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Camunda Document",
+      "value" : "camunda"
+    }, {
+      "name" : "Inline Content",
+      "value" : "inline"
+    }, {
+      "name" : "From URL",
+      "value" : "external"
+    } ]
+  }, {
+    "id" : "input.document_camundaReference",
+    "label" : "Camunda document",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "required",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document_camundaReference",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.documentLocationType",
+        "equals" : "UPLOADED",
+        "type" : "simple"
+      }, {
+        "property" : "input.document_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.document_inline_content",
+    "label" : "Content",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document_inline_content",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.documentLocationType",
+        "equals" : "UPLOADED",
+        "type" : "simple"
+      }, {
+        "property" : "input.document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.document_inline_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document_inline_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.documentLocationType",
+        "equals" : "UPLOADED",
+        "type" : "simple"
+      }, {
+        "property" : "input.document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.document_inline_contentType",
+    "label" : "Content type",
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document_inline_contentType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.documentLocationType",
+        "equals" : "UPLOADED",
+        "type" : "simple"
+      }, {
+        "property" : "input.document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.document_external_url",
+    "label" : "URL",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document_external_url",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.documentLocationType",
+        "equals" : "UPLOADED",
+        "type" : "simple"
+      }, {
+        "property" : "input.document_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.document_external_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document_external_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.documentLocationType",
+        "equals" : "UPLOADED",
+        "type" : "simple"
+      }, {
+        "property" : "input.document_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.document__composer",
+    "value" : "=if document_documentSource = \"camunda\" then document_camundaReference else if document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: document_inline_content, name: document_inline_fileName, contentType: document_inline_contentType } else if document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: document_external_url, name: document_external_fileName } else null",
     "group" : "document",
     "binding" : {
       "name" : "input.document",
@@ -231,7 +386,7 @@
       "equals" : "UPLOADED",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "input.executionType",
     "label" : "Execution type",
@@ -245,11 +400,6 @@
     "binding" : {
       "name" : "input.executionType",
       "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.documentLocationType",
-      "equals" : "S3",
-      "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -486,7 +636,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "5",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

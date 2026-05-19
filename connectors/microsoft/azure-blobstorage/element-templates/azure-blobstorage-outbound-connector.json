@@ -5,7 +5,7 @@
   "description" : "Upload and download files from Azure Blob Storage.",
   "keywords" : [ "download file from azure blob storage", "upload file to azure blob storage", "download blob", "upload blob", "download file", "upload file", "blob storage", "file storage", "cloud storage" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
-  "version" : 2,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -280,13 +280,169 @@
     "tooltip" : "A container acts as a directory that organizes a set of blobs.",
     "type" : "String"
   }, {
-    "id" : "uploadOperationDocument",
-    "label" : "Document",
-    "optional" : false,
+    "id" : "operation_document_documentSource",
+    "label" : "Document source",
+    "value" : "camunda",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_documentSource",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "uploadBlob",
+      "type" : "simple"
+    },
+    "tooltip" : "Document to be uploaded to Azure Blob Storage.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Camunda Document",
+      "value" : "camunda"
+    }, {
+      "name" : "Inline Content",
+      "value" : "inline"
+    }, {
+      "name" : "From URL",
+      "value" : "external"
+    } ]
+  }, {
+    "id" : "operation_document_camundaReference",
+    "label" : "Camunda document",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_camundaReference",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadBlob",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation_document_inline_content",
+    "label" : "Content",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_inline_content",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadBlob",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation_document_inline_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_inline_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadBlob",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation_document_inline_contentType",
+    "label" : "Content type",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_inline_contentType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadBlob",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation_document_external_url",
+    "label" : "URL",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_external_url",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadBlob",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation_document_external_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_external_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadBlob",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation.document__composer",
+    "value" : "=if operation_document_documentSource = \"camunda\" then operation_document_camundaReference else if operation_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: operation_document_inline_content, name: operation_document_inline_fileName, contentType: operation_document_inline_contentType } else if operation_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: operation_document_external_url, name: operation_document_external_fileName } else null",
     "group" : "operation",
     "binding" : {
       "name" : "operation.document",
@@ -297,8 +453,7 @@
       "equals" : "uploadBlob",
       "type" : "simple"
     },
-    "tooltip" : "Document to be uploaded to Azure Blob Storage.",
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "uploadOperationFileName",
     "label" : "Document file name",
@@ -340,7 +495,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

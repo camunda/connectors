@@ -5,7 +5,7 @@
   "description" : "Manage Google Drive files and folders",
   "keywords" : [ "create file", "create file from template", "create folder", "upload file", "download file", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.3"
+    "camunda" : "^8.9"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -286,14 +286,169 @@
     },
     "type" : "String"
   }, {
-    "id" : "resource.uploadData.document",
-    "label" : "Document",
+    "id" : "resource.uploadData.document_documentSource",
+    "label" : "Document source",
     "description" : "Upload camunda document, <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">see documentation</a>",
-    "optional" : false,
+    "value" : "camunda",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.uploadData.document_documentSource",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "resource.type",
+      "equals" : "upload",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Camunda Document",
+      "value" : "camunda"
+    }, {
+      "name" : "Inline Content",
+      "value" : "inline"
+    }, {
+      "name" : "From URL",
+      "value" : "external"
+    } ]
+  }, {
+    "id" : "resource.uploadData.document_camundaReference",
+    "label" : "Camunda document",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "required",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.uploadData.document_camundaReference",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "resource.type",
+        "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "resource.uploadData.document_inline_content",
+    "label" : "Content",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.uploadData.document_inline_content",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "resource.type",
+        "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "resource.uploadData.document_inline_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.uploadData.document_inline_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "resource.type",
+        "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "resource.uploadData.document_inline_contentType",
+    "label" : "Content type",
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.uploadData.document_inline_contentType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "resource.type",
+        "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "resource.uploadData.document_external_url",
+    "label" : "URL",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.uploadData.document_external_url",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "resource.type",
+        "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "resource.uploadData.document_external_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.uploadData.document_external_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "resource.type",
+        "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "resource.uploadData.document__composer",
+    "value" : "=if document_documentSource = \"camunda\" then document_camundaReference else if document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: document_inline_content, name: document_inline_fileName, contentType: document_inline_contentType } else if document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: document_external_url, name: document_external_fileName } else null",
     "group" : "operationDetails",
     "binding" : {
       "name" : "resource.uploadData.document",
@@ -304,12 +459,12 @@
       "equals" : "upload",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
