@@ -109,6 +109,18 @@
       ]
     },
     {
+      "description": "Exclude broken Confluent schema registry release that references missing org.eclipse.jetty:jetty-bom:9.4.59.",
+      "matchBaseBranches": [
+        "stable/8.7"
+      ],
+      "matchPackageNames": [
+        "io.confluent:kafka-avro-serializer",
+        "io.confluent:kafka-json-schema-serializer",
+        "io.confluent:kafka-schema-serializer"
+      ],
+      "allowedVersions": "!/7\\.9\\.7$/"
+    },
+    {
       "matchPackageNames": [
         "camunda/infra-global-github-actions"
       ],
