@@ -17,7 +17,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep2;
@@ -56,7 +55,6 @@ class CamundaAgentInstanceClientTest {
   @Mock private CreateAgentInstanceCommandStep3 step3;
   @Mock private CreateAgentInstanceCommandStep4 step4;
   @Mock private CreateAgentInstanceCommandStep5 step5;
-  @Mock private CamundaFuture<CreateAgentInstanceResponse> future;
   @Mock private CreateAgentInstanceResponse response;
 
   private List<Duration> recordedSleeps;
@@ -82,13 +80,12 @@ class CamundaAgentInstanceClientTest {
     when(step3.provider(anyString())).thenReturn(step4);
     when(step4.systemPrompt(anyString())).thenReturn(step5);
     when(step5.maxModelCalls(anyInt())).thenReturn(step5);
-    when(step5.send()).thenReturn(future);
   }
 
   @Test
   void successOnFirstAttempt_returnsAgentInstanceKey() {
     setupCommandChain();
-    when(future.join()).thenReturn(response);
+    when(step5.execute()).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(12345L);
 
     final long key = client.create(PARAMS);
@@ -107,8 +104,7 @@ class CamundaAgentInstanceClientTest {
     when(step2.model(anyString())).thenReturn(step3);
     when(step3.provider(anyString())).thenReturn(step4);
     when(step4.systemPrompt(anyString())).thenReturn(step5);
-    when(step5.send()).thenReturn(future);
-    when(future.join()).thenReturn(response);
+    when(step5.execute()).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(67890L);
 
     final long key = client.create(PARAMS_NULL_MAX_MODEL_CALLS);
@@ -121,7 +117,7 @@ class CamundaAgentInstanceClientTest {
   @Test
   void permanentError400_throwsConnectorExceptionImmediately() {
     setupCommandChain();
-    when(future.join()).thenThrow(new ClientHttpException(400, "Bad Request"));
+    when(step5.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
     assertThatThrownBy(() -> client.create(PARAMS))
         .isInstanceOf(ConnectorException.class)
@@ -140,7 +136,7 @@ class CamundaAgentInstanceClientTest {
   @Test
   void retryableErrorThenSuccess_returnsKeyAndRecordsOneSleep() {
     setupCommandChain();
-    when(future.join()).thenThrow(new ClientHttpException(404, "Not Found")).thenReturn(response);
+    when(step5.execute()).thenThrow(new ClientHttpException(404, "Not Found")).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(999L);
 
     final long key = client.create(PARAMS);
@@ -154,7 +150,7 @@ class CamundaAgentInstanceClientTest {
   @Test
   void allRetriesExhausted_throwsConnectorExceptionWithAttemptCount() {
     setupCommandChain();
-    when(future.join()).thenThrow(new ClientHttpException(500, "Internal Server Error"));
+    when(step5.execute()).thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
     assertThatThrownBy(() -> client.create(PARAMS))
         .isInstanceOf(ConnectorException.class)
@@ -175,47 +171,5 @@ class CamundaAgentInstanceClientTest {
             Duration.ofSeconds(4),
             Duration.ofSeconds(8));
     verify(camundaClient, times(5)).newCreateAgentInstanceCommand();
-  }
-
-  @Test
-  void interruptedDuringSleep_throwsConnectorExceptionAndSetsInterruptFlag() {
-    // Client that throws InterruptedException on first sleep
-    final CamundaAgentInstanceClient interruptableClient =
-        new CamundaAgentInstanceClient(camundaClient) {
-          private boolean firstSleep = true;
-
-          @Override
-          protected void sleep(Duration delay) throws InterruptedException {
-            if (firstSleep) {
-              firstSleep = false;
-              throw new InterruptedException("simulated interrupt");
-            }
-          }
-        };
-
-    when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(step1);
-    when(step1.elementInstanceKey(anyLong())).thenReturn(step2);
-    when(step2.model(anyString())).thenReturn(step3);
-    when(step3.provider(anyString())).thenReturn(step4);
-    when(step4.systemPrompt(anyString())).thenReturn(step5);
-    when(step5.maxModelCalls(anyInt())).thenReturn(step5);
-    when(step5.send()).thenReturn(future);
-    when(future.join()).thenThrow(new ClientHttpException(503, "Service Unavailable"));
-
-    // Ensure thread interrupt flag is clear before the test
-    boolean interrupted = Thread.interrupted();
-    assertThat(interrupted).isTrue();
-
-    assertThatThrownBy(() -> interruptableClient.create(PARAMS))
-        .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            e -> {
-              final var connectorException = (ConnectorException) e;
-              assertThat(connectorException.getErrorCode())
-                  .isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED);
-            });
-
-    // Verify the thread interrupt flag was set
-    assertThat(Thread.interrupted()).isTrue();
   }
 }

@@ -62,7 +62,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     if (limits != null && limits.maxModelCalls() != null) {
       command = command.maxModelCalls(limits.maxModelCalls());
     }
-    return command.send().join().getAgentInstanceKey();
+    var result = command.execute();
+
+    return result.getAgentInstanceKey();
   }
 
   private ConnectorException buildException(
