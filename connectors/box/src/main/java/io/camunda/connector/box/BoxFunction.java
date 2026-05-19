@@ -17,7 +17,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "operation"},
     type = "io.camunda:box:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.9",
     id = "io.camunda.connectors.box",
     name = "Box Outbound Connector",
     description = "Interact with the Box Document API",
@@ -33,7 +33,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "document management"
     },
     inputDataClass = BoxRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),

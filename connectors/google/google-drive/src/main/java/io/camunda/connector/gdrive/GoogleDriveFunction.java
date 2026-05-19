@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.9",
     id = "io.camunda.connectors.GoogleDrive.v1",
     name = "Google Drive Outbound Connector",
     description = "Manage Google Drive files and folders",
@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
       "document management"
     },
     inputDataClass = GoogleDriveRequest.class,
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),

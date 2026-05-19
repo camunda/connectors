@@ -26,12 +26,12 @@ import java.util.function.Function;
     },
     type = "io.camunda:google-gcs:1")
 @ElementTemplate(
-    engineVersion = "^8.8",
+    engineVersion = "^8.9",
     id = "io.camunda.connectors.google.gcp.v1",
     name = "Google Cloud Storage Outbound Connector",
     description = "Upload and download files from Google Cloud Storage.",
     inputDataClass = ObjectStorageRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),

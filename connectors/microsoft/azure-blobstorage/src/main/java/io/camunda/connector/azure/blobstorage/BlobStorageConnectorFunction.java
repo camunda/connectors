@@ -31,7 +31,7 @@ import java.util.function.Function;
     name = "Azure Blob Storage Outbound Connector",
     description = "Upload and download files from Azure Blob Storage.",
     inputDataClass = BlobStorageRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
