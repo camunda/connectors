@@ -207,9 +207,7 @@ public class TemplatePropertiesUtil {
 
   /**
    * Routes a {@code Document} / {@code List<Document>} field or parameter to {@link
-   * DocumentPropertyHandler}. Returns {@code null} when the element's reflective metadata is
-   * insufficient to determine the {@code List} element type — the caller will then fall through to
-   * the normal handling path.
+   * DocumentPropertyHandler}.
    */
   private static List<PropertyBuilder> handleTemplateDocumentProperty(
       java.lang.reflect.AnnotatedElement element,
@@ -240,11 +238,6 @@ public class TemplatePropertiesUtil {
             + declaredType.getSimpleName());
   }
 
-  /**
-   * Extracts the element type of a generic {@code List<X>} field or parameter via {@link
-   * java.lang.reflect.ParameterizedType}. Returns {@code null} when the generic type information is
-   * not available.
-   */
   private static Class<?> getListElementType(java.lang.reflect.AnnotatedElement element) {
     java.lang.reflect.Type genericType = null;
     if (element instanceof Field field) {

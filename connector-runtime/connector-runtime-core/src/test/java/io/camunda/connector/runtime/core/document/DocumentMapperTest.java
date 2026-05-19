@@ -84,63 +84,6 @@ public class DocumentMapperTest {
   }
 
   @Test
-  void documentListShouldDeserializeFromSingleInlineWrapper() throws JsonProcessingException {
-    var objectMapper = createObjectMapper();
-    final var json =
-        """
-            {
-              "documents": {
-                "documentMode": "single",
-                "single": {
-                  "documentSource": "inline",
-                  "inline": {
-                    "content": "aGVsbG8=",
-                    "fileName": "greeting.txt",
-                    "contentType": "text/plain"
-                  }
-                }
-              }
-            }
-            """;
-    var actual = objectMapper.readValue(json, TestRecordWithDocumentList.class);
-    assertThat(actual.documents()).hasSize(1);
-    assertThat(actual.documents().getFirst().metadata().getFileName()).isEqualTo("greeting.txt");
-  }
-
-  @Test
-  void documentListShouldDeserializeFromSingleCamundaWrapper() throws JsonProcessingException {
-    var objectMapper = createObjectMapper();
-    final var documentReference =
-        new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "hash", null);
-    final var refJson = objectMapper.writeValueAsString(documentReference);
-    final var json =
-        "{\"documents\":{\"documentMode\":\"single\",\"single\":{\"documentSource\":\"camunda\",\"camundaReference\":"
-            + refJson
-            + "}}}";
-    var actual = objectMapper.readValue(json, TestRecordWithDocumentList.class);
-    assertThat(actual.documents()).hasSize(1);
-    assertThat(actual.documents().getFirst().reference()).isEqualTo(documentReference);
-  }
-
-  @Test
-  void documentListShouldDeserializeFromMultipleExpressionWrapper() throws JsonProcessingException {
-    var objectMapper = createObjectMapper();
-    final var ref1 =
-        new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "h1", null);
-    final var ref2 =
-        new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "h2", null);
-    final var arrJson = objectMapper.writeValueAsString(List.of(ref1, ref2));
-    final var json =
-        "{\"documents\":{\"documentMode\":\"multiple\",\"multiple\":{\"expression\":"
-            + arrJson
-            + "}}}";
-    var actual = objectMapper.readValue(json, TestRecordWithDocumentList.class);
-    assertThat(actual.documents()).hasSize(2);
-    assertThat(actual.documents().get(0).reference()).isEqualTo(ref1);
-    assertThat(actual.documents().get(1).reference()).isEqualTo(ref2);
-  }
-
-  @Test
   void intrinsicFunctionShouldBeDeserialized() throws JsonProcessingException {
     var objectMapper = createObjectMapper();
 
@@ -157,24 +100,6 @@ public class DocumentMapperTest {
     var actual = objectMapper.readValue(json, TestRecordWithString.class);
     assertThat(actual.value()).isEqualTo(Base64.getEncoder().encodeToString("hello".getBytes()));
   }
-
-  @Test
-  void documentListNestedInRecordShouldDeserializeFromSingleWrapper()
-      throws JsonProcessingException {
-    var objectMapper = createObjectMapper();
-    final var documentReference =
-        new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "hash", null);
-    final var refJson = objectMapper.writeValueAsString(documentReference);
-    final var json =
-        "{\"data\":{\"documents\":{\"documentMode\":\"single\",\"single\":{\"documentSource\":\"camunda\",\"camundaReference\":"
-            + refJson
-            + "}}}}";
-    var actual = objectMapper.readValue(json, TestRecordWithNestedDocumentList.class);
-    assertThat(actual.data().documents()).hasSize(1);
-    assertThat(actual.data().documents().getFirst().reference()).isEqualTo(documentReference);
-  }
-
-  private record TestRecordWithNestedDocumentList(TestRecordWithDocumentList data) {}
 
   private record TestRecordWithDocumentList(List<Document> documents) {}
 

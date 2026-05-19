@@ -33,9 +33,6 @@ public @interface TemplateDocumentProperty {
   /** Custom property ID that can be referenced in conditions. */
   String id() default "";
 
-  /** Custom label of the property. */
-  String label() default "";
-
   /** Custom binding name of the property. Defines the binding root for the generated sub-fields. */
   TemplateProperty.PropertyBinding binding() default @TemplateProperty.PropertyBinding(name = "");
 

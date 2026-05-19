@@ -17,7 +17,6 @@
 package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
-import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentSourceWrapper;
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isIntrinsicFunction;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -55,14 +54,6 @@ public class DocumentDeserializer extends AbstractDeserializer<Document> {
       throws IOException {
     if (isDocumentReference(node)) {
       final var reference = context.readTreeAsValue(node, DocumentReferenceModel.class);
-      return documentFactory.resolve(reference);
-    }
-    if (isDocumentSourceWrapper(node)) {
-      final JsonNode refNode = DocumentSourceWrapperConverter.toDocumentReferenceNode(node);
-      if (refNode == null) {
-        return null;
-      }
-      final var reference = context.readTreeAsValue(refNode, DocumentReferenceModel.class);
       return documentFactory.resolve(reference);
     }
     if (node.isArray()) {

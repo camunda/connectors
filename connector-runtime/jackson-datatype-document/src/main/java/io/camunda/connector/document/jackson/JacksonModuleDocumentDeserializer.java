@@ -17,18 +17,11 @@
 package io.camunda.connector.document.jackson;
 
 import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.BeanDescription;
-import com.fasterxml.jackson.databind.DeserializationConfig;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.type.CollectionLikeType;
-import com.fasterxml.jackson.databind.type.CollectionType;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.deserializer.ByteArrayDeserializer;
 import io.camunda.connector.document.jackson.deserializer.DocumentDeserializer;
-import io.camunda.connector.document.jackson.deserializer.DocumentListDeserializer;
 import io.camunda.connector.document.jackson.deserializer.InputStreamDeserializer;
 import io.camunda.connector.document.jackson.deserializer.ObjectDeserializer;
 import io.camunda.connector.document.jackson.deserializer.StringDeserializer;
@@ -86,42 +79,7 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
           String.class,
           new StringDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
     }
-    setDeserializerModifier(new ListOfDocumentDeserializerModifier());
     super.setupModule(context);
-  }
-
-  /**
-   * Wraps the default {@code List<Document>} deserializer so it also accepts the
-   * {@code @TemplateDocumentProperty} {@code documentMode} wrapper shape. Other collection element
-   * types are passed through unchanged.
-   */
-  private static class ListOfDocumentDeserializerModifier extends BeanDeserializerModifier {
-    @Override
-    public JsonDeserializer<?> modifyCollectionDeserializer(
-        DeserializationConfig config,
-        CollectionType type,
-        BeanDescription beanDesc,
-        JsonDeserializer<?> deserializer) {
-      return maybeWrap(type, deserializer);
-    }
-
-    @Override
-    public JsonDeserializer<?> modifyCollectionLikeDeserializer(
-        DeserializationConfig config,
-        CollectionLikeType type,
-        BeanDescription beanDesc,
-        JsonDeserializer<?> deserializer) {
-      return maybeWrap(type, deserializer);
-    }
-
-    private static JsonDeserializer<?> maybeWrap(
-        com.fasterxml.jackson.databind.JavaType type, JsonDeserializer<?> deserializer) {
-      if (type.getContentType() != null
-          && Document.class.equals(type.getContentType().getRawClass())) {
-        return new DocumentListDeserializer(deserializer);
-      }
-      return deserializer;
-    }
   }
 
   public static class DocumentModuleSettings {
