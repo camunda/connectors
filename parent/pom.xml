@@ -80,7 +80,7 @@ limitations under the License.</license.inlineheader>
     <version.grpc>1.81.0</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
-    <version.protobuf>4.34.1</version.protobuf>
+    <version.protobuf>4.35.0</version.protobuf>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
