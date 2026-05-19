@@ -73,8 +73,8 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
           persist-credentials: false # we will use a GitHub App token for pushing commits and tags, so we need to disable the default token
-      - name: Install asdf & tools
-        uses: asdf-vm/actions/install@v4
+      - name: Install bc calculator
+        run: sudo apt-get update && sudo apt-get install -y bc
       - name: Identify previous release version
         id: prev_version
         uses: camunda/infra-global-github-actions/previous-version@main
