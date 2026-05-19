@@ -94,7 +94,7 @@ limitations under the License.</license.inlineheader>
          Remove once Spring Boot upgrades to Tomcat >= 10.1.55 (likely in 3.5.15+).
          Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
     <version.tomcat>10.1.55</version.tomcat>
-    <version.spring-cloud-gcp-starter-logging>7.4.7</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>7.4.8</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
