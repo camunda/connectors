@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
@@ -115,5 +116,18 @@ class ProviderModelExtractorTest {
                 new OpenAiCompatibleModel("llama-3.1", null)));
 
     assertThat(ProviderModelExtractor.extract(provider)).isEqualTo("llama-3.1");
+  }
+
+  @Test
+  void shouldThrowWhenModelIsNullInProviderConfiguration() {
+    // given
+    final var provider =
+        new OpenAiProviderConfiguration(
+            new OpenAiConnection(new OpenAiAuthentication("api-key", null, null), null, null));
+
+    // when / then
+    assertThatThrownBy(() -> ProviderModelExtractor.extract(provider))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Could not extract model from provider configuration");
   }
 }
