@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.inbound.controller.exception;
 
-import io.camunda.connector.runtime.inbound.executable.InboundExecutableNotFoundException;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableNotResettableException;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl.InboundLifecycleTimeoutException;
 import org.springframework.http.HttpStatus;
@@ -28,11 +27,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
   @ExceptionHandler(DataNotFoundException.class)
   public ResponseEntity<String> handleNotFound(DataNotFoundException ex) {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
-  }
-
-  @ExceptionHandler(InboundExecutableNotFoundException.class)
-  public ResponseEntity<String> handleExecutableNotFound(InboundExecutableNotFoundException ex) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
   }
 

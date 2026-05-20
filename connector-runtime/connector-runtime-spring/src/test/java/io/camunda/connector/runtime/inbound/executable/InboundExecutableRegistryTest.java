@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.executable;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -30,6 +31,7 @@ import io.camunda.connector.runtime.core.inbound.*;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.ProcessStateChanged;
 import io.camunda.connector.runtime.inbound.executable.lifecycle.VirtualThreadLaneDispatcher;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
@@ -141,6 +143,15 @@ public class InboundExecutableRegistryTest {
 
     // then
     verify(executable).activate(context);
+  }
+
+  @Test
+  public void reset_unknownExecutable_shouldThrowDataNotFoundException() {
+    var executableId = ExecutableId.fromDeduplicationId("unknown");
+
+    assertThatThrownBy(() -> registry.reset(executableId))
+        .isInstanceOf(DataNotFoundException.class)
+        .hasMessageContaining(executableId.toString());
   }
 
   @Test

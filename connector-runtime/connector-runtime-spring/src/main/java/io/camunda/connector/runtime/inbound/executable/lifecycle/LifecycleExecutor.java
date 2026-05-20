@@ -20,9 +20,9 @@ import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
+import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.inbound.executable.BatchExecutableProcessor;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.ProcessStateChanged;
-import io.camunda.connector.runtime.inbound.executable.InboundExecutableNotFoundException;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableNotResettableException;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateStore;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService;
@@ -43,9 +43,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Synchronous lifecycle pipeline. Always invoked from a single per-{@link ProcessKey} lane thread,
- * so this class holds no locks and never returns futures. Connectors own their own internal
- * recovery; the runtime owns activation, deactivation, and operator-driven reset.
+ * Synchronous lifecycle pipeline. Always invoked from a single per-{@link LaneKey} lane thread, so
+ * this class holds no locks and never returns futures. Connectors own their own internal recovery;
+ * the runtime owns activation, deactivation, and operator-driven reset.
  *
  * <p>Concurrency invariant: every mutation of {@link InboundExecutableStateStore} for a {@code
  * (tenantId, bpmnProcessId)} happens on that key's lane thread.
@@ -99,7 +99,7 @@ public class LifecycleExecutor {
   public RegisteredExecutable reset(ExecutableId id) {
     var current = stateStore.get(id);
     if (current == null) {
-      throw new InboundExecutableNotFoundException(id);
+      throw new DataNotFoundException(RegisteredExecutable.class, id.toString());
     }
     if (!(current instanceof Activated) && !(current instanceof FailedToActivate)) {
       throw new InboundExecutableNotResettableException(id, current.getClass().getSimpleName());

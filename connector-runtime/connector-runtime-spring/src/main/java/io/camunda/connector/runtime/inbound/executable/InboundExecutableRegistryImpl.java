@@ -20,9 +20,10 @@ import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
+import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.inbound.executable.lifecycle.LaneDispatcher;
+import io.camunda.connector.runtime.inbound.executable.lifecycle.LaneKey;
 import io.camunda.connector.runtime.inbound.executable.lifecycle.LifecycleExecutor;
-import io.camunda.connector.runtime.inbound.executable.lifecycle.ProcessKey;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -81,7 +82,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
           stateChanged.bpmnProcessId(),
           stateChanged.tenantId());
       dispatcher.submit(
-          ProcessKey.of(stateChanged), () -> lifecycle.applyProcessStateChange(stateChanged));
+          LaneKey.of(stateChanged), () -> lifecycle.applyProcessStateChange(stateChanged));
       return;
     }
     throw new IllegalArgumentException("Unsupported event type: " + event.getClass());
@@ -93,7 +94,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
    */
   void handleEvent(InboundExecutableEvent.ProcessStateChanged event) {
     var future =
-        dispatcher.submit(ProcessKey.of(event), () -> lifecycle.applyProcessStateChange(event));
+        dispatcher.submit(LaneKey.of(event), () -> lifecycle.applyProcessStateChange(event));
     awaitFuture(future, resetTimeout);
   }
 
@@ -113,9 +114,9 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   public RegisteredExecutable reset(ExecutableId id) {
     var current = stateStore.get(id);
     if (current == null) {
-      throw new InboundExecutableNotFoundException(id);
+      throw new DataNotFoundException(RegisteredExecutable.class, id.toString());
     }
-    var key = ProcessKey.of(current);
+    var key = LaneKey.of(current);
     var future = dispatcher.submit(key, () -> lifecycle.reset(id));
     awaitFuture(future, resetTimeout);
     return stateStore.get(id);

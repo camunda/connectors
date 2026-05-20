@@ -20,8 +20,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 /**
- * Routes lifecycle work to a per-{@link ProcessKey} serial executor. Different keys run in
- * parallel; tasks for the same key run one at a time in submission order.
+ * Routes lifecycle work to a per-{@link LaneKey} serial executor. Different keys run in parallel;
+ * tasks for the same key run one at a time in submission order.
  *
  * <p>Every submission returns a {@link Future} held by the underlying executor, and exceptions are
  * caught and logged at the dispatcher boundary.
@@ -29,8 +29,8 @@ import java.util.concurrent.Future;
 public interface LaneDispatcher {
 
   /** Submits a task to the lane for {@code key}. The task runs synchronously on the lane thread. */
-  Future<?> submit(ProcessKey key, Runnable task);
+  Future<?> submit(LaneKey key, Runnable task);
 
   /** Submits a task to the lane for {@code key} and returns its result via the future. */
-  <T> Future<T> submit(ProcessKey key, Callable<T> task);
+  <T> Future<T> submit(LaneKey key, Callable<T> task);
 }

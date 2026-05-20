@@ -21,21 +21,21 @@ import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Pr
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 
 /**
- * Identifies a process for the purpose of serialising lifecycle work. Every mutation that touches
+ * Identifies a process for the purpose of serializing lifecycle work. Every mutation that touches
  * executables for the same {@code (tenantId, bpmnProcessId)} pair must run on the same lane, keyed
  * by this record.
  */
-public record ProcessKey(String tenantId, String bpmnProcessId) {
+public record LaneKey(String tenantId, String bpmnProcessId) {
 
-  public static ProcessKey of(ProcessStateChanged event) {
-    return new ProcessKey(event.tenantId(), event.bpmnProcessId());
+  public static LaneKey of(ProcessStateChanged event) {
+    return new LaneKey(event.tenantId(), event.bpmnProcessId());
   }
 
-  public static ProcessKey of(InboundConnectorElement element) {
-    return new ProcessKey(element.tenantId(), element.element().bpmnProcessId());
+  public static LaneKey of(InboundConnectorElement element) {
+    return new LaneKey(element.tenantId(), element.element().bpmnProcessId());
   }
 
-  public static ProcessKey of(RegisteredExecutable executable) {
+  public static LaneKey of(RegisteredExecutable executable) {
     var elements =
         switch (executable) {
           case RegisteredExecutable.Activated a -> a.context().connectorElements();
@@ -47,6 +47,6 @@ public record ProcessKey(String tenantId, String bpmnProcessId) {
       throw new IllegalArgumentException(
           "Cannot derive ProcessKey from executable with no elements: " + executable.id());
     }
-    return ProcessKey.of(elements.getFirst());
+    return LaneKey.of(elements.getFirst());
   }
 }

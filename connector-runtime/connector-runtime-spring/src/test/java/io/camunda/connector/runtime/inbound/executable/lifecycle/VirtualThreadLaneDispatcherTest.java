@@ -38,7 +38,7 @@ class VirtualThreadLaneDispatcherTest {
 
   @Test
   void tasksForSameKeyRunFifoSerially() throws Exception {
-    var key = new ProcessKey("tenant", "proc");
+    var key = new LaneKey("tenant", "proc");
     var observed = new ArrayList<Integer>();
     int N = 100;
 
@@ -96,12 +96,12 @@ class VirtualThreadLaneDispatcherTest {
    * Generates {@code n} keys whose hashes route to distinct lanes on the given dispatcher. With the
    * default lane count of 128 and small {@code n}, this terminates quickly.
    */
-  private static java.util.List<ProcessKey> keysOnDistinctLanes(
+  private static java.util.List<LaneKey> keysOnDistinctLanes(
       VirtualThreadLaneDispatcher dispatcher, int n) {
-    var byLane = new java.util.HashMap<Integer, ProcessKey>();
+    var byLane = new java.util.HashMap<Integer, LaneKey>();
     int i = 0;
     while (byLane.size() < n) {
-      var key = new ProcessKey("tenant", "proc-" + i++);
+      var key = new LaneKey("tenant", "proc-" + i++);
       byLane.putIfAbsent(dispatcher.laneIndexFor(key), key);
     }
     return new ArrayList<>(byLane.values());
@@ -109,7 +109,7 @@ class VirtualThreadLaneDispatcherTest {
 
   @Test
   void exceptionInTaskDoesNotKillTheLane() throws Exception {
-    var key = new ProcessKey("tenant", "proc");
+    var key = new LaneKey("tenant", "proc");
     var counter = new AtomicInteger();
 
     dispatcher.submit(
@@ -125,14 +125,14 @@ class VirtualThreadLaneDispatcherTest {
 
   @Test
   void callableSubmissionReturnsResult() throws Exception {
-    var key = new ProcessKey("tenant", "proc");
+    var key = new LaneKey("tenant", "proc");
     Future<Integer> result = dispatcher.submit(key, () -> 42);
     assertThat(result.get(2, TimeUnit.SECONDS)).isEqualTo(42);
   }
 
   @Test
   void callableSubmissionPropagatesException() {
-    var key = new ProcessKey("tenant", "proc");
+    var key = new LaneKey("tenant", "proc");
     Future<Integer> result =
         dispatcher.submit(
             key,
@@ -161,7 +161,7 @@ class VirtualThreadLaneDispatcherTest {
     }
 
     for (int i = 0; i < keyCount; i++) {
-      var key = new ProcessKey("tenant", "proc-" + i);
+      var key = new LaneKey("tenant", "proc-" + i);
       var counter = counters.get(i);
       Future<?> last = null;
       for (int j = 0; j < tasksPerKey; j++) {

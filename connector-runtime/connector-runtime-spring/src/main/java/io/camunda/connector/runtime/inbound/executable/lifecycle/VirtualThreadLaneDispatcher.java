@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Striped serial executor backed by virtual threads. A fixed number of lanes is allocated at
- * construction; each {@link ProcessKey} is routed to a lane via {@code hash(key) % laneCount}.
+ * construction; each {@link LaneKey} is routed to a lane via {@code hash(key) % laneCount}.
  *
  * <p>Trade-offs vs. a per-key map of executors:
  *
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  *       many distinct processes the runtime has ever seen.
  *   <li><b>No eviction</b>: lanes are created once at startup and live for the JVM lifetime. No
  *       race conditions, no eviction bookkeeping.
- *   <li><b>Per-key serialization preserved</b>: a given {@link ProcessKey} always maps to the same
+ *   <li><b>Per-key serialization preserved</b>: a given {@link LaneKey} always maps to the same
  *       lane and runs FIFO on that lane.
  *   <li><b>Occasional unrelated-process serialization</b>: two distinct keys whose hashes collide
  *       share a lane and serialize through it. With N=128 lanes and 1000 active processes, average
@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  * <p>Concurrency invariants:
  *
  * <ul>
- *   <li>For a given {@link ProcessKey}, tasks run sequentially in submission order.
+ *   <li>For a given {@link LaneKey}, tasks run sequentially in submission order.
  *   <li>Tasks for keys hashing to distinct lanes run in parallel.
  *   <li>Every task is wrapped in an outer try/catch — exceptions are logged here, never silently
  *       swallowed, and never propagated to the caller via a future they may forget to await.
@@ -78,21 +78,21 @@ public class VirtualThreadLaneDispatcher implements LaneDispatcher {
   }
 
   @Override
-  public Future<?> submit(ProcessKey key, Runnable task) {
+  public Future<?> submit(LaneKey key, Runnable task) {
     return laneFor(key).submit(wrap(key, task));
   }
 
   @Override
-  public <T> Future<T> submit(ProcessKey key, Callable<T> task) {
+  public <T> Future<T> submit(LaneKey key, Callable<T> task) {
     return laneFor(key).submit(wrap(key, task));
   }
 
   /** Visible for tests: returns the lane index that the given key routes to. */
-  int laneIndexFor(ProcessKey key) {
+  int laneIndexFor(LaneKey key) {
     return Math.floorMod(key.hashCode(), lanes.length);
   }
 
-  private ExecutorService laneFor(ProcessKey key) {
+  private ExecutorService laneFor(LaneKey key) {
     int index = laneIndexFor(key);
     LOG.debug(
         "Routing task for {} to lane {} (hash {}, lane count {})",
@@ -103,7 +103,7 @@ public class VirtualThreadLaneDispatcher implements LaneDispatcher {
     return lanes[laneIndexFor(key)];
   }
 
-  private Runnable wrap(ProcessKey key, Runnable task) {
+  private Runnable wrap(LaneKey key, Runnable task) {
     return () -> {
       try {
         task.run();
@@ -113,7 +113,7 @@ public class VirtualThreadLaneDispatcher implements LaneDispatcher {
     };
   }
 
-  private <T> Callable<T> wrap(ProcessKey key, Callable<T> task) {
+  private <T> Callable<T> wrap(LaneKey key, Callable<T> task) {
     return () -> {
       try {
         return task.call();
@@ -127,7 +127,7 @@ public class VirtualThreadLaneDispatcher implements LaneDispatcher {
     };
   }
 
-  private void handleTaskFailure(ProcessKey key, Throwable t) {
+  private void handleTaskFailure(LaneKey key, Throwable t) {
     if (t instanceof InterruptedException) {
       Thread.currentThread().interrupt();
       LOG.debug("Lane task for {} interrupted", key);
