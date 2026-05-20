@@ -30,7 +30,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   public AgentInstanceKey create(InitialAgentInstanceData params) {
     return CamundaApiRetry.execute(
         () -> executeCreate(params),
-        AgentInstanceErrorClassifier::classify,
+        AgentInstanceErrorClassifier.INSTANCE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
         (cause, attempt, reason) -> buildException(params, cause, attempt, reason),

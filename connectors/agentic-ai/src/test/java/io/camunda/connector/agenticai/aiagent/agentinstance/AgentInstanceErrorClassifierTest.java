@@ -22,13 +22,13 @@ class AgentInstanceErrorClassifierTest {
   @ParameterizedTest
   @MethodSource("retryableExceptions")
   void shouldClassifyAsRetryable(Throwable exception) {
-    assertThat(AgentInstanceErrorClassifier.classify(exception)).isEqualTo(RETRYABLE);
+    assertThat(AgentInstanceErrorClassifier.INSTANCE.classify(exception)).isEqualTo(RETRYABLE);
   }
 
   @ParameterizedTest
   @MethodSource("permanentExceptions")
   void shouldClassifyAsPermanent(Throwable exception) {
-    assertThat(AgentInstanceErrorClassifier.classify(exception)).isEqualTo(PERMANENT);
+    assertThat(AgentInstanceErrorClassifier.INSTANCE.classify(exception)).isEqualTo(PERMANENT);
   }
 
   static Stream<Throwable> retryableExceptions() {
