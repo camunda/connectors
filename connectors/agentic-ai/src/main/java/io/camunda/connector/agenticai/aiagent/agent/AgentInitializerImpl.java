@@ -10,7 +10,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.CreateAgentInstanceParams;
+import io.camunda.connector.agenticai.aiagent.agentinstance.InitialAgentInstanceData;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -156,14 +156,14 @@ public class AgentInitializerImpl implements AgentInitializer {
       return agentContext;
     }
 
-    long agentInstanceKey =
-        agentInstanceClient.create(CreateAgentInstanceParams.from(executionContext));
+    final var createdKey =
+        agentInstanceClient.create(InitialAgentInstanceData.from(executionContext));
 
     final var existingMetadata =
         agentContext.metadata() != null
             ? agentContext.metadata()
             : AgentMetadata.of(executionContext.jobContext());
-    return agentContext.withMetadata(existingMetadata.withAgentInstanceKey(agentInstanceKey));
+    return agentContext.withMetadata(existingMetadata.withAgentInstanceKey(createdKey.value()));
   }
 
   private static boolean agentInstanceAlreadyRegistered(AgentContext context) {

@@ -24,6 +24,7 @@ import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgent
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep4;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep5;
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.AiAgentProperties.AgentInstanceProperties.RetriesProperties;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -37,17 +38,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class CamundaAgentInstanceClientTest {
 
+  private static final RetriesProperties RETRIES_CONFIGURATION =
+      new RetriesProperties(4, Duration.ofSeconds(1));
+
   private static final long ELEMENT_INSTANCE_KEY = 77L;
-  private static final CreateAgentInstanceParams PARAMS =
-      new CreateAgentInstanceParams(
+  private static final InitialAgentInstanceData PARAMS =
+      new InitialAgentInstanceData(
           ELEMENT_INSTANCE_KEY,
           "gpt-4o",
           "openai",
           "system prompt",
-          new CreateAgentInstanceParams.Limits(10));
-  private static final CreateAgentInstanceParams PARAMS_NULL_MAX_MODEL_CALLS =
-      new CreateAgentInstanceParams(
-          ELEMENT_INSTANCE_KEY, "gpt-4o", "openai", "system prompt", null);
+          new InitialAgentInstanceData.Limits(10));
+  private static final InitialAgentInstanceData PARAMS_NULL_MAX_MODEL_CALLS =
+      new InitialAgentInstanceData(ELEMENT_INSTANCE_KEY, "gpt-4o", "openai", "system prompt", null);
 
   @Mock private CamundaClient camundaClient;
   @Mock private CreateAgentInstanceCommandStep1 step1;
@@ -64,7 +67,7 @@ class CamundaAgentInstanceClientTest {
   void setUp() {
     recordedSleeps = new ArrayList<>();
     client =
-        new CamundaAgentInstanceClient(camundaClient) {
+        new CamundaAgentInstanceClient(camundaClient, RETRIES_CONFIGURATION) {
           @Override
           protected void sleep(Duration delay) {
             recordedSleeps.add(delay);
@@ -88,9 +91,9 @@ class CamundaAgentInstanceClientTest {
     when(step5.execute()).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(12345L);
 
-    final long key = client.create(PARAMS);
+    final AgentInstanceKey key = client.create(PARAMS);
 
-    assertThat(key).isEqualTo(12345L);
+    assertThat(key).isEqualTo(AgentInstanceKey.of(12345L));
     assertThat(recordedSleeps).isEmpty();
     verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
   }
@@ -105,9 +108,9 @@ class CamundaAgentInstanceClientTest {
     when(step5.execute()).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(67890L);
 
-    final long key = client.create(PARAMS_NULL_MAX_MODEL_CALLS);
+    final AgentInstanceKey key = client.create(PARAMS_NULL_MAX_MODEL_CALLS);
 
-    assertThat(key).isEqualTo(67890L);
+    assertThat(key).isEqualTo(AgentInstanceKey.of(67890L));
     assertThat(recordedSleeps).isEmpty();
     verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
   }
@@ -137,9 +140,9 @@ class CamundaAgentInstanceClientTest {
     when(step5.execute()).thenThrow(new ClientHttpException(404, "Not Found")).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(999L);
 
-    final long key = client.create(PARAMS);
+    final AgentInstanceKey key = client.create(PARAMS);
 
-    assertThat(key).isEqualTo(999L);
+    assertThat(key).isEqualTo(AgentInstanceKey.of(999L));
     assertThat(recordedSleeps).hasSize(1);
     assertThat(recordedSleeps).containsExactly(Duration.ofSeconds(1));
     verify(camundaClient, times(2)).newCreateAgentInstanceCommand();

@@ -177,8 +177,10 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentInstanceClient agentInstanceClient(CamundaClient camundaClient) {
-    return new CamundaAgentInstanceClient(camundaClient);
+  public AgentInstanceClient agentInstanceClient(
+      CamundaClient camundaClient, AgenticAiConnectorsConfigurationProperties configuration) {
+    return new CamundaAgentInstanceClient(
+        camundaClient, configuration.aiagent().agentInstance().retries());
   }
 
   @Bean

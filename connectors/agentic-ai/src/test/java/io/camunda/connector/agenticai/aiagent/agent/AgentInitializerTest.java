@@ -27,7 +27,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.CreateAgentInstanceParams;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.agentinstance.InitialAgentInstanceData;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -152,8 +153,8 @@ class AgentInitializerTest {
     void shouldHandleNullInitialAgentContext() {
       // When initialAgentContext is null, creates new context with INITIALIZING state
       // which triggers agent instance creation then initiateToolDiscovery flow
-      when(agentInstanceClient.create(any())).thenReturn(12345L);
-      // Provider required for CreateAgentInstanceParams.from
+      when(agentInstanceClient.create(any())).thenReturn(AgentInstanceKey.of(12345L));
+      // Provider required for InitialAgentInstanceData.from
       when(executionContext.provider())
           .thenReturn(
               new OpenAiProviderConfiguration(
@@ -619,7 +620,8 @@ class AgentInitializerTest {
     @Test
     void shouldCreateAgentInstanceOnFirstInitialization() {
       // null initialAgentContext → creates INITIALIZING context without agentInstanceKey
-      when(agentInstanceClient.create(any(CreateAgentInstanceParams.class))).thenReturn(12345L);
+      when(agentInstanceClient.create(any(InitialAgentInstanceData.class)))
+          .thenReturn(AgentInstanceKey.of(12345L));
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
@@ -627,7 +629,7 @@ class AgentInitializerTest {
       final var result =
           (AgentContextInitializationResult) agentInitializer.initializeAgent(executionContext);
 
-      verify(agentInstanceClient, times(1)).create(any(CreateAgentInstanceParams.class));
+      verify(agentInstanceClient, times(1)).create(any(InitialAgentInstanceData.class));
       assertThat(result.agentContext().metadata().agentInstanceKey()).isEqualTo(12345L);
     }
 
@@ -653,7 +655,7 @@ class AgentInitializerTest {
       final var failure =
           new ConnectorException(
               ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED, "Failed to create agent instance");
-      when(agentInstanceClient.create(any(CreateAgentInstanceParams.class))).thenThrow(failure);
+      when(agentInstanceClient.create(any(InitialAgentInstanceData.class))).thenThrow(failure);
 
       assertThatThrownBy(() -> agentInitializer.initializeAgent(executionContext))
           .isInstanceOf(ConnectorException.class)

@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class CreateAgentInstanceParamsTest {
+class InitialAgentInstanceDataTest {
 
   private static final long ELEMENT_INSTANCE_KEY = 42L;
   private static final OpenAiProviderConfiguration OPENAI_PROVIDER =
@@ -50,7 +50,7 @@ class CreateAgentInstanceParamsTest {
         .thenReturn(new SystemPromptConfiguration("You are a helpful assistant."));
     when(executionContext.limits()).thenReturn(new LimitsConfiguration(10));
 
-    final var params = CreateAgentInstanceParams.from(executionContext);
+    final var params = InitialAgentInstanceData.from(executionContext);
 
     assertThat(params.elementInstanceKey()).isEqualTo(ELEMENT_INSTANCE_KEY);
     assertThat(params.model()).isEqualTo("gpt-4o");
@@ -65,7 +65,7 @@ class CreateAgentInstanceParamsTest {
     when(executionContext.provider()).thenReturn(OPENAI_PROVIDER);
     when(executionContext.limits()).thenReturn(null);
 
-    final var params = CreateAgentInstanceParams.from(executionContext);
+    final var params = InitialAgentInstanceData.from(executionContext);
 
     assertThat(params.limits()).isNull();
   }
@@ -75,7 +75,7 @@ class CreateAgentInstanceParamsTest {
     when(executionContext.provider()).thenReturn(OPENAI_PROVIDER);
     when(executionContext.limits()).thenReturn(new LimitsConfiguration(10));
 
-    final var params = CreateAgentInstanceParams.from(executionContext);
+    final var params = InitialAgentInstanceData.from(executionContext);
 
     assertThat(params.limits()).isNotNull();
     assertThat(params.limits().maxModelCalls()).isEqualTo(10);
@@ -86,7 +86,7 @@ class CreateAgentInstanceParamsTest {
     when(executionContext.provider()).thenReturn(OPENAI_PROVIDER);
     when(executionContext.systemPrompt()).thenReturn(null);
 
-    final var params = CreateAgentInstanceParams.from(executionContext);
+    final var params = InitialAgentInstanceData.from(executionContext);
 
     assertThat(params.systemPrompt()).isNull();
   }

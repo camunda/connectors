@@ -17,5 +17,5 @@ public interface AgentInstanceClient {
    * @throws ConnectorException with code AGENT_INSTANCE_CREATION_FAILED when retries are exhausted
    *     or a non-retryable error occurs
    */
-  long create(CreateAgentInstanceParams params);
+  AgentInstanceKey create(InitialAgentInstanceData params);
 }

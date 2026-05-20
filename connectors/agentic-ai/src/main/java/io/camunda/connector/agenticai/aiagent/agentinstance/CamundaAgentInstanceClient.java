@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.AiAgentProperties.AgentInstanceProperties.RetriesProperties;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.api.error.ConnectorException;
@@ -16,27 +17,27 @@ import java.time.Duration;
 
 public class CamundaAgentInstanceClient implements AgentInstanceClient {
 
-  private static final Duration INITIAL_RETRY_DELAY = Duration.ofSeconds(1);
-  private static final int MAX_RETRIES = 4; // 5 total attempts
-
   private final CamundaClient camundaClient;
+  private final RetriesProperties retriesProperties;
 
-  public CamundaAgentInstanceClient(CamundaClient camundaClient) {
+  public CamundaAgentInstanceClient(
+      CamundaClient camundaClient, RetriesProperties retriesProperties) {
     this.camundaClient = camundaClient;
+    this.retriesProperties = retriesProperties;
   }
 
   @Override
-  public long create(CreateAgentInstanceParams params) {
+  public AgentInstanceKey create(InitialAgentInstanceData params) {
     return CamundaApiRetry.execute(
         () -> executeCreate(params),
         AgentInstanceErrorClassifier::classify,
-        MAX_RETRIES,
-        INITIAL_RETRY_DELAY,
+        retriesProperties.maxRetries(),
+        retriesProperties.initialRetryDelay(),
         (cause, attempt, reason) -> buildException(params, cause, attempt, reason),
         this::sleep);
   }
 
-  private long executeCreate(CreateAgentInstanceParams params) {
+  private AgentInstanceKey executeCreate(InitialAgentInstanceData params) {
     var command =
         camundaClient
             .newCreateAgentInstanceCommand()
@@ -48,13 +49,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     if (limits != null && limits.maxModelCalls() != null) {
       command = command.maxModelCalls(limits.maxModelCalls());
     }
-    var result = command.execute();
-
-    return result.getAgentInstanceKey();
+    return AgentInstanceKey.of(command.execute().getAgentInstanceKey());
   }
 
   private ConnectorException buildException(
-      CreateAgentInstanceParams params, Throwable cause, int attempt, FailureReason reason) {
+      InitialAgentInstanceData params, Throwable cause, int attempt, FailureReason reason) {
     final String message =
         switch (reason) {
           case PERMANENT_ERROR ->

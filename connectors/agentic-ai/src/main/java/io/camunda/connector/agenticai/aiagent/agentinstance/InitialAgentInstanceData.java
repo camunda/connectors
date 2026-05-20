@@ -8,14 +8,14 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 
-public record CreateAgentInstanceParams(
+public record InitialAgentInstanceData(
     long elementInstanceKey, String model, String provider, String systemPrompt, Limits limits) {
 
   public record Limits(Integer maxModelCalls) {}
 
-  public static CreateAgentInstanceParams from(AgentExecutionContext executionContext) {
+  public static InitialAgentInstanceData from(AgentExecutionContext executionContext) {
     final var limitsConfig = executionContext.limits();
-    return new CreateAgentInstanceParams(
+    return new InitialAgentInstanceData(
         executionContext.jobContext().getElementInstanceKey(),
         ProviderModelExtractor.extract(executionContext.provider()),
         executionContext.provider().providerType(),
