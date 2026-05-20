@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ToolsProperties.ProcessDefinitionProperties.RetriesProperties;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
+import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.agenticai.util.retry.ErrorClassifier;
 import io.camunda.connector.api.error.ConnectorException;
@@ -36,14 +37,11 @@ public class ProcessDefinitionClient {
   }
 
   private ConnectorException buildException(
-      Long processDefinitionKey,
-      Throwable cause,
-      int attempt,
-      CamundaApiRetry.FailureReason reason) {
+      Long processDefinitionKey, Throwable cause, int attempt, FailureReason reason) {
     final String message =
         switch (reason) {
           case INTERRUPTED ->
-              "Interrupted while retrying to fetch process definition XML with key '%s'."
+              "Interrupted while retrying to fetch process definition XML with key %s."
                   .formatted(processDefinitionKey);
           case RETRIES_EXHAUSTED, PERMANENT_ERROR ->
               "Failed to retrieve process definition XML with key %s after %d attempt(s): %s"
