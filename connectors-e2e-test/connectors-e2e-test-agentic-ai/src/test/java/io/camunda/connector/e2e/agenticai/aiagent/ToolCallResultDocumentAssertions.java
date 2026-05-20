@@ -206,10 +206,15 @@ public final class ToolCallResultDocumentAssertions {
         String toolName,
         CamundaDocumentReferenceModel reference,
         Consumer<Content> contentBlockAssertion) {
-      final var metadata = referenceMetadata(reference);
+      final var metadata = reference.metadata();
       return new ExtractedDocument(
           new CamundaDocumentReferenceXmlTag(
-                  toolCallId, toolName, reference.documentId(), reference.storeId(), metadata)
+                  toolCallId,
+                  toolName,
+                  reference.documentId(),
+                  reference.storeId(),
+                  metadata != null ? metadata.getContentType() : null,
+                  metadata != null ? metadata.getFileName() : null)
               .toXml(),
           contentBlockAssertion);
     }
@@ -222,23 +227,9 @@ public final class ToolCallResultDocumentAssertions {
         Consumer<Content> contentBlockAssertion) {
       return new ExtractedDocument(
           new ExternalDocumentReferenceXmlTag(
-                  toolCallId,
-                  toolName,
-                  reference.url(),
-                  reference.name(),
-                  DocumentReferenceXmlTag.Metadata.EMPTY)
+                  toolCallId, toolName, reference.url(), reference.name())
               .toXml(),
           contentBlockAssertion);
-    }
-
-    private static DocumentReferenceXmlTag.Metadata referenceMetadata(
-        CamundaDocumentReferenceModel reference) {
-      final var metadata = reference.metadata();
-      if (metadata == null) {
-        return DocumentReferenceXmlTag.Metadata.EMPTY;
-      }
-      return new DocumentReferenceXmlTag.Metadata(
-          metadata.getContentType(), metadata.getFileName());
     }
   }
 }

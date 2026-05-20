@@ -20,6 +20,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEE
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlock;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseExternalDocumentReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -188,5 +189,90 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                 .hasResponseText(aiFinalResponse.text()));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
+  }
+
+  @Test
+  void supportsExternalDocumentReferenceResponsesFromToolCalls(WireMockRuntimeInfo wireMock)
+      throws Exception {
+    final var initialUserPrompt = "Reference an external document!";
+    final var docUrl = wireMock.getHttpBaseUrl() + "/test.pdf";
+    final var docName = "Quarterly Report";
+
+    final var aiToolCallMessage =
+        new AiMessage(
+            "I will reference an externally hosted file.",
+            List.of(
+                ToolExecutionRequest.builder()
+                    .id("ext111")
+                    .name("External_File_Reference")
+                    .arguments("{\"url\": \"%s\", \"name\": \"%s\"}".formatted(docUrl, docName))
+                    .build()));
+    final var aiFinalResponse = new AiMessage("Referenced the external document.");
+
+    mockChatInteractions(
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.TOOL_EXECUTION)
+                        .tokenUsage(new TokenUsage(10, 20))
+                        .build())
+                .aiMessage(aiToolCallMessage)
+                .build()),
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.STOP)
+                        .tokenUsage(new TokenUsage(11, 22))
+                        .build())
+                .aiMessage(aiFinalResponse)
+                .build(),
+            userSatisfiedFeedback()));
+
+    final var zeebeTest =
+        createProcessInstance(
+                elementTemplate ->
+                    elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
+                Map.of("userPrompt", initialUserPrompt))
+            .waitForProcessCompletion();
+
+    await()
+        .alias("Chat request captured")
+        .untilAsserted(() -> assertThat(chatRequestCaptor.getValue()).isNotNull());
+
+    assertThat(chatRequestCaptor.getAllValues()).hasSize(2);
+    final var lastMessages = chatRequestCaptor.getValue().messages();
+    assertThat(lastMessages).hasSize(5);
+
+    assertThat(lastMessages.get(0)).isInstanceOf(SystemMessage.class);
+    assertThat(lastMessages.get(1)).isInstanceOf(UserMessage.class); // initial prompt
+    assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class); // tool call
+
+    // tool result: external document reference is serialized as { url, name }
+    final var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
+    final var externalRef = parseExternalDocumentReference(toolResultText);
+    assertThat(externalRef.url()).isEqualTo(docUrl);
+    assertThat(externalRef.name()).isEqualTo(docName);
+
+    // document user message: external doc rendered as <doc url="…" name="…" /> + content block
+    assertExtractedDocumentsUserMessage(
+        lastMessages.get(4),
+        ExtractedDocument.forExternalToolCall(
+            "ext111",
+            "External_File_Reference",
+            externalRef,
+            content -> assertDocumentContentBlock(content, "base64", "application/pdf")));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)))
+                .hasResponseMessageText(aiFinalResponse.text())
+                .hasResponseText(aiFinalResponse.text()));
+
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 }
