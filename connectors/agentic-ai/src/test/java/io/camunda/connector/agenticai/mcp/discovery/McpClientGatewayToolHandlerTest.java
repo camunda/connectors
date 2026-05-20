@@ -7,10 +7,10 @@
 package io.camunda.connector.agenticai.mcp.discovery;
 
 import static io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler.PROPERTY_MCP_CLIENTS;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -33,7 +33,11 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -49,6 +53,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 class McpClientGatewayToolHandlerTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private final DocumentFactory documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   private McpClientGatewayToolHandler handler;
 
   @BeforeEach
@@ -474,6 +480,10 @@ class McpClientGatewayToolHandlerTest {
         .build();
   }
 
+  private Document createDocument(String content) {
+    return documentFactory.create(DocumentCreationRequest.from(content.getBytes(UTF_8)).build());
+  }
+
   @Nested
   class ResolveUpdatedGatewayToolDefinitions {
 
@@ -588,7 +598,7 @@ class McpClientGatewayToolHandlerTest {
 
     @Test
     void extractsDocumentFromMcpDocumentContent() {
-      var document = mock(Document.class);
+      var document = createDocument("mcp-doc-content");
       var toolCallResult =
           createToolCallResultWithContent(
               "call1", "MCP_mcp1___tool1", List.of(new McpDocumentContent(document, Map.of())));
@@ -600,7 +610,7 @@ class McpClientGatewayToolHandlerTest {
 
     @Test
     void extractsDocumentFromBlobDocumentResourceInsideEmbeddedResource() {
-      var document = mock(Document.class);
+      var document = createDocument("mcp-blob-doc");
       var toolCallResult =
           createToolCallResultWithContent(
               "call1",
@@ -659,8 +669,8 @@ class McpClientGatewayToolHandlerTest {
 
     @Test
     void preservesOrderAndCollectsMultipleDocuments() {
-      var doc1 = mock(Document.class);
-      var doc2 = mock(Document.class);
+      var doc1 = createDocument("mcp-doc-1");
+      var doc2 = createDocument("mcp-doc-2");
       var toolCallResult =
           createToolCallResultWithContent(
               "call1",

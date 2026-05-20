@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.a2a.client.agentic.tool;
 
 import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.PROPERTY_A2A_CLIENTS;
 import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -30,6 +31,10 @@ import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -46,6 +51,8 @@ class A2aGatewayToolHandlerTest {
 
   public static final String A2A_CLIENT_GATEWAY_TYPE = "a2aClient";
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private final DocumentFactory documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   private A2aGatewayToolHandler handler;
 
   @BeforeEach
@@ -499,7 +506,7 @@ class A2aGatewayToolHandlerTest {
 
     @Test
     void extractsDocumentFromA2aMessageContents() {
-      var document = mock(Document.class);
+      var document = createDocument("a2a-message-doc");
       var message =
           A2aMessage.builder()
               .role(A2aMessage.Role.AGENT)
@@ -519,8 +526,8 @@ class A2aGatewayToolHandlerTest {
 
     @Test
     void extractsDocumentsFromA2aTaskArtifactsAndHistory() {
-      var artifactDoc = mock(Document.class);
-      var historyDoc = mock(Document.class);
+      var artifactDoc = createDocument("a2a-artifact-doc");
+      var historyDoc = createDocument("a2a-history-doc");
 
       var artifact =
           A2aArtifact.builder()
@@ -758,5 +765,9 @@ class A2aGatewayToolHandlerTest {
       assertThat(result.added()).isEmpty();
       assertThat(result.removed()).containsExactly("a2a1", "a2a2");
     }
+  }
+
+  private Document createDocument(String content) {
+    return documentFactory.create(DocumentCreationRequest.from(content.getBytes(UTF_8)).build());
   }
 }
