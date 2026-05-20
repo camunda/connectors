@@ -51,25 +51,6 @@
     },
     "type" : "Hidden"
   }, {
-    "value" : "form",
-    "binding" : {
-      "linkName" : "formDefinition",
-      "property" : "resourceType",
-      "type" : "zeebe:linkedResource"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      }, {
-        "property" : "sendMessage:formDefinition.include",
-        "equals" : "true",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "operation",
     "label" : "Operation",
     "description" : "The operation to execute",
@@ -261,7 +242,7 @@
     "value" : "false",
     "group" : "form",
     "binding" : {
-      "key" : "formDefinition.include",
+      "key" : "sendMessage:formDefinition.include",
       "type" : "zeebe:taskHeader"
     },
     "condition" : {
@@ -279,6 +260,26 @@
       "name" : "Yes",
       "value" : "true"
     } ]
+  }, {
+    "value" : "form",
+    "group" : "form",
+    "binding" : {
+      "linkName" : "formDefinition",
+      "property" : "resourceType",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
   }, {
     "id" : "sendMessage:formDefinition.bindingType",
     "label" : "Form binding",
