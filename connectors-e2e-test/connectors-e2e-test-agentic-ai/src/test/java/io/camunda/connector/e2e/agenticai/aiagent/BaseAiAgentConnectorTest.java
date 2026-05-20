@@ -70,6 +70,6 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
     final var zeebeTest =
         createProcessInstance(Map.of("userPrompt", "Write a haiku about the sea"));
     zeebeTest.waitForProcessCompletion();
-    assertAgentInstanceKeyPersisted(zeebeTest.getProcessInstanceEvent().getProcessInstanceKey());
+    assertAgentInstanceKeyPersisted(zeebeTest);
   }
 }

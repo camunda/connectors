@@ -19,13 +19,13 @@ package io.camunda.connector.e2e.agenticai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.Incident;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
@@ -116,39 +116,15 @@ public abstract class BaseAgenticAiTest {
    * will always be {@code null}, so any test calling this helper must be annotated with
    * {@code @Disabled}.
    */
-  protected void assertAgentInstanceKeyPersisted(long processInstanceKey) {
-    await()
-        .alias("agent.context.metadata.agentInstanceKey is set")
-        .atMost(Duration.ofSeconds(30))
-        .untilAsserted(
-            () -> {
-              final var variables =
-                  camundaClient
-                      .newVariableSearchRequest()
-                      .filter(
-                          f ->
-                              f.processInstanceKey(processInstanceKey)
-                                  .scopeKey(processInstanceKey)
-                                  .name("agent"))
-                      .send()
-                      .join()
-                      .items();
-
-              assertThat(variables).as("'agent' variable must exist").isNotEmpty();
-
-              final var agentVariableValue = variables.getFirst().getValue();
-              final JsonNode agentNode = objectMapper.readTree(agentVariableValue);
-              final JsonNode agentInstanceKeyNode =
-                  agentNode.path("context").path("metadata").path("agentInstanceKey");
-
-              assertThat(agentInstanceKeyNode.isMissingNode())
-                  .as("agent.context.metadata.agentInstanceKey must be present")
-                  .isFalse();
-              assertThat(agentInstanceKeyNode.isNull())
-                  .as("agent.context.metadata.agentInstanceKey must not be null")
-                  .isFalse();
-              assertThat(agentInstanceKeyNode.asLong())
-                  .as("agent.context.metadata.agentInstanceKey must be a positive key")
+  protected void assertAgentInstanceKeyPersisted(ZeebeTest zeebeTest) {
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+        .hasVariableSatisfies(
+            "agent",
+            AgentInstanceContext.class,
+            agentInstance -> {
+              assertThat(agentInstance.getAgentInstanceKey())
+                  .as("Agent instance key must be a non-null, positive number")
+                  .isNotNull()
                   .isPositive();
             });
   }
@@ -176,5 +152,10 @@ public abstract class BaseAgenticAiTest {
         throw new RuntimeException(e);
       }
     };
+  }
+
+  private interface AgentInstanceContext {
+
+    Long getAgentInstanceKey();
   }
 }
