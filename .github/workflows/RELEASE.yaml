@@ -205,6 +205,9 @@ jobs:
         with:
           name: repository
 
+      - name: Ensure Maven wrapper is executable
+        run: chmod +x ./mvnw
+
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@v5
         with:
@@ -349,6 +352,9 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: repository
+
+      - name: Ensure Maven wrapper is executable
+        run: chmod +x ./mvnw
 
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@v5
