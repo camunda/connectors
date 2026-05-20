@@ -60,6 +60,7 @@ public final class CamundaApiRetry {
         if (attempt == maxAttempts) {
           throw failureMapper.toException(e, attempt, FailureReason.RETRIES_EXHAUSTED);
         }
+        // delay before the next attempt: pass attempt+1 to get the "before attempt N" delay
         final Duration delay =
             ExponentialBackoffRetry.delayBeforeAttempt(attempt + 1, initialDelay);
         LOGGER.warn(

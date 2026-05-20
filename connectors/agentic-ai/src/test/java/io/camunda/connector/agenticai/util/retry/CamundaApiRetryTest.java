@@ -186,10 +186,12 @@ class CamundaApiRetryTest {
   @Test
   void interruptedSleep_throwsWithInterruptedReasonAndRestoresFlag() {
     final FailureReason[] capturedReason = {null};
+    final Throwable[] capturedCause = {null};
 
     final CamundaApiRetry.FailureMapper capturingMapper =
         (cause, attempt, reason) -> {
           capturedReason[0] = reason;
+          capturedCause[0] = cause;
           return new ConnectorException("TEST", "test-" + reason + "-" + attempt, cause);
         };
 
@@ -212,18 +214,20 @@ class CamundaApiRetryTest {
         .isInstanceOf(ConnectorException.class);
 
     assertThat(capturedReason[0]).isEqualTo(INTERRUPTED);
+    assertThat(capturedCause[0]).isInstanceOf(InterruptedException.class);
     assertThat(Thread.currentThread().isInterrupted()).isTrue();
     // Clean up interrupt flag
     Thread.interrupted();
   }
 
   @Test
-  void onAllExceptions_classifiesAnyThrowableAsRetryable() {
+  void onAllExceptions_classifiesEveryExceptionAsRetryable() {
     final ErrorClassifier classifier = ErrorClassifier.onAllExceptions();
 
+    // execute() catches Exception, not Throwable — these are the types that reach the classifier
     assertThat(classifier.classify(new RuntimeException())).isEqualTo(RETRYABLE);
-    assertThat(classifier.classify(new Error())).isEqualTo(RETRYABLE);
     assertThat(classifier.classify(new Exception())).isEqualTo(RETRYABLE);
+    assertThat(classifier.classify(new java.io.IOException())).isEqualTo(RETRYABLE);
   }
 
   @Test

@@ -11,7 +11,11 @@ public interface ErrorClassifier {
 
   Decision classify(Throwable t);
 
-  /** Treats every exception as retryable — for callers that do not distinguish error types. */
+  /**
+   * Returns a classifier that treats every {@link Exception} as retryable. Use for callers that do
+   * not need to distinguish error types. Note: {@link Error}s propagate raw from {@link
+   * CamundaApiRetry#execute} and are never passed to the classifier.
+   */
   static ErrorClassifier onAllExceptions() {
     return t -> Decision.RETRYABLE;
   }
