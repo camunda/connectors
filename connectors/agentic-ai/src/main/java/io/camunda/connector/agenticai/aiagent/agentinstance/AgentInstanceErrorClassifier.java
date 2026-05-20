@@ -13,7 +13,7 @@ import java.io.IOException;
 
 public final class AgentInstanceErrorClassifier implements ErrorClassifier {
 
-  public static AgentInstanceErrorClassifier INSTANCE = new AgentInstanceErrorClassifier();
+  public static final AgentInstanceErrorClassifier INSTANCE = new AgentInstanceErrorClassifier();
 
   public Decision classify(Throwable t) {
     Throwable current = t;
