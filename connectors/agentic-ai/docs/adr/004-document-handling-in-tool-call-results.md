@@ -99,21 +99,9 @@ conversation. Both are visible and auditable.
 
 ### Document user message format
 
-The document `UserMessage` contains interleaved `TextContent` tags and `DocumentContent` blocks. Each document is
-preceded by a self-closing XML tag with correlation attributes:
-
-```
-TextContent: "Documents extracted from tool calls (<doc /> tag + content pair):"
-TextContent: <doc toolName="generate_report" toolCallId="call_1" documentId="25ece9fa-aeea-423d-98ed-67c1f08b137b" storeId="in-memory" contentType="application/pdf" fileName="report.pdf" />
-DocumentContent: [report.pdf content]
-TextContent: <doc toolName="generate_report" toolCallId="call_1" documentId="f7b3a1d0-1234-5678-9abc-def012345678" storeId="in-memory" contentType="image/png" fileName="chart.png" />
-DocumentContent: [chart.png content]
-TextContent: <doc toolName="fetch_data" toolCallId="call_2" url="https://example.com/data.csv" name="Q3 metrics" contentType="text/csv" fileName="data.csv" />
-DocumentContent: [data.csv content]
-```
-
-The preamble makes the pair structure (reference tag → content block) explicit. Tag name and preamble are intentionally
-terse to minimise token usage.
+A document is rendered as a pair of adjacent content blocks: a self-closing `<doc />` XML tag with correlation
+attributes, immediately followed by a `DocumentContent` block carrying the actual bytes. The pairs are grouped under a
+short preamble that names the source (tool calls vs event data) and makes the pair structure explicit.
 
 Attribute names mirror the JSON field names emitted by the standard `DocumentSerializer` (e.g. `documentId`, `storeId`,
 `url`, `name`), so the model can correlate a reference in the tool result JSON with its content block 1:1 without
@@ -124,10 +112,65 @@ inferring partial-id matches. The tag shape is dispatched on the document's refe
 * any other reference (including inline) → identity attributes are omitted
 
 Every shape also carries a shared metadata block (`contentType`, `fileName`) extracted from `Document.metadata()`. All
-attribute values are XML-escaped, and blank attributes are omitted.
+attribute values are XML-escaped, and blank attributes are omitted. Tag name and preamble are intentionally terse to
+minimise token usage.
 
-For event documents, the same `<doc />` tag format is used, but without `toolName` and `toolCallId` attributes since
-events are not associated with a specific tool call.
+#### Example: tool call result documents
+
+A `ToolCallResultMessage` followed by a synthetic `UserMessage` (metadata `toolCallDocuments=true`) carrying the extracted
+documents:
+
+```
+ToolCallResultMessage:
+  - { id: "call_1", name: "generate_report", content: { "report": <Document>, "chart": <Document> } }
+  - { id: "call_2", name: "fetch_data", content: { "csv": <Document> } }
+
+UserMessage (toolCallDocuments=true):
+  TextContent: "Documents extracted from tool calls (<doc /> tag + content pair):"
+  TextContent: <doc toolName="generate_report" toolCallId="call_1" documentId="25ece9fa-aeea-423d-98ed-67c1f08b137b" storeId="in-memory" contentType="application/pdf" fileName="report.pdf" />
+  DocumentContent: [report.pdf content]
+  TextContent: <doc toolName="generate_report" toolCallId="call_1" documentId="f7b3a1d0-1234-5678-9abc-def012345678" storeId="in-memory" contentType="image/png" fileName="chart.png" />
+  DocumentContent: [chart.png content]
+  TextContent: <doc toolName="fetch_data" toolCallId="call_2" url="https://example.com/data.csv" name="Q3 metrics" contentType="text/csv" fileName="data.csv" />
+  DocumentContent: [data.csv content]
+```
+
+#### Example: event message with documents
+
+Events from non-interrupting event sub-processes produce a `UserMessage` whose first content block is the event payload
+itself; if the payload contains documents, the preamble + `<doc />` pairs are appended in the same message. Event tags
+omit `toolName` and `toolCallId` since events are not associated with a specific tool call:
+
+```
+UserMessage:
+  ObjectContent: { "type": "invoice_arrived", "invoice": <Document> }
+  TextContent: "Documents extracted from event data (<doc /> tag + content pair):"
+  TextContent: <doc documentId="9a2b1c4d-5e6f-7890-abcd-ef1234567890" storeId="in-memory" contentType="application/pdf" fileName="invoice-Q3-2025.pdf" />
+  DocumentContent: [invoice-Q3-2025.pdf content]
+```
+
+#### Example: combined — tool call results + event in one iteration
+
+When `WAIT_FOR_TOOL_CALL_RESULTS` is configured, the worker waits for in-flight tool calls to finish before emitting
+event messages. A single `addUserMessages` iteration can then produce a `ToolCallResultMessage`, a synthetic
+tool-call-documents `UserMessage`, and one or more event `UserMessage`s in that order:
+
+```
+ToolCallResultMessage:
+  - { id: "call_1", name: "getWeather", content: { "report": <Document> } }
+  - { id: "call_2", name: "getDateTime", content: "15:00" }
+
+UserMessage (toolCallDocuments=true):
+  TextContent: "Documents extracted from tool calls (<doc /> tag + content pair):"
+  TextContent: <doc toolName="getWeather" toolCallId="call_1" documentId="25ece9fa-..." storeId="in-memory" contentType="text/plain" fileName="weather.txt" />
+  DocumentContent: [weather.txt content]
+
+UserMessage:
+  ObjectContent: { "type": "invoice_arrived", "invoice": <Document> }
+  TextContent: "Documents extracted from event data (<doc /> tag + content pair):"
+  TextContent: <doc documentId="9a2b1c4d-..." storeId="in-memory" contentType="application/pdf" fileName="invoice.pdf" />
+  DocumentContent: [invoice.pdf content]
+```
 
 ### Message window memory
 
