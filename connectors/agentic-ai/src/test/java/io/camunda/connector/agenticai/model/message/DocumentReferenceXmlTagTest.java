@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.model.message;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
@@ -15,26 +14,43 @@ import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.Exte
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.GenericDocumentReferenceXmlTag;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class DocumentReferenceXmlTagTest {
+
+  @Mock private Document doc;
+  @Mock private DocumentMetadata metadata;
+
+  @BeforeEach
+  void setUp() {
+    when(doc.metadata()).thenReturn(metadata);
+  }
 
   @Nested
   class CamundaDocumentReferenceTag {
 
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private CamundaDocumentReference ref;
+
+    @BeforeEach
+    void setUp() {
+      when(doc.reference()).thenReturn(ref);
+    }
+
     @Test
     void generatesFullTagWithAllAttributes() {
-      var doc = mock(Document.class);
-      var ref = mock(CamundaDocumentReference.class);
-      var metadata = mock(DocumentMetadata.class);
-      when(doc.reference()).thenReturn(ref);
       when(ref.getDocumentId()).thenReturn("25ece9fa-aeea-423d-98ed-67c1f08b137b");
       when(ref.getStoreId()).thenReturn("in-memory");
-      when(doc.metadata()).thenReturn(metadata);
       when(metadata.getContentType()).thenReturn("application/pdf");
       when(metadata.getFileName()).thenReturn("report.pdf");
 
@@ -47,9 +63,6 @@ class DocumentReferenceXmlTagTest {
 
     @Test
     void omitsBlankAttributes() {
-      var doc = mock(Document.class);
-      var ref = mock(CamundaDocumentReference.class);
-      when(doc.reference()).thenReturn(ref);
       when(ref.getDocumentId()).thenReturn("f7b3a1d0-1234-5678-9abc-def012345678");
 
       assertThat(DocumentReferenceXmlTag.from(doc).toXml())
@@ -58,9 +71,6 @@ class DocumentReferenceXmlTagTest {
 
     @Test
     void escapesSpecialCharactersInToolName() {
-      var doc = mock(Document.class);
-      var ref = mock(CamundaDocumentReference.class);
-      when(doc.reference()).thenReturn(ref);
       when(ref.getDocumentId()).thenReturn("abc12345-0000-0000-0000-000000000000");
 
       assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
@@ -72,15 +82,17 @@ class DocumentReferenceXmlTagTest {
   @Nested
   class ExternalDocumentReferenceTag {
 
+    @Mock private ExternalDocumentReference ref;
+
+    @BeforeEach
+    void setUp() {
+      when(doc.reference()).thenReturn(ref);
+    }
+
     @Test
     void generatesFullTagWithAllAttributes() {
-      var doc = mock(Document.class);
-      var ref = mock(ExternalDocumentReference.class);
-      var metadata = mock(DocumentMetadata.class);
-      when(doc.reference()).thenReturn(ref);
       when(ref.url()).thenReturn("https://example.com/report.pdf");
       when(ref.name()).thenReturn("Quarterly Report");
-      when(doc.metadata()).thenReturn(metadata);
       when(metadata.getContentType()).thenReturn("application/pdf");
       when(metadata.getFileName()).thenReturn("report.pdf");
 
@@ -93,9 +105,6 @@ class DocumentReferenceXmlTagTest {
 
     @Test
     void omitsBlankNameAndToolContext() {
-      var doc = mock(Document.class);
-      var ref = mock(ExternalDocumentReference.class);
-      when(doc.reference()).thenReturn(ref);
       when(ref.url()).thenReturn("https://example.com/report.pdf");
 
       assertThat(DocumentReferenceXmlTag.from(doc).toXml())
@@ -104,9 +113,6 @@ class DocumentReferenceXmlTagTest {
 
     @Test
     void escapesSpecialCharactersInUrl() {
-      var doc = mock(Document.class);
-      var ref = mock(ExternalDocumentReference.class);
-      when(doc.reference()).thenReturn(ref);
       when(ref.url()).thenReturn("https://example.com/path?q=a&b=\"c\"");
 
       assertThat(DocumentReferenceXmlTag.from(doc).toXml())
@@ -117,13 +123,12 @@ class DocumentReferenceXmlTagTest {
   @Nested
   class GenericDocumentReferenceTag {
 
+    /** Custom reference subtype that isn't recognized by the tag's dispatch switch. */
+    private record CustomDocumentReference(String id) implements DocumentReference {}
+
     @Test
-    void emitsFileNameAndToolContextForInlineReference() {
-      var doc = mock(Document.class);
-      var ref = mock(InlineDocumentReference.class);
-      var metadata = mock(DocumentMetadata.class);
-      when(doc.reference()).thenReturn(ref);
-      when(doc.metadata()).thenReturn(metadata);
+    void emitsFileNameAndToolContextForUnrecognizedReference() {
+      when(doc.reference()).thenReturn(new CustomDocumentReference("custom-1"));
       when(metadata.getContentType()).thenReturn("text/plain");
       when(metadata.getFileName()).thenReturn("inline.txt");
 
@@ -136,24 +141,18 @@ class DocumentReferenceXmlTagTest {
 
     @Test
     void emitsMinimalTagForUnrecognizedReferenceWithoutMetadata() {
-      var doc = mock(Document.class);
-      var ref = mock(InlineDocumentReference.class);
-      when(doc.reference()).thenReturn(ref);
+      when(doc.reference()).thenReturn(new CustomDocumentReference("custom-1"));
 
       assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
     }
 
     @Test
     void emitsMinimalTagForNullReference() {
-      var doc = mock(Document.class);
       assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
     }
 
     @Test
     void escapesSpecialCharactersInFileName() {
-      var doc = mock(Document.class);
-      var metadata = mock(DocumentMetadata.class);
-      when(doc.metadata()).thenReturn(metadata);
       when(metadata.getFileName()).thenReturn("file\"with<special>&chars'.pdf");
 
       assertThat(DocumentReferenceXmlTag.from(doc).toXml())

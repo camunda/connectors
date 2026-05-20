@@ -20,6 +20,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
@@ -164,6 +165,9 @@ class ToolCallConverterTest {
       content.put("hello", "world");
       content.put("document1", createDocument("Hello, world!", "text/plain", "test.txt"));
       content.put("document2", createDocument("<PDF CONTENT>", "application/pdf", "test.pdf"));
+      content.put(
+          "document3",
+          new ExternalDocument("https://example.com/report.pdf", "Quarterly Report", url -> null));
 
       final ToolCallResult toolCallResult =
           ToolCallResult.builder().id("toolId").name("toolName").content(content).build();
@@ -173,7 +177,8 @@ class ToolCallConverterTest {
       assertThat(resultMessage.id()).isEqualTo("toolId");
       assertThat(resultMessage.toolName()).isEqualTo("toolName");
 
-      // documents are serialized as document references (lenient: ignores dynamic IDs)
+      // lenient mode ignores fields not asserted below — notably the documentId / storeId /
+      // contentHash that the Camunda document store generates per createDocument call
       JSONAssert.assertEquals(
           """
           {
@@ -191,6 +196,11 @@ class ToolCallConverterTest {
                 "contentType": "application/pdf",
                 "fileName": "test.pdf"
               }
+            },
+            "document3": {
+              "camunda.document.type": "external",
+              "url": "https://example.com/report.pdf",
+              "name": "Quarterly Report"
             }
           }
           """,
