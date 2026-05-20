@@ -228,19 +228,25 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
     final var content = new ArrayList<Content>();
     content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-    for (var entry : toolCallDocuments) {
-      for (var doc : entry.documents()) {
-        content.add(
-            textContent(
-                DocumentXmlTag.from(doc, entry.toolCallId(), entry.toolCallName()).toXml()));
-        content.add(DocumentContent.documentContent(doc));
-      }
-    }
+    appendDocumentPairs(content, toolCallDocuments);
 
     final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
     metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
 
     return UserMessage.builder().content(content).metadata(metadata).build();
+  }
+
+  private void appendDocumentPairs(
+      List<Content> content,
+      List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups) {
+    for (var group : documentGroups) {
+      for (var doc : group.documents()) {
+        content.add(
+            textContent(
+                DocumentXmlTag.from(doc, group.toolCallId(), group.toolCallName()).toXml()));
+        content.add(DocumentContent.documentContent(doc));
+      }
+    }
   }
 
   private Message createEventMessage(
@@ -262,15 +268,13 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
           });
     }
 
-    // extract documents from event content and add as document content blocks
-    // events originate from BPMN event sub-processes (not a gateway handler), so walk the raw tree
-    var eventDocuments = ContentTreeDocumentWalker.extractDocumentsFromContent(eventContent);
+    // events arrive as ToolCallResult with null id/name; the extractor falls back to the
+    // generic content-tree walker (no handler manages a null tool name) — equivalent shape
+    // to tool-call document extraction, no tool-call attributes on the rendered tag
+    final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
     if (!eventDocuments.isEmpty()) {
       userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
-      for (var doc : eventDocuments) {
-        userMessageContent.add(textContent(DocumentXmlTag.from(doc).toXml()));
-        userMessageContent.add(DocumentContent.documentContent(doc));
-      }
+      appendDocumentPairs(userMessageContent, eventDocuments);
     }
 
     return UserMessage.builder()
