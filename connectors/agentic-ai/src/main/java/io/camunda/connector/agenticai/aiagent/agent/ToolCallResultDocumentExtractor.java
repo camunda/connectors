@@ -9,7 +9,9 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -74,7 +76,14 @@ public class ToolCallResultDocumentExtractor {
                 () ->
                     ContentTreeDocumentWalker.extractDocumentsFromContent(
                         toolCallResult.content()));
-    // defensive: a third-party handler might return a list containing null entries
-    return documents.stream().filter(Objects::nonNull).toList();
+    // defensive: a third-party handler might return null entries; also dedupe documents
+    // that appear multiple times in a single result (e.g. the same attachment referenced
+    // from different paths in the content tree) — keyed by DocumentReference, which is a
+    // record / has structural equality for the standard reference types
+    final var seen = new HashSet<DocumentReference>();
+    return documents.stream()
+        .filter(Objects::nonNull)
+        .filter(doc -> seen.add(doc.reference()))
+        .toList();
   }
 }

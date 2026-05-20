@@ -53,7 +53,7 @@ class ToolCallResultDocumentExtractorTest {
   }
 
   @Test
-  void extractsDocumentsFromUnmanagedResultViaContentWalker() {
+  void extractsDocumentsFromResultsNotMatchingAnyHandler() {
     final var doc = createDocument("hello", "text/plain", "test.txt");
     final var result = unmanagedResult("call_1", Map.of("file", doc));
 
@@ -108,7 +108,7 @@ class ToolCallResultDocumentExtractorTest {
   }
 
   @Test
-  void excludesResultsWithoutDocuments() {
+  void extractsFromMixedResultsWithAndWithoutDocuments() {
     final var doc = createDocument("hello", "text/plain", "test.txt");
 
     final var withDoc = unmanagedResult("call_1", Map.of("file", doc));
@@ -130,20 +130,37 @@ class ToolCallResultDocumentExtractorTest {
 
   @Test
   void filtersNullDocumentsReturnedByHandler() {
-    final var doc = createDocument("typed", "text/plain", "typed.txt");
-    final var result = managedResult("call_1", new TypedHandlerContent(doc));
+    final var doc1 = createDocument("first", "text/plain", "first.txt");
+    final var doc2 = createDocument("second", "application/pdf", "second.pdf");
+    final var result = managedResult("call_1", new TypedHandlerContent(doc1));
 
-    when(handler.extractDocuments(result)).thenReturn(Arrays.asList(doc, null, doc));
+    when(handler.extractDocuments(result)).thenReturn(Arrays.asList(doc1, null, doc2));
 
     final var extracted = extractor.extractDocuments(List.of(result));
 
     assertThat(extracted).hasSize(1);
-    assertThat(extracted.getFirst().documents()).containsExactly(doc, doc);
+    assertThat(extracted.getFirst().documents()).containsExactly(doc1, doc2);
+  }
+
+  @Test
+  void deduplicatesDocumentsReferencedMultipleTimesInTheSameResult() {
+    // a single tool call result may reference the same document from multiple paths in its
+    // content tree; the extracted documents list should contain it only once
+    final var doc = createDocument("hello", "text/plain", "test.txt");
+    final var other = createDocument("other", "text/plain", "other.txt");
+    final var result = managedResult("call_1", new TypedHandlerContent(doc));
+
+    when(handler.extractDocuments(result)).thenReturn(List.of(doc, other, doc));
+
+    final var extracted = extractor.extractDocuments(List.of(result));
+
+    assertThat(extracted).hasSize(1);
+    assertThat(extracted.getFirst().documents()).containsExactly(doc, other);
   }
 
   @Test
   void extractsFromEventLikeResultWithNullIdAndName() {
-    // Events arrive as ToolCallResult with null id/name — no handler matches, walker is used
+    // events arrive as ToolCallResult with null id/name — no handler matches
     final var doc = createDocument("hello", "text/plain", "test.txt");
     final var result = ToolCallResult.builder().content(Map.of("file", doc)).build();
 

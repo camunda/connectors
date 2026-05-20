@@ -213,6 +213,21 @@ This would be a post-processing step in the L4J framework adapter, transparent t
 history. The document `UserMessage` can be rebuilt from the `ToolCallResult` content tree (by re-running extraction)
 with only the non-promoted documents remaining.
 
+### Future deduplication across messages (out of scope)
+
+The extractor deduplicates documents within a single tool call result (`HashSet<DocumentReference>` keyed by reference
+equality), so a document referenced from multiple paths in one result's content tree contributes a single
+`<doc />` + `DocumentContent` pair. Two further dedup tiers would be useful but are not implemented:
+
+* **Within the current turn**: if the same document is returned by two different tool calls in the same iteration, it
+  is emitted twice (once per call) so the model sees both correlation IDs. We could emit the content block once and
+  reuse a stable correlation ID across the duplicate `<doc />` tags.
+* **Across message history**: the same document may already be present (as a `DocumentContent`) in an earlier
+  message in the conversation. We could omit the duplicate content block and emit only the `<doc />` tag, letting the
+  model rely on the earlier content.
+
+Both require tracking document identity across messages and reasoning about the message-window eviction rules.
+
 ## Consequences
 
 ### Positive
