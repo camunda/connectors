@@ -91,7 +91,7 @@ jobs:
         run: npm install --global element-templates-cli
 
       - name: Build Connectors
-        run: mvn --batch-mode clean test -PcheckFormat
+        run: ./mvnw --batch-mode clean test -PcheckFormat
 
       - name: Publish Test Report
         if: always()

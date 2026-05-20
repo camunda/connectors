@@ -25,7 +25,7 @@ jobs:
 
       - name: install-uniquet
         run: |
-          mvn install -pl element-template-generator/uniquet -am
+          ./mvnw -U install -DskipTests -pl element-template-generator/uniquet -am
 
       - name: run-uniquet
         run: |

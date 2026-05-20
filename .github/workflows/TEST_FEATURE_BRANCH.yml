@@ -64,7 +64,7 @@ jobs:
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
       - name: Build Connectors
-        run: mvn --batch-mode clean test -PcheckFormat -Dquickly
+        run: ./mvnw --batch-mode clean test -PcheckFormat -Dquickly
 
       - name: Publish Test Report
         if: success() || failure()
