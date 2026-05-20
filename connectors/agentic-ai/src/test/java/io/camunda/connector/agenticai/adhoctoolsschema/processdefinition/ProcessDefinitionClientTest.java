@@ -120,8 +120,8 @@ class ProcessDefinitionClientTest {
 
     assertThatThrownBy(() -> client.getProcessDefinitionXml(PROCESS_DEFINITION_KEY))
         .isInstanceOf(ConnectorException.class)
-        .hasMessage(
-            "Failed to retrieve process definition XML with key 123456 after 3 attempt(s): Interrupted while retrying to fetch process definition XML with key '123456'.");
+        .hasMessage("Interrupted while retrying to fetch process definition XML with key 123456.")
+        .hasCauseInstanceOf(InterruptedException.class);
 
     assertThat(Thread.currentThread().isInterrupted()).isTrue();
   }
