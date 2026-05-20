@@ -144,6 +144,21 @@ class ToolCallResultDocumentExtractorTest {
   }
 
   @Test
+  void filtersNullDocumentsReturnedByHandler(@Mock GatewayToolHandler handler) {
+    final var doc = createDocument("typed", "text/plain", "typed.txt");
+    final var result =
+        ToolCallResult.builder().id("call_1").name("typed_tool").content("anything").build();
+
+    when(registry.handlerForToolDefinition("typed_tool")).thenReturn(Optional.of(handler));
+    when(handler.extractDocuments(result)).thenReturn(java.util.Arrays.asList(doc, null, doc));
+
+    final var extracted = extractor.extractDocuments(List.of(result));
+
+    assertThat(extracted).hasSize(1);
+    assertThat(extracted.getFirst().documents()).containsExactly(doc, doc);
+  }
+
+  @Test
   void handlesNullNameAndId() {
     final var doc = createDocument("hello", "text/plain", "test.txt");
     final var result = ToolCallResult.builder().content(Map.of("file", doc)).build();

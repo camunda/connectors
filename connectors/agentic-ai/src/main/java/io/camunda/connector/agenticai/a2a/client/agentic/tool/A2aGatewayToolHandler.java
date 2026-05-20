@@ -283,7 +283,8 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
       return;
     }
     for (Content content : contents) {
-      if (content instanceof DocumentContent documentContent) {
+      if (content instanceof DocumentContent documentContent
+          && documentContent.document() != null) {
         documents.add(documentContent.document());
       }
     }

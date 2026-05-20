@@ -291,11 +291,12 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
         continue;
       }
       switch (content) {
-        case McpDocumentContent documentContent -> documents.add(documentContent.document());
+        case McpDocumentContent documentContent ->
+            addIfNotNull(documents, documentContent.document());
         case McpEmbeddedResourceContent embeddedResourceContent -> {
           if (embeddedResourceContent.resource()
               instanceof BlobDocumentResource blobDocumentResource) {
-            documents.add(blobDocumentResource.document());
+            addIfNotNull(documents, blobDocumentResource.document());
           }
         }
         default -> {
@@ -304,6 +305,12 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
       }
     }
     return documents;
+  }
+
+  private static void addIfNotNull(List<Document> documents, Document document) {
+    if (document != null) {
+      documents.add(document);
+    }
   }
 
   private Map<String, Object> mcpClientOperationAsMap(McpClientOperation mcpClientOperation) {

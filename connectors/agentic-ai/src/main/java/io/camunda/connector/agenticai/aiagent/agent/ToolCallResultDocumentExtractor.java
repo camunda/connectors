@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,10 +66,15 @@ public class ToolCallResultDocumentExtractor {
   }
 
   private List<Document> extractFromToolCallResult(ToolCallResult toolCallResult) {
-    return gatewayToolHandlers
-        .handlerForToolDefinition(toolCallResult.name())
-        .map(handler -> handler.extractDocuments(toolCallResult))
-        .orElseGet(
-            () -> ContentTreeDocumentWalker.extractDocumentsFromContent(toolCallResult.content()));
+    final var documents =
+        gatewayToolHandlers
+            .handlerForToolDefinition(toolCallResult.name())
+            .map(handler -> handler.extractDocuments(toolCallResult))
+            .orElseGet(
+                () ->
+                    ContentTreeDocumentWalker.extractDocumentsFromContent(
+                        toolCallResult.content()));
+    // defensive: a third-party handler might return a list containing null entries
+    return documents.stream().filter(Objects::nonNull).toList();
   }
 }
