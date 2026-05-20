@@ -12,6 +12,7 @@ import io.camunda.connector.api.document.DocumentReference.ExternalDocumentRefer
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.springframework.lang.Nullable;
 
 /**
@@ -145,19 +146,7 @@ public sealed interface DocumentReferenceXmlTag {
 
   private static void appendAttribute(StringBuilder sb, String name, String value) {
     if (StringUtils.isNotBlank(value)) {
-      sb.append(" %s=\"%s\"".formatted(name, escapeXmlAttribute(value)));
+      sb.append(" %s=\"%s\"".formatted(name, StringEscapeUtils.escapeXml10(value)));
     }
-  }
-
-  private static String escapeXmlAttribute(String value) {
-    if (value == null) {
-      return null;
-    }
-    return value
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "&quot;")
-        .replace("'", "&apos;");
   }
 }
