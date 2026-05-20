@@ -220,8 +220,9 @@ class ChatModelFactoryTest {
         chatModelMock.when(AnthropicChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
-        assertThat(chatModel).isNotNull().isInstanceOf(AnthropicChatModel.class);
-        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+        assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
+        assertThat(((CloseableChatModelDelegate) chatModel).delegate())
+            .isSameAs(chatModelResultCaptor.getResult());
 
         verify(proxySupport).createJdkHttpClientBuilder();
         builderAssertions.accept(chatModelBuilder);
@@ -353,8 +354,9 @@ class ChatModelFactoryTest {
         chatModelMock.when(AzureOpenAiChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
-        assertThat(chatModel).isNotNull().isInstanceOf(AzureOpenAiChatModel.class);
-        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+        assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
+        assertThat(((CloseableChatModelDelegate) chatModel).delegate())
+            .isSameAs(chatModelResultCaptor.getResult());
 
         verify(proxySupport).createAzureProxyOptions(AZURE_OPENAI_ENDPOINT);
         verify(chatModelBuilder).endpoint(AZURE_OPENAI_ENDPOINT);
@@ -605,8 +607,9 @@ class ChatModelFactoryTest {
             new BedrockBuilderContext(clientBuilder, clientResultCaptor, chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
-        assertThat(chatModel).isNotNull().isInstanceOf(BedrockChatModel.class);
-        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+        assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
+        assertThat(((CloseableChatModelDelegate) chatModel).delegate())
+            .isSameAs(chatModelResultCaptor.getResult());
 
         verify(proxySupport).createAwsHttpClientBuilder(expectedEndpointOverride);
         builderAssertions.accept(builders);
@@ -725,8 +728,9 @@ class ChatModelFactoryTest {
         chatModelMock.when(VertexAiGeminiChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
-        assertThat(chatModel).isNotNull().isInstanceOf(VertexAiGeminiChatModel.class);
-        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+        assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
+        assertThat(((CloseableChatModelDelegate) chatModel).delegate())
+            .isSameAs(chatModelResultCaptor.getResult());
 
         builderAssertions.accept(chatModelBuilder);
       }
@@ -855,8 +859,9 @@ class ChatModelFactoryTest {
         chatModelMock.when(OpenAiChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
-        assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
-        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+        assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
+        assertThat(((CloseableChatModelDelegate) chatModel).delegate())
+            .isSameAs(chatModelResultCaptor.getResult());
 
         verify(proxySupport).createJdkHttpClientBuilder();
         builderAssertions.accept(chatModelBuilder);
@@ -1073,8 +1078,9 @@ class ChatModelFactoryTest {
         chatModelMock.when(OpenAiChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
-        assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
-        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+        assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
+        assertThat(((CloseableChatModelDelegate) chatModel).delegate())
+            .isSameAs(chatModelResultCaptor.getResult());
 
         verify(proxySupport).createJdkHttpClientBuilder();
         builderAssertions.accept(chatModelBuilder);
