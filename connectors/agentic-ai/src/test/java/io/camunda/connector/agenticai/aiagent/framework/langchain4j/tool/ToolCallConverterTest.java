@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -161,10 +162,15 @@ class ToolCallConverterTest {
 
     @Test
     void serializesDocumentsAsReferencesInResults() throws JSONException {
+      final var doc1 = createDocument("Hello, world!", "text/plain", "test.txt");
+      final var doc2 = createDocument("<PDF CONTENT>", "application/pdf", "test.pdf");
+      final var doc1Ref = (CamundaDocumentReference) doc1.reference();
+      final var doc2Ref = (CamundaDocumentReference) doc2.reference();
+
       final var content = new LinkedHashMap<String, Object>();
       content.put("hello", "world");
-      content.put("document1", createDocument("Hello, world!", "text/plain", "test.txt"));
-      content.put("document2", createDocument("<PDF CONTENT>", "application/pdf", "test.pdf"));
+      content.put("document1", doc1);
+      content.put("document2", doc2);
       content.put(
           "document3",
           new ExternalDocument("https://example.com/report.pdf", "Quarterly Report", url -> null));
@@ -177,14 +183,15 @@ class ToolCallConverterTest {
       assertThat(resultMessage.id()).isEqualTo("toolId");
       assertThat(resultMessage.toolName()).isEqualTo("toolName");
 
-      // lenient mode ignores fields not asserted below — notably the documentId / storeId /
-      // contentHash that the Camunda document store generates per createDocument call
       JSONAssert.assertEquals(
           """
           {
             "hello": "world",
             "document1": {
               "camunda.document.type": "camunda",
+              "storeId": "in-memory",
+              "documentId": "%s",
+              "contentHash": "%s",
               "metadata": {
                 "contentType": "text/plain",
                 "fileName": "test.txt"
@@ -192,6 +199,9 @@ class ToolCallConverterTest {
             },
             "document2": {
               "camunda.document.type": "camunda",
+              "storeId": "in-memory",
+              "documentId": "%s",
+              "contentHash": "%s",
               "metadata": {
                 "contentType": "application/pdf",
                 "fileName": "test.pdf"
@@ -203,9 +213,14 @@ class ToolCallConverterTest {
               "name": "Quarterly Report"
             }
           }
-          """,
+          """
+              .formatted(
+                  doc1Ref.getDocumentId(),
+                  doc1Ref.getContentHash(),
+                  doc2Ref.getDocumentId(),
+                  doc2Ref.getContentHash()),
           resultMessage.text(),
-          false);
+          true);
     }
 
     @Test
