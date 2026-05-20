@@ -116,6 +116,7 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
             AgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasNoToolCalls()
+                .hasAgentInstanceKey()
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
                 .satisfies(agentResponseAssertions));
 
