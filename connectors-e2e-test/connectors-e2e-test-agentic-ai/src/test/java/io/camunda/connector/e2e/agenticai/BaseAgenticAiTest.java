@@ -130,9 +130,4 @@ public abstract class BaseAgenticAiTest {
       }
     };
   }
-
-  private interface AgentInstanceContext {
-
-    Long getAgentInstanceKey();
-  }
 }

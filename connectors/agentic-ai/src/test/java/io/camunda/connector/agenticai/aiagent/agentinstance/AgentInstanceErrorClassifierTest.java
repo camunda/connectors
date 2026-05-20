@@ -13,112 +13,44 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.client.api.command.ClientHttpException;
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class AgentInstanceErrorClassifierTest {
 
-  // --- Direct ClientHttpException cases ---
-
-  @Test
-  void shouldReturnPermanentForHttp400() {
-    assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(400, "Bad Request")))
-        .isEqualTo(PERMANENT);
+  @ParameterizedTest
+  @MethodSource("retryableExceptions")
+  void shouldClassifyAsRetryable(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.classify(exception)).isEqualTo(RETRYABLE);
   }
 
-  @Test
-  void shouldReturnPermanentForHttp401() {
-    assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(401, "Unauthorized")))
-        .isEqualTo(PERMANENT);
+  @ParameterizedTest
+  @MethodSource("permanentExceptions")
+  void shouldClassifyAsPermanent(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.classify(exception)).isEqualTo(PERMANENT);
   }
 
-  @Test
-  void shouldReturnPermanentForHttp403() {
-    assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(403, "Forbidden")))
-        .isEqualTo(PERMANENT);
+  static Stream<Throwable> retryableExceptions() {
+    return Stream.of(
+        new ClientHttpException(404, "Not Found"),
+        new ClientHttpException(500, "Internal Server Error"),
+        new ClientHttpException(502, "Bad Gateway"),
+        new ClientHttpException(503, "Service Unavailable"),
+        new RuntimeException("wrapped", new ClientHttpException(404, "Not Found")),
+        new IOException("connection refused"),
+        new InterruptedIOException("timeout"),
+        new RuntimeException(new IOException("transport")));
   }
 
-  @Test
-  void shouldReturnRetryableForHttp404() {
-    assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(404, "Not Found")))
-        .isEqualTo(RETRYABLE);
-  }
-
-  @Test
-  void shouldReturnPermanentForHttp409() {
-    assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(409, "Conflict")))
-        .isEqualTo(PERMANENT);
-  }
-
-  @Test
-  void shouldReturnRetryableForHttp500() {
-    assertThat(
-            AgentInstanceErrorClassifier.classify(
-                new ClientHttpException(500, "Internal Server Error")))
-        .isEqualTo(RETRYABLE);
-  }
-
-  @Test
-  void shouldReturnRetryableForHttp503() {
-    assertThat(
-            AgentInstanceErrorClassifier.classify(
-                new ClientHttpException(503, "Service Unavailable")))
-        .isEqualTo(RETRYABLE);
-  }
-
-  @Test
-  void shouldReturnRetryableForHttp502() {
-    assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(502, "Bad Gateway")))
-        .isEqualTo(RETRYABLE);
-  }
-
-  // --- Wrapped ClientHttpException cases ---
-
-  @Test
-  void shouldReturnRetryableForWrappedHttp404() {
-    final var wrapped = new RuntimeException("wrapped", new ClientHttpException(404, "Not Found"));
-    assertThat(AgentInstanceErrorClassifier.classify(wrapped)).isEqualTo(RETRYABLE);
-  }
-
-  @Test
-  void shouldReturnPermanentForWrappedHttp400() {
-    final var wrapped =
-        new RuntimeException("wrapped", new ClientHttpException(400, "Bad Request"));
-    assertThat(AgentInstanceErrorClassifier.classify(wrapped)).isEqualTo(PERMANENT);
-  }
-
-  // --- IO exception cases ---
-
-  @Test
-  void shouldReturnRetryableForIoException() {
-    assertThat(AgentInstanceErrorClassifier.classify(new IOException("connection refused")))
-        .isEqualTo(RETRYABLE);
-  }
-
-  @Test
-  void shouldReturnRetryableForInterruptedIoException() {
-    assertThat(AgentInstanceErrorClassifier.classify(new InterruptedIOException("timeout")))
-        .isEqualTo(RETRYABLE);
-  }
-
-  @Test
-  void shouldReturnRetryableForRuntimeExceptionWrappingIoException() {
-    assertThat(
-            AgentInstanceErrorClassifier.classify(
-                new RuntimeException(new IOException("transport"))))
-        .isEqualTo(RETRYABLE);
-  }
-
-  // --- Default fallback ---
-
-  @Test
-  void shouldReturnPermanentForUnknownRuntimeException() {
-    assertThat(AgentInstanceErrorClassifier.classify(new RuntimeException("unknown")))
-        .isEqualTo(PERMANENT);
-  }
-
-  @Test
-  void shouldReturnPermanentForIllegalArgumentException() {
-    assertThat(AgentInstanceErrorClassifier.classify(new IllegalArgumentException("bad arg")))
-        .isEqualTo(PERMANENT);
+  static Stream<Throwable> permanentExceptions() {
+    return Stream.of(
+        new ClientHttpException(400, "Bad Request"),
+        new ClientHttpException(401, "Unauthorized"),
+        new ClientHttpException(403, "Forbidden"),
+        new ClientHttpException(409, "Conflict"),
+        new RuntimeException("wrapped", new ClientHttpException(400, "Bad Request")),
+        new RuntimeException("unknown"),
+        new IllegalArgumentException("bad arg"));
   }
 }
