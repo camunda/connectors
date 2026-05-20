@@ -27,9 +27,12 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
-import io.camunda.connector.agenticai.model.message.DocumentXmlTag;
+import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.util.function.Consumer;
 
 /**
@@ -43,7 +46,8 @@ import java.util.function.Consumer;
  */
 public final class ToolCallResultDocumentAssertions {
 
-  static final String EXTRACTED_DOCUMENTS_PREAMBLE = "Documents extracted from tool call results:";
+  static final String EXTRACTED_DOCUMENTS_PREAMBLE =
+      "Documents extracted from tool calls (<doc /> tag + content pair):";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -52,13 +56,24 @@ public final class ToolCallResultDocumentAssertions {
   /**
    * Locates the first Camunda document reference inside a serialized tool call result and
    * deserializes it into the production {@link CamundaDocumentReferenceModel}. Recursively descends
-   * into objects/arrays until it finds an object carrying the {@code camunda.document.type}
-   * discriminator (set by {@code DocumentSerializer}).
+   * into objects/arrays until it finds an object carrying the {@code camunda.document.type=camunda}
+   * discriminator.
    *
    * <p>Throws {@link AssertionError} if the text cannot be parsed as JSON or no document reference
    * is present.
    */
   public static CamundaDocumentReferenceModel parseDocumentReference(String toolResultText) {
+    return parseFirstDocumentNode(toolResultText, "camunda", CamundaDocumentReferenceModel.class);
+  }
+
+  /** Same as {@link #parseDocumentReference} but for external references. */
+  public static ExternalDocumentReferenceModel parseExternalDocumentReference(
+      String toolResultText) {
+    return parseFirstDocumentNode(toolResultText, "external", ExternalDocumentReferenceModel.class);
+  }
+
+  private static <T> T parseFirstDocumentNode(
+      String toolResultText, String discriminator, Class<T> referenceType) {
     final JsonNode root;
     try {
       root = OBJECT_MAPPER.readTree(toolResultText);
@@ -66,16 +81,18 @@ public final class ToolCallResultDocumentAssertions {
       throw new AssertionError("Failed to parse tool result text as JSON: " + toolResultText, e);
     }
 
-    final JsonNode docNode = findFirstCamundaDocumentNode(root);
+    final JsonNode docNode = findFirstDocumentNode(root, discriminator);
     if (docNode == null) {
       throw new AssertionError(
-          "No Camunda document reference found in tool result text: " + toolResultText);
+          "No '%s' document reference found in tool result text: %s"
+              .formatted(discriminator, toolResultText));
     }
 
     try {
-      return OBJECT_MAPPER.treeToValue(docNode, CamundaDocumentReferenceModel.class);
+      return OBJECT_MAPPER.treeToValue(docNode, referenceType);
     } catch (JsonProcessingException e) {
-      throw new AssertionError("Failed to deserialize Camunda document reference: " + docNode, e);
+      throw new AssertionError(
+          "Failed to deserialize '%s' document reference: %s".formatted(discriminator, docNode), e);
     }
   }
 
@@ -84,8 +101,8 @@ public final class ToolCallResultDocumentAssertions {
    * structure: a preamble {@link TextContent} followed by an {@code (xml-tag, content-block)} pair
    * per expected document.
    *
-   * <p>The XML tag is built using the production {@link DocumentXmlTag}, so the assertion stays in
-   * sync with the production format.
+   * <p>The XML tag is built using the production {@link DocumentReferenceXmlTag}, so the assertion
+   * stays in sync with the production format.
    */
   public static void assertExtractedDocumentsUserMessage(
       ChatMessage message, ExtractedDocument... expectedDocuments) {
@@ -152,24 +169,23 @@ public final class ToolCallResultDocumentAssertions {
     }
   }
 
-  private static JsonNode findFirstCamundaDocumentNode(JsonNode node) {
+  private static JsonNode findFirstDocumentNode(JsonNode node, String discriminator) {
     if (node == null) {
       return null;
     }
     if (node.isObject()) {
-      if ("camunda".equals(node.path(DocumentReferenceModel.DISCRIMINATOR_KEY).asText(null))) {
+      if (discriminator.equals(node.path(DocumentReferenceModel.DISCRIMINATOR_KEY).asText(null))) {
         return node;
       }
-      final var properties = node.properties();
-      for (var property : properties) {
-        final var found = findFirstCamundaDocumentNode(property.getValue());
+      for (var property : node.properties()) {
+        final var found = findFirstDocumentNode(property.getValue(), discriminator);
         if (found != null) {
           return found;
         }
       }
     } else if (node.isArray()) {
       for (var element : node) {
-        final var found = findFirstCamundaDocumentNode(element);
+        final var found = findFirstDocumentNode(element, discriminator);
         if (found != null) {
           return found;
         }
@@ -182,35 +198,47 @@ public final class ToolCallResultDocumentAssertions {
    * Specification of one expected extracted document slot in the synthetic user message: an XML tag
    * with optional tool call correlation attributes plus a content block check.
    */
-  public record ExtractedDocument(
-      String toolCallId,
-      String toolName,
-      CamundaDocumentReferenceModel reference,
-      Consumer<Content> contentBlockAssertion) {
+  public record ExtractedDocument(String expectedXmlTag, Consumer<Content> contentBlockAssertion) {
 
-    /** Document extracted from a tool call result. */
+    /** Camunda document extracted from a tool call result. */
     public static ExtractedDocument forToolCall(
         String toolCallId,
         String toolName,
         CamundaDocumentReferenceModel reference,
         Consumer<Content> contentBlockAssertion) {
-      return new ExtractedDocument(toolCallId, toolName, reference, contentBlockAssertion);
+      final var metadata = referenceMetadata(reference);
+      return new ExtractedDocument(
+          new CamundaDocumentReferenceXmlTag(
+                  toolCallId, toolName, reference.documentId(), reference.storeId(), metadata)
+              .toXml(),
+          contentBlockAssertion);
     }
 
-    /** The XML tag string this document is expected to render to in the synthetic user message. */
-    String expectedXmlTag() {
-      return new DocumentXmlTag(
-              toolCallId,
-              toolName,
-              documentShortId(),
-              reference.metadata() != null ? reference.metadata().fileName() : null)
-          .toXml();
+    /** External document extracted from a tool call result. */
+    public static ExtractedDocument forExternalToolCall(
+        String toolCallId,
+        String toolName,
+        ExternalDocumentReferenceModel reference,
+        Consumer<Content> contentBlockAssertion) {
+      return new ExtractedDocument(
+          new ExternalDocumentReferenceXmlTag(
+                  toolCallId,
+                  toolName,
+                  reference.url(),
+                  reference.name(),
+                  DocumentReferenceXmlTag.Metadata.EMPTY)
+              .toXml(),
+          contentBlockAssertion);
     }
 
-    private String documentShortId() {
-      final var documentId = reference.documentId();
-      final int dash = documentId.indexOf('-');
-      return dash > 0 ? documentId.substring(0, dash) : documentId;
+    private static DocumentReferenceXmlTag.Metadata referenceMetadata(
+        CamundaDocumentReferenceModel reference) {
+      final var metadata = reference.metadata();
+      if (metadata == null) {
+        return DocumentReferenceXmlTag.Metadata.EMPTY;
+      }
+      return new DocumentReferenceXmlTag.Metadata(
+          metadata.getContentType(), metadata.getFileName());
     }
   }
 }
