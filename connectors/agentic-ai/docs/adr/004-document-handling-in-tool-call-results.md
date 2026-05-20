@@ -107,13 +107,14 @@ Attribute names mirror the JSON field names emitted by the standard `DocumentSer
 `url`, `name`), so the model can correlate a reference in the tool result JSON with its content block 1:1 without
 inferring partial-id matches. The tag shape is dispatched on the document's reference type:
 
-* `CamundaDocumentReference` → `documentId`, `storeId`
-* `ExternalDocumentReference` → `url`, `name`
-* any other reference (including inline) → identity attributes are omitted
+* `CamundaDocumentReference` → `documentId`, `storeId`, `contentType`, `fileName` — Camunda references read their
+  metadata from the document store in-memory on resolve, so surfacing it on the tag is free.
+* `ExternalDocumentReference` → `url`, `name` — no `contentType` / `fileName`: `Document.metadata()` on an external doc
+  reads HTTP response headers, which would trigger a network fetch just to render a label.
+* any other reference (including inline) → `toolName`, `toolCallId` only.
 
-Every shape also carries a shared metadata block (`contentType`, `fileName`) extracted from `Document.metadata()`. All
-attribute values are XML-escaped, and blank attributes are omitted. Tag name and preamble are intentionally terse to
-minimise token usage.
+All attribute values are XML-escaped, and blank attributes are omitted. Tag name and preamble are intentionally terse
+to minimise token usage.
 
 #### Example: tool call result documents
 
@@ -131,7 +132,7 @@ UserMessage (toolCallDocuments=true):
   DocumentContent: [report.pdf content]
   TextContent: <doc toolName="generate_report" toolCallId="call_1" documentId="f7b3a1d0-1234-5678-9abc-def012345678" storeId="in-memory" contentType="image/png" fileName="chart.png" />
   DocumentContent: [chart.png content]
-  TextContent: <doc toolName="fetch_data" toolCallId="call_2" url="https://example.com/data.csv" name="Q3 metrics" contentType="text/csv" fileName="data.csv" />
+  TextContent: <doc toolName="fetch_data" toolCallId="call_2" url="https://example.com/data.csv" name="Q3 metrics" />
   DocumentContent: [data.csv content]
 ```
 

@@ -33,11 +33,6 @@ class DocumentReferenceXmlTagTest {
   @Mock private Document doc;
   @Mock private DocumentMetadata metadata;
 
-  @BeforeEach
-  void setUp() {
-    when(doc.metadata()).thenReturn(metadata);
-  }
-
   @Nested
   class CamundaDocumentReferenceTag {
 
@@ -47,6 +42,7 @@ class DocumentReferenceXmlTagTest {
     @BeforeEach
     void setUp() {
       when(doc.reference()).thenReturn(ref);
+      when(doc.metadata()).thenReturn(metadata);
     }
 
     @Test
@@ -93,14 +89,12 @@ class DocumentReferenceXmlTagTest {
     void generatesFullTagWithAllAttributes() {
       when(ref.url()).thenReturn("https://example.com/report.pdf");
       when(ref.name()).thenReturn("Quarterly Report");
-      when(metadata.getContentType()).thenReturn("application/pdf");
-      when(metadata.getFileName()).thenReturn("report.pdf");
 
       var tag = DocumentReferenceXmlTag.from(doc, "call_abc", "search");
       assertThat(tag).isInstanceOf(ExternalDocumentReferenceXmlTag.class);
       assertThat(tag.toXml())
           .isEqualTo(
-              "<doc toolName=\"search\" toolCallId=\"call_abc\" url=\"https://example.com/report.pdf\" name=\"Quarterly Report\" contentType=\"application/pdf\" fileName=\"report.pdf\" />");
+              "<doc toolName=\"search\" toolCallId=\"call_abc\" url=\"https://example.com/report.pdf\" name=\"Quarterly Report\" />");
     }
 
     @Test
@@ -127,20 +121,16 @@ class DocumentReferenceXmlTagTest {
     private record CustomDocumentReference(String id) implements DocumentReference {}
 
     @Test
-    void emitsFileNameAndToolContextForUnrecognizedReference() {
+    void emitsToolContextForUnrecognizedReference() {
       when(doc.reference()).thenReturn(new CustomDocumentReference("custom-1"));
-      when(metadata.getContentType()).thenReturn("text/plain");
-      when(metadata.getFileName()).thenReturn("inline.txt");
 
       var tag = DocumentReferenceXmlTag.from(doc, "call_1", "search");
       assertThat(tag).isInstanceOf(GenericDocumentReferenceXmlTag.class);
-      assertThat(tag.toXml())
-          .isEqualTo(
-              "<doc toolName=\"search\" toolCallId=\"call_1\" contentType=\"text/plain\" fileName=\"inline.txt\" />");
+      assertThat(tag.toXml()).isEqualTo("<doc toolName=\"search\" toolCallId=\"call_1\" />");
     }
 
     @Test
-    void emitsMinimalTagForUnrecognizedReferenceWithoutMetadata() {
+    void emitsMinimalTagForUnrecognizedReferenceWithoutToolContext() {
       when(doc.reference()).thenReturn(new CustomDocumentReference("custom-1"));
 
       assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
@@ -152,11 +142,10 @@ class DocumentReferenceXmlTagTest {
     }
 
     @Test
-    void escapesSpecialCharactersInFileName() {
-      when(metadata.getFileName()).thenReturn("file\"with<special>&chars'.pdf");
-
-      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
-          .isEqualTo("<doc fileName=\"file&quot;with&lt;special&gt;&amp;chars&apos;.pdf\" />");
+    void escapesSpecialCharactersInToolName() {
+      assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>&'").toXml())
+          .isEqualTo(
+              "<doc toolName=\"tool&lt;with&quot;quotes&gt;&amp;&apos;\" toolCallId=\"call_1\" />");
     }
   }
 }
