@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
@@ -130,6 +131,14 @@ class GoogleVertexAiChatModelProviderTest {
     }
   }
 
+  @Test
+  void vertexAiGeminiChatModelImplementsAutoCloseable() {
+    // VertexAiGeminiChatModel implements Closeable; the provider passes it as the resource to
+    // CloseableChatModelDelegate. This test guards against a future langchain4j upgrade silently
+    // removing that interface, which would make the close() call a no-op.
+    assertThat(VertexAiGeminiChatModel.class).isAssignableTo(AutoCloseable.class);
+  }
+
   private void testGoogleVertexAiChatModelBuilder(
       GoogleVertexAiProviderConfiguration providerConfig,
       ThrowingConsumer<VertexAiGeminiChatModelBuilder> builderAssertions) {
@@ -142,8 +151,10 @@ class GoogleVertexAiChatModelProviderTest {
       chatModelMock.when(VertexAiGeminiChatModel::builder).thenReturn(chatModelBuilder);
 
       final var chatModel = provider.createChatModel(providerConfig);
-      assertThat(chatModel).isNotNull().isInstanceOf(VertexAiGeminiChatModel.class);
-      assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+      assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
+      final var delegate = ((CloseableChatModelDelegate) chatModel).delegate();
+      assertThat(delegate).isInstanceOf(VertexAiGeminiChatModel.class);
+      assertThat(delegate).isSameAs(chatModelResultCaptor.getResult());
 
       builderAssertions.accept(chatModelBuilder);
     }

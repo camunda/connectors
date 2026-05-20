@@ -10,8 +10,9 @@ import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provi
 
 import com.azure.identity.ClientSecretCredentialBuilder;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
-import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
@@ -41,7 +42,7 @@ public class AzureOpenAiChatModelProvider
   }
 
   @Override
-  public ChatModel createChatModel(AzureOpenAiProviderConfiguration azureOpenAi) {
+  public CloseableChatModel createChatModel(AzureOpenAiProviderConfiguration azureOpenAi) {
     final var connection = azureOpenAi.azureOpenAi();
     final var builder =
         AzureOpenAiChatModel.builder()
@@ -76,6 +77,7 @@ public class AzureOpenAiChatModelProvider
       Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
     }
 
-    return builder.build();
+    // AzureOpenAiChatModel / OpenAIClient / NettyAsyncHttpClient expose no close/dispose API.
+    return new CloseableChatModelDelegate(builder.build(), () -> {});
   }
 }

@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
-import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistry;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 
@@ -19,7 +18,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
   }
 
   @Override
-  public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
+  public CloseableChatModel createChatModel(ProviderConfiguration providerConfiguration) {
     return chatModelProviderRegistry
         .getChatModelProvider(providerConfiguration)
         .createChatModel(providerConfiguration);

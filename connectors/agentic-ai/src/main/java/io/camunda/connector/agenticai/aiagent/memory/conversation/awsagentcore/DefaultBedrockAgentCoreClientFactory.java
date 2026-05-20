@@ -49,7 +49,7 @@ public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreCli
     }
 
     // apply HTTP proxy configuration (same as Bedrock LLM client)
-    builder.httpClient(proxySupport.createAwsHttpClientBuilder(endpointOverride).build());
+    builder.httpClientBuilder(proxySupport.createAwsHttpClientBuilder(endpointOverride));
 
     return builder.build();
   }

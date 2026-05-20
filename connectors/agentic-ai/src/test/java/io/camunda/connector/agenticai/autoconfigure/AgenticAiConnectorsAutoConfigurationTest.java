@@ -11,7 +11,6 @@ import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAss
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
@@ -31,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentReques
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
@@ -367,8 +367,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
         }
 
         @Override
-        public ChatModel createChatModel(AnthropicProviderConfiguration providerConfiguration) {
-          return mock(ChatModel.class);
+        public CloseableChatModel createChatModel(
+            AnthropicProviderConfiguration providerConfiguration) {
+          return mock(CloseableChatModel.class);
         }
       }
     }
@@ -388,8 +389,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
         }
 
         @Override
-        public ChatModel createChatModel(AzureOpenAiProviderConfiguration providerConfiguration) {
-          return mock(ChatModel.class);
+        public CloseableChatModel createChatModel(
+            AzureOpenAiProviderConfiguration providerConfiguration) {
+          return mock(CloseableChatModel.class);
         }
       }
     }
@@ -409,8 +411,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
         }
 
         @Override
-        public ChatModel createChatModel(BedrockProviderConfiguration providerConfiguration) {
-          return mock(ChatModel.class);
+        public CloseableChatModel createChatModel(
+            BedrockProviderConfiguration providerConfiguration) {
+          return mock(CloseableChatModel.class);
         }
       }
     }
@@ -431,9 +434,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
         }
 
         @Override
-        public ChatModel createChatModel(
+        public CloseableChatModel createChatModel(
             GoogleVertexAiProviderConfiguration providerConfiguration) {
-          return mock(ChatModel.class);
+          return mock(CloseableChatModel.class);
         }
       }
     }
@@ -453,8 +456,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
         }
 
         @Override
-        public ChatModel createChatModel(OpenAiProviderConfiguration providerConfiguration) {
-          return mock(ChatModel.class);
+        public CloseableChatModel createChatModel(
+            OpenAiProviderConfiguration providerConfiguration) {
+          return mock(CloseableChatModel.class);
         }
       }
     }
@@ -475,9 +479,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
         }
 
         @Override
-        public ChatModel createChatModel(
+        public CloseableChatModel createChatModel(
             OpenAiCompatibleProviderConfiguration providerConfiguration) {
-          return mock(ChatModel.class);
+          return mock(CloseableChatModel.class);
         }
       }
     }

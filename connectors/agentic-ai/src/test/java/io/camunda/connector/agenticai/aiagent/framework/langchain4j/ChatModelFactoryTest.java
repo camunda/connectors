@@ -11,7 +11,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistry;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
@@ -39,7 +38,7 @@ class ChatModelFactoryTest {
                 new AnthropicAuthentication("api-key"),
                 null,
                 new AnthropicModel("claude", null)));
-    final var expectedChatModel = mock(ChatModel.class);
+    final var expectedChatModel = mock(CloseableChatModel.class);
     final ChatModelProvider<ProviderConfiguration> provider = mock(ChatModelProvider.class);
     when(registry.getChatModelProvider(providerConfig)).thenReturn(provider);
     when(provider.createChatModel(providerConfig)).thenReturn(expectedChatModel);

@@ -9,10 +9,11 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.CONNECT_TIMEOUT;
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
@@ -38,21 +39,18 @@ public class OpenAiChatModelProvider implements ChatModelProvider<OpenAiProvider
   }
 
   @Override
-  public ChatModel createChatModel(OpenAiProviderConfiguration openai) {
+  public CloseableChatModel createChatModel(OpenAiProviderConfiguration openai) {
     final var connection = openai.openai();
     final var apiTimeout =
         deriveTimeoutSetting("OpenAI model call", config, connection.timeouts(), LOGGER);
 
+    final var http = proxySupport.createJdkHttpClientBuilder();
     final var builder =
         OpenAiChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
             .timeout(apiTimeout)
-            .httpClientBuilder(
-                proxySupport
-                    .createJdkHttpClientBuilder()
-                    .connectTimeout(CONNECT_TIMEOUT)
-                    .readTimeout(apiTimeout));
+            .httpClientBuilder(http.connectTimeout(CONNECT_TIMEOUT).readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
@@ -70,6 +68,6 @@ public class OpenAiChatModelProvider implements ChatModelProvider<OpenAiProvider
       builder.defaultRequestParameters(requestParametersBuilder.build());
     }
 
-    return builder.build();
+    return new CloseableChatModelDelegate(builder.build(), http);
   }
 }
