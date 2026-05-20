@@ -20,31 +20,26 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.jupiter.api.AfterEach;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class CamundaApiRetryTest {
 
-  @AfterEach
-  void clearInterruptFlag() {
-    Thread.interrupted();
-  }
-
-  // Helper: builds a FailureMapper that captures call arguments for assertion
   private static CamundaApiRetry.FailureMapper simpleMapper() {
     return (cause, attempt, reason) ->
         new ConnectorException("TEST", "test-" + reason + "-" + attempt, cause);
   }
 
-  // Helper: no-op sleeper (never throws)
   private static CamundaApiRetry.Sleeper recordingSleeper(List<Duration> recorded) {
     return d -> recorded.add(d);
   }
 
   @Test
-  void successOnFirstAttempt_returnsValue() {
+  void shouldReturnValueOnFirstSuccessfulAttempt() {
+    // given
     final List<Duration> recordedSleeps = new ArrayList<>();
 
+    // when
     final String result =
         CamundaApiRetry.execute(
             () -> "ok",
@@ -54,15 +49,18 @@ class CamundaApiRetryTest {
             simpleMapper(),
             recordingSleeper(recordedSleeps));
 
+    // then
     assertThat(result).isEqualTo("ok");
     assertThat(recordedSleeps).isEmpty();
   }
 
   @Test
-  void retryableFailuresThenSuccess_returnsValueAndRecordsSleeps() {
+  void shouldReturnValueAndSleepBetweenRetriesWhenOperationEventuallySucceeds() {
+    // given
     final List<Duration> recordedSleeps = new ArrayList<>();
     final AtomicInteger callCount = new AtomicInteger(0);
 
+    // when
     final String result =
         CamundaApiRetry.execute(
             () -> {
@@ -77,23 +75,25 @@ class CamundaApiRetryTest {
             simpleMapper(),
             recordingSleeper(recordedSleeps));
 
+    // then
     assertThat(result).isEqualTo("success");
     assertThat(recordedSleeps).containsExactly(Duration.ofSeconds(1), Duration.ofSeconds(2));
   }
 
   @Test
-  void permanentError_throwsImmediatelyWithNoSleep() {
+  void shouldThrowImmediatelyWithoutSleepWhenClassifierReturnsPermanent() {
+    // given
     final List<Duration> recordedSleeps = new ArrayList<>();
-    final AtomicInteger[] capturedAttempt = {null};
-    final FailureReason[] capturedReason = {null};
-
+    final AtomicReference<Integer> capturedAttempt = new AtomicReference<>();
+    final AtomicReference<FailureReason> capturedReason = new AtomicReference<>();
     final CamundaApiRetry.FailureMapper capturingMapper =
         (cause, attempt, reason) -> {
-          capturedAttempt[0] = new AtomicInteger(attempt);
-          capturedReason[0] = reason;
+          capturedAttempt.set(attempt);
+          capturedReason.set(reason);
           return new ConnectorException("TEST", "test-" + reason + "-" + attempt, cause);
         };
 
+    // when / then
     assertThatThrownBy(
             () ->
                 CamundaApiRetry.execute(
@@ -107,59 +107,58 @@ class CamundaApiRetryTest {
                     recordingSleeper(recordedSleeps)))
         .isInstanceOf(ConnectorException.class);
 
-    assertThat(capturedReason[0]).isEqualTo(PERMANENT_ERROR);
-    assertThat(capturedAttempt[0].get()).isEqualTo(1);
+    assertThat(capturedReason.get()).isEqualTo(PERMANENT_ERROR);
+    assertThat(capturedAttempt.get()).isEqualTo(1);
     assertThat(recordedSleeps).isEmpty();
   }
 
   @Test
-  void permanentErrorAfterRetries_throwsWithCorrectAttempt() {
+  void shouldThrowWithCorrectAttemptWhenPermanentErrorOccursAfterRetries() {
+    // given
     final List<Duration> recordedSleeps = new ArrayList<>();
-    final AtomicInteger callCount = new AtomicInteger(0);
-    final AtomicInteger[] capturedAttempt = {null};
-    final FailureReason[] capturedReason = {null};
-
+    final AtomicInteger classifierCallCount = new AtomicInteger(0);
+    final AtomicReference<Integer> capturedAttempt = new AtomicReference<>();
+    final AtomicReference<FailureReason> capturedReason = new AtomicReference<>();
     final CamundaApiRetry.FailureMapper capturingMapper =
         (cause, attempt, reason) -> {
-          capturedAttempt[0] = new AtomicInteger(attempt);
-          capturedReason[0] = reason;
+          capturedAttempt.set(attempt);
+          capturedReason.set(reason);
           return new ConnectorException("TEST", "test-" + reason + "-" + attempt, cause);
         };
 
+    // when / then
     assertThatThrownBy(
             () ->
                 CamundaApiRetry.execute(
                     () -> {
                       throw new RuntimeException("fail");
                     },
-                    t -> {
-                      int attempt = callCount.incrementAndGet();
-                      return attempt <= 2 ? RETRYABLE : PERMANENT;
-                    },
+                    t -> classifierCallCount.incrementAndGet() <= 2 ? RETRYABLE : PERMANENT,
                     4,
                     Duration.ofSeconds(1),
                     capturingMapper,
                     recordingSleeper(recordedSleeps)))
         .isInstanceOf(ConnectorException.class);
 
-    assertThat(capturedReason[0]).isEqualTo(PERMANENT_ERROR);
-    assertThat(capturedAttempt[0].get()).isEqualTo(3);
+    assertThat(capturedReason.get()).isEqualTo(PERMANENT_ERROR);
+    assertThat(capturedAttempt.get()).isEqualTo(3);
     assertThat(recordedSleeps).hasSize(2);
   }
 
   @Test
-  void allRetriesExhausted_throwsWithRetriesExhaustedReason() {
+  void shouldThrowWithRetriesExhaustedReasonWhenAllRetriesFail() {
+    // given
     final List<Duration> recordedSleeps = new ArrayList<>();
-    final AtomicInteger[] capturedAttempt = {null};
-    final FailureReason[] capturedReason = {null};
-
+    final AtomicReference<Integer> capturedAttempt = new AtomicReference<>();
+    final AtomicReference<FailureReason> capturedReason = new AtomicReference<>();
     final CamundaApiRetry.FailureMapper capturingMapper =
         (cause, attempt, reason) -> {
-          capturedAttempt[0] = new AtomicInteger(attempt);
-          capturedReason[0] = reason;
+          capturedAttempt.set(attempt);
+          capturedReason.set(reason);
           return new ConnectorException("TEST", "test-" + reason + "-" + attempt, cause);
         };
 
+    // when / then
     assertThatThrownBy(
             () ->
                 CamundaApiRetry.execute(
@@ -173,8 +172,8 @@ class CamundaApiRetryTest {
                     recordingSleeper(recordedSleeps)))
         .isInstanceOf(ConnectorException.class);
 
-    assertThat(capturedReason[0]).isEqualTo(RETRIES_EXHAUSTED);
-    assertThat(capturedAttempt[0].get()).isEqualTo(5);
+    assertThat(capturedReason.get()).isEqualTo(RETRIES_EXHAUSTED);
+    assertThat(capturedAttempt.get()).isEqualTo(5);
     assertThat(recordedSleeps)
         .containsExactly(
             Duration.ofSeconds(1),
@@ -184,22 +183,22 @@ class CamundaApiRetryTest {
   }
 
   @Test
-  void interruptedSleep_throwsWithInterruptedReasonAndRestoresFlag() {
-    final FailureReason[] capturedReason = {null};
-    final Throwable[] capturedCause = {null};
-
+  void shouldThrowWithInterruptedReasonAndRestoreInterruptFlagWhenSleepIsInterrupted() {
+    // given
+    final AtomicReference<FailureReason> capturedReason = new AtomicReference<>();
+    final AtomicReference<Throwable> capturedCause = new AtomicReference<>();
     final CamundaApiRetry.FailureMapper capturingMapper =
         (cause, attempt, reason) -> {
-          capturedReason[0] = reason;
-          capturedCause[0] = cause;
+          capturedReason.set(reason);
+          capturedCause.set(cause);
           return new ConnectorException("TEST", "test-" + reason + "-" + attempt, cause);
         };
-
     final CamundaApiRetry.Sleeper interruptingSleeper =
         d -> {
           throw new InterruptedException("interrupted");
         };
 
+    // when / then
     assertThatThrownBy(
             () ->
                 CamundaApiRetry.execute(
@@ -213,44 +212,19 @@ class CamundaApiRetryTest {
                     interruptingSleeper))
         .isInstanceOf(ConnectorException.class);
 
-    assertThat(capturedReason[0]).isEqualTo(INTERRUPTED);
-    assertThat(capturedCause[0]).isInstanceOf(InterruptedException.class);
+    assertThat(capturedReason.get()).isEqualTo(INTERRUPTED);
+    assertThat(capturedCause.get()).isInstanceOf(InterruptedException.class);
     assertThat(Thread.currentThread().isInterrupted()).isTrue();
-    // Clean up interrupt flag
-    Thread.interrupted();
   }
 
   @Test
-  void onAllExceptions_classifiesEveryExceptionAsRetryable() {
+  void shouldClassifyEveryExceptionAsRetryableWhenUsingOnAllExceptions() {
+    // given
     final ErrorClassifier classifier = ErrorClassifier.onAllExceptions();
 
-    // execute() catches Exception, not Throwable — these are the types that reach the classifier
+    // then
     assertThat(classifier.classify(new RuntimeException())).isEqualTo(RETRYABLE);
     assertThat(classifier.classify(new Exception())).isEqualTo(RETRYABLE);
     assertThat(classifier.classify(new java.io.IOException())).isEqualTo(RETRYABLE);
-  }
-
-  @Test
-  void delaySequence_followsExponentialBackoff() {
-    final List<Duration> recordedSleeps = new ArrayList<>();
-
-    assertThatThrownBy(
-        () ->
-            CamundaApiRetry.execute(
-                () -> {
-                  throw new RuntimeException("always fail");
-                },
-                ErrorClassifier.onAllExceptions(),
-                4,
-                Duration.ofSeconds(1),
-                simpleMapper(),
-                recordingSleeper(recordedSleeps)));
-
-    assertThat(recordedSleeps)
-        .containsExactly(
-            Duration.ofSeconds(1),
-            Duration.ofSeconds(2),
-            Duration.ofSeconds(4),
-            Duration.ofSeconds(8));
   }
 }

@@ -20,37 +20,37 @@ class AgentInstanceErrorClassifierTest {
   // --- Direct ClientHttpException cases ---
 
   @Test
-  void http400_isPermanent() {
+  void shouldReturnPermanentForHttp400() {
     assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(400, "Bad Request")))
         .isEqualTo(PERMANENT);
   }
 
   @Test
-  void http401_isPermanent() {
+  void shouldReturnPermanentForHttp401() {
     assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(401, "Unauthorized")))
         .isEqualTo(PERMANENT);
   }
 
   @Test
-  void http403_isPermanent() {
+  void shouldReturnPermanentForHttp403() {
     assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(403, "Forbidden")))
         .isEqualTo(PERMANENT);
   }
 
   @Test
-  void http404_isRetryable() {
+  void shouldReturnRetryableForHttp404() {
     assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(404, "Not Found")))
         .isEqualTo(RETRYABLE);
   }
 
   @Test
-  void http409_isPermanent() {
+  void shouldReturnPermanentForHttp409() {
     assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(409, "Conflict")))
         .isEqualTo(PERMANENT);
   }
 
   @Test
-  void http500_isRetryable() {
+  void shouldReturnRetryableForHttp500() {
     assertThat(
             AgentInstanceErrorClassifier.classify(
                 new ClientHttpException(500, "Internal Server Error")))
@@ -58,7 +58,7 @@ class AgentInstanceErrorClassifierTest {
   }
 
   @Test
-  void http503_isRetryable() {
+  void shouldReturnRetryableForHttp503() {
     assertThat(
             AgentInstanceErrorClassifier.classify(
                 new ClientHttpException(503, "Service Unavailable")))
@@ -66,7 +66,7 @@ class AgentInstanceErrorClassifierTest {
   }
 
   @Test
-  void http502_isRetryable() {
+  void shouldReturnRetryableForHttp502() {
     assertThat(AgentInstanceErrorClassifier.classify(new ClientHttpException(502, "Bad Gateway")))
         .isEqualTo(RETRYABLE);
   }
@@ -74,13 +74,13 @@ class AgentInstanceErrorClassifierTest {
   // --- Wrapped ClientHttpException cases ---
 
   @Test
-  void wrappedHttp404_isRetryable() {
+  void shouldReturnRetryableForWrappedHttp404() {
     final var wrapped = new RuntimeException("wrapped", new ClientHttpException(404, "Not Found"));
     assertThat(AgentInstanceErrorClassifier.classify(wrapped)).isEqualTo(RETRYABLE);
   }
 
   @Test
-  void wrappedHttp400_isPermanent() {
+  void shouldReturnPermanentForWrappedHttp400() {
     final var wrapped =
         new RuntimeException("wrapped", new ClientHttpException(400, "Bad Request"));
     assertThat(AgentInstanceErrorClassifier.classify(wrapped)).isEqualTo(PERMANENT);
@@ -89,19 +89,19 @@ class AgentInstanceErrorClassifierTest {
   // --- IO exception cases ---
 
   @Test
-  void ioException_isRetryable() {
+  void shouldReturnRetryableForIoException() {
     assertThat(AgentInstanceErrorClassifier.classify(new IOException("connection refused")))
         .isEqualTo(RETRYABLE);
   }
 
   @Test
-  void interruptedIoException_isRetryable() {
+  void shouldReturnRetryableForInterruptedIoException() {
     assertThat(AgentInstanceErrorClassifier.classify(new InterruptedIOException("timeout")))
         .isEqualTo(RETRYABLE);
   }
 
   @Test
-  void runtimeExceptionWrappingIoException_isRetryable() {
+  void shouldReturnRetryableForRuntimeExceptionWrappingIoException() {
     assertThat(
             AgentInstanceErrorClassifier.classify(
                 new RuntimeException(new IOException("transport"))))
@@ -111,13 +111,13 @@ class AgentInstanceErrorClassifierTest {
   // --- Default fallback ---
 
   @Test
-  void unknownRuntimeException_isPermanent() {
+  void shouldReturnPermanentForUnknownRuntimeException() {
     assertThat(AgentInstanceErrorClassifier.classify(new RuntimeException("unknown")))
         .isEqualTo(PERMANENT);
   }
 
   @Test
-  void illegalArgumentException_isPermanent() {
+  void shouldReturnPermanentForIllegalArgumentException() {
     assertThat(AgentInstanceErrorClassifier.classify(new IllegalArgumentException("bad arg")))
         .isEqualTo(PERMANENT);
   }

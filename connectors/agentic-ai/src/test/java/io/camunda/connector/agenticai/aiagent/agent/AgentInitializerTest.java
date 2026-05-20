@@ -126,7 +126,7 @@ class AgentInitializerTest {
         value = AgentState.class,
         names = {"INITIALIZING", "TOOL_DISCOVERY"},
         mode = EnumSource.Mode.EXCLUDE)
-    void returnsAgentContextAndToolCallResultsFromRequest(AgentState agentState) {
+    void shouldReturnAgentContextAndToolCallResultsFromRequest(AgentState agentState) {
       final var agentContext =
           AgentContext.empty()
               .withState(agentState)
@@ -149,7 +149,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void handlesNullInitialAgentContext() {
+    void shouldHandleNullInitialAgentContext() {
       // When initialAgentContext is null, creates new context with INITIALIZING state
       // which triggers agent instance creation then initiateToolDiscovery flow
       when(agentInstanceClient.create(any())).thenReturn(12345L);
@@ -186,7 +186,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void handlesNullInitialToolCallResults() {
+    void shouldHandleNullInitialToolCallResults() {
       final var agentContext =
           AgentContext.empty().withState(AgentState.READY).withMetadata(EXECUTION_METADATA);
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
@@ -220,7 +220,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void noToolDiscoveryWhenNoToolElementsExist() {
+    void shouldNotInitiateToolDiscoveryWhenNoToolElementsExist() {
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
@@ -242,9 +242,8 @@ class AgentInitializerTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    void
-        whenNoGatewayToolsResolved_returnsUpdatedAgentContextIncludingToolDefinitionsWithoutGatewayDiscovery(
-            List<GatewayToolDefinition> gatewayToolDefinitions) {
+    void shouldReturnUpdatedAgentContextWithToolDefinitionsWhenNoGatewayToolsResolved(
+        List<GatewayToolDefinition> gatewayToolDefinitions) {
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, gatewayToolDefinitions));
@@ -269,7 +268,7 @@ class AgentInitializerTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    void whenNoToolDiscoveryToolCallsReturned_returnsUpdatedAgentContextIncludingToolDefinitions(
+    void shouldReturnUpdatedAgentContextWithToolDefinitionsWhenNoToolDiscoveryCallsReturned(
         List<ToolCall> toolDiscoveryToolCalls) {
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
@@ -302,7 +301,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void whenToolDiscoveryToolCallsReturned_returnsAgentResponseIncludingDiscoveryToolCalls() {
+    void shouldReturnAgentResponseWithDiscoveryToolCallsWhenToolDiscoveryCallsAreReturned() {
       final var toolDiscoveryToolCalls =
           List.of(
               ToolCall.builder()
@@ -379,7 +378,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void handlesToolDiscoveryResults() {
+    void shouldHandleToolDiscoveryResults() {
       when(executionContext.initialToolCallResults())
           .thenReturn(GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS);
 
@@ -421,7 +420,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void returnsPotentialRemainingNonDiscoveryToolCallResults() {
+    void shouldReturnPotentialRemainingNonDiscoveryToolCallResults() {
       final var expectedToolDefinitions = new ArrayList<>(TOOL_DEFINITIONS);
       expectedToolDefinitions.addAll(RESOLVED_GATEWAY_TOOL_DEFINITIONS);
 
@@ -464,7 +463,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void returnsDiscoveryInProgressWhenNotAllToolDiscoveryResultsPresent() {
+    void shouldReturnDiscoveryInProgressWhenNotAllToolDiscoveryResultsPresent() {
       when(executionContext.initialToolCallResults())
           .thenReturn(GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS);
 
@@ -478,7 +477,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void returnsDiscoveryInProgressWithPartialResults() {
+    void shouldReturnDiscoveryInProgressWithPartialResults() {
       final var partialToolCallResults =
           List.of(
               ToolCallResult.builder()
@@ -507,7 +506,7 @@ class AgentInitializerTest {
     private static final long PROCESS_INSTANCE_KEY = 987654321L;
 
     @Test
-    void triggersToolUpdateWhenMetadataIsNull() {
+    void shouldTriggerToolUpdateWhenMetadataIsNull() {
       final var agentContext =
           AgentContext.empty().withState(AgentState.READY).withToolDefinitions(TOOL_DEFINITIONS);
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
@@ -533,7 +532,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void triggersToolUpdateWhenProcessDefinitionKeyChanged() {
+    void shouldTriggerToolUpdateWhenProcessDefinitionKeyChanged() {
       final var originalMetadata =
           new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
       final var agentContext =
@@ -564,7 +563,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void skipsToolUpdateWhenProcessDefinitionKeyMatches() {
+    void shouldSkipToolUpdateWhenProcessDefinitionKeyMatches() {
       final var metadata =
           new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
       final var agentContext =

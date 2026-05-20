@@ -44,7 +44,7 @@ class CreateAgentInstanceParamsTest {
   }
 
   @Test
-  void happyPath_withOpenAiProvider() {
+  void shouldCreateParamsFromOpenAiProviderContext() {
     when(executionContext.provider()).thenReturn(OPENAI_PROVIDER);
     when(executionContext.systemPrompt())
         .thenReturn(new SystemPromptConfiguration("You are a helpful assistant."));
@@ -61,7 +61,7 @@ class CreateAgentInstanceParamsTest {
   }
 
   @Test
-  void nullLimits_producesNullMaxModelCalls() {
+  void shouldProduceNullLimitsWhenLimitsIsNull() {
     when(executionContext.provider()).thenReturn(OPENAI_PROVIDER);
     when(executionContext.limits()).thenReturn(null);
 
@@ -71,7 +71,7 @@ class CreateAgentInstanceParamsTest {
   }
 
   @Test
-  void nonNullLimits_propagatesMaxModelCalls() {
+  void shouldPropagateMaxModelCallsWhenLimitsIsNonNull() {
     when(executionContext.provider()).thenReturn(OPENAI_PROVIDER);
     when(executionContext.limits()).thenReturn(new LimitsConfiguration(10));
 
@@ -82,7 +82,7 @@ class CreateAgentInstanceParamsTest {
   }
 
   @Test
-  void nullSystemPrompt_producesNullSystemPrompt() {
+  void shouldProduceNullSystemPromptWhenSystemPromptIsNull() {
     when(executionContext.provider()).thenReturn(OPENAI_PROVIDER);
     when(executionContext.systemPrompt()).thenReturn(null);
 

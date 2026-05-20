@@ -83,7 +83,7 @@ class CamundaAgentInstanceClientTest {
   }
 
   @Test
-  void successOnFirstAttempt_returnsAgentInstanceKey() {
+  void shouldReturnAgentInstanceKeyOnFirstSuccessfulAttempt() {
     setupCommandChain();
     when(step5.execute()).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(12345L);
@@ -96,9 +96,7 @@ class CamundaAgentInstanceClientTest {
   }
 
   @Test
-  void successOnFirstAttempt_withNullMaxModelCalls() {
-    // When maxModelCalls is null the command skips the maxModelCalls() step and calls send()
-    // directly on the step5 object returned by systemPrompt() — no maxModelCalls() stub needed.
+  void shouldReturnAgentInstanceKeyOnFirstAttemptWhenMaxModelCallsIsNull() {
     when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(step1);
     when(step1.elementInstanceKey(anyLong())).thenReturn(step2);
     when(step2.model(anyString())).thenReturn(step3);
@@ -115,7 +113,7 @@ class CamundaAgentInstanceClientTest {
   }
 
   @Test
-  void permanentError400_throwsConnectorExceptionImmediately() {
+  void shouldThrowConnectorExceptionImmediatelyForHttp400PermanentError() {
     setupCommandChain();
     when(step5.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
@@ -134,7 +132,7 @@ class CamundaAgentInstanceClientTest {
   }
 
   @Test
-  void retryableErrorThenSuccess_returnsKeyAndRecordsOneSleep() {
+  void shouldReturnKeyAndRecordOneSleepWhenRetryableErrorPrecedesSuccess() {
     setupCommandChain();
     when(step5.execute()).thenThrow(new ClientHttpException(404, "Not Found")).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(999L);
@@ -148,7 +146,7 @@ class CamundaAgentInstanceClientTest {
   }
 
   @Test
-  void allRetriesExhausted_throwsConnectorExceptionWithAttemptCount() {
+  void shouldThrowConnectorExceptionWithAttemptCountWhenAllRetriesAreExhausted() {
     setupCommandChain();
     when(step5.execute()).thenThrow(new ClientHttpException(500, "Internal Server Error"));
 

@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 class ProviderModelExtractorTest {
 
   @Test
-  void extractsModelFromAnthropicProvider() {
+  void shouldExtractModelFromAnthropicProvider() {
     final var provider =
         new AnthropicProviderConfiguration(
             new AnthropicConnection(
@@ -50,7 +50,7 @@ class ProviderModelExtractorTest {
   }
 
   @Test
-  void extractsModelFromBedrockProvider() {
+  void shouldExtractModelFromBedrockProvider() {
     final var provider =
         new BedrockProviderConfiguration(
             new BedrockConnection(
@@ -65,7 +65,7 @@ class ProviderModelExtractorTest {
   }
 
   @Test
-  void extractsDeploymentNameFromAzureOpenAiProvider() {
+  void shouldExtractDeploymentNameFromAzureOpenAiProvider() {
     final var provider =
         new AzureOpenAiProviderConfiguration(
             new AzureOpenAiConnection(
@@ -78,7 +78,7 @@ class ProviderModelExtractorTest {
   }
 
   @Test
-  void extractsModelFromGoogleVertexAiProvider() {
+  void shouldExtractModelFromGoogleVertexAiProvider() {
     final var provider =
         new GoogleVertexAiProviderConfiguration(
             new GoogleVertexAiConnection(
@@ -91,7 +91,7 @@ class ProviderModelExtractorTest {
   }
 
   @Test
-  void extractsModelFromOpenAiProvider() {
+  void shouldExtractModelFromOpenAiProvider() {
     final var provider =
         new OpenAiProviderConfiguration(
             new OpenAiConnection(
@@ -103,7 +103,7 @@ class ProviderModelExtractorTest {
   }
 
   @Test
-  void extractsModelFromOpenAiCompatibleProvider() {
+  void shouldExtractModelFromOpenAiCompatibleProvider() {
     final var provider =
         new OpenAiCompatibleProviderConfiguration(
             new OpenAiCompatibleConnection(
