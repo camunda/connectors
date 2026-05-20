@@ -10,6 +10,9 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
+import io.camunda.client.metrics.DefaultNoopMetricsRecorder;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
@@ -35,5 +38,25 @@ class TestConfig {
   @Bean
   public CamundaDocumentStore documentStore() {
     return mock(CamundaDocumentStore.class);
+  }
+
+  @Bean
+  public FeelExpressionEvaluator feelExpressionEvaluator() {
+    return mock(FeelExpressionEvaluator.class);
+  }
+
+  @Bean
+  public SecretProviderAggregator secretProviderAggregator() {
+    return mock(SecretProviderAggregator.class);
+  }
+
+  @Bean
+  public JobCallbackCommandWrapperFactory jobCallbackCommandWrapperFactory() {
+    return mock(JobCallbackCommandWrapperFactory.class);
+  }
+
+  @Bean
+  public MetricsRecorder metricsRecorder() {
+    return new DefaultNoopMetricsRecorder();
   }
 }
