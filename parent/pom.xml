@@ -584,6 +584,11 @@ limitations under the License.</license.inlineheader>
         <artifactId>http-auth</artifactId>
         <version>${version.aws-sdk2}</version>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sts</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
 
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
@@ -1108,6 +1113,8 @@ Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575
                   <dependency>org.testcontainers:testcontainers</dependency>
                   <dependency>org.springframework.boot:spring-boot-starter-actuator</dependency>
                   <dependency>io.camunda.connector:connector-validation</dependency>
+                  <!-- runtime-only: loaded reflectively by DefaultCredentialsProvider for IRSA/WebIdentityTokenFileCredentialsProvider -->
+                  <dependency>software.amazon.awssdk:sts</dependency>
                 </ignoredUnusedDeclaredDependencies>
                 <ignoredUsedUndeclaredDependencies>
                   <!-- included in junit-jupiter, ignore for cleaner pom -->
