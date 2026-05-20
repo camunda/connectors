@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListTools
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
@@ -411,9 +412,10 @@ class McpClientGatewayToolHandlerTest {
                   McpTextContent.textContent("First content"),
                   McpTextContent.textContent("Second content")),
               false);
-      // simulate engine deserialization: content arrives as a raw Map, not a typed POJO
-      @SuppressWarnings("unchecked")
-      var contentAsMap = objectMapper.convertValue(mcpCallToolResult, Map.class);
+      // simulate engine deserialization: content arrives as a Map<String, Object>, not a typed POJO
+      var contentAsMap =
+          objectMapper.convertValue(
+              mcpCallToolResult, ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
       var toolCallResults = List.of(createToolCallResultWithContent("call1", "mcp1", contentAsMap));
 
       var result = handler.transformToolCallResults(agentContext, toolCallResults);
