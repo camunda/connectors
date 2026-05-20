@@ -15,6 +15,7 @@ public final class AgentInstanceErrorClassifier implements ErrorClassifier {
 
   public static final AgentInstanceErrorClassifier INSTANCE = new AgentInstanceErrorClassifier();
 
+  @Override
   public Decision classify(Throwable t) {
     Throwable current = t;
     while (current != null) {
