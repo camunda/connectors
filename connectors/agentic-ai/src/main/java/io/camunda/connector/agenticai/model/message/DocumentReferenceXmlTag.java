@@ -25,7 +25,7 @@ import org.springframework.lang.Nullable;
  * so the model can correlate references in the tool result JSON with the actual document content
  * blocks 1:1 without inferring partial-id matches. Blank/null attributes are omitted.
  */
-public sealed interface DocumentXmlTag {
+public sealed interface DocumentReferenceXmlTag {
 
   @Nullable
   String toolCallId();
@@ -42,26 +42,27 @@ public sealed interface DocumentXmlTag {
    * reference type:
    *
    * <ul>
-   *   <li>{@link CamundaDocumentReference} → {@link CamundaDocumentXmlTag}
-   *   <li>{@link ExternalDocumentReference} → {@link ExternalDocumentXmlTag}
-   *   <li>any other reference type (including inline) → {@link GenericDocumentXmlTag}
+   *   <li>{@link CamundaDocumentReference} → {@link CamundaDocumentReferenceXmlTag}
+   *   <li>{@link ExternalDocumentReference} → {@link ExternalDocumentReferenceXmlTag}
+   *   <li>any other reference type (including inline) → {@link GenericDocumentReferenceXmlTag}
    * </ul>
    */
-  static DocumentXmlTag from(
+  static DocumentReferenceXmlTag from(
       Document document, @Nullable String toolCallId, @Nullable String toolName) {
     final var metadata = Metadata.from(document);
     return switch (document.reference()) {
       case CamundaDocumentReference ref ->
-          new CamundaDocumentXmlTag(
+          new CamundaDocumentReferenceXmlTag(
               toolCallId, toolName, ref.getDocumentId(), ref.getStoreId(), metadata);
       case ExternalDocumentReference ref ->
-          new ExternalDocumentXmlTag(toolCallId, toolName, ref.url(), ref.name(), metadata);
-      case null, default -> new GenericDocumentXmlTag(toolCallId, toolName, metadata);
+          new ExternalDocumentReferenceXmlTag(
+              toolCallId, toolName, ref.url(), ref.name(), metadata);
+      case null, default -> new GenericDocumentReferenceXmlTag(toolCallId, toolName, metadata);
     };
   }
 
   /** Creates a tag from a document without tool call context (e.g. for event documents). */
-  static DocumentXmlTag from(Document document) {
+  static DocumentReferenceXmlTag from(Document document) {
     return from(document, null, null);
   }
 
@@ -76,13 +77,13 @@ public sealed interface DocumentXmlTag {
     }
   }
 
-  record CamundaDocumentXmlTag(
+  record CamundaDocumentReferenceXmlTag(
       @Nullable String toolCallId,
       @Nullable String toolName,
       String documentId,
       @Nullable String storeId,
       Metadata metadata)
-      implements DocumentXmlTag {
+      implements DocumentReferenceXmlTag {
 
     @Override
     public String toXml() {
@@ -96,13 +97,13 @@ public sealed interface DocumentXmlTag {
     }
   }
 
-  record ExternalDocumentXmlTag(
+  record ExternalDocumentReferenceXmlTag(
       @Nullable String toolCallId,
       @Nullable String toolName,
       String url,
       @Nullable String name,
       Metadata metadata)
-      implements DocumentXmlTag {
+      implements DocumentReferenceXmlTag {
 
     @Override
     public String toXml() {
@@ -116,9 +117,9 @@ public sealed interface DocumentXmlTag {
     }
   }
 
-  record GenericDocumentXmlTag(
+  record GenericDocumentReferenceXmlTag(
       @Nullable String toolCallId, @Nullable String toolName, Metadata metadata)
-      implements DocumentXmlTag {
+      implements DocumentReferenceXmlTag {
 
     @Override
     public String toXml() {

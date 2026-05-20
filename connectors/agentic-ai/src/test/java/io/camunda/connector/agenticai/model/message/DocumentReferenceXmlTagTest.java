@@ -10,9 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.model.message.DocumentXmlTag.CamundaDocumentXmlTag;
-import io.camunda.connector.agenticai.model.message.DocumentXmlTag.ExternalDocumentXmlTag;
-import io.camunda.connector.agenticai.model.message.DocumentXmlTag.GenericDocumentXmlTag;
+import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.GenericDocumentReferenceXmlTag;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
@@ -21,7 +21,7 @@ import io.camunda.connector.api.document.DocumentReference.InlineDocumentReferen
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-class DocumentXmlTagTest {
+class DocumentReferenceXmlTagTest {
 
   @Nested
   class CamundaDocumentReferenceTag {
@@ -38,8 +38,8 @@ class DocumentXmlTagTest {
       when(metadata.getContentType()).thenReturn("application/pdf");
       when(metadata.getFileName()).thenReturn("report.pdf");
 
-      var tag = DocumentXmlTag.from(doc, "call_abc", "search");
-      assertThat(tag).isInstanceOf(CamundaDocumentXmlTag.class);
+      var tag = DocumentReferenceXmlTag.from(doc, "call_abc", "search");
+      assertThat(tag).isInstanceOf(CamundaDocumentReferenceXmlTag.class);
       assertThat(tag.toXml())
           .isEqualTo(
               "<doc toolName=\"search\" toolCallId=\"call_abc\" documentId=\"25ece9fa-aeea-423d-98ed-67c1f08b137b\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"report.pdf\" />");
@@ -52,7 +52,7 @@ class DocumentXmlTagTest {
       when(doc.reference()).thenReturn(ref);
       when(ref.getDocumentId()).thenReturn("f7b3a1d0-1234-5678-9abc-def012345678");
 
-      assertThat(DocumentXmlTag.from(doc).toXml())
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
           .isEqualTo("<doc documentId=\"f7b3a1d0-1234-5678-9abc-def012345678\" />");
     }
 
@@ -63,7 +63,7 @@ class DocumentXmlTagTest {
       when(doc.reference()).thenReturn(ref);
       when(ref.getDocumentId()).thenReturn("abc12345-0000-0000-0000-000000000000");
 
-      assertThat(DocumentXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
+      assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
           .isEqualTo(
               "<doc toolName=\"tool&lt;with&quot;quotes&gt;\" toolCallId=\"call_1\" documentId=\"abc12345-0000-0000-0000-000000000000\" />");
     }
@@ -84,8 +84,8 @@ class DocumentXmlTagTest {
       when(metadata.getContentType()).thenReturn("application/pdf");
       when(metadata.getFileName()).thenReturn("report.pdf");
 
-      var tag = DocumentXmlTag.from(doc, "call_abc", "search");
-      assertThat(tag).isInstanceOf(ExternalDocumentXmlTag.class);
+      var tag = DocumentReferenceXmlTag.from(doc, "call_abc", "search");
+      assertThat(tag).isInstanceOf(ExternalDocumentReferenceXmlTag.class);
       assertThat(tag.toXml())
           .isEqualTo(
               "<doc toolName=\"search\" toolCallId=\"call_abc\" url=\"https://example.com/report.pdf\" name=\"Quarterly Report\" contentType=\"application/pdf\" fileName=\"report.pdf\" />");
@@ -98,7 +98,7 @@ class DocumentXmlTagTest {
       when(doc.reference()).thenReturn(ref);
       when(ref.url()).thenReturn("https://example.com/report.pdf");
 
-      assertThat(DocumentXmlTag.from(doc).toXml())
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
           .isEqualTo("<doc url=\"https://example.com/report.pdf\" />");
     }
 
@@ -109,7 +109,7 @@ class DocumentXmlTagTest {
       when(doc.reference()).thenReturn(ref);
       when(ref.url()).thenReturn("https://example.com/path?q=a&b=\"c\"");
 
-      assertThat(DocumentXmlTag.from(doc).toXml())
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
           .isEqualTo("<doc url=\"https://example.com/path?q=a&amp;b=&quot;c&quot;\" />");
     }
   }
@@ -127,8 +127,8 @@ class DocumentXmlTagTest {
       when(metadata.getContentType()).thenReturn("text/plain");
       when(metadata.getFileName()).thenReturn("inline.txt");
 
-      var tag = DocumentXmlTag.from(doc, "call_1", "search");
-      assertThat(tag).isInstanceOf(GenericDocumentXmlTag.class);
+      var tag = DocumentReferenceXmlTag.from(doc, "call_1", "search");
+      assertThat(tag).isInstanceOf(GenericDocumentReferenceXmlTag.class);
       assertThat(tag.toXml())
           .isEqualTo(
               "<doc toolName=\"search\" toolCallId=\"call_1\" contentType=\"text/plain\" fileName=\"inline.txt\" />");
@@ -140,13 +140,13 @@ class DocumentXmlTagTest {
       var ref = mock(InlineDocumentReference.class);
       when(doc.reference()).thenReturn(ref);
 
-      assertThat(DocumentXmlTag.from(doc).toXml()).isEqualTo("<doc />");
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
     }
 
     @Test
     void emitsMinimalTagForNullReference() {
       var doc = mock(Document.class);
-      assertThat(DocumentXmlTag.from(doc).toXml()).isEqualTo("<doc />");
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
     }
 
     @Test
@@ -156,7 +156,7 @@ class DocumentXmlTagTest {
       when(doc.metadata()).thenReturn(metadata);
       when(metadata.getFileName()).thenReturn("file\"with<special>&chars'.pdf");
 
-      assertThat(DocumentXmlTag.from(doc).toXml())
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
           .isEqualTo("<doc fileName=\"file&quot;with&lt;special&gt;&amp;chars&apos;.pdf\" />");
     }
   }

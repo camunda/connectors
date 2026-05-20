@@ -20,7 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.message.DocumentXmlTag;
+import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
@@ -243,7 +243,8 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       for (var doc : group.documents()) {
         content.add(
             textContent(
-                DocumentXmlTag.from(doc, group.toolCallId(), group.toolCallName()).toXml()));
+                DocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
+                    .toXml()));
         content.add(DocumentContent.documentContent(doc));
       }
     }
