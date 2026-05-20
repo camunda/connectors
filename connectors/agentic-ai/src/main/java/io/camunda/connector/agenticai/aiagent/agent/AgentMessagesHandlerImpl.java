@@ -228,26 +228,12 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
     final var content = new ArrayList<Content>();
     content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-    appendDocumentPairs(content, toolCallDocuments);
+    content.addAll(createDocumentPairs(toolCallDocuments));
 
     final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
     metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
 
     return UserMessage.builder().content(content).metadata(metadata).build();
-  }
-
-  private void appendDocumentPairs(
-      List<Content> content,
-      List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups) {
-    for (var group : documentGroups) {
-      for (var doc : group.documents()) {
-        content.add(
-            textContent(
-                DocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
-                    .toXml()));
-        content.add(DocumentContent.documentContent(doc));
-      }
-    }
   }
 
   private Message createEventMessage(
@@ -269,19 +255,33 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
           });
     }
 
-    // events arrive as ToolCallResult with null id/name; the extractor falls back to the
-    // generic content-tree walker (no handler manages a null tool name) — equivalent shape
-    // to tool-call document extraction, no tool-call attributes on the rendered tag
+    // events arrive as ToolCallResult with null id/name — no tool-call attributes
+    // on the rendered tag, but the extraction shape is otherwise the same
     final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
     if (!eventDocuments.isEmpty()) {
       userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
-      appendDocumentPairs(userMessageContent, eventDocuments);
+      userMessageContent.addAll(createDocumentPairs(eventDocuments));
     }
 
     return UserMessage.builder()
         .content(userMessageContent)
         .metadata(defaultMessageMetadata())
         .build();
+  }
+
+  private List<Content> createDocumentPairs(
+      List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups) {
+    final var content = new ArrayList<Content>();
+    for (var group : documentGroups) {
+      for (var doc : group.documents()) {
+        content.add(
+            textContent(
+                DocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
+                    .toXml()));
+        content.add(DocumentContent.documentContent(doc));
+      }
+    }
+    return content;
   }
 
   private boolean isEventContentEmpty(Object eventContent) {
