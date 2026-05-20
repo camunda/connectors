@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
-import static io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceErrorClassifier.Decision.PERMANENT;
-import static io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceErrorClassifier.Decision.RETRYABLE;
+import static io.camunda.connector.agenticai.util.retry.ErrorClassifier.Decision.PERMANENT;
+import static io.camunda.connector.agenticai.util.retry.ErrorClassifier.Decision.RETRYABLE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.client.api.command.ClientHttpException;

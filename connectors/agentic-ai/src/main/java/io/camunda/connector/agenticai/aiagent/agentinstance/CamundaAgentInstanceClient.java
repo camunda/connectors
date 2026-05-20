@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceErrorClassifier.Decision;
+import io.camunda.connector.agenticai.util.retry.ErrorClassifier.Decision;
 import io.camunda.connector.agenticai.util.retry.ExponentialBackoffRetry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
