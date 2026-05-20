@@ -79,8 +79,8 @@ class AgentMessagesHandlerTest {
   private static final String EVENT_WAIT_FOR_TOOL_CALL_RESULTS_EMPTY_MESSAGE =
       "An event was triggered but no content was returned. Execution waited for all in-flight tool executions to complete before proceeding.";
 
-  private static final InMemoryDocumentStore documentStore = InMemoryDocumentStore.INSTANCE;
-  private static final DocumentFactoryImpl documentFactory = new DocumentFactoryImpl(documentStore);
+  private final InMemoryDocumentStore documentStore = InMemoryDocumentStore.INSTANCE;
+  private final DocumentFactoryImpl documentFactory = new DocumentFactoryImpl(documentStore);
 
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
@@ -95,9 +95,7 @@ class AgentMessagesHandlerTest {
   void setUp() {
     documentStore.clear();
     systemPromptComposer = new SystemPromptComposerImpl(List.of());
-    // No stub for handlerForToolDefinition: the mocked registry returns Optional.empty() by
-    // default, so the extractor falls back to the generic content-tree walker for every result.
-    // Individual tests can override this when a gateway-handler-specific extraction is needed.
+    // mocked registry returns Optional.empty() by default → extractor falls back to the walker
     messagesHandler =
         new AgentMessagesHandlerImpl(
             gatewayToolHandlers,
@@ -106,7 +104,7 @@ class AgentMessagesHandlerTest {
     runtimeMemory = spy(new DefaultRuntimeMemory());
   }
 
-  private static Document createDocument(String content, String contentType, String filename) {
+  private Document createDocument(String content, String contentType, String filename) {
     return documentFactory.create(
         DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
             .contentType(contentType)
@@ -861,42 +859,25 @@ class AgentMessagesHandlerTest {
       }
 
       @Test
-      void doesNotCreateDocumentUserMessageWhenNoDocumentsInToolResults() {
-        final var assistantMessage =
-            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
-        runtimeMemory.addMessage(assistantMessage);
-
-        when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, TOOL_CALL_RESULTS))
-            .thenReturn(TOOL_CALL_RESULTS.stream().toList());
-
-        final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                TOOL_CALL_RESULTS);
-
-        // no document user message - only the tool call result message
-        assertThat(addedMessages).hasSize(1).first().isInstanceOf(ToolCallResultMessage.class);
-      }
-
-      @Test
-      void ordersDocumentUserMessageBetweenToolResultsAndEvents() {
+      void emitsToolCallAndEventDocumentMessagesInOrder() {
         when(executionContext.events())
             .thenReturn(new EventHandlingConfiguration(WAIT_FOR_TOOL_CALL_RESULTS));
 
-        final var doc = createDocument("weather data", "text/plain", "weather.txt");
-        final var docId = documentId(doc);
+        final var toolDoc = createDocument("weather data", "text/plain", "weather.txt");
+        final var toolDocId = documentId(toolDoc);
+        final var eventDoc = createDocument("event data", "application/pdf", "event.pdf");
+        final var eventDocId = documentId(eventDoc);
+        final var eventContent = Map.of("text", "event", "file", eventDoc);
+
         final var toolCallResultsWithDocsAndEvents =
             List.of(
                 ToolCallResult.builder()
                     .id("abcdef")
                     .name("getWeather")
-                    .content(Map.of("file", doc))
+                    .content(Map.of("file", toolDoc))
                     .build(),
                 ToolCallResult.builder().id("fedcba").name("getDateTime").content("15:00").build(),
-                EVENT_TOOL_CALL_RESULTS.get(0));
+                ToolCallResult.builder().content(eventContent).build());
 
         final var assistantMessage =
             assistantMessage("Assistant message with tool calls", TOOL_CALLS);
@@ -913,7 +894,7 @@ class AgentMessagesHandlerTest {
                 userPromptWithDocuments,
                 toolCallResultsWithDocsAndEvents);
 
-        // order: ToolCallResultMessage -> document UserMessage -> event UserMessage
+        // order: ToolCallResultMessage -> tool-call documents UserMessage -> event UserMessage
         assertThat(addedMessages)
             .hasSize(3)
             .satisfiesExactly(
@@ -937,66 +918,36 @@ class AgentMessagesHandlerTest {
                                                 .isEqualTo(
                                                     textContent(
                                                         "<doc toolName=\"getWeather\" toolCallId=\"abcdef\" documentId=\"%s\" storeId=\"in-memory\" contentType=\"text/plain\" fileName=\"weather.txt\" />"
-                                                            .formatted(docId))),
+                                                            .formatted(toolDocId))),
                                         c ->
                                             assertThat(c)
-                                                .isEqualTo(DocumentContent.documentContent(doc)))),
+                                                .isEqualTo(
+                                                    DocumentContent.documentContent(toolDoc)))),
                 message ->
                     assertThat(message)
                         .isInstanceOfSatisfying(
                             UserMessage.class,
                             um ->
                                 assertThat(um.content())
-                                    .first()
-                                    .isEqualTo(textContent("Event data"))));
-      }
-
-      @Test
-      void appendsDocumentsToEventMessage() {
-        final var doc = createDocument("event data", "application/pdf", "event.pdf");
-        final var docId = documentId(doc);
-        final var eventWithDoc =
-            ToolCallResult.builder().content(Map.of("text", "event", "file", doc)).build();
-
-        final var assistantMessage =
-            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
-        runtimeMemory.addMessage(assistantMessage);
-
-        when(gatewayToolHandlers.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
-            .thenReturn(TOOL_CALL_RESULTS.stream().toList());
-
-        final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                List.of(TOOL_CALL_RESULTS.get(0), TOOL_CALL_RESULTS.get(1), eventWithDoc));
-
-        // find the event message (last one)
-        final var eventMessage = addedMessages.getLast();
-        assertThat(eventMessage)
-            .isInstanceOfSatisfying(
-                UserMessage.class,
-                um ->
-                    assertThat(um.content())
-                        .hasSize(4)
-                        .satisfiesExactly(
-                            c ->
-                                assertThat(c)
-                                    .isEqualTo(objectContent(Map.of("text", "event", "file", doc))),
-                            c ->
-                                assertThat(c)
-                                    .isEqualTo(
-                                        textContent(
-                                            AgentMessagesHandlerImpl.EVENT_DOCUMENTS_PREAMBLE)),
-                            c ->
-                                assertThat(c)
-                                    .isEqualTo(
-                                        textContent(
-                                            "<doc documentId=\"%s\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"event.pdf\" />"
-                                                .formatted(docId))),
-                            c -> assertThat(c).isEqualTo(DocumentContent.documentContent(doc))));
+                                    .hasSize(4)
+                                    .satisfiesExactly(
+                                        c -> assertThat(c).isEqualTo(objectContent(eventContent)),
+                                        c ->
+                                            assertThat(c)
+                                                .isEqualTo(
+                                                    textContent(
+                                                        AgentMessagesHandlerImpl
+                                                            .EVENT_DOCUMENTS_PREAMBLE)),
+                                        c ->
+                                            assertThat(c)
+                                                .isEqualTo(
+                                                    textContent(
+                                                        "<doc documentId=\"%s\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"event.pdf\" />"
+                                                            .formatted(eventDocId))),
+                                        c ->
+                                            assertThat(c)
+                                                .isEqualTo(
+                                                    DocumentContent.documentContent(eventDoc)))));
       }
 
       static List<Arguments> toolCallResultsWithEventsAndEventBehavior() {
