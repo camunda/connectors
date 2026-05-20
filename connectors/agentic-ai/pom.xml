@@ -293,11 +293,6 @@
 
     <!-- Test dependencies -->
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>jackson-datatype-document</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <scope>test</scope>
@@ -305,6 +300,11 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
