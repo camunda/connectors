@@ -980,11 +980,14 @@ class AgentMessagesHandlerTest {
                 UserMessage.class,
                 um ->
                     assertThat(um.content())
-                        .hasSize(3)
+                        .hasSize(4)
                         .satisfiesExactly(
                             c ->
                                 assertThat(c)
                                     .isEqualTo(objectContent(Map.of("text", "event", "file", doc))),
+                            c ->
+                                assertThat(c)
+                                    .isEqualTo(textContent("Documents extracted from event data:")),
                             c ->
                                 assertThat(c)
                                     .isEqualTo(

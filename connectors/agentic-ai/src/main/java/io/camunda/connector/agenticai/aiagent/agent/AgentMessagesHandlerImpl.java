@@ -261,6 +261,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     // events originate from BPMN event sub-processes (not a gateway handler), so walk the raw tree
     var eventDocuments = ContentTreeDocumentWalker.extractDocumentsFromContent(eventContent);
     if (!eventDocuments.isEmpty()) {
+      userMessageContent.add(textContent("Documents extracted from event data:"));
       for (var doc : eventDocuments) {
         userMessageContent.add(textContent(DocumentXmlTag.from(doc).toXml()));
         userMessageContent.add(DocumentContent.documentContent(doc));
