@@ -57,6 +57,11 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       EVENT_CONTENT_EMPTY
           + " Execution waited for all in-flight tool executions to complete before proceeding.";
 
+  static final String TOOL_CALL_DOCUMENTS_PREAMBLE =
+      "Documents extracted from tool calls (<doc /> tag + content pair):";
+  static final String EVENT_DOCUMENTS_PREAMBLE =
+      "Documents extracted from event data (<doc /> tag + content pair):";
+
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final SystemPromptComposer systemPromptComposer;
   private final ToolCallResultDocumentExtractor documentExtractor;
@@ -222,7 +227,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     }
 
     final var content = new ArrayList<Content>();
-    content.add(textContent("Documents extracted from tool call results:"));
+    content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
     for (var entry : toolCallDocuments) {
       for (var doc : entry.documents()) {
         content.add(
@@ -261,7 +266,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     // events originate from BPMN event sub-processes (not a gateway handler), so walk the raw tree
     var eventDocuments = ContentTreeDocumentWalker.extractDocumentsFromContent(eventContent);
     if (!eventDocuments.isEmpty()) {
-      userMessageContent.add(textContent("Documents extracted from event data:"));
+      userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
       for (var doc : eventDocuments) {
         userMessageContent.add(textContent(DocumentXmlTag.from(doc).toXml()));
         userMessageContent.add(DocumentContent.documentContent(doc));

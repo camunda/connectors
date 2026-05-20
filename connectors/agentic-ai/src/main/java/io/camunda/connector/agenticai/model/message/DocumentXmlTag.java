@@ -8,6 +8,9 @@ package io.camunda.connector.agenticai.model.message;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.lang.Nullable;
 
@@ -15,40 +18,126 @@ import org.springframework.lang.Nullable;
  * Represents a self-closing XML tag used to label a document in the synthetic user message, e.g.:
  *
  * <pre>{@code
- * <document tool-name="search" tool-call-id="call_abc" document-short-id="25ece9fa" filename="report.pdf" />
+ * <doc toolName="search" toolCallId="call_abc" documentId="25ece9fa-aeea-..." storeId="in-memory" contentType="application/pdf" fileName="report.pdf" />
  * }</pre>
  *
- * <p>The tag provides correlation attributes so the model can match the document content block with
- * the document reference in the tool result JSON.
+ * <p>Attribute names mirror the JSON field names emitted by the standard {@code DocumentSerializer}
+ * so the model can correlate references in the tool result JSON with the actual document content
+ * blocks 1:1 without inferring partial-id matches. Blank/null attributes are omitted.
  */
-public record DocumentXmlTag(
-    @Nullable String toolCallId,
-    @Nullable String toolName,
-    @Nullable String documentShortId,
-    @Nullable String filename) {
+public sealed interface DocumentXmlTag {
+
+  @Nullable
+  String toolCallId();
+
+  @Nullable
+  String toolName();
+
+  Metadata metadata();
+
+  String toXml();
 
   /**
-   * Creates a tag from a document and its tool call context. The document short ID is extracted as
-   * the first segment of the document's UUID identifier (e.g. "25ece9fa" from
-   * "25ece9fa-aeea-423d-98ed-67c1f08b137b").
+   * Creates a tag from a document and its tool call context. Dispatches on the {@link Document}'s
+   * reference type:
+   *
+   * <ul>
+   *   <li>{@link CamundaDocumentReference} → {@link CamundaDocumentXmlTag}
+   *   <li>{@link ExternalDocumentReference} → {@link ExternalDocumentXmlTag}
+   *   <li>any other reference type (including inline) → {@link GenericDocumentXmlTag}
+   * </ul>
    */
-  public static DocumentXmlTag from(Document document, String toolCallId, String toolName) {
-    return new DocumentXmlTag(
-        toolCallId, toolName, extractDocumentShortId(document), extractFileName(document));
+  static DocumentXmlTag from(
+      Document document, @Nullable String toolCallId, @Nullable String toolName) {
+    final var metadata = Metadata.from(document);
+    return switch (document.reference()) {
+      case CamundaDocumentReference ref ->
+          new CamundaDocumentXmlTag(
+              toolCallId, toolName, ref.getDocumentId(), ref.getStoreId(), metadata);
+      case ExternalDocumentReference ref ->
+          new ExternalDocumentXmlTag(toolCallId, toolName, ref.url(), ref.name(), metadata);
+      case null, default -> new GenericDocumentXmlTag(toolCallId, toolName, metadata);
+    };
   }
 
   /** Creates a tag from a document without tool call context (e.g. for event documents). */
-  public static DocumentXmlTag from(Document document) {
+  static DocumentXmlTag from(Document document) {
     return from(document, null, null);
   }
 
-  /** Serializes this tag to an XML self-closing element string. */
-  public String toXml() {
-    var sb = new StringBuilder("<document");
-    appendAttribute(sb, "tool-name", toolName);
-    appendAttribute(sb, "tool-call-id", toolCallId);
-    appendAttribute(sb, "document-short-id", documentShortId);
-    appendAttribute(sb, "filename", filename);
+  /** Subset of {@link io.camunda.connector.api.document.DocumentMetadata} surfaced in the tag. */
+  record Metadata(@Nullable String contentType, @Nullable String fileName) {
+
+    public static final Metadata EMPTY = new Metadata(null, null);
+
+    static Metadata from(Document document) {
+      var md = document.metadata();
+      return md == null ? EMPTY : new Metadata(md.getContentType(), md.getFileName());
+    }
+  }
+
+  record CamundaDocumentXmlTag(
+      @Nullable String toolCallId,
+      @Nullable String toolName,
+      String documentId,
+      @Nullable String storeId,
+      Metadata metadata)
+      implements DocumentXmlTag {
+
+    @Override
+    public String toXml() {
+      var attributes = new LinkedHashMap<String, String>();
+      attributes.put("toolName", toolName);
+      attributes.put("toolCallId", toolCallId);
+      attributes.put("documentId", documentId);
+      attributes.put("storeId", storeId);
+      appendMetadata(attributes, metadata);
+      return renderTag(attributes);
+    }
+  }
+
+  record ExternalDocumentXmlTag(
+      @Nullable String toolCallId,
+      @Nullable String toolName,
+      String url,
+      @Nullable String name,
+      Metadata metadata)
+      implements DocumentXmlTag {
+
+    @Override
+    public String toXml() {
+      var attributes = new LinkedHashMap<String, String>();
+      attributes.put("toolName", toolName);
+      attributes.put("toolCallId", toolCallId);
+      attributes.put("url", url);
+      attributes.put("name", name);
+      appendMetadata(attributes, metadata);
+      return renderTag(attributes);
+    }
+  }
+
+  record GenericDocumentXmlTag(
+      @Nullable String toolCallId, @Nullable String toolName, Metadata metadata)
+      implements DocumentXmlTag {
+
+    @Override
+    public String toXml() {
+      var attributes = new LinkedHashMap<String, String>();
+      attributes.put("toolName", toolName);
+      attributes.put("toolCallId", toolCallId);
+      appendMetadata(attributes, metadata);
+      return renderTag(attributes);
+    }
+  }
+
+  private static void appendMetadata(Map<String, String> attributes, Metadata metadata) {
+    attributes.put("contentType", metadata.contentType());
+    attributes.put("fileName", metadata.fileName());
+  }
+
+  private static String renderTag(Map<String, String> attributes) {
+    var sb = new StringBuilder("<doc");
+    attributes.forEach((name, value) -> appendAttribute(sb, name, value));
     sb.append(" />");
     return sb.toString();
   }
@@ -69,20 +158,5 @@ public record DocumentXmlTag(
         .replace(">", "&gt;")
         .replace("\"", "&quot;")
         .replace("'", "&apos;");
-  }
-
-  private static String extractDocumentShortId(Document document) {
-    if (document.reference() instanceof CamundaDocumentReference camundaRef) {
-      var documentId = camundaRef.getDocumentId();
-      if (documentId != null) {
-        int dashIndex = documentId.indexOf('-');
-        return dashIndex > 0 ? documentId.substring(0, dashIndex) : documentId;
-      }
-    }
-    return null;
-  }
-
-  private static String extractFileName(Document document) {
-    return document.metadata() != null ? document.metadata().getFileName() : null;
   }
 }

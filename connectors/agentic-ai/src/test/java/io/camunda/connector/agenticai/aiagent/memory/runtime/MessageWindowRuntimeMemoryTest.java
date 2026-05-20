@@ -193,7 +193,10 @@ class MessageWindowRuntimeMemoryTest {
   void doesNotCountToolCallDocumentMessagesTowardLimit() {
     final var documentUserMessage =
         UserMessage.builder()
-            .content(List.of(textContent("Documents extracted from tool call results:")))
+            .content(
+                List.of(
+                    textContent(
+                        "Documents extracted from tool calls (<doc /> tag + content pair):")))
             .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
             .build();
 
@@ -215,7 +218,10 @@ class MessageWindowRuntimeMemoryTest {
   void evictsDocumentUserMessageWithToolCallResult() {
     final var documentUserMessage =
         UserMessage.builder()
-            .content(List.of(textContent("Documents extracted from tool call results:")))
+            .content(
+                List.of(
+                    textContent(
+                        "Documents extracted from tool calls (<doc /> tag + content pair):")))
             .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
             .build();
 
@@ -255,7 +261,10 @@ class MessageWindowRuntimeMemoryTest {
     // tool call result (e.g. from corrupted/migrated persisted history)
     final var documentUserMessage =
         UserMessage.builder()
-            .content(List.of(textContent("Documents extracted from tool call results:")))
+            .content(
+                List.of(
+                    textContent(
+                        "Documents extracted from tool calls (<doc /> tag + content pair):")))
             .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
             .build();
 

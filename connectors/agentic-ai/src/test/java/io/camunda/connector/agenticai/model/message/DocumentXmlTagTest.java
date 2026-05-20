@@ -10,16 +10,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.model.message.DocumentXmlTag.CamundaDocumentXmlTag;
+import io.camunda.connector.agenticai.model.message.DocumentXmlTag.ExternalDocumentXmlTag;
+import io.camunda.connector.agenticai.model.message.DocumentXmlTag.GenericDocumentXmlTag;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class DocumentXmlTagTest {
 
   @Nested
-  class ToXml {
+  class CamundaDocumentReferenceTag {
 
     @Test
     void generatesFullTagWithAllAttributes() {
@@ -28,54 +33,27 @@ class DocumentXmlTagTest {
       var metadata = mock(DocumentMetadata.class);
       when(doc.reference()).thenReturn(ref);
       when(ref.getDocumentId()).thenReturn("25ece9fa-aeea-423d-98ed-67c1f08b137b");
+      when(ref.getStoreId()).thenReturn("in-memory");
       when(doc.metadata()).thenReturn(metadata);
+      when(metadata.getContentType()).thenReturn("application/pdf");
       when(metadata.getFileName()).thenReturn("report.pdf");
 
-      assertThat(DocumentXmlTag.from(doc, "call_abc", "search").toXml())
+      var tag = DocumentXmlTag.from(doc, "call_abc", "search");
+      assertThat(tag).isInstanceOf(CamundaDocumentXmlTag.class);
+      assertThat(tag.toXml())
           .isEqualTo(
-              "<document tool-name=\"search\" tool-call-id=\"call_abc\" document-short-id=\"25ece9fa\" filename=\"report.pdf\" />");
+              "<doc toolName=\"search\" toolCallId=\"call_abc\" documentId=\"25ece9fa-aeea-423d-98ed-67c1f08b137b\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"report.pdf\" />");
     }
 
     @Test
-    void generatesTagWithoutToolAndCallId() {
+    void omitsBlankAttributes() {
       var doc = mock(Document.class);
       var ref = mock(CamundaDocumentReference.class);
-      var metadata = mock(DocumentMetadata.class);
       when(doc.reference()).thenReturn(ref);
       when(ref.getDocumentId()).thenReturn("f7b3a1d0-1234-5678-9abc-def012345678");
-      when(doc.metadata()).thenReturn(metadata);
-      when(metadata.getFileName()).thenReturn(null);
 
       assertThat(DocumentXmlTag.from(doc).toXml())
-          .isEqualTo("<document document-short-id=\"f7b3a1d0\" />");
-    }
-
-    @Test
-    void generatesMinimalTagForMockedDocument() {
-      var doc = mock(Document.class);
-      assertThat(DocumentXmlTag.from(doc).toXml()).isEqualTo("<document />");
-    }
-
-    @Test
-    void handlesDocumentIdWithoutDash() {
-      var doc = mock(Document.class);
-      var ref = mock(CamundaDocumentReference.class);
-      when(doc.reference()).thenReturn(ref);
-      when(ref.getDocumentId()).thenReturn("simpledocid");
-
-      assertThat(DocumentXmlTag.from(doc).toXml())
-          .isEqualTo("<document document-short-id=\"simpledocid\" />");
-    }
-
-    @Test
-    void escapesSpecialCharactersInFilename() {
-      var doc = mock(Document.class);
-      var metadata = mock(DocumentMetadata.class);
-      when(doc.metadata()).thenReturn(metadata);
-      when(metadata.getFileName()).thenReturn("file\"with<special>&chars'.pdf");
-
-      assertThat(DocumentXmlTag.from(doc).toXml())
-          .isEqualTo("<document filename=\"file&quot;with&lt;special&gt;&amp;chars&apos;.pdf\" />");
+          .isEqualTo("<doc documentId=\"f7b3a1d0-1234-5678-9abc-def012345678\" />");
     }
 
     @Test
@@ -87,7 +65,99 @@ class DocumentXmlTagTest {
 
       assertThat(DocumentXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
           .isEqualTo(
-              "<document tool-name=\"tool&lt;with&quot;quotes&gt;\" tool-call-id=\"call_1\" document-short-id=\"abc12345\" />");
+              "<doc toolName=\"tool&lt;with&quot;quotes&gt;\" toolCallId=\"call_1\" documentId=\"abc12345-0000-0000-0000-000000000000\" />");
+    }
+  }
+
+  @Nested
+  class ExternalDocumentReferenceTag {
+
+    @Test
+    void generatesFullTagWithAllAttributes() {
+      var doc = mock(Document.class);
+      var ref = mock(ExternalDocumentReference.class);
+      var metadata = mock(DocumentMetadata.class);
+      when(doc.reference()).thenReturn(ref);
+      when(ref.url()).thenReturn("https://example.com/report.pdf");
+      when(ref.name()).thenReturn("Quarterly Report");
+      when(doc.metadata()).thenReturn(metadata);
+      when(metadata.getContentType()).thenReturn("application/pdf");
+      when(metadata.getFileName()).thenReturn("report.pdf");
+
+      var tag = DocumentXmlTag.from(doc, "call_abc", "search");
+      assertThat(tag).isInstanceOf(ExternalDocumentXmlTag.class);
+      assertThat(tag.toXml())
+          .isEqualTo(
+              "<doc toolName=\"search\" toolCallId=\"call_abc\" url=\"https://example.com/report.pdf\" name=\"Quarterly Report\" contentType=\"application/pdf\" fileName=\"report.pdf\" />");
+    }
+
+    @Test
+    void omitsBlankNameAndToolContext() {
+      var doc = mock(Document.class);
+      var ref = mock(ExternalDocumentReference.class);
+      when(doc.reference()).thenReturn(ref);
+      when(ref.url()).thenReturn("https://example.com/report.pdf");
+
+      assertThat(DocumentXmlTag.from(doc).toXml())
+          .isEqualTo("<doc url=\"https://example.com/report.pdf\" />");
+    }
+
+    @Test
+    void escapesSpecialCharactersInUrl() {
+      var doc = mock(Document.class);
+      var ref = mock(ExternalDocumentReference.class);
+      when(doc.reference()).thenReturn(ref);
+      when(ref.url()).thenReturn("https://example.com/path?q=a&b=\"c\"");
+
+      assertThat(DocumentXmlTag.from(doc).toXml())
+          .isEqualTo("<doc url=\"https://example.com/path?q=a&amp;b=&quot;c&quot;\" />");
+    }
+  }
+
+  @Nested
+  class GenericDocumentReferenceTag {
+
+    @Test
+    void emitsFileNameAndToolContextForInlineReference() {
+      var doc = mock(Document.class);
+      var ref = mock(InlineDocumentReference.class);
+      var metadata = mock(DocumentMetadata.class);
+      when(doc.reference()).thenReturn(ref);
+      when(doc.metadata()).thenReturn(metadata);
+      when(metadata.getContentType()).thenReturn("text/plain");
+      when(metadata.getFileName()).thenReturn("inline.txt");
+
+      var tag = DocumentXmlTag.from(doc, "call_1", "search");
+      assertThat(tag).isInstanceOf(GenericDocumentXmlTag.class);
+      assertThat(tag.toXml())
+          .isEqualTo(
+              "<doc toolName=\"search\" toolCallId=\"call_1\" contentType=\"text/plain\" fileName=\"inline.txt\" />");
+    }
+
+    @Test
+    void emitsMinimalTagForUnrecognizedReferenceWithoutMetadata() {
+      var doc = mock(Document.class);
+      var ref = mock(InlineDocumentReference.class);
+      when(doc.reference()).thenReturn(ref);
+
+      assertThat(DocumentXmlTag.from(doc).toXml()).isEqualTo("<doc />");
+    }
+
+    @Test
+    void emitsMinimalTagForNullReference() {
+      var doc = mock(Document.class);
+      assertThat(DocumentXmlTag.from(doc).toXml()).isEqualTo("<doc />");
+    }
+
+    @Test
+    void escapesSpecialCharactersInFileName() {
+      var doc = mock(Document.class);
+      var metadata = mock(DocumentMetadata.class);
+      when(doc.metadata()).thenReturn(metadata);
+      when(metadata.getFileName()).thenReturn("file\"with<special>&chars'.pdf");
+
+      assertThat(DocumentXmlTag.from(doc).toXml())
+          .isEqualTo("<doc fileName=\"file&quot;with&lt;special&gt;&amp;chars&apos;.pdf\" />");
     }
   }
 }

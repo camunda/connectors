@@ -103,21 +103,31 @@ The document `UserMessage` contains interleaved `TextContent` tags and `Document
 preceded by a self-closing XML tag with correlation attributes:
 
 ```
-TextContent: "Documents extracted from tool call results:"
-TextContent: <document tool-name="generate_report" tool-call-id="call_1" document-short-id="25ece9fa" filename="report.pdf" />
+TextContent: "Documents extracted from tool calls (<doc /> tag + content pair):"
+TextContent: <doc toolName="generate_report" toolCallId="call_1" documentId="25ece9fa-aeea-423d-98ed-67c1f08b137b" storeId="in-memory" contentType="application/pdf" fileName="report.pdf" />
 DocumentContent: [report.pdf content]
-TextContent: <document tool-name="generate_report" tool-call-id="call_1" document-short-id="f7b3a1d0" />
+TextContent: <doc toolName="generate_report" toolCallId="call_1" documentId="f7b3a1d0-1234-5678-9abc-def012345678" storeId="in-memory" contentType="image/png" fileName="chart.png" />
 DocumentContent: [chart.png content]
-TextContent: <document tool-name="fetch_data" tool-call-id="call_2" document-short-id="c44d82e1" filename="data.csv" />
+TextContent: <doc toolName="fetch_data" toolCallId="call_2" url="https://example.com/data.csv" name="Q3 metrics" contentType="text/csv" fileName="data.csv" />
 DocumentContent: [data.csv content]
 ```
 
-The `document-short-id` is the first segment of the document's UUID identifier (e.g. `25ece9fa` from
-`25ece9fa-aeea-423d-98ed-67c1f08b137b`). It provides a compact correlation key for the model to match the reference in
-the tool result JSON with the actual content. All attribute values are XML-escaped.
+The preamble makes the pair structure (reference tag → content block) explicit. Tag name and preamble are intentionally
+terse to minimise token usage.
 
-For event documents, the same `<document>` tag format is used, but without `tool` and `call-id` attributes since events
-are not associated with a specific tool call.
+Attribute names mirror the JSON field names emitted by the standard `DocumentSerializer` (e.g. `documentId`, `storeId`,
+`url`, `name`), so the model can correlate a reference in the tool result JSON with its content block 1:1 without
+inferring partial-id matches. The tag shape is dispatched on the document's reference type:
+
+* `CamundaDocumentReference` → `documentId`, `storeId`
+* `ExternalDocumentReference` → `url`, `name`
+* any other reference (including inline) → identity attributes are omitted
+
+Every shape also carries a shared metadata block (`contentType`, `fileName`) extracted from `Document.metadata()`. All
+attribute values are XML-escaped, and blank attributes are omitted.
+
+For event documents, the same `<doc />` tag format is used, but without `toolName` and `toolCallId` attributes since
+events are not associated with a specific tool call.
 
 ### Message window memory
 

@@ -114,11 +114,9 @@ class AgentMessagesHandlerTest {
             .build());
   }
 
-  private static String documentShortId(Document document) {
+  private static String documentId(Document document) {
     if (document.reference() instanceof CamundaDocumentReference ref) {
-      var id = ref.getDocumentId();
-      int dash = id.indexOf('-');
-      return dash > 0 ? id.substring(0, dash) : id;
+      return ref.getDocumentId();
     }
     return null;
   }
@@ -789,8 +787,8 @@ class AgentMessagesHandlerTest {
       void createsDocumentUserMessageWhenToolResultsContainDocuments() {
         final var doc1 = createDocument("weather data", "text/plain", "weather.txt");
         final var doc2 = createDocument("time report", "application/pdf", "report.pdf");
-        final var shortId1 = documentShortId(doc1);
-        final var shortId2 = documentShortId(doc2);
+        final var docId1 = documentId(doc1);
+        final var docId2 = documentId(doc2);
 
         final var toolCallResultsWithDocs =
             List.of(
@@ -839,13 +837,14 @@ class AgentMessagesHandlerTest {
                                           assertThat(c)
                                               .isEqualTo(
                                                   textContent(
-                                                      "Documents extracted from tool call results:")),
+                                                      AgentMessagesHandlerImpl
+                                                          .TOOL_CALL_DOCUMENTS_PREAMBLE)),
                                       c ->
                                           assertThat(c)
                                               .isEqualTo(
                                                   textContent(
-                                                      "<document tool-name=\"getWeather\" tool-call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
-                                                          .formatted(shortId1))),
+                                                      "<doc toolName=\"getWeather\" toolCallId=\"abcdef\" documentId=\"%s\" storeId=\"in-memory\" contentType=\"text/plain\" fileName=\"weather.txt\" />"
+                                                          .formatted(docId1))),
                                       c ->
                                           assertThat(c)
                                               .isEqualTo(DocumentContent.documentContent(doc1)),
@@ -853,8 +852,8 @@ class AgentMessagesHandlerTest {
                                           assertThat(c)
                                               .isEqualTo(
                                                   textContent(
-                                                      "<document tool-name=\"getDateTime\" tool-call-id=\"fedcba\" document-short-id=\"%s\" filename=\"report.pdf\" />"
-                                                          .formatted(shortId2))),
+                                                      "<doc toolName=\"getDateTime\" toolCallId=\"fedcba\" documentId=\"%s\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"report.pdf\" />"
+                                                          .formatted(docId2))),
                                       c ->
                                           assertThat(c)
                                               .isEqualTo(DocumentContent.documentContent(doc2)));
@@ -888,7 +887,7 @@ class AgentMessagesHandlerTest {
             .thenReturn(new EventHandlingConfiguration(WAIT_FOR_TOOL_CALL_RESULTS));
 
         final var doc = createDocument("weather data", "text/plain", "weather.txt");
-        final var shortId = documentShortId(doc);
+        final var docId = documentId(doc);
         final var toolCallResultsWithDocsAndEvents =
             List.of(
                 ToolCallResult.builder()
@@ -931,13 +930,14 @@ class AgentMessagesHandlerTest {
                                             assertThat(c)
                                                 .isEqualTo(
                                                     textContent(
-                                                        "Documents extracted from tool call results:")),
+                                                        AgentMessagesHandlerImpl
+                                                            .TOOL_CALL_DOCUMENTS_PREAMBLE)),
                                         c ->
                                             assertThat(c)
                                                 .isEqualTo(
                                                     textContent(
-                                                        "<document tool-name=\"getWeather\" tool-call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
-                                                            .formatted(shortId))),
+                                                        "<doc toolName=\"getWeather\" toolCallId=\"abcdef\" documentId=\"%s\" storeId=\"in-memory\" contentType=\"text/plain\" fileName=\"weather.txt\" />"
+                                                            .formatted(docId))),
                                         c ->
                                             assertThat(c)
                                                 .isEqualTo(DocumentContent.documentContent(doc)))),
@@ -954,7 +954,7 @@ class AgentMessagesHandlerTest {
       @Test
       void appendsDocumentsToEventMessage() {
         final var doc = createDocument("event data", "application/pdf", "event.pdf");
-        final var shortId = documentShortId(doc);
+        final var docId = documentId(doc);
         final var eventWithDoc =
             ToolCallResult.builder().content(Map.of("text", "event", "file", doc)).build();
 
@@ -987,13 +987,15 @@ class AgentMessagesHandlerTest {
                                     .isEqualTo(objectContent(Map.of("text", "event", "file", doc))),
                             c ->
                                 assertThat(c)
-                                    .isEqualTo(textContent("Documents extracted from event data:")),
+                                    .isEqualTo(
+                                        textContent(
+                                            AgentMessagesHandlerImpl.EVENT_DOCUMENTS_PREAMBLE)),
                             c ->
                                 assertThat(c)
                                     .isEqualTo(
                                         textContent(
-                                            "<document document-short-id=\"%s\" filename=\"event.pdf\" />"
-                                                .formatted(shortId))),
+                                            "<doc documentId=\"%s\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"event.pdf\" />"
+                                                .formatted(docId))),
                             c -> assertThat(c).isEqualTo(DocumentContent.documentContent(doc))));
       }
 
