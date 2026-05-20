@@ -7,13 +7,12 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.ClientHttpException;
-import io.camunda.connector.agenticai.util.retry.ErrorClassifier;
 import io.camunda.connector.agenticai.util.retry.ErrorClassifier.Decision;
 import java.io.IOException;
 
 public final class AgentInstanceErrorClassifier {
 
-  public static ErrorClassifier.Decision classify(Throwable t) {
+  public static Decision classify(Throwable t) {
     Throwable current = t;
     while (current != null) {
       if (current instanceof ClientHttpException httpEx) {
