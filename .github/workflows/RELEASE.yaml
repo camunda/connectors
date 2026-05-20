@@ -264,6 +264,9 @@ jobs:
         with:
           name: repository
 
+      - name: Ensure Maven wrapper is executable
+        run: chmod +x ./mvnw
+
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@v5
         with:
