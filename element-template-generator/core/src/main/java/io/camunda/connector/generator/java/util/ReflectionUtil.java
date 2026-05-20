@@ -18,8 +18,8 @@ package io.camunda.connector.generator.java.util;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class ReflectionUtil {
@@ -46,7 +46,11 @@ public class ReflectionUtil {
   }
 
   public static List<Field> getAllFields(List<Field> fields, Class<?> type) {
-    fields.addAll(Arrays.asList(type.getDeclaredFields()));
+    for (Field field : type.getDeclaredFields()) {
+      if (!Modifier.isStatic(field.getModifiers())) {
+        fields.add(field);
+      }
+    }
 
     if (type.getSuperclass() != null) {
       getAllFields(fields, type.getSuperclass());
