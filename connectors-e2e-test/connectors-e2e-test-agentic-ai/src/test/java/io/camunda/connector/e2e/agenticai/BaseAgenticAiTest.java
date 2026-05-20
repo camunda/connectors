@@ -25,7 +25,6 @@ import io.camunda.client.api.search.response.Incident;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
-import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
@@ -105,28 +104,6 @@ public abstract class BaseAgenticAiTest {
             .join();
 
     assertThat(incidents.items()).hasSize(1).first().satisfies(assertion);
-  }
-
-  /**
-   * Polls the engine until the {@code agent} process variable contains a non-null {@code
-   * agentInstanceKey} in {@code agent.context.metadata.agentInstanceKey}.
-   *
-   * <p>This assertion is gated on camunda/camunda#53271, which introduces engine-side agent
-   * instance creation. Until that PR is merged and consumed here the {@code agentInstanceKey} field
-   * will always be {@code null}, so any test calling this helper must be annotated with
-   * {@code @Disabled}.
-   */
-  protected void assertAgentInstanceKeyPersisted(ZeebeTest zeebeTest) {
-    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-        .hasVariableSatisfies(
-            "agent",
-            AgentInstanceContext.class,
-            agentInstance -> {
-              assertThat(agentInstance.getAgentInstanceKey())
-                  .as("Agent instance key must be a non-null, positive number")
-                  .isNotNull()
-                  .isPositive();
-            });
   }
 
   protected Resource testFileResource(String filename) {
