@@ -28,6 +28,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DocumentReferenceXmlTagTest {
 
+  private static final String DOCUMENT_ID = "25ece9fa-aeea-423d-98ed-67c1f08b137b";
+
   @Mock private Document doc;
   @Mock private DocumentMetadata metadata;
 
@@ -49,7 +51,7 @@ class DocumentReferenceXmlTagTest {
 
     @Test
     void generatesFullTagWithAllAttributes() {
-      when(ref.getDocumentId()).thenReturn("25ece9fa-aeea-423d-98ed-67c1f08b137b");
+      when(ref.getDocumentId()).thenReturn(DOCUMENT_ID);
       when(ref.getStoreId()).thenReturn("in-memory");
       when(metadata.getContentType()).thenReturn("application/pdf");
       when(metadata.getFileName()).thenReturn("report.pdf");
@@ -58,24 +60,22 @@ class DocumentReferenceXmlTagTest {
       assertThat(tag).isInstanceOf(CamundaDocumentReferenceXmlTag.class);
       assertThat(tag.toXml())
           .isEqualTo(
-              "<doc toolName=\"search\" toolCallId=\"call_abc\" documentId=\"25ece9fa-aeea-423d-98ed-67c1f08b137b\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"report.pdf\" />");
+              "<doc toolName=\"search\" toolCallId=\"call_abc\" documentId=\"%s\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"report.pdf\" />"
+                  .formatted(DOCUMENT_ID));
     }
 
     @Test
     void omitsBlankAttributes() {
-      when(ref.getDocumentId()).thenReturn("f7b3a1d0-1234-5678-9abc-def012345678");
+      when(ref.getDocumentId()).thenReturn(DOCUMENT_ID);
 
       assertThat(DocumentReferenceXmlTag.from(doc).toXml())
-          .isEqualTo("<doc documentId=\"f7b3a1d0-1234-5678-9abc-def012345678\" />");
+          .isEqualTo("<doc documentId=\"%s\" />".formatted(DOCUMENT_ID));
     }
 
     @Test
     void escapesSpecialCharactersInToolName() {
-      when(ref.getDocumentId()).thenReturn("abc12345-0000-0000-0000-000000000000");
-
       assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
-          .isEqualTo(
-              "<doc toolName=\"tool&lt;with&quot;quotes&gt;\" toolCallId=\"call_1\" documentId=\"abc12345-0000-0000-0000-000000000000\" />");
+          .isEqualTo("<doc toolName=\"tool&lt;with&quot;quotes&gt;\" toolCallId=\"call_1\" />");
     }
   }
 
