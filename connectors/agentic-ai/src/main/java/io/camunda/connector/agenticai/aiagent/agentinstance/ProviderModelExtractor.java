@@ -18,37 +18,39 @@ import java.util.Optional;
 public final class ProviderModelExtractor {
 
   public static String extract(ProviderConfiguration provider) {
+    var model = extractModelByProviderConfiguration(provider);
+
+    return model.orElseThrow(
+        () -> new IllegalStateException("Could not extract model from provider configuration"));
+  }
+
+  private static Optional<String> extractModelByProviderConfiguration(
+      ProviderConfiguration provider) {
     return switch (provider) {
       case AnthropicProviderConfiguration p ->
           Optional.ofNullable(p.anthropic())
               .map(AnthropicProviderConfiguration.AnthropicConnection::model)
-              .map(AnthropicProviderConfiguration.AnthropicModel::model)
-              .orElse(null);
+              .map(AnthropicProviderConfiguration.AnthropicModel::model);
       case BedrockProviderConfiguration p ->
           Optional.ofNullable(p.bedrock())
               .map(BedrockProviderConfiguration.BedrockConnection::model)
-              .map(BedrockProviderConfiguration.BedrockModel::model)
-              .orElse(null);
+              .map(BedrockProviderConfiguration.BedrockModel::model);
       case AzureOpenAiProviderConfiguration p ->
           Optional.ofNullable(p.azureOpenAi())
               .map(AzureOpenAiProviderConfiguration.AzureOpenAiConnection::model)
-              .map(AzureOpenAiProviderConfiguration.AzureOpenAiModel::deploymentName)
-              .orElse(null);
+              .map(AzureOpenAiProviderConfiguration.AzureOpenAiModel::deploymentName);
       case GoogleVertexAiProviderConfiguration p ->
           Optional.ofNullable(p.googleVertexAi())
               .map(GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection::model)
-              .map(GoogleVertexAiProviderConfiguration.GoogleVertexAiModel::model)
-              .orElse(null);
+              .map(GoogleVertexAiProviderConfiguration.GoogleVertexAiModel::model);
       case OpenAiProviderConfiguration p ->
           Optional.ofNullable(p.openai())
               .map(OpenAiProviderConfiguration.OpenAiConnection::model)
-              .map(OpenAiProviderConfiguration.OpenAiModel::model)
-              .orElse(null);
+              .map(OpenAiProviderConfiguration.OpenAiModel::model);
       case OpenAiCompatibleProviderConfiguration p ->
           Optional.ofNullable(p.openaiCompatible())
               .map(OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection::model)
-              .map(OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel::model)
-              .orElse(null);
+              .map(OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel::model);
     };
   }
 
