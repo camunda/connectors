@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.Variable;
+import io.camunda.client.impl.CamundaObjectMapper;
 import io.camunda.client.impl.search.response.ElementInstanceImpl;
 import io.camunda.client.impl.search.response.SearchResponseImpl;
 import io.camunda.client.impl.search.response.SearchResponsePageImpl;
@@ -145,7 +146,7 @@ class ProcessInstanceClientImplTest {
     item.setScopeKey(key);
     item.setName(name);
     item.setValue(value);
-    return new VariableImpl(item);
+    return new VariableImpl(item, new CamundaObjectMapper());
   }
 
   @SafeVarargs
