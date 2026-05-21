@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.api.outbound.JobContext;
-import jakarta.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Metadata about an AI Agent's execution context, used for detecting process definition migrations.
