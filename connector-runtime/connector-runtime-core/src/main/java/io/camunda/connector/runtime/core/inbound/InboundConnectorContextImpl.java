@@ -283,22 +283,18 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public <T> T bindProperties(Class<T> cls) {
-    try {
-      var evaluator =
-          FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
-              .tenantId(connectorDetails.tenantId())
-              .objectMapper(objectMapper)
-              .build();
-      var json = objectMapper.writeValueAsString(getPropertiesWithSecrets(properties));
-      var result =
-          FeelContextAwareObjectReader.of(objectMapper)
-              .withEvaluator(evaluator)
-              .readValue(json, cls);
-      getValidationProvider().validate(result);
-      return result;
-    } catch (java.io.IOException e) {
-      throw new RuntimeException("Failed to bind properties", e);
-    }
+    var evaluator =
+        FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
+            .tenantId(connectorDetails.tenantId())
+            .objectMapper(objectMapper)
+            .build();
+    var propertiesNode = objectMapper.valueToTree(getPropertiesWithSecrets(properties));
+    var result =
+        FeelContextAwareObjectReader.of(objectMapper)
+            .withEvaluator(evaluator)
+            .readValue(propertiesNode, cls);
+    getValidationProvider().validate(result);
+    return result;
   }
 
   @Override
