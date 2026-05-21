@@ -86,18 +86,11 @@ public class VerifiedHostValidator implements ConstraintValidator<VerifiedHost, 
     if (!config.enabled) {
       return true;
     }
-    ConstraintValidatorContextImpl unwrappedContext =
-        (ConstraintValidatorContextImpl) context.unwrap(HibernateConstraintValidatorContext.class);
-    ConstraintDescriptorImpl unwrappedConstraintDescriptor =
-        (ConstraintDescriptorImpl) unwrappedContext.getConstraintDescriptor();
-    VerifiedHost verifiedHost = (VerifiedHost) unwrappedConstraintDescriptor.getAnnotation();
-    if (verifiedHost.isUrl()) {
-      try {
-        var uri = URI.create(host);
-        if (uri.getHost() != null) {
-          host = uri.getHost();
-        }
-      } catch (Exception ignored) {
+
+    if (host != null && !host.isBlank()) {
+      VerifiedHost verifiedHost = getAnnotation(context);
+      if (verifiedHost.isUrl()) {
+        host = getHostFromUrl(host);
       }
     }
 
@@ -121,10 +114,27 @@ public class VerifiedHostValidator implements ConstraintValidator<VerifiedHost, 
     }
   }
 
-  private static void replaceViolationMessage(ConstraintValidatorContext context, String message) {
-    if (context != null) {
-      context.disableDefaultConstraintViolation();
-      context.buildConstraintViolationWithTemplate(message).addConstraintViolation();
+  private static VerifiedHost getAnnotation(ConstraintValidatorContext context) {
+    ConstraintValidatorContextImpl unwrappedContext =
+        (ConstraintValidatorContextImpl) context.unwrap(HibernateConstraintValidatorContext.class);
+    ConstraintDescriptorImpl unwrappedConstraintDescriptor =
+        (ConstraintDescriptorImpl) unwrappedContext.getConstraintDescriptor();
+    return (VerifiedHost) unwrappedConstraintDescriptor.getAnnotation();
+  }
+
+  private static String getHostFromUrl(String url) {
+    try {
+      var uri = URI.create(url);
+      if (uri.getHost() != null) {
+        return uri.getHost();
+      } else return url;
+    } catch (Exception ignored) {
+      return url;
     }
+  }
+
+  private static void replaceViolationMessage(ConstraintValidatorContext context, String message) {
+    context.disableDefaultConstraintViolation();
+    context.buildConstraintViolationWithTemplate(message).addConstraintViolation();
   }
 }
