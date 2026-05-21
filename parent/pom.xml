@@ -133,6 +133,7 @@ limitations under the License.</license.inlineheader>
 
     <version.microsoft-graph>6.65.0</version.microsoft-graph>
     <version.azure-identity>1.18.3</version.azure-identity>
+    <version.azure-cosmos>4.80.0</version.azure-cosmos>
 
     <version.bouncycastle>1.84</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
