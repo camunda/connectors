@@ -78,22 +78,30 @@ jobs:
           java-version: '21.0.9'
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+      # Mirror uses id=nexus-mirror (distinct from deploy id=camunda-nexus) so each gets the right credentials:
+      # - nexus-mirror: CI Nexus creds for the pull-through cache at repository.nexus.camunda.cloud
+      # - camunda-nexus: Artifactory creds for deploying snapshots to artifacts.camunda.com
       - name: 'Create settings.xml'
         uses: s4u/maven-settings-action@v4.0.0
         with:
           githubServer: false
           servers: |
             [{
-               "id": "camunda-nexus",
+               "id": "nexus-mirror",
                "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
                "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+            {
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
              },
             {
                "id": "camunda-artifactory",
                 "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
                 "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
              }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Set snapshot version
         id: maven_version
@@ -101,25 +109,22 @@ jobs:
           # Extract minor version from Maven project (e.g., "8.9" from "8.9.0-SNAPSHOT")
           MINOR_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout | cut -d'.' -f1-2)
           FINAL_VERSION="${MINOR_VERSION}.0-SNAPSHOT"
-          
+
           echo "::notice::Detected minor version: ${MINOR_VERSION}"
-          
+
           # Set the version locally (no need to commit)
           ./mvnw -B versions:set -DnewVersion="${FINAL_VERSION}" -DgenerateBackupPoms=false -f parent
-          
+
           # Output versions for use in later steps
           echo "maven_version=${FINAL_VERSION}" >> "$GITHUB_OUTPUT"
           echo "minor_version=${MINOR_VERSION}" >> "$GITHUB_OUTPUT"
           echo "docker_version=${MINOR_VERSION}-SNAPSHOT" >> "$GITHUB_OUTPUT"
-          
+
           echo "::notice::Maven version set to: ${FINAL_VERSION}"
           echo "::notice::Docker version will be: ${MINOR_VERSION}-SNAPSHOT"
 
       - name: Build Artifacts
         run: ./mvnw -B -U compile generate-sources source:jar javadoc:jar deploy -DskipTests
-        env:
-          NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
-          NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
 
       - name: Lint Connector Bundle Dockerfile - SaaS
         uses: hadolint/hadolint-action@v3.3.0
