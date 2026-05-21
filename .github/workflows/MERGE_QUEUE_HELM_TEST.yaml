@@ -68,6 +68,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
+          cache: 'npm'
 
       - name: Install element templates CLI
         run: npm install --global element-templates-cli
@@ -452,6 +453,7 @@ jobs:
         if: steps.changes.outputs.ai == 'true'
         with:
           node-version: '24'
+          cache: 'npm'
 
       - name: Install element templates CLI
         if: steps.changes.outputs.ai == 'true'
