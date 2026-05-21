@@ -29,6 +29,14 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.util.function.Supplier;
 
+/**
+ * Base Jackson deserializer for connector FEEL-backed values.
+ *
+ * <p>Subclasses decide whether values are evaluated immediately during property binding or turned
+ * into deferred runtime callbacks such as {@link java.util.function.Function} and {@link Supplier}.
+ *
+ * @param <T> the deserialized target type
+ */
 public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     implements ContextualDeserializer {
 
@@ -44,20 +52,21 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
   protected static final ObjectMapper BLANK_OBJECT_MAPPER =
       ConnectorsObjectMapperSupplier.getCopy();
 
+  /** Evaluator configured for this deserializer instance. */
   protected final FeelExpressionEvaluator evaluator;
 
   /**
    * Controls both accepted input shape and evaluator override behavior.
    *
-   * <p>Strict mode ({@code false}) is used for deferred runtime callbacks such as {@link *
-   * java.util.function.Function} and {@link java.util.function.Supplier}. These callbacks are *
-   * deserialized from explicit FEEL expressions and evaluated later against in-memory runtime data,
-   * * which may include objects such as Documents. They must keep the evaluator configured by their
-   * * Jackson module, usually local FEEL, because a remote evaluator cannot serialize or interpret
-   * * those runtime objects reliably. * *
+   * <p>Strict mode ({@code false}) is used for deferred runtime callbacks such as {@link
+   * java.util.function.Function} and {@link Supplier}. These callbacks are deserialized from
+   * explicit FEEL expressions and evaluated later against in-memory runtime data, which may include
+   * objects such as Documents. They must keep the evaluator configured by their Jackson module,
+   * usually local FEEL, because a remote evaluator cannot serialize or interpret those runtime
+   * objects reliably.
    *
-   * <p>Relaxed mode ({@code true}) is used for regular connector properties, for example fields *
-   * annotated with {@code @FEEL}. In this mode, the deserializer also accepts plain strings and *
+   * <p>Relaxed mode ({@code true}) is used for regular connector properties, for example fields
+   * annotated with {@code @FEEL}. In this mode, the deserializer also accepts plain strings and
    * JSON-like values, and a per-reader evaluator override may be applied.
    */
   protected final boolean relaxed;
@@ -105,6 +114,12 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
             + parser.getParsingContext().getCurrentName());
   }
 
+  /**
+   * Checks whether the given value is an explicit FEEL expression.
+   *
+   * @param value the textual value to inspect
+   * @return {@code true} if the value starts with {@code =}
+   */
   protected boolean isFeelExpression(String value) {
     return value != null && value.startsWith("=");
   }
@@ -118,6 +133,7 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    * @param expression the FEEL expression to evaluate
    * @param targetType the target type to convert the result to
    * @param variables the variables to use in evaluation
+   * @param <R> the converted FEEL expression result type
    * @return the evaluation result converted to the target type
    */
   @SuppressWarnings("unchecked")
@@ -147,6 +163,15 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     }
   }
 
+  /**
+   * Performs subclass-specific deserialization after the FEEL context has been resolved.
+   *
+   * @param node the source JSON node
+   * @param feelContext the FEEL context available during evaluation
+   * @param deserializationContext the Jackson deserialization context
+   * @return the deserialized value
+   * @throws IOException when deserialization fails
+   */
   protected abstract T doDeserialize(
       JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext)
       throws IOException;
