@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
@@ -20,15 +19,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
-import io.camunda.connector.agenticai.aiagent.agentinstance.InitialAgentInstanceData;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -50,7 +46,6 @@ import io.camunda.connector.api.outbound.JobContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -66,26 +61,6 @@ import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 class AgentInitializerTest {
-
-  private static final List<AdHocToolElement> AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS =
-      Stream.concat(
-              AD_HOC_TOOL_ELEMENTS.stream(),
-              Stream.of(
-                  AdHocToolElement.builder()
-                      .elementId("mcpClient")
-                      .elementName("AnMcpClient")
-                      .documentation("An MCP client for this cool service.")
-                      .properties(
-                          Map.of(GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION, "mcpClient"))
-                      .build(),
-                  AdHocToolElement.builder()
-                      .elementId("dummyType")
-                      .elementName("SomeOtherGateway")
-                      .documentation("Some other gateway type.")
-                      .properties(
-                          Map.of(GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION, "dummyType"))
-                      .build()))
-          .toList();
 
   private static final List<GatewayToolDefinition> GATEWAY_TOOL_DEFINITIONS =
       List.of(
@@ -154,14 +129,7 @@ class AgentInitializerTest {
       // When initialAgentContext is null, creates new context with INITIALIZING state
       // which triggers agent instance creation then initiateToolDiscovery flow
       when(agentInstanceClient.create(any())).thenReturn(AgentInstanceKey.of(12345L));
-      // Provider required for InitialAgentInstanceData.from
-      when(executionContext.provider())
-          .thenReturn(
-              new OpenAiProviderConfiguration(
-                  new OpenAiConnection(
-                      new OpenAiAuthentication("key", null, null),
-                      null,
-                      new OpenAiModel("gpt-4o", null))));
+
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
@@ -620,7 +588,7 @@ class AgentInitializerTest {
     @Test
     void shouldCreateAgentInstanceOnFirstInitialization() {
       // null initialAgentContext → creates INITIALIZING context without agentInstanceKey
-      when(agentInstanceClient.create(any(InitialAgentInstanceData.class)))
+      when(agentInstanceClient.create(any(AgentExecutionContext.class)))
           .thenReturn(AgentInstanceKey.of(12345L));
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
@@ -629,7 +597,7 @@ class AgentInitializerTest {
       final var result =
           (AgentContextInitializationResult) agentInitializer.initializeAgent(executionContext);
 
-      verify(agentInstanceClient, times(1)).create(any(InitialAgentInstanceData.class));
+      verify(agentInstanceClient, times(1)).create(any(AgentExecutionContext.class));
       assertThat(result.agentContext().metadata().agentInstanceKey()).isEqualTo(12345L);
     }
 
@@ -655,7 +623,7 @@ class AgentInitializerTest {
       final var failure =
           new ConnectorException(
               ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED, "Failed to create agent instance");
-      when(agentInstanceClient.create(any(InitialAgentInstanceData.class))).thenThrow(failure);
+      when(agentInstanceClient.create(any(AgentExecutionContext.class))).thenThrow(failure);
 
       assertThatThrownBy(() -> agentInitializer.initializeAgent(executionContext))
           .isInstanceOf(ConnectorException.class)

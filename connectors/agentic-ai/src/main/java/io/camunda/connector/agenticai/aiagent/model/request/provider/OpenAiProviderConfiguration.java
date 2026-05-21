@@ -29,6 +29,11 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
     return OPENAI_ID;
   }
 
+  @Override
+  public String model() {
+    return openai.model.model();
+  }
+
   public record OpenAiConnection(
       @Valid @NotNull OpenAiAuthentication authentication,
       @Valid TimeoutConfiguration timeouts,

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.api.error.ConnectorException;
 
 public interface AgentInstanceClient {
@@ -17,5 +18,5 @@ public interface AgentInstanceClient {
    * @throws ConnectorException with code AGENT_INSTANCE_CREATION_FAILED when retries are exhausted
    *     or a non-retryable error occurs
    */
-  AgentInstanceKey create(InitialAgentInstanceData params);
+  AgentInstanceKey create(AgentExecutionContext agentExecutionContext);
 }

@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.api.outbound.JobContext;
+import jakarta.annotation.Nullable;
 
 /**
  * Metadata about an AI Agent's execution context, used for detecting process definition migrations.
@@ -18,7 +19,7 @@ import io.camunda.connector.api.outbound.JobContext;
  */
 @AgenticAiRecord
 public record AgentMetadata(
-    Long processDefinitionKey, Long processInstanceKey, Long agentInstanceKey)
+    Long processDefinitionKey, Long processInstanceKey, @Nullable Long agentInstanceKey)
     implements AgentMetadataBuilder.With {
 
   public static AgentMetadata of(JobContext jobContext) {

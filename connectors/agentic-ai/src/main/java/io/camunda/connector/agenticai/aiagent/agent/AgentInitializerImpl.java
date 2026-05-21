@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.InitialAgentInstanceData;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -156,8 +155,7 @@ public class AgentInitializerImpl implements AgentInitializer {
       return agentContext;
     }
 
-    final var createdKey =
-        agentInstanceClient.create(InitialAgentInstanceData.from(executionContext));
+    final var createdKey = agentInstanceClient.create(executionContext);
 
     final var existingMetadata =
         agentContext.metadata() != null

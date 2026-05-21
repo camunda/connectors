@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.AiAgentProperties.AgentInstanceProperties.RetriesProperties;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
@@ -27,25 +28,26 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   @Override
-  public AgentInstanceKey create(InitialAgentInstanceData params) {
+  public AgentInstanceKey create(AgentExecutionContext agentExecutionContext) {
     return CamundaApiRetry.execute(
-        () -> executeCreate(params),
+        () -> executeCreate(agentExecutionContext),
         AgentInstanceErrorClassifier.INSTANCE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
-        (cause, attempt, reason) -> buildException(params, cause, attempt, reason),
+        (cause, attempt, reason) -> buildException(agentExecutionContext, cause, attempt, reason),
         this::sleep);
   }
 
-  private AgentInstanceKey executeCreate(InitialAgentInstanceData params) {
+  private AgentInstanceKey executeCreate(AgentExecutionContext agentExecutionContext) {
     var command =
         camundaClient
             .newCreateAgentInstanceCommand()
-            .elementInstanceKey(params.elementInstanceKey())
-            .model(params.model())
-            .provider(params.provider())
-            .systemPrompt(params.systemPrompt());
-    final var limits = params.limits();
+            .elementInstanceKey(agentExecutionContext.jobContext().getElementInstanceKey())
+            .model(agentExecutionContext.provider().model())
+            .provider(agentExecutionContext.provider().providerType())
+            .systemPrompt(agentExecutionContext.systemPrompt().prompt());
+
+    final var limits = agentExecutionContext.limits();
     if (limits != null && limits.maxModelCalls() != null) {
       command = command.maxModelCalls(limits.maxModelCalls());
     }
@@ -53,18 +55,22 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   private ConnectorException buildException(
-      InitialAgentInstanceData params, Throwable cause, int attempt, FailureReason reason) {
+      AgentExecutionContext agentExecutionContext,
+      Throwable cause,
+      int attempt,
+      FailureReason reason) {
+    final long elementInstanceKey = agentExecutionContext.jobContext().getElementInstanceKey();
     final String message =
         switch (reason) {
           case PERMANENT_ERROR ->
               "Failed to create agent instance for element instance key %d: %s"
-                  .formatted(params.elementInstanceKey(), cause.getMessage());
+                  .formatted(elementInstanceKey, cause.getMessage());
           case RETRIES_EXHAUSTED ->
               "Failed to create agent instance for element instance key %d after %d attempt(s): %s"
-                  .formatted(params.elementInstanceKey(), attempt, cause.getMessage());
+                  .formatted(elementInstanceKey, attempt, cause.getMessage());
           case INTERRUPTED ->
               "Interrupted while waiting to retry agent instance creation for element instance key %d"
-                  .formatted(params.elementInstanceKey());
+                  .formatted(elementInstanceKey);
         };
     return new ConnectorException(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED, message, cause);
   }
