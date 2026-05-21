@@ -42,6 +42,8 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -62,6 +64,11 @@ public class TemplatePropertiesUtil {
     var type = parameter.getType();
     var annotation = parameter.getAnnotation(TemplateProperty.class);
     var documentAnnotation = parameter.getAnnotation(TemplateDocumentProperty.class);
+    if (annotation != null && documentAnnotation != null) {
+      throw new IllegalStateException(
+          "@TemplateProperty and @TemplateDocumentProperty are mutually exclusive on: "
+              + parameter.getName());
+    }
     if (documentAnnotation != null) {
       return handleTemplateDocumentProperty(
           parameter, parameter.getName(), type, documentAnnotation);
@@ -120,6 +127,11 @@ public class TemplatePropertiesUtil {
 
     for (Field field : fields) {
       var documentAnnotation = field.getAnnotation(TemplateDocumentProperty.class);
+      if (field.getAnnotation(TemplateProperty.class) != null && documentAnnotation != null) {
+        throw new IllegalStateException(
+            "@TemplateProperty and @TemplateDocumentProperty are mutually exclusive on: "
+                + field.getName());
+      }
       if (documentAnnotation != null) {
         properties.addAll(
             handleTemplateDocumentProperty(
@@ -203,7 +215,7 @@ public class TemplatePropertiesUtil {
    * DocumentPropertyHandler}.
    */
   private static List<PropertyBuilder> handleTemplateDocumentProperty(
-      java.lang.reflect.AnnotatedElement element,
+      AnnotatedElement element,
       String declaredName,
       Class<?> declaredType,
       TemplateDocumentProperty annotation) {
@@ -229,15 +241,15 @@ public class TemplatePropertiesUtil {
             + declaredType.getSimpleName());
   }
 
-  private static Class<?> getListElementType(java.lang.reflect.AnnotatedElement element) {
-    java.lang.reflect.Type genericType = null;
+  private static Class<?> getListElementType(AnnotatedElement element) {
+    Type genericType = null;
     if (element instanceof Field field) {
       genericType = field.getGenericType();
     } else if (element instanceof Parameter parameter) {
       genericType = parameter.getParameterizedType();
     }
-    if (genericType instanceof java.lang.reflect.ParameterizedType parameterized) {
-      java.lang.reflect.Type[] typeArgs = parameterized.getActualTypeArguments();
+    if (genericType instanceof ParameterizedType parameterized) {
+      Type[] typeArgs = parameterized.getActualTypeArguments();
       if (typeArgs.length == 1 && typeArgs[0] instanceof Class<?> classArg) {
         return classArg;
       }

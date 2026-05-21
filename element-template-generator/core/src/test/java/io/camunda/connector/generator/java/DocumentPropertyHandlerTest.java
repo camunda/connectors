@@ -82,6 +82,9 @@ public class DocumentPropertyHandlerTest extends BaseTest {
 
   record CustomComposerIdInput(@TemplateDocumentProperty(id = "legacyId") Document doc) {}
 
+  record BothAnnotationsInput(
+      @TemplateProperty(id = "doc") @TemplateDocumentProperty Document doc) {}
+
   // --- Fixture connector functions ---
 
   @OutboundConnector(name = "doc-test", type = "doc-test-type")
@@ -221,6 +224,19 @@ public class DocumentPropertyHandlerTest extends BaseTest {
       name = "Doc Test",
       inputDataClass = CustomComposerIdInput.class)
   static class WithCustomComposerId implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  @OutboundConnector(name = "doc-test", type = "doc-test-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = "doc-test",
+      name = "Doc Test",
+      inputDataClass = BothAnnotationsInput.class)
+  static class WithBothAnnotationsOnField implements OutboundConnectorFunction {
     @Override
     public Object execute(OutboundConnectorContext context) {
       return null;
@@ -667,6 +683,21 @@ public class DocumentPropertyHandlerTest extends BaseTest {
       assertThat(value).startsWith("=");
       assertThat(value).endsWith("else null");
       assertThat(value).doesNotContain("else []");
+    }
+  }
+
+  @Nested
+  class MutualExclusionGuard {
+
+    @Test
+    void bothAnnotations_onRecordField_throwsIllegalStateException() {
+      var exception =
+          assertThrows(
+              IllegalStateException.class,
+              () -> generator.generate(WithBothAnnotationsOnField.class));
+      assertThat(exception.getMessage())
+          .contains("@TemplateProperty and @TemplateDocumentProperty are mutually exclusive");
+      assertThat(exception.getMessage()).contains("doc");
     }
   }
 
