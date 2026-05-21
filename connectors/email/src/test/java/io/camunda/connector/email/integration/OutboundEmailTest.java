@@ -13,31 +13,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.email.client.jakarta.outbound.JakartaEmailActionExecutor;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.response.DeleteEmailResponse;
 import io.camunda.connector.email.response.ListEmailsResponse;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import io.camunda.connector.email.response.SearchEmailsResponse;
-import io.camunda.connector.hostvalidator.VerifiedHostValidator;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
-import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import jakarta.mail.Message;
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorFactory;
-import jakarta.validation.Validation;
-import jakarta.validation.ValidatorFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
-import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,46 +40,12 @@ public class OutboundEmailTest extends BaseEmailTest {
   DocumentFactory documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   ObjectMapper objectMapper = new ObjectMapper();
 
-  // TODO extract into test utils
-  VerifiedHostValidator verifiedHostValidator =
-      new VerifiedHostValidator(
-          new VerifiedHostValidator.Config(true, List.of(), List.of(), true, true));
-
-  // TODO extract into test utils
-  ConstraintValidatorFactory factory =
-      new ConstraintValidatorFactory() {
-        @Override
-        public <T extends ConstraintValidator<?, ?>> T getInstance(Class<T> key) {
-          if (key.equals(VerifiedHostValidator.class)) {
-            return key.cast(verifiedHostValidator);
-          }
-          try {
-            return key.getDeclaredConstructor().newInstance();
-          } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(e);
-          }
-        }
-
-        @Override
-        public void releaseInstance(ConstraintValidator<?, ?> instance) {}
-      };
-
-  // TODO extract into test utils
-  ValidatorFactory validatorFactory =
-      Validation.byDefaultProvider()
-          .configure()
-          .constraintValidatorFactory(factory)
-          .messageInterpolator(new ParameterMessageInterpolator())
-          .buildValidatorFactory();
-
-  ValidationProvider validationProvider = new DefaultValidationProvider(validatorFactory);
-
   JakartaEmailActionExecutor jakartaEmailActionExecutor =
       JakartaEmailActionExecutor.create(
           new JakartaUtils(), ConnectorsObjectMapperSupplier.getCopy());
 
   private OutboundConnectorContextBuilder contextBuilder =
-      OutboundConnectorContextBuilder.create().validation(validationProvider);
+      OutboundConnectorContextBuilder.create().includeAllValidators();
 
   private static Stream<String> getStreamFromPath(String path) {
     ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();

@@ -69,16 +69,6 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>host-ip-validator-annotation</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>host-ip-validator</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hibernate.validator</groupId>
-      <artifactId>hibernate-validator</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
