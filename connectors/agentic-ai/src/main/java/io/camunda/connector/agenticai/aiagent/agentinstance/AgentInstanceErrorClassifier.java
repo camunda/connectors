@@ -32,7 +32,7 @@ public final class AgentInstanceErrorClassifier implements ErrorClassifier {
         }
       }
 
-      if (isIoException(current)) {
+      if (current instanceof IOException) {
         return Decision.RETRYABLE;
       }
 
@@ -44,10 +44,6 @@ public final class AgentInstanceErrorClassifier implements ErrorClassifier {
     }
 
     return Decision.PERMANENT;
-  }
-
-  private static boolean isIoException(Throwable t) {
-    return t instanceof IOException;
   }
 
   private AgentInstanceErrorClassifier() {}
