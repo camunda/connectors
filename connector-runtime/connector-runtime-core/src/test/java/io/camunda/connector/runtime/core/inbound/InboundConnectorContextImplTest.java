@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class InboundConnectorContextImplTest {
   private final SecretProvider secretProvider = new FooBarSecretProvider();
@@ -126,6 +127,96 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void bindProperties_shouldForwardClusterVariableExpressionToCluster() {
+    // given a property referencing a cluster-scoped variable (e.g. camunda.vars.env.*)
+    var definition =
+        getInboundConnectorDefinitionWithTenant(
+            Map.of("str", "=camunda.vars.env.MY_API_KEY"), "tenant-1");
+    var camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    var step2 = mock(EvaluateExpressionCommandStep2.class, RETURNS_DEEP_STUBS);
+    var response = mock(EvaluateExpressionResponse.class);
+    var expressionCaptor = ArgumentCaptor.forClass(String.class);
+    when(camundaClient.newEvaluateExpressionCommand().expression(expressionCaptor.capture()))
+        .thenReturn(step2);
+    when(step2.send().join()).thenReturn(response);
+    when(response.getResult()).thenReturn("resolved-api-key");
+
+    InboundConnectorContextImpl inboundConnectorContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            null,
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
+
+    // then the cluster receives the expression verbatim and the result is bound
+    assertThat(expressionCaptor.getValue()).contains("camunda.vars.env.MY_API_KEY");
+    assertThat(result.str).isEqualTo("resolved-api-key");
+    // tenant must be propagated so cluster variables can be resolved against the right scope
+    verify(step2).tenantId(eq("tenant-1"));
+  }
+
+  @Test
+  void bindProperties_shouldEvaluateMultipleFeelFieldsViaCluster() {
+    // given several @FEEL fields, each referencing distinct cluster/tenant variables
+    var definition =
+        getInboundConnectorDefinitionWithTenant(
+            Map.of(
+                "str", "=camunda.vars.env.API_KEY",
+                "second", "=camunda.vars.tenant.greeting"),
+            "tenant-acme");
+    var camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    var step2 = mock(EvaluateExpressionCommandStep2.class, RETURNS_DEEP_STUBS);
+    var expressionCaptor = ArgumentCaptor.forClass(String.class);
+    when(camundaClient.newEvaluateExpressionCommand().expression(expressionCaptor.capture()))
+        .thenReturn(step2);
+    when(step2.send().join())
+        .thenAnswer(
+            invocation -> {
+              var lastExpression =
+                  expressionCaptor.getAllValues().get(expressionCaptor.getAllValues().size() - 1);
+              var response = mock(EvaluateExpressionResponse.class);
+              if (lastExpression.contains("API_KEY")) {
+                when(response.getResult()).thenReturn("resolved-api-key");
+              } else if (lastExpression.contains("greeting")) {
+                when(response.getResult()).thenReturn("hello-acme");
+              }
+              return response;
+            });
+
+    InboundConnectorContextImpl inboundConnectorContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            null,
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
+
+    // then both expressions were forwarded verbatim to the cluster
+    assertThat(expressionCaptor.getAllValues())
+        .containsExactlyInAnyOrder("=camunda.vars.env.API_KEY", "=camunda.vars.tenant.greeting");
+    // both results are bound to their respective fields
+    assertThat(result.str).isEqualTo("resolved-api-key");
+    assertThat(result.second).isEqualTo("hello-acme");
+    // tenant is propagated to every evaluation so tenant-scoped variables resolve correctly
+    verify(step2, org.mockito.Mockito.times(2)).tenantId(eq("tenant-acme"));
+  }
+
+  @Test
   void bindProperties_shouldUseCamundaClientEvaluatorWithTenantId() {
     // given
     var definition =
@@ -192,9 +283,14 @@ class InboundConnectorContextImplTest {
 
   public static class TestPropertiesClass {
     @FEEL private String str;
+    @FEEL private String second;
 
     public void setStr(final String str) {
       this.str = str;
+    }
+
+    public void setSecond(final String second) {
+      this.second = second;
     }
   }
 }
