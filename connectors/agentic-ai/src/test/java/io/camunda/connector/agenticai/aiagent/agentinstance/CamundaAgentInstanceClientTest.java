@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,20 +81,16 @@ class CamundaAgentInstanceClientTest {
             recordedSleeps.add(delay);
           }
         };
-  }
-
-  private void setupCommandChain() {
     when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(step1);
     when(step1.elementInstanceKey(anyLong())).thenReturn(step2);
     when(step2.model(anyString())).thenReturn(step3);
     when(step3.provider(anyString())).thenReturn(step4);
     when(step4.systemPrompt(anyString())).thenReturn(step5);
-    when(step5.maxModelCalls(anyInt())).thenReturn(step5);
+    lenient().when(step5.maxModelCalls(anyInt())).thenReturn(step5);
   }
 
   @Test
   void shouldReturnAgentInstanceKeyOnFirstSuccessfulAttempt() {
-    setupCommandChain();
     when(step5.execute()).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(12345L);
 
@@ -106,11 +103,6 @@ class CamundaAgentInstanceClientTest {
 
   @Test
   void shouldReturnAgentInstanceKeyOnFirstAttemptWhenMaxModelCallsIsNull() {
-    when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(step1);
-    when(step1.elementInstanceKey(anyLong())).thenReturn(step2);
-    when(step2.model(anyString())).thenReturn(step3);
-    when(step3.provider(anyString())).thenReturn(step4);
-    when(step4.systemPrompt(anyString())).thenReturn(step5);
     when(step5.execute()).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(67890L);
 
@@ -123,7 +115,6 @@ class CamundaAgentInstanceClientTest {
 
   @Test
   void shouldThrowConnectorExceptionImmediatelyForHttp400PermanentError() {
-    setupCommandChain();
     when(step5.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
     assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
@@ -142,7 +133,6 @@ class CamundaAgentInstanceClientTest {
 
   @Test
   void shouldReturnKeyAndRecordOneSleepWhenRetryableErrorPrecedesSuccess() {
-    setupCommandChain();
     when(step5.execute()).thenThrow(new ClientHttpException(404, "Not Found")).thenReturn(response);
     when(response.getAgentInstanceKey()).thenReturn(999L);
 
@@ -156,7 +146,6 @@ class CamundaAgentInstanceClientTest {
 
   @Test
   void shouldThrowConnectorExceptionWithAttemptCountWhenAllRetriesAreExhausted() {
-    setupCommandChain();
     when(step5.execute()).thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
     assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
