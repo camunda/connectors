@@ -34,7 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.AiAgentProperties.AgentInstanceProperties.RetriesProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -52,8 +52,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class CamundaAgentInstanceClientTest {
 
-  private static final RetriesProperties RETRIES_CONFIGURATION =
-      new RetriesProperties(4, Duration.ofSeconds(1));
+  private static final AgenticAiConnectorsConfigurationProperties.RetriesProperties
+      RETRIES_CONFIGURATION =
+          new AgenticAiConnectorsConfigurationProperties.RetriesProperties(
+              4, Duration.ofSeconds(1));
 
   private static final long ELEMENT_INSTANCE_KEY = 77L;
 

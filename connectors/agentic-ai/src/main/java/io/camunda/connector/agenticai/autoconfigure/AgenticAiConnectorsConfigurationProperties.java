@@ -21,15 +21,15 @@ public record AgenticAiConnectorsConfigurationProperties(
     @Valid @DefaultValue AiAgentProperties aiagent,
     @Valid @DefaultValue HttpProperties http) {
 
+  public record RetriesProperties(
+      @DefaultValue("4") @PositiveOrZero Integer maxRetries,
+      @DefaultValue("PT1S") Duration initialRetryDelay) {}
+
   public record AiAgentProperties(
       @Valid @DefaultValue ChatModelProperties chatModel,
       @Valid @DefaultValue AgentInstanceProperties agentInstance) {
 
-    public record AgentInstanceProperties(@Valid @DefaultValue RetriesProperties retries) {
-      public record RetriesProperties(
-          @DefaultValue("4") @PositiveOrZero Integer maxRetries,
-          @DefaultValue("PT1S") Duration initialRetryDelay) {}
-    }
+    public record AgentInstanceProperties(@Valid @DefaultValue RetriesProperties retries) {}
   }
 
   public record ChatModelProperties(@Valid @DefaultValue ApiProperties api) {
@@ -47,10 +47,6 @@ public record AgenticAiConnectorsConfigurationProperties(
     public record ProcessDefinitionProperties(
         @Valid @DefaultValue RetriesProperties retries,
         @Valid @DefaultValue CacheProperties cache) {
-
-      public record RetriesProperties(
-          @DefaultValue("4") @PositiveOrZero Integer maxRetries,
-          @DefaultValue("PT0.5S") Duration initialRetryDelay) {}
 
       public record CacheProperties(
           @DefaultValue("true") boolean enabled,
