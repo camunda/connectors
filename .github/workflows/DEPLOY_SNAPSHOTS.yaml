@@ -76,9 +76,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21.0.9'
-          server-id: camunda-nexus
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
@@ -90,6 +87,11 @@ jobs:
                "id": "camunda-nexus",
                "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
                "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+            {
+               "id": "camunda-artifactory",
+                "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+                "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
@@ -116,8 +118,8 @@ jobs:
       - name: Build Artifacts
         run: ./mvnw -B -U compile generate-sources source:jar javadoc:jar deploy -DskipTests
         env:
-          MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
-          MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+          NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+          NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
 
       - name: Lint Connector Bundle Dockerfile - SaaS
         uses: hadolint/hadolint-action@v3.3.0
