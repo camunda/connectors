@@ -177,7 +177,6 @@ class AgentInitializerTest {
   @Nested
   class ToolDiscoveryInitiation {
 
-    // Agent instance key already set → ensureAgentInstanceRegistered is a no-op for these tests
     private static final AgentContext AGENT_CONTEXT =
         AgentContext.empty()
             .withProperty("hello", "world")
@@ -603,7 +602,6 @@ class AgentInitializerTest {
 
     @Test
     void shouldSkipAgentInstanceCreationWhenKeyAlreadyPresent() {
-      // Context already has agentInstanceKey → ensureAgentInstanceRegistered is a no-op
       final var existingMetadata =
           new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 99L);
       final var agentContext =
