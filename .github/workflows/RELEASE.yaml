@@ -114,7 +114,7 @@ jobs:
         run: |
           if ! command -v npm >/dev/null 2>&1; then
             sudo apt-get update
-            sudo apt-get install -y nodejs npm
+            sudo apt-get install -y npm
           fi
           npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
