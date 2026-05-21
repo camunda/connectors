@@ -9,9 +9,6 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,9 +17,6 @@ import static org.mockito.Mockito.when;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
-import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep2;
-import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep3;
-import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep4;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep5;
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
@@ -47,6 +41,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -61,12 +56,13 @@ class CamundaAgentInstanceClientTest {
   private static final long ELEMENT_INSTANCE_KEY = 77L;
 
   @Mock private CamundaClient camundaClient;
-  @Mock private CreateAgentInstanceCommandStep1 step1;
-  @Mock private CreateAgentInstanceCommandStep2 step2;
-  @Mock private CreateAgentInstanceCommandStep3 step3;
-  @Mock private CreateAgentInstanceCommandStep4 step4;
-  @Mock private CreateAgentInstanceCommandStep5 step5;
+
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  private CreateAgentInstanceCommandStep1 commandChain;
+
   @Mock private CreateAgentInstanceResponse response;
+
+  private CreateAgentInstanceCommandStep5 step5;
 
   private List<Duration> recordedSleeps;
   private CamundaAgentInstanceClient client;
@@ -81,12 +77,14 @@ class CamundaAgentInstanceClientTest {
             recordedSleeps.add(delay);
           }
         };
-    when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(step1);
-    when(step1.elementInstanceKey(anyLong())).thenReturn(step2);
-    when(step2.model(anyString())).thenReturn(step3);
-    when(step3.provider(anyString())).thenReturn(step4);
-    when(step4.systemPrompt(anyString())).thenReturn(step5);
-    lenient().when(step5.maxModelCalls(anyInt())).thenReturn(step5);
+    when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(commandChain);
+    step5 =
+        commandChain
+            .elementInstanceKey(ELEMENT_INSTANCE_KEY)
+            .model("gpt-4o")
+            .provider(OpenAiProviderConfiguration.OPENAI_ID)
+            .systemPrompt("system prompt");
+    lenient().when(step5.maxModelCalls(10)).thenReturn(step5);
   }
 
   @Test
