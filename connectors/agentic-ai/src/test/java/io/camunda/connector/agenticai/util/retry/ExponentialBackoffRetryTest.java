@@ -7,51 +7,35 @@
 package io.camunda.connector.agenticai.util.retry;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import java.time.Duration;
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ExponentialBackoffRetryTest {
 
-  @Test
-  void shouldReturn1sForAttempt1WithInitialDelayOf1s() {
-    // 2^(1-2) = 2^(-1) = 0.5 → round(0.5) = 1 → 1 * 1s = 1s
-    assertThat(ExponentialBackoffRetry.delayBeforeAttempt(1, Duration.ofSeconds(1)))
-        .isEqualTo(Duration.ofSeconds(1));
+  @ParameterizedTest
+  @MethodSource("shouldReturnOneSecondDelay")
+  void shouldExponentiallyBackoffDelay(int attempt, Duration initialDelay, Duration expectedDelay) {
+    assertThat(ExponentialBackoffRetry.delayBeforeAttempt(attempt, initialDelay))
+        .isEqualTo(expectedDelay);
   }
 
-  @Test
-  void shouldReturn1sForAttempt2WithInitialDelayOf1s() {
-    // 2^(2-2) = 2^0 = 1.0 → round(1.0) = 1 → 1 * 1s = 1s
-    assertThat(ExponentialBackoffRetry.delayBeforeAttempt(2, Duration.ofSeconds(1)))
-        .isEqualTo(Duration.ofSeconds(1));
-  }
-
-  @Test
-  void shouldReturn2sForAttempt3WithInitialDelayOf1s() {
-    // 2^(3-2) = 2^1 = 2.0 → round(2.0) = 2 → 2 * 1s = 2s
-    assertThat(ExponentialBackoffRetry.delayBeforeAttempt(3, Duration.ofSeconds(1)))
-        .isEqualTo(Duration.ofSeconds(2));
-  }
-
-  @Test
-  void shouldReturn4sForAttempt4WithInitialDelayOf1s() {
-    // 2^(4-2) = 2^2 = 4.0 → round(4.0) = 4 → 4 * 1s = 4s
-    assertThat(ExponentialBackoffRetry.delayBeforeAttempt(4, Duration.ofSeconds(1)))
-        .isEqualTo(Duration.ofSeconds(4));
-  }
-
-  @Test
-  void shouldReturn8sForAttempt5WithInitialDelayOf1s() {
-    // 2^(5-2) = 2^3 = 8.0 → round(8.0) = 8 → 8 * 1s = 8s
-    assertThat(ExponentialBackoffRetry.delayBeforeAttempt(5, Duration.ofSeconds(1)))
-        .isEqualTo(Duration.ofSeconds(8));
-  }
-
-  @Test
-  void shouldReturn1sForAttempt3WithInitialDelayOf500ms() {
-    // 2^(3-2) = 2 → 2 * 500ms = 1000ms = 1s
-    assertThat(ExponentialBackoffRetry.delayBeforeAttempt(3, Duration.ofMillis(500)))
-        .isEqualTo(Duration.ofSeconds(1));
+  private static Stream<Arguments> shouldReturnOneSecondDelay() {
+    return Stream.of(
+        argumentSet(
+            "attempt 3; initial delay 500ms", 3, Duration.ofMillis(500), Duration.ofSeconds(1)),
+        argumentSet("attempt 1; initial delay 1s", 1, Duration.ofSeconds(1), Duration.ofSeconds(1)),
+        argumentSet("attempt 2; initial delay 1s", 2, Duration.ofSeconds(1), Duration.ofSeconds(1)),
+        argumentSet("attempt 3; initial delay 1s", 3, Duration.ofSeconds(1), Duration.ofSeconds(2)),
+        argumentSet("attempt 4; initial delay 1s", 4, Duration.ofSeconds(1), Duration.ofSeconds(4)),
+        argumentSet("attempt 5; initial delay 1s", 5, Duration.ofSeconds(1), Duration.ofSeconds(8)),
+        argumentSet(
+            "attempt 6; initial delay 1s", 6, Duration.ofSeconds(1), Duration.ofSeconds(16)),
+        argumentSet(
+            "attempt 7; initial delay 1s", 7, Duration.ofSeconds(1), Duration.ofSeconds(32)));
   }
 }
