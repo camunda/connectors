@@ -44,8 +44,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         camundaClient
             .newCreateAgentInstanceCommand()
             .elementInstanceKey(agentExecutionContext.jobContext().getElementInstanceKey())
-            .provider(agentExecutionContext.provider().providerType())
             .model(agentExecutionContext.provider().model())
+            .provider(agentExecutionContext.provider().providerType())
             .systemPrompt(agentExecutionContext.systemPrompt().prompt());
 
     final var limits = agentExecutionContext.limits();
