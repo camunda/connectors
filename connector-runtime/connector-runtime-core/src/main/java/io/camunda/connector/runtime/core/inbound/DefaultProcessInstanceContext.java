@@ -23,10 +23,12 @@ import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import java.io.IOException;
 
 public final class DefaultProcessInstanceContext implements ProcessInstanceContext {
 
@@ -65,11 +67,13 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
 
   @Override
   public <T> T bind(final Class<T> cls) {
+    String tenantId = context.getDefinition().tenantId();
+    Long scopeKey = elementInstance.getElementInstanceKey();
     try {
       var evaluator =
           FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
-              .tenantId(context.getDefinition().tenantId())
-              .scopeKey(elementInstance.getElementInstanceKey())
+              .tenantId(tenantId)
+              .scopeKey(scopeKey)
               .objectMapper(objectMapper)
               .build();
       T mappedObject =
@@ -78,8 +82,17 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
               .readValue(processDefinitionProperties, cls);
       validationProvider.validate(mappedObject);
       return mappedObject;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (IOException | FeelEngineWrapperException e) {
+      throw new RuntimeException(
+          "Failed to bind process instance properties to "
+              + cls.getName()
+              + " using FEEL evaluation/deserialization"
+              + " (tenantId="
+              + tenantId
+              + ", scopeKey="
+              + scopeKey
+              + ")",
+          e);
     }
   }
 

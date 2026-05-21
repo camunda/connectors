@@ -281,9 +281,179 @@ class InboundConnectorContextImplTest {
             });
   }
 
+  /**
+   * Returns a {@link CamundaClient} mock whose {@code newEvaluateExpressionCommand().expression(x)}
+   * resolves to the value mapped from {@code x} in {@code expressionToResult}. Useful for verifying
+   * that {@link InboundConnectorContextImpl#bindProperties(Class)} forwards each {@code @FEEL}
+   * field as its own evaluation through the cluster.
+   */
+  private static CamundaClient mockClusterEvaluations(Map<String, Object> expressionToResult) {
+    var camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    var step2 = mock(EvaluateExpressionCommandStep2.class, RETURNS_DEEP_STUBS);
+    when(camundaClient.newEvaluateExpressionCommand().expression(any()))
+        .thenAnswer(
+            invocation -> {
+              String expression = invocation.getArgument(0, String.class);
+              var response = mock(EvaluateExpressionResponse.class);
+              when(response.getResult()).thenReturn(expressionToResult.get(expression));
+              when(step2.send().join()).thenReturn(response);
+              return step2;
+            });
+    return camundaClient;
+  }
+
+  @Test
+  void bindProperties_shouldBindListFromClusterResult() {
+    // given the cluster returns a List for a @FEEL List<String> field
+    var definition =
+        getInboundConnectorDefinition(Map.of("stringList", "=camunda.vars.env.RECIPIENTS"));
+    var camundaClient =
+        mockClusterEvaluations(
+            Map.of("=camunda.vars.env.RECIPIENTS", List.of("alice", "bob", "carol")));
+
+    var inboundConnectorContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            null,
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
+
+    // then
+    assertThat(result.stringList).containsExactly("alice", "bob", "carol");
+  }
+
+  @Test
+  void bindProperties_shouldBindMapFromClusterResult() {
+    // given the cluster returns a Map for a @FEEL Map<String, String> field
+    var definition =
+        getInboundConnectorDefinition(Map.of("stringMap", "=camunda.vars.env.HEADERS"));
+    var camundaClient =
+        mockClusterEvaluations(
+            Map.of(
+                "=camunda.vars.env.HEADERS",
+                Map.of("Authorization", "Bearer 123", "X-Tenant", "acme")));
+
+    var inboundConnectorContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            null,
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
+
+    // then
+    assertThat(result.stringMap)
+        .containsEntry("Authorization", "Bearer 123")
+        .containsEntry("X-Tenant", "acme");
+  }
+
+  @Test
+  void bindProperties_shouldBindNullFromClusterResult() {
+    // given the cluster returns null (e.g. optional cluster variable not set)
+    var definition =
+        getInboundConnectorDefinition(Map.of("str", "=camunda.vars.env.OPTIONAL_VALUE"));
+    var expressionToResult = new HashMap<String, Object>();
+    expressionToResult.put("=camunda.vars.env.OPTIONAL_VALUE", null);
+    var camundaClient = mockClusterEvaluations(expressionToResult);
+
+    var inboundConnectorContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            null,
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
+
+    // then
+    assertThat(result.str).isNull();
+  }
+
+  @Test
+  void bindProperties_shouldConvertIntegerResultToLongField() {
+    // given the cluster returns an Integer but the target field is a Long
+    var definition =
+        getInboundConnectorDefinition(Map.of("longValue", "=camunda.vars.env.RETRY_LIMIT"));
+    var camundaClient =
+        mockClusterEvaluations(Map.of("=camunda.vars.env.RETRY_LIMIT", Integer.valueOf(42)));
+
+    var inboundConnectorContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            null,
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
+
+    // then Jackson widens the Integer to Long during binding
+    assertThat(result.longValue).isEqualTo(42L);
+  }
+
+  @Test
+  void bindProperties_shouldBindNestedObjectFromClusterResult() {
+    // given the cluster returns a nested Map that should bind to a structured record
+    var definition =
+        getInboundConnectorDefinition(Map.of("inner", "=camunda.vars.env.NESTED_CONFIG"));
+    var camundaClient =
+        mockClusterEvaluations(
+            Map.of(
+                "=camunda.vars.env.NESTED_CONFIG",
+                Map.of("name", "primary", "values", List.of("x", "y"))));
+
+    var inboundConnectorContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            null,
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
+
+    // then the nested JSON-like structure is bound to the record
+    assertThat(result.inner).isEqualTo(new InnerObject("primary", List.of("x", "y")));
+  }
+
   public static class TestPropertiesClass {
     @FEEL private String str;
     @FEEL private String second;
+    @FEEL private List<String> stringList;
+    @FEEL private Map<String, String> stringMap;
+    @FEEL private Long longValue;
+    @FEEL private InnerObject inner;
 
     public void setStr(final String str) {
       this.str = str;
@@ -292,5 +462,23 @@ class InboundConnectorContextImplTest {
     public void setSecond(final String second) {
       this.second = second;
     }
+
+    public void setStringList(final List<String> stringList) {
+      this.stringList = stringList;
+    }
+
+    public void setStringMap(final Map<String, String> stringMap) {
+      this.stringMap = stringMap;
+    }
+
+    public void setLongValue(final Long longValue) {
+      this.longValue = longValue;
+    }
+
+    public void setInner(final InnerObject inner) {
+      this.inner = inner;
+    }
   }
+
+  public record InnerObject(String name, List<String> values) {}
 }

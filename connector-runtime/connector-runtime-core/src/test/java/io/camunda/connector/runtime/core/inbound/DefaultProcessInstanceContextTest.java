@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -73,6 +74,39 @@ class DefaultProcessInstanceContextTest {
     assertThat(result.getStr()).isEqualTo("scoped-result");
     verify(step2).tenantId(eq("tenant-A"));
     verify(step2).scopeKey(eq(987654321L));
+  }
+
+  @Test
+  void bind_shouldIncludeTenantAndScopeKeyWhenFeelBindingFails() {
+    // given
+    var intermediateContext = mock(InboundIntermediateConnectorContextImpl.class);
+    when(intermediateContext.getProperties()).thenReturn(Map.of("str", "= failing"));
+    when(intermediateContext.getDefinition())
+        .thenReturn(
+            new InboundConnectorDefinition("type", "tenant-A", "dedup", java.util.List.of()));
+
+    var elementInstance = mock(ElementInstance.class);
+    when(elementInstance.getElementInstanceKey()).thenReturn(987654321L);
+
+    var camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    var step2 = mock(EvaluateExpressionCommandStep2.class, RETURNS_DEEP_STUBS);
+    when(camundaClient.newEvaluateExpressionCommand().expression(any())).thenReturn(step2);
+    when(step2.send().join()).thenThrow(new RuntimeException("remote FEEL failed"));
+
+    ValidationProvider validationProvider = obj -> {};
+
+    var context =
+        new DefaultProcessInstanceContext(
+            intermediateContext, elementInstance, validationProvider, null, mapper, camundaClient);
+
+    // when/then
+    assertThatThrownBy(() -> context.bind(SimpleProps.class))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("Failed to bind process instance properties")
+        .hasMessageContaining(SimpleProps.class.getName())
+        .hasMessageContaining("tenantId=tenant-A")
+        .hasMessageContaining("scopeKey=987654321")
+        .hasRootCauseMessage("remote FEEL failed");
   }
 
   public static class SimpleProps {
