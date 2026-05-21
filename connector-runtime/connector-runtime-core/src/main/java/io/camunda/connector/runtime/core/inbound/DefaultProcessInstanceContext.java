@@ -24,6 +24,7 @@ import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
@@ -37,7 +38,7 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
   private final InboundCorrelationHandler correlationHandler;
-  private final CamundaClient camundaClient;
+  private final FeelExpressionEvaluator evaluator;
 
   private final JsonNode processDefinitionProperties;
 
@@ -56,7 +57,12 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
             : validationProvider;
     this.correlationHandler = correlationHandler;
     this.objectMapper = objectMapper;
-    this.camundaClient = camundaClient;
+    this.evaluator =
+        FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
+            .tenantId(context.getDefinition().tenantId())
+            .scopeKey(elementInstance.getElementInstanceKey())
+            .objectMapper(objectMapper)
+            .build();
     this.processDefinitionProperties = objectMapper.valueToTree(context.getProperties());
   }
 
@@ -67,15 +73,7 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
 
   @Override
   public <T> T bind(final Class<T> cls) {
-    String tenantId = context.getDefinition().tenantId();
-    Long scopeKey = elementInstance.getElementInstanceKey();
     try {
-      var evaluator =
-          FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
-              .tenantId(tenantId)
-              .scopeKey(scopeKey)
-              .objectMapper(objectMapper)
-              .build();
       T mappedObject =
           FeelContextAwareObjectReader.of(objectMapper)
               .withEvaluator(evaluator)
@@ -88,9 +86,9 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
               + cls.getName()
               + " using FEEL evaluation/deserialization"
               + " (tenantId="
-              + tenantId
+              + context.getDefinition().tenantId()
               + ", scopeKey="
-              + scopeKey
+              + elementInstance.getElementInstanceKey()
               + ")",
           e);
     }
