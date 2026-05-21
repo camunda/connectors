@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>8.8.12</version>
+  <version>8.8.13-rc1</version>
   <packaging>pom</packaging>
 
   <name>Connectors Parent</name>
@@ -98,12 +98,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.44.12</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.44.10</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.44.12</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.44.10</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.44.12</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.44.10</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -960,7 +960,7 @@ Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.22.0</version>
+          <version>3.21.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
