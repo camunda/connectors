@@ -109,14 +109,10 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '24'
+          cache: 'npm'
 
       - name: Install element templates CLI
-        run: |
-          if ! command -v npm >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y npm
-          fi
-          npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
         # Maven build & version bump
       - name: Set Connectors release version
