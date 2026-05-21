@@ -1,0 +1,151 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.hostvalidator;
+
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Resolves a hostname and classifies each resolved IP against allow/deny CIDR ranges. Models the
+ * classification used by Stripe's smokescreen ({@code classifyAddr} / {@code safeResolve}) and is
+ * intended for SSRF defence in outbound HTTP calls.
+ *
+ * <p>Unlike smokescreen — which only checks the first resolved IP — this validator inspects every
+ * address returned by the resolver, to defend against DNS rebinding / multi-record SSRF.
+ */
+public final class HostIpValidator {
+
+  /** Standard RFC 1918 (IPv4) and RFC 4193 (IPv6 ULA) private ranges. */
+  private static final List<CidrRange> RFC_PRIVATE_RANGES =
+      List.of(
+          CidrRange.parse("10.0.0.0/8"),
+          CidrRange.parse("172.16.0.0/12"),
+          CidrRange.parse("192.168.0.0/16"),
+          CidrRange.parse("fc00::/7"));
+
+  private HostIpValidator() {}
+
+  public enum Classification {
+    ALLOW_DEFAULT(true),
+    ALLOW_USER_CONFIGURED(true),
+    DENY_NOT_GLOBAL_UNICAST(false),
+    DENY_PRIVATE_RANGE(false),
+    DENY_USER_CONFIGURED(false);
+
+    private final boolean allowed;
+
+    Classification(boolean allowed) {
+      this.allowed = allowed;
+    }
+
+    public boolean isAllowed() {
+      return allowed;
+    }
+  }
+
+  /**
+   * Resolves {@code host} and throws {@link HostDeniedException} if any resolved address is denied.
+   *
+   * @throws UnknownHostException when the hostname cannot be resolved
+   * @throws HostDeniedException when any resolved IP is disallowed
+   */
+  public static void validate(
+      String host,
+      List<CidrRange> allowRanges,
+      List<CidrRange> denyRanges,
+      boolean unsafeAllowPrivateRanges,
+      boolean unsafeAllowLoopback)
+      throws UnknownHostException {
+    if (host == null || host.isBlank()) {
+      throw new IllegalArgumentException("host must not be null or blank");
+    }
+    InetAddress[] resolved = InetAddress.getAllByName(host);
+    if (resolved == null || resolved.length == 0) {
+      throw new UnknownHostException("No IPs resolved for '" + host + "'");
+    }
+    List<CidrRange> allow = allowRanges != null ? allowRanges : Collections.emptyList();
+    List<CidrRange> deny = denyRanges != null ? denyRanges : Collections.emptyList();
+    for (InetAddress addr : resolved) {
+      Classification c = classify(addr, allow, deny, unsafeAllowPrivateRanges, unsafeAllowLoopback);
+      if (!c.isAllowed()) {
+        throw new HostDeniedException(host, addr, c);
+      }
+    }
+  }
+
+  /**
+   * Classifies a single resolved {@link InetAddress}. Mirrors smokescreen's {@code classifyAddr}.
+   */
+  public static Classification classify(
+      InetAddress address,
+      List<CidrRange> allowRanges,
+      List<CidrRange> denyRanges,
+      boolean unsafeAllowPrivateRanges,
+      boolean unsafeAllowLoopback) {
+    boolean inAllow = anyContains(allowRanges, address);
+    if (!isGlobalUnicast(address) || (!unsafeAllowLoopback && address.isLoopbackAddress())) {
+      return inAllow
+          ? Classification.ALLOW_USER_CONFIGURED
+          : Classification.DENY_NOT_GLOBAL_UNICAST;
+    }
+    if (inAllow) {
+      return Classification.ALLOW_USER_CONFIGURED;
+    }
+    if (anyContains(denyRanges, address)) {
+      return Classification.DENY_USER_CONFIGURED;
+    }
+    if (isPrivate(address) && !unsafeAllowPrivateRanges) {
+      return Classification.DENY_PRIVATE_RANGE;
+    }
+    return Classification.ALLOW_DEFAULT;
+  }
+
+  private static boolean anyContains(List<CidrRange> ranges, InetAddress address) {
+    if (ranges == null || ranges.isEmpty()) {
+      return false;
+    }
+    for (CidrRange range : ranges) {
+      if (range.contains(address)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Approximates Go's {@code net.IP.IsGlobalUnicast}: excludes the unspecified address, multicast,
+   * and link-local addresses. Loopback is intentionally <em>not</em> excluded here — callers handle
+   * loopback separately, matching smokescreen.
+   */
+  private static boolean isGlobalUnicast(InetAddress address) {
+    return !address.isAnyLocalAddress()
+        && !address.isMulticastAddress()
+        && !address.isLinkLocalAddress();
+  }
+
+  /** RFC 1918 for IPv4 and RFC 4193 ULA for IPv6. */
+  private static boolean isPrivate(InetAddress address) {
+    if (address instanceof Inet4Address || address instanceof Inet6Address) {
+      return anyContains(RFC_PRIVATE_RANGES, address);
+    }
+    return false;
+  }
+}

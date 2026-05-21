@@ -77,6 +77,7 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean(ValidationProvider.class)
   ValidationProvider validationProvider() {
     return ValidationUtil.discoverDefaultValidationProviderImplementation();
   }

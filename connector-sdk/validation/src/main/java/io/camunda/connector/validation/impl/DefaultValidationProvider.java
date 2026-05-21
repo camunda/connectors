@@ -38,6 +38,10 @@ public class DefaultValidationProvider implements ValidationProvider {
     this.validatorFactory = configuration.buildValidatorFactory();
   }
 
+  public DefaultValidationProvider(ValidatorFactory validatorFactory) {
+    this.validatorFactory = validatorFactory;
+  }
+
   @Override
   public void validate(Object objectToValidate) {
     Set<ConstraintViolation<Object>> violations =

@@ -9,6 +9,7 @@ package io.camunda.connector.email.config;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.hostvalidator.VerifiedHost;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -23,6 +24,7 @@ public record ImapConfig(
             binding = @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapHost"))
         @Valid
         @NotNull
+        @VerifiedHost
         String imapHost,
     @TemplateProperty(
             label = "IMAP Port",
