@@ -7,6 +7,9 @@
 # Log file
 *.log
 
+# Worktrees
+.worktree
+ 
 # BlueJ files
 *.ctxt
 
