@@ -178,8 +178,10 @@ public class LinkedResourcePropertiesUtil {
       if (propertyCondition == null) {
         versionTagCondition = versionTagEquals;
       } else {
-        List<PropertyCondition> versionTagConditions =
-            new ArrayList<>(((PropertyCondition.AllMatch) propertyCondition).allMatch());
+        if (!(propertyCondition instanceof PropertyCondition.AllMatch am)) {
+          throw new IllegalStateException("Expected AllMatch condition, got: " + propertyCondition);
+        }
+        List<PropertyCondition> versionTagConditions = new ArrayList<>(am.allMatch());
         versionTagConditions.add(versionTagEquals);
         versionTagCondition = new PropertyCondition.AllMatch(versionTagConditions);
       }

@@ -268,6 +268,88 @@ like message start events or message catch events.
 Every generated property is bound to a Zeebe input (`zeebe:input` mapping). The binding name is derived from the
 field name. Other bindings, like task headers, are currently not supported by the `@TemplateProperty` annotation.
 
+## Linked resources
+
+A [`zeebe:linkedResource`](https://docs.camunda.io/docs/apis-tools/modeler/element-templates/element-templates-json-schema/#linked-resources)
+block declares that a service task depends on a Camunda resource — such as a form —
+that Zeebe resolves and attaches at deployment time. Use `@TemplateLinkedResource` on the request
+class to generate this block automatically instead of writing the JSON by hand.
+
+> **Note:** `zeebe:linkedResource` is a service-task extension. It is supported on outbound
+> connectors (`OutboundConnectorFunction` and `OutboundConnectorProvider`) only. The annotation is
+> silently ignored on inbound connectors.
+
+### Basic usage
+
+Annotate the connector's request class (or an `@Operation` parameter type) with
+`@TemplateLinkedResource`:
+
+```java
+@TemplateLinkedResource(
+    linkName = "formDefinition",
+    resourceType = "form",
+    group = "form",
+    resourceIdLabel = "Form ID",
+    resourceIdDescription = "ID of the form to attach.",
+    bindingTypeLabel = "Form binding")
+public record MyRequest(String message) {}
+```
+
+The generator produces four properties:
+
+| Property | Type | Description |
+|---|---|---|
+| Hidden `resourceType` marker | `Hidden` | Carries the `resourceType` value to Zeebe. |
+| Binding type | `Dropdown` | Lets the user choose `Latest`, `Deployment`, or `Version tag`. |
+| Resource ID | `String` | The ID of the resource to link. FEEL is enabled so secrets and variables can be used. |
+| Version tag | `String` | Shown only when the binding type is `Version tag`. FEEL is disabled. |
+
+### Optional linked resources
+
+When the linked resource should be optional — i.e. the process is valid even without it — set
+`optional = true`. This prepends a Yes/No toggle (bound as a `zeebe:taskHeader`). All four
+linked-resource properties are conditioned on the toggle, so when it is left at the default `No` no
+`zeebe:linkedResource` block is written to the BPMN and Zeebe accepts the deployment without a
+linked resource.
+
+```java
+@TemplateLinkedResource(
+    linkName = "formDefinition",
+    resourceType = "form",
+    group = "form",
+    optional = true,
+    toggleLabel = "Include form?",
+    resourceIdLabel = "Form ID")
+public record MyRequest(String message) {}
+```
+
+The `toggleLabel` attribute controls the label of the toggle. If left blank it defaults to
+`"Include <linkName>?"`.
+
+### Multiple linked resources
+
+The annotation is repeatable. Each `@TemplateLinkedResource` on the same class must have a unique
+`linkName`:
+
+```java
+@TemplateLinkedResource(linkName = "preRunScript", resourceType = "RPA", group = "scripts")
+@TemplateLinkedResource(linkName = "postRunScript", resourceType = "RPA", group = "scripts")
+public record MyRequest(String input) {}
+```
+
+### Attribute reference
+
+| Attribute | Required | Default | Description |
+|---|---|---|---|
+| `linkName` | Yes | — | Symbolic name that groups the generated properties together. Must be unique per class. |
+| `resourceType` | Yes | — | Value written to the hidden `resourceType` property (e.g. `"form"`, `"RPA"`). |
+| `group` | No | `""` | Property group for the generated fields. |
+| `resourceIdLabel` | No | `"Resource ID"` | Label for the resource ID input. |
+| `resourceIdDescription` | No | `""` | Description for the resource ID input. Omitted if blank. |
+| `bindingTypeLabel` | No | `"Resource binding"` | Label for the binding type dropdown. |
+| `optional` | No | `false` | When `true`, adds a Yes/No toggle that gates the linked-resource block. |
+| `toggleLabel` | No | `"Include <linkName>?"` | Label for the optional toggle. Only used when `optional = true`. |
+
 ## Icons
 
 A custom element template icon can be defined by using the `@ElementTemplate` annotation:
