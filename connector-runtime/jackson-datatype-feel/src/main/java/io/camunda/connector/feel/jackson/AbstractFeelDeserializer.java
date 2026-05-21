@@ -32,9 +32,6 @@ import java.util.function.Supplier;
 public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     implements ContextualDeserializer {
 
-  protected final FeelExpressionEvaluator evaluator;
-  protected final boolean relaxed;
-
   /**
    * A blank object mapper object for use in inheriting classes.
    *
@@ -46,6 +43,24 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    */
   protected static final ObjectMapper BLANK_OBJECT_MAPPER =
       ConnectorsObjectMapperSupplier.getCopy();
+
+  protected final FeelExpressionEvaluator evaluator;
+
+  /**
+   * Controls both accepted input shape and evaluator override behavior.
+   *
+   * <p>Strict mode ({@code false}) is used for deferred runtime callbacks such as {@link *
+   * java.util.function.Function} and {@link java.util.function.Supplier}. These callbacks are *
+   * deserialized from explicit FEEL expressions and evaluated later against in-memory runtime data,
+   * * which may include objects such as Documents. They must keep the evaluator configured by their
+   * * Jackson module, usually local FEEL, because a remote evaluator cannot serialize or interpret
+   * * those runtime objects reliably. * *
+   *
+   * <p>Relaxed mode ({@code true}) is used for regular connector properties, for example fields *
+   * annotated with {@code @FEEL}. In this mode, the deserializer also accepts plain strings and *
+   * JSON-like values, and a per-reader evaluator override may be applied.
+   */
+  protected final boolean relaxed;
 
   /**
    * Creates a new deserializer with the given FEEL expression evaluator.
@@ -111,8 +126,10 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
       final String expression,
       final JavaType targetType,
       final Object... variables) {
-    // Evaluate the expression - get raw result
-    Object result = evaluator.evaluate(expression, variables);
+    // Evaluate the expression - get raw result, allowing a per-call evaluator override via
+    // FEEL_EVALUATOR_ATTRIBUTE on the DeserializationContext.
+    FeelExpressionEvaluator effectiveEvaluator = resolveEvaluator(ctx);
+    Object result = effectiveEvaluator.evaluate(expression, variables);
 
     // Convert result using the deserialization context to preserve registered modules
     try {
@@ -133,4 +150,19 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
   protected abstract T doDeserialize(
       JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext)
       throws IOException;
+
+  private FeelExpressionEvaluator resolveEvaluator(DeserializationContext ctx) {
+    // Strict deserializers are used for deferred runtime callbacks like Function/Supplier.
+    // They must keep their module-configured evaluator, usually local FEEL, because their
+    // inputs can contain in-memory runtime objects that a remote evaluator cannot serialize
+    // or interpret correctly.
+    if (!relaxed) {
+      return evaluator;
+    }
+    var override = ctx.getAttribute(FeelContextAwareObjectReader.FEEL_EVALUATOR_ATTRIBUTE);
+    if (override instanceof FeelExpressionEvaluator feelEvaluator) {
+      return feelEvaluator;
+    }
+    return evaluator;
+  }
 }

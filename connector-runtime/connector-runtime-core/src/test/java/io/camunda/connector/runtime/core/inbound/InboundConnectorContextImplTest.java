@@ -17,9 +17,18 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.EvaluateExpressionCommandStep1.EvaluateExpressionCommandStep2;
+import io.camunda.client.api.response.EvaluateExpressionResponse;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.inbound.ActivityLogTag;
 import io.camunda.connector.api.inbound.Health;
@@ -27,7 +36,6 @@ import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
@@ -35,111 +43,31 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.junit.jupiter.api.Test;
 
 class InboundConnectorContextImplTest {
   private final SecretProvider secretProvider = new FooBarSecretProvider();
   private final ObjectMapper mapper = TestObjectMapperSupplier.INSTANCE;
   private final ActivityLogRegistry activityLogRegistry = new ActivityLogRegistry();
-
-  @Test
-  void bindProperties_shouldThrowExceptionWhenWrongFormat() {
-    // given
-    var definition = getInboundConnectorDefinition(Map.of("stringMap", "={{\"key\":\"value\"}"));
-    InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
-    // when and then
-    RuntimeException exception =
-        assertThrows(
-            RuntimeException.class,
-            () -> inboundConnectorContext.bindProperties(TestPropertiesClass.class));
-    assertThat(exception.getMessage()).contains("Failed to evaluate expression");
-  }
-
-  @Test
-  void bindProperties_shouldParseNullValue() {
-    // given
-    var definition = getInboundConnectorDefinition(Map.of("stringMap", "={\"keyString\":null}"));
-    InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
-    // when
-    TestPropertiesClass propertiesAsType =
-        inboundConnectorContext.bindProperties(TestPropertiesClass.class);
-    // then
-    assertThat(propertiesAsType.getStringMap().containsKey("keyString")).isTrue();
-    assertThat(propertiesAsType.getStringMap().get("keyString")).isNull();
-  }
-
-  @Test
-  void bindProperties_shouldParseStringAsString() {
-    // given
-    var definition =
-        getInboundConnectorDefinition(
-            Map.of(
-                "mapWithStringListWithNumbers",
-                "={key:[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"));
-    InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
-    // when
-    TestPropertiesClass propertiesAsType =
-        inboundConnectorContext.bindProperties(TestPropertiesClass.class);
-    // then
-    assertThat(propertiesAsType.getMapWithStringListWithNumbers().get("key").getFirst())
-        .isInstanceOf(String.class);
-  }
+  private final CamundaClient camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
 
   private static ValidInboundConnectorDetails getInboundConnectorDefinition(
       Map<String, String> properties) {
+    return getInboundConnectorDefinitionWithTenant(properties, "<default>");
+  }
+
+  private static ValidInboundConnectorDetails getInboundConnectorDefinitionWithTenant(
+      Map<String, String> properties, String tenantId) {
     properties = new HashMap<>(properties);
     properties.put("inbound.type", "io.camunda:connector:1");
     InboundConnectorElement element =
         new InboundConnectorElement(
             properties,
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElementWithRuntimeData("bool", 0, 0, "id", "<default>"));
+            new ProcessElementWithRuntimeData("bool", 0, 0, "id", tenantId));
     var details = InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
     assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
     return (ValidInboundConnectorDetails) details;
-  }
-
-  @Test
-  void bindProperties_shouldParseAllObject() {
-    // Given
-    var definition =
-        getInboundConnectorDefinition(
-            Map.of(
-                "stringMap",
-                "={\"keyString\":\"valueString\"}",
-                "stringMapMap",
-                "={\"keyString\":{\"innerKeyString\":\"innerValueString\"}}",
-                "stringList",
-                "=[\"value1\", \"value2\", \"value3\"]",
-                "numberList",
-                "=[34, -45, 890, 0, -16785]",
-                "str",
-                "foo",
-                "bool",
-                "=true",
-                "mapWithNumberList",
-                "={\"key\":[43, 0, -123]}",
-                "mapWithStringListWithNumbers",
-                "={\"key\":[\"34\", \"45\", \"890\",\"0\",\"16785\"]}",
-                "stringNumberList",
-                "=[\"34\", \"-45\", \"890\", \"0\", \"-16785\"]",
-                "stringObjectMap",
-                "={\"innerObject\":{\"stringList\":[\"innerList\"], \"bool\":true}}"));
-    InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
-    // when
-    TestPropertiesClass propertiesAsType =
-        inboundConnectorContext.bindProperties(TestPropertiesClass.class);
-    // then
-    assertThat(propertiesAsType).isEqualTo(createTestClass());
   }
 
   @Test
@@ -149,7 +77,14 @@ class InboundConnectorContextImplTest {
 
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
 
     // when
     Map<String, Object> properties = inboundConnectorContext.getProperties();
@@ -165,7 +100,14 @@ class InboundConnectorContextImplTest {
     var health = Health.up();
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
 
     // when
     inboundConnectorContext.reportHealth(health);
@@ -184,13 +126,53 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void bindProperties_shouldUseCamundaClientEvaluatorWithTenantId() {
+    // given
+    var definition =
+        getInboundConnectorDefinitionWithTenant(Map.of("str", "= anything"), "tenant-1");
+    var camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    var step2 = mock(EvaluateExpressionCommandStep2.class, RETURNS_DEEP_STUBS);
+    var response = mock(EvaluateExpressionResponse.class);
+    when(camundaClient.newEvaluateExpressionCommand().expression(any())).thenReturn(step2);
+    when(step2.send().join()).thenReturn(response);
+    when(response.getResult()).thenReturn("evaluated-by-cluster");
+
+    InboundConnectorContextImpl inboundConnectorContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            null,
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    TestPropertiesClass result = inboundConnectorContext.bindProperties(TestPropertiesClass.class);
+
+    // then
+    assertThat(result.str).isEqualTo("evaluated-by-cluster");
+    verify(step2).tenantId(eq("tenant-1"));
+    verify(step2, never()).scopeKey(org.mockito.ArgumentMatchers.anyLong());
+  }
+
+  @Test
   void reportHealth_shouldLogErrorSeverityWhenStatusIsDown() {
     // given
     var definition = getInboundConnectorDefinition(Map.of());
     var health = Health.down();
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
 
     // when
     inboundConnectorContext.reportHealth(health);
@@ -208,143 +190,11 @@ class InboundConnectorContextImplTest {
             });
   }
 
-  private TestPropertiesClass createTestClass() {
-    TestPropertiesClass testClass = new TestPropertiesClass();
-    testClass.setStringMap(Map.of("keyString", "valueString"));
-    testClass.setStringMapMap(Map.of("keyString", Map.of("innerKeyString", "innerValueString")));
-    testClass.setStringList(List.of("value1", "value2", "value3"));
-    testClass.setNumberList(List.of(34, -45, 890, 0, -16785));
-    testClass.setStringNumberList(List.of("34", "-45", "890", "0", "-16785"));
-    testClass.setStr("foo");
-    testClass.setBool(true);
-    testClass.setMapWithNumberList(Map.of("key", List.of(43L, 0L, -123L)));
-    var innerObject = new InnerObject(List.of("innerList"), true);
-    testClass.setStringObjectMap(Map.of("innerObject", innerObject));
-    testClass.setMapWithStringListWithNumbers(
-        Map.of("key", List.of("34", "45", "890", "0", "16785")));
-    return testClass;
-  }
-
   public static class TestPropertiesClass {
-    @FEEL private Map<String, String> stringMap;
-    @FEEL private Map<String, Map<String, String>> stringMapMap;
-    @FEEL private Map<String, InnerObject> stringObjectMap;
-    @FEEL private List<String> stringList;
-    @FEEL private List<Integer> numberList;
-    @FEEL private List<String> stringNumberList;
-    @FEEL private Map<String, List<Long>> mapWithNumberList;
-    @FEEL private Map<String, List<String>> mapWithStringListWithNumbers;
     @FEEL private String str;
-    @FEEL private boolean bool;
-
-    public Map<String, String> getStringMap() {
-      return stringMap;
-    }
-
-    public void setStringMap(final Map<String, String> stringMap) {
-      this.stringMap = stringMap;
-    }
-
-    public void setStringMapMap(final Map<String, Map<String, String>> stringMapMap) {
-      this.stringMapMap = stringMapMap;
-    }
-
-    public void setStringObjectMap(final Map<String, InnerObject> stringObjectMap) {
-      this.stringObjectMap = stringObjectMap;
-    }
-
-    public void setStringList(final List<String> stringList) {
-      this.stringList = stringList;
-    }
-
-    public void setNumberList(final List<Integer> numberList) {
-      this.numberList = numberList;
-    }
-
-    public void setStringNumberList(final List<String> stringNumberList) {
-      this.stringNumberList = stringNumberList;
-    }
-
-    public void setMapWithNumberList(final Map<String, List<Long>> mapWithNumberList) {
-      this.mapWithNumberList = mapWithNumberList;
-    }
-
-    public Map<String, List<String>> getMapWithStringListWithNumbers() {
-      return mapWithStringListWithNumbers;
-    }
-
-    public void setMapWithStringListWithNumbers(
-        final Map<String, List<String>> mapWithStringListWithNumbers) {
-      this.mapWithStringListWithNumbers = mapWithStringListWithNumbers;
-    }
 
     public void setStr(final String str) {
       this.str = str;
-    }
-
-    public void setBool(final boolean bool) {
-      this.bool = bool;
-    }
-
-    public record InnerObject(List<String> stringList, boolean bool) {}
-
-    @Override
-    public boolean equals(final Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
-      final TestPropertiesClass that = (TestPropertiesClass) o;
-      return bool == that.bool
-          && Objects.equals(stringMap, that.stringMap)
-          && Objects.equals(stringMapMap, that.stringMapMap)
-          && Objects.equals(stringObjectMap, that.stringObjectMap)
-          && Objects.equals(stringList, that.stringList)
-          && Objects.equals(numberList, that.numberList)
-          && Objects.equals(stringNumberList, that.stringNumberList)
-          && Objects.equals(mapWithNumberList, that.mapWithNumberList)
-          && Objects.equals(mapWithStringListWithNumbers, that.mapWithStringListWithNumbers)
-          && Objects.equals(str, that.str);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(
-          stringMap,
-          stringMapMap,
-          stringObjectMap,
-          stringList,
-          numberList,
-          stringNumberList,
-          mapWithNumberList,
-          mapWithStringListWithNumbers,
-          str,
-          bool);
-    }
-
-    @Override
-    public String toString() {
-      return "TestPropertiesClass{"
-          + "stringMap="
-          + stringMap
-          + ", stringMapMap="
-          + stringMapMap
-          + ", stringObjectMap="
-          + stringObjectMap
-          + ", stringList="
-          + stringList
-          + ", numberList="
-          + numberList
-          + ", stringNumberList="
-          + stringNumberList
-          + ", mapWithNumberList="
-          + mapWithNumberList
-          + ", mapWithStringListWithNumbers="
-          + mapWithStringListWithNumbers
-          + ", str='"
-          + str
-          + "'"
-          + ", bool="
-          + bool
-          + "}";
     }
   }
 }

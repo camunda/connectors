@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.inbound.search;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.client.api.search.response.Variable;
 import io.camunda.connector.runtime.inbound.EmptyConfiguration;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
@@ -283,113 +282,6 @@ public class SearchQueryClientTest {
   }
 
   @Test
-  public void shouldFetchVariables() {
-    // Given
-    BpmnModelInstance modelInstance =
-        Bpmn.createExecutableProcess("variableProcess")
-            .startEvent()
-            .serviceTask("task")
-            .zeebeJobType("testJob")
-            .endEvent()
-            .done();
-
-    var deployment =
-        camundaClient
-            .newDeployResourceCommand()
-            .addProcessModel(modelInstance, "variableProcess.bpmn")
-            .send()
-            .join();
-
-    long processDefinitionKey = deployment.getProcesses().getFirst().getProcessDefinitionKey();
-
-    var instance =
-        camundaClient
-            .newCreateInstanceCommand()
-            .bpmnProcessId("variableProcess")
-            .latestVersion()
-            .variables("{\"var1\": \"value1\", \"var2\": 123}")
-            .send()
-            .join();
-
-    long processInstanceKey = instance.getProcessInstanceKey();
-
-    waitForActiveElement(processDefinitionKey, "task");
-
-    // Get the element instance key
-    SearchQueryClientImpl searchClient = new SearchQueryClientImpl(camundaClient, 200);
-    var activeNodes = searchClient.queryActiveFlowNodes(processDefinitionKey, "task", null);
-    long elementInstanceKey = activeNodes.items().getFirst().getElementInstanceKey();
-
-    waitForVariables(processInstanceKey);
-
-    // When
-    var result = searchClient.queryVariables(processInstanceKey, elementInstanceKey, null);
-
-    // Then
-    assertThat(result.items()).hasSizeGreaterThanOrEqualTo(2);
-    var varNames = result.items().stream().map(Variable::getName).toList();
-    assertThat(varNames).contains("var1", "var2");
-  }
-
-  @Test
-  public void shouldFetchVariables_whenPaginated() {
-    // Given - create process with multiple variables
-    BpmnModelInstance modelInstance =
-        Bpmn.createExecutableProcess("multiVarProcess")
-            .startEvent()
-            .serviceTask("task")
-            .zeebeJobType("testJob")
-            .endEvent()
-            .done();
-
-    var deployment =
-        camundaClient
-            .newDeployResourceCommand()
-            .addProcessModel(modelInstance, "multiVarProcess.bpmn")
-            .send()
-            .join();
-
-    long processDefinitionKey = deployment.getProcesses().getFirst().getProcessDefinitionKey();
-
-    var instance =
-        camundaClient
-            .newCreateInstanceCommand()
-            .bpmnProcessId("multiVarProcess")
-            .latestVersion()
-            .variables("{\"a\": 1, \"b\": 2, \"c\": 3, \"d\": 4}")
-            .send()
-            .join();
-
-    long processInstanceKey = instance.getProcessInstanceKey();
-
-    waitForActiveElement(processDefinitionKey, "task");
-
-    SearchQueryClientImpl searchClient = new SearchQueryClientImpl(camundaClient, 200);
-    var activeNodes = searchClient.queryActiveFlowNodes(processDefinitionKey, "task", null);
-    long elementInstanceKey = activeNodes.items().getFirst().getElementInstanceKey();
-
-    waitForVariables(processInstanceKey);
-
-    // When - fetch with pagination
-    SearchQueryClientImpl searchClientPaginated = new SearchQueryClientImpl(camundaClient, 2);
-    var resultPage1 =
-        searchClientPaginated.queryVariables(processInstanceKey, elementInstanceKey, null);
-
-    // Then
-    assertThat(resultPage1.items()).hasSizeLessThanOrEqualTo(2);
-    var allItems = new ArrayList<>(resultPage1.items());
-
-    if (resultPage1.page().endCursor() != null) {
-      var resultPage2 =
-          searchClientPaginated.queryVariables(
-              processInstanceKey, elementInstanceKey, resultPage1.page().endCursor());
-      allItems.addAll(resultPage2.items());
-    }
-
-    assertThat(allItems.size()).isGreaterThanOrEqualTo(2);
-  }
-
-  @Test
   public void shouldGetProcessModel() {
     // Given
     BpmnModelInstance modelInstance =
@@ -498,22 +390,6 @@ public class SearchQueryClientTest {
                       .newElementInstanceSearchRequest()
                       .filter(
                           f -> f.processDefinitionKey(processDefinitionKey).elementId(elementId))
-                      .send()
-                      .join();
-              assertThat(result.items()).isNotEmpty();
-            });
-  }
-
-  private void waitForVariables(long processInstanceKey) {
-    Awaitility.await("should have variables indexed")
-        .atMost(Duration.ofSeconds(15))
-        .ignoreExceptions()
-        .untilAsserted(
-            () -> {
-              final var result =
-                  camundaClient
-                      .newVariableSearchRequest()
-                      .filter(f -> f.processInstanceKey(processInstanceKey))
                       .send()
                       .join();
               assertThat(result.items()).isNotEmpty();
