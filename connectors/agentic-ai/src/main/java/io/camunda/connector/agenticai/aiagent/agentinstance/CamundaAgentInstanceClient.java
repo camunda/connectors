@@ -10,7 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.autoconfigure.RetriesProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.api.error.ConnectorException;
