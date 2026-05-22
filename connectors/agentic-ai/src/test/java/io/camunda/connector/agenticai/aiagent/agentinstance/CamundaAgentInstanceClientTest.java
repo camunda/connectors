@@ -7,21 +7,33 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep5;
+import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1;
+import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
@@ -55,12 +67,19 @@ class CamundaAgentInstanceClientTest {
 
   private static final long ELEMENT_INSTANCE_KEY = 77L;
 
+  private static final long AGENT_INSTANCE_KEY = 999L;
+
   @Mock private CamundaClient camundaClient;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private CreateAgentInstanceCommandStep1 commandChain;
 
   @Mock private CreateAgentInstanceResponse response;
+
+  @Mock private UpdateAgentInstanceCommandStep1 updateCommandStep1;
+
+  @Mock(answer = Answers.RETURNS_SELF)
+  private UpdateAgentInstanceCommandStep2 updateCommandStep2;
 
   private CreateAgentInstanceCommandStep5 step5;
 
@@ -72,7 +91,7 @@ class CamundaAgentInstanceClientTest {
     recordedSleeps = new ArrayList<>();
     client =
         new CamundaAgentInstanceClient(camundaClient, RETRIES_CONFIGURATION, recordedSleeps::add);
-    when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(commandChain);
+    lenient().when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(commandChain);
     step5 =
         commandChain
             .elementInstanceKey(ELEMENT_INSTANCE_KEY)
@@ -80,6 +99,12 @@ class CamundaAgentInstanceClientTest {
             .provider(OpenAiProviderConfiguration.OPENAI_ID)
             .systemPrompt("system prompt");
     lenient().when(step5.maxModelCalls(10)).thenReturn(step5);
+    lenient()
+        .when(camundaClient.newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY))
+        .thenReturn(updateCommandStep1);
+    lenient()
+        .when(updateCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
+        .thenReturn(updateCommandStep2);
   }
 
   @Test
@@ -155,6 +180,167 @@ class CamundaAgentInstanceClientTest {
             Duration.ofSeconds(8));
     verify(camundaClient, times(5)).newCreateAgentInstanceCommand();
   }
+
+  // --- update() tests ---
+
+  @Test
+  void update_silentlySkipsWhenMetadataIsNull() {
+    // given
+    final var agentContext = AgentContext.builder().state(AgentState.READY).build();
+
+    // when
+    client.update(
+        TestAgentExecutionContext.withLimits(),
+        agentContext,
+        AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+
+    // then
+    verifyNoInteractions(camundaClient);
+  }
+
+  @Test
+  void update_silentlySkipsWhenAgentInstanceKeyIsNull() {
+    // given
+    final var metadata = new AgentMetadata(1L, 2L, null);
+    final var agentContext =
+        AgentContext.builder().state(AgentState.READY).metadata(metadata).build();
+
+    // when
+    client.update(
+        TestAgentExecutionContext.withLimits(),
+        agentContext,
+        AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+
+    // then
+    verifyNoInteractions(camundaClient);
+  }
+
+  @Test
+  void update_buildsCommandWithStatusOnly() {
+    // given
+    final var agentContext = agentContextWithInstanceKey();
+
+    // when
+    client.update(
+        TestAgentExecutionContext.withLimits(),
+        agentContext,
+        AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+
+    // then
+    verify(updateCommandStep2).status(AgentInstanceUpdateStatus.THINKING);
+    verify(updateCommandStep2, never()).modelCalls(anyInt());
+    verify(updateCommandStep2, never()).inputTokens(anyLong());
+    verify(updateCommandStep2, never()).outputTokens(anyLong());
+    verify(updateCommandStep2, never()).toolCalls(anyInt());
+    verify(updateCommandStep2).execute();
+  }
+
+  @Test
+  void update_buildsCommandWithStatusAndDeltaSkippingZeroFields() {
+    // given
+    final var agentContext = agentContextWithInstanceKey();
+    final var delta = new AgentMetrics(1, new TokenUsage(10, 20), 0);
+    final var request =
+        AgentInstanceUpdateRequest.builder()
+            .status(AgentInstanceUpdateStatus.IDLE)
+            .delta(delta)
+            .build();
+
+    // when
+    client.update(TestAgentExecutionContext.withLimits(), agentContext, request);
+
+    // then: status + non-zero delta fields set; toolCalls skipped (0)
+    verify(updateCommandStep2).status(AgentInstanceUpdateStatus.IDLE);
+    verify(updateCommandStep2).modelCalls(1);
+    verify(updateCommandStep2).inputTokens(10L);
+    verify(updateCommandStep2).outputTokens(20L);
+    verify(updateCommandStep2, never()).toolCalls(0);
+    verify(updateCommandStep2).execute();
+  }
+
+  @Test
+  void update_buildsCommandWithAllDeltaFields() {
+    // given
+    final var agentContext = agentContextWithInstanceKey();
+    final var delta = new AgentMetrics(2, new TokenUsage(50, 100), 3);
+    final var request =
+        AgentInstanceUpdateRequest.builder()
+            .status(AgentInstanceUpdateStatus.TOOL_CALLING)
+            .delta(delta)
+            .build();
+
+    // when
+    client.update(TestAgentExecutionContext.withLimits(), agentContext, request);
+
+    // then
+    verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_CALLING);
+    verify(updateCommandStep2).modelCalls(2);
+    verify(updateCommandStep2).inputTokens(50L);
+    verify(updateCommandStep2).outputTokens(100L);
+    verify(updateCommandStep2).toolCalls(3);
+    verify(updateCommandStep2).execute();
+    assertThat(recordedSleeps).isEmpty();
+  }
+
+  @Test
+  void update_throwsConnectorExceptionImmediatelyFor404PermanentError() {
+    // given
+    final var agentContext = agentContextWithInstanceKey();
+    when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+
+    // when / then
+    assertThatThrownBy(
+            () ->
+                client.update(
+                    TestAgentExecutionContext.withLimits(),
+                    agentContext,
+                    AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED));
+
+    // 404 is PERMANENT for update → single attempt, no sleeps
+    assertThat(recordedSleeps).isEmpty();
+    verify(camundaClient, times(1)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
+  }
+
+  @Test
+  void update_throwsConnectorExceptionWithAttemptCountWhenAllRetriesExhausted() {
+    // given
+    final var agentContext = agentContextWithInstanceKey();
+    when(updateCommandStep2.execute())
+        .thenThrow(new ClientHttpException(500, "Internal Server Error"));
+
+    // when / then
+    assertThatThrownBy(
+            () ->
+                client.update(
+                    TestAgentExecutionContext.withLimits(),
+                    agentContext,
+                    AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED);
+              assertThat(e.getMessage()).contains("after 5 attempt(s)");
+            });
+
+    assertThat(recordedSleeps).hasSize(4);
+    assertThat(recordedSleeps)
+        .containsExactly(
+            Duration.ofSeconds(1),
+            Duration.ofSeconds(2),
+            Duration.ofSeconds(4),
+            Duration.ofSeconds(8));
+    verify(camundaClient, times(5)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
+  }
+
+  private static AgentContext agentContextWithInstanceKey() {
+    final var metadata = new AgentMetadata(1L, 2L, AGENT_INSTANCE_KEY);
+    return AgentContext.builder().state(AgentState.READY).metadata(metadata).build();
+  }
+
+  // --- create() tests ---
 
   private static class TestAgentExecutionContext implements AgentExecutionContext {
 
