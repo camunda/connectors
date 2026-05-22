@@ -34,7 +34,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         AgentInstanceErrorClassifier.INSTANCE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
-        (cause, attempt, reason) -> buildException(agentExecutionContext, cause, attempt, reason),
+        (cause, attempt, reason) -> buildException(cause, attempt, reason),
         this::sleep);
   }
 
@@ -54,23 +54,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     return AgentInstanceKey.of(command.execute().getAgentInstanceKey());
   }
 
-  private ConnectorException buildException(
-      AgentExecutionContext agentExecutionContext,
-      Throwable cause,
-      int attempt,
-      FailureReason reason) {
-    final long elementInstanceKey = agentExecutionContext.jobContext().getElementInstanceKey();
+  private ConnectorException buildException(Throwable cause, int attempt, FailureReason reason) {
     final String message =
         switch (reason) {
           case PERMANENT_ERROR ->
-              "Failed to create agent instance for element instance key %d: %s"
-                  .formatted(elementInstanceKey, cause.getMessage());
+              "Failed to create agent instance: %s".formatted(cause.getMessage());
           case RETRIES_EXHAUSTED ->
-              "Failed to create agent instance for element instance key %d after %d attempt(s): %s"
-                  .formatted(elementInstanceKey, attempt, cause.getMessage());
-          case INTERRUPTED ->
-              "Interrupted while waiting to retry agent instance creation for element instance key %d"
-                  .formatted(elementInstanceKey);
+              "Failed to create agent instance after %d attempt(s): %s"
+                  .formatted(attempt, cause.getMessage());
+          case INTERRUPTED -> "Interrupted while waiting to retry agent instance creation";
         };
     return new ConnectorException(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED, message, cause);
   }
