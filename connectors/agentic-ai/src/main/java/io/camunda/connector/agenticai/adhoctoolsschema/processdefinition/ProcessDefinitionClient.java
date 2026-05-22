@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
@@ -19,11 +19,9 @@ public class ProcessDefinitionClient {
       "AD_HOC_SUB_PROCESS_XML_FETCH_ERROR";
 
   private final CamundaClient camundaClient;
-  private final AgenticAiConnectorsConfigurationProperties.RetriesProperties retriesProperties;
+  private final RetriesProperties retriesProperties;
 
-  public ProcessDefinitionClient(
-      CamundaClient camundaClient,
-      AgenticAiConnectorsConfigurationProperties.RetriesProperties retriesProperties) {
+  public ProcessDefinitionClient(CamundaClient camundaClient, RetriesProperties retriesProperties) {
     this.camundaClient = camundaClient;
     this.retriesProperties = retriesProperties;
   }
