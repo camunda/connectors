@@ -111,13 +111,9 @@ class CamundaAgentInstanceClientTest {
     when(step5.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
     assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
-        .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            e -> {
-              final var connectorException = (ConnectorException) e;
-              assertThat(connectorException.getErrorCode())
-                  .isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED);
-            });
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED));
 
     // Only 1 attempt, no sleeps
     assertThat(recordedSleeps).isEmpty();
@@ -142,13 +138,11 @@ class CamundaAgentInstanceClientTest {
     when(step5.execute()).thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
     assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
-        .isInstanceOf(ConnectorException.class)
-        .satisfies(
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
             e -> {
-              final var connectorException = (ConnectorException) e;
-              assertThat(connectorException.getErrorCode())
-                  .isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED);
-              assertThat(connectorException.getMessage()).contains("after 5 attempt(s)");
+              assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED);
+              assertThat(e.getMessage()).contains("after 5 attempt(s)");
             });
 
     // 5 total attempts → 4 sleeps: before attempts 2, 3, 4, 5
