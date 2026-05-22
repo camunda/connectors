@@ -599,6 +599,20 @@ class AgentInitializerTest {
     }
 
     @Test
+    void shouldSkipAgentInstanceCreationOnMissingAgentInstanceKeyInExistingAgentContext() {
+      final var existingMetadata =
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+      // one step ahead of the initialization state
+      final var agentContext =
+          AgentContext.empty().withState(AgentState.TOOL_DISCOVERY).withMetadata(existingMetadata);
+      when(executionContext.initialAgentContext()).thenReturn(agentContext);
+
+      agentInitializer.initializeAgent(executionContext);
+
+      verify(agentInstanceClient, never()).create(any());
+    }
+
+    @Test
     void shouldPropagateConnectorExceptionWhenAgentInstanceCreationFails() {
       final var failure =
           new ConnectorException(
