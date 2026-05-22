@@ -13,18 +13,20 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
+import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.error.ConnectorException;
-import java.time.Duration;
 
 public class CamundaAgentInstanceClient implements AgentInstanceClient {
 
   private final CamundaClient camundaClient;
   private final RetriesProperties retriesProperties;
+  private final Sleeper sleeper;
 
   public CamundaAgentInstanceClient(
-      CamundaClient camundaClient, RetriesProperties retriesProperties) {
+      CamundaClient camundaClient, RetriesProperties retriesProperties, Sleeper sleeper) {
     this.camundaClient = camundaClient;
     this.retriesProperties = retriesProperties;
+    this.sleeper = sleeper;
   }
 
   @Override
@@ -35,7 +37,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
         (cause, attempt, reason) -> buildException(cause, attempt, reason),
-        this::sleep);
+        sleeper);
   }
 
   private AgentInstanceKey executeCreate(AgentExecutionContext agentExecutionContext) {
@@ -65,9 +67,5 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
           case INTERRUPTED -> "Interrupted while waiting to retry agent instance creation";
         };
     return new ConnectorException(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED, message, cause);
-  }
-
-  protected void sleep(Duration delay) throws InterruptedException {
-    Thread.sleep(delay.toMillis());
   }
 }

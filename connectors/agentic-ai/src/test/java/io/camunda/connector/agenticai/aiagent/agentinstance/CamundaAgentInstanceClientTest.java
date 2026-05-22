@@ -71,12 +71,7 @@ class CamundaAgentInstanceClientTest {
   void setUp() {
     recordedSleeps = new ArrayList<>();
     client =
-        new CamundaAgentInstanceClient(camundaClient, RETRIES_CONFIGURATION) {
-          @Override
-          protected void sleep(Duration delay) {
-            recordedSleeps.add(delay);
-          }
-        };
+        new CamundaAgentInstanceClient(camundaClient, RETRIES_CONFIGURATION, recordedSleeps::add);
     when(camundaClient.newCreateAgentInstanceCommand()).thenReturn(commandChain);
     step5 =
         commandChain
