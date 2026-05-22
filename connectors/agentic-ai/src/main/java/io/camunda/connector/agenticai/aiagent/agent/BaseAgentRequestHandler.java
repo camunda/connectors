@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
@@ -145,11 +146,16 @@ public abstract class BaseAgentRequestHandler<
     }
     handleAddedUserMessages(executionContext, agentContext, addedUserMessages);
 
-    final var preLlmMetrics = notifyThinking(executionContext, agentContext);
+    final var preChatMetrics = notifyThinking(executionContext, agentContext);
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =
         framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
-    agentContext = updateMetricsAndNotifyPostLlm(executionContext, chatResponse, preLlmMetrics);
+
+    agentContext =
+        updateAgentInstanceMetricsAndStatus(
+            executionContext,
+            updateContextMetrics(chatResponse.agentContext(), chatResponse),
+            preChatMetrics);
 
     return buildResponse(executionContext, agentContext, chatResponse, session, runtimeMemory);
   }
@@ -189,6 +195,18 @@ public abstract class BaseAgentRequestHandler<
         toolCallResults);
   }
 
+  private AgentContext updateContextMetrics(
+      AgentContext agentContext, AiFrameworkChatResponse<?> chatResponse) {
+    final var assistantToolCalls = chatResponse.assistantMessage().toolCalls();
+    final int toolCallsDelta = Optional.ofNullable(assistantToolCalls).map(List::size).orElse(0);
+
+    if (toolCallsDelta <= 0) {
+      return agentContext;
+    }
+
+    return agentContext.withMetrics(agentContext.metrics().incrementToolCalls(toolCallsDelta));
+  }
+
   private AgentMetrics notifyThinking(C executionContext, AgentContext agentContext) {
     final var snapshot = agentContext.metrics();
     agentInstanceClient.update(
@@ -198,25 +216,23 @@ public abstract class BaseAgentRequestHandler<
     return snapshot;
   }
 
-  private AgentContext updateMetricsAndNotifyPostLlm(
-      C executionContext, AiFrameworkChatResponse<?> chatResponse, AgentMetrics preLlmMetrics) {
-    var agentContext = chatResponse.agentContext();
-    final var assistantToolCalls = chatResponse.assistantMessage().toolCalls();
-    final int toolCallsDelta = assistantToolCalls == null ? 0 : assistantToolCalls.size();
-    if (toolCallsDelta > 0) {
-      agentContext =
-          agentContext.withMetrics(agentContext.metrics().incrementToolCalls(toolCallsDelta));
-    }
-    final var postLlmDelta = agentContext.metrics().minus(preLlmMetrics);
-    final var nextStatus =
-        assistantToolCalls == null || assistantToolCalls.isEmpty()
-            ? AgentInstanceUpdateStatus.IDLE
-            : AgentInstanceUpdateStatus.TOOL_CALLING;
+  private AgentContext updateAgentInstanceMetricsAndStatus(
+      C executionContext, AgentContext agentContext, AgentMetrics preChatMetrics) {
+    final var metricsDelta = agentContext.metrics().minus(preChatMetrics);
+    final var nextStatus = nextAgentInstanceState(metricsDelta.toolCalls());
+
     agentInstanceClient.update(
         executionContext,
         agentContext,
-        AgentInstanceUpdateRequest.builder().status(nextStatus).delta(postLlmDelta).build());
+        AgentInstanceUpdateRequest.builder().status(nextStatus).delta(metricsDelta).build());
+
     return agentContext;
+  }
+
+  private AgentInstanceUpdateStatus nextAgentInstanceState(int toolCallsDelta) {
+    return toolCallsDelta == 0
+        ? AgentInstanceUpdateStatus.IDLE
+        : AgentInstanceUpdateStatus.TOOL_CALLING;
   }
 
   private AgentResponse buildResponse(
