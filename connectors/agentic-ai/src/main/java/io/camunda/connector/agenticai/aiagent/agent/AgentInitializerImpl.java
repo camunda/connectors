@@ -135,10 +135,11 @@ public class AgentInitializerImpl implements AgentInitializer {
     }
   }
 
-  private AgentContext transitionAgentStateToToolDiscovery(AgentExecutionContext executionContext, AgentContext agentContext) {
+  private AgentContext transitionAgentStateToToolDiscovery(
+      AgentExecutionContext executionContext, AgentContext agentContext) {
     final var discoveryAgentContext = agentContext.withState(AgentState.TOOL_DISCOVERY);
     agentInstanceClient.update(
-            executionContext,
+        executionContext,
         discoveryAgentContext,
         AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY));
     return discoveryAgentContext;

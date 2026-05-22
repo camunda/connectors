@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 
@@ -34,11 +35,10 @@ public interface AgentMessagesHandler {
       SystemPromptConfiguration systemPrompt);
 
   /**
-   * Adds user and tool call results messages to the agent's memory. Returns the added messages
-   * along with an optional tool call results partition when the activation was driven by tool call
-   * results.
+   * Adds user and tool call results messages to the agent's memory. Returns the messages added to
+   * the runtime memory.
    */
-  AddedUserMessagesResult addUserMessages(
+  List<Message> addUserMessages(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
       RuntimeMemory memory,

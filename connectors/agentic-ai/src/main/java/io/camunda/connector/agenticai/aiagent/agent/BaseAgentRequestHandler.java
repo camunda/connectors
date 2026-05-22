@@ -156,7 +156,7 @@ public abstract class BaseAgentRequestHandler<
           toolCallResults.stream().map(tcr -> Pair.of(tcr.id(), tcr.name())).toList());
     }
 
-    final var addedMessagesResult =
+    final var addedUserMessages =
         messagesHandler.addUserMessages(
             executionContext,
             agentContext,
@@ -165,13 +165,12 @@ public abstract class BaseAgentRequestHandler<
             toolCallResults);
 
     // check if we're actually able to call the model, abort early otherwise
-    if (!modelCallPrerequisitesFulfilled(
-        executionContext, agentContext, addedMessagesResult.messages())) {
+    if (!modelCallPrerequisitesFulfilled(executionContext, agentContext, addedUserMessages)) {
       LOGGER.debug("Model call prerequisites not fulfilled, returning without agent response");
       return null;
     }
 
-    handleAddedUserMessages(executionContext, agentContext, addedMessagesResult.messages());
+    handleAddedUserMessages(executionContext, agentContext, addedUserMessages);
 
     // pre-LLM PATCH: notify engine we are about to call the LLM
     final var preLlmSnapshot = agentContext.metrics();
@@ -186,19 +185,16 @@ public abstract class BaseAgentRequestHandler<
         framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
     agentContext = frameworkChatResponse.agentContext();
 
-    // post-LLM PATCH: report all deltas (LLM metrics + tool calls resolved in this iteration)
-    final int toolCallsDelta =
-        addedMessagesResult
-            .toolCallResultsPartition()
-            .map(p -> p.processedResults().size())
-            .orElse(0);
+    // post-LLM PATCH: report all deltas (LLM metrics + tool calls in this LLM response)
+    final var assistantToolCalls = frameworkChatResponse.assistantMessage().toolCalls();
+    final int toolCallsDelta = assistantToolCalls == null ? 0 : assistantToolCalls.size();
     if (toolCallsDelta > 0) {
       agentContext =
           agentContext.withMetrics(agentContext.metrics().incrementToolCalls(toolCallsDelta));
     }
     final var postLlmDelta = agentContext.metrics().minus(preLlmSnapshot);
     final var nextStatus =
-        frameworkChatResponse.assistantMessage().toolCalls().isEmpty()
+        assistantToolCalls == null || assistantToolCalls.isEmpty()
             ? AgentInstanceUpdateStatus.IDLE
             : AgentInstanceUpdateStatus.TOOL_CALLING;
     agentInstanceClient.update(
