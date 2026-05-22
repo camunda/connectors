@@ -10,7 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.autoconfigure.RetriesProperties;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.api.error.ConnectorException;
@@ -19,11 +19,10 @@ import java.time.Duration;
 public class CamundaAgentInstanceClient implements AgentInstanceClient {
 
   private final CamundaClient camundaClient;
-  private final AgenticAiConnectorsConfigurationProperties.RetriesProperties retriesProperties;
+  private final RetriesProperties retriesProperties;
 
   public CamundaAgentInstanceClient(
-      CamundaClient camundaClient,
-      AgenticAiConnectorsConfigurationProperties.RetriesProperties retriesProperties) {
+      CamundaClient camundaClient, RetriesProperties retriesProperties) {
     this.camundaClient = camundaClient;
     this.retriesProperties = retriesProperties;
   }
