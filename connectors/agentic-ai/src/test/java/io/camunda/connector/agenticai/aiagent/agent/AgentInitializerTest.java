@@ -175,7 +175,7 @@ class AgentInitializerTest {
     private static final AgentContext AGENT_CONTEXT =
         AgentContext.empty()
             .withProperty("hello", "world")
-            .withMetadata(new AgentMetadata(null, null, 99999L));
+            .withMetadata(new AgentMetadata(123456789L, 987654321L, 99999L));
 
     @BeforeEach
     void setUp() {
