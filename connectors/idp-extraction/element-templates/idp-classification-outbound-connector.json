@@ -50,7 +50,7 @@
     "label" : "AWS Bedrock Converse Parameters",
     "description" : "Specify the parameters for AWS Bedrock",
     "optional" : false,
-    "value" : "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
+    "value" : "={\n  modelId: \"\",\n  temperature: 0.5\n}",
     "feel" : "optional",
     "group" : "input",
     "binding" : {
