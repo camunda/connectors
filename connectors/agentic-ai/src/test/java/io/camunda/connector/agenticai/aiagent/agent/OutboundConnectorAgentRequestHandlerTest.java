@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
@@ -104,7 +103,7 @@ class OutboundConnectorAgentRequestHandlerTest {
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
     lenient()
-        .doReturn(AddedUserMessagesResult.ofMessages(List.of()))
+        .doReturn(List.of())
         .when(messagesHandler)
         .addUserMessages(any(), any(), any(), any(), anyList());
   }
@@ -235,7 +234,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 2));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -414,14 +413,15 @@ class OutboundConnectorAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
                     .build()));
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
-  void shouldIncludeProcessedToolCallsInPostLlmDeltaWhenToolCallResultsArrived() {
-    // given: mock addUserMessages to return a partition with 2 processed results
+  void shouldNotCountToolCallResultsInDeltaWhenLlmRespondsWithoutToolCalls() {
+    // given: tool call results arrive as input, but the LLM responds with plain text (no new tool
+    // calls)
     mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
     when(agentExecutionContext.userPrompt()).thenReturn(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS);
     doAnswer(
@@ -429,8 +429,7 @@ class OutboundConnectorAgentRequestHandlerTest {
               final var userMsg = userMessage(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS.prompt());
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
               runtimeMemory.addMessage(userMsg);
-              final var partition = new ToolCallResultsPartition(TOOL_CALL_RESULTS, List.of());
-              return AddedUserMessagesResult.ofMessagesAndPartition(List.of(userMsg), partition);
+              return List.of(userMsg);
             })
         .when(messagesHandler)
         .addUserMessages(
@@ -458,7 +457,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     // when
     requestHandler.handleRequest(agentExecutionContext);
 
-    // then: post-LLM delta includes toolCalls=2 (matched results count)
+    // then: toolCalls=0 in post-LLM delta because the LLM emitted no tool calls
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
@@ -466,7 +465,7 @@ class OutboundConnectorAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
   }
 
@@ -542,7 +541,7 @@ class OutboundConnectorAgentRequestHandlerTest {
               final var userMessage = userMessage(userPromptConfiguration.prompt());
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
               runtimeMemory.addMessage(userMessage);
-              return AddedUserMessagesResult.ofMessages(List.of(userMessage));
+              return List.of(userMessage);
             })
         .when(messagesHandler)
         .addUserMessages(

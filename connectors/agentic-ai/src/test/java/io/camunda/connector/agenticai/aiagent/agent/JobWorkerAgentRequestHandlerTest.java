@@ -115,7 +115,7 @@ class JobWorkerAgentRequestHandlerTest {
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
     lenient()
-        .doReturn(AddedUserMessagesResult.ofMessages(List.of()))
+        .doReturn(List.of())
         .when(messagesHandler)
         .addUserMessages(any(), any(), any(), any(), anyList());
   }
@@ -255,7 +255,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 2));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -492,7 +492,7 @@ class JobWorkerAgentRequestHandlerTest {
               final var userMessage = userMessage(userPromptConfiguration.prompt());
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
               runtimeMemory.addMessage(userMessage);
-              return AddedUserMessagesResult.ofMessages(List.of(userMessage));
+              return List.of(userMessage);
             })
         .when(messagesHandler)
         .addUserMessages(
@@ -513,7 +513,7 @@ class JobWorkerAgentRequestHandlerTest {
                           .toList());
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
               runtimeMemory.addMessage(toolCallMessage);
-              return AddedUserMessagesResult.ofMessages(List.of(toolCallMessage));
+              return List.of(toolCallMessage);
             })
         .when(messagesHandler)
         .addUserMessages(
