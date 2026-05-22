@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,10 +30,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -56,8 +53,6 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 class AgentInitializerTest {
@@ -559,29 +554,16 @@ class AgentInitializerTest {
   }
 
   @Nested
-  @MockitoSettings(strictness = Strictness.LENIENT)
   class AgentInstanceCreation {
 
     private static final long PROCESS_DEFINITION_KEY = 100L;
     private static final long PROCESS_INSTANCE_KEY = 200L;
-    private static final long ELEMENT_INSTANCE_KEY = 300L;
-    private static final OpenAiProviderConfiguration OPENAI_PROVIDER =
-        new OpenAiProviderConfiguration(
-            new OpenAiConnection(
-                new OpenAiAuthentication("api-key", null, null),
-                null,
-                new OpenAiModel("gpt-4o", null)));
 
     @BeforeEach
     void setUp() {
-      // Provide a fully initializing context (null initialAgentContext → new INITIALIZING context)
-      // or an explicit INITIALIZING context without agentInstanceKey
-      when(executionContext.jobContext()).thenReturn(jobContext);
-      when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
-      when(jobContext.getProcessInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
-      when(jobContext.getElementInstanceKey()).thenReturn(ELEMENT_INSTANCE_KEY);
-      when(executionContext.provider()).thenReturn(OPENAI_PROVIDER);
-      // Default: no system prompt, no limits
+      lenient().when(executionContext.jobContext()).thenReturn(jobContext);
+      lenient().when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
+      lenient().when(jobContext.getProcessInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
     }
 
     @Test
