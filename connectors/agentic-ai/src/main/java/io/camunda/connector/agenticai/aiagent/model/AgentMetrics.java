@@ -16,14 +16,17 @@ import java.util.Objects;
 @JsonDeserialize(builder = AgentMetrics.AgentMetricsJacksonProxyBuilder.class)
 public record AgentMetrics(
     int modelCalls,
-    @RecordBuilder.Initializer(source = TokenUsage.class, value = "empty") TokenUsage tokenUsage)
+    @RecordBuilder.Initializer(source = TokenUsage.class, value = "empty") TokenUsage tokenUsage,
+    int toolCalls)
     implements AgentMetricsBuilder.With {
   public AgentMetrics {
     if (modelCalls < 0) {
       throw new IllegalArgumentException("Model calls must be non-negative");
     }
-
     Objects.requireNonNull(tokenUsage, "Token usage must not be null");
+    if (toolCalls < 0) {
+      throw new IllegalArgumentException("Tool calls must be non-negative");
+    }
   }
 
   public AgentMetrics incrementModelCalls(int additionalModelCalls) {
@@ -32,6 +35,18 @@ public record AgentMetrics(
 
   public AgentMetrics incrementTokenUsage(TokenUsage additionalTokenUsage) {
     return withTokenUsage(tokenUsage.add(additionalTokenUsage));
+  }
+
+  public AgentMetrics incrementToolCalls(int additionalToolCalls) {
+    return withToolCalls(toolCalls + additionalToolCalls);
+  }
+
+  public AgentMetrics minus(AgentMetrics other) {
+    return builder()
+        .modelCalls(modelCalls - other.modelCalls())
+        .tokenUsage(tokenUsage.minus(other.tokenUsage()))
+        .toolCalls(toolCalls - other.toolCalls())
+        .build();
   }
 
   public static AgentMetrics empty() {
@@ -60,6 +75,14 @@ public record AgentMetrics(
               builder
                   .inputTokenCount(builder.inputTokenCount() + tokenUsage.inputTokenCount())
                   .outputTokenCount(builder.outputTokenCount() + tokenUsage.outputTokenCount()));
+    }
+
+    public TokenUsage minus(TokenUsage other) {
+      return with(
+          builder ->
+              builder
+                  .inputTokenCount(builder.inputTokenCount() - other.inputTokenCount())
+                  .outputTokenCount(builder.outputTokenCount() - other.outputTokenCount()));
     }
 
     public static TokenUsage empty() {
