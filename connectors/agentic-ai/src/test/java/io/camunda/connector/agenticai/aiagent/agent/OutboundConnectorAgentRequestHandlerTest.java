@@ -395,9 +395,9 @@ class OutboundConnectorAgentRequestHandlerTest {
                     .build());
 
     // when
-    requestHandler.handleRequest(agentExecutionContext);
+    final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    // then
+    // then: pre-LLM THINKING patch, post-LLM TOOL_CALLING patch with LLM-only metrics
     final var inOrder = inOrder(agentInstanceClient);
     inOrder
         .verify(agentInstanceClient)
@@ -413,9 +413,22 @@ class OutboundConnectorAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
     inOrder.verifyNoMoreInteractions();
+
+    // when: job completes
+    response.onJobCompleted();
+
+    // then: toolCalls delta reported on completion
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .delta(AgentMetrics.empty().incrementToolCalls(2))
+                    .build()));
   }
 
   @Test

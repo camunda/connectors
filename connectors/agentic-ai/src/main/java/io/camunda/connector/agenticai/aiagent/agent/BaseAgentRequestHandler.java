@@ -29,7 +29,6 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
@@ -112,6 +111,7 @@ public abstract class BaseAgentRequestHandler<
       final List<ToolCallResult> toolCallResults) {
     final var store =
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
+    final var initialMetrics = agentContext.metrics();
 
     try (var session = store.createSession(executionContext, agentContext)) {
       var agentResponse =
@@ -121,9 +121,16 @@ public abstract class BaseAgentRequestHandler<
           "Request processing completed {} agent response, completing job",
           agentResponse == null ? "without" : "with");
 
-      var completionListener =
-          createStoreCompletionListener(executionContext, store, agentResponse);
-      return buildConnectorResponse(executionContext, agentResponse, completionListener);
+      final int toolCallsDelta =
+          agentResponse != null
+              ? agentResponse.context().metrics().toolCalls() - initialMetrics.toolCalls()
+              : 0;
+      return buildConnectorResponse(
+          executionContext,
+          agentResponse,
+          compose(
+              createStoreCompletionListener(executionContext, store, agentResponse),
+              createToolCallsCompletionListener(executionContext, agentResponse, toolCallsDelta)));
     }
   }
 
@@ -221,10 +228,15 @@ public abstract class BaseAgentRequestHandler<
     final var metricsDelta = agentContext.metrics().minus(preChatMetrics);
     final var nextStatus = nextAgentInstanceState(metricsDelta.toolCalls());
 
+    // Exclude toolCalls from the post-chat PATCH: tool calls are reported on job completion
+    // so superseded/failed jobs don't inflate the count.
     agentInstanceClient.update(
         executionContext,
         agentContext,
-        AgentInstanceUpdateRequest.builder().status(nextStatus).delta(metricsDelta).build());
+        AgentInstanceUpdateRequest.builder()
+            .status(nextStatus)
+            .delta(metricsDelta.withToolCalls(0))
+            .build());
 
     return agentContext;
   }
@@ -277,6 +289,51 @@ public abstract class BaseAgentRequestHandler<
       final C executionContext,
       @Nullable final AgentResponse agentResponse,
       @Nullable final AgentJobCompletionListener completionListener);
+
+  @Nullable
+  private AgentJobCompletionListener createToolCallsCompletionListener(
+      C executionContext, @Nullable AgentResponse agentResponse, int toolCallsDelta) {
+    if (agentResponse == null || toolCallsDelta <= 0) {
+      return null;
+    }
+    final var agentContext = agentResponse.context();
+    return new AgentJobCompletionListener() {
+      @Override
+      public void onJobCompleted() {
+        agentInstanceClient.update(
+            executionContext,
+            agentContext,
+            AgentInstanceUpdateRequest.builder()
+                .delta(AgentMetrics.empty().incrementToolCalls(toolCallsDelta))
+                .build());
+      }
+
+      @Override
+      public void onJobCompletionFailed(JobCompletionFailure failure) {
+        // tool calls that did not dispatch are not counted
+      }
+    };
+  }
+
+  @Nullable
+  private static AgentJobCompletionListener compose(
+      @Nullable AgentJobCompletionListener first, @Nullable AgentJobCompletionListener second) {
+    if (first == null) return second;
+    if (second == null) return first;
+    return new AgentJobCompletionListener() {
+      @Override
+      public void onJobCompleted() {
+        first.onJobCompleted();
+        second.onJobCompleted();
+      }
+
+      @Override
+      public void onJobCompletionFailed(JobCompletionFailure failure) {
+        first.onJobCompletionFailed(failure);
+        second.onJobCompletionFailed(failure);
+      }
+    };
+  }
 
   private static <C extends AgentExecutionContext>
       AgentJobCompletionListener createStoreCompletionListener(
