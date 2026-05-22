@@ -21,14 +21,26 @@ class AgentInstanceErrorClassifierTest {
 
   @ParameterizedTest
   @MethodSource("retryableExceptions")
-  void shouldClassifyAsRetryable(Throwable exception) {
-    assertThat(AgentInstanceErrorClassifier.INSTANCE.classify(exception)).isEqualTo(RETRYABLE);
+  void forCreate_shouldClassifyAsRetryable(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.FOR_CREATE.classify(exception)).isEqualTo(RETRYABLE);
   }
 
   @ParameterizedTest
   @MethodSource("permanentExceptions")
-  void shouldClassifyAsPermanent(Throwable exception) {
-    assertThat(AgentInstanceErrorClassifier.INSTANCE.classify(exception)).isEqualTo(PERMANENT);
+  void forCreate_shouldClassifyAsPermanent(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.FOR_CREATE.classify(exception)).isEqualTo(PERMANENT);
+  }
+
+  @ParameterizedTest
+  @MethodSource("retryableExceptionsExcluding404")
+  void forUpdate_shouldClassifyAsRetryable(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.FOR_UPDATE.classify(exception)).isEqualTo(RETRYABLE);
+  }
+
+  @ParameterizedTest
+  @MethodSource("permanentExceptionsIncluding404")
+  void forUpdate_shouldClassifyAsPermanent(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.FOR_UPDATE.classify(exception)).isEqualTo(PERMANENT);
   }
 
   static Stream<Throwable> retryableExceptions() {
@@ -49,6 +61,29 @@ class AgentInstanceErrorClassifierTest {
         new ClientHttpException(401, "Unauthorized"),
         new ClientHttpException(403, "Forbidden"),
         new ClientHttpException(409, "Conflict"),
+        new RuntimeException("wrapped", new ClientHttpException(400, "Bad Request")),
+        new RuntimeException("unknown"),
+        new IllegalArgumentException("bad arg"));
+  }
+
+  static Stream<Throwable> retryableExceptionsExcluding404() {
+    return Stream.of(
+        new ClientHttpException(500, "Internal Server Error"),
+        new ClientHttpException(502, "Bad Gateway"),
+        new ClientHttpException(503, "Service Unavailable"),
+        new IOException("connection refused"),
+        new InterruptedIOException("timeout"),
+        new RuntimeException(new IOException("transport")));
+  }
+
+  static Stream<Throwable> permanentExceptionsIncluding404() {
+    return Stream.of(
+        new ClientHttpException(404, "Not Found"),
+        new ClientHttpException(400, "Bad Request"),
+        new ClientHttpException(401, "Unauthorized"),
+        new ClientHttpException(403, "Forbidden"),
+        new ClientHttpException(409, "Conflict"),
+        new RuntimeException("wrapped", new ClientHttpException(404, "Not Found")),
         new RuntimeException("wrapped", new ClientHttpException(400, "Bad Request")),
         new RuntimeException("unknown"),
         new IllegalArgumentException("bad arg"));

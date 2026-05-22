@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
@@ -18,13 +19,18 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -85,6 +91,7 @@ class OutboundConnectorAgentRequestHandlerTest {
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private AgentResponseHandler responseHandler;
+  @Mock private AgentInstanceClient agentInstanceClient;
   @Mock private OutboundConnectorAgentExecutionContext agentExecutionContext;
 
   @Captor private ArgumentCaptor<RuntimeMemory> runtimeMemoryCaptor;
@@ -96,6 +103,10 @@ class OutboundConnectorAgentRequestHandlerTest {
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+    lenient()
+        .doReturn(AddedUserMessagesResult.ofMessages(List.of()))
+        .when(messagesHandler)
+        .addUserMessages(any(), any(), any(), any(), anyList());
   }
 
   @Test
@@ -163,7 +174,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -224,7 +235,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -310,6 +321,169 @@ class OutboundConnectorAgentRequestHandlerTest {
             });
   }
 
+  @Test
+  void shouldEmitThinkingPatchThenIdlePatchWithLlmDeltas() {
+    // given
+    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = assistantMessage("No tool calls here.");
+    mockFrameworkExecution(assistantMessage);
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    lenient()
+        .when(
+            responseHandler.createResponse(
+                eq(agentExecutionContext),
+                any(AgentContext.class),
+                eq(assistantMessage),
+                anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .responseMessage(i.getArgument(2, AssistantMessage.class))
+                    .build());
+
+    // when
+    requestHandler.handleRequest(agentExecutionContext);
+
+    // then: THINKING before IDLE, LLM deltas in post-LLM PATCH
+    final var inOrder = inOrder(agentInstanceClient);
+    inOrder
+        .verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    inOrder
+        .verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.IDLE)
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .build()));
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  void shouldEmitThinkingPatchThenToolCallingPatchWhenLlmReturnsToolCalls() {
+    // given
+    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    mockFrameworkExecution(assistantMessage);
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    lenient()
+        .when(
+            responseHandler.createResponse(
+                eq(agentExecutionContext),
+                any(AgentContext.class),
+                eq(assistantMessage),
+                anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .toolCalls(i.getArgument(3))
+                    .build());
+
+    // when
+    requestHandler.handleRequest(agentExecutionContext);
+
+    // then
+    final var inOrder = inOrder(agentInstanceClient);
+    inOrder
+        .verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    inOrder
+        .verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.TOOL_CALLING)
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .build()));
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  void shouldIncludeProcessedToolCallsInPostLlmDeltaWhenToolCallResultsArrived() {
+    // given: mock addUserMessages to return a partition with 2 processed results
+    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    when(agentExecutionContext.userPrompt()).thenReturn(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS);
+    doAnswer(
+            i -> {
+              final var userMsg = userMessage(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS.prompt());
+              final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
+              runtimeMemory.addMessage(userMsg);
+              final var partition = new ToolCallResultsPartition(TOOL_CALL_RESULTS, List.of());
+              return AddedUserMessagesResult.ofMessagesAndPartition(List.of(userMsg), partition);
+            })
+        .when(messagesHandler)
+        .addUserMessages(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            any(RuntimeMemory.class),
+            eq(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS),
+            anyList());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = assistantMessage("Done.");
+    mockFrameworkExecution(assistantMessage);
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    lenient()
+        .when(
+            responseHandler.createResponse(
+                eq(agentExecutionContext),
+                any(AgentContext.class),
+                eq(assistantMessage),
+                anyList()))
+        .thenAnswer(
+            i -> AgentResponse.builder().context(i.getArgument(1, AgentContext.class)).build());
+
+    // when
+    requestHandler.handleRequest(agentExecutionContext);
+
+    // then: post-LLM delta includes toolCalls=2 (matched results count)
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.IDLE)
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
+                    .build()));
+  }
+
+  @Test
+  void shouldNotEmitPatchesWhenModelCallPrerequisitesAreNotFulfilled() {
+    // given: addUserMessages returns empty list → throws NO_USER_MESSAGE_CONTENT
+    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+
+    // when / then: exception is thrown before any PATCH
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOf(ConnectorException.class);
+
+    verifyNoInteractions(agentInstanceClient);
+  }
+
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
     mockUserPrompt(new UserPromptConfiguration("User message 30", List.of()), List.of());
 
@@ -368,7 +542,7 @@ class OutboundConnectorAgentRequestHandlerTest {
               final var userMessage = userMessage(userPromptConfiguration.prompt());
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
               runtimeMemory.addMessage(userMessage);
-              return List.of(userMessage);
+              return AddedUserMessagesResult.ofMessages(List.of(userMessage));
             })
         .when(messagesHandler)
         .addUserMessages(

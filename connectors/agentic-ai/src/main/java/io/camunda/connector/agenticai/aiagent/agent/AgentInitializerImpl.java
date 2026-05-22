@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -103,10 +105,11 @@ public class AgentInitializerImpl implements AgentInitializer {
 
     // handle gateway tool definitions (e.g. MCP)
     return initiateGatewayToolDiscovery(
-        agentContext, toolCallResults, adHocToolsSchema.gatewayToolDefinitions());
+        executionContext, agentContext, toolCallResults, adHocToolsSchema.gatewayToolDefinitions());
   }
 
   private AgentInitializationResult initiateGatewayToolDiscovery(
+      AgentExecutionContext executionContext,
       AgentContext agentContext,
       List<ToolCallResult> toolCallResults,
       List<GatewayToolDefinition> gatewayToolDefinitions) {
@@ -116,9 +119,10 @@ public class AgentInitializerImpl implements AgentInitializer {
 
     if (!CollectionUtils.isEmpty(initiationResult.toolDiscoveryToolCalls())) {
       // execute tool discovery tool calls before agent is ready for requests
+      final var updatedState = transitionAgentStateToToolDiscovery(executionContext, agentContext);
       return new AgentResponseInitializationResult(
           AgentResponse.builder()
-              .context(agentContext.withState(AgentState.TOOL_DISCOVERY))
+              .context(updatedState)
               .toolCalls(
                   initiationResult.toolDiscoveryToolCalls().stream()
                       .map(ToolCallProcessVariable::from)
@@ -129,6 +133,15 @@ public class AgentInitializerImpl implements AgentInitializer {
       return new AgentContextInitializationResult(
           agentContext.withState(AgentState.READY), toolCallResults);
     }
+  }
+
+  private AgentContext transitionAgentStateToToolDiscovery(AgentExecutionContext executionContext, AgentContext agentContext) {
+    final var discoveryAgentContext = agentContext.withState(AgentState.TOOL_DISCOVERY);
+    agentInstanceClient.update(
+            executionContext,
+        discoveryAgentContext,
+        AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY));
+    return discoveryAgentContext;
   }
 
   private AgentInitializationResult handleToolDiscoveryResults(

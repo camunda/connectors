@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -95,6 +97,7 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private AgentResponseHandler responseHandler;
+  @Mock private AgentInstanceClient agentInstanceClient;
 
   private ConversationStore conversationStore;
 
@@ -111,6 +114,10 @@ class JobWorkerAgentRequestHandlerTest {
     doReturn(conversationStore)
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+    lenient()
+        .doReturn(AddedUserMessagesResult.ofMessages(List.of()))
+        .when(messagesHandler)
+        .addUserMessages(any(), any(), any(), any(), anyList());
   }
 
   @Test
@@ -182,7 +189,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -248,7 +255,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -345,7 +352,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -485,7 +492,7 @@ class JobWorkerAgentRequestHandlerTest {
               final var userMessage = userMessage(userPromptConfiguration.prompt());
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
               runtimeMemory.addMessage(userMessage);
-              return List.of(userMessage);
+              return AddedUserMessagesResult.ofMessages(List.of(userMessage));
             })
         .when(messagesHandler)
         .addUserMessages(
@@ -506,7 +513,7 @@ class JobWorkerAgentRequestHandlerTest {
                           .toList());
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
               runtimeMemory.addMessage(toolCallMessage);
-              return List.of(toolCallMessage);
+              return AddedUserMessagesResult.ofMessages(List.of(toolCallMessage));
             })
         .when(messagesHandler)
         .addUserMessages(

@@ -6,9 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -47,6 +50,7 @@ public abstract class BaseAgentRequestHandler<
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AiFrameworkAdapter<?> framework;
   private final AgentResponseHandler responseHandler;
+  private final AgentInstanceClient agentInstanceClient;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -55,7 +59,8 @@ public abstract class BaseAgentRequestHandler<
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
-      AgentResponseHandler responseHandler) {
+      AgentResponseHandler responseHandler,
+      AgentInstanceClient agentInstanceClient) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.limitsValidator = limitsValidator;
@@ -63,6 +68,7 @@ public abstract class BaseAgentRequestHandler<
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.framework = framework;
     this.responseHandler = responseHandler;
+    this.agentInstanceClient = agentInstanceClient;
   }
 
   @Override
@@ -150,7 +156,7 @@ public abstract class BaseAgentRequestHandler<
           toolCallResults.stream().map(tcr -> Pair.of(tcr.id(), tcr.name())).toList());
     }
 
-    final var userMessages =
+    final var addedMessagesResult =
         messagesHandler.addUserMessages(
             executionContext,
             agentContext,
@@ -159,18 +165,46 @@ public abstract class BaseAgentRequestHandler<
             toolCallResults);
 
     // check if we're actually able to call the model, abort early otherwise
-    if (!modelCallPrerequisitesFulfilled(executionContext, agentContext, userMessages)) {
+    if (!modelCallPrerequisitesFulfilled(
+        executionContext, agentContext, addedMessagesResult.messages())) {
       LOGGER.debug("Model call prerequisites not fulfilled, returning without agent response");
       return null;
     }
 
-    handleAddedUserMessages(executionContext, agentContext, userMessages);
+    handleAddedUserMessages(executionContext, agentContext, addedMessagesResult.messages());
+
+    // pre-LLM PATCH: notify engine we are about to call the LLM
+    final var preLlmSnapshot = agentContext.metrics();
+    agentInstanceClient.update(
+        executionContext,
+        agentContext,
+        AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
 
     // call framework with memory
     LOGGER.debug("Executing chat request with AI framework");
     final var frameworkChatResponse =
         framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
     agentContext = frameworkChatResponse.agentContext();
+
+    // post-LLM PATCH: report all deltas (LLM metrics + tool calls resolved in this iteration)
+    final int toolCallsDelta =
+        addedMessagesResult
+            .toolCallResultsPartition()
+            .map(p -> p.processedResults().size())
+            .orElse(0);
+    if (toolCallsDelta > 0) {
+      agentContext =
+          agentContext.withMetrics(agentContext.metrics().incrementToolCalls(toolCallsDelta));
+    }
+    final var postLlmDelta = agentContext.metrics().minus(preLlmSnapshot);
+    final var nextStatus =
+        frameworkChatResponse.assistantMessage().toolCalls().isEmpty()
+            ? AgentInstanceUpdateStatus.IDLE
+            : AgentInstanceUpdateStatus.TOOL_CALLING;
+    agentInstanceClient.update(
+        executionContext,
+        agentContext,
+        AgentInstanceUpdateRequest.builder().status(nextStatus).delta(postLlmDelta).build());
 
     final var assistantMessage = frameworkChatResponse.assistantMessage();
     LOGGER.debug(

@@ -20,12 +20,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -306,6 +308,55 @@ class AgentInitializerTest {
                             .map(ToolCallProcessVariable::from)
                             .toList());
               });
+    }
+
+    @Test
+    void shouldEmitToolDiscoveryPatchWhenGatewayDiscoveryCallsAreDispatched() {
+      // given
+      final var toolDiscoveryToolCalls =
+          List.of(ToolCall.builder().id("tool1").name("AnMcpClient").build());
+
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
+      when(gatewayToolHandlers.initiateToolDiscovery(
+              any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
+          .thenAnswer(
+              args ->
+                  new GatewayToolDiscoveryInitiationResult(
+                      args.getArgument(0, AgentContext.class), toolDiscoveryToolCalls));
+
+      // when
+      agentInitializer.initializeAgent(executionContext);
+
+      // then
+      verify(agentInstanceClient)
+          .update(
+              eq(executionContext),
+              any(AgentContext.class),
+              eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY)));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldNotEmitToolDiscoveryPatchWhenNoDiscoveryCallsAreDispatched(
+        List<ToolCall> toolDiscoveryToolCalls) {
+      // given
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
+      when(gatewayToolHandlers.initiateToolDiscovery(
+              any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
+          .thenAnswer(
+              args ->
+                  new GatewayToolDiscoveryInitiationResult(
+                      args.getArgument(0, AgentContext.class), toolDiscoveryToolCalls));
+
+      // when
+      agentInitializer.initializeAgent(executionContext);
+
+      // then
+      verify(agentInstanceClient, never()).update(any(), any(), any());
     }
   }
 

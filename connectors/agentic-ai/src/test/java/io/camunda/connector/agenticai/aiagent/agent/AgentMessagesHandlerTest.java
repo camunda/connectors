@@ -207,12 +207,14 @@ class AgentMessagesHandlerTest {
 
       private UserMessage assertUserMessageAdded() {
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                new UserPromptConfiguration("Tell me a story", List.of()),
-                TOOL_CALL_RESULTS);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    new UserPromptConfiguration("Tell me a story", List.of()),
+                    TOOL_CALL_RESULTS)
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(1)
@@ -234,12 +236,14 @@ class AgentMessagesHandlerTest {
       @Test
       void addsDocumentsToUserMessage() {
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                new UserPromptConfiguration(null, documents),
-                TOOL_CALL_RESULTS);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    new UserPromptConfiguration(null, documents),
+                    TOOL_CALL_RESULTS)
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(1)
@@ -263,12 +267,14 @@ class AgentMessagesHandlerTest {
       @Test
       void addsBothUserPromptAndDocuments() {
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                new UserPromptConfiguration("Tell me a story", documents),
-                TOOL_CALL_RESULTS);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    new UserPromptConfiguration("Tell me a story", documents),
+                    TOOL_CALL_RESULTS)
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(1)
@@ -296,8 +302,10 @@ class AgentMessagesHandlerTest {
       void returnsNoMessageWhenNoUserMessageContentToAdd(String prompt) {
         final var userPrompt = new UserPromptConfiguration(prompt, List.of());
         final var addedUserMessages =
-            messagesHandler.addUserMessages(
-                executionContext, AGENT_CONTEXT, runtimeMemory, userPrompt, List.of());
+            messagesHandler
+                .addUserMessages(
+                    executionContext, AGENT_CONTEXT, runtimeMemory, userPrompt, List.of())
+                .messages();
 
         assertThat(addedUserMessages).isEmpty();
         assertThat(runtimeMemory.allMessages()).isEmpty();
@@ -306,12 +314,14 @@ class AgentMessagesHandlerTest {
       @Test
       void addsUserMessageTogetherWithEventMessages() {
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                new UserPromptConfiguration("Tell me a story", List.of()),
-                EVENT_TOOL_CALL_RESULTS);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    new UserPromptConfiguration("Tell me a story", List.of()),
+                    EVENT_TOOL_CALL_RESULTS)
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(3)
@@ -353,12 +363,14 @@ class AgentMessagesHandlerTest {
         final var event = ToolCallResult.builder().content(eventContent).build();
 
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                new UserPromptConfiguration("Tell me a story", List.of()),
-                List.of(event));
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    new UserPromptConfiguration("Tell me a story", List.of()),
+                    List.of(event))
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(2)
@@ -399,12 +411,14 @@ class AgentMessagesHandlerTest {
             .thenReturn(TOOL_CALL_RESULTS.stream().toList());
 
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                TOOL_CALL_RESULTS);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    userPromptWithDocuments,
+                    TOOL_CALL_RESULTS)
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(1)
@@ -434,12 +448,14 @@ class AgentMessagesHandlerTest {
             .thenReturn(reversedToolCallResults.stream().toList());
 
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                reversedToolCallResults);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    userPromptWithDocuments,
+                    reversedToolCallResults)
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(1)
@@ -480,12 +496,14 @@ class AgentMessagesHandlerTest {
             .thenReturn(transformedToolCallResults);
 
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                TOOL_CALL_RESULTS);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    userPromptWithDocuments,
+                    TOOL_CALL_RESULTS)
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(1)
@@ -515,12 +533,14 @@ class AgentMessagesHandlerTest {
             .thenReturn(toolCallResults.stream().toList());
 
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                toolCallResults);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    userPromptWithDocuments,
+                    toolCallResults)
+                .messages();
         assertThat(addedMessages).isEmpty();
         assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage);
       }
@@ -537,12 +557,14 @@ class AgentMessagesHandlerTest {
             .thenReturn(toolCallResults.stream().toList());
 
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                toolCallResults);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    userPromptWithDocuments,
+                    toolCallResults)
+                .messages();
         assertThat(addedMessages).isEmpty();
         assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage);
       }
@@ -562,12 +584,14 @@ class AgentMessagesHandlerTest {
             .thenAnswer(invocationOnMock -> invocationOnMock.getArgument(1));
 
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                toolCallResultsWithEvents);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    userPromptWithDocuments,
+                    toolCallResultsWithEvents)
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(3)
@@ -634,12 +658,14 @@ class AgentMessagesHandlerTest {
             .thenAnswer(invocationOnMock -> invocationOnMock.getArgument(1));
 
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                partialToolCallResultsWithEvents);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    userPromptWithDocuments,
+                    partialToolCallResultsWithEvents)
+                .messages();
 
         assertThat(addedMessages).isEmpty();
         assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage);
@@ -659,12 +685,14 @@ class AgentMessagesHandlerTest {
             .thenAnswer(invocationOnMock -> invocationOnMock.getArgument(1));
 
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                partialToolCallResultsWithEvents);
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    userPromptWithDocuments,
+                    partialToolCallResultsWithEvents)
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(3)
@@ -741,12 +769,14 @@ class AgentMessagesHandlerTest {
         final var eventWithNullContent = ToolCallResult.builder().content(eventContent).build();
 
         final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                userPromptWithDocuments,
-                List.of(TOOL_CALL_RESULTS.get(1), eventWithNullContent));
+            messagesHandler
+                .addUserMessages(
+                    executionContext,
+                    AGENT_CONTEXT,
+                    runtimeMemory,
+                    userPromptWithDocuments,
+                    List.of(TOOL_CALL_RESULTS.get(1), eventWithNullContent))
+                .messages();
 
         assertThat(addedMessages)
             .hasSize(2)
