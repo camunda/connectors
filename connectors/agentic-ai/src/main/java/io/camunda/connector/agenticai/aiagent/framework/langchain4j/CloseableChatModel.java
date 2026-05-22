@@ -6,8 +6,14 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import dev.langchain4j.model.chat.ChatModel;
 
-public interface ChatModelFactory {
-  CloseableChatModel createChatModel(ProviderConfiguration providerConfiguration);
+/**
+ * A {@link ChatModel} that owns a closeable resource (e.g. an HTTP connection pool) and must be
+ * closed after use. Declares {@code close()} without a checked exception to align with AWS SDK's
+ * {@code SdkAutoCloseable}.
+ */
+public interface CloseableChatModel extends ChatModel, AutoCloseable {
+  @Override
+  void close();
 }
