@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentJobCompletionListener.compose;
+
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
@@ -287,12 +289,11 @@ public abstract class BaseAgentRequestHandler<
    */
   protected abstract R buildConnectorResponse(
       final C executionContext,
-      @Nullable final AgentResponse agentResponse,
-      @Nullable final AgentJobCompletionListener completionListener);
+      final AgentResponse agentResponse,
+      final AgentJobCompletionListener completionListener);
 
-  @Nullable
   private AgentJobCompletionListener createToolCallsCompletionListener(
-      C executionContext, @Nullable AgentResponse agentResponse, int toolCallsDelta) {
+      C executionContext, AgentResponse agentResponse, int toolCallsDelta) {
     if (agentResponse == null || toolCallsDelta <= 0) {
       return null;
     }
@@ -300,37 +301,26 @@ public abstract class BaseAgentRequestHandler<
     return new AgentJobCompletionListener() {
       @Override
       public void onJobCompleted() {
-        agentInstanceClient.update(
-            executionContext,
-            agentContext,
-            AgentInstanceUpdateRequest.builder()
-                .delta(AgentMetrics.empty().incrementToolCalls(toolCallsDelta))
-                .build());
+        try {
+          agentInstanceClient.update(
+              executionContext,
+              agentContext,
+              AgentInstanceUpdateRequest.builder()
+                  .delta(AgentMetrics.empty().incrementToolCalls(toolCallsDelta))
+                  .build());
+        } catch (Exception e) {
+          LOGGER.error(
+              "Failed to update tool call metrics after job completion; metrics may be inaccurate",
+              e);
+        }
       }
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
-        // tool calls that did not dispatch are not counted
-      }
-    };
-  }
-
-  @Nullable
-  private static AgentJobCompletionListener compose(
-      @Nullable AgentJobCompletionListener first, @Nullable AgentJobCompletionListener second) {
-    if (first == null) return second;
-    if (second == null) return first;
-    return new AgentJobCompletionListener() {
-      @Override
-      public void onJobCompleted() {
-        first.onJobCompleted();
-        second.onJobCompleted();
-      }
-
-      @Override
-      public void onJobCompletionFailed(JobCompletionFailure failure) {
-        first.onJobCompletionFailed(failure);
-        second.onJobCompletionFailed(failure);
+        LOGGER.warn(
+            "Job completion failed ({}), skipping tool call metrics update for {} tool call(s)",
+            failure.getClass().getSimpleName(),
+            toolCallsDelta);
       }
     };
   }

@@ -27,10 +27,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -55,6 +57,7 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -432,6 +435,107 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.elementActivations()).isEmpty();
 
     verifyNoInteractions(framework);
+  }
+
+  @Test
+  void shouldEmitThinkingPatchThenToolCallingPatchWhenLlmReturnsToolCalls() {
+    // given
+    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    mockFrameworkExecution(assistantMessage);
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    lenient()
+        .when(
+            responseHandler.createResponse(
+                eq(agentExecutionContext),
+                any(AgentContext.class),
+                eq(assistantMessage),
+                anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .toolCalls(i.getArgument(3))
+                    .build());
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // then: pre-LLM THINKING patch, post-LLM TOOL_CALLING patch with LLM-only metrics
+    final var inOrder = Mockito.inOrder(agentInstanceClient);
+    inOrder
+        .verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    inOrder
+        .verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.TOOL_CALLING)
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .build()));
+    inOrder.verifyNoMoreInteractions();
+
+    // when: job completes
+    response.onJobCompleted();
+
+    // then: toolCalls delta reported on completion
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .delta(AgentMetrics.empty().incrementToolCalls(2))
+                    .build()));
+  }
+
+  @Test
+  void shouldNotEmitToolCallsPatchWhenJobCompletionFails() {
+    // given
+    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    mockFrameworkExecution(assistantMessage);
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    lenient()
+        .when(
+            responseHandler.createResponse(
+                eq(agentExecutionContext),
+                any(AgentContext.class),
+                eq(assistantMessage),
+                anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .toolCalls(i.getArgument(3))
+                    .build());
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // consume the 2 expected patches (THINKING + TOOL_CALLING) emitted during handleRequest
+    verify(agentInstanceClient, Mockito.times(2)).update(any(), any(), any());
+
+    // when: job completion fails (e.g. superseded job)
+    response.onJobCompletionFailed(
+        new JobCompletionFailure.ExecutionFailed(new RuntimeException(), null));
+
+    // then: no toolCalls PATCH emitted on failure
+    Mockito.verifyNoMoreInteractions(agentInstanceClient);
   }
 
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {

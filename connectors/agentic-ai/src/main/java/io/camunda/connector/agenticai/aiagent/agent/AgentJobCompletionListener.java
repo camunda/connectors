@@ -7,6 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import java.util.Arrays;
+import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Internal lifecycle callback used to thread post-completion hooks from the agent request handler
@@ -18,6 +22,44 @@ import io.camunda.connector.api.outbound.JobCompletionFailure;
  * job completion command.
  */
 public interface AgentJobCompletionListener {
+
+  Logger LOGGER = LoggerFactory.getLogger(AgentJobCompletionListener.class);
+
+  /**
+   * Chains an arbitrary number of listeners, skipping nulls. Each listener is called regardless of
+   * whether a previous one threw; exceptions are logged and swallowed.
+   */
+  static AgentJobCompletionListener compose(AgentJobCompletionListener... listeners) {
+    final var nonNull = Arrays.stream(listeners).filter(Objects::nonNull).toList();
+    return switch (nonNull.size()) {
+      case 0 -> null;
+      case 1 -> nonNull.getFirst();
+      default ->
+          new AgentJobCompletionListener() {
+            @Override
+            public void onJobCompleted() {
+              for (var listener : nonNull) {
+                try {
+                  listener.onJobCompleted();
+                } catch (Exception e) {
+                  LOGGER.error("Unexpected exception in job completion listener", e);
+                }
+              }
+            }
+
+            @Override
+            public void onJobCompletionFailed(JobCompletionFailure failure) {
+              for (var listener : nonNull) {
+                try {
+                  listener.onJobCompletionFailed(failure);
+                } catch (Exception e) {
+                  LOGGER.error("Unexpected exception in job completion failure listener", e);
+                }
+              }
+            }
+          };
+    };
+  }
 
   default void onJobCompleted() {}
 
