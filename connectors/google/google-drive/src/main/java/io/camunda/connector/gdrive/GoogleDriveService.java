@@ -6,11 +6,14 @@
  */
 package io.camunda.connector.gdrive;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.json.JsonParser;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.docs.v1.model.BatchUpdateDocumentResponse;
+import com.google.api.services.docs.v1.model.ReplaceAllTextRequest;
 import com.google.api.services.docs.v1.model.Request;
+import com.google.api.services.docs.v1.model.SubstringMatchCriteria;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.common.reflect.TypeToken;
@@ -21,12 +24,15 @@ import io.camunda.connector.gdrive.model.MimeTypeUrl;
 import io.camunda.connector.gdrive.model.request.Resource;
 import io.camunda.connector.gdrive.model.request.Template;
 import io.camunda.connector.gdrive.model.request.Type;
+import io.camunda.connector.gdrive.model.request.VariableMode;
 import io.camunda.connector.gdrive.model.request.Variables;
 import io.camunda.google.supplier.GsonComponentSupplier;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -82,15 +88,68 @@ public class GoogleDriveService {
       Optional.of(resource)
           .map(Resource::template)
           .map(Template::variables)
-          .map(Variables::requests)
-          .map(Object::toString)
-          .map(this::mapJsonToRequests)
+          .map(this::mapVariablesToRequests)
+          .filter(requests -> !requests.isEmpty())
           .ifPresent(requests -> updateWithRequests(client, requests, result));
     } else {
       result = client.createWithMetadata(metaData);
     }
     return new GoogleDriveResult(
         result.getId(), MimeTypeUrl.getResourceUrl(result.getMimeType(), result.getId()));
+  }
+
+  private List<Request> mapVariablesToRequests(final Variables variables) {
+    if (variables == null) {
+      return List.of();
+    }
+
+    if (variables.requests() != null || variables.mode() == VariableMode.ADVANCED) {
+      return mapAdvancedVariablesToRequests(variables.requests());
+    }
+
+    return mapSimpleVariablesToRequests(variables.replacements());
+  }
+
+  private List<Request> mapAdvancedVariablesToRequests(final JsonNode requests) {
+    return Optional.ofNullable(unwrapRequestsNode(requests))
+        .map(Object::toString)
+        .map(this::mapJsonToRequests)
+        .orElse(List.of());
+  }
+
+  private JsonNode unwrapRequestsNode(final JsonNode requests) {
+    if (requests != null && requests.isObject() && requests.has("requests")) {
+      return requests.get("requests");
+    }
+
+    return requests;
+  }
+
+  private List<Request> mapSimpleVariablesToRequests(final JsonNode replacements) {
+    if (replacements == null || !replacements.isObject()) {
+      return List.of();
+    }
+
+    List<Request> requests = new ArrayList<>();
+    Iterator<Map.Entry<String, JsonNode>> fields = replacements.fields();
+
+    while (fields.hasNext()) {
+      Map.Entry<String, JsonNode> entry = fields.next();
+
+      String placeholder = "{{" + entry.getKey() + "}}";
+      String replacementValue =
+          entry.getValue() == null || entry.getValue().isNull() ? "" : entry.getValue().asText();
+
+      requests.add(
+          new Request()
+              .setReplaceAllText(
+                  new ReplaceAllTextRequest()
+                      .setContainsText(
+                          new SubstringMatchCriteria().setText(placeholder).setMatchCase(true))
+                      .setReplaceText(replacementValue)));
+    }
+
+    return requests;
   }
 
   private List<Request> mapJsonToRequests(String requestsAsJson) {

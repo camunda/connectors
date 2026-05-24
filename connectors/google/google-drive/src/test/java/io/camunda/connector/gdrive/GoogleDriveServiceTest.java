@@ -10,11 +10,15 @@ import static io.camunda.connector.gdrive.GoogleDriveService.IO_EXCEPTION_MESSAG
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.services.docs.v1.model.BatchUpdateDocumentResponse;
+import com.google.api.services.docs.v1.model.ReplaceAllTextRequest;
 import com.google.api.services.docs.v1.model.Request;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
@@ -43,6 +47,8 @@ class GoogleDriveServiceTest extends BaseTest {
 
   private static final String SUCCESS_FILE_CASES_RESOURCE_PATH =
       "src/test/resources/requests/file-success-test-cases.json";
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private DocumentMapper documentMapper;
   private GoogleDriveService service;
@@ -146,10 +152,234 @@ class GoogleDriveServiceTest extends BaseTest {
     // Then
     verify(googleDriveClient).updateDocument(eq(FILE_ID), captor.capture());
 
-    assertThat(captor.getValue().size()).isEqualTo(1);
+    assertThat(captor.getValue()).isNotNull();
+    assertThat(captor.getValue().isEmpty()).isFalse();
     assertThat(captor.getValue().get(0).getReplaceAllText()).isNotNull();
 
     assertThat(execute.getGoogleDriveResourceId()).isEqualTo(FILE_ID);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  void execute_shouldCreateFileAndUpdateDocumentWithSimpleTemplateReplacements() {
+    // Given
+    String templateId = "templateId";
+
+    ObjectNode replacements = OBJECT_MAPPER.createObjectNode();
+    replacements.put("customerName", "Acme Corp");
+    replacements.put("amount", "$1,200");
+    replacements.putNull("optionalNote");
+
+    Resource resource =
+        new Resource(
+            Type.FILE,
+            FILE_NAME,
+            PARENT_ID,
+            null,
+            new Template(templateId, new Variables(VariableMode.SIMPLE, replacements, null)),
+            null,
+            null);
+
+    file.setMimeType(MimeTypeUrl.DOCUMENT.getMimeType());
+
+    BatchUpdateDocumentResponse response = new BatchUpdateDocumentResponse();
+    when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
+    when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);
+
+    ArgumentCaptor<List<Request>> captor = ArgumentCaptor.forClass(List.class);
+
+    // When
+    var execute = (GoogleDriveResult) service.execute(googleDriveClient, resource);
+
+    // Then
+    verify(googleDriveClient).updateDocument(eq(FILE_ID), captor.capture());
+
+    List<Request> requests = captor.getValue();
+
+    assertThat(requests.size()).isEqualTo(3);
+
+    ReplaceAllTextRequest customerNameRequest = requests.get(0).getReplaceAllText();
+    assertThat(customerNameRequest.getContainsText().getText()).isEqualTo("{{customerName}}");
+    assertThat(customerNameRequest.getContainsText().getMatchCase()).isTrue();
+    assertThat(customerNameRequest.getReplaceText()).isEqualTo("Acme Corp");
+
+    ReplaceAllTextRequest amountRequest = requests.get(1).getReplaceAllText();
+    assertThat(amountRequest.getContainsText().getText()).isEqualTo("{{amount}}");
+    assertThat(amountRequest.getContainsText().getMatchCase()).isTrue();
+    assertThat(amountRequest.getReplaceText()).isEqualTo("$1,200");
+
+    ReplaceAllTextRequest optionalNoteRequest = requests.get(2).getReplaceAllText();
+    assertThat(optionalNoteRequest.getContainsText().getText()).isEqualTo("{{optionalNote}}");
+    assertThat(optionalNoteRequest.getContainsText().getMatchCase()).isTrue();
+    assertThat(optionalNoteRequest.getReplaceText()).isEqualTo("");
+
+    assertThat(execute.getGoogleDriveResourceId()).isEqualTo(FILE_ID);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  void execute_shouldKeepSupportingAdvancedTemplateVariableRequests() throws Exception {
+    // Given
+    String templateId = "templateId";
+
+    var advancedRequests =
+        OBJECT_MAPPER.readTree(
+            """
+            [
+              {
+                "replaceAllText": {
+                  "containsText": {
+                    "text": "{{customerName}}",
+                    "matchCase": true
+                  },
+                  "replaceText": "Acme Corp"
+                }
+              }
+            ]
+            """);
+
+    Resource resource =
+        new Resource(
+            Type.FILE,
+            FILE_NAME,
+            PARENT_ID,
+            null,
+            new Template(templateId, new Variables(VariableMode.ADVANCED, null, advancedRequests)),
+            null,
+            null);
+
+    file.setMimeType(MimeTypeUrl.DOCUMENT.getMimeType());
+
+    BatchUpdateDocumentResponse response = new BatchUpdateDocumentResponse();
+    when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
+    when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);
+
+    ArgumentCaptor<List<Request>> captor = ArgumentCaptor.forClass(List.class);
+
+    // When
+    service.execute(googleDriveClient, resource);
+
+    // Then
+    verify(googleDriveClient).updateDocument(eq(FILE_ID), captor.capture());
+
+    List<Request> requests = captor.getValue();
+
+    assertThat(requests.size()).isEqualTo(1);
+    assertThat(requests.get(0).getReplaceAllText().getContainsText().getText())
+        .isEqualTo("{{customerName}}");
+    assertThat(requests.get(0).getReplaceAllText().getContainsText().getMatchCase()).isTrue();
+    assertThat(requests.get(0).getReplaceAllText().getReplaceText()).isEqualTo("Acme Corp");
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  void execute_shouldKeepSupportingLegacyTemplateVariableRequestsWithoutMode() throws Exception {
+    // Given
+    String templateId = "templateId";
+
+    var legacyRequests =
+        OBJECT_MAPPER.readTree(
+            """
+            [
+              {
+                "replaceAllText": {
+                  "containsText": {
+                    "text": "{{customerName}}",
+                    "matchCase": true
+                  },
+                  "replaceText": "Acme Corp"
+                }
+              }
+            ]
+            """);
+
+    Resource resource =
+        new Resource(
+            Type.FILE,
+            FILE_NAME,
+            PARENT_ID,
+            null,
+            new Template(templateId, new Variables(null, null, legacyRequests)),
+            null,
+            null);
+
+    file.setMimeType(MimeTypeUrl.DOCUMENT.getMimeType());
+
+    BatchUpdateDocumentResponse response = new BatchUpdateDocumentResponse();
+    when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
+    when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);
+
+    ArgumentCaptor<List<Request>> captor = ArgumentCaptor.forClass(List.class);
+
+    // When
+    service.execute(googleDriveClient, resource);
+
+    // Then
+    verify(googleDriveClient).updateDocument(eq(FILE_ID), captor.capture());
+
+    List<Request> requests = captor.getValue();
+
+    assertThat(requests.size()).isEqualTo(1);
+    assertThat(requests.get(0).getReplaceAllText().getContainsText().getText())
+        .isEqualTo("{{customerName}}");
+    assertThat(requests.get(0).getReplaceAllText().getReplaceText()).isEqualTo("Acme Corp");
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  void execute_shouldSupportWrappedAdvancedTemplateVariableRequests() throws Exception {
+    // Given
+    String templateId = "templateId";
+
+    var wrappedRequests =
+        OBJECT_MAPPER.readTree(
+            """
+          {
+            "requests": [
+              {
+                "replaceAllText": {
+                  "containsText": {
+                    "text": "{{customerName}}",
+                    "matchCase": true
+                  },
+                  "replaceText": "Acme Corp"
+                }
+              }
+            ]
+          }
+          """);
+
+    Resource resource =
+        new Resource(
+            Type.FILE,
+            FILE_NAME,
+            PARENT_ID,
+            null,
+            new Template(templateId, new Variables(VariableMode.ADVANCED, null, wrappedRequests)),
+            null,
+            null);
+
+    file.setMimeType(MimeTypeUrl.DOCUMENT.getMimeType());
+
+    BatchUpdateDocumentResponse response = new BatchUpdateDocumentResponse();
+    when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
+    when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);
+
+    ArgumentCaptor<List<Request>> captor = ArgumentCaptor.forClass(List.class);
+
+    // When
+    service.execute(googleDriveClient, resource);
+
+    // Then
+    verify(googleDriveClient).updateDocument(eq(FILE_ID), captor.capture());
+
+    List<Request> requests = captor.getValue();
+
+    assertThat(requests.size()).isEqualTo(1);
+    assertThat(requests.get(0).getReplaceAllText().getContainsText().getText())
+        .isEqualTo("{{customerName}}");
+    assertThat(requests.get(0).getReplaceAllText().getContainsText().getMatchCase()).isTrue();
+    assertThat(requests.get(0).getReplaceAllText().getReplaceText()).isEqualTo("Acme Corp");
   }
 
   @DisplayName("Should do not update document if type is not document")

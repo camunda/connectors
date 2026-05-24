@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Google Drive Outbound Connector",
-  "id" : "io.camunda.connectors.GoogleDrive.v1-hybrid",
+  "name" : "Google Drive Outbound Connector",
+  "id" : "io.camunda.connectors.GoogleDrive.v1",
   "description" : "Manage Google Drive files and folders",
   "keywords" : [ "create file", "create file from template", "create folder", "upload file", "download file", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
-  "version" : 6,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -43,14 +40,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:google-drive:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.authType",
     "label" : "Type",
@@ -267,7 +262,7 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Key-value template replacements",
+      "name" : "Simple key-value replacements",
       "value" : "simple"
     }, {
       "name" : "Advanced Google Docs API requests",
@@ -350,7 +345,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "6",
+    "value" : "5",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

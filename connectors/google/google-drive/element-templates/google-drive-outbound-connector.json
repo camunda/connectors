@@ -5,7 +5,7 @@
   "description" : "Manage Google Drive files and folders",
   "keywords" : [ "create file", "create file from template", "create folder", "upload file", "download file", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -246,18 +246,59 @@
     },
     "type" : "String"
   }, {
-    "id" : "resource.template.variables",
-    "label" : "Template variables",
+    "id" : "resource.template.variables.mode",
+    "label" : "Template variable mode",
     "optional" : false,
-    "feel" : "required",
+    "value" : "simple",
     "group" : "operationDetails",
     "binding" : {
-      "name" : "resource.template.variables",
+      "name" : "resource.template.variables.mode",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "resource.type",
       "equals" : "file",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Key-value template replacements",
+      "value" : "simple"
+    }, {
+      "name" : "Advanced Google Docs API requests",
+      "value" : "advanced"
+    } ]
+  }, {
+    "id" : "resource.template.variables.replacements",
+    "label" : "Template replacements",
+    "description" : "Provide key-value pairs. For example, {\"customerName\": \"Acme Corp\"} replaces {{customerName}}.",
+    "optional" : false,
+    "feel" : "required",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.template.variables.replacements",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "resource.template.variables.mode",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resource.template.variables.requests",
+    "label" : "Template variables",
+    "description" : "Advanced mode: provide a FEEL JSON object compatible with the Google Docs Requests API, for example {\"requests\": [...]}.",
+    "optional" : false,
+    "feel" : "required",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.template.variables.requests",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "resource.template.variables.mode",
+      "equals" : "advanced",
       "type" : "simple"
     },
     "type" : "String"
@@ -304,7 +345,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -379,6 +420,6 @@
     "type" : "String"
   } ],
   "icon" : {
-    "contents" : "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgODcuMyA3OCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KCTxwYXRoIGQ9Im02LjYgNjYuODUgMy44NSA2LjY1Yy44IDEuNCAxLjk1IDIuNSAzLjMgMy4zbDEzLjc1LTIzLjhoLTI3LjVjMCAxLjU1LjQgMy4xIDEuMiA0LjV6IiBmaWxsPSIjMDA2NmRhIi8+Cgk8cGF0aCBkPSJtNDMuNjUgMjUtMTMuNzUtMjMuOGMtMS4zNS44LTIuNSAxLjktMy4zIDMuM2wtMjUuNCA0NGE5LjA2IDkuMDYgMCAwIDAgLTEuMiA0LjVoMjcuNXoiIGZpbGw9IiMwMGFjNDciLz4KCTxwYXRoIGQ9Im03My41NSA3Ni44YzEuMzUtLjggMi41LTEuOSAzLjMtMy4zbDEuNi0yLjc1IDcuNjUtMTMuMjVjLjgtMS40IDEuMi0yLjk1IDEuMi00LjVoLTI3LjUwMmw1Ljg1MiAxMS41eiIgZmlsbD0iI2VhNDMzNSIvPgoJPHBhdGggZD0ibTQzLjY1IDI1IDEzLjc1LTIzLjhjLTEuMzUtLjgtMi45LTEuMi00LjUtMS4yaC0xOC41Yy0xLjYgMC0zLjE1LjQ1LTQuNSAxLjJ6IiBmaWxsPSIjMDA4MzJkIi8+Cgk8cGF0aCBkPSJtNTkuOCA1M2gtMzIuM2wtMTMuNzUgMjMuOGMxLjM1LjggMi45IDEuMiA0LjUgMS4yaDUwLjhjMS42IDAgMy4xNS0uNDUgNC41LTEuMnoiIGZpbGw9IiMyNjg0ZmMiLz4KCTxwYXRoIGQ9Im03My40IDI2LjUtMTIuNy0yMmMtLjgtMS40LTEuOTUtMi41LTMuMy0zLjNsLTEzLjc1IDIzLjggMTYuMTUgMjhoMjcuNDVjMC0xLjU1LS40LTMuMS0xLjItNC41eiIgZmlsbD0iI2ZmYmEwMCIvPgo8L3N2Zz4="
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgODcuMyA3OCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCgk8cGF0aCBkPSJtNi42IDY2Ljg1IDMuODUgNi42NWMuOCAxLjQgMS45NSAyLjUgMy4zIDMuM2wxMy43NS0yMy44aC0yNy41YzAgMS41NS40IDMuMSAxLjIgNC41eiIgZmlsbD0iIzAwNjZkYSIvPg0KCTxwYXRoIGQ9Im00My42NSAyNS0xMy43NS0yMy44Yy0xLjM1LjgtMi41IDEuOS0zLjMgMy4zbC0yNS40IDQ0YTkuMDYgOS4wNiAwIDAgMCAtMS4yIDQuNWgyNy41eiIgZmlsbD0iIzAwYWM0NyIvPg0KCTxwYXRoIGQ9Im03My41NSA3Ni44YzEuMzUtLjggMi41LTEuOSAzLjMtMy4zbDEuNi0yLjc1IDcuNjUtMTMuMjVjLjgtMS40IDEuMi0yLjk1IDEuMi00LjVoLTI3LjUwMmw1Ljg1MiAxMS41eiIgZmlsbD0iI2VhNDMzNSIvPg0KCTxwYXRoIGQ9Im00My42NSAyNSAxMy43NS0yMy44Yy0xLjM1LS44LTIuOS0xLjItNC41LTEuMmgtMTguNWMtMS42IDAtMy4xNS40NS00LjUgMS4yeiIgZmlsbD0iIzAwODMyZCIvPg0KCTxwYXRoIGQ9Im01OS44IDUzaC0zMi4zbC0xMy43NSAyMy44YzEuMzUuOCAyLjkgMS4yIDQuNSAxLjJoNTAuOGMxLjYgMCAzLjE1LS40NSA0LjUtMS4yeiIgZmlsbD0iIzI2ODRmYyIvPg0KCTxwYXRoIGQ9Im03My40IDI2LjUtMTIuNy0yMmMtLjgtMS40LTEuOTUtMi41LTMuMy0zLjNsLTEzLjc1IDIzLjggMTYuMTUgMjhoMjcuNDVjMC0xLjU1LS40LTMuMS0xLjItNC41eiIgZmlsbD0iI2ZmYmEwMCIvPg0KPC9zdmc+"
   }
 }
