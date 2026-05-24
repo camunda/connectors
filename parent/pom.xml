@@ -1144,7 +1144,7 @@ Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.21.0</version>
+          <version>3.22.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
