@@ -27,11 +27,13 @@ import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Parameter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class OperationBasedConnectorUtil {
 
@@ -102,10 +104,13 @@ public class OperationBasedConnectorUtil {
                 List<PropertyBuilder> properties =
                     TemplatePropertiesUtil.extractTemplatePropertiesFromParameter(
                         parameter, context);
-                return properties.stream()
-                    .map(
-                        property ->
-                            mapProperty(property, operation, variable, shouldMapParameterBindings))
+                return Stream.concat(
+                        properties.stream()
+                            .map(
+                                property ->
+                                    mapProperty(
+                                        property, operation, variable, shouldMapParameterBindings)),
+                        buildLinkedResourceProperties(parameter.getType(), operation).stream())
                     .toList();
               } else {
                 return List.of(buildHeaderProperty(operation, parameter));
@@ -113,6 +118,20 @@ public class OperationBasedConnectorUtil {
             })
         .flatMap(List::stream)
         .toList();
+  }
+
+  private static List<PropertyBuilder> buildLinkedResourceProperties(
+      Class<?> type, Operation operation) {
+    TemplateLinkedResource[] annotations = type.getAnnotationsByType(TemplateLinkedResource.class);
+    if (annotations.length == 0) {
+      return List.of();
+    }
+    String operationId = getOperationId(operation);
+    String idPrefix = operationId + OPERATION_PROPERTY_SEPARATOR;
+    PropertyCondition.Equals baseCondition =
+        new PropertyCondition.Equals(OPERATION_PROPERTY_ID, operationId);
+    return LinkedResourcePropertiesUtil.buildLinkedResourcePropertiesCore(
+        annotations, idPrefix, baseCondition, OPERATION_GROUP_ID);
   }
 
   private static PropertyBuilder buildHeaderProperty(Operation operation, Parameter parameter) {
