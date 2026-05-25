@@ -5,22 +5,22 @@
       "bearerToken": "{{secrets.MyToken}}"
     },
     "resource": {
-      "type":"file",
-      "parent":"optional my idFolderParent",
-      "name":"MyNewFile",
-      "additionalGoogleDriveProperties":{
-        "description":"xxx"
+      "type": "file",
+      "parent": "optional my idFolderParent",
+      "name": "MyNewFile",
+      "additionalGoogleDriveProperties": {
+        "description": "xxx"
       },
-      "template":{
-        "id":"121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
-        "variables":{
-          "requests":[
+      "template": {
+        "id": "121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
+        "variables": {
+          "requests": [
             {
-              "replaceAllText":{
-                "replaceText":"2022-08-03",
-                "containsText":{
-                  "matchCase":"true",
-                  "text":"{{recordDate}}"
+              "replaceAllText": {
+                "replaceText": "2022-08-03",
+                "containsText": {
+                  "matchCase": "true",
+                  "text": "{{recordDate}}"
                 }
               }
             }
@@ -37,22 +37,22 @@
       "oauthRefreshToken": "{{secrets.MyOauthRefresh}}"
     },
     "resource": {
-      "type":"file",
-      "parent":"optional my idFolderParent",
-      "name":"MyNewFile",
-      "additionalGoogleDriveProperties":{
-        "description":"xxx"
+      "type": "file",
+      "parent": "optional my idFolderParent",
+      "name": "MyNewFile",
+      "additionalGoogleDriveProperties": {
+        "description": "xxx"
       },
-      "template":{
-        "id":"121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
-        "variables":{
-          "requests":[
+      "template": {
+        "id": "121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
+        "variables": {
+          "requests": [
             {
-              "replaceAllText":{
-                "replaceText":"2022-08-03",
-                "containsText":{
-                  "matchCase":"true",
-                  "text":"{{recordDate}}"
+              "replaceAllText": {
+                "replaceText": "2022-08-03",
+                "containsText": {
+                  "matchCase": "true",
+                  "text": "{{recordDate}}"
                 }
               }
             }
@@ -69,23 +69,44 @@
       "oauthRefreshToken": "{{secrets.MyOauthRefresh}}"
     },
     "resource": {
-      "type":"file",
-      "parent":"optional my idFolderParent",
-      "name":"MyNewFile",
-      "template":{
-        "id":"121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
-        "variables":{
-          "requests":[
+      "type": "file",
+      "parent": "optional my idFolderParent",
+      "name": "MyNewFile",
+      "template": {
+        "id": "121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
+        "variables": {
+          "requests": [
             {
-              "replaceAllText":{
-                "replaceText":"2022-08-03",
-                "containsText":{
-                  "matchCase":"true",
-                  "text":"{{recordDate}}"
+              "replaceAllText": {
+                "replaceText": "2022-08-03",
+                "containsText": {
+                  "matchCase": "true",
+                  "text": "{{recordDate}}"
                 }
               }
             }
           ]
+        }
+      }
+    }
+  },
+  {
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "{{secrets.MyToken}}"
+    },
+    "resource": {
+      "type": "file",
+      "parent": "optional my idFolderParent",
+      "name": "MyNewFile",
+      "template": {
+        "id": "121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
+        "variables": {
+          "mode": "simple",
+          "replacements": {
+            "recordDate": "2022-08-03",
+            "customerName": "Acme Corp"
+          }
         }
       }
     }
