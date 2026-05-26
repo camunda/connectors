@@ -32,8 +32,16 @@ import io.camunda.connector.validator.rule.DefaultValueInChoicesRule;
 import io.camunda.connector.validator.rule.EmptyGroupRule;
 import io.camunda.connector.validator.rule.GroupTargetExistsRule;
 import io.camunda.connector.validator.rule.HybridParityRule;
+import io.camunda.connector.validator.rule.PresetConditionsSatisfiedRule;
+import io.camunda.connector.validator.rule.PresetCoverageRule;
+import io.camunda.connector.validator.rule.PresetIdResolvesRule;
+import io.camunda.connector.validator.rule.PresetIdUniqueRule;
+import io.camunda.connector.validator.rule.PresetOperationGroupConsistencyRule;
 import io.camunda.connector.validator.rule.PresetTargetExistsRule;
 import io.camunda.connector.validator.rule.SchemaRule;
+import io.camunda.connector.validator.rule.StepGroupShapeRule;
+import io.camunda.connector.validator.rule.StepLeafShapeRule;
+import io.camunda.connector.validator.rule.StepsPresetsPresentRule;
 import io.camunda.connector.validator.rule.TaskDefinitionBindingFormRule;
 import io.camunda.connector.validator.rule.UniqueGroupIdRule;
 import io.camunda.connector.validator.rule.UniqueIdVersionRule;
@@ -159,7 +167,15 @@ public class ValidatorCommand implements Callable<Integer> {
             new UniqueGroupIdRule(),
             new UniquePropertyIdRule(),
             new EmptyGroupRule(),
-            new TaskDefinitionBindingFormRule());
+            new TaskDefinitionBindingFormRule(),
+            new StepsPresetsPresentRule(),
+            new StepGroupShapeRule(),
+            new StepLeafShapeRule(),
+            new PresetIdUniqueRule(),
+            new PresetIdResolvesRule(),
+            new PresetOperationGroupConsistencyRule(),
+            new PresetConditionsSatisfiedRule(),
+            new PresetCoverageRule());
     List<Finding> findings = new ArrayList<>();
     for (Map.Entry<Path, JsonNode> entry : templates.entrySet()) {
       Path path = entry.getKey();

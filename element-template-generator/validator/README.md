@@ -87,11 +87,31 @@ diverge from the conventions enforced here.
 | `task-definition-binding-form`| The legacy binding type `zeebe:taskDefinition:type` is not allowed; use the canonical form `{ "type": "zeebe:taskDefinition", "property": "type" }`. The schema accepts both spellings, but generator output and all current templates use the canonical form. |
 | `empty-group`                 | Every declared `groups[].id` must be referenced by at least one property.                                                                                                                                     |
 
+### Operations-metadata rules
+
+These rules enforce the `steps` / `presets` contract used by the Modeler search/discovery UI.
+Connectors listed in `core/OperationMetadataIgnoreList` are exempt — other rules still run on those
+connectors, only the ops-metadata rules below skip them. Remove an entry from the ignore list once
+the connector's `@Searchable` annotations (or hand-authored JSON, for ET-only connectors) are in
+place.
+
+| Rule id                          | What it checks                                                                                                                                                                                                |
+|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `steps-presets-present`          | Both `steps` and `presets` are present at the template root and are non-empty arrays.                                                                                                                         |
+| `step-group-shape`               | Intermediate (group) step nodes have a non-empty `steps[]`; `description` is optional; **`keywords` is disallowed** (search aliases are leaf-only); no `presetId`.                                            |
+| `step-leaf-shape`                | Leaf step nodes have a non-blank `presetId` and a non-empty `keywords` array; `description` is optional.                                                                                                      |
+| `preset-id-unique`               | No two entries in `presets[]` share an `id`.                                                                                                                                                                  |
+| `preset-id-resolves`             | Every leaf step's `presetId` resolves to some `presets[].id`.                                                                                                                                                 |
+| `preset-target-exists`           | Each key inside `presets[].properties` references a template `properties[].id`; values match declared `choices` (union across duplicate-id declarations).                                                     |
+| `preset-operation-group-consistency`    | Every property key referenced from `presets[].properties` is declared with `group == "operation"`. The `operation` group is the first entry in `groups[]`.                                                    |
+| `preset-conditions-satisfied`    | For each preset, every pinned property's `condition` must hold under the preset's own assignment. Catches mutually-exclusive value pairings (e.g. setting `operationGroup=A` alongside a property gated on `operationGroup=B`). |
+| `preset-coverage`                | The set of `presets[]` and the set of leaf `steps[]` each enumerate **exactly** the reachable leaves of the discriminator tree (counts add across conditional branches, not multiply). Missing leaves, orphans, and duplicates are errors. |
+
 ### Multi-file rules (run once over the full set, including `versioned/`)
 
 | Rule id                          | What it checks                                                                                                                                                                                |
 |----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `hybrid-parity`                  | For every `hybrid/<base>-hybrid.json`, the non-hybrid sibling must exist and declare the same `properties[].id` and `groups[].id`. Known-intentional differences (`taskDefinitionType`, `connectorType` on the hybrid side; `deduplication*`, `consumeUnmatchedEvents`, `messageTtl` on the non-hybrid side) are allowlisted. |
+| `hybrid-parity`                  | For every `hybrid/<base>-hybrid.json`, the non-hybrid sibling must exist and declare the same `properties[].id` and `groups[].id`. Known-intentional differences (`taskDefinitionType`, `connectorType` on the hybrid side; `deduplication*`, `consumeUnmatchedEvents`, `messageTtl` on the non-hybrid side) are allowlisted. Additionally, `steps` and `presets` must be deep-equal between hybrid and non-hybrid (skipped for connectors on the ops-metadata ignore list). |
 | `versioned-template-consistency` | For each `versioned/<base>-<N>.json`, the file's `version` field must equal `N`. Files whose filename suffix starts with `0` (e.g. `-0`, `-01`, `-02`) are pre-versioning snapshots — a missing `version` field is tolerated, but a present one must still match. |
 | `current-version-bump`           | For each non-versioned template, the `version` field must be exactly one higher than the highest-versioned snapshot under the same `element-templates/` subtree that shares the same `id`. If no snapshot shares the id (e.g. an intentional `.vN` → `.v(N+1)` rename starts a new lineage), the rule is silent. |
 | `unique-id-version`              | No two templates (current or versioned) may share both the same `id` and the same `version`. The Modeler dedupes by id+version on import, so duplicates collide silently. Catches snapshots that weren't promoted to a new version and content changes that forgot to bump the version. |
