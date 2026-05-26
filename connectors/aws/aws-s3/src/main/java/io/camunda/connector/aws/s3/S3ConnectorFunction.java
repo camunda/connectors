@@ -21,7 +21,7 @@ import java.util.function.Function;
     inputVariables = {"authentication", "configuration", "actionDiscriminator", "action"},
     type = "io.camunda:aws-s3:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.aws.s3.v1",
     name = "AWS S3 Outbound Connector",
     description = "Execute S3 requests",
@@ -37,7 +37,7 @@ import java.util.function.Function;
       "file storage"
     },
     inputDataClass = S3Request.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

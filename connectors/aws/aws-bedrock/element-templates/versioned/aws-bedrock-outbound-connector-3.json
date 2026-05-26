@@ -5,7 +5,7 @@
   "description" : "Invoke models and converse using AWS Bedrock.",
   "keywords" : [ "invoke model", "run inference", "invokemodel API", "converse API", "converse", "AI", "LLM", "machine learning", "language model", "generative AI" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/",
-  "version" : 4,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.10"
+    "camunda" : "^8.6"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -299,247 +299,10 @@
     },
     "type" : "Number"
   }, {
-    "id" : "data_newDocuments_documentMode",
-    "label" : "Number of documents",
-    "value" : "none",
-    "group" : "converse",
-    "binding" : {
-      "name" : "data.data_newDocuments_documentMode",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "action",
-      "equals" : "converse",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "None",
-      "value" : "none"
-    }, {
-      "name" : "Single document",
-      "value" : "single"
-    }, {
-      "name" : "Multiple documents",
-      "value" : "multiple"
-    } ]
-  }, {
-    "id" : "data_newDocuments_single_documentSource",
-    "label" : "Document source",
-    "value" : "camunda",
-    "group" : "converse",
-    "binding" : {
-      "name" : "data.data_newDocuments_single_documentSource",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data_newDocuments_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "action",
-        "equals" : "converse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Camunda Document",
-      "value" : "camunda"
-    }, {
-      "name" : "Inline Content",
-      "value" : "inline"
-    }, {
-      "name" : "From URL",
-      "value" : "external"
-    } ]
-  }, {
-    "id" : "data_newDocuments_single_camundaReference",
-    "label" : "Camunda document",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "converse",
-    "binding" : {
-      "name" : "data.data_newDocuments_single_camundaReference",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data_newDocuments_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data_newDocuments_single_documentSource",
-        "equals" : "camunda",
-        "type" : "simple"
-      }, {
-        "property" : "action",
-        "equals" : "converse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data_newDocuments_single_inline_content",
-    "label" : "Content",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "converse",
-    "binding" : {
-      "name" : "data.data_newDocuments_single_inline_content",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data_newDocuments_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data_newDocuments_single_documentSource",
-        "equals" : "inline",
-        "type" : "simple"
-      }, {
-        "property" : "action",
-        "equals" : "converse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data_newDocuments_single_inline_fileName",
-    "label" : "File name",
-    "feel" : "optional",
-    "group" : "converse",
-    "binding" : {
-      "name" : "data.data_newDocuments_single_inline_fileName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data_newDocuments_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data_newDocuments_single_documentSource",
-        "equals" : "inline",
-        "type" : "simple"
-      }, {
-        "property" : "action",
-        "equals" : "converse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data_newDocuments_single_inline_contentType",
-    "label" : "Content type",
-    "feel" : "optional",
-    "group" : "converse",
-    "binding" : {
-      "name" : "data.data_newDocuments_single_inline_contentType",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data_newDocuments_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data_newDocuments_single_documentSource",
-        "equals" : "inline",
-        "type" : "simple"
-      }, {
-        "property" : "action",
-        "equals" : "converse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data_newDocuments_single_external_url",
-    "label" : "URL",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "converse",
-    "binding" : {
-      "name" : "data.data_newDocuments_single_external_url",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data_newDocuments_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data_newDocuments_single_documentSource",
-        "equals" : "external",
-        "type" : "simple"
-      }, {
-        "property" : "action",
-        "equals" : "converse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data_newDocuments_single_external_fileName",
-    "label" : "File name",
-    "feel" : "optional",
-    "group" : "converse",
-    "binding" : {
-      "name" : "data.data_newDocuments_single_external_fileName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data_newDocuments_documentMode",
-        "equals" : "single",
-        "type" : "simple"
-      }, {
-        "property" : "data_newDocuments_single_documentSource",
-        "equals" : "external",
-        "type" : "simple"
-      }, {
-        "property" : "action",
-        "equals" : "converse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data_newDocuments_multiple_expression",
-    "label" : "Documents",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "converse",
-    "binding" : {
-      "name" : "data.data_newDocuments_multiple_expression",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data_newDocuments_documentMode",
-        "equals" : "multiple",
-        "type" : "simple"
-      }, {
-        "property" : "action",
-        "equals" : "converse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
     "id" : "data.newDocuments",
-    "value" : "=if data_newDocuments_documentMode = \"multiple\" then data_newDocuments_multiple_expression else if data_newDocuments_documentMode = \"single\" then (if data_newDocuments_single_documentSource = \"camunda\" then [data_newDocuments_single_camundaReference] else if data_newDocuments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_newDocuments_single_inline_content, name: data_newDocuments_single_inline_fileName, contentType: data_newDocuments_single_inline_contentType }] else if data_newDocuments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_newDocuments_single_external_url, name: data_newDocuments_single_external_fileName }] else null) else null",
+    "label" : "documents",
+    "optional" : true,
+    "feel" : "required",
     "group" : "converse",
     "binding" : {
       "name" : "data.newDocuments",
@@ -550,12 +313,12 @@
       "equals" : "converse",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

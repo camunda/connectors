@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -124,13 +125,10 @@ public record SmtpSendEmail(
                     oneOf = {"HTML", "MULTIPART"}))
         @Valid
         String htmlBody,
-    @TemplateProperty(
-            label = "Attachment",
+    @TemplateDocumentProperty(
             group = "sendEmailSmtp",
             id = "attachmentsSmtp",
             tooltip = "Email's attachments, should be set as a list ",
-            type = TemplateProperty.PropertyType.String,
-            feel = FeelMode.required,
             optional = true,
             description = "Email's attachment. e.g., =[ document1, document2]",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.attachments"))
