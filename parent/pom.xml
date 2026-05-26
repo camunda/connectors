@@ -80,11 +80,11 @@ limitations under the License.</license.inlineheader>
     <version.grpc>1.81.0</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
-    <version.protobuf>4.34.1</version.protobuf>
+    <version.protobuf>4.35.0</version.protobuf>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
-    <version.junit-jupiter>6.0.3</version.junit-jupiter>
+    <version.junit-jupiter>6.1.0</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.21.3</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.21.3</version.jackson-datatype-jsr310>
@@ -99,12 +99,12 @@ limitations under the License.</license.inlineheader>
          Remove once Spring Boot upgrades to Tomcat >= 11.0.22 (likely in 4.0.7).
          Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
     <version.tomcat>11.0.22</version.tomcat>
-    <version.netty>4.2.13.Final</version.netty>
-    <version.spring-cloud-gcp-starter-logging>8.0.2</version.spring-cloud-gcp-starter-logging>
+    <version.netty>4.2.14.Final</version.netty>
+    <version.spring-cloud-gcp-starter-logging>8.0.3</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.44.8</version.aws-sdk2>
+    <version.aws-sdk2>2.44.12</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -139,9 +139,9 @@ limitations under the License.</license.inlineheader>
     <version.commons-io>2.22.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
-    <version.kafka-clients>4.2.0</version.kafka-clients>
+    <version.kafka-clients>4.3.0</version.kafka-clients>
 
-    <version.microsoft-graph>6.64.0</version.microsoft-graph>
+    <version.microsoft-graph>6.65.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.2</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.3</version.azure-identity>
@@ -176,7 +176,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
     <version.langchain4j>1.15.0</version.langchain4j>
-    <version.mcp-sdk>1.1.2</version.mcp-sdk>
+    <version.mcp-sdk>1.1.3</version.mcp-sdk>
     <version.elasticsearch-java-client>8.19.15</version.elasticsearch-java-client>
 
     <version.scala>3.8.3</version.scala>
@@ -577,6 +577,11 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>http-auth</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sts</artifactId>
         <version>${version.aws-sdk2}</version>
       </dependency>
 
@@ -1103,6 +1108,8 @@ Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575
                   <dependency>org.testcontainers:testcontainers</dependency>
                   <dependency>org.springframework.boot:spring-boot-starter-actuator</dependency>
                   <dependency>io.camunda.connector:connector-validation</dependency>
+                  <!-- runtime-only: loaded reflectively by DefaultCredentialsProvider for IRSA/WebIdentityTokenFileCredentialsProvider -->
+                  <dependency>software.amazon.awssdk:sts</dependency>
                 </ignoredUnusedDeclaredDependencies>
                 <ignoredUsedUndeclaredDependencies>
                   <!-- included in junit-jupiter, ignore for cleaner pom -->
@@ -1137,7 +1144,7 @@ Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.21.0</version>
+          <version>3.22.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

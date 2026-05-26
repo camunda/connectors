@@ -15,13 +15,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.exception.ModelNotFoundException;
 import dev.langchain4j.exception.UnresolvedModelServerException;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
@@ -102,7 +102,7 @@ class Langchain4JAiFrameworkAdapterTest {
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
   @Mock private JsonSchemaConverter jsonSchemaConverter;
 
-  @Mock private ChatModel chatModel;
+  @Mock private CloseableChatModel chatModel;
   @Mock private ChatResponse chatResponse;
 
   @Captor private ArgumentCaptor<ChatRequest> chatRequestCaptor;
@@ -297,6 +297,26 @@ class Langchain4JAiFrameworkAdapterTest {
     assertThat(adapterResponse.agentContext())
         .usingRecursiveComparison()
         .isEqualTo(AGENT_CONTEXT.withMetrics(AGENT_CONTEXT.metrics().withModelCalls(6)));
+  }
+
+  @Test
+  void closesChatModelAfterSuccessfulCall() throws Exception {
+    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
+    verify(chatModel).close();
+  }
+
+  @Test
+  void closesChatModelEvenWhenChatCallThrows() throws Exception {
+    reset(chatModel, chatResponse, chatMessageConverter);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    doThrow(new RuntimeException("model unavailable")).when(chatModel).chat(any(ChatRequest.class));
+
+    assertThatThrownBy(
+            () ->
+                adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
+        .isInstanceOf(ConnectorException.class);
+
+    verify(chatModel).close();
   }
 
   private AgentExecutionContext createExecutionContext() {

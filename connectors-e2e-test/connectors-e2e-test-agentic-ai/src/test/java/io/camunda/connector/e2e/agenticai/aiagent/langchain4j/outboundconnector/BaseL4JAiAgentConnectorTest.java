@@ -29,7 +29,6 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
@@ -37,6 +36,7 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -69,7 +69,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 @ExtendWith(MockitoExtension.class)
 abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
   @MockitoBean private ChatModelFactory chatModelFactory;
-  @Mock protected ChatModel chatModel;
+  @Mock protected CloseableChatModel chatModel;
   @Captor protected ArgumentCaptor<ChatRequest> chatRequestCaptor;
   @MockitoSpyBean protected AdHocToolsSchemaResolver toolsSchemaResolver;
 

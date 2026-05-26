@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.camunda.connector.api.secret.SecretProvider;
@@ -26,5 +27,15 @@ public class AwsSecretProviderTest {
   public void shouldFindSecretProviderImpl() {
     var a = ServiceLoader.load(SecretProvider.class);
     assertEquals(1, a.stream().count());
+  }
+
+  @Test
+  public void stsShouldBeOnClasspathForIrsaSupport() {
+    // AwsSecretProvider uses DefaultCredentialsProvider which includes
+    // WebIdentityTokenFileCredentialsProvider (IRSA) only when software.amazon.awssdk:sts
+    // is on the classpath. Without it IRSA is silently skipped.
+    assertThatCode(() -> Class.forName("software.amazon.awssdk.services.sts.StsClient"))
+        .as("software.amazon.awssdk:sts must be on the classpath for IRSA support")
+        .doesNotThrowAnyException();
   }
 }

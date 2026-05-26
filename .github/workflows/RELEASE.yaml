@@ -73,8 +73,6 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
           persist-credentials: false # we will use a GitHub App token for pushing commits and tags, so we need to disable the default token
-      - name: Install asdf & tools
-        uses: asdf-vm/actions/install@v4
       - name: Install bc calculator
         run: sudo apt-get update && sudo apt-get install -y bc
       - name: Identify previous release version
@@ -106,6 +104,11 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
 
       - name: Install element templates CLI
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
