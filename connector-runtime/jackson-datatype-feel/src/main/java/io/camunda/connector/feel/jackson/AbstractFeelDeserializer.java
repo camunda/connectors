@@ -185,9 +185,16 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
       return evaluator;
     }
     var override = ctx.getAttribute(FeelContextAwareObjectReader.FEEL_EVALUATOR_ATTRIBUTE);
+    if (override == null) {
+      return evaluator;
+    }
     if (override instanceof FeelExpressionEvaluator feelEvaluator) {
       return feelEvaluator;
     }
-    return evaluator;
+    throw new IllegalArgumentException(
+        "Attribute "
+            + FeelContextAwareObjectReader.FEEL_EVALUATOR_ATTRIBUTE
+            + " must be a FeelExpressionEvaluator, but was: "
+            + override.getClass());
   }
 }

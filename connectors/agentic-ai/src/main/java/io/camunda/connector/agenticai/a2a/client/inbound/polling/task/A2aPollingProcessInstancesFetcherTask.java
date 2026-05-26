@@ -112,7 +112,10 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
   }
 
   private String getRequestTaskKey(final ProcessInstanceContext processInstanceContext) {
-    return context.getDefinition().deduplicationId() + processInstanceContext.getKey();
+    return context.getDefinition().deduplicationId()
+        + processInstanceContext.getKey()
+        + ":"
+        + processInstanceContext.getElementInstanceKey();
   }
 
   public void start() {

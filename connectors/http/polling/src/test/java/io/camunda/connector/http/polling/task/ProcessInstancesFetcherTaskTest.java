@@ -97,6 +97,55 @@ public class ProcessInstancesFetcherTaskTest {
   }
 
   @Test
+  public void shouldScheduleSeparateTasksForMultipleTokensOfSameProcessInstance() {
+    // given: two element instances belonging to the same process instance (e.g. two tokens
+    // of a multi-instance subprocess reaching the same intermediate catch event)
+    when(mockProcessInstanceContext1.getKey()).thenReturn(1L);
+    when(mockProcessInstanceContext1.getElementInstanceKey()).thenReturn(10L);
+    when(mockProcessInstanceContext2.getKey()).thenReturn(1L);
+    when(mockProcessInstanceContext2.getElementInstanceKey()).thenReturn(20L);
+
+    doReturn((ScheduledFuture<?>) mockScheduledFuture)
+        .when(mockScheduledExecutorService)
+        .scheduleWithFixedDelay(any(), anyLong(), anyLong(), any());
+
+    when(mockContext.getProcessInstanceContexts())
+        .thenReturn(List.of(mockProcessInstanceContext1, mockProcessInstanceContext2));
+
+    // when
+    task.run();
+
+    // then: a distinct HTTP request task is scheduled per element instance
+    verify(mockScheduledExecutorService, times(2))
+        .scheduleWithFixedDelay(any(Runnable.class), eq(0L), eq(1000L), eq(TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  public void shouldCancelTaskWhenOneTokenCompletesEvenIfSiblingTokenSurvives() {
+    // given: two tokens at the same intermediate catch event in one process instance
+    when(mockProcessInstanceContext1.getKey()).thenReturn(1L);
+    when(mockProcessInstanceContext1.getElementInstanceKey()).thenReturn(10L);
+    when(mockProcessInstanceContext2.getKey()).thenReturn(1L);
+    when(mockProcessInstanceContext2.getElementInstanceKey()).thenReturn(20L);
+
+    doReturn((ScheduledFuture<?>) mockScheduledFuture)
+        .when(mockScheduledExecutorService)
+        .scheduleWithFixedDelay(any(), anyLong(), anyLong(), any());
+
+    // First tick has both tokens; second tick has only the surviving one
+    when(mockContext.getProcessInstanceContexts())
+        .thenReturn(List.of(mockProcessInstanceContext1, mockProcessInstanceContext2))
+        .thenReturn(List.of(mockProcessInstanceContext2));
+
+    // when
+    task.run();
+    task.run();
+
+    // then: the completed token's task is cancelled exactly once
+    verify(mockScheduledFuture, times(1)).cancel(true);
+  }
+
+  @Test
   public void shouldRemoveInactiveTasks() {
     // Given two active tasks initially
     when(mockProcessInstanceContext1.getKey()).thenReturn(1L);

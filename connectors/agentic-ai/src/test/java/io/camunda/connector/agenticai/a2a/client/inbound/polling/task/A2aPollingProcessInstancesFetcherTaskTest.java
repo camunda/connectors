@@ -451,8 +451,69 @@ class A2aPollingProcessInstancesFetcherTaskTest {
   }
 
   private ProcessInstanceContext mockProcessInstanceContext(Long key) {
+    return mockProcessInstanceContext(key, key * 10);
+  }
+
+  private ProcessInstanceContext mockProcessInstanceContext(Long key, Long elementInstanceKey) {
     ProcessInstanceContext processInstanceContext = mock(ProcessInstanceContext.class);
     when(processInstanceContext.getKey()).thenReturn(key);
+    when(processInstanceContext.getElementInstanceKey()).thenReturn(elementInstanceKey);
     return processInstanceContext;
+  }
+
+  @Test
+  void schedulesSeparateTasksForMultipleTokensOfSameProcessInstance() {
+    // given: two element instances belonging to the same process instance (e.g. two tokens
+    // of a multi-instance subprocess reaching the same intermediate catch event)
+    ProcessInstanceContext token1 = mockProcessInstanceContext(1L, 10L);
+    ProcessInstanceContext token2 = mockProcessInstanceContext(1L, 20L);
+
+    when(context.getProcessInstanceContexts()).thenReturn(List.of(token1, token2));
+    when(context.getDefinition()).thenReturn(inboundConnectorDefinition);
+    when(inboundConnectorDefinition.deduplicationId()).thenReturn(DEDUPLICATION_ID);
+
+    ScheduledFuture<?> future1 = mock(ScheduledFuture.class);
+    ScheduledFuture<?> future2 = mock(ScheduledFuture.class);
+    doReturn(future1)
+        .doReturn(future2)
+        .when(executorService)
+        .scheduleWithFixedDelay(any(A2aPollingTask.class), eq(TASK_POLLING_INTERVAL));
+
+    fetcherTask.run();
+
+    verify(executorService, times(2))
+        .scheduleWithFixedDelay(any(A2aPollingTask.class), eq(TASK_POLLING_INTERVAL));
+  }
+
+  @Test
+  void cancelsTaskOfCompletedTokenWhenSiblingTokenSurvives() {
+    // given: two tokens at the same intermediate catch event in one process instance
+    ProcessInstanceContext token1 = mockProcessInstanceContext(1L, 10L);
+    ProcessInstanceContext token2 = mockProcessInstanceContext(1L, 20L);
+
+    when(context.getDefinition()).thenReturn(inboundConnectorDefinition);
+    when(inboundConnectorDefinition.deduplicationId()).thenReturn(DEDUPLICATION_ID);
+
+    ScheduledFuture<?> future1 = mock(ScheduledFuture.class);
+    ScheduledFuture<?> future2 = mock(ScheduledFuture.class);
+    doReturn(future1)
+        .doReturn(future2)
+        .when(executorService)
+        .scheduleWithFixedDelay(pollingTaskCaptor.capture(), eq(TASK_POLLING_INTERVAL));
+
+    try (MockedConstruction<A2aPollingTask> mockedConstruction =
+        mockConstruction(A2aPollingTask.class)) {
+      when(context.getProcessInstanceContexts()).thenReturn(List.of(token1, token2));
+      fetcherTask.run();
+
+      // token1 completes; only token2 remains
+      when(context.getProcessInstanceContexts()).thenReturn(List.of(token2));
+      fetcherTask.run();
+
+      final var pollingTasks = pollingTaskCaptor.getAllValues();
+      verify(pollingTasks.get(0)).close();
+      verify(future1).cancel(true);
+      verify(future2, never()).cancel(true);
+    }
   }
 }

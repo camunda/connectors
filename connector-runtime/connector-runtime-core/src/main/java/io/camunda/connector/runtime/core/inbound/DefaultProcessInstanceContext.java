@@ -72,6 +72,11 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   }
 
   @Override
+  public Long getElementInstanceKey() {
+    return elementInstance.getElementInstanceKey();
+  }
+
+  @Override
   public <T> T bind(final Class<T> cls) {
     try {
       T mappedObject =
