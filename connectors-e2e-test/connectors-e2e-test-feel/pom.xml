@@ -6,7 +6,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-e2e-test-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>8.9.3</version>
+    <version>8.9.4</version>
   </parent>
 
   <description>E2E tests for FEEL expression evaluation via CamundaClient</description>
