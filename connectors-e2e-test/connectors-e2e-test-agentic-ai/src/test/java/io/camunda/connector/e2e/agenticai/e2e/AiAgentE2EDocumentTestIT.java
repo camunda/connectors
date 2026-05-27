@@ -23,6 +23,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
+import io.camunda.connector.runtime.core.document.DocumentMetadataImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
@@ -398,11 +399,13 @@ public class AiAgentE2EDocumentTestIT {
   private CamundaDocumentReferenceModel createDocumentRef(String resourcePath) {
     try {
       var fileName = resourcePath.substring(resourcePath.lastIndexOf('/') + 1);
-      var pdfBytes =
+      byte[] pdfBytes;
+      try (var stream =
           Objects.requireNonNull(
-                  AiAgentE2EDocumentTestIT.class.getResourceAsStream(resourcePath),
-                  "PDF resource not found: " + resourcePath)
-              .readAllBytes();
+              AiAgentE2EDocumentTestIT.class.getResourceAsStream(resourcePath),
+              "PDF resource not found: " + resourcePath)) {
+        pdfBytes = stream.readAllBytes();
+      }
 
       var response =
           camundaClient
@@ -417,8 +420,7 @@ public class AiAgentE2EDocumentTestIT {
           response.getStoreId(),
           response.getDocumentId(),
           response.getContentHash(),
-          new CamundaDocumentMetadataModel(
-              "application/pdf", null, null, fileName, null, null, null));
+          new CamundaDocumentMetadataModel(new DocumentMetadataImpl(response.getMetadata())));
     } catch (Exception e) {
       throw new RuntimeException("Failed to create document from resource: " + resourcePath, e);
     }
