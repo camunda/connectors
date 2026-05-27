@@ -18,8 +18,12 @@ import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.error.ConnectorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CamundaAgentInstanceClient implements AgentInstanceClient {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CamundaAgentInstanceClient.class);
 
   private final CamundaClient camundaClient;
   private final RetriesProperties retriesProperties;
@@ -39,15 +43,22 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         AgentInstanceErrorClassifier.FOR_CREATE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
-        (cause, attempt, reason) -> buildCreateException(cause, attempt, reason),
+        this::buildCreateException,
         sleeper);
   }
 
   private AgentInstanceKey executeCreate(AgentExecutionContext agentExecutionContext) {
+    final long elementInstanceKey = agentExecutionContext.jobContext().getElementInstanceKey();
+    LOGGER.debug(
+        "Creating agent instance for element instance {}: model={}, provider={}",
+        elementInstanceKey,
+        agentExecutionContext.provider().model(),
+        agentExecutionContext.provider().providerType());
+
     var command =
         camundaClient
             .newCreateAgentInstanceCommand()
-            .elementInstanceKey(agentExecutionContext.jobContext().getElementInstanceKey())
+            .elementInstanceKey(elementInstanceKey)
             .model(agentExecutionContext.provider().model())
             .provider(agentExecutionContext.provider().providerType())
             .systemPrompt(agentExecutionContext.systemPrompt().prompt());
@@ -56,7 +67,10 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     if (limits != null && limits.maxModelCalls() != null) {
       command = command.maxModelCalls(limits.maxModelCalls());
     }
-    return AgentInstanceKey.of(command.execute().getAgentInstanceKey());
+    final var key = AgentInstanceKey.of(command.execute().getAgentInstanceKey());
+    LOGGER.debug(
+        "Created agent instance {} for element instance {}", key.value(), elementInstanceKey);
+    return key;
   }
 
   @Override
@@ -66,6 +80,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentInstanceUpdateRequest request) {
     final var metadata = agentContext.metadata();
     if (metadata == null || metadata.agentInstanceKey() == null) {
+      LOGGER.debug("Skipping agent instance update: no agent instance key in context");
       return;
     }
     CamundaApiRetry.execute(
@@ -73,7 +88,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         AgentInstanceErrorClassifier.FOR_UPDATE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
-        (cause, attempt, reason) -> buildUpdateException(cause, attempt, reason),
+        this::buildUpdateException,
         sleeper);
   }
 
@@ -81,6 +96,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentExecutionContext executionContext,
       long agentInstanceKey,
       AgentInstanceUpdateRequest request) {
+    LOGGER.debug(
+        "Updating agent instance {}: status={}, delta={}",
+        agentInstanceKey,
+        request.status(),
+        request.delta());
     UpdateAgentInstanceCommandStep2 cmd =
         camundaClient
             .newUpdateAgentInstanceCommand(agentInstanceKey)
@@ -96,10 +116,10 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         cmd = cmd.modelCalls(delta.modelCalls());
       }
       if (delta.tokenUsage().inputTokenCount() != 0) {
-        cmd = cmd.inputTokens((long) delta.tokenUsage().inputTokenCount());
+        cmd = cmd.inputTokens(delta.tokenUsage().inputTokenCount());
       }
       if (delta.tokenUsage().outputTokenCount() != 0) {
-        cmd = cmd.outputTokens((long) delta.tokenUsage().outputTokenCount());
+        cmd = cmd.outputTokens(delta.tokenUsage().outputTokenCount());
       }
       if (delta.toolCalls() != 0) {
         cmd = cmd.toolCalls(delta.toolCalls());

@@ -36,9 +36,9 @@ import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.lang.Nullable;
 
 public abstract class BaseAgentRequestHandler<
         C extends AgentExecutionContext, R extends ConnectorResponse>
@@ -190,12 +190,7 @@ public abstract class BaseAgentRequestHandler<
     messagesHandler.addSystemMessage(
         executionContext, agentContext, runtimeMemory, executionContext.systemPrompt());
 
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "Adding user messages including the following {} tool call results: {}",
-          toolCallResults.size(),
-          toolCallResults.stream().map(tcr -> Pair.of(tcr.id(), tcr.name())).toList());
-    }
+    logToolCallResults(toolCallResults);
     return messagesHandler.addUserMessages(
         executionContext,
         agentContext,
@@ -217,6 +212,7 @@ public abstract class BaseAgentRequestHandler<
   }
 
   private AgentMetrics notifyThinking(C executionContext, AgentContext agentContext) {
+    LOGGER.debug("Notifying agent instance: status=THINKING before LLM call");
     final var snapshot = agentContext.metrics();
     agentInstanceClient.update(
         executionContext,
@@ -229,6 +225,8 @@ public abstract class BaseAgentRequestHandler<
       C executionContext, AgentContext agentContext, AgentMetrics preChatMetrics) {
     final var metricsDelta = agentContext.metrics().minus(preChatMetrics);
     final var nextStatus = nextAgentInstanceState(metricsDelta.toolCalls());
+
+    logAgentInstancePostLlmUpdate(nextStatus, metricsDelta);
 
     // Exclude toolCalls from the post-chat PATCH: tool calls are reported on job completion
     // so superseded/failed jobs don't inflate the count.
@@ -292,6 +290,33 @@ public abstract class BaseAgentRequestHandler<
       final AgentResponse agentResponse,
       final AgentJobCompletionListener completionListener);
 
+  private void logToolCallResults(List<ToolCallResult> toolCallResults) {
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "Adding user messages including the following {} tool call results: {}",
+          toolCallResults.size(),
+          toolCallResults.stream().map(tcr -> Pair.of(tcr.id(), tcr.name())).toList());
+    }
+  }
+
+  private void logAgentInstancePostLlmUpdate(
+      AgentInstanceUpdateStatus nextStatus, AgentMetrics metricsDelta) {
+    if (!LOGGER.isDebugEnabled()) {
+      return;
+    }
+    LOGGER.debug(
+        "Updating agent instance after LLM response: status={}, modelCalls=+{}, inputTokens=+{}, outputTokens=+{}",
+        nextStatus,
+        metricsDelta.modelCalls(),
+        metricsDelta.tokenUsage().inputTokenCount(),
+        metricsDelta.tokenUsage().outputTokenCount());
+    if (metricsDelta.toolCalls() > 0) {
+      LOGGER.debug(
+          "{} tool call(s) will be reported to agent instance on job completion",
+          metricsDelta.toolCalls());
+    }
+  }
+
   private AgentJobCompletionListener createToolCallsCompletionListener(
       C executionContext, AgentResponse agentResponse, int toolCallsDelta) {
     if (agentResponse == null || toolCallsDelta <= 0) {
@@ -302,6 +327,9 @@ public abstract class BaseAgentRequestHandler<
       @Override
       public void onJobCompleted() {
         try {
+          LOGGER.debug(
+              "Reporting {} deferred tool call(s) to agent instance on job completion",
+              toolCallsDelta);
           agentInstanceClient.update(
               executionContext,
               agentContext,
