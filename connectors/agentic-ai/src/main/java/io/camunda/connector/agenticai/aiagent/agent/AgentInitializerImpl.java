@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -21,31 +22,28 @@ import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class AgentInitializerImpl implements AgentInitializer {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AgentInitializerImpl.class);
-
   private final AgentToolsResolver toolsResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final AgentInstanceClient agentInstanceClient;
 
   public AgentInitializerImpl(
-      AgentToolsResolver toolsResolver, GatewayToolHandlerRegistry gatewayToolHandlers) {
+      AgentToolsResolver toolsResolver,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentInstanceClient agentInstanceClient) {
     this.toolsResolver = toolsResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.agentInstanceClient = agentInstanceClient;
   }
 
   @Override
   public AgentInitializationResult initializeAgent(AgentExecutionContext executionContext) {
     AgentContext agentContext =
         Optional.ofNullable(executionContext.initialAgentContext())
-            .orElseGet(
-                () ->
-                    AgentContext.empty()
-                        .withMetadata(AgentMetadata.of(executionContext.jobContext())));
+            .orElseGet(() -> createAgentContext(executionContext));
 
     List<ToolCallResult> toolCallResults =
         Optional.ofNullable(executionContext.initialToolCallResults()).orElseGet(List::of);
@@ -55,6 +53,21 @@ public class AgentInitializerImpl implements AgentInitializer {
       case TOOL_DISCOVERY -> handleToolDiscoveryResults(agentContext, toolCallResults);
       default -> handleReadyState(executionContext, agentContext, toolCallResults);
     };
+  }
+
+  /**
+   * Creates the initial agent context by first registering the agent instance on the engine. The
+   * returned key is embedded in the context metadata.
+   *
+   * @throws io.camunda.connector.api.error.ConnectorException with code {@code
+   *     AGENT_INSTANCE_CREATION_FAILED} when retries are exhausted or a non-retryable error occurs
+   */
+  private AgentContext createAgentContext(AgentExecutionContext executionContext) {
+    final var agentInstanceKey = agentInstanceClient.create(executionContext);
+    return AgentContext.empty()
+        .withMetadata(
+            AgentMetadata.of(executionContext.jobContext())
+                .withAgentInstanceKey(agentInstanceKey.value()));
   }
 
   private AgentInitializationResult handleReadyState(

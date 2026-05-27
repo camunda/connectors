@@ -36,6 +36,11 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
     return BEDROCK_ID;
   }
 
+  @Override
+  public String model() {
+    return bedrock.model.model();
+  }
+
   public record BedrockConnection(
       @NotBlank
           @TemplateProperty(
