@@ -733,6 +733,19 @@ limitations under the License.</license.inlineheader>
       <url>https://artifacts.camunda.com/artifactory/zeebe-io-snapshots/</url>
     </repository>
 
+    <!-- HeroDevs Never-Ending Support (NES) -->
+    <repository>
+      <id>herodevs-nes</id>
+      <name>HeroDevs NES Repository</name>
+      <url>https://artifacts.camunda.com/artifactory/herodevs-nes</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+
     <!-- opensaml dependencies for soap connector -->
     <repository>
       <id>shibboleth</id>
@@ -747,6 +760,21 @@ limitations under the License.</license.inlineheader>
       </snapshots>
     </repository>
   </repositories>
+
+  <pluginRepositories>
+    <!-- HeroDevs Never-Ending Support (NES) -->
+    <pluginRepository>
+      <id>herodevs-nes</id>
+      <name>HeroDevs NES Repository</name>
+      <url>https://artifacts.camunda.com/artifactory/herodevs-nes</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </pluginRepository>
+  </pluginRepositories>
 
   <build>
     <pluginManagement>
