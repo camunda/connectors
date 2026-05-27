@@ -366,9 +366,10 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       ConnectorResult.ErrorResult result,
       CounterMetricsContext counterMetricsContext) {
-    final var command = prepareFailJobCommand(client, job, result);
-    return jobCallbackCommandWrapperFactory
-        .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
+    JobCallbackFinalCommandStep<FailJobResponse> commandStep =
+        prepareFailJobCommand(client, job, result);
+    jobCallbackCommandWrapperFactory
+        .create(commandStep, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
   }
 
@@ -399,9 +400,10 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       BpmnError value,
       CounterMetricsContext counterMetricsContext) {
-    final var command = prepareThrowBpmnErrorCommand(client, job, value);
-    return jobCallbackCommandWrapperFactory
-        .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
+    JobCallbackFinalCommandStep<ThrowErrorResponse> commandStep =
+        prepareThrowBpmnErrorCommand(client, job, value);
+    jobCallbackCommandWrapperFactory
+        .create(commandStep, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
   }
 
@@ -424,7 +426,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       CounterMetricsContext counterMetricsContext) {
     ConnectorResponse connectorResponse = result.connectorResponse();
 
-    final var command =
+    JobCallbackFinalCommandStep<CompleteJobResponse> commandStep =
         switch (connectorResponse) {
           case StandardConnectorResponse ignored -> prepareCompleteJobCommand(client, job, result);
           case AdHocSubProcessConnectorResponse ahsp ->
