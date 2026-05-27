@@ -204,7 +204,7 @@ public abstract class BaseAgentRequestHandler<
     final var assistantToolCalls = chatResponse.assistantMessage().toolCalls();
     final int toolCallsDelta = Optional.ofNullable(assistantToolCalls).map(List::size).orElse(0);
 
-    if (toolCallsDelta <= 0) {
+    if (toolCallsDelta == 0) {
       return agentContext;
     }
 
@@ -228,7 +228,7 @@ public abstract class BaseAgentRequestHandler<
 
     logAgentInstancePostLlmUpdate(nextStatus, metricsDelta);
 
-    // Exclude toolCalls from the post-chat PATCH: tool calls are reported on job completion
+    // Exclude toolCalls: tool calls are reported on job completion
     // so superseded/failed jobs don't inflate the count.
     agentInstanceClient.update(
         executionContext,
