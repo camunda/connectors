@@ -64,8 +64,7 @@ public class AiAgentE2EDocumentTestIT {
   private static final String PROCESS_ID = "ai-agent-e2e-document";
   private static final String HTTP_JSON_JOB_TYPE = "io.camunda:http-json:1";
 
-  private static final String DOC_PROJECT_LAUNCH =
-      "/document-tool-call-results/project-launch.pdf";
+  private static final String DOC_PROJECT_LAUNCH = "/document-tool-call-results/project-launch.pdf";
   private static final String DOC_HEADCOUNT_REPORT =
       "/document-tool-call-results/headcount-report.pdf";
   private static final String DOC_AUTHOR_INFO = "/document-tool-call-results/author-info.pdf";
@@ -112,11 +111,12 @@ public class AiAgentE2EDocumentTestIT {
                                 createDocumentRef(DOC_HEADCOUNT_REPORT)),
                             "metadata",
                             Map.of("cover", createDocumentRef(DOC_AUTHOR_INFO)));
-                    case "Get_External_Document" -> createInlineDocumentRef(
-                        "The Specification Document v2.0 defines the API architecture for the"
-                            + " XR-7 platform integration layer.",
-                        "Spec Sheet",
-                        "text/plain");
+                    case "Get_External_Document" ->
+                        createInlineDocumentRef(
+                            "The Specification Document v2.0 defines the API architecture for the"
+                                + " XR-7 platform integration layer.",
+                            "Spec Sheet",
+                            "text/plain");
                     case "Download_Corrupted_Report" -> createBrokenDocumentRef();
                     default -> null;
                   };
@@ -400,7 +400,7 @@ public class AiAgentE2EDocumentTestIT {
       var fileName = resourcePath.substring(resourcePath.lastIndexOf('/') + 1);
       var pdfBytes =
           Objects.requireNonNull(
-                  getClass().getResourceAsStream(resourcePath),
+                  AiAgentE2EDocumentTestIT.class.getResourceAsStream(resourcePath),
                   "PDF resource not found: " + resourcePath)
               .readAllBytes();
 
@@ -425,9 +425,8 @@ public class AiAgentE2EDocumentTestIT {
   }
 
   /**
-   * Creates an inline document reference containing text content directly embedded in the
-   * variable. No network call is needed to fetch the content; the AI Agent connector reads it
-   * inline.
+   * Creates an inline document reference containing text content directly embedded in the variable.
+   * No network call is needed to fetch the content; the AI Agent connector reads it inline.
    */
   private InlineDocumentReferenceModel createInlineDocumentRef(
       String content, String name, String contentType) {
@@ -435,9 +434,9 @@ public class AiAgentE2EDocumentTestIT {
   }
 
   /**
-   * Creates a broken Camunda document reference with a non-existent document ID. When the AI
-   * Agent connector attempts to fetch the content, it will fail, causing either a process incident
-   * or a graceful error response from the agent.
+   * Creates a broken Camunda document reference with a non-existent document ID. When the AI Agent
+   * connector attempts to fetch the content, it will fail, causing either a process incident or a
+   * graceful error response from the agent.
    */
   private CamundaDocumentReferenceModel createBrokenDocumentRef() {
     return new CamundaDocumentReferenceModel(
