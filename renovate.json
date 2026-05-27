@@ -1,10 +1,19 @@
 {
   "extends": [
-    "config:base"
+    "config:base",
+    "github>camunda/infra-renovate-config:herodevs.json5"
   ],
   "labels": [
     "dependencies",
     "no milestone"
+  ],
+  "hostRules": [
+    {
+      "hostType": "maven",
+      "matchHost": "https://artifacts.camunda.com",
+      "username": "{{ secrets.ARTIFACTORY_USERNAME }}",
+      "password": "{{ secrets.ARTIFACTORY_PASSWORD }}"
+    }
   ],
   "packageRules": [
     {
