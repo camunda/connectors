@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "github>camunda/infra-renovate-config:herodevs.json5"
   ],
   "commitMessagePrefix": "deps:",
   "dependencyDashboard": true,
@@ -35,6 +36,12 @@
       "matchHost": "https://reg.mini.dev",
       "username": "minimus",
       "password": "{{ secrets.INFRA_MINIMUS_REGISTRY_TOKEN }}"
+    },
+    {
+      "hostType": "maven",
+      "matchHost": "https://artifacts.camunda.com",
+      "username": "{{ secrets.ARTIFACTORY_USERNAME }}",
+      "password": "{{ secrets.ARTIFACTORY_PASSWORD }}"
     }
   ],
   "packageRules": [
