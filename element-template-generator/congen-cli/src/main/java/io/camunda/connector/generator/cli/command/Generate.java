@@ -28,6 +28,7 @@ import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.cli.GeneratorServiceLoader;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.java.json.ElementTemplateModule;
+import io.camunda.connector.optimizer.core.Optimizer;
 import java.util.List;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
@@ -95,26 +96,36 @@ public class Generate implements Callable<Integer> {
       return GENERATION_FAILED.getCode();
     }
     try {
-      String resultString;
+      Optimizer optimizer = Optimizer.defaultPipeline();
+      templates = templates.stream().map(optimizer::optimize).toList();
+    } catch (RuntimeException e) {
+      System.err.println("Optimization failed: " + e.getMessage());
+      return OPTIMIZATION_FAILED.getCode();
+    }
+    String resultString;
+    try {
       if (templates.size() == 1) {
         resultString =
             mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates.getFirst());
       } else {
         resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates);
       }
-      List<Error> errors = jsonSchema.validate(resultString, InputFormat.JSON);
-      if (!errors.isEmpty()) {
-        System.err.println("Validation failed:");
-        for (Error error : errors) {
-          System.err.println(error.getMessage());
-        }
-        return JSON_SCHEMA_VALIDATION_FAILED.getCode();
-      }
-      System.out.println(resultString);
-      return SUCCESS.getCode();
     } catch (JsonProcessingException e) {
-      System.err.println("Failed to serialize the result: " + e.getMessage());
-      return GENERATION_FAILED.getCode();
+      // Serialization runs on the post-optimize template, so a failure here means the optimizer
+      // produced something Jackson can't write — categorically an optimization failure, not a
+      // generation failure.
+      System.err.println("Failed to serialize the optimized template: " + e.getMessage());
+      return OPTIMIZATION_FAILED.getCode();
     }
+    List<Error> errors = jsonSchema.validate(resultString, InputFormat.JSON);
+    if (!errors.isEmpty()) {
+      System.err.println("Validation failed:");
+      for (Error error : errors) {
+        System.err.println(error.getMessage());
+      }
+      return JSON_SCHEMA_VALIDATION_FAILED.getCode();
+    }
+    System.out.println(resultString);
+    return SUCCESS.getCode();
   }
 }

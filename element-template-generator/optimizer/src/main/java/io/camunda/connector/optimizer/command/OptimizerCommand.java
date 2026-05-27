@@ -20,8 +20,10 @@ import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.optimizer.core.Optimizer;
 import io.camunda.connector.optimizer.core.Pass;
 import io.camunda.connector.optimizer.core.TemplateLoader;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,25 @@ import picocli.CommandLine.Parameters;
     mixinStandardHelpOptions = true,
     subcommands = {ListPassesCommand.class})
 public class OptimizerCommand implements Callable<Integer> {
+
+  /** Exit codes returned by the optimizer CLI. */
+  enum ExitCode {
+    SUCCESS(0),
+    /** Input file is missing, unreadable, or not a regular file. */
+    BAD_INPUT(1),
+    /** CLI arguments are invalid (e.g. unknown id in --skip-passes). */
+    BAD_ARGS(2),
+    /** Template JSON could not be parsed. */
+    LOAD_FAILED(3),
+    /** An optimizer pass threw an exception. */
+    OPTIMIZE_FAILED(4);
+
+    final int code;
+
+    ExitCode(int code) {
+      this.code = code;
+    }
+  }
 
   @Parameters(index = "0", description = "Template file to optimize", paramLabel = "INPUT_FILE")
   private Path inputFile;
@@ -60,7 +81,7 @@ public class OptimizerCommand implements Callable<Integer> {
   public Integer call() throws Exception {
     if (!Files.isRegularFile(inputFile)) {
       System.err.println("Error: input file does not exist or is not a regular file: " + inputFile);
-      return 1;
+      return ExitCode.BAD_INPUT.code;
     }
 
     Optimizer optimizer;
@@ -68,11 +89,11 @@ public class OptimizerCommand implements Callable<Integer> {
       optimizer = Optimizer.defaultPipelineExcept(skipPasses);
     } catch (IllegalArgumentException e) {
       System.err.println("Error: " + e.getMessage());
-      return 2;
+      return ExitCode.BAD_ARGS.code;
     }
     if (optimizer.passes().isEmpty()) {
       System.err.println("Error: every pass was skipped, nothing to do");
-      return 1;
+      return ExitCode.BAD_ARGS.code;
     }
 
     System.out.println("Optimizing: " + inputFile);
@@ -81,16 +102,16 @@ public class OptimizerCommand implements Callable<Integer> {
     ElementTemplate original;
     try {
       original = TemplateLoader.load(inputFile);
-    } catch (java.io.IOException e) {
+    } catch (IOException e) {
       System.err.println("Error: failed to read template " + inputFile + ": " + e.getMessage());
-      return 3;
+      return ExitCode.LOAD_FAILED.code;
     }
     ElementTemplate optimized;
     try {
       optimized = optimizer.optimize(original);
     } catch (RuntimeException e) {
       System.err.println("Error: optimizer pass failed on " + inputFile + ": " + e.getMessage());
-      return 4;
+      return ExitCode.OPTIMIZE_FAILED.code;
     }
 
     String originalJson = TemplateLoader.toString(original);
@@ -99,16 +120,41 @@ public class OptimizerCommand implements Callable<Integer> {
 
     if (dryRun) {
       System.out.println(changed ? "Would rewrite: " + inputFile : "No changes needed");
-      return 0;
+      return ExitCode.SUCCESS.code;
     }
 
     Path output = outputFile != null ? outputFile : inputFile;
     if (outputFile != null && outputFile.getParent() != null) {
       Files.createDirectories(outputFile.getParent());
     }
-    TemplateLoader.save(optimized, output);
+    atomicWrite(optimized, output);
     System.out.println(changed ? "Wrote: " + output : "No changes needed; wrote: " + output);
-    return 0;
+    return ExitCode.SUCCESS.code;
+  }
+
+  /**
+   * Serialize the template to a sibling temp file, then atomically move it onto the destination.
+   * Prevents a Ctrl-C / crash between truncate and write from leaving the destination empty or
+   * half-written — important for the default in-place rewrite mode.
+   */
+  private static void atomicWrite(ElementTemplate template, Path destination) throws IOException {
+    Path dir = destination.toAbsolutePath().getParent();
+    Path tempFile = Files.createTempFile(dir, ".optimizer-", ".tmp");
+    try {
+      TemplateLoader.save(template, tempFile);
+      Files.move(
+          tempFile,
+          destination,
+          StandardCopyOption.ATOMIC_MOVE,
+          StandardCopyOption.REPLACE_EXISTING);
+    } catch (Throwable t) {
+      try {
+        Files.deleteIfExists(tempFile);
+      } catch (IOException ignored) {
+        // Best effort; the temp file name is .optimizer-*.tmp so it's identifiable.
+      }
+      throw t;
+    }
   }
 }
 

@@ -205,4 +205,68 @@ class MergeByIdentityPassTest {
 
     assertThat(result.properties()).hasSize(2);
   }
+
+  @Test
+  void shouldPreserveNullFeelOnStringPropertyRoundTrip() {
+    // StringPropertyBuilder.build() defaults a null feel to FeelMode.optional, so going through
+    // the builder would silently stamp feel="optional" onto every untouched String property.
+    // PropertyUtils sidesteps the builder for exactly this reason; pin the behaviour.
+    StringProperty leftPin =
+        (StringProperty)
+            StringProperty.builder()
+                .id("a")
+                .binding(zeebeInput("x"))
+                .value("v")
+                .condition(equalsCondition("op", "a"))
+                .build();
+    StringProperty rightPin =
+        (StringProperty)
+            StringProperty.builder()
+                .id("b")
+                .binding(zeebeInput("x"))
+                .value("v")
+                .condition(equalsCondition("op", "b"))
+                .build();
+    // Builders populate feel=optional; null out the field by hand via constructor to model a
+    // property that genuinely had no feel set.
+    StringProperty leftNoFeel = withNullFeel(leftPin);
+    StringProperty rightNoFeel = withNullFeel(rightPin);
+
+    ElementTemplate result = pass.apply(template(leftNoFeel, rightNoFeel));
+
+    assertThat(result.properties()).hasSize(1);
+    assertThat(result.properties().get(0).getFeel()).isNull();
+  }
+
+  @Test
+  void shouldNotMergeDropdownsWithDifferentChoices() {
+    // Two dropdowns identical in binding/value/group/etc. but with different choices used to
+    // hash equal under PropertyIdentity and merge, silently dropping one set of choices.
+    ElementTemplate input =
+        template(
+            dropdownProperty("left", "a", zeebeInput("op"), choice("a", "a"), choice("b", "b")),
+            dropdownProperty("right", "a", zeebeInput("op"), choice("a", "a"), choice("c", "c")));
+
+    ElementTemplate result = pass.apply(input);
+
+    assertThat(result.properties()).hasSize(2);
+  }
+
+  private static StringProperty withNullFeel(StringProperty source) {
+    return new StringProperty(
+        source.getId(),
+        source.getLabel(),
+        source.getDescription(),
+        source.isOptional(),
+        (String) source.getValue(),
+        source.getGeneratedValue(),
+        source.getConstraints(),
+        null,
+        source.getGroup(),
+        source.getBinding(),
+        source.getCondition(),
+        source.getTooltip(),
+        source.getPlaceholder(),
+        source.getExampleValue());
+  }
 }

@@ -29,6 +29,9 @@ import java.util.List;
  *
  * <p>Transforms {@code oneOf: ["x"]} into {@code equals: "x"}. This is a cosmetic improvement that
  * matches what generators emit naturally.
+ *
+ * <p>Only rewrites top-level conditions; nested conditions inside {@code AllMatch} are not
+ * traversed.
  */
 public class StrengthReducePass implements Pass {
 

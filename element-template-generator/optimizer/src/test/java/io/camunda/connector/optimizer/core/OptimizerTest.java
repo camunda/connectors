@@ -88,21 +88,21 @@ class OptimizerTest {
   @Test
   void defaultPassesEnumeratesEveryPassInOrder() {
     assertThat(Optimizer.defaultPasses().keySet())
-        .containsExactly("merge-by-identity", "totalize", "strength-reduce", "reorder");
+        .containsExactly("merge-by-identity", "totalize", "strength-reduce");
   }
 
   @Test
   void skippingEveryPassYieldsEmptyPipeline() {
     var optimizer =
         Optimizer.defaultPipelineExcept(
-            List.of(MergeByIdentityPass.ID, TotalizePass.ID, "strength-reduce", "reorder"));
+            List.of(MergeByIdentityPass.ID, TotalizePass.ID, "strength-reduce"));
     assertThat(optimizer.passes()).isEmpty();
   }
 
   @Test
   void defaultPipelineExceptRejectsUnknownPassIds() {
     assertThatThrownBy(
-            () -> Optimizer.defaultPipelineExcept(List.of("merg-by-identity", "reorder")))
+            () -> Optimizer.defaultPipelineExcept(List.of("merg-by-identity", "totalize")))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("merg-by-identity")
         .hasMessageContaining("merge-by-identity"); // the known list is listed for the user

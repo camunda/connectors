@@ -18,14 +18,15 @@ package io.camunda.connector.optimizer.core;
 
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.optimizer.pass.MergeByIdentityPass;
-import io.camunda.connector.optimizer.pass.ReorderPass;
 import io.camunda.connector.optimizer.pass.StrengthReducePass;
 import io.camunda.connector.optimizer.pass.TotalizePass;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -37,11 +38,7 @@ import java.util.Set;
 public final class Optimizer {
 
   private static final List<Pass> DEFAULT_PASSES =
-      List.of(
-          new MergeByIdentityPass(),
-          new TotalizePass(),
-          new StrengthReducePass(),
-          new ReorderPass());
+      List.of(new MergeByIdentityPass(), new TotalizePass(), new StrengthReducePass());
 
   private final List<Pass> passes;
 
@@ -49,7 +46,7 @@ public final class Optimizer {
     this.passes = List.copyOf(passes);
   }
 
-  /** Returns an optimizer running every default pass in the canonical order. */
+  /** Returns an optimizer running every default pass in order. */
   public static Optimizer defaultPipeline() {
     return new Optimizer(DEFAULT_PASSES);
   }
@@ -85,8 +82,24 @@ public final class Optimizer {
     return new Optimizer(filtered);
   }
 
-  /** Returns an optimizer running exactly the given passes. */
+  /**
+   * Returns an optimizer running exactly the given passes.
+   *
+   * @throws NullPointerException if {@code passes} or any element is null.
+   * @throws IllegalArgumentException if the list is empty or contains a duplicate pass id.
+   */
   public static Optimizer withPasses(List<Pass> passes) {
+    Objects.requireNonNull(passes, "passes must not be null");
+    if (passes.isEmpty()) {
+      throw new IllegalArgumentException("Optimizer requires at least one pass");
+    }
+    Set<String> ids = new HashSet<>();
+    for (Pass pass : passes) {
+      Objects.requireNonNull(pass, "passes must not contain null elements");
+      if (!ids.add(pass.id())) {
+        throw new IllegalArgumentException("Duplicate pass id in pipeline: " + pass.id());
+      }
+    }
     return new Optimizer(passes);
   }
 

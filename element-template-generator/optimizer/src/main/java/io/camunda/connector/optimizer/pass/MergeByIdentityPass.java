@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.optimizer.pass;
 
+import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyCondition;
@@ -33,6 +34,9 @@ import java.util.stream.Collectors;
  *
  * <p>The merged property's id is chosen by stripping per-operation prefixes from the source ids to
  * a neutral form.
+ *
+ * <p>Properties with {@code AllMatch} or {@code IsActive} conditions are passed through unchanged —
+ * merging through composite conditions would require a real combinator pass.
  */
 public class MergeByIdentityPass implements Pass {
 
@@ -184,8 +188,7 @@ public class MergeByIdentityPass implements Pass {
    * <p>E.g., {@code search_query_locale}, {@code autocomplete_query_locale} -&gt; {@code
    * query_locale}.
    *
-   * <p>If the chosen id is already used elsewhere in the template, falls back to the longest
-   * original id (which is guaranteed to differ from the candidate); failing that, appends a numeric
+   * <p>If the chosen id collides with an existing one, {@link #disambiguate} appends a numeric
    * suffix until a free id is found.
    */
   private String chooseNeutralId(List<Property> group, Set<String> reservedIds) {
@@ -197,11 +200,10 @@ public class MergeByIdentityPass implements Pass {
     }
 
     String commonSuffix = longestCommonSuffix(ids);
-    String candidate = null;
+    String candidate;
     if (!commonSuffix.isEmpty() && commonSuffix.contains("_")) {
       candidate = commonSuffix.replaceFirst("^_+", "");
-    }
-    if (candidate == null || reservedIds.contains(candidate)) {
+    } else {
       // Prefer the longest original id, with lexicographic tie-break so the choice is
       // deterministic across JVMs and run-to-run.
       candidate =
@@ -281,7 +283,12 @@ public class MergeByIdentityPass implements Pass {
           && Objects.equals(p1.getConstraints(), p2.getConstraints())
           && Objects.equals(p1.getPlaceholder(), p2.getPlaceholder())
           && Objects.equals(p1.getTooltip(), p2.getTooltip())
-          && Objects.equals(p1.getExampleValue(), p2.getExampleValue());
+          && Objects.equals(p1.getExampleValue(), p2.getExampleValue())
+          && Objects.equals(choicesOf(p1), choicesOf(p2));
+    }
+
+    private static List<DropdownProperty.DropdownChoice> choicesOf(Property p) {
+      return p instanceof DropdownProperty d ? d.getChoices() : null;
     }
 
     @Override
@@ -300,7 +307,8 @@ public class MergeByIdentityPass implements Pass {
           p.getConstraints(),
           p.getPlaceholder(),
           p.getTooltip(),
-          p.getExampleValue());
+          p.getExampleValue(),
+          choicesOf(p));
     }
   }
 }

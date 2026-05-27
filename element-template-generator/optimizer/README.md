@@ -2,24 +2,11 @@
 
 Compacts Camunda element templates by collapsing conditional properties into smaller, semantically-equivalent forms.
 
-The optimizer runs four passes in sequence:
+The optimizer runs three passes in sequence:
 
 1. **merge-by-identity** — merges properties that differ only in their condition value
 2. **totalize** — drops conditions that cover every discriminator value (current implementation considers only `Dropdown` properties as discriminators; a hidden property with a constant value would also be a tautological discriminator but is not yet recognised)
 3. **strength-reduce** — rewrites singleton `oneOf` as `equals`
-4. **reorder** — emits properties in a stable canonical order (see below)
-
-### reorder, in detail
-
-`reorder` sorts the `properties` array by three keys, in order:
-
-1. **Group name**, alphabetical. Properties with no group sort first (treated as the empty string).
-2. **Visibility**, hidden first. Inside one group, `Hidden` properties sort before any visible property.
-3. **Property id**, alphabetical.
-
-The motivation is diff stability across regenerations: a generator pass that emits properties in slightly different order on each run produces a noisy JSON diff that swamps real changes. Canonical ordering makes regenerations review-friendly.
-
-The visible side-effect is that **the order Modeler renders properties within a group changes**. For groups with conscious UX ordering, that may be undesirable. If you want to keep the generator's own ordering, skip this pass — `--skip-passes=reorder` in the standalone CLI, or call `Optimizer.defaultPipelineExcept(List.of(ReorderPass.ID))` as a library.
 
 ## Why use it?
 
@@ -106,7 +93,7 @@ element-template-optimizer template.json -o template.optimized.json
 element-template-optimizer --dry-run template.json
 
 # Run a subset of passes
-element-template-optimizer --skip-passes=reorder,strength-reduce template.json
+element-template-optimizer --skip-passes=strength-reduce template.json
 
 # List available passes
 element-template-optimizer list-passes
@@ -122,11 +109,15 @@ Unit tests cover every pass with focused fixtures. The behavioural-equivalence s
 mvn -pl optimizer test
 ```
 
-The equivalence suite requires the npm-published `@camunda/element-templates-cli` binary on `$PATH`. If it's missing, the class is reported as **skipped** rather than silently passed, so CI must install the CLI for the gate to be enforced:
+The equivalence suite requires the npm-published `element-templates-cli` binary on `$PATH`. If it's missing, the class is reported as **skipped** locally and as a **hard failure** in CI (when `CI=true` or `OPTIMIZER_REQUIRE_CLI=true`), so the gate cannot vanish silently behind a green build.
+
+Pin the version to match what CI uses (see `.github/workflows/package.json`):
 
 ```bash
-npm i -g @camunda/element-templates-cli
+npm i -g element-templates-cli@0.5.0
 ```
+
+The CLI API differs between major versions — running against an unpinned version may produce passes that don't actually verify equivalence.
 
 ## Architecture
 
@@ -144,7 +135,7 @@ Passes are pure functions over the typed `ElementTemplate` IR from `element-temp
 
 ```java
 Optimizer.defaultPipeline().optimize(template);
-Optimizer.defaultPipelineExcept(List.of("reorder")).optimize(template);
+Optimizer.defaultPipelineExcept(List.of("strength-reduce")).optimize(template);
 ```
 
 ## License
