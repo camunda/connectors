@@ -5,7 +5,7 @@
   "description" : "Upload and download files from Google Cloud Storage.",
   "keywords" : [ "download file from google cloud storage", "upload file to google cloud storage", "download file from gcs", "upload file to gcs", "gcs", "download file", "upload file", "download object", "upload object", "cloud storage", "object storage", "file storage" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.8"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -197,13 +197,169 @@
     "tooltip" : "A bucket acts as a directory that organizes a set of objects.",
     "type" : "String"
   }, {
-    "id" : "uploadOperationDocument",
-    "label" : "Document",
-    "optional" : false,
+    "id" : "operation_document_documentSource",
+    "label" : "Document source",
+    "value" : "camunda",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_documentSource",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "uploadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "Document to be uploaded to Google Cloud Storage.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Camunda Document",
+      "value" : "camunda"
+    }, {
+      "name" : "Inline Content",
+      "value" : "inline"
+    }, {
+      "name" : "From URL",
+      "value" : "external"
+    } ]
+  }, {
+    "id" : "operation_document_camundaReference",
+    "label" : "Camunda document",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_camundaReference",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadObject",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation_document_inline_content",
+    "label" : "Content",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_inline_content",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadObject",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation_document_inline_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_inline_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadObject",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation_document_inline_contentType",
+    "label" : "Content type",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_inline_contentType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadObject",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation_document_external_url",
+    "label" : "URL",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_external_url",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadObject",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation_document_external_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operation_document_external_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation_document_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      }, {
+        "property" : "operationDiscriminator",
+        "equals" : "uploadObject",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "uploadOperationDocument",
+    "value" : "=if operation_document_documentSource = \"camunda\" then operation_document_camundaReference else if operation_document_documentSource = \"inline\" then { \"camunda.document.type\": \"inline\", content: operation_document_inline_content, name: operation_document_inline_fileName, contentType: operation_document_inline_contentType } else if operation_document_documentSource = \"external\" then { \"camunda.document.type\": \"external\", url: operation_document_external_url, name: operation_document_external_fileName } else null",
     "group" : "operation",
     "binding" : {
       "name" : "operation.document",
@@ -214,8 +370,7 @@
       "equals" : "uploadObject",
       "type" : "simple"
     },
-    "tooltip" : "Document to be uploaded to Google Cloud Storage.",
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "uploadOperationFileName",
     "label" : "Document file name",
@@ -237,7 +392,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

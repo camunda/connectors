@@ -117,6 +117,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
+                .hasAgentInstanceKey()
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
                 .satisfies(agentResponseAssertions));
 

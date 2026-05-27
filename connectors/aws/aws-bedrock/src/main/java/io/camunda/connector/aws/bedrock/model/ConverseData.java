@@ -14,6 +14,7 @@ import io.camunda.connector.aws.bedrock.mapper.BedrockContentMapper;
 import io.camunda.connector.aws.bedrock.mapper.DocumentMapper;
 import io.camunda.connector.aws.bedrock.mapper.MessageMapper;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -90,11 +91,9 @@ public final class ConverseData implements RequestData {
       binding = @TemplateProperty.PropertyBinding(name = "data.topP"))
   private Float topP;
 
-  @TemplateProperty(
-      label = "documents",
+  @TemplateDocumentProperty(
       group = "converse",
       id = "data.newDocuments",
-      feel = FeelMode.required,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.newDocuments"))
   private List<Document> newDocuments;

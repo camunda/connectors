@@ -8,6 +8,7 @@ package io.camunda.connector.google.gcs.model.request;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -33,13 +34,10 @@ public record UploadObject(
             binding = @TemplateProperty.PropertyBinding(name = "operation.bucket"))
         @NotBlank
         String bucket,
-    @TemplateProperty(
-            label = "Document",
+    @TemplateDocumentProperty(
             group = "operation",
             id = "uploadOperationDocument",
             tooltip = "Document to be uploaded to Google Cloud Storage.",
-            type = TemplateProperty.PropertyType.String,
-            feel = FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "operation.document"))
         @NotNull
         Document document,

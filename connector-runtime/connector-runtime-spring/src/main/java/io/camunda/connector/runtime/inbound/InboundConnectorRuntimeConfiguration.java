@@ -57,6 +57,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.cache.support.NoOpCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -165,8 +166,13 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Bean
   public CacheManager processDefinitionCacheManager(
+      @Value("${camunda.connector.inbound.process-definition-cache.enabled:true}")
+          boolean cacheEnabled,
       @Value("${camunda.connector.inbound.process-definition-cache.max-size:1000}")
           int cacheMaxSize) {
+    if (!cacheEnabled) {
+      return new NoOpCacheManager();
+    }
     int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
     CaffeineCacheManager cacheManager =
         new CaffeineCacheManager(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME);

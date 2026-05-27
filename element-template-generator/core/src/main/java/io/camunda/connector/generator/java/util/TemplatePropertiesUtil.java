@@ -21,6 +21,7 @@ import static io.camunda.connector.util.reflection.ReflectionUtil.getAllFields;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Variable;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.PropertyBinding;
@@ -41,6 +42,8 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -60,6 +63,16 @@ public class TemplatePropertiesUtil {
 
     var type = parameter.getType();
     var annotation = parameter.getAnnotation(TemplateProperty.class);
+    var documentAnnotation = parameter.getAnnotation(TemplateDocumentProperty.class);
+    if (annotation != null && documentAnnotation != null) {
+      throw new IllegalStateException(
+          "@TemplateProperty and @TemplateDocumentProperty are mutually exclusive on: "
+              + parameter.getName());
+    }
+    if (documentAnnotation != null) {
+      return handleTemplateDocumentProperty(
+          parameter, parameter.getName(), type, documentAnnotation);
+    }
     if (!isContainerType(parameter.getType(), annotation)) {
       // If the type is a primitive, String, Enum or Number, return a single property
       var property = buildProperty(parameter, parameter.getName(), type, context);
@@ -113,6 +126,18 @@ public class TemplatePropertiesUtil {
     var properties = new ArrayList<PropertyBuilder>();
 
     for (Field field : fields) {
+      var documentAnnotation = field.getAnnotation(TemplateDocumentProperty.class);
+      if (field.getAnnotation(TemplateProperty.class) != null && documentAnnotation != null) {
+        throw new IllegalStateException(
+            "@TemplateProperty and @TemplateDocumentProperty are mutually exclusive on: "
+                + field.getName());
+      }
+      if (documentAnnotation != null) {
+        properties.addAll(
+            handleTemplateDocumentProperty(
+                field, field.getName(), field.getType(), documentAnnotation));
+        continue;
+      }
       if (isContainerType(field.getType(), field.getAnnotation(TemplateProperty.class))) {
         var nestedPropertiesAnnotation = field.getAnnotation(NestedProperties.class);
         boolean hasPathPrefix =
@@ -183,6 +208,53 @@ public class TemplatePropertiesUtil {
                     .label(transformIdIntoLabel(entry.getKey()))
                     .properties(entry.getValue()))
         .toList();
+  }
+
+  /**
+   * Routes a {@code Document} / {@code List<Document>} field or parameter to {@link
+   * DocumentPropertyHandler}.
+   */
+  private static List<PropertyBuilder> handleTemplateDocumentProperty(
+      AnnotatedElement element,
+      String declaredName,
+      Class<?> declaredType,
+      TemplateDocumentProperty annotation) {
+    if (Document.class.isAssignableFrom(declaredType)) {
+      return DocumentPropertyHandler.handleDocumentProperty(declaredType, declaredName, annotation);
+    }
+    if (Collection.class.isAssignableFrom(declaredType)) {
+      Class<?> elementType = getListElementType(element);
+      if (elementType == null) {
+        throw new IllegalStateException(
+            "@TemplateDocumentProperty on '"
+                + declaredName
+                + "' must declare its element type (e.g. List<Document>), got raw "
+                + declaredType.getSimpleName());
+      }
+      return DocumentPropertyHandler.handleListDocumentProperty(
+          elementType, declaredName, annotation);
+    }
+    throw new IllegalStateException(
+        "@TemplateDocumentProperty on '"
+            + declaredName
+            + "' requires type Document or List<Document>, got "
+            + declaredType.getSimpleName());
+  }
+
+  private static Class<?> getListElementType(AnnotatedElement element) {
+    Type genericType = null;
+    if (element instanceof Field field) {
+      genericType = field.getGenericType();
+    } else if (element instanceof Parameter parameter) {
+      genericType = parameter.getParameterizedType();
+    }
+    if (genericType instanceof ParameterizedType parameterized) {
+      Type[] typeArgs = parameterized.getActualTypeArguments();
+      if (typeArgs.length == 1 && typeArgs[0] instanceof Class<?> classArg) {
+        return classArg;
+      }
+    }
+    return null;
   }
 
   private static PropertyBuilder buildProperty(
@@ -572,14 +644,14 @@ public class TemplatePropertiesUtil {
         && type != String.class
         && type != Object.class
         && type != JsonNode.class
+        && !Document.class.isAssignableFrom(type)
         && !type.isEnum()
         && !type.isArray()
         && !Collection.class.isAssignableFrom(type)
         && !Map.class.isAssignableFrom(type);
   }
 
-  private static PropertyBinding createBinding(
-      String propertyName, TemplateGenerationContext context) {
+  static PropertyBinding createBinding(String propertyName, TemplateGenerationContext context) {
     if (context instanceof Outbound) {
       return new ZeebeInput(propertyName);
     } else {
