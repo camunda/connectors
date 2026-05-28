@@ -46,7 +46,7 @@ import java.util.Set;
 public record ElementTemplate(
     String id,
     String name,
-    int version,
+    long version,
     String documentationRef,
     Engines engines,
     String description,
