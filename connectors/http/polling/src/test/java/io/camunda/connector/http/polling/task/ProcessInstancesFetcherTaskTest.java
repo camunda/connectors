@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -42,8 +43,13 @@ public class ProcessInstancesFetcherTaskTest {
   @Mock private HttpService mockHttpService;
   @Mock private SharedExecutorService mockExecutorService;
   @Mock private ScheduledExecutorService mockScheduledExecutorService;
-  @Mock private ProcessInstanceContext mockProcessInstanceContext1;
-  @Mock private ProcessInstanceContext mockProcessInstanceContext2;
+
+  @Mock(answer = Answers.CALLS_REAL_METHODS)
+  private ProcessInstanceContext mockProcessInstanceContext1;
+
+  @Mock(answer = Answers.CALLS_REAL_METHODS)
+  private ProcessInstanceContext mockProcessInstanceContext2;
+
   @Mock private ScheduledFuture<?> mockScheduledFuture;
   @Mock private InboundConnectorDefinition mockInboundConnectorDefinition;
 

@@ -18,6 +18,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
@@ -39,6 +40,7 @@ import java.util.concurrent.ScheduledFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -90,6 +92,8 @@ class A2aPollingProcessInstancesFetcherTaskTest {
   @Test
   void schedulesNoTasksWhenNoProcessInstances() {
     when(context.getProcessInstanceContexts()).thenReturn(List.of());
+    when(context.getDefinition()).thenReturn(inboundConnectorDefinition);
+    when(inboundConnectorDefinition.deduplicationId()).thenReturn(DEDUPLICATION_ID);
 
     fetcherTask.run();
 
@@ -455,7 +459,9 @@ class A2aPollingProcessInstancesFetcherTaskTest {
   }
 
   private ProcessInstanceContext mockProcessInstanceContext(Long key, Long elementInstanceKey) {
-    ProcessInstanceContext processInstanceContext = mock(ProcessInstanceContext.class);
+    ProcessInstanceContext processInstanceContext =
+        mock(
+            ProcessInstanceContext.class, withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
     when(processInstanceContext.getKey()).thenReturn(key);
     when(processInstanceContext.getElementInstanceKey()).thenReturn(elementInstanceKey);
     return processInstanceContext;
