@@ -47,7 +47,7 @@ public interface CliCompatibleTemplateGenerator<IN> extends ElementTemplateGener
   record ScanResult(
       String templateId,
       String templateName,
-      Integer templateVersion,
+      Long templateVersion,
       String templateType,
       Object additionalData) {}
 }
