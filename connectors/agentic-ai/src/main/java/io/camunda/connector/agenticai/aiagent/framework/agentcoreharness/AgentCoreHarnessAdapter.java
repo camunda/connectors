@@ -139,6 +139,13 @@ public class AgentCoreHarnessAdapter
         updatedAgentContext, assistantMessage, sessionId);
   }
 
+  /**
+   * Gets existing session ID from agent context or creates a new one.
+   *
+   * <p>The runtimeSessionId is used by Harness for conversation continuity across multiple
+   * InvokeHarness calls. The session is managed by Harness and persists until the Harness
+   * configuration's idle timeout is reached. Session timeouts are configured in AWS, not here.
+   */
   private String getOrCreateSessionId(AgentContext agentContext) {
     return Optional.ofNullable(agentContext.properties())
         .map(props -> props.get(SESSION_ID_PROPERTY))

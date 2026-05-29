@@ -35,21 +35,21 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreAsyncCli
  * inner elements as inline_function tools.
  */
 @OutboundConnector(
-    name = AgentCoreHarnessJobWorker.JOB_WORKER_NAME,
-    type = AgentCoreHarnessJobWorker.JOB_WORKER_TYPE,
+    name = AgentCoreHarnessSubProcess.CONNECTOR_NAME,
+    type = AgentCoreHarnessSubProcess.CONNECTOR_TYPE,
     inputVariables = {
-      AgentCoreHarnessJobWorker.AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
-      AgentCoreHarnessJobWorker.AGENT_CONTEXT_VARIABLE,
-      AgentCoreHarnessJobWorker.TOOL_CALL_RESULTS_VARIABLE,
-      AgentCoreHarnessJobWorker.HARNESS_VARIABLE,
-      AgentCoreHarnessJobWorker.AUTHENTICATION_VARIABLE,
-      AgentCoreHarnessJobWorker.USER_PROMPT_VARIABLE,
-      AgentCoreHarnessJobWorker.MAX_ITERATIONS_VARIABLE
+      AgentCoreHarnessSubProcess.AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
+      AgentCoreHarnessSubProcess.AGENT_CONTEXT_VARIABLE,
+      AgentCoreHarnessSubProcess.TOOL_CALL_RESULTS_VARIABLE,
+      AgentCoreHarnessSubProcess.HARNESS_VARIABLE,
+      AgentCoreHarnessSubProcess.AUTHENTICATION_VARIABLE,
+      AgentCoreHarnessSubProcess.USER_PROMPT_VARIABLE,
+      AgentCoreHarnessSubProcess.MAX_ITERATIONS_VARIABLE
     })
-public class AgentCoreHarnessJobWorker implements AgentConnectorFunction {
+public class AgentCoreHarnessSubProcess implements AgentConnectorFunction {
 
-  public static final String JOB_WORKER_NAME = "AgentCore Harness Job Worker";
-  public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:agentcore-harness:1";
+  public static final String CONNECTOR_NAME = "Amazon Bedrock AgentCore Harness";
+  public static final String CONNECTOR_TYPE = "io.camunda.agenticai:agentcore-harness:1";
 
   public static final String AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE = "adHocSubProcessElements";
   public static final String AGENT_CONTEXT_VARIABLE = "agentContext";
@@ -66,7 +66,7 @@ public class AgentCoreHarnessJobWorker implements AgentConnectorFunction {
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AgentResponseHandler responseHandler;
 
-  public AgentCoreHarnessJobWorker(
+  public AgentCoreHarnessSubProcess(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentLimitsValidator limitsValidator,

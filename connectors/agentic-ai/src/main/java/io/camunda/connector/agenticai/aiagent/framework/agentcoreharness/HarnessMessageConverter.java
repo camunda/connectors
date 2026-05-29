@@ -70,20 +70,6 @@ public class HarnessMessageConverter {
     return result;
   }
 
-  /**
-   * Converts a Harness tool use block to a Camunda ToolCall.
-   *
-   * @param toolUseBlock the Harness tool use block
-   * @return Camunda ToolCall
-   */
-  public ToolCall toToolCall(HarnessToolUseBlock toolUseBlock) {
-    return ToolCall.builder()
-        .id(toolUseBlock.toolUseId())
-        .name(toolUseBlock.name())
-        .arguments(documentToMap(toolUseBlock.input()))
-        .build();
-  }
-
   private List<HarnessSystemContentBlock> toSystemContentBlocks(SystemMessage systemMessage) {
     return extractTextContent(systemMessage).stream()
         .map(text -> HarnessSystemContentBlock.fromText(text))

@@ -1,9 +1,9 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "AgentCore Managed Agent",
+  "name": "Amazon Bedrock AgentCore Managed Agent (Alpha)",
   "id": "io.camunda.connectors.agenticai.agentcore.harness.v1",
-  "description": "Drive an AWS Bedrock AgentCore Harness through a re-entrant tool-call loop, exposing the AHSP inner elements as inline_function tools.",
-  "keywords": ["AI", "AI Agent", "AWS", "AgentCore", "Harness", "Bedrock"],
+  "description": "[Alpha] Drive an Amazon Bedrock AgentCore Harness through a re-entrant tool-call loop, exposing the AHSP inner elements as inline_function tools.",
+  "keywords": ["AI", "AI Agent", "Amazon", "AWS", "AgentCore", "Harness", "Bedrock"],
   "version": 1,
   "category": {
     "id": "connectors",
@@ -14,7 +14,7 @@
     "value": "bpmn:AdHocSubProcess"
   },
   "engines": {
-    "camunda": "^8.9"
+    "camunda": "^8.10"
   },
   "groups": [
     {

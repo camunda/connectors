@@ -21,9 +21,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
-import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockagentcore.model.HarnessConversationRole;
-import software.amazon.awssdk.services.bedrockagentcore.model.HarnessToolUseBlock;
 import software.amazon.awssdk.services.bedrockagentcore.model.HarnessToolUseStatus;
 
 class HarnessMessageConverterTest {
@@ -154,26 +152,6 @@ class HarnessMessageConverterTest {
 
     var toolResultBlock = result.get(0).content().get(0).toolResult();
     assertThat(toolResultBlock.status()).isEqualTo(HarnessToolUseStatus.ERROR);
-  }
-
-  @Test
-  void toToolCallConvertsHarnessToolUseBlock() {
-    var toolUseBlock =
-        HarnessToolUseBlock.builder()
-            .toolUseId("tool_use_abc")
-            .name("search_database")
-            .input(
-                Document.fromMap(
-                    Map.of(
-                        "query", Document.fromString("test query"),
-                        "limit", Document.fromNumber("10"))))
-            .build();
-
-    var result = converter.toToolCall(toolUseBlock);
-
-    assertThat(result.id()).isEqualTo("tool_use_abc");
-    assertThat(result.name()).isEqualTo("search_database");
-    assertThat(result.arguments()).containsEntry("query", "test query");
   }
 
   @Test
