@@ -264,7 +264,7 @@ public class L4JAiAgentConnectorToolCallingTests extends BaseL4JAiAgentConnector
             AgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)))
+                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42), 1))
                 .hasResponseMessageText(aiFinalResponse.text())
                 .hasResponseText(aiFinalResponse.text()));
 

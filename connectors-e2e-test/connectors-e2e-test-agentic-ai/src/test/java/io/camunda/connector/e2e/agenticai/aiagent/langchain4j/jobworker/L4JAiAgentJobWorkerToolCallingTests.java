@@ -269,7 +269,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)))
+                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42), 1))
                 .hasResponseMessageText(aiFinalResponse.text())
                 .hasResponseText(aiFinalResponse.text()));
 
