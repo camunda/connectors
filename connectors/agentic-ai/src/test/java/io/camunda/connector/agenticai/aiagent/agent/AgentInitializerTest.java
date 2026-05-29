@@ -41,6 +41,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -311,7 +312,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void shouldEmitToolDiscoveryPatchWhenGatewayDiscoveryCallsAreDispatched() {
+    void shouldDeferToolDiscoveryPatchToJobCompletionWhenGatewayDiscoveryCallsAreDispatched() {
       // given
       final var toolDiscoveryToolCalls =
           List.of(ToolCall.builder().id("tool1").name("AnMcpClient").build());
@@ -327,9 +328,17 @@ class AgentInitializerTest {
                       args.getArgument(0, AgentContext.class), toolDiscoveryToolCalls));
 
       // when
-      agentInitializer.initializeAgent(executionContext);
+      final var result =
+          (AgentResponseInitializationResult) agentInitializer.initializeAgent(executionContext);
 
-      // then
+      // then: no eager update during initialization
+      verify(agentInstanceClient, never()).update(any(), any(), any());
+      assertThat(result.completionListener()).isNotNull();
+
+      // when: job completes
+      result.completionListener().onJobCompleted();
+
+      // then: TOOL_DISCOVERY status reported on completion
       verify(agentInstanceClient)
           .update(
               eq(executionContext),
@@ -337,9 +346,37 @@ class AgentInitializerTest {
               eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY)));
     }
 
+    @Test
+    void shouldSkipToolDiscoveryPatchWhenJobCompletionFails() {
+      // given
+      final var toolDiscoveryToolCalls =
+          List.of(ToolCall.builder().id("tool1").name("AnMcpClient").build());
+
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
+      when(gatewayToolHandlers.initiateToolDiscovery(
+              any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
+          .thenAnswer(
+              args ->
+                  new GatewayToolDiscoveryInitiationResult(
+                      args.getArgument(0, AgentContext.class), toolDiscoveryToolCalls));
+
+      // when
+      final var result =
+          (AgentResponseInitializationResult) agentInitializer.initializeAgent(executionContext);
+      result
+          .completionListener()
+          .onJobCompletionFailed(
+              new JobCompletionFailure.CommandFailure.CommandIgnored(new RuntimeException()));
+
+      // then: no update on failure
+      verify(agentInstanceClient, never()).update(any(), any(), any());
+    }
+
     @ParameterizedTest
     @NullAndEmptySource
-    void shouldNotEmitToolDiscoveryPatchWhenNoDiscoveryCallsAreDispatched(
+    void shouldNotCreateCompletionListenerWhenNoDiscoveryCallsAreDispatched(
         List<ToolCall> toolDiscoveryToolCalls) {
       // given
       when(toolsResolver.loadAdHocToolsSchema(

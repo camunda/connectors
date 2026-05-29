@@ -22,11 +22,16 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class AgentInitializerImpl implements AgentInitializer {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AgentInitializerImpl.class);
 
   private final AgentToolsResolver toolsResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -119,15 +124,16 @@ public class AgentInitializerImpl implements AgentInitializer {
 
     if (!CollectionUtils.isEmpty(initiationResult.toolDiscoveryToolCalls())) {
       // execute tool discovery tool calls before agent is ready for requests
-      final var updatedState = transitionAgentStateToToolDiscovery(executionContext, agentContext);
+      final var discoveryAgentContext = agentContext.withState(AgentState.TOOL_DISCOVERY);
       return new AgentResponseInitializationResult(
           AgentResponse.builder()
-              .context(updatedState)
+              .context(discoveryAgentContext)
               .toolCalls(
                   initiationResult.toolDiscoveryToolCalls().stream()
                       .map(ToolCallProcessVariable::from)
                       .toList())
-              .build());
+              .build(),
+          createToolDiscoveryCompletionListener(executionContext, discoveryAgentContext));
     } else {
       // no tool discovery needed -> agent is ready for requests
       return new AgentContextInitializationResult(
@@ -135,14 +141,29 @@ public class AgentInitializerImpl implements AgentInitializer {
     }
   }
 
-  private AgentContext transitionAgentStateToToolDiscovery(
+  private AgentJobCompletionListener createToolDiscoveryCompletionListener(
       AgentExecutionContext executionContext, AgentContext agentContext) {
-    final var discoveryAgentContext = agentContext.withState(AgentState.TOOL_DISCOVERY);
-    agentInstanceClient.update(
-        executionContext,
-        discoveryAgentContext,
-        AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY));
-    return discoveryAgentContext;
+    return new AgentJobCompletionListener() {
+      @Override
+      public void onJobCompleted() {
+        try {
+          agentInstanceClient.update(
+              executionContext,
+              agentContext,
+              AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY));
+        } catch (Exception e) {
+          LOGGER.error(
+              "Failed to update agent instance status to TOOL_DISCOVERY after job completion", e);
+        }
+      }
+
+      @Override
+      public void onJobCompletionFailed(JobCompletionFailure failure) {
+        LOGGER.debug(
+            "Job completion failed ({}), skipping TOOL_DISCOVERY status update",
+            failure.getClass().getSimpleName());
+      }
+    };
   }
 
   private AgentInitializationResult handleToolDiscoveryResults(

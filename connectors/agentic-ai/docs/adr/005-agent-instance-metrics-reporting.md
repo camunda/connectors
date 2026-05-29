@@ -84,6 +84,13 @@ Zeebe command determine what — if anything — is safe to report:
 | Job completion superseded (`CommandIgnored`) | — | `{modelCalls, tokenUsage}` |
 | Job completion failed (other) | `IDLE` | `{modelCalls, tokenUsage}` |
 
+**PATCH cadence for gateway tool discovery:**
+
+| Moment | Status | Delta |
+|---|---|---|
+| Job completion accepted | `TOOL_DISCOVERY` | — |
+| Job completion failed/superseded | (no PATCH) | — |
+
 ### C2 — `compose` moved to `AgentJobCompletionListener`
 
 The method is the natural owner of composition logic for its own type. Moving it there makes it reusable without
@@ -94,8 +101,9 @@ there is no Zeebe incident to raise for a failed metric update.
 
 ### Positive Consequences
 
-- Engine UI can show real-time agent status (thinking / tool-calling / idle) per turn.
-- `toolCalls` count is exact and fair: superseded jobs contribute nothing.
+- Engine UI can show real-time agent status (thinking / tool-calling / idle / tool-discovery) per turn.
+- All counters and status transitions are exact and fair: superseded or failed jobs contribute nothing beyond
+  the tokens they actually consumed.
 - `AgentJobCompletionListener` is self-contained and safe to compose with any number of listeners.
 
 ### Negative Consequences
@@ -108,9 +116,6 @@ there is no Zeebe incident to raise for a failed metric update.
 
 - **Idempotency keys** on PATCH calls — a parallel follow-up will assign a per-turn key derived from the job key
   and turn counter so that retried PATCH calls are safe.
-- **`TOOL_DISCOVERY` status** — agent instance status during the gateway tool discovery phase is managed by
-  `AgentInitializerImpl` independently of this work; it was already emitting `TOOL_DISCOVERY` patches before
-  this change.
 - **Metrics persistence across process migration** — `AgentMetrics.minus()` computes a delta relative to the
   snapshot taken before the LLM call; if the agent context is migrated between turns the accumulated counters in
   the engine may diverge from what the current job reported.

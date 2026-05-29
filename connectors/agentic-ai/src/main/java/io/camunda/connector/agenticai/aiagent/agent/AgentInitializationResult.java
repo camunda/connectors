@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 public sealed interface AgentInitializationResult
     permits AgentInitializationResult.AgentContextInitializationResult,
@@ -22,6 +23,12 @@ public sealed interface AgentInitializationResult
 
   record AgentDiscoveryInProgressInitializationResult() implements AgentInitializationResult {}
 
-  record AgentResponseInitializationResult(AgentResponse agentResponse)
-      implements AgentInitializationResult {}
+  record AgentResponseInitializationResult(
+      AgentResponse agentResponse, @Nullable AgentJobCompletionListener completionListener)
+      implements AgentInitializationResult {
+
+    AgentResponseInitializationResult(AgentResponse agentResponse) {
+      this(agentResponse, null);
+    }
+  }
 }

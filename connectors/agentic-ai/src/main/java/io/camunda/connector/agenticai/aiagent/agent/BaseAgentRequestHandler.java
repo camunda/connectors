@@ -82,11 +82,13 @@ public abstract class BaseAgentRequestHandler<
     return switch (agentInitializationResult) {
       // directly return agent response if needed (e.g. tool discovery tool calls before calling the
       // LLM)
-      case AgentResponseInitializationResult(AgentResponse agentResponse) -> {
+      case AgentResponseInitializationResult(
+              AgentResponse agentResponse,
+              AgentJobCompletionListener initCompletionListener) -> {
         LOGGER.debug(
             "AI Agent initialization returned direct response including {} tool calls. Completing job without further processing.",
             agentResponse.toolCalls().size());
-        yield buildConnectorResponse(executionContext, agentResponse, null);
+        yield buildConnectorResponse(executionContext, agentResponse, initCompletionListener);
       }
 
       // discovery still in progress (not all tool call results present)
