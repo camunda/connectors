@@ -20,7 +20,9 @@ public interface ProcessElement {
 
   String bpmnProcessId();
 
-  String processName();
+  default String processName() {
+    return null;
+  }
 
   int version();
 

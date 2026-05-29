@@ -63,13 +63,12 @@ public class Health {
     Health health = (Health) o;
     return status == health.status
         && Objects.equals(error, health.error)
-        && Objects.equals(details, health.details)
-        && Objects.equals(lastUpdatedAt, health.lastUpdatedAt);
+        && Objects.equals(details, health.details);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(status, error, details, lastUpdatedAt);
+    return Objects.hash(status, error, details);
   }
 
   @Override
