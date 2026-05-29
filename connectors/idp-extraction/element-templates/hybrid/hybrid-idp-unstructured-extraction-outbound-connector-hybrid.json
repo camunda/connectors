@@ -68,7 +68,7 @@
     "label" : "Ai converse parameters",
     "description" : "Specify the parameters for the ai conversation",
     "optional" : false,
-    "value" : "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
+    "value" : "={\n  modelId: \"\",\n  temperature: 0.5\n}",
     "feel" : "optional",
     "group" : "input",
     "binding" : {
