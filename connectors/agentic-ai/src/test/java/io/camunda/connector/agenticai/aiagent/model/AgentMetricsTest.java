@@ -114,6 +114,27 @@ class AgentMetricsTest {
     assertThat(metrics.minus(AgentMetrics.empty())).isEqualTo(metrics);
   }
 
+  @ParameterizedTest
+  @MethodSource("negativeDeltaAgentMetrics")
+  void minusThrowsWhenResultIsNegative(
+      AgentMetrics minuend, AgentMetrics subtrahend, String message) {
+    assertThatThrownBy(() -> minuend.minus(subtrahend))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(message);
+  }
+
+  static Stream<Arguments> negativeDeltaAgentMetrics() {
+    return Stream.of(
+        arguments(
+            new AgentMetrics(1, TokenUsage.empty(), 0),
+            new AgentMetrics(2, TokenUsage.empty(), 0),
+            "modelCalls value is negative after subtraction. Actual value: -1"),
+        arguments(
+            new AgentMetrics(0, TokenUsage.empty(), 1),
+            new AgentMetrics(0, TokenUsage.empty(), 2),
+            "toolCalls value is negative after subtraction. Actual value: -1"));
+  }
+
   @Test
   void tokenUsageMinusTokenUsage() {
     final var a = new TokenUsage(50, 80);
@@ -124,6 +145,27 @@ class AgentMetricsTest {
     assertThat(delta.inputTokenCount()).isEqualTo(30);
     assertThat(delta.outputTokenCount()).isEqualTo(50);
     assertThat(delta.totalTokenCount()).isEqualTo(80);
+  }
+
+  @ParameterizedTest
+  @MethodSource("negativeDeltaTokenUsage")
+  void tokenUsageMinusThrowsWhenResultIsNegative(
+      TokenUsage minuend, TokenUsage subtrahend, String message) {
+    assertThatThrownBy(() -> minuend.minus(subtrahend))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(message);
+  }
+
+  static Stream<Arguments> negativeDeltaTokenUsage() {
+    return Stream.of(
+        arguments(
+            new TokenUsage(10, 0),
+            new TokenUsage(20, 0),
+            "inputTokenCount value is negative after subtraction. Actual value: -10"),
+        arguments(
+            new TokenUsage(0, 10),
+            new TokenUsage(0, 20),
+            "outputTokenCount value is negative after subtraction. Actual value: -10"));
   }
 
   @ParameterizedTest

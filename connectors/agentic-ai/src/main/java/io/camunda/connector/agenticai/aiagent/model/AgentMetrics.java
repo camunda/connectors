@@ -43,9 +43,9 @@ public record AgentMetrics(
 
   public AgentMetrics minus(AgentMetrics other) {
     return builder()
-        .modelCalls(modelCalls - other.modelCalls())
+        .modelCalls(requirePositive(modelCalls - other.modelCalls(), "modelCalls"))
         .tokenUsage(tokenUsage.minus(other.tokenUsage()))
-        .toolCalls(toolCalls - other.toolCalls())
+        .toolCalls(requirePositive(toolCalls - other.toolCalls(), "toolCalls"))
         .build();
   }
 
@@ -81,8 +81,13 @@ public record AgentMetrics(
       return with(
           builder ->
               builder
-                  .inputTokenCount(builder.inputTokenCount() - other.inputTokenCount())
-                  .outputTokenCount(builder.outputTokenCount() - other.outputTokenCount()));
+                  .inputTokenCount(
+                      requirePositive(
+                          builder.inputTokenCount() - other.inputTokenCount(), "inputTokenCount"))
+                  .outputTokenCount(
+                      requirePositive(
+                          builder.outputTokenCount() - other.outputTokenCount(),
+                          "outputTokenCount")));
     }
 
     public static TokenUsage empty() {
@@ -96,5 +101,14 @@ public record AgentMetrics(
     @JsonPOJOBuilder(withPrefix = "")
     public static class AgentMetricsTokenUsageJacksonProxyBuilder
         extends AgentMetricsTokenUsageBuilder {}
+  }
+
+  private static int requirePositive(int value, String field) {
+    if (value < 0) {
+      var targetMessage =
+          "%s value is negative after subtraction. Actual value: %s".formatted(field, value);
+      throw new IllegalStateException(targetMessage);
+    }
+    return value;
   }
 }
