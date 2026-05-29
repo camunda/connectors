@@ -139,6 +139,21 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void elementTemplateAnnotation_supportsLongVersionValues() {
+      // Test support for long version values (e.g., Unix epoch timestamps from Web Modeler)
+      var template = generator.generate(MyConnectorFunction.WithLongVersion.class).getFirst();
+      assertThat(template.version()).isEqualTo(1750631399060L);
+
+      // Verify the version property is correctly generated
+      var versionProperty =
+          template.properties().stream()
+              .filter(p -> p.getId() != null && p.getId().equals("version"))
+              .findFirst()
+              .orElseThrow();
+      assertThat(versionProperty.getValue()).isEqualTo("1750631399060");
+    }
+
+    @Test
     void resultVariableProperty() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Result variable", template);

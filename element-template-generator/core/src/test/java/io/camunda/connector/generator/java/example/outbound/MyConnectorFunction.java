@@ -79,6 +79,15 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
+      version = 1750631399060L, // Long version value like Web Modeler OpenAPI templates
+      inputDataClass = MyConnectorInput.class)
+  public static class WithLongVersion extends MyConnectorFunction {}
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
       inputDataClass = PredefinedGroupInput.class,
       propertyGroups = {
         @PropertyGroup(id = "predefinedGroup1", label = "Predefined Group One"),

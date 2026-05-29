@@ -70,7 +70,7 @@ public class CommonProperties {
     return builder;
   }
 
-  public static PropertyBuilder version(Integer version) {
+  public static PropertyBuilder version(Long version) {
     return HiddenProperty.builder()
         .id("version")
         .group("connector")
