@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Easy Post Outbound Connector",
   "id": "io.camunda.connectors.EasyPost.v1",
-  "version": 5,
+  "version": 6,
   "engines": {
     "camunda": "^8.3"
   },
@@ -43,12 +43,20 @@
       "label": "Input"
     },
     {
+      "id": "connector",
+      "label": "Connector"
+    },
+    {
       "id": "output",
       "label": "Output"
     },
     {
-      "id": "errors",
+      "id": "error",
       "label": "Error handling"
+    },
+    {
+      "id": "retries",
+      "label": "Retries"
     }
   ],
   "properties": [
@@ -841,7 +849,7 @@
     {
       "label": "Connection timeout",
       "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
-      "group": "errors",
+      "group": "error",
       "type": "String",
       "value": "20",
       "binding": {

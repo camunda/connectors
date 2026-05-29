@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Google Maps Platform Outbound Connector",
   "id": "io.camunda.connectors.GoogleMapsPlatform.v1",
-  "version": 5,
+  "version": 6,
   "engines": {
     "camunda": "^8.3"
   },
@@ -38,12 +38,12 @@
       "label": "Authentication"
     },
     {
-      "id": "configuration",
-      "label": "Configuration"
-    },
-    {
       "id": "input",
       "label": "Input"
+    },
+    {
+      "id": "connector",
+      "label": "Connector"
     },
     {
       "id": "output",

@@ -26,6 +26,7 @@
     <module>openapi-parser</module>
     <module>postman-collections-parser</module>
     <module>uniquet</module>
+    <module>validator</module>
   </modules>
 
 </project>

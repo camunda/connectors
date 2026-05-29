@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
@@ -33,6 +34,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,13 +57,22 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       EVENT_CONTENT_EMPTY
           + " Execution waited for all in-flight tool executions to complete before proceeding.";
 
+  static final String TOOL_CALL_DOCUMENTS_PREAMBLE =
+      "Documents extracted from tool calls (<doc /> tag + content pair):";
+  static final String EVENT_DOCUMENTS_PREAMBLE =
+      "Documents extracted from event data (<doc /> tag + content pair):";
+
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final SystemPromptComposer systemPromptComposer;
+  private final ToolCallResultDocumentExtractor documentExtractor;
 
   public AgentMessagesHandlerImpl(
-      GatewayToolHandlerRegistry gatewayToolHandlers, SystemPromptComposer systemPromptComposer) {
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      SystemPromptComposer systemPromptComposer,
+      ToolCallResultDocumentExtractor documentExtractor) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.systemPromptComposer = systemPromptComposer;
+    this.documentExtractor = documentExtractor;
   }
 
   @Override
@@ -125,6 +136,10 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       // if message is null, we wait on further tool call results to be added
       if (toolCallResultMessage != null) {
         messages.add(toolCallResultMessage);
+        var documentMessage = createDocumentMessageForToolResults(toolCallResultMessage.results());
+        if (documentMessage != null) {
+          messages.add(documentMessage);
+        }
         messages.addAll(eventMessages);
       }
     } else {
@@ -205,6 +220,22 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
         .build();
   }
 
+  private UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
+    final var toolCallDocuments = documentExtractor.extractDocuments(results);
+    if (toolCallDocuments.isEmpty()) {
+      return null;
+    }
+
+    final var content = new ArrayList<Content>();
+    content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
+    content.addAll(createDocumentPairs(toolCallDocuments));
+
+    final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
+    metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+
+    return UserMessage.builder().content(content).metadata(metadata).build();
+  }
+
   private Message createEventMessage(
       ToolCallResult eventResult, boolean interruptToolCallsOnEventResults) {
     Object eventContent = eventResult.content();
@@ -224,10 +255,33 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
           });
     }
 
+    // events arrive as ToolCallResult with null id/name — no tool-call attributes
+    // on the rendered tag, but the extraction shape is otherwise the same
+    final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
+    if (!eventDocuments.isEmpty()) {
+      userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
+      userMessageContent.addAll(createDocumentPairs(eventDocuments));
+    }
+
     return UserMessage.builder()
         .content(userMessageContent)
         .metadata(defaultMessageMetadata())
         .build();
+  }
+
+  private List<Content> createDocumentPairs(
+      List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups) {
+    final var content = new ArrayList<Content>();
+    for (var group : documentGroups) {
+      for (var doc : group.documents()) {
+        content.add(
+            textContent(
+                DocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
+                    .toXml()));
+        content.add(DocumentContent.documentContent(doc));
+      }
+    }
+    return content;
   }
 
   private boolean isEventContentEmpty(Object eventContent) {

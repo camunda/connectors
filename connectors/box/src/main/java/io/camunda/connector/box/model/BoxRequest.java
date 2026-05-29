@@ -9,8 +9,8 @@ package io.camunda.connector.box.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
+import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -175,12 +175,9 @@ public record BoxRequest(
         @TemplateProperty(id = "uploadFileFolderPath", group = "operation", label = "Folder path")
             @NotBlank
             String folderPath,
-        @TemplateProperty(
+        @TemplateDocumentProperty(
                 id = "uploadFileDocument",
                 group = "operation",
-                type = TemplateProperty.PropertyType.String,
-                feel = FeelMode.required,
-                label = "Document reference",
                 description = "The document reference that will be uploaded")
             @NotNull
             Document document)

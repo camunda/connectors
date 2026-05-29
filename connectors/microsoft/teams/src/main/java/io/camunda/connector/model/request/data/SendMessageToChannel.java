@@ -8,6 +8,7 @@ package io.camunda.connector.model.request.data;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.Attachment;
@@ -52,11 +53,9 @@ public record SendMessageToChannel(
             type = TemplateProperty.PropertyType.Text,
             description = "Enter content")
         String content,
-    @TemplateProperty(
-            label = "documents",
+    @TemplateDocumentProperty(
             group = "data",
             id = "sendMessageToChannel.documents",
-            feel = FeelMode.required,
             optional = true)
         List<Document> documents,
     @TemplateProperty(

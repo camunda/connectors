@@ -80,11 +80,11 @@ limitations under the License.</license.inlineheader>
     <version.grpc>1.81.0</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
-    <version.protobuf>4.34.1</version.protobuf>
+    <version.protobuf>4.35.0</version.protobuf>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
-    <version.junit-jupiter>6.0.3</version.junit-jupiter>
+    <version.junit-jupiter>6.1.0</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.21.3</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.21.3</version.jackson-datatype-jsr310>
@@ -95,11 +95,16 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>4.0.6</version.spring-boot>
-    <version.spring-cloud-gcp-starter-logging>8.0.2</version.spring-cloud-gcp-starter-logging>
+    <!-- CVE override: Spring Boot 4.0.6 ships Tomcat 11.0.21 which has a known vulnerability.
+         Remove once Spring Boot upgrades to Tomcat >= 11.0.22 (likely in 4.0.7).
+         Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
+    <version.tomcat>11.0.22</version.tomcat>
+    <version.netty>4.2.14.Final</version.netty>
+    <version.spring-cloud-gcp-starter-logging>8.0.3</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.43.1</version.aws-sdk2>
+    <version.aws-sdk2>2.44.13</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -114,11 +119,11 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.1.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260405-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260428-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.46.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20260415-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.80.0</version.google-libraries-bom>
+    <version.google-auth-library-oauth2-http>1.47.0</version.google-auth-library-oauth2-http>
+    <version.google-api-services-docs>v1-rev20260427-2.0.0</version.google-api-services-docs>
+    <version.google-libraries-bom>26.83.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20260213-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <version.jsr305>3.0.2</version.jsr305>
@@ -134,14 +139,14 @@ limitations under the License.</license.inlineheader>
     <version.commons-io>2.22.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
-    <version.kafka-clients>4.2.0</version.kafka-clients>
+    <version.kafka-clients>4.3.0</version.kafka-clients>
 
-    <version.microsoft-graph>6.63.0</version.microsoft-graph>
+    <version.microsoft-graph>6.65.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.2</version.microsoft-kiota-abstraction>
-    <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
-    <version.azure-identity>1.18.2</version.azure-identity>
+    <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
+    <version.azure-identity>1.18.3</version.azure-identity>
     <version.azure-core>1.58.0</version.azure-core>
-    <version.azure-cosmos>4.79.1</version.azure-cosmos>
+    <version.azure-cosmos>4.80.0</version.azure-cosmos>
 
     <version.bouncycastle>1.84</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
@@ -152,7 +157,7 @@ limitations under the License.</license.inlineheader>
     <version.wss4j>4.0.1</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
-    <version.slack>1.48.1</version.slack>
+    <version.slack>1.49.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
@@ -168,16 +173,16 @@ limitations under the License.</license.inlineheader>
     <version.system-stubs>2.1.8</version.system-stubs>
 
     <version.auth0.jwt>4.5.2</version.auth0.jwt>
-    <version.auth0.jwks>0.23.1</version.auth0.jwks>
+    <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
-    <version.langchain4j>1.14.1</version.langchain4j>
-    <version.mcp-sdk>1.1.2</version.mcp-sdk>
+    <version.langchain4j>1.15.0</version.langchain4j>
+    <version.mcp-sdk>1.1.3</version.mcp-sdk>
     <version.elasticsearch-java-client>8.19.15</version.elasticsearch-java-client>
 
     <version.scala>3.8.3</version.scala>
 
     <!-- maven plugins (not managed by parent) -->
-    <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
+    <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.6.3</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
     <plugin.version.license>5.0.0</plugin.version.license>
@@ -185,7 +190,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.5</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.4.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.5.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
 
     <plugin.version.maven-dependency-plugin>3.10.0</plugin.version.maven-dependency-plugin>
@@ -208,6 +213,32 @@ limitations under the License.</license.inlineheader>
         <version>${version.jackson-datatype-jsr310}</version>
       </dependency>
 
+      <!-- CVE override for Tomcat - remove when version.tomcat property is removed -->
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-core</artifactId>
+        <version>${version.tomcat}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-el</artifactId>
+        <version>${version.tomcat}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-websocket</artifactId>
+        <version>${version.tomcat}</version>
+      </dependency>
+
+      <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${version.netty}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+
       <!-- Spring Boot BOM -->
       <dependency>
         <groupId>org.springframework.boot</groupId>
@@ -215,6 +246,13 @@ limitations under the License.</license.inlineheader>
         <version>${version.spring-boot}</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+
+      <!-- Override Spring Boot BOM postgresql pin -->
+      <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.7.11</version>
       </dependency>
 
       <!-- gRPC BOM - the version has to be equal or greater than the one from the Camunda client -->
@@ -546,6 +584,11 @@ limitations under the License.</license.inlineheader>
         <artifactId>http-auth</artifactId>
         <version>${version.aws-sdk2}</version>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sts</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
 
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
@@ -853,6 +896,12 @@ limitations under the License.</license.inlineheader>
         <version>${version.system-stubs}</version>
         <scope>test</scope>
       </dependency>
+
+      <dependency>
+        <groupId>org.apache.opennlp</groupId>
+        <artifactId>opennlp-tools</artifactId>
+        <version>2.5.9</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -944,6 +993,18 @@ limitations under the License.</license.inlineheader>
               <requirePluginVersions>
                 <banSnapshots>false</banSnapshots>
               </requirePluginVersions>
+              <!-- CVE override reminder: fail build when Spring Boot is bumped past 4.0.6
+                   so we remember to check if the Tomcat override (version.tomcat) can be removed.
+                   Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>4\.0\.6</regex>
+                <regexMessage>
+Spring Boot version was bumped! Check if the Tomcat CVE override (version.tomcat in parent/pom.xml) can be removed.
+If the new Spring Boot version ships Tomcat >= 11.0.22, remove version.tomcat property and the tomcat-embed-* dependencyManagement entries.
+Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575
+                </regexMessage>
+              </requireProperty>
             </rules>
           </configuration>
           <executions>
@@ -1052,6 +1113,8 @@ limitations under the License.</license.inlineheader>
                   <dependency>org.testcontainers:testcontainers</dependency>
                   <dependency>org.springframework.boot:spring-boot-starter-actuator</dependency>
                   <dependency>io.camunda.connector:connector-validation</dependency>
+                  <!-- runtime-only: loaded reflectively by DefaultCredentialsProvider for IRSA/WebIdentityTokenFileCredentialsProvider -->
+                  <dependency>software.amazon.awssdk:sts</dependency>
                 </ignoredUnusedDeclaredDependencies>
                 <ignoredUsedUndeclaredDependencies>
                   <!-- included in junit-jupiter, ignore for cleaner pom -->
@@ -1086,7 +1149,7 @@ limitations under the License.</license.inlineheader>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.21.0</version>
+          <version>3.22.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

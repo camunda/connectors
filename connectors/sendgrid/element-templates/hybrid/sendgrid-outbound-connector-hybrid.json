@@ -5,7 +5,7 @@
   "description" : "Send an email via SendGrid",
   "keywords" : [ "send email", "email notification", "transactional email", "marketing email", "email campaign", "email delivery", "dynamic template", "email template" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.3"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -238,22 +238,218 @@
     },
     "type" : "Text"
   }, {
-    "id" : "attachments",
-    "label" : "attachments",
+    "id" : "attachments_documentMode",
+    "label" : "Number of documents",
     "description" : "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>",
-    "optional" : true,
+    "value" : "none",
+    "group" : "content",
+    "binding" : {
+      "name" : "attachments_documentMode",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
+      "name" : "Single document",
+      "value" : "single"
+    }, {
+      "name" : "Multiple documents",
+      "value" : "multiple"
+    } ]
+  }, {
+    "id" : "attachments_single_documentSource",
+    "label" : "Document source",
+    "value" : "camunda",
+    "group" : "content",
+    "binding" : {
+      "name" : "attachments_single_documentSource",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "attachments_documentMode",
+      "equals" : "single",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Camunda Document",
+      "value" : "camunda"
+    }, {
+      "name" : "Inline Content",
+      "value" : "inline"
+    }, {
+      "name" : "From URL",
+      "value" : "external"
+    } ]
+  }, {
+    "id" : "attachments_single_camundaReference",
+    "label" : "Camunda document",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "required",
+    "group" : "content",
+    "binding" : {
+      "name" : "attachments_single_camundaReference",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "attachments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "attachments_single_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "attachments_single_inline_content",
+    "label" : "Content",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "content",
+    "binding" : {
+      "name" : "attachments_single_inline_content",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "attachments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "attachments_single_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "attachments_single_inline_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "content",
+    "binding" : {
+      "name" : "attachments_single_inline_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "attachments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "attachments_single_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "attachments_single_inline_contentType",
+    "label" : "Content type",
+    "feel" : "optional",
+    "group" : "content",
+    "binding" : {
+      "name" : "attachments_single_inline_contentType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "attachments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "attachments_single_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "attachments_single_external_url",
+    "label" : "URL",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "content",
+    "binding" : {
+      "name" : "attachments_single_external_url",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "attachments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "attachments_single_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "attachments_single_external_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "content",
+    "binding" : {
+      "name" : "attachments_single_external_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "attachments_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "attachments_single_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "attachments_multiple_expression",
+    "label" : "Documents",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "content",
+    "binding" : {
+      "name" : "attachments_multiple_expression",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "attachments_documentMode",
+      "equals" : "multiple",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "attachments",
+    "value" : "=if attachments_documentMode = \"multiple\" then attachments_multiple_expression else if attachments_documentMode = \"single\" then (if attachments_single_documentSource = \"camunda\" then [attachments_single_camundaReference] else if attachments_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: attachments_single_inline_content, name: attachments_single_inline_fileName, contentType: attachments_single_inline_contentType }] else if attachments_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: attachments_single_external_url, name: attachments_single_external_fileName }] else null) else null",
     "group" : "content",
     "binding" : {
       "name" : "attachments",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

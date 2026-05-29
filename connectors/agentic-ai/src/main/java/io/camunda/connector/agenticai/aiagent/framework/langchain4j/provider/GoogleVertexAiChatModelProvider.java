@@ -7,8 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
 import com.google.auth.oauth2.ServiceAccountCredentials;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -31,7 +32,7 @@ public class GoogleVertexAiChatModelProvider
   }
 
   @Override
-  public ChatModel createChatModel(GoogleVertexAiProviderConfiguration vertexAi) {
+  public CloseableChatModel createChatModel(GoogleVertexAiProviderConfiguration vertexAi) {
     final var connection = vertexAi.googleVertexAi();
     final var builder =
         VertexAiGeminiChatModel.builder()
@@ -51,7 +52,8 @@ public class GoogleVertexAiChatModelProvider
       Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
     }
 
-    return builder.build();
+    final var model = builder.build();
+    return new CloseableChatModelDelegate(model, model);
   }
 
   private ServiceAccountCredentials createGoogleServiceAccountCredentials(

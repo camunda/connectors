@@ -22,6 +22,7 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredential;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
@@ -173,8 +174,10 @@ class AzureOpenAiChatModelProviderTest {
       chatModelMock.when(AzureOpenAiChatModel::builder).thenReturn(chatModelBuilder);
 
       final var chatModel = provider.createChatModel(providerConfig);
-      assertThat(chatModel).isNotNull().isInstanceOf(AzureOpenAiChatModel.class);
-      assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+      assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
+      final var delegate = ((CloseableChatModelDelegate) chatModel).delegate();
+      assertThat(delegate).isInstanceOf(AzureOpenAiChatModel.class);
+      assertThat(delegate).isSameAs(chatModelResultCaptor.getResult());
 
       verify(proxySupport).createAzureProxyOptions(AZURE_OPENAI_ENDPOINT);
       verify(chatModelBuilder).endpoint(AZURE_OPENAI_ENDPOINT);

@@ -5,7 +5,7 @@
   "description" : "Create a channel or send a message to a channel or user",
   "keywords" : [ "post message", "create channel", "invite to channel", "add reaction", "pin message", "unpin message", "send message", "channel", "messaging", "chat", "notification" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
-  "version" : 9,
+  "version" : 10,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.3"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -191,11 +191,248 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.documents",
-    "label" : "attachments",
+    "id" : "data_documents_documentMode",
+    "label" : "Number of documents",
     "description" : "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments",
-    "optional" : true,
+    "value" : "none",
+    "group" : "message",
+    "binding" : {
+      "name" : "data.data_documents_documentMode",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "equals" : "chat.postMessage",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
+      "name" : "Single document",
+      "value" : "single"
+    }, {
+      "name" : "Multiple documents",
+      "value" : "multiple"
+    } ]
+  }, {
+    "id" : "data_documents_single_documentSource",
+    "label" : "Document source",
+    "value" : "camunda",
+    "group" : "message",
+    "binding" : {
+      "name" : "data.data_documents_single_documentSource",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data_documents_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "chat.postMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Camunda Document",
+      "value" : "camunda"
+    }, {
+      "name" : "Inline Content",
+      "value" : "inline"
+    }, {
+      "name" : "From URL",
+      "value" : "external"
+    } ]
+  }, {
+    "id" : "data_documents_single_camundaReference",
+    "label" : "Camunda document",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "required",
+    "group" : "message",
+    "binding" : {
+      "name" : "data.data_documents_single_camundaReference",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data_documents_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "data_documents_single_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "chat.postMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data_documents_single_inline_content",
+    "label" : "Content",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "data.data_documents_single_inline_content",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data_documents_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "data_documents_single_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "chat.postMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data_documents_single_inline_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "data.data_documents_single_inline_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data_documents_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "data_documents_single_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "chat.postMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data_documents_single_inline_contentType",
+    "label" : "Content type",
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "data.data_documents_single_inline_contentType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data_documents_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "data_documents_single_documentSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "chat.postMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data_documents_single_external_url",
+    "label" : "URL",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "data.data_documents_single_external_url",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data_documents_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "data_documents_single_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "chat.postMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data_documents_single_external_fileName",
+    "label" : "File name",
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "data.data_documents_single_external_fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data_documents_documentMode",
+        "equals" : "single",
+        "type" : "simple"
+      }, {
+        "property" : "data_documents_single_documentSource",
+        "equals" : "external",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "chat.postMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data_documents_multiple_expression",
+    "label" : "Documents",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "message",
+    "binding" : {
+      "name" : "data.data_documents_multiple_expression",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data_documents_documentMode",
+        "equals" : "multiple",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "chat.postMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.documents",
+    "value" : "=if data_documents_documentMode = \"multiple\" then data_documents_multiple_expression else if data_documents_documentMode = \"single\" then (if data_documents_single_documentSource = \"camunda\" then [data_documents_single_camundaReference] else if data_documents_single_documentSource = \"inline\" then [{ \"camunda.document.type\": \"inline\", content: data_documents_single_inline_content, name: data_documents_single_inline_fileName, contentType: data_documents_single_inline_contentType }] else if data_documents_single_documentSource = \"external\" then [{ \"camunda.document.type\": \"external\", url: data_documents_single_external_url, name: data_documents_single_external_fileName }] else null) else null",
     "group" : "message",
     "binding" : {
       "name" : "data.documents",
@@ -206,7 +443,7 @@
       "equals" : "chat.postMessage",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "data.channel",
     "label" : "Channel/user name/email",
@@ -542,7 +779,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "9",
+    "value" : "10",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

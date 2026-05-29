@@ -3,7 +3,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "ServiceNow Outbound Connector",
   "id": "io.camunda.connectors.ServiceNow.v1",
-  "version": 1,
+  "version": 2,
   "description": "Execute CRUD operations on any ServiceNow table",
   "keywords": [
     "create record",
@@ -55,10 +55,6 @@
     {
       "id": "timeout",
       "label": "Connection timeout"
-    },
-    {
-      "id": "payload",
-      "label": "Payload"
     },
     {
       "id": "output",

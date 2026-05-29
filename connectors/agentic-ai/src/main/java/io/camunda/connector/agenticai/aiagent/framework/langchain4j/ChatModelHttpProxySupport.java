@@ -11,14 +11,20 @@ import dev.langchain4j.http.client.jdk.JdkHttpClientBuilder;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import java.net.Authenticator;
+import java.net.CookieHandler;
 import java.net.InetSocketAddress;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 public class ChatModelHttpProxySupport {
@@ -34,18 +40,128 @@ public class ChatModelHttpProxySupport {
     this.jdkHttpClientProxyConfigurator = jdkHttpClientProxyConfigurator;
   }
 
-  public JdkHttpClientBuilder createJdkHttpClientBuilder() {
+  /**
+   * Configures an {@link HttpClient.Builder} with proxy settings, then wraps it in a {@link
+   * CloseableJdkHttpClientBuilder}. Callers set timeouts on the returned builder directly (e.g.
+   * {@code .connectTimeout(...).readTimeout(...)}), pass it to a langchain4j model builder as the
+   * {@code httpClientBuilder}, then pass it to {@link CloseableChatModelDelegate} as the resource
+   * to close.
+   */
+  public CloseableJdkHttpClientBuilder createJdkHttpClientBuilder() {
     final var httpClientBuilder = HttpClient.newBuilder();
     jdkHttpClientProxyConfigurator.configure(httpClientBuilder);
-    return new JdkHttpClientBuilder().httpClientBuilder(httpClientBuilder);
+    return new CloseableJdkHttpClientBuilder(httpClientBuilder);
   }
 
-  public SdkHttpClient createAwsHttpClient(URI endpointOverride) {
+  /**
+   * A {@link JdkHttpClientBuilder} that wraps a configured {@link HttpClient.Builder} and captures
+   * the {@link HttpClient} produced when langchain4j calls {@link HttpClient.Builder#build()}.
+   * Extends {@link JdkHttpClientBuilder} so it can be passed directly to langchain4j model
+   * builders. Implements {@link AutoCloseable} so it can be passed directly to {@link
+   * CloseableChatModelDelegate}.
+   *
+   * <p>All {@link HttpClient.Builder} method calls are forwarded to the real builder so any
+   * configuration langchain4j applies (SSL context, version, executor, etc.) takes effect on the
+   * actual client. {@link CapturingBridge#build()} captures the resulting instance for {@link
+   * #close()}.
+   */
+  public static final class CloseableJdkHttpClientBuilder extends JdkHttpClientBuilder
+      implements AutoCloseable {
+
+    private HttpClient builtClient;
+
+    CloseableJdkHttpClientBuilder(HttpClient.Builder delegate) {
+      httpClientBuilder(new CapturingBridge(delegate));
+    }
+
+    @Override
+    public void close() {
+      if (builtClient != null) {
+        builtClient.close();
+      }
+    }
+
+    private final class CapturingBridge implements HttpClient.Builder {
+      private final HttpClient.Builder delegate;
+
+      CapturingBridge(HttpClient.Builder delegate) {
+        this.delegate = delegate;
+      }
+
+      @Override
+      public HttpClient.Builder cookieHandler(CookieHandler cookieHandler) {
+        delegate.cookieHandler(cookieHandler);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder connectTimeout(Duration duration) {
+        delegate.connectTimeout(duration);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder sslContext(SSLContext sslContext) {
+        delegate.sslContext(sslContext);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder sslParameters(SSLParameters sslParameters) {
+        delegate.sslParameters(sslParameters);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder executor(Executor executor) {
+        delegate.executor(executor);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder followRedirects(HttpClient.Redirect policy) {
+        delegate.followRedirects(policy);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder version(HttpClient.Version version) {
+        delegate.version(version);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder priority(int priority) {
+        delegate.priority(priority);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder proxy(ProxySelector proxySelector) {
+        delegate.proxy(proxySelector);
+        return this;
+      }
+
+      @Override
+      public HttpClient.Builder authenticator(Authenticator authenticator) {
+        delegate.authenticator(authenticator);
+        return this;
+      }
+
+      @Override
+      public HttpClient build() {
+        if (builtClient != null) {
+          throw new IllegalStateException("HttpClient has already been built");
+        }
+        return builtClient = delegate.build();
+      }
+    }
+  }
+
+  public ApacheHttpClient.Builder createAwsHttpClientBuilder(URI endpointOverride) {
     String schemeName =
         endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
-    return ApacheHttpClient.builder()
-        .proxyConfiguration(createAwsProxyConfiguration(schemeName))
-        .build();
+    return ApacheHttpClient.builder().proxyConfiguration(createAwsProxyConfiguration(schemeName));
   }
 
   software.amazon.awssdk.http.apache.ProxyConfiguration createAwsProxyConfiguration(

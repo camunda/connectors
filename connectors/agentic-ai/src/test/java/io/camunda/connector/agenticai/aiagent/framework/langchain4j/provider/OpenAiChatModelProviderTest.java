@@ -11,15 +11,19 @@ import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provi
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
@@ -27,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
@@ -156,6 +161,34 @@ class OpenAiChatModelProviderTest {
         providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
   }
 
+  @Test
+  void closingChatModelClosesHttpClient() throws Exception {
+    final var providerConfig =
+        new OpenAiProviderConfiguration(
+            new OpenAiConnection(
+                new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                MODEL_TIMEOUT,
+                new OpenAiProviderConfiguration.OpenAiModel(OPEN_AI_MODEL, null)));
+
+    final var mockHttpClient = mock(HttpClient.class);
+    final var mockBuilder = mock(HttpClient.Builder.class, Answers.RETURNS_SELF);
+    when(mockBuilder.build()).thenReturn(mockHttpClient);
+
+    try (MockedStatic<HttpClient> httpClientMock =
+            mockStatic(HttpClient.class, Answers.CALLS_REAL_METHODS);
+        MockedStatic<OpenAiChatModel> chatModelMock =
+            mockStatic(OpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
+      httpClientMock.when(HttpClient::newBuilder).thenReturn(mockBuilder);
+
+      final var chatModel = (CloseableChatModel) provider.createChatModel(providerConfig);
+      assertThat(chatModel).isInstanceOf(CloseableChatModel.class);
+
+      chatModel.close();
+
+      verify(mockHttpClient).close();
+    }
+  }
+
   private void testOpenAiChatModelBuilder(
       OpenAiProviderConfiguration providerConfig,
       ThrowingConsumer<OpenAiChatModelBuilder> builderAssertions) {
@@ -168,8 +201,9 @@ class OpenAiChatModelProviderTest {
       chatModelMock.when(OpenAiChatModel::builder).thenReturn(chatModelBuilder);
 
       final var chatModel = provider.createChatModel(providerConfig);
-      assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
-      assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+      assertThat(chatModel).isNotNull().isInstanceOf(CloseableChatModelDelegate.class);
+      assertThat(((CloseableChatModelDelegate) chatModel).delegate())
+          .isSameAs(chatModelResultCaptor.getResult());
 
       verify(proxySupport).createJdkHttpClientBuilder();
       builderAssertions.accept(chatModelBuilder);

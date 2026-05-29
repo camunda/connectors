@@ -27,6 +27,7 @@ import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
@@ -74,6 +75,53 @@ class DocumentSerializerTest {
           "documentId": "doc-42",
           "contentHash": "abc123",
           "metadata": {}
+        }
+        """,
+        result,
+        true);
+  }
+
+  @Test
+  void shouldReturnJsonForInlineDocument() throws JsonProcessingException, JSONException {
+    // Content is already in its captured form (raw JSON text) — what the deserializer would have
+    // produced from a JSON object input.
+    var ref =
+        new InlineDocumentReferenceModel(
+            "{\"name\":\"Jane\",\"age\":32}", "me.json", "application/json");
+    var document = mock(Document.class);
+    when(document.reference()).thenReturn(ref);
+
+    var result = objectMapper.writeValueAsString(document);
+
+    // Output emits content as a JSON string (byte-equivalent round-trip; not shape-preserving).
+    JSONAssert.assertEquals(
+        """
+        {
+          "camunda.document.type": "inline",
+          "content": "{\\"name\\":\\"Jane\\",\\"age\\":32}",
+          "name": "me.json",
+          "contentType": "application/json"
+        }
+        """,
+        result,
+        true);
+  }
+
+  @Test
+  void inlineDocumentWithNullOptionalFields_omitsThemFromJson()
+      throws JsonProcessingException, JSONException {
+    var ref = new InlineDocumentReferenceModel("hello", null, null);
+    var document = mock(Document.class);
+    when(document.reference()).thenReturn(ref);
+
+    var result = objectMapper.writeValueAsString(document);
+
+    // @JsonInclude(NON_NULL) keeps name and contentType out of the serialized JSON
+    JSONAssert.assertEquals(
+        """
+        {
+          "camunda.document.type": "inline",
+          "content": "hello"
         }
         """,
         result,

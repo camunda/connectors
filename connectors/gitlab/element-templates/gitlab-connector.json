@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitLab Outbound Connector",
   "id": "io.camunda.connectors.GitLab.v1",
-  "version": 7,
+  "version": 8,
   "engines": {
     "camunda": "^8.3"
   },
@@ -47,6 +47,10 @@
       "label": "Operation"
     },
     {
+      "id": "connector",
+      "label": "Connector"
+    },
+    {
       "id": "output",
       "label": "Response mapping"
     },
@@ -65,7 +69,6 @@
       }
     },
     {
-      "group": "authentication",
       "type": "Hidden",
       "value": "noAuth",
       "binding": {
@@ -1426,7 +1429,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "branchOperation",
+        "property": "reposOperation",
         "oneOf": [
           "getRepositoryFile"
         ]

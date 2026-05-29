@@ -30,7 +30,6 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
@@ -38,7 +37,7 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -46,6 +45,7 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentJobWorkerTest;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
+import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionResultMessageEqualsPredicate;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -71,7 +71,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 @ExtendWith(MockitoExtension.class)
 abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
   @MockitoBean private ChatModelFactory chatModelFactory;
-  @Mock protected ChatModel chatModel;
+  @Mock protected CloseableChatModel chatModel;
   @Captor protected ArgumentCaptor<ChatRequest> chatRequestCaptor;
   @MockitoSpyBean protected AdHocToolsSchemaResolver toolsSchemaResolver;
 
@@ -117,6 +117,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
+                .hasAgentInstanceKey()
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
                 .satisfies(agentResponseAssertions));
 
@@ -317,6 +318,9 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
             RecursiveComparisonConfiguration.builder()
                 .withEqualsForType(
                     new ToolExecutionRequestEqualsPredicate(), ToolExecutionRequest.class)
+                .withEqualsForType(
+                    new ToolExecutionResultMessageEqualsPredicate(),
+                    ToolExecutionResultMessage.class)
                 .build())
         .containsExactlyElementsOf(
             expectedConversation.subList(0, expectedConversation.size() - 1));
@@ -376,6 +380,4 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
       return new ChatInteraction(chatResponse, userFeedback);
     }
   }
-
-  protected record DownloadFileToolResult(int status, DocumentToContentResponseModel document) {}
 }

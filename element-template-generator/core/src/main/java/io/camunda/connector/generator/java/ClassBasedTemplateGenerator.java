@@ -107,6 +107,11 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       properties =
           new ArrayList<>(
               TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context));
+      // zeebe:linkedResource is a service-task extension; skip it for inbound connectors
+      if (OutboundConnectorFunction.class.isAssignableFrom(connectorDefinition)) {
+        properties.addAll(
+            LinkedResourcePropertiesUtil.buildClassBasedLinkedResourceProperties(connectorInput));
+      }
     } else if (OutboundConnectorProvider.class.isAssignableFrom(connectorDefinition)) {
       List<MethodWithAnnotation<Operation>> methods =
           ReflectionUtil.getMethodsAnnotatedWith(connectorDefinition, Operation.class);

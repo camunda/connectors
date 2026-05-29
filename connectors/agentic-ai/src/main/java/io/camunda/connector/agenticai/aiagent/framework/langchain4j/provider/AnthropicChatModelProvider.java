@@ -6,11 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.CONNECT_TIMEOUT;
 import static io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
-import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
@@ -37,16 +39,18 @@ public class AnthropicChatModelProvider
   }
 
   @Override
-  public ChatModel createChatModel(AnthropicProviderConfiguration anthropic) {
+  public CloseableChatModel createChatModel(AnthropicProviderConfiguration anthropic) {
     final var connection = anthropic.anthropic();
+    final var apiTimeout =
+        deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER);
 
+    final var http = proxySupport.createJdkHttpClientBuilder();
     final var builder =
         AnthropicChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
-            .timeout(
-                deriveTimeoutSetting("Anthropic model call", config, connection.timeouts(), LOGGER))
-            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
+            .timeout(apiTimeout)
+            .httpClientBuilder(http.connectTimeout(CONNECT_TIMEOUT).readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 
@@ -58,6 +62,6 @@ public class AnthropicChatModelProvider
       Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
     }
 
-    return builder.build();
+    return new CloseableChatModelDelegate(builder.build(), http);
   }
 }

@@ -73,8 +73,6 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
           persist-credentials: false # we will use a GitHub App token for pushing commits and tags, so we need to disable the default token
-      - name: Install asdf & tools
-        uses: asdf-vm/actions/install@v4
       - name: Install bc calculator
         run: sudo apt-get update && sudo apt-get install -y bc
       - name: Identify previous release version
@@ -117,12 +115,12 @@ jobs:
 
         # Maven build & version bump
       - name: Set Connectors release version
-        run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
+        run: ./mvnw -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
           RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Compile and Test
-        run: mvn -B -U package generate-sources source:jar javadoc:jar -Pe2eExcluded
+        run: ./mvnw -B -U package generate-sources source:jar javadoc:jar -Pe2eExcluded
 
       - name: Publish Test Report
         if: always()
@@ -137,11 +135,11 @@ jobs:
 
       - name: Generate sbom reports
         run: |
-          mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
+          ./mvnw cyclonedx:makeAggregateBom -pl bundle/default-bundle
 
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -207,6 +205,9 @@ jobs:
         with:
           name: repository
 
+      - name: Ensure Maven wrapper is executable
+        run: chmod +x ./mvnw
+
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@v5
         with:
@@ -223,7 +224,7 @@ jobs:
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v3.4.0
+        uses: hashicorp/vault-action@v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -231,8 +232,8 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           exportEnv: false
           secrets: |
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
 
       - name: 'Create settings.xml'
         uses: s4u/maven-settings-action@v4.0.0
@@ -241,13 +242,13 @@ jobs:
           servers: |
             [{
                "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
-               "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Install artifacts
-        run: mvn -B install -DskipTests -DskipChecks -Pe2eExcluded
+        run: ./mvnw -B install -DskipTests -DskipChecks -Pe2eExcluded
 
       - name: Install Node.js
         uses: actions/setup-node@v6
@@ -258,7 +259,7 @@ jobs:
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
       - name: Run E2E tests
-        run: mvn -B verify -f connectors-e2e-test/pom.xml
+        run: ./mvnw -B verify -f connectors-e2e-test/pom.xml
 
       - name: Publish Test Report
         if: always()
@@ -352,6 +353,9 @@ jobs:
         with:
           name: repository
 
+      - name: Ensure Maven wrapper is executable
+        run: chmod +x ./mvnw
+
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@v5
         with:
@@ -360,7 +364,7 @@ jobs:
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v3.4.0
+        uses: hashicorp/vault-action@v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -368,8 +372,10 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           exportEnv: false # we rely on step outputs, no need for environment variables
           secrets: |
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
@@ -389,8 +395,8 @@ jobs:
           servers: |
             [{
                "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
-               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
              },
             {
                "id": "central",
@@ -418,7 +424,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(inputs.version, 'rc')"
-        run: mvn -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
+        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -428,7 +434,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory
         if: "contains(inputs.version, 'rc')"
-        run: mvn -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
+        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -455,7 +461,7 @@ jobs:
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v3.4.0
+        uses: hashicorp/vault-action@v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -668,7 +674,7 @@ jobs:
           ref: ${{ inputs.version }}
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v3.4.0
+        uses: hashicorp/vault-action@v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle

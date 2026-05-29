@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
-import dev.langchain4j.model.chat.ChatModel;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 
 /**
@@ -21,6 +21,6 @@ public interface ChatModelProvider<T extends ProviderConfiguration> {
   /** Identifier of the provider this implementation is responsible for. */
   String type();
 
-  /** Creates a {@link ChatModel} instance from the given configuration. */
-  ChatModel createChatModel(T providerConfiguration);
+  /** Creates a {@link CloseableChatModel} instance from the given configuration. */
+  CloseableChatModel createChatModel(T providerConfiguration);
 }

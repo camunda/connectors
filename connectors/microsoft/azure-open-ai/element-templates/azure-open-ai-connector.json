@@ -16,7 +16,7 @@
     "text generation"
   ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/azure-open-ai/",
-  "version": 2,
+  "version": 3,
   "engines": {
     "camunda": "^8.6"
   },
@@ -42,6 +42,10 @@
     {
       "id": "parameters",
       "label": "Parameters"
+    },
+    {
+      "id": "connector",
+      "label": "Connector"
     },
     {
       "id": "output",

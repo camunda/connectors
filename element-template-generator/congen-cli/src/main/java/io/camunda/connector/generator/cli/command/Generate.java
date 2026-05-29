@@ -39,8 +39,7 @@ public class Generate implements Callable<Integer> {
 
   static final Schema jsonSchema =
       SchemaRegistry.withDialect(
-              Dialects.getDraft202012(),
-              builder -> builder.schemaLoader(Builder::fetchRemoteResources))
+              Dialects.getDraft7(), builder -> builder.schemaLoader(Builder::fetchRemoteResources))
           .getSchema(
               SchemaLocation.of(
                   "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json"));

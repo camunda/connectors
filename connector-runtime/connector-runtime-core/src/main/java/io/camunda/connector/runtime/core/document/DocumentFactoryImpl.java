@@ -22,6 +22,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.mapper.HttpResponse;
@@ -54,15 +55,14 @@ public class DocumentFactoryImpl implements DocumentFactory {
     if (reference == null) {
       return null;
     }
-    if (reference instanceof CamundaDocumentReference camundaDocumentReference) {
-      return new CamundaDocument(
-          camundaDocumentReference.getMetadata(), camundaDocumentReference, documentStore);
-    }
-    if (reference instanceof ExternalDocumentReference externalDocumentReference) {
-      return new ExternalDocument(
-          externalDocumentReference.url(), externalDocumentReference.name(), downloadDocument);
-    }
-    throw new IllegalArgumentException("Unknown document reference type: " + reference.getClass());
+    return switch (reference) {
+      case CamundaDocumentReference r -> new CamundaDocument(r.getMetadata(), r, documentStore);
+      case ExternalDocumentReference r -> new ExternalDocument(r.url(), r.name(), downloadDocument);
+      case InlineDocumentReference r -> new InlineDocument(r.content(), r.name(), r.contentType());
+      default ->
+          throw new IllegalArgumentException(
+              "Unknown document reference type: " + reference.getClass());
+    };
   }
 
   @Override

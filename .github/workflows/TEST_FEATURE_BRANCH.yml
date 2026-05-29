@@ -69,7 +69,7 @@ jobs:
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
         id: secrets
-        uses: hashicorp/vault-action@v3.4.0
+        uses: hashicorp/vault-action@v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -77,8 +77,8 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           exportEnv: false # we rely on step outputs, no need for environment variables
           secrets: |
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
@@ -92,8 +92,8 @@ jobs:
           servers: |
             [{
                "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
-               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
              },
             {
                "id": "central",
@@ -105,7 +105,7 @@ jobs:
 
       # Build
       - name: Build Connectors
-        run: mvn --batch-mode -U clean test javadoc:javadoc -PcheckFormat -Dquickly
+        run: ./mvnw --batch-mode -U clean test javadoc:javadoc -PcheckFormat -Dquickly
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
@@ -144,3 +144,8 @@ jobs:
             exit 1
           fi
         shell: bash
+
+      - name: Validate element templates
+        run: |
+          ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
+          ./element-template-generator/validator/target/appassembler/bin/element-template-validator

@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.a2a.client.agentic.tool;
 
 import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.PROPERTY_A2A_CLIENTS;
 import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -24,10 +25,16 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -44,6 +51,8 @@ class A2aGatewayToolHandlerTest {
 
   public static final String A2A_CLIENT_GATEWAY_TYPE = "a2aClient";
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private final DocumentFactory documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   private A2aGatewayToolHandler handler;
 
   @BeforeEach
@@ -457,6 +466,136 @@ class A2aGatewayToolHandlerTest {
 
       assertThat(result).isEqualTo(toolCallResults);
     }
+
+    @Test
+    void convertsRawMapContentIntoTypedA2aSendMessageResult() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1"));
+
+      // simulate raw content as it arrives from the engine: a Map tree
+      var rawContent =
+          Map.of(
+              "kind",
+              "message",
+              "role",
+              "agent",
+              "messageId",
+              "msg-1",
+              "contextId",
+              "ctx-1",
+              "contents",
+              List.of(Map.of("type", "text", "text", "Agent reply")));
+      var toolCallResults = List.of(createToolCallResultWithContent("call1", "a2a1", rawContent));
+
+      var result = handler.transformToolCallResults(agentContext, toolCallResults);
+
+      assertThat(result).hasSize(1);
+      assertThat(result.getFirst().name()).isEqualTo("A2A_a2a1");
+      assertThat(result.getFirst().content())
+          .isInstanceOfSatisfying(
+              A2aMessage.class,
+              message -> {
+                assertThat(message.role()).isEqualTo(A2aMessage.Role.AGENT);
+                assertThat(message.contents())
+                    .containsExactly(TextContent.textContent("Agent reply"));
+              });
+    }
+  }
+
+  @Nested
+  class ExtractDocuments {
+
+    @Test
+    void extractsDocumentFromA2aMessageContents() {
+      var document = createDocument("a2a-message-doc");
+      var message =
+          A2aMessage.builder()
+              .role(A2aMessage.Role.AGENT)
+              .messageId("msg-1")
+              .contextId("ctx-1")
+              .contents(
+                  List.of(
+                      TextContent.textContent("description"),
+                      DocumentContent.documentContent(document)))
+              .build();
+      var toolCallResult = createToolCallResultWithContent("call1", "A2A_a2a1", message);
+
+      var documents = handler.extractDocuments(toolCallResult);
+
+      assertThat(documents).containsExactly(document);
+    }
+
+    @Test
+    void extractsDocumentsFromA2aTaskArtifactsAndHistory() {
+      var artifactDoc = createDocument("a2a-artifact-doc");
+      var historyDoc = createDocument("a2a-history-doc");
+
+      var artifact =
+          A2aArtifact.builder()
+              .artifactId("art-1")
+              .contents(List.of(DocumentContent.documentContent(artifactDoc)))
+              .build();
+      var historyMessage =
+          A2aMessage.builder()
+              .role(A2aMessage.Role.AGENT)
+              .messageId("msg-1")
+              .contextId("ctx-1")
+              .contents(List.of(DocumentContent.documentContent(historyDoc)))
+              .build();
+      var task =
+          A2aTask.builder()
+              .id("task-1")
+              .contextId("ctx-1")
+              .status(A2aTaskStatus.builder().state(A2aTaskStatus.TaskState.COMPLETED).build())
+              .artifacts(List.of(artifact))
+              .history(List.of(historyMessage))
+              .build();
+      var toolCallResult = createToolCallResultWithContent("call1", "A2A_a2a1", task);
+
+      var documents = handler.extractDocuments(toolCallResult);
+
+      // artifacts before history
+      assertThat(documents).containsExactly(artifactDoc, historyDoc);
+    }
+
+    @Test
+    void returnsEmptyListWhenContentIsNotA2aSendMessageResult() {
+      var toolCallResult = createToolCallResultWithContent("call1", "A2A_a2a1", "plain text");
+
+      var documents = handler.extractDocuments(toolCallResult);
+
+      assertThat(documents).isEmpty();
+    }
+
+    @Test
+    void returnsEmptyListWhenA2aMessageHasNoDocuments() {
+      var message =
+          A2aMessage.builder()
+              .role(A2aMessage.Role.AGENT)
+              .messageId("msg-1")
+              .contextId("ctx-1")
+              .contents(List.of(TextContent.textContent("only text")))
+              .build();
+      var toolCallResult = createToolCallResultWithContent("call1", "A2A_a2a1", message);
+
+      var documents = handler.extractDocuments(toolCallResult);
+
+      assertThat(documents).isEmpty();
+    }
+
+    @Test
+    void returnsEmptyListWhenA2aTaskHasNoArtifactsOrHistory() {
+      var task =
+          A2aTask.builder()
+              .id("task-1")
+              .contextId("ctx-1")
+              .status(A2aTaskStatus.builder().state(A2aTaskStatus.TaskState.COMPLETED).build())
+              .build();
+      var toolCallResult = createToolCallResultWithContent("call1", "A2A_a2a1", task);
+
+      var documents = handler.extractDocuments(toolCallResult);
+
+      assertThat(documents).isEmpty();
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -626,5 +765,9 @@ class A2aGatewayToolHandlerTest {
       assertThat(result.added()).isEmpty();
       assertThat(result.removed()).containsExactly("a2a1", "a2a2");
     }
+  }
+
+  private Document createDocument(String content) {
+    return documentFactory.create(DocumentCreationRequest.from(content.getBytes(UTF_8)).build());
   }
 }

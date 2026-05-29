@@ -30,8 +30,8 @@ import software.amazon.awssdk.services.bedrockagentcore.model.BedrockAgentCoreEx
 import software.amazon.awssdk.services.bedrockagentcore.model.ListMemoryRecordsRequest;
 import software.amazon.awssdk.services.bedrockagentcore.model.ListMemoryRecordsResponse;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryContent;
+import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordMetadataValue;
 import software.amazon.awssdk.services.bedrockagentcore.model.MemoryRecordSummary;
-import software.amazon.awssdk.services.bedrockagentcore.model.MetadataValue;
 import software.amazon.awssdk.services.bedrockagentcore.model.RetrieveMemoryRecordsRequest;
 import software.amazon.awssdk.services.bedrockagentcore.model.RetrieveMemoryRecordsResponse;
 
@@ -59,7 +59,7 @@ class AgentCoreMemoryExecutorTest {
               .namespaces("customer/12345", "preferences")
               .createdAt(Instant.parse("2026-04-01T10:00:00Z"))
               .score(0.95)
-              .metadata(Map.of("source", MetadataValue.fromStringValue("conversation")))
+              .metadata(Map.of("source", MemoryRecordMetadataValue.fromStringValue("conversation")))
               .build();
 
       when(client.retrieveMemoryRecords(any(RetrieveMemoryRecordsRequest.class)))
@@ -144,7 +144,7 @@ class AgentCoreMemoryExecutorTest {
               .namespaces("ns")
               .createdAt(Instant.now())
               .score(0.8)
-              .metadata(Map.of("source", MetadataValue.fromStringValue("conversation")))
+              .metadata(Map.of("source", MemoryRecordMetadataValue.fromStringValue("conversation")))
               .build();
 
       when(client.retrieveMemoryRecords(any(RetrieveMemoryRecordsRequest.class)))
@@ -179,7 +179,7 @@ class AgentCoreMemoryExecutorTest {
               .memoryStrategyId("user_preferences")
               .namespaces("customer/12345")
               .createdAt(Instant.parse("2026-04-01T10:00:00Z"))
-              .metadata(Map.of("source", MetadataValue.fromStringValue("import")))
+              .metadata(Map.of("source", MemoryRecordMetadataValue.fromStringValue("import")))
               .build();
 
       when(client.listMemoryRecords(any(ListMemoryRecordsRequest.class)))

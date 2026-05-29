@@ -38,15 +38,15 @@ jobs:
       # Import FOSSA_API_KEY and other secrets from Vault
       - name: Import secrets
         id: secrets
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: |
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | NEXUS_PASSWORD;
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR | NEXUS_USER;
+            secret/data/products/connectors/ci/nexus PASSWORD | NEXUS_PASSWORD;
+            secret/data/products/connectors/ci/nexus USER | NEXUS_USER;
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Restore Maven cache
         uses: actions/cache@v5

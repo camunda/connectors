@@ -14,6 +14,7 @@ import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
@@ -95,13 +96,10 @@ public record ChatPostMessageData(
             defaultValue =
                 "=[\n\t{\n\t\t\"type\": \"header\",\n\t\t\"text\": {\n\t\t\t\"type\": \"plain_text\",\n\t\t\t\"text\": \"New request\"\n\t\t}\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Type:*\\nPaid Time Off\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Created by:*\\n<example.com|John Doe>\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*When:*\\nAug 10 - Aug 13\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"text\": {\n\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\"text\": \"<https://example.com|View request>\"\n\t\t}\n\t}\n]")
         JsonNode blockContent,
-    @TemplateProperty(
+    @TemplateDocumentProperty(
             id = "data.documents",
             group = "message",
-            label = "attachments",
-            feel = FeelMode.required,
             binding = @PropertyBinding(name = "data.documents"),
-            type = TemplateProperty.PropertyType.String,
             optional = true,
             description =
                 "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments")
@@ -128,6 +126,7 @@ public record ChatPostMessageData(
       if (documents != null && !documents.isEmpty()) {
         requestBuilder.blocks(
             BlockBuilder.create(new FileUploader(methodsClient))
+                .text(text)
                 .documents(documents)
                 .getLayoutBlocks());
       }

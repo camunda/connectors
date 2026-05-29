@@ -54,4 +54,33 @@ public interface DocumentReference {
 
     String name();
   }
+
+  interface InlineDocumentReference extends DocumentReference {
+
+    /**
+     * The document content as a string of UTF-8 text bytes.
+     *
+     * <p>When the inline document was created from a non-string JSON value (object, array, number,
+     * boolean), the content is the compact JSON serialization of that value — not the original
+     * byte-for-byte input. Key ordering and whitespace are not preserved.
+     *
+     * @return the content (required, never null in valid input)
+     */
+    String content();
+
+    /**
+     * The filename, including extension. Drives MIME inference when {@link #contentType()} is not
+     * set.
+     *
+     * @return the filename, or {@code null} if not provided
+     */
+    String name();
+
+    /**
+     * Explicit MIME type. Overrides the type inferred from the filename extension.
+     *
+     * @return the content type, or {@code null} to fall back to inference
+     */
+    String contentType();
+  }
 }

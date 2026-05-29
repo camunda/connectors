@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@v3.4.0
+        uses: hashicorp/vault-action@v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -170,7 +170,7 @@ jobs:
           fi
 
       - name: Send Slack notification
-        uses: slackapi/slack-github-action@v3.0.2
+        uses: slackapi/slack-github-action@v3.0.3
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           method: chat.postMessage

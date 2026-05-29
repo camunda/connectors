@@ -33,6 +33,11 @@ public record GoogleVertexAiProviderConfiguration(
     return GOOGLE_VERTEX_AI_ID;
   }
 
+  @Override
+  public String model() {
+    return googleVertexAi.model.model();
+  }
+
   public record GoogleVertexAiConnection(
       @NotBlank
           @TemplateProperty(

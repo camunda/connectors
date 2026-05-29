@@ -20,11 +20,9 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,13 +50,14 @@ import org.springframework.test.web.servlet.MockMvc;
       "camunda.connector.secretprovider.discovery.enabled=false",
       "management.endpoints.web.exposure.include=*",
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
+      "camunda.client.auth.token-url=http://localhost:0/not-used",
+      "camunda.client.auth.client-id=test",
+      "camunda.client.auth.client-secret=test",
       "spring.cloud.gcp.parametermanager.enabled=false"
     })
 @DirtiesContext
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
-@CamundaSpringProcessTest
-@SlowTest
 public class InboundInstancesSecurityConfigurationTest {
 
   private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
@@ -66,16 +65,6 @@ public class InboundInstancesSecurityConfigurationTest {
   @DynamicPropertySource
   static void registerOidcProperties(DynamicPropertyRegistry registry) {
     registry.add("camunda.connector.auth.issuer", OIDC_SERVER::issuer);
-    registry.add("camunda.client.auth.token-url", OIDC_SERVER::tokenUrl);
-  }
-
-  @BeforeAll
-  static void beforeAll() {
-    OIDC_SERVER.stubTokenResponse(
-        200,
-        """
-        {"access_token":"test-token","token_type":"Bearer","expires_in":3600}
-        """);
   }
 
   @AfterAll
@@ -85,6 +74,9 @@ public class InboundInstancesSecurityConfigurationTest {
 
   @MockitoBean(answers = Answers.RETURNS_MOCKS)
   public SaaSSecretConfiguration saaSSecretConfiguration;
+
+  @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
+  public CamundaClient camundaClient;
 
   @Autowired private MockMvc mvc;
 
