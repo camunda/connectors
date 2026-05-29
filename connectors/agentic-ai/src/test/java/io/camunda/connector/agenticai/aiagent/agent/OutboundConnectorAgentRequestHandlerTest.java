@@ -18,11 +18,11 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
@@ -321,7 +321,7 @@ class OutboundConnectorAgentRequestHandlerTest {
   }
 
   @Test
-  void shouldEmitThinkingPatchThenIdlePatchWithLlmDeltas() {
+  void shouldEmitThinkingPatchThenDeferAllMetricsToJobCompletion() {
     // given
     mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
@@ -346,18 +346,21 @@ class OutboundConnectorAgentRequestHandlerTest {
                     .build());
 
     // when
-    requestHandler.handleRequest(agentExecutionContext);
+    final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    // then: THINKING before IDLE, LLM deltas in post-LLM PATCH
-    final var inOrder = inOrder(agentInstanceClient);
-    inOrder
-        .verify(agentInstanceClient)
+    // then: only pre-LLM THINKING patch emitted during handleRequest; no post-LLM patch yet
+    verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
             any(AgentContext.class),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
-    inOrder
-        .verify(agentInstanceClient)
+    verifyNoMoreInteractions(agentInstanceClient);
+
+    // when: job completes
+    response.onJobCompleted();
+
+    // then: full metrics + IDLE status reported on completion
+    verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
             any(AgentContext.class),
@@ -366,11 +369,11 @@ class OutboundConnectorAgentRequestHandlerTest {
                     .status(AgentInstanceUpdateStatus.IDLE)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
-    inOrder.verifyNoMoreInteractions();
+    verifyNoMoreInteractions(agentInstanceClient);
   }
 
   @Test
-  void shouldEmitThinkingPatchThenToolCallingPatchWhenLlmReturnsToolCalls() {
+  void shouldEmitThinkingPatchThenDeferToolCallingMetricsToJobCompletion() {
     // given
     mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
@@ -397,37 +400,26 @@ class OutboundConnectorAgentRequestHandlerTest {
     // when
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    // then: pre-LLM THINKING patch, post-LLM TOOL_CALLING patch with LLM-only metrics
-    final var inOrder = inOrder(agentInstanceClient);
-    inOrder
-        .verify(agentInstanceClient)
+    // then: only THINKING patch during handleRequest
+    verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
             any(AgentContext.class),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
-    inOrder
-        .verify(agentInstanceClient)
-        .update(
-            eq(agentExecutionContext),
-            any(AgentContext.class),
-            eq(
-                AgentInstanceUpdateRequest.builder()
-                    .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
-                    .build()));
-    inOrder.verifyNoMoreInteractions();
+    verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completes
     response.onJobCompleted();
 
-    // then: toolCalls delta reported on completion
+    // then: full metrics (including toolCalls) + TOOL_CALLING status on completion
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
             any(AgentContext.class),
             eq(
                 AgentInstanceUpdateRequest.builder()
-                    .delta(AgentMetrics.empty().incrementToolCalls(2))
+                    .status(AgentInstanceUpdateStatus.TOOL_CALLING)
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
                     .build()));
   }
 
@@ -468,9 +460,10 @@ class OutboundConnectorAgentRequestHandlerTest {
             i -> AgentResponse.builder().context(i.getArgument(1, AgentContext.class)).build());
 
     // when
-    requestHandler.handleRequest(agentExecutionContext);
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    response.onJobCompleted();
 
-    // then: toolCalls=0 in post-LLM delta because the LLM emitted no tool calls
+    // then: toolCalls=0 in completion delta because the LLM emitted no tool calls
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),

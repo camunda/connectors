@@ -123,16 +123,21 @@ public abstract class BaseAgentRequestHandler<
           "Request processing completed {} agent response, completing job",
           agentResponse == null ? "without" : "with");
 
-      final int toolCallsDelta =
-          agentResponse != null
-              ? agentResponse.context().metrics().toolCalls() - initialMetrics.toolCalls()
-              : 0;
+      AgentJobCompletionListener metricsListener = null;
+      if (agentResponse != null) {
+        final var metricsDelta = agentResponse.context().metrics().minus(initialMetrics);
+        final var nextStatus = nextAgentInstanceState(metricsDelta.toolCalls());
+        metricsListener =
+            createMetricsCompletionListener(
+                executionContext, agentResponse.context(), metricsDelta, nextStatus);
+      }
+
       return buildConnectorResponse(
           executionContext,
           agentResponse,
           compose(
               createStoreCompletionListener(executionContext, store, agentResponse),
-              createToolCallsCompletionListener(executionContext, agentResponse, toolCallsDelta)));
+              metricsListener));
     }
   }
 
@@ -155,16 +160,12 @@ public abstract class BaseAgentRequestHandler<
     }
     handleAddedUserMessages(executionContext, agentContext, addedUserMessages);
 
-    final var preChatMetrics = notifyThinking(executionContext, agentContext);
+    notifyThinking(executionContext, agentContext);
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =
         framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
 
-    agentContext =
-        updateAgentInstanceMetricsAndStatus(
-            executionContext,
-            updateContextMetrics(chatResponse.agentContext(), chatResponse),
-            preChatMetrics);
+    agentContext = updateContextMetrics(chatResponse.agentContext(), chatResponse);
 
     return buildResponse(executionContext, agentContext, chatResponse, session, runtimeMemory);
   }
@@ -211,34 +212,12 @@ public abstract class BaseAgentRequestHandler<
     return agentContext.withMetrics(agentContext.metrics().incrementToolCalls(toolCallsDelta));
   }
 
-  private AgentMetrics notifyThinking(C executionContext, AgentContext agentContext) {
+  private void notifyThinking(C executionContext, AgentContext agentContext) {
     LOGGER.debug("Notifying agent instance: status=THINKING before LLM call");
-    final var snapshot = agentContext.metrics();
     agentInstanceClient.update(
         executionContext,
         agentContext,
         AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
-    return snapshot;
-  }
-
-  private AgentContext updateAgentInstanceMetricsAndStatus(
-      C executionContext, AgentContext agentContext, AgentMetrics preChatMetrics) {
-    final var metricsDelta = agentContext.metrics().minus(preChatMetrics);
-    final var nextStatus = nextAgentInstanceState(metricsDelta.toolCalls());
-
-    logAgentInstancePostLlmUpdate(nextStatus, metricsDelta);
-
-    // Exclude toolCalls: tool calls are reported on job completion
-    // so superseded/failed jobs don't inflate the count.
-    agentInstanceClient.update(
-        executionContext,
-        agentContext,
-        AgentInstanceUpdateRequest.builder()
-            .status(nextStatus)
-            .delta(metricsDelta.withToolCalls(0))
-            .build());
-
-    return agentContext;
   }
 
   private AgentInstanceUpdateStatus nextAgentInstanceState(int toolCallsDelta) {
@@ -299,56 +278,58 @@ public abstract class BaseAgentRequestHandler<
     }
   }
 
-  private void logAgentInstancePostLlmUpdate(
-      AgentInstanceUpdateStatus nextStatus, AgentMetrics metricsDelta) {
-    if (!LOGGER.isDebugEnabled()) {
-      return;
-    }
-    LOGGER.debug(
-        "Updating agent instance after LLM response: status={}, modelCalls=+{}, inputTokens=+{}, outputTokens=+{}",
-        nextStatus,
-        metricsDelta.modelCalls(),
-        metricsDelta.tokenUsage().inputTokenCount(),
-        metricsDelta.tokenUsage().outputTokenCount());
-    if (metricsDelta.toolCalls() > 0) {
-      LOGGER.debug(
-          "{} tool call(s) will be reported to agent instance on job completion",
-          metricsDelta.toolCalls());
-    }
-  }
-
-  private AgentJobCompletionListener createToolCallsCompletionListener(
-      C executionContext, AgentResponse agentResponse, int toolCallsDelta) {
-    if (agentResponse == null || toolCallsDelta <= 0) {
-      return null;
-    }
-    final var agentContext = agentResponse.context();
+  private AgentJobCompletionListener createMetricsCompletionListener(
+      C executionContext,
+      AgentContext agentContext,
+      AgentMetrics metricsDelta,
+      AgentInstanceUpdateStatus nextStatus) {
     return new AgentJobCompletionListener() {
       @Override
       public void onJobCompleted() {
         try {
           LOGGER.debug(
-              "Reporting {} deferred tool call(s) to agent instance on job completion",
-              toolCallsDelta);
+              "Updating agent instance on job completion: status={}, modelCalls=+{}, inputTokens=+{}, outputTokens=+{}, toolCalls=+{}",
+              nextStatus,
+              metricsDelta.modelCalls(),
+              metricsDelta.tokenUsage().inputTokenCount(),
+              metricsDelta.tokenUsage().outputTokenCount(),
+              metricsDelta.toolCalls());
           agentInstanceClient.update(
               executionContext,
               agentContext,
-              AgentInstanceUpdateRequest.builder()
-                  .delta(AgentMetrics.empty().incrementToolCalls(toolCallsDelta))
-                  .build());
+              AgentInstanceUpdateRequest.builder().status(nextStatus).delta(metricsDelta).build());
         } catch (Exception e) {
           LOGGER.error(
-              "Failed to update tool call metrics after job completion; metrics may be inaccurate",
-              e);
+              "Failed to update metrics after job completion; metrics may be inaccurate", e);
         }
       }
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
+        final var failureDelta = metricsDelta.withToolCalls(0);
+        final boolean isSuperseded =
+            failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored;
+        final AgentInstanceUpdateStatus failureStatus =
+            isSuperseded ? null : AgentInstanceUpdateStatus.IDLE;
+
         LOGGER.warn(
-            "Job completion failed ({}), skipping tool call metrics update for {} tool call(s)",
+            "Job completion failed ({}), reporting token/model metrics without tool calls{}",
             failure.getClass().getSimpleName(),
-            toolCallsDelta);
+            isSuperseded ? " (no status change — job superseded)" : " (status=IDLE)");
+
+        try {
+          agentInstanceClient.update(
+              executionContext,
+              agentContext,
+              AgentInstanceUpdateRequest.builder()
+                  .status(failureStatus)
+                  .delta(failureDelta)
+                  .build());
+        } catch (Exception e) {
+          LOGGER.error(
+              "Failed to update metrics after job completion failure; metrics may be inaccurate",
+              e);
+        }
       }
     };
   }

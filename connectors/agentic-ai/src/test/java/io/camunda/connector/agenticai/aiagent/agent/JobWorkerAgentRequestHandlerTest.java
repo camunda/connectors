@@ -22,9 +22,12 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
@@ -74,7 +77,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -125,7 +127,7 @@ class JobWorkerAgentRequestHandlerTest {
 
   @Test
   void directlyReturnsAgentResponseWhenInitializationReturnsResponse() {
-    Mockito.reset(conversationStoreRegistry);
+    reset(conversationStoreRegistry);
 
     final var agentResponse =
         AgentResponse.builder()
@@ -438,7 +440,7 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   @Test
-  void shouldEmitThinkingPatchThenToolCallingPatchWhenLlmReturnsToolCalls() {
+  void shouldEmitThinkingPatchThenDeferAllMetricsToJobCompletion() {
     // given
     mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
@@ -465,42 +467,31 @@ class JobWorkerAgentRequestHandlerTest {
     // when
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    // then: pre-LLM THINKING patch, post-LLM TOOL_CALLING patch with LLM-only metrics
-    final var inOrder = Mockito.inOrder(agentInstanceClient);
-    inOrder
-        .verify(agentInstanceClient)
+    // then: only pre-LLM THINKING patch emitted during handleRequest; no post-LLM patch yet
+    verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
             any(AgentContext.class),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
-    inOrder
-        .verify(agentInstanceClient)
-        .update(
-            eq(agentExecutionContext),
-            any(AgentContext.class),
-            eq(
-                AgentInstanceUpdateRequest.builder()
-                    .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
-                    .build()));
-    inOrder.verifyNoMoreInteractions();
+    verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completes
     response.onJobCompleted();
 
-    // then: toolCalls delta reported on completion
+    // then: full metrics + status reported on completion
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
             any(AgentContext.class),
             eq(
                 AgentInstanceUpdateRequest.builder()
-                    .delta(AgentMetrics.empty().incrementToolCalls(2))
+                    .status(AgentInstanceUpdateStatus.TOOL_CALLING)
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
                     .build()));
   }
 
   @Test
-  void shouldNotEmitToolCallsPatchWhenJobCompletionFails() {
+  void shouldReportTokenMetricsWithIdleStatusWhenJobCompletionFails() {
     // given
     mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
@@ -527,15 +518,69 @@ class JobWorkerAgentRequestHandlerTest {
     // when
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    // consume the 2 expected patches (THINKING + TOOL_CALLING) emitted during handleRequest
-    verify(agentInstanceClient, Mockito.times(2)).update(any(), any(), any());
+    // consume the 1 expected THINKING patch emitted during handleRequest
+    verify(agentInstanceClient, times(1)).update(any(), any(), any());
 
-    // when: job completion fails (e.g. superseded job)
+    // when: job completion fails (execution error)
     response.onJobCompletionFailed(
         new JobCompletionFailure.ExecutionFailed(new RuntimeException(), null));
 
-    // then: no toolCalls PATCH emitted on failure
-    Mockito.verifyNoMoreInteractions(agentInstanceClient);
+    // then: token/model metrics reported with IDLE status; tool calls excluded
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.IDLE)
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .build()));
+    verifyNoMoreInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void shouldReportTokenMetricsWithoutStatusWhenJobSuperseded() {
+    // given
+    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    mockFrameworkExecution(assistantMessage);
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    lenient()
+        .when(
+            responseHandler.createResponse(
+                eq(agentExecutionContext),
+                any(AgentContext.class),
+                eq(assistantMessage),
+                anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .toolCalls(i.getArgument(3))
+                    .build());
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    verify(agentInstanceClient, times(1)).update(any(), any(), any());
+
+    // when: job is superseded (NOT_FOUND)
+    response.onJobCompletionFailed(
+        new JobCompletionFailure.CommandFailure.CommandIgnored(new RuntimeException()));
+
+    // then: token/model metrics reported without status change; tool calls excluded
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .build()));
+    verifyNoMoreInteractions(agentInstanceClient);
   }
 
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
