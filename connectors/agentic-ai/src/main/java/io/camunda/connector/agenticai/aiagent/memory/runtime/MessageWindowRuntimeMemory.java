@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.model.message.UserMessage;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -72,7 +73,9 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
   // original implementation see Langchain4j
   private static List<Message> filteredMessages(List<Message> messages, int maxMessages) {
     final var filtered = new ArrayList<>(messages);
-    while (filtered.size() > maxMessages) {
+    int effectiveCount = (int) filtered.stream().filter(m -> !isToolCallDocumentMessage(m)).count();
+
+    while (effectiveCount > maxMessages) {
       int messageToEvictIndex = 0;
 
       // don't remove the system message
@@ -82,6 +85,9 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
 
       // remove the message at the current index
       Message evictedMessage = filtered.remove(messageToEvictIndex);
+      if (!isToolCallDocumentMessage(evictedMessage)) {
+        effectiveCount--;
+      }
 
       // remove follow-up tool call results if existing as some LLM providers return an error when
       // receiving tool call results without the original tool call request
@@ -90,10 +96,25 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
         while (filtered.size() > messageToEvictIndex
             && filtered.get(messageToEvictIndex) instanceof ToolCallResultMessage) {
           filtered.remove(messageToEvictIndex);
+          effectiveCount--;
         }
+      }
+
+      // remove follow-up document user messages attached to evicted tool call results
+      while (filtered.size() > messageToEvictIndex
+          && isToolCallDocumentMessage(filtered.get(messageToEvictIndex))) {
+        filtered.remove(messageToEvictIndex);
+        // document messages are not counted, no need to decrement
       }
     }
 
     return List.copyOf(filtered);
+  }
+
+  private static boolean isToolCallDocumentMessage(Message message) {
+    return message instanceof UserMessage userMessage
+        && userMessage.metadata() != null
+        && Boolean.TRUE.equals(
+            userMessage.metadata().get(UserMessage.METADATA_TOOL_CALL_DOCUMENTS));
   }
 }

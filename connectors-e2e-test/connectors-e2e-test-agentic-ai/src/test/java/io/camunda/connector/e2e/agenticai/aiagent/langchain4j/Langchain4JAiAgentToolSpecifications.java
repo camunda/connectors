@@ -66,6 +66,19 @@ public interface Langchain4JAiAgentToolSpecifications {
                   .build())
           .build();
 
+  ToolSpecification EXTERNAL_FILE_REFERENCE_TOOL =
+      ToolSpecification.builder()
+          .name("External_File_Reference")
+          .description(
+              "Returns a reference to an externally hosted file (URL + display name) without downloading it.")
+          .parameters(
+              JsonObjectSchema.builder()
+                  .addStringProperty("url", "The URL of the externally hosted file")
+                  .addStringProperty("name", "A display name for the file")
+                  .required("url", "name")
+                  .build())
+          .build();
+
   ToolSpecification A_COMPLEX_TOOL =
       ToolSpecification.builder()
           .name("A_Complex_Tool")
@@ -120,6 +133,7 @@ public interface Langchain4JAiAgentToolSpecifications {
           SEARCH_THE_WEB_TOOL,
           A_COMPLEX_TOOL,
           DOWNLOAD_A_FILE_TOOL,
+          EXTERNAL_FILE_REFERENCE_TOOL,
           AN_EVENT_TOOL);
 
   List<ToolSpecification> EXPECTED_MCP_TOOL_SPECIFICATIONS =

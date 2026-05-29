@@ -47,6 +47,24 @@
       }
     },
     {
+      "name": "External_File_Reference",
+      "description": "Returns a reference to an externally hosted file (URL + display name) without downloading it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL of the externally hosted file"
+          },
+          "name": {
+            "type": "string",
+            "description": "A display name for the file"
+          }
+        },
+        "required": ["url", "name"]
+      }
+    },
+    {
       "name": "Download_A_File",
       "description": "Download a file from the provided URL",
       "inputSchema": {

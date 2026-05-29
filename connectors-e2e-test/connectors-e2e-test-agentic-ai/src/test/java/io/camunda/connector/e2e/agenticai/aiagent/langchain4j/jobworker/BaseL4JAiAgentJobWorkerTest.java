@@ -38,7 +38,6 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -46,6 +45,7 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentJobWorkerTest;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
+import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionResultMessageEqualsPredicate;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -318,6 +318,9 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
             RecursiveComparisonConfiguration.builder()
                 .withEqualsForType(
                     new ToolExecutionRequestEqualsPredicate(), ToolExecutionRequest.class)
+                .withEqualsForType(
+                    new ToolExecutionResultMessageEqualsPredicate(),
+                    ToolExecutionResultMessage.class)
                 .build())
         .containsExactlyElementsOf(
             expectedConversation.subList(0, expectedConversation.size() - 1));
@@ -377,6 +380,4 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
       return new ChatInteraction(chatResponse, userFeedback);
     }
   }
-
-  protected record DownloadFileToolResult(int status, DocumentToContentResponseModel document) {}
 }
