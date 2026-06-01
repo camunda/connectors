@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
@@ -17,6 +18,7 @@ public record AgentInstanceUpdateRequest(
     implements AgentInstanceUpdateRequestBuilder.With {
 
   public static AgentInstanceUpdateRequest statusOnly(AgentInstanceUpdateStatus status) {
+    Objects.requireNonNull(status, "status must not be null");
     return builder().status(status).build();
   }
 

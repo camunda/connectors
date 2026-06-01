@@ -128,7 +128,7 @@ public abstract class BaseAgentRequestHandler<
         final var metricsDelta = agentResponse.context().metrics().minus(initialMetrics);
         final var nextStatus = nextAgentInstanceState(metricsDelta.toolCalls());
         if (shouldUpdateAgentInstanceBeforeJobCompletion(agentResponse)) {
-          notifyMetrics(executionContext, agentResponse.context(), metricsDelta, nextStatus);
+          notifyMetrics(executionContext, agentResponse.context(), metricsDelta, nextStatus, true);
         } else {
           metricsListener =
               createMetricsCompletionListener(
@@ -280,8 +280,8 @@ public abstract class BaseAgentRequestHandler<
    */
   protected abstract R buildConnectorResponse(
       final C executionContext,
-      final @Nullable AgentResponse agentResponse,
-      final @Nullable AgentJobCompletionListener completionListener);
+      @Nullable final AgentResponse agentResponse,
+      @Nullable final AgentJobCompletionListener completionListener);
 
   private void logToolCallResults(List<ToolCallResult> toolCallResults) {
     if (LOGGER.isDebugEnabled()) {
@@ -296,7 +296,8 @@ public abstract class BaseAgentRequestHandler<
       C executionContext,
       AgentContext agentContext,
       AgentMetrics metricsDelta,
-      AgentInstanceUpdateStatus nextStatus) {
+      @Nullable AgentInstanceUpdateStatus nextStatus,
+      boolean rethrowOnFailure) {
     try {
       LOGGER.debug(
           "Updating agent instance metrics: status={}, modelCalls=+{}, inputTokens=+{}, outputTokens=+{}, toolCalls=+{}",
@@ -311,6 +312,9 @@ public abstract class BaseAgentRequestHandler<
           AgentInstanceUpdateRequest.builder().status(nextStatus).delta(metricsDelta).build());
     } catch (Exception e) {
       LOGGER.error("Failed to update agent instance metrics; metrics may be inaccurate", e);
+      if (rethrowOnFailure) {
+        throw e;
+      }
     }
   }
 
@@ -322,16 +326,19 @@ public abstract class BaseAgentRequestHandler<
     return new AgentJobCompletionListener() {
       @Override
       public void onJobCompleted() {
-        notifyMetrics(executionContext, agentContext, metricsDelta, nextStatus);
+        notifyMetrics(executionContext, agentContext, metricsDelta, nextStatus, false);
       }
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
-        notifyMetrics(
-            executionContext,
-            agentContext,
-            metricsDelta.withToolCalls(0),
-            AgentInstanceUpdateStatus.IDLE);
+        final var strippedDelta = metricsDelta.withToolCalls(0);
+        if (failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored) {
+          // Superseded job: report model/token cost but don't overwrite the current status
+          notifyMetrics(executionContext, agentContext, strippedDelta, null, false);
+        } else {
+          notifyMetrics(
+              executionContext, agentContext, strippedDelta, AgentInstanceUpdateStatus.IDLE, false);
+        }
       }
     };
   }

@@ -627,7 +627,8 @@ class JobWorkerAgentRequestHandlerTest {
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
     verifyNoMoreInteractions(agentInstanceClient);
 
-    // when: job superseded (NOT_FOUND) — deferred listener fires, strips toolCalls from delta
+    // when: job superseded (NOT_FOUND) — deferred listener fires, strips toolCalls, no status
+    // change
     response.onJobCompletionFailed(
         new JobCompletionFailure.CommandFailure.CommandIgnored(new RuntimeException()));
 
@@ -637,7 +638,6 @@ class JobWorkerAgentRequestHandlerTest {
             any(AgentContext.class),
             eq(
                 AgentInstanceUpdateRequest.builder()
-                    .status(AgentInstanceUpdateStatus.IDLE)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);

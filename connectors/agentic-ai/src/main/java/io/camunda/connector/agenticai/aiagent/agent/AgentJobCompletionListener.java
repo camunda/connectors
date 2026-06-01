@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.Arrays;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +30,7 @@ public interface AgentJobCompletionListener {
    * Chains an arbitrary number of listeners, skipping nulls. Each listener is called regardless of
    * whether a previous one threw; exceptions are logged and swallowed.
    */
-  static AgentJobCompletionListener compose(AgentJobCompletionListener... listeners) {
+  static @Nullable AgentJobCompletionListener compose(AgentJobCompletionListener... listeners) {
     final var nonNull = Arrays.stream(listeners).filter(Objects::nonNull).toList();
     return switch (nonNull.size()) {
       case 0 -> null;
