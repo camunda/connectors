@@ -41,6 +41,7 @@ public class ProcessDefinitionInspectorUtilTests {
     var inboundConnectors = fromModel("single-webhook-collaboration.bpmn", "process");
     assertEquals(1, inboundConnectors.size());
     assertEquals("start_event", inboundConnectors.getFirst().element().elementId());
+    assertEquals("My Webhook Process", inboundConnectors.getFirst().element().processName());
   }
 
   @Test
