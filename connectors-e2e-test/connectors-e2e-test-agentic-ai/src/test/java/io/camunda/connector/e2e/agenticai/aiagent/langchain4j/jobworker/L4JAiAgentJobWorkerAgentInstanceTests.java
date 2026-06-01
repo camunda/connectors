@@ -353,7 +353,8 @@ class L4JAiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
             "total_tokens": 30
           }
         }
-        """.formatted(toolCallId);
+        """
+        .formatted(toolCallId);
   }
 
   // turn 2: final answer, no tool calls (inputTokens=15, outputTokens=25)
