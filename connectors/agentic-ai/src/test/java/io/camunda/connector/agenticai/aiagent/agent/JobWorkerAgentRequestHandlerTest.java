@@ -678,14 +678,11 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   private void mockSystemPrompt() {
-    when(agentExecutionContext.systemPrompt())
-        .thenReturn(SYSTEM_PROMPT_CONFIGURATION);
+    when(agentExecutionContext.systemPrompt()).thenReturn(SYSTEM_PROMPT_CONFIGURATION);
     doAnswer(
             i -> {
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
-              runtimeMemory.addMessage(
-                  systemMessage(
-                      SYSTEM_PROMPT_CONFIGURATION.prompt()));
+              runtimeMemory.addMessage(systemMessage(SYSTEM_PROMPT_CONFIGURATION.prompt()));
               return null;
             })
         .when(messagesHandler)
