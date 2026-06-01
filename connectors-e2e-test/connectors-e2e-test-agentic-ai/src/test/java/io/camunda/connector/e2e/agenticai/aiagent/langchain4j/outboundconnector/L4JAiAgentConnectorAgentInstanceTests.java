@@ -61,7 +61,7 @@ class L4JAiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
    * <pre>
    * Init:   create agent instance
    * Turn 1: THINKING (sync) → LLM returns tool call → TOOL_CALLING + delta (sync — outbound
-   *         connector element instance always dies at job completion → immediate PATCH required)
+   *         connector element instance always completes at job completion → immediate PATCH required)
    * Tool:   SuperfluxProduct executes as BPMN script task
    * Turn 2: THINKING (sync) → LLM returns final answer → IDLE + delta (sync)
    * </pre>
@@ -77,7 +77,7 @@ class L4JAiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
                 aResponse()
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
-                    .withBody(toolCallResponseBody()))
+                    .withBody(toolCallResponseBody("call-001")))
             .willSetStateTo("turn-2"));
 
     stubFor(
@@ -180,7 +180,7 @@ class L4JAiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
                 aResponse()
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
-                    .withBody(toolCallResponseBody()))
+                    .withBody(toolCallResponseBody("call-001")))
             .willSetStateTo("turn-2"));
 
     stubFor(
@@ -191,7 +191,7 @@ class L4JAiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
                 aResponse()
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
-                    .withBody(toolCallResponseBody()))
+                    .withBody(toolCallResponseBody("call-002")))
             .willSetStateTo("turn-3"));
 
     stubFor(
@@ -323,10 +323,10 @@ class L4JAiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
   // }
 
   // turn 1: tool call to SuperfluxProduct (inputTokens=10, outputTokens=20)
-  private static String toolCallResponseBody() {
+  private static String toolCallResponseBody(String toolCallId) {
     return """
         {
-          "id": "chatcmpl-turn1",
+          "id": "chatcmpl-turn2",
           "object": "chat.completion",
           "model": "gpt-4o",
           "choices": [{
@@ -335,7 +335,7 @@ class L4JAiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
               "role": "assistant",
               "content": null,
               "tool_calls": [{
-                "id": "call-001",
+                "id": "%s",
                 "type": "function",
                 "function": {
                   "name": "SuperfluxProduct",
@@ -351,7 +351,7 @@ class L4JAiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
             "total_tokens": 30
           }
         }
-        """;
+        """.formatted(toolCallId);
   }
 
   // turn 2: final answer, no tool calls (inputTokens=15, outputTokens=25)

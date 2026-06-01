@@ -76,7 +76,7 @@ class L4JAiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
                 aResponse()
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
-                    .withBody(toolCallResponseBody()))
+                    .withBody(toolCallResponseBody("call-001")))
             .willSetStateTo("turn-2"));
 
     stubFor(
@@ -113,7 +113,7 @@ class L4JAiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
     // completionConditionFulfilled=false → element instance survives job completion).
     // Turn 2: both THINKING and IDLE are synchronous (AHSP closes after
     // completionConditionFulfilled=true
-    // → element instance dies at job completion → immediate PATCH required).
+    // → element instance completes at job completion → immediate PATCH required).
     var inOrder = inOrder(agentInstanceClient);
     inOrder.verify(agentInstanceClient).create(any());
     inOrder
@@ -182,7 +182,7 @@ class L4JAiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
                 aResponse()
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
-                    .withBody(toolCallResponseBody()))
+                    .withBody(toolCallResponseBody("call-001")))
             .willSetStateTo("turn-2"));
 
     stubFor(
@@ -193,7 +193,7 @@ class L4JAiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
                 aResponse()
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
-                    .withBody(toolCallResponseBody()))
+                    .withBody(toolCallResponseBody("call-002")))
             .willSetStateTo("turn-3"));
 
     stubFor(
@@ -325,10 +325,10 @@ class L4JAiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
   // }
 
   // turn 1: tool call to SuperfluxProduct (inputTokens=10, outputTokens=20)
-  private static String toolCallResponseBody() {
+  private static String toolCallResponseBody(String toolCallId) {
     return """
         {
-          "id": "chatcmpl-turn1",
+          "id": "%s",
           "object": "chat.completion",
           "model": "gpt-4o",
           "choices": [{
@@ -353,7 +353,7 @@ class L4JAiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
             "total_tokens": 30
           }
         }
-        """;
+        """.formatted(toolCallId);
   }
 
   // turn 2: final answer, no tool calls (inputTokens=15, outputTokens=25)

@@ -63,8 +63,8 @@ its containing BPMN element closes:
 - **Job worker (AHSP) - intermediate turn** (`completionConditionFulfilled=false`): the AHSP stays open after
   job completion, so the element instance survives → deferred PATCH via `onJobCompleted()` is safe.
 - **Job worker (AHSP) - final turn** (`completionConditionFulfilled=true`): the AHSP closes → element
-  instance dies → synchronous PATCH required before the complete command.
-- **Outbound connector (task)**: every job completion closes the service task → element instance always dies
+  instance completes → synchronous PATCH required before the complete command.
+- **Outbound connector (task)**: every job completion closes the service task → element instance always completes
   → synchronous PATCH always required.
 
 `BaseAgentRequestHandler` dispatches via the abstract method
