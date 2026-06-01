@@ -25,6 +25,7 @@ import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.junit.jupiter.params.provider.Arguments;
 
 public class ConnectorInstancesListResponseHelper {
@@ -171,7 +172,10 @@ public class ConnectorInstancesListResponseHelper {
       assertThat(actualInstance.connectorName()).isEqualTo(expectedInstance.connectorName());
       assertThat(actualInstance.instances()).hasSameSizeAs(expectedInstance.instances());
       assertThat(actualInstance.instances())
-          .usingRecursiveFieldByFieldElementComparator()
+          .usingRecursiveFieldByFieldElementComparator(
+              RecursiveComparisonConfiguration.builder()
+                  .withIgnoredFields("health.lastUpdatedAt")
+                  .build())
           .containsExactlyInAnyOrderElementsOf(expectedInstance.instances());
     }
   }
