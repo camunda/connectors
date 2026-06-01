@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentJobCompletionListener.compose;
-
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
@@ -129,17 +127,21 @@ public abstract class BaseAgentRequestHandler<
       if (agentResponse != null) {
         final var metricsDelta = agentResponse.context().metrics().minus(initialMetrics);
         final var nextStatus = nextAgentInstanceState(metricsDelta.toolCalls());
-        metricsListener =
-            createMetricsCompletionListener(
-                executionContext, agentResponse.context(), metricsDelta, nextStatus);
+        if (shouldUpdateAgentInstanceBeforeJobCompletion(agentResponse)) {
+          notifyMetrics(executionContext, agentResponse.context(), metricsDelta, nextStatus);
+        } else {
+          metricsListener =
+              createMetricsCompletionListener(
+                  executionContext, agentResponse.context(), metricsDelta, nextStatus);
+        }
       }
 
       return buildConnectorResponse(
           executionContext,
           agentResponse,
-          compose(
-              createStoreCompletionListener(executionContext, store, agentResponse),
-              metricsListener));
+          AgentJobCompletionListener.compose(
+              metricsListener,
+              createStoreCompletionListener(executionContext, store, agentResponse)));
     }
   }
 
@@ -258,6 +260,16 @@ public abstract class BaseAgentRequestHandler<
   protected abstract boolean modelCallPrerequisitesFulfilled(
       C executionContext, AgentContext agentContext, List<Message> addedUserMessages);
 
+  /**
+   * Returns {@code true} when the agent-instance PATCH must be sent synchronously before the job
+   * completion command is issued. Returning {@code false} defers the PATCH to {@link
+   * AgentJobCompletionListener#onJobCompleted()}, which is safe as long as the element instance
+   * survives job completion (e.g. an AHSP intermediate turn where tool elements are activated and
+   * the subprocess stays open).
+   */
+  protected abstract boolean shouldUpdateAgentInstanceBeforeJobCompletion(
+      AgentResponse agentResponse);
+
   protected void handleAddedUserMessages(
       C executionContext, AgentContext agentContext, List<Message> addedUserMessages) {
     // no-op by default
@@ -280,6 +292,28 @@ public abstract class BaseAgentRequestHandler<
     }
   }
 
+  private void notifyMetrics(
+      C executionContext,
+      AgentContext agentContext,
+      AgentMetrics metricsDelta,
+      AgentInstanceUpdateStatus nextStatus) {
+    try {
+      LOGGER.debug(
+          "Updating agent instance metrics: status={}, modelCalls=+{}, inputTokens=+{}, outputTokens=+{}, toolCalls=+{}",
+          nextStatus,
+          metricsDelta.modelCalls(),
+          metricsDelta.tokenUsage().inputTokenCount(),
+          metricsDelta.tokenUsage().outputTokenCount(),
+          metricsDelta.toolCalls());
+      agentInstanceClient.update(
+          executionContext,
+          agentContext,
+          AgentInstanceUpdateRequest.builder().status(nextStatus).delta(metricsDelta).build());
+    } catch (Exception e) {
+      LOGGER.error("Failed to update agent instance metrics; metrics may be inaccurate", e);
+    }
+  }
+
   private AgentJobCompletionListener createMetricsCompletionListener(
       C executionContext,
       AgentContext agentContext,
@@ -288,50 +322,16 @@ public abstract class BaseAgentRequestHandler<
     return new AgentJobCompletionListener() {
       @Override
       public void onJobCompleted() {
-        try {
-          LOGGER.debug(
-              "Updating agent instance on job completion: status={}, modelCalls=+{}, inputTokens=+{}, outputTokens=+{}, toolCalls=+{}",
-              nextStatus,
-              metricsDelta.modelCalls(),
-              metricsDelta.tokenUsage().inputTokenCount(),
-              metricsDelta.tokenUsage().outputTokenCount(),
-              metricsDelta.toolCalls());
-          agentInstanceClient.update(
-              executionContext,
-              agentContext,
-              AgentInstanceUpdateRequest.builder().status(nextStatus).delta(metricsDelta).build());
-        } catch (Exception e) {
-          LOGGER.error(
-              "Failed to update metrics after job completion; metrics may be inaccurate", e);
-        }
+        notifyMetrics(executionContext, agentContext, metricsDelta, nextStatus);
       }
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
-        final var failureDelta = metricsDelta.withToolCalls(0);
-        final boolean isSuperseded =
-            failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored;
-        final AgentInstanceUpdateStatus failureStatus =
-            isSuperseded ? null : AgentInstanceUpdateStatus.IDLE;
-
-        LOGGER.warn(
-            "Job completion failed ({}), reporting token/model metrics without tool calls{}",
-            failure.getClass().getSimpleName(),
-            isSuperseded ? " (no status change — job superseded)" : " (status=IDLE)");
-
-        try {
-          agentInstanceClient.update(
-              executionContext,
-              agentContext,
-              AgentInstanceUpdateRequest.builder()
-                  .status(failureStatus)
-                  .delta(failureDelta)
-                  .build());
-        } catch (Exception e) {
-          LOGGER.error(
-              "Failed to update metrics after job completion failure; metrics may be inaccurate",
-              e);
-        }
+        notifyMetrics(
+            executionContext,
+            agentContext,
+            metricsDelta.withToolCalls(0),
+            AgentInstanceUpdateStatus.IDLE);
       }
     };
   }

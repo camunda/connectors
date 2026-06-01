@@ -55,6 +55,11 @@ public class JobWorkerAgentRequestHandler
   }
 
   @Override
+  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentResponse agentResponse) {
+    return agentResponse.toolCalls().isEmpty();
+  }
+
+  @Override
   protected boolean modelCallPrerequisitesFulfilled(
       JobWorkerAgentExecutionContext executionContext,
       AgentContext agentContext,

@@ -46,6 +46,11 @@ public class OutboundConnectorAgentRequestHandler
   }
 
   @Override
+  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentResponse agentResponse) {
+    return true;
+  }
+
+  @Override
   protected boolean modelCallPrerequisitesFulfilled(
       OutboundConnectorAgentExecutionContext executionContext,
       AgentContext agentContext,

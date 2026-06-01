@@ -52,7 +52,7 @@ Three counters are in scope: `modelCalls`, `tokenUsage`, and `toolCalls`, corres
 
 ## Decision Outcome
 
-**Option A2** (LLM output), **B2** (deferred), **C2** (interface static).
+**Option A2** (LLM output), **B3** (hybrid — deferred when safe, immediate otherwise), **C2** (interface static).
 
 ### A2 — Count `toolCalls` from the LLM response
 
@@ -61,30 +61,44 @@ Three counters are in scope: `modelCalls`, `tokenUsage`, and `toolCalls`, corres
 turn. Option A1 counted tool-call _results_ that arrived as _input_ — attributing prior-iteration tool work to
 the current PATCH and never counting the last iteration's requests.
 
-### B2 — Defer all post-LLM metrics and status to job completion
+### B3 (hybrid) — Deferred when safe, immediate when the element instance won't survive job completion
 
-All post-LLM metrics and status are deferred to `AgentJobCompletionListener` callbacks rather than pushed
-eagerly after the LLM call. A job that is superseded or fails before Zeebe accepts its completion command
-will not have contributed a complete set of actions (no tool elements activated, no final status reached),
-so reporting as if it had would inflate counters and mislead status. Deferring lets the outcome of the
-Zeebe command determine what — if anything — is safe to report:
+`UpdateAgentInstanceCommand.elementInstanceKey()` requires a live element instance. The instance dies when
+its containing BPMN element closes:
 
-- `onJobCompleted()` — reports `status + {modelCalls, tokenUsage, toolCalls}` together.
-- `onJobCompletionFailed(CommandIgnored)` — job was superseded (NOT_FOUND); reports
-  `{modelCalls, tokenUsage}` without a status change so the new job's status is not overwritten.
-- `onJobCompletionFailed(other)` — execution or command error; reports
-  `{modelCalls, tokenUsage}` with `status=IDLE` (tokens were consumed, tools were not activated).
+- **Job worker (AHSP) — intermediate turn** (`completionConditionFulfilled=false`): the AHSP stays open after
+  job completion, so the element instance survives → deferred PATCH via `onJobCompleted()` is safe.
+- **Job worker (AHSP) — final turn** (`completionConditionFulfilled=true`): the AHSP closes → element
+  instance dies → synchronous PATCH required before the complete command.
+- **Outbound connector (task)**: every job completion closes the service task → element instance always dies
+  → synchronous PATCH always required.
+
+`BaseAgentRequestHandler` dispatches via the abstract method `shouldUpdateAgentInstanceBeforeJobCompletion(AgentResponse)`:
+- `OutboundConnectorAgentRequestHandler` returns `true` unconditionally.
+- `JobWorkerAgentRequestHandler` returns `agentResponse.toolCalls().isEmpty()` — mirrors
+  `completionConditionFulfilled`.
+
+**Deferred path** (`shouldUpdateAgentInstanceBeforeJobCompletion = false`): a metrics completion listener is
+composed with the store listener via `AgentJobCompletionListener.compose(...)`. On `onJobCompleted()` the
+full delta is reported. On `onJobCompletionFailed()` the delta is reported with `toolCalls=0` and status
+`IDLE` — tool elements were never activated so inflating the counter would be incorrect.
+
+**Immediate path** (`shouldUpdateAgentInstanceBeforeJobCompletion = true`): `notifyMetrics()` fires
+synchronously before `buildConnectorResponse()`; no metrics completion listener is created.
+
+**Supersession fairness restored for intermediate turns**: a superseded intermediate-turn job reports the LLM
+cost (modelCalls, tokens) but not toolCalls, because the deferred `onJobCompletionFailed()` strips them.
 
 **PATCH cadence per LLM turn:**
 
-| Moment | Status | Delta |
-|---|---|---|
-| Before LLM call | `THINKING` | — |
-| Job completion accepted | `TOOL_CALLING` or `IDLE` | `{modelCalls, tokenUsage, toolCalls}` |
-| Job completion superseded (`CommandIgnored`) | — | `{modelCalls, tokenUsage}` |
-| Job completion failed (other) | `IDLE` | `{modelCalls, tokenUsage}` |
+| Moment | Status | Delta | Flavor / condition |
+|---|---|---|---|
+| Before LLM call | `THINKING` | — | all |
+| After LLM call, before job complete command | `TOOL_CALLING` or `IDLE` | `{modelCalls, tokenUsage, toolCalls}` | outbound; or job-worker final turn |
+| Job completion accepted | `TOOL_CALLING` | `{modelCalls, tokenUsage, toolCalls}` | job-worker intermediate turn |
+| Job completion failed/superseded | `IDLE` | `{modelCalls, tokenUsage, toolCalls=0}` | job-worker intermediate turn |
 
-**PATCH cadence for gateway tool discovery:**
+**PATCH cadence for gateway tool discovery (unchanged):**
 
 | Moment | Status | Delta |
 |---|---|---|
@@ -96,19 +110,21 @@ Zeebe command determine what — if anything — is safe to report:
 The method is the natural owner of composition logic for its own type. Moving it there makes it reusable without
 importing an unrelated handler class, and the varargs signature cleanly replaces the two-argument null-chain. Each
 listener in the composed chain is called inside its own try-catch: a throwing listener is logged at `ERROR` and
-skipped, but the remaining listeners still execute. This is critical because once a job is completed or failed
-there is no Zeebe incident to raise for a failed metric update.
+skipped, but the remaining listeners still execute.
 
 ### Positive Consequences
 
 - Engine UI can show real-time agent status (thinking / tool-calling / idle / tool-discovery) per turn.
-- All counters and status transitions are exact and fair: superseded or failed jobs contribute nothing beyond
-  the tokens they actually consumed.
-- `AgentJobCompletionListener` is self-contained and safe to compose with any number of listeners.
+- Supersession fairness restored for intermediate job-worker turns: `toolCalls` counter not inflated when
+  tool elements were never activated.
+- Metrics PATCH always targets a live element instance: synchronous path fires while the instance is still
+  valid; deferred path fires while the AHSP is still open.
 
 ### Negative Consequences
 
-- Two PATCH calls per LLM turn (THINKING + job completion) instead of one, adding engine round trips.
+- Two PATCH calls per LLM turn (THINKING + post-LLM) instead of one, adding engine round trips.
+- Immediate path (outbound connector; job-worker final turn) still reports metrics even if the job completion
+  command ultimately fails — but this is unavoidable without an API change.
 - The `TOOL_CALLING`/`IDLE` status decision is driven by `assistantMessage.toolCalls()` size — if the
   framework ever transforms tool calls before returning (e.g., filters them out), the status could be misleading.
 
@@ -123,12 +139,19 @@ there is no Zeebe incident to raise for a failed metric update.
 ## Implementation Notes
 
 `AgentInstanceUpdateRequest` is built with a `@Builder` and a `statusOnly(status)` factory for the THINKING
-PATCH. The `delta` field accepts an `AgentMetrics` instance; `null` delta means status-only. `AgentMetrics` uses
-RecordBuilder's `with*` methods — `withToolCalls(0)` strips the tool-calls component from a delta without
-touching `modelCalls` or `tokenUsage`.
+PATCH. The `delta` field accepts an `AgentMetrics` instance; `null` delta means status-only.
 
-`BaseAgentRequestHandler.createMetricsCompletionListener` is only created when `agentResponse != null`
-(i.e., when an LLM call actually occurred). The returned listener always wraps `agentInstanceClient.update()`
-in try-catch — the PATCH runs after Zeebe has already accepted or rejected the job, so there is nowhere to
-propagate a failure. On `onJobCompletionFailed`, `toolCalls` are stripped from the delta via
-`metricsDelta.withToolCalls(0)` since unactivated tool calls must not inflate the counter.
+`BaseAgentRequestHandler.shouldUpdateAgentInstanceBeforeJobCompletion(AgentResponse)` is an abstract method
+that each handler implements to express when its element instance will survive job completion.
+
+`BaseAgentRequestHandler.notifyMetrics()` wraps `agentInstanceClient.update()` in try-catch — a failure is
+logged at `ERROR` but does not propagate, ensuring the job can still be completed.
+
+`BaseAgentRequestHandler.createMetricsCompletionListener(...)` creates the deferred listener. It is only
+created when `agentResponse != null` (i.e., when an LLM call occurred) and when
+`shouldUpdateAgentInstanceBeforeJobCompletion` returns `false`. On `onJobCompleted`, the full delta is
+reported. On `onJobCompletionFailed`, `toolCalls` are stripped via `metricsDelta.withToolCalls(0)` and status
+is set to `IDLE` — unactivated tool calls must not inflate the counter.
+
+The deferred metrics listener is composed with the store completion listener via
+`AgentJobCompletionListener.compose(metricsListener, storeListener)`, so both always fire together.

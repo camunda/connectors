@@ -133,7 +133,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   @Test
   void orchestratesRequestExecutionWithoutToolCalls() {
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockSystemPrompt();
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -189,7 +189,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   @Test
   void orchestratesRequestExecutionWithToolCalls() {
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockSystemPrompt();
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -304,7 +304,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   @Test
   void throwsExceptionWhenNoUserMessageContent() {
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockSystemPrompt();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
@@ -321,9 +321,9 @@ class OutboundConnectorAgentRequestHandlerTest {
   }
 
   @Test
-  void shouldEmitThinkingPatchThenDeferAllMetricsToJobCompletion() {
+  void shouldEmitThinkingPatchThenMetricsPatchDuringHandleRequest() {
     // given
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockSystemPrompt();
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
@@ -348,18 +348,12 @@ class OutboundConnectorAgentRequestHandlerTest {
     // when
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    // then: only pre-LLM THINKING patch emitted during handleRequest; no post-LLM patch yet
+    // then: THINKING patch first, then metrics+status patch — both emitted during handleRequest
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
             any(AgentContext.class),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
-    verifyNoMoreInteractions(agentInstanceClient);
-
-    // when: job completes
-    response.onJobCompleted();
-
-    // then: full metrics + IDLE status reported on completion
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
@@ -370,12 +364,16 @@ class OutboundConnectorAgentRequestHandlerTest {
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
+
+    // when: job completes — no additional agent instance calls
+    response.onJobCompleted();
+    verifyNoMoreInteractions(agentInstanceClient);
   }
 
   @Test
-  void shouldEmitThinkingPatchThenDeferToolCallingMetricsToJobCompletion() {
+  void shouldEmitThinkingPatchThenToolCallingMetricsPatchDuringHandleRequest() {
     // given
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockSystemPrompt();
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
@@ -400,18 +398,12 @@ class OutboundConnectorAgentRequestHandlerTest {
     // when
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    // then: only THINKING patch during handleRequest
+    // then: THINKING patch first, then metrics+status patch — both emitted during handleRequest
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
             any(AgentContext.class),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
-    verifyNoMoreInteractions(agentInstanceClient);
-
-    // when: job completes
-    response.onJobCompleted();
-
-    // then: full metrics (including toolCalls) + TOOL_CALLING status on completion
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
@@ -421,13 +413,18 @@ class OutboundConnectorAgentRequestHandlerTest {
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
                     .build()));
+    verifyNoMoreInteractions(agentInstanceClient);
+
+    // when: job completes — no additional agent instance calls
+    response.onJobCompleted();
+    verifyNoMoreInteractions(agentInstanceClient);
   }
 
   @Test
   void shouldNotCountToolCallResultsInDeltaWhenLlmRespondsWithoutToolCalls() {
     // given: tool call results arrive as input, but the LLM responds with plain text (no new tool
     // calls)
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockSystemPrompt();
     when(agentExecutionContext.userPrompt()).thenReturn(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS);
     doAnswer(
             i -> {
@@ -460,10 +457,9 @@ class OutboundConnectorAgentRequestHandlerTest {
             i -> AgentResponse.builder().context(i.getArgument(1, AgentContext.class)).build());
 
     // when
-    final var response = requestHandler.handleRequest(agentExecutionContext);
-    response.onJobCompleted();
+    requestHandler.handleRequest(agentExecutionContext);
 
-    // then: toolCalls=0 in completion delta because the LLM emitted no tool calls
+    // then: toolCalls=0 in delta because the LLM emitted no tool calls
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
@@ -478,7 +474,7 @@ class OutboundConnectorAgentRequestHandlerTest {
   @Test
   void shouldNotEmitPatchesWhenModelCallPrerequisitesAreNotFulfilled() {
     // given: addUserMessages returns empty list → throws NO_USER_MESSAGE_CONTENT
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockSystemPrompt();
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
 
@@ -523,12 +519,12 @@ class OutboundConnectorAgentRequestHandlerTest {
         null, new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), null));
   }
 
-  private void mockSystemPrompt(SystemPromptConfiguration systemPromptConfiguration) {
-    when(agentExecutionContext.systemPrompt()).thenReturn(systemPromptConfiguration);
+  private void mockSystemPrompt() {
+    when(agentExecutionContext.systemPrompt()).thenReturn(OutboundConnectorAgentRequestHandlerTest.SYSTEM_PROMPT_CONFIGURATION);
     doAnswer(
             i -> {
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
-              runtimeMemory.addMessage(systemMessage(systemPromptConfiguration.prompt()));
+              runtimeMemory.addMessage(systemMessage(OutboundConnectorAgentRequestHandlerTest.SYSTEM_PROMPT_CONFIGURATION.prompt()));
               return null;
             })
         .when(messagesHandler)
@@ -536,7 +532,7 @@ class OutboundConnectorAgentRequestHandlerTest {
             eq(agentExecutionContext),
             any(AgentContext.class),
             any(RuntimeMemory.class),
-            eq(systemPromptConfiguration));
+            eq(OutboundConnectorAgentRequestHandlerTest.SYSTEM_PROMPT_CONFIGURATION));
   }
 
   private void mockUserPrompt(
