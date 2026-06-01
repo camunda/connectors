@@ -84,7 +84,10 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       return;
     }
     CamundaApiRetry.execute(
-        () -> executeUpdate(executionContext, metadata.agentInstanceKey(), request),
+        () -> {
+          executeUpdate(executionContext, metadata.agentInstanceKey(), request);
+          return null;
+        },
         AgentInstanceErrorClassifier.FOR_UPDATE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
@@ -92,7 +95,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         sleeper);
   }
 
-  private Void executeUpdate(
+  private void executeUpdate(
       AgentExecutionContext executionContext,
       long agentInstanceKey,
       AgentInstanceUpdateRequest request) {
@@ -127,7 +130,6 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     }
 
     cmd.execute();
-    return null;
   }
 
   private ConnectorException buildCreateException(
