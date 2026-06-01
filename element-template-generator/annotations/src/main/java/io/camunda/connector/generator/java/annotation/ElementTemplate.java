@@ -54,7 +54,7 @@ public @interface ElementTemplate {
    * <p><b>NB</B>: It is recommended to specify the version explicitly for element templates used in
    * production.
    */
-  int version() default 0;
+  long version() default 0;
 
   /**
    * Link to the documentation page for the connector. Will be used by the Camunda Modeler to

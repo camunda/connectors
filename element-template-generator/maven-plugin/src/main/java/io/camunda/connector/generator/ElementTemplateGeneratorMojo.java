@@ -96,11 +96,19 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   @Parameter(property = "versionHistoryEnabled", defaultValue = "false")
   private Boolean versionHistoryEnabled;
 
-  private static VersionedElementTemplate getBasicElementTemplate(File file) {
+  private Optional<VersionedElementTemplate> getBasicElementTemplate(File file) {
     try {
-      return objectMapper.readValue(file, VersionedElementTemplate.class);
+      return Optional.of(objectMapper.readValue(file, VersionedElementTemplate.class));
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      // Skip templates that cannot be parsed (e.g., templates from other tools with incompatible
+      // formats)
+      getLog()
+          .debug(
+              "Skipping template file "
+                  + file.getName()
+                  + " as it cannot be parsed: "
+                  + e.getMessage());
+      return Optional.empty();
     }
   }
 
@@ -354,7 +362,8 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
             Arrays.stream(listClassicFiles.orElse(new File[0])),
             Arrays.stream(listVersionedFiles.orElse(new File[0])))
         .filter(File::isFile)
-        .map(ElementTemplateGeneratorMojo::getBasicElementTemplate)
+        .map(this::getBasicElementTemplate)
+        .flatMap(Optional::stream)
         .toList();
   }
 

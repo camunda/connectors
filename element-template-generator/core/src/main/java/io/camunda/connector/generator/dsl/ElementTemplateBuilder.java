@@ -36,7 +36,7 @@ public class ElementTemplateBuilder {
   private final Mode mode;
   protected String id;
   protected String name;
-  protected int version;
+  protected long version;
   protected ElementTemplateIcon icon;
   protected String documentationRef;
   protected String description;
@@ -126,7 +126,7 @@ public class ElementTemplateBuilder {
     return this;
   }
 
-  public ElementTemplateBuilder version(int version) {
+  public ElementTemplateBuilder version(long version) {
     this.version = version;
     return this;
   }
