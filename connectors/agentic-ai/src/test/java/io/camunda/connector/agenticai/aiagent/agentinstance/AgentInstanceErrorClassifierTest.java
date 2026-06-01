@@ -78,13 +78,13 @@ class AgentInstanceErrorClassifierTest {
 
   static Stream<Throwable> permanentExceptionsIncluding404() {
     return Stream.of(
-        new ClientHttpException(404, "Not Found"),
         new ClientHttpException(400, "Bad Request"),
+        new RuntimeException("wrapped", new ClientHttpException(400, "Bad Request")),
         new ClientHttpException(401, "Unauthorized"),
         new ClientHttpException(403, "Forbidden"),
-        new ClientHttpException(409, "Conflict"),
+        new ClientHttpException(404, "Not Found"),
         new RuntimeException("wrapped", new ClientHttpException(404, "Not Found")),
-        new RuntimeException("wrapped", new ClientHttpException(400, "Bad Request")),
+        new ClientHttpException(409, "Conflict"),
         new RuntimeException("unknown"),
         new IllegalArgumentException("bad arg"));
   }
