@@ -43,10 +43,13 @@ Three counters are in scope: `modelCalls`, `tokenUsage`, and `toolCalls`, corres
 2. **Deferred (job-completion callback)** - report all post-LLM metrics and status only after Zeebe has
    resolved the job completion command, via `AgentJobCompletionListener`. Superseded or failed jobs report
    partial metrics (no `toolCalls`) or skip reporting entirely depending on the failure type.
+3. **Hybrid (deferred when safe, immediate otherwise)** - defer to the job-completion callback when the
+   element instance is guaranteed to survive job completion; use the immediate path only when the element
+   instance will close at job completion and a deferred PATCH would target a dead instance.
 
 ## Decision Outcome
 
-**Option A2** (LLM output), **B3** (hybrid - deferred when safe, immediate otherwise), **C2** (interface static).
+**Option A2** (LLM output), **B3** (hybrid - deferred when safe, immediate otherwise).
 
 ### A2 - Count `toolCalls` from the LLM response
 
