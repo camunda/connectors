@@ -679,13 +679,13 @@ class JobWorkerAgentRequestHandlerTest {
 
   private void mockSystemPrompt() {
     when(agentExecutionContext.systemPrompt())
-        .thenReturn(JobWorkerAgentRequestHandlerTest.SYSTEM_PROMPT_CONFIGURATION);
+        .thenReturn(SYSTEM_PROMPT_CONFIGURATION);
     doAnswer(
             i -> {
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
               runtimeMemory.addMessage(
                   systemMessage(
-                      JobWorkerAgentRequestHandlerTest.SYSTEM_PROMPT_CONFIGURATION.prompt()));
+                      SYSTEM_PROMPT_CONFIGURATION.prompt()));
               return null;
             })
         .when(messagesHandler)
@@ -693,7 +693,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(agentExecutionContext),
             any(AgentContext.class),
             any(RuntimeMemory.class),
-            eq(JobWorkerAgentRequestHandlerTest.SYSTEM_PROMPT_CONFIGURATION));
+            eq(SYSTEM_PROMPT_CONFIGURATION));
   }
 
   private void mockUserPrompt(
