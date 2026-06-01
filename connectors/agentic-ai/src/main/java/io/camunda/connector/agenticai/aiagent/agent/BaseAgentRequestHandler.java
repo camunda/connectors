@@ -33,7 +33,6 @@ import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Optional;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -195,7 +194,6 @@ public abstract class BaseAgentRequestHandler<
     messagesHandler.addSystemMessage(
         executionContext, agentContext, runtimeMemory, executionContext.systemPrompt());
 
-    logToolCallResults(toolCallResults);
     return messagesHandler.addUserMessages(
         executionContext,
         agentContext,
@@ -282,15 +280,6 @@ public abstract class BaseAgentRequestHandler<
       final C executionContext,
       @Nullable final AgentResponse agentResponse,
       @Nullable final AgentJobCompletionListener completionListener);
-
-  private void logToolCallResults(List<ToolCallResult> toolCallResults) {
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "Adding user messages including the following {} tool call results: {}",
-          toolCallResults.size(),
-          toolCallResults.stream().map(tcr -> Pair.of(tcr.id(), tcr.name())).toList());
-    }
-  }
 
   private void notifyMetrics(
       C executionContext,
