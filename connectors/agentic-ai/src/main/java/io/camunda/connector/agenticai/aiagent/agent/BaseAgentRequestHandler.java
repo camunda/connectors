@@ -280,8 +280,8 @@ public abstract class BaseAgentRequestHandler<
    */
   protected abstract R buildConnectorResponse(
       final C executionContext,
-      final AgentResponse agentResponse,
-      final AgentJobCompletionListener completionListener);
+      final @Nullable AgentResponse agentResponse,
+      final @Nullable AgentJobCompletionListener completionListener);
 
   private void logToolCallResults(List<ToolCallResult> toolCallResults) {
     if (LOGGER.isDebugEnabled()) {
