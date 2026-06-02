@@ -152,5 +152,4 @@ class VerifiedHostValidatorTest {
     Validator v = validatorWith(new VerifiedHostValidator(config));
     assertThat(v.validate(new TargetWithURL("http://example.com"))).isEmpty();
   }
-  
 }
