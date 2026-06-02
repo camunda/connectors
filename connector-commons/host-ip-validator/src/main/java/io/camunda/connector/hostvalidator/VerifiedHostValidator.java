@@ -89,8 +89,8 @@ public class VerifiedHostValidator implements ConstraintValidator<VerifiedHost, 
 
     if (host != null && !host.isBlank()) {
       VerifiedHost verifiedHost = getAnnotation(context);
-      if (verifiedHost.isUrl()) {
-        host = getHostFromUrl(host);
+      if (verifiedHost.isUri()) {
+        host = getHostFromUri(host);
       }
     }
 
@@ -122,14 +122,14 @@ public class VerifiedHostValidator implements ConstraintValidator<VerifiedHost, 
     return (VerifiedHost) unwrappedConstraintDescriptor.getAnnotation();
   }
 
-  private static String getHostFromUrl(String url) {
+  private static String getHostFromUri(String uri) {
     try {
-      var uri = URI.create(url);
-      if (uri.getHost() != null) {
-        return uri.getHost();
-      } else return url;
+      var parsedUri = URI.create(uri);
+      if (parsedUri.getHost() != null) {
+        return parsedUri.getHost();
+      } else return uri;
     } catch (Exception ignored) {
-      return url;
+      return uri;
     }
   }
 

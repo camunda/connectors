@@ -69,5 +69,5 @@ public @interface VerifiedHost {
 
   Class<? extends Payload>[] payload() default {};
 
-  boolean isUrl() default false;
+  boolean isUri() default false;
 }

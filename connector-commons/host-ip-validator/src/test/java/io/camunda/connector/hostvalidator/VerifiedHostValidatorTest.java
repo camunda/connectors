@@ -34,7 +34,7 @@ class VerifiedHostValidatorTest {
   private record Target(@VerifiedHost String host) {}
 
   /** Bean validation target with a marker-annotated url string */
-  private record TargetWithURL(@VerifiedHost(isUrl = true) String url) {}
+  private record TargetWithURL(@VerifiedHost(isUri = true) String url) {}
 
   /**
    * Builds a {@link Validator} whose {@link ConstraintValidatorFactory} hands out the provided
@@ -151,5 +151,14 @@ class VerifiedHostValidatorTest {
         new VerifiedHostValidator.Config(true, List.of(), List.of(), false, false);
     Validator v = validatorWith(new VerifiedHostValidator(config));
     assertThat(v.validate(new TargetWithURL("http://example.com"))).isEmpty();
+  }
+
+  @Test
+  void testWithUri() {
+    VerifiedHostValidator.Config config =
+        new VerifiedHostValidator.Config(true, List.of(), List.of(), false, false);
+    Validator v = validatorWith(new VerifiedHostValidator(config));
+    assertThat(v.validate(new TargetWithURL("jdbc:mysql://root:mypass@myhost1:3306/db_name")))
+        .isEmpty();
   }
 }
