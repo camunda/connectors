@@ -28,6 +28,7 @@ import io.camunda.client.impl.search.response.SearchResponseImpl;
 import io.camunda.client.impl.search.response.SearchResponsePageImpl;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 public class PaginatedSearchUtilTest {
@@ -43,7 +44,8 @@ public class PaginatedSearchUtilTest {
     when(pageFetcher.apply("cursor1")).thenReturn(emptyPage);
 
     // When
-    List<String> result = PaginatedSearchUtil.queryAllPages(pageFetcher);
+    List<String> result =
+        PaginatedSearchUtil.queryAllPages(pageFetcher).collect(Collectors.toList());
 
     // Then
     assertEquals(3, result.size());
@@ -68,7 +70,8 @@ public class PaginatedSearchUtilTest {
     when(pageFetcher.apply("cursor3")).thenReturn(emptyPage);
 
     // When
-    List<String> result = PaginatedSearchUtil.queryAllPages(pageFetcher);
+    List<String> result =
+        PaginatedSearchUtil.queryAllPages(pageFetcher).collect(Collectors.toList());
 
     // Then
     assertEquals(5, result.size());
@@ -88,7 +91,8 @@ public class PaginatedSearchUtilTest {
     when(pageFetcher.apply(null)).thenReturn(emptyPage);
 
     // When
-    List<String> result = PaginatedSearchUtil.queryAllPages(pageFetcher);
+    List<String> result =
+        PaginatedSearchUtil.queryAllPages(pageFetcher).collect(Collectors.toList());
 
     // Then
     assertTrue(result.isEmpty());
@@ -107,13 +111,54 @@ public class PaginatedSearchUtilTest {
     when(pageFetcher.apply("cursor1")).thenReturn(emptyPage);
 
     // When
-    List<String> result = PaginatedSearchUtil.queryAllPages(pageFetcher);
+    List<String> result =
+        PaginatedSearchUtil.queryAllPages(pageFetcher).collect(Collectors.toList());
 
     // Then
     assertEquals(1, result.size());
     assertEquals(List.of("item1"), result);
     verify(pageFetcher, times(1)).apply(null);
     verify(pageFetcher, times(1)).apply("cursor1");
+  }
+
+  @Test
+  public void shouldStopWhenEndCursorIsBlankOnNonEmptyPage() {
+    // Given: non-empty final page with no cursor — must terminate, not re-fetch the same page.
+    SearchResponse<String> page1 = createPage(List.of("item1", "item2"), "cursor1");
+    SearchResponse<String> finalPage = createPage(List.of("item3"), null);
+
+    @SuppressWarnings("unchecked")
+    Function<String, SearchResponse<String>> pageFetcher = mock(Function.class);
+    when(pageFetcher.apply(null)).thenReturn(page1);
+    when(pageFetcher.apply("cursor1")).thenReturn(finalPage);
+
+    // When
+    List<String> result =
+        PaginatedSearchUtil.queryAllPages(pageFetcher).collect(Collectors.toList());
+
+    // Then
+    assertEquals(List.of("item1", "item2", "item3"), result);
+    verify(pageFetcher, times(1)).apply(null);
+    verify(pageFetcher, times(1)).apply("cursor1");
+  }
+
+  @Test
+  public void shouldFetchPagesLazily() {
+    // Given: page2 fetch would explode if invoked — proves it is never requested.
+    SearchResponse<String> page1 = createPage(List.of("item1", "item2"), "cursor1");
+
+    @SuppressWarnings("unchecked")
+    Function<String, SearchResponse<String>> pageFetcher = mock(Function.class);
+    when(pageFetcher.apply(null)).thenReturn(page1);
+    when(pageFetcher.apply("cursor1"))
+        .thenThrow(new AssertionError("second page must not be fetched"));
+
+    // When: consume only the first item, then stop.
+    String first = PaginatedSearchUtil.queryAllPages(pageFetcher).findFirst().orElseThrow();
+
+    // Then
+    assertEquals("item1", first);
+    verify(pageFetcher, times(1)).apply(null);
   }
 
   private <T> SearchResponse<T> createPage(List<T> items, String endCursor) {
