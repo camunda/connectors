@@ -239,13 +239,21 @@ jobs:
         uses: s4u/maven-settings-action@v4.0.0
         with:
           githubServer: false
+          # Mirror uses id=nexus-mirror (distinct from deploy id=camunda-nexus) so each gets the right credentials:
+          # - nexus-mirror: CI Nexus creds for the pull-through cache at repository.nexus.camunda.cloud
+          # - camunda-nexus: Nexus creds for resolving artifacts
           servers: |
             [{
+              "id": "nexus-mirror",
+              "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+              "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+             {
                "id": "camunda-nexus",
                "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
                "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
              }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Install artifacts
         run: ./mvnw -B install -DskipTests -DskipChecks -Pe2eExcluded
@@ -392,11 +400,19 @@ jobs:
         uses: s4u/maven-settings-action@v4.0.0
         with:
           githubServer: false
+          # Mirror uses id=nexus-mirror (distinct from deploy id=camunda-nexus) so each gets the right credentials:
+          # - nexus-mirror: CI Nexus creds for the pull-through cache at repository.nexus.camunda.cloud
+          # - camunda-nexus: Artifactory creds for deploying releases to artifacts.camunda.com
           servers: |
             [{
+              "id": "nexus-mirror",
+              "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+              "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+            {
                "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
-               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
              },
             {
                "id": "central",
@@ -404,7 +420,7 @@ jobs:
                "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
              }
             ]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Restore cache
         uses: actions/cache@v5
