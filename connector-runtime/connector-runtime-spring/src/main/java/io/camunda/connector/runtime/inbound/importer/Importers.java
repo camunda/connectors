@@ -41,7 +41,7 @@ public class Importers {
     LOGGER.debug("Starting import of LATEST versions");
 
     Map<ProcessDefinitionRef, Set<Long>> result =
-        PaginatedSearchUtil.queryAllPages(searchQueryClient::queryProcessDefinitions).stream()
+        PaginatedSearchUtil.queryAllPages(searchQueryClient::queryProcessDefinitions)
             .collect(
                 Collectors.toMap(
                     definition ->
@@ -71,7 +71,6 @@ public class Importers {
 
     Map<ProcessDefinitionRef, Set<Long>> result =
         PaginatedSearchUtil.queryAllPages(searchQueryClient::queryMessageSubscriptionStatistics)
-            .stream()
             .collect(
                 Collectors.groupingBy(
                     stats ->
