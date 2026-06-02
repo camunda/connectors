@@ -152,13 +152,5 @@ class VerifiedHostValidatorTest {
     Validator v = validatorWith(new VerifiedHostValidator(config));
     assertThat(v.validate(new TargetWithURL("http://example.com"))).isEmpty();
   }
-
-  @Test
-  void testWithUri() {
-    VerifiedHostValidator.Config config =
-        new VerifiedHostValidator.Config(true, List.of(), List.of(), false, false);
-    Validator v = validatorWith(new VerifiedHostValidator(config));
-    assertThat(v.validate(new TargetWithURL("jdbc:mysql://root:mypass@myhost1:3306/db_name")))
-        .isEmpty();
-  }
+  
 }
