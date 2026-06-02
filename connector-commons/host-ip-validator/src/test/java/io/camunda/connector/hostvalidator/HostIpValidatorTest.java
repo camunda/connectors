@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.hostvalidator.HostIpValidator.Classification;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -83,6 +84,16 @@ class HostIpValidatorTest {
   @Test
   void ipv6UlaIsDeniedAsPrivateRange() throws Exception {
     InetAddress addr = InetAddress.getByName("fc00::1");
+    assertThat(HostIpValidator.classify(addr, List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_PRIVATE_RANGE);
+  }
+
+  @Test
+  void ipv4MappedPrivateAddressIsDeniedAsPrivateRange() throws Exception {
+    // ::ffff:10.0.0.1 — IPv4-mapped form of 10.0.0.1. Must not bypass the RFC 1918 check.
+    byte[] mapped = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (byte) 0xff, (byte) 0xff, 10, 0, 0, 1};
+    InetAddress addr = Inet6Address.getByAddress(null, mapped, 0);
+    assertThat(addr).isInstanceOf(Inet6Address.class);
     assertThat(HostIpValidator.classify(addr, List.of(), List.of(), false, false))
         .isEqualTo(Classification.DENY_PRIVATE_RANGE);
   }

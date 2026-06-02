@@ -76,7 +76,7 @@ public final class CidrRange {
   }
 
   public boolean contains(InetAddress address) {
-    byte[] target = address.getAddress();
+    byte[] target = unmapIPv4(address.getAddress());
     if (target.length != networkBytes.length) {
       return false;
     }
@@ -101,6 +101,28 @@ public final class CidrRange {
   @Override
   public String toString() {
     return original;
+  }
+
+  /**
+   * Unmaps IPv4-mapped IPv6 addresses ({@code ::ffff:a.b.c.d}) to their 4-byte IPv4 form so a
+   * 16-byte representation of an IPv4 address still matches IPv4 CIDR ranges. Without this, an
+   * attacker could bypass an IPv4 private-range check by supplying e.g. {@code [::ffff:10.0.0.1]}.
+   */
+  private static byte[] unmapIPv4(byte[] bytes) {
+    if (bytes.length != 16) {
+      return bytes;
+    }
+    for (int i = 0; i < 10; i++) {
+      if (bytes[i] != 0) {
+        return bytes;
+      }
+    }
+    if (bytes[10] != (byte) 0xff || bytes[11] != (byte) 0xff) {
+      return bytes;
+    }
+    byte[] ipv4 = new byte[4];
+    System.arraycopy(bytes, 12, ipv4, 0, 4);
+    return ipv4;
   }
 
   private static void maskInPlace(byte[] bytes, int prefix) {

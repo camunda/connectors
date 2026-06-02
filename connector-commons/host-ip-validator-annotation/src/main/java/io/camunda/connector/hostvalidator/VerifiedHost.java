@@ -38,6 +38,24 @@ import java.lang.annotation.Target;
  * options live on the stateful VerifiedHostValidator that the {@link
  * jakarta.validation.ConstraintValidatorFactory} returns. Register a Spring bean (or otherwise wire
  * up a constraint validator factory) holding the desired VerifiedHostValidator.Config.
+ *
+ * <h2>Security caveat — TOCTOU / DNS rebinding</h2>
+ *
+ * <p><strong>Validation is not a substitute for connection-time enforcement.</strong> This
+ * annotation runs at Bean Validation time — typically when a connector job is picked up — but the
+ * outbound HTTP/SMTP/IMAP/POP3 connection that uses the host happens later, after a separate DNS
+ * lookup. An attacker who controls the authoritative DNS for an allowed hostname can serve a
+ * short-TTL record that resolves to a <em>public</em> IP for the validation lookup and to a
+ * <em>private</em> IP (e.g. {@code 169.254.169.254}, RFC 1918) for the connection lookup. This is
+ * the classic DNS-rebinding / time-of-check-to-time-of-use (TOCTOU) gap and is inherent to any
+ * annotation-based host check.
+ *
+ * <p>True defense requires re-validating the resolved IP at <em>connection</em> time — for example,
+ * via a custom {@code DnsResolver} / {@code SocketFactory} (Apache HttpClient), a custom {@code
+ * Address} resolver (OkHttp), or by resolving the host once and dialing the literal IP (pinning) so
+ * the connection uses the same address that was checked. Consider this annotation a first line of
+ * defense against obvious mistakes (e.g. a user pasting an RFC 1918 URL), not a complete SSRF
+ * mitigation.
  */
 @Documented
 @Retention(RUNTIME)

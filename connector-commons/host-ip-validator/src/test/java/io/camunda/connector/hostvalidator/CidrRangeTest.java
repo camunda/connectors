@@ -19,6 +19,7 @@ package io.camunda.connector.hostvalidator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import org.junit.jupiter.api.Test;
 
@@ -62,6 +63,30 @@ class CidrRangeTest {
     assertThat(range.contains(InetAddress.getByName("1.2.3.4"))).isTrue();
     assertThat(range.contains(InetAddress.getByName("1.2.3.5"))).isFalse();
     assertThat(range.prefixLength()).isEqualTo(32);
+  }
+
+  @Test
+  void ipv4MappedIpv6AddressMatchesIpv4Cidr() throws Exception {
+    CidrRange range = CidrRange.parse("10.0.0.0/8");
+    byte[] mapped = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (byte) 0xff, (byte) 0xff, 10, 0, 0, 1};
+    InetAddress ipv4Mapped = Inet6Address.getByAddress(null, mapped, 0);
+    assertThat(ipv4Mapped).isInstanceOf(Inet6Address.class);
+    assertThat(range.contains(ipv4Mapped)).isTrue();
+  }
+
+  @Test
+  void ipv4MappedIpv6AddressOutsideIpv4CidrStillExcluded() throws Exception {
+    CidrRange range = CidrRange.parse("10.0.0.0/8");
+    byte[] mapped = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (byte) 0xff, (byte) 0xff, 11, 0, 0, 1};
+    InetAddress ipv4Mapped = Inet6Address.getByAddress(null, mapped, 0);
+    assertThat(range.contains(ipv4Mapped)).isFalse();
+  }
+
+  @Test
+  void nonMappedIpv6AddressDoesNotMatchIpv4Cidr() throws Exception {
+    CidrRange range = CidrRange.parse("10.0.0.0/8");
+    assertThat(range.contains(InetAddress.getByName("::1"))).isFalse();
+    assertThat(range.contains(InetAddress.getByName("2001:db8::a00:1"))).isFalse();
   }
 
   @Test
