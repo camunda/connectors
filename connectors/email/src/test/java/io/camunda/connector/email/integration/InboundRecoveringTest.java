@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -49,7 +50,16 @@ public class InboundRecoveringTest extends BaseEmailTest {
     jakartaEmailListener.stopListener();
   }
 
-  @Test
+  @Disabled(
+      """
+          Flaky test: failing more than it succeeds on CI.
+          When the ImapServerProxy cuts connections, GreenMail's IMAP handler threads throw
+          IllegalStateException("Can not handle IMAP connection") as uncaught exceptions.
+          Despite an UncaughtExceptionHandler installed to suppress these, Maven Surefire still
+          intermittently captures and reports them as test failures.
+          Tracked in: https://github.com/camunda/connectors/issues/6819
+          """)
+  // @Test
   public void pollingManagerBreaksAndRecoverAfterServerNotResponding() {
     try (ImapServerProxy proxyImap =
         new ImapServerProxy(
