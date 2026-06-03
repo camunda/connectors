@@ -37,6 +37,7 @@ public class ElementTemplateBuilder {
   protected String id;
   protected String name;
   protected long version;
+  protected ElementTemplateCategory category = ElementTemplateCategory.CONNECTORS;
   protected ElementTemplateIcon icon;
   protected String documentationRef;
   protected String description;
@@ -44,7 +45,6 @@ public class ElementTemplateBuilder {
   protected String[] keywords;
   protected Set<String> appliesTo;
   protected BpmnType elementType;
-  protected ElementTemplateCategory category;
 
   private ElementTemplateBuilder(Mode mode) {
     this.mode = mode;
@@ -132,6 +132,11 @@ public class ElementTemplateBuilder {
     return this;
   }
 
+  public ElementTemplateBuilder category(ElementTemplateCategory category) {
+    this.category = category;
+    return this;
+  }
+
   public ElementTemplateBuilder engines(Engines engines) {
     this.engines = engines;
     return this;
@@ -172,11 +177,6 @@ public class ElementTemplateBuilder {
     return this;
   }
 
-  public ElementTemplateBuilder category(ElementTemplateCategory category) {
-    this.category = category;
-    return this;
-  }
-
   public ElementTemplateBuilder propertyGroups(PropertyGroup... groups) {
     this.groups.addAll(Arrays.asList(groups));
     this.properties.addAll(
@@ -208,6 +208,7 @@ public class ElementTemplateBuilder {
         id,
         name,
         version,
+        category,
         documentationRef,
         engines,
         description,
@@ -216,8 +217,7 @@ public class ElementTemplateBuilder {
         ElementTypeWrapper.from(elementType),
         groups,
         properties,
-        icon,
-        category);
+        icon);
   }
 
   private enum Mode {

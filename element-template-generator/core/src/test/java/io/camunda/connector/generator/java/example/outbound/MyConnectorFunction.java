@@ -183,7 +183,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
-      category = @ElementTemplate.Category(id = "agentic-ai", name = "Agentic AI"))
+      category = @ElementTemplate.Category(id = "test-category", name = "Test Category"))
   public static class MinimallyAnnotatedWithCustomCategory extends MyConnectorFunction {}
 
   @OutboundConnector(name = "my-connector", type = "my-connector-type")
@@ -192,7 +192,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
-      category = @ElementTemplate.Category(id = "agentic-ai", name = ""))
+      category = @ElementTemplate.Category(id = "test-category", name = ""))
   public static class MinimallyAnnotatedWithPartialCategory extends MyConnectorFunction {}
 
   @OutboundConnector(name = "my-connector", type = "my-connector-type")

@@ -47,6 +47,7 @@ public record ElementTemplate(
     String id,
     String name,
     long version,
+    ElementTemplateCategory category,
     String documentationRef,
     Engines engines,
     String description,
@@ -55,17 +56,13 @@ public record ElementTemplate(
     ElementTypeWrapper elementType,
     List<PropertyGroup> groups,
     List<Property> properties,
-    ElementTemplateIcon icon,
-    ElementTemplateCategory category) {
+    ElementTemplateIcon icon) {
 
   static final String SCHEMA_FIELD_NAME = "$schema";
   static final String SCHEMA_URL =
       "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json";
 
   public ElementTemplate {
-    if (category == null) {
-      category = ElementTemplateCategory.CONNECTORS;
-    }
     List<String> errors = new ArrayList<>();
     if (id == null) {
       errors.add("id is required");
@@ -76,7 +73,8 @@ public record ElementTemplate(
     if (version < 0) {
       errors.add("version cannot be negative");
     }
-    if (category.id() == null
+    if (category == null
+        || category.id() == null
         || category.id().isBlank()
         || category.name() == null
         || category.name().isBlank()) {

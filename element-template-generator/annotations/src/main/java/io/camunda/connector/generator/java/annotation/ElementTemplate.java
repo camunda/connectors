@@ -57,6 +57,14 @@ public @interface ElementTemplate {
   long version() default 0;
 
   /**
+   * Element template category. Will be displayed as a group label in the Camunda Modeler element
+   * template selection.
+   *
+   * <p>If not specified, defaults to the {@code connectors} / {@code Connectors} category.
+   */
+  Category category() default @Category(id = "connectors", name = "Connectors");
+
+  /**
    * Link to the documentation page for the connector. Will be used by the Camunda Modeler to
    * redirect users to the documentation page when they click on the corresponding button.
    *
@@ -93,14 +101,6 @@ public @interface ElementTemplate {
    * in Camunda Modeler.
    */
   PropertyGroup[] propertyGroups() default {};
-
-  /**
-   * Element template category. Will be displayed as a group label in the Camunda Modeler element
-   * template selection.
-   *
-   * <p>If not specified, defaults to the {@code connectors} / {@code Connectors} category.
-   */
-  Category category() default @Category(id = "connectors", name = "Connectors");
 
   /**
    * Icon for the connector. Will be displayed in Camunda Modeler along with the connector name.

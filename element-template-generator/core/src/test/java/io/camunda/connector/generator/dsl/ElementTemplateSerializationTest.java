@@ -31,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
@@ -38,86 +39,6 @@ public class ElementTemplateSerializationTest {
 
   private final ObjectMapper objectMapper =
       new ObjectMapper().registerModule(new ElementTemplateModule());
-
-  @Test
-  void customCategorySerializationTest() throws Exception {
-    // given
-    var elementTemplate =
-        ElementTemplate.builderForOutbound()
-            .id("io.camunda.connector.Template.v1")
-            .type("io.camunda:template:1")
-            .name("Template: Some Function")
-            .appliesTo(Set.of(TASK))
-            .elementType(SERVICE_TASK)
-            .version(1)
-            .category(new ElementTemplateCategory("agentic-ai", "Agentic AI"))
-            .propertyGroups(
-                PropertyGroup.builder()
-                    .id("default")
-                    .label("Properties")
-                    .properties(
-                        StringProperty.builder().label("Foo").binding(new ZeebeInput("foo")))
-                    .build())
-            .build();
-
-    // when
-    var json = objectMapper.writeValueAsString(elementTemplate);
-
-    // then
-    JSONAssert.assertEquals(
-        "{\"category\":{\"id\":\"agentic-ai\",\"name\":\"Agentic AI\"}}", json, false);
-  }
-
-  @Test
-  void blankCategoryIsRejected() {
-    var builder =
-        ElementTemplate.builderForOutbound()
-            .id("io.camunda.connector.Template.v1")
-            .type("io.camunda:template:1")
-            .name("Template: Some Function")
-            .appliesTo(Set.of(TASK))
-            .elementType(SERVICE_TASK)
-            .category(new ElementTemplateCategory("", ""))
-            .propertyGroups(
-                PropertyGroup.builder()
-                    .id("default")
-                    .label("Properties")
-                    .properties(
-                        StringProperty.builder().label("Foo").binding(new ZeebeInput("foo")))
-                    .build());
-
-    assertThatThrownBy(builder::build)
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("category");
-  }
-
-  @Test
-  void defaultCategorySerializationTest() throws Exception {
-    // given
-    var elementTemplate =
-        ElementTemplate.builderForOutbound()
-            .id("io.camunda.connector.Template.v1")
-            .type("io.camunda:template:1")
-            .name("Template: Some Function")
-            .appliesTo(Set.of(TASK))
-            .elementType(SERVICE_TASK)
-            .version(1)
-            .propertyGroups(
-                PropertyGroup.builder()
-                    .id("default")
-                    .label("Properties")
-                    .properties(
-                        StringProperty.builder().label("Foo").binding(new ZeebeInput("foo")))
-                    .build())
-            .build();
-
-    // when
-    var json = objectMapper.writeValueAsString(elementTemplate);
-
-    // then
-    JSONAssert.assertEquals(
-        "{\"category\":{\"id\":\"connectors\",\"name\":\"Connectors\"}}", json, false);
-  }
 
   @Test
   void serializationTest() throws Exception {
@@ -220,5 +141,63 @@ public class ElementTemplateSerializationTest {
     var path = Path.of(ClassLoader.getSystemResource("test-element-template.json").toURI());
     var referenceJsonString = Files.readString(path);
     JSONAssert.assertEquals(referenceJsonString, jsonString, true);
+  }
+
+  @Nested
+  class Category {
+
+    private ElementTemplateBuilder builder() {
+      return ElementTemplate.builderForOutbound()
+          .id("io.camunda.connector.Template.v1")
+          .type("io.camunda:template:1")
+          .name("Template: Some Function")
+          .appliesTo(Set.of(TASK))
+          .elementType(SERVICE_TASK)
+          .version(1)
+          .propertyGroups(
+              PropertyGroup.builder()
+                  .id("default")
+                  .label("Properties")
+                  .properties(StringProperty.builder().label("Foo").binding(new ZeebeInput("foo")))
+                  .build());
+    }
+
+    @Test
+    void defaultCategorySerialization() throws Exception {
+      var json = objectMapper.writeValueAsString(builder().build());
+
+      JSONAssert.assertEquals(
+          "{\"category\":{\"id\":\"connectors\",\"name\":\"Connectors\"}}", json, false);
+    }
+
+    @Test
+    void customCategorySerialization() throws Exception {
+      var json =
+          objectMapper.writeValueAsString(
+              builder()
+                  .category(new ElementTemplateCategory("test-category", "Test Category"))
+                  .build());
+
+      JSONAssert.assertEquals(
+          "{\"category\":{\"id\":\"test-category\",\"name\":\"Test Category\"}}", json, false);
+    }
+
+    @Test
+    void blankCategoryIsRejected() {
+      var builder = builder().category(new ElementTemplateCategory("", ""));
+
+      assertThatThrownBy(builder::build)
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("category id and name must be non-blank");
+    }
+
+    @Test
+    void nullCategoryIsRejected() {
+      var builder = builder().category(null);
+
+      assertThatThrownBy(builder::build)
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("category id and name must be non-blank");
+    }
   }
 }

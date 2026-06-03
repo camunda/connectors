@@ -152,7 +152,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               .generate(MyConnectorFunction.MinimallyAnnotatedWithCustomCategory.class)
               .getFirst();
       assertThat(template.category())
-          .isEqualTo(new ElementTemplateCategory("agentic-ai", "Agentic AI"));
+          .isEqualTo(new ElementTemplateCategory("test-category", "Test Category"));
     }
 
     @Test
@@ -162,7 +162,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
                   generator.generate(
                       MyConnectorFunction.MinimallyAnnotatedWithPartialCategory.class))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("category");
+          .hasMessage("category id and name must be non-blank");
     }
 
     @Test
