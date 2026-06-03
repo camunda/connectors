@@ -294,6 +294,24 @@ adds the individual connector resources to the custom class loader that can be c
 Template Generator either via `Thread.currentThread().getContextClassLoader()` or directly via
 constructor injection.
 
+## Category
+
+By default, the generated element template is assigned to the `connectors`/`Connectors` category in
+Camunda Modeler. You can override this by defining a custom category in the `@ElementTemplate`
+annotation:
+
+```java
+@ElementTemplate(
+    id = "myConnector",
+    name = "My Connector",
+    version = 1,
+    category = @ElementTemplate.Category(id = "agentic-ai", name = "Agentic AI"))
+public class MyConnectorFunction { }
+```
+
+Both `id` and `name` must be set when overriding the category. If the category is not specified,
+the default `connectors`/`Connectors` category is used.
+
 ## Element Template DSL
 
 This module defines a DSL for building element templates programmatically. The starting point is the

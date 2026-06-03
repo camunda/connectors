@@ -44,6 +44,7 @@ public class ElementTemplateBuilder {
   protected String[] keywords;
   protected Set<String> appliesTo;
   protected BpmnType elementType;
+  protected ElementTemplateCategory category;
 
   private ElementTemplateBuilder(Mode mode) {
     this.mode = mode;
@@ -171,6 +172,11 @@ public class ElementTemplateBuilder {
     return this;
   }
 
+  public ElementTemplateBuilder category(ElementTemplateCategory category) {
+    this.category = category;
+    return this;
+  }
+
   public ElementTemplateBuilder propertyGroups(PropertyGroup... groups) {
     this.groups.addAll(Arrays.asList(groups));
     this.properties.addAll(
@@ -210,7 +216,8 @@ public class ElementTemplateBuilder {
         ElementTypeWrapper.from(elementType),
         groups,
         properties,
-        icon);
+        icon,
+        category);
   }
 
   private enum Mode {

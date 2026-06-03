@@ -35,6 +35,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
+import io.camunda.connector.generator.dsl.ElementTemplateCategory;
 import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.NumberProperty;
 import io.camunda.connector.generator.dsl.Property;
@@ -136,6 +137,32 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(template.version()).isEqualTo(0);
       assertThat(template.documentationRef()).isNull();
       assertThat(template.description()).isNull();
+    }
+
+    @Test
+    void elementTemplateAnnotation_categoryDefaultsToConnectors() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      assertThat(template.category()).isEqualTo(ElementTemplateCategory.CONNECTORS);
+    }
+
+    @Test
+    void elementTemplateAnnotation_canDefineCustomCategory() {
+      var template =
+          generator
+              .generate(MyConnectorFunction.MinimallyAnnotatedWithCustomCategory.class)
+              .getFirst();
+      assertThat(template.category())
+          .isEqualTo(new ElementTemplateCategory("agentic-ai", "Agentic AI"));
+    }
+
+    @Test
+    void elementTemplateAnnotation_partialCategoryFails() {
+      assertThatThrownBy(
+              () ->
+                  generator.generate(
+                      MyConnectorFunction.MinimallyAnnotatedWithPartialCategory.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("category");
     }
 
     @Test

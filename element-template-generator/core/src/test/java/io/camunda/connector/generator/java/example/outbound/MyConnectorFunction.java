@@ -183,6 +183,24 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
+      category = @ElementTemplate.Category(id = "agentic-ai", name = "Agentic AI"))
+  public static class MinimallyAnnotatedWithCustomCategory extends MyConnectorFunction {}
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
+      category = @ElementTemplate.Category(id = "agentic-ai", name = ""))
+  public static class MinimallyAnnotatedWithPartialCategory extends MyConnectorFunction {}
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
       elementTypes = {
         @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SERVICE_TASK),
         @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SCRIPT_TASK),

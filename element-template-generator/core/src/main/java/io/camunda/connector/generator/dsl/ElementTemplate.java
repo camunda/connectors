@@ -55,13 +55,17 @@ public record ElementTemplate(
     ElementTypeWrapper elementType,
     List<PropertyGroup> groups,
     List<Property> properties,
-    ElementTemplateIcon icon) {
+    ElementTemplateIcon icon,
+    ElementTemplateCategory category) {
 
   static final String SCHEMA_FIELD_NAME = "$schema";
   static final String SCHEMA_URL =
       "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json";
 
   public ElementTemplate {
+    if (category == null) {
+      category = ElementTemplateCategory.CONNECTORS;
+    }
     List<String> errors = new ArrayList<>();
     if (id == null) {
       errors.add("id is required");
@@ -110,11 +114,6 @@ public record ElementTemplate(
 
   public static ElementTemplateBuilder builderForInbound() {
     return ElementTemplateBuilder.createInbound();
-  }
-
-  @JsonProperty
-  public ElementTemplateCategory category() {
-    return ElementTemplateCategory.CONNECTORS;
   }
 
   @JsonProperty(SCHEMA_FIELD_NAME)

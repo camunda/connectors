@@ -39,6 +39,63 @@ public class ElementTemplateSerializationTest {
       new ObjectMapper().registerModule(new ElementTemplateModule());
 
   @Test
+  void customCategorySerializationTest() throws Exception {
+    // given
+    var elementTemplate =
+        ElementTemplate.builderForOutbound()
+            .id("io.camunda.connector.Template.v1")
+            .type("io.camunda:template:1")
+            .name("Template: Some Function")
+            .appliesTo(Set.of(TASK))
+            .elementType(SERVICE_TASK)
+            .version(1)
+            .category(new ElementTemplateCategory("agentic-ai", "Agentic AI"))
+            .propertyGroups(
+                PropertyGroup.builder()
+                    .id("default")
+                    .label("Properties")
+                    .properties(
+                        StringProperty.builder().label("Foo").binding(new ZeebeInput("foo")))
+                    .build())
+            .build();
+
+    // when
+    var json = objectMapper.writeValueAsString(elementTemplate);
+
+    // then
+    JSONAssert.assertEquals(
+        "{\"category\":{\"id\":\"agentic-ai\",\"name\":\"Agentic AI\"}}", json, false);
+  }
+
+  @Test
+  void defaultCategorySerializationTest() throws Exception {
+    // given
+    var elementTemplate =
+        ElementTemplate.builderForOutbound()
+            .id("io.camunda.connector.Template.v1")
+            .type("io.camunda:template:1")
+            .name("Template: Some Function")
+            .appliesTo(Set.of(TASK))
+            .elementType(SERVICE_TASK)
+            .version(1)
+            .propertyGroups(
+                PropertyGroup.builder()
+                    .id("default")
+                    .label("Properties")
+                    .properties(
+                        StringProperty.builder().label("Foo").binding(new ZeebeInput("foo")))
+                    .build())
+            .build();
+
+    // when
+    var json = objectMapper.writeValueAsString(elementTemplate);
+
+    // then
+    JSONAssert.assertEquals(
+        "{\"category\":{\"id\":\"connectors\",\"name\":\"Connectors\"}}", json, false);
+  }
+
+  @Test
   void serializationTest() throws Exception {
     // given
     var elementTemplate =

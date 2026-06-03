@@ -190,6 +190,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
           template.engineVersion() + " is not a valid semantic version");
     }
 
+    var category = resolveCategory(template);
+
     return context.elementTypes().stream()
         .map(
             elementType -> {
@@ -214,6 +216,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .documentationRef(
                       template.documentationRef().isEmpty() ? null : template.documentationRef())
                   .description(template.description().isEmpty() ? null : template.description())
+                  .category(category)
                   .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
                   .propertyGroups(
                       addServiceProperties(
@@ -271,6 +274,20 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
               template.defaultResultVariable(), template.defaultResultExpression()));
     }
     return newGroups;
+  }
+
+  private static ElementTemplateCategory resolveCategory(ElementTemplate template) {
+    var category = template.category();
+    boolean idBlank = category.id().isBlank();
+    boolean nameBlank = category.name().isBlank();
+    if (idBlank && nameBlank) {
+      return null;
+    }
+    if (idBlank || nameBlank) {
+      throw new IllegalArgumentException(
+          "Element template category requires both id and name to be set");
+    }
+    return new ElementTemplateCategory(category.id(), category.name());
   }
 
   private List<PropertyBuilder> generateExtensionProperties(ElementTemplate template) {
