@@ -100,7 +100,7 @@ public @interface ElementTemplate {
    *
    * <p>If not specified, defaults to the {@code connectors} / {@code Connectors} category.
    */
-  Category category() default @Category(id = "", name = "");
+  Category category() default @Category(id = "connectors", name = "Connectors");
 
   /**
    * Icon for the connector. Will be displayed in Camunda Modeler along with the connector name.

@@ -296,9 +296,8 @@ constructor injection.
 
 ## Category
 
-By default, the generated element template is assigned to the `connectors`/`Connectors` category in
-Camunda Modeler. You can override this by defining a custom category in the `@ElementTemplate`
-annotation:
+By default, the generated element template is assigned to the `connectors`/`Connectors` category.
+You can override this by defining a custom category in the `@ElementTemplate` annotation:
 
 ```java
 @ElementTemplate(

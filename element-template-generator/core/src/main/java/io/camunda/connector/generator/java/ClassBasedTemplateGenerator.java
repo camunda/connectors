@@ -278,12 +278,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
 
   private static ElementTemplateCategory resolveCategory(ElementTemplate template) {
     var category = template.category();
-    boolean idBlank = category.id().isBlank();
-    boolean nameBlank = category.name().isBlank();
-    if (idBlank && nameBlank) {
-      return null;
-    }
-    if (idBlank || nameBlank) {
+    if (category.id().isBlank() || category.name().isBlank()) {
       throw new IllegalArgumentException(
           "Element template category requires both id and name to be set");
     }
