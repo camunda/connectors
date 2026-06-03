@@ -111,7 +111,7 @@ limitations under the License.</license.inlineheader>
 
     <version.localstack>2.0.5</version.localstack>
 
-    <version.okhttp>4.12.0</version.okhttp>
+    <version.okhttp>5.3.2</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
     <version.opensearch-client>2.26.0</version.opensearch-client>
 
@@ -211,6 +211,18 @@ limitations under the License.</license.inlineheader>
         <groupId>com.fasterxml.jackson.datatype</groupId>
         <artifactId>jackson-datatype-jsr310</artifactId>
         <version>${version.jackson-datatype-jsr310}</version>
+      </dependency>
+
+      <!--
+        OkHttp 5 split into multi-platform modules: the `okhttp` artifact's pom is now
+        an empty shell (classes ship in `okhttp-jvm`). Maven cannot read Gradle module
+        metadata, so we pin the transitive `okhttp` to the matching version (still empty
+        but harmless) and let modules that actually need OkHttp depend on `okhttp-jvm`.
+      -->
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp</artifactId>
+        <version>${version.okhttp}</version>
       </dependency>
 
       <!-- CVE override for Tomcat - remove when version.tomcat property is removed -->
