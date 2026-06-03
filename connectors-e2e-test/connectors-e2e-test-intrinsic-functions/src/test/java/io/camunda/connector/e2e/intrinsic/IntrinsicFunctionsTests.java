@@ -134,7 +134,7 @@ public class IntrinsicFunctionsTests {
     String text = "Some text content for getText";
     Document doc =
         documentFactory.create(
-            DocumentCreationRequest.from(text.getBytes(StandardCharsets.UTF_8))
+            DocumentCreationRequest.from(text.getBytes(java.nio.charset.Charset.defaultCharset()))
                 .contentType("text/plain")
                 .build());
 
