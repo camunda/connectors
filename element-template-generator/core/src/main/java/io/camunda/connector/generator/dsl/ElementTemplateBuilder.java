@@ -37,6 +37,7 @@ public class ElementTemplateBuilder {
   protected String id;
   protected String name;
   protected long version;
+  protected ElementTemplateCategory category = ElementTemplateCategory.CONNECTORS;
   protected ElementTemplateIcon icon;
   protected String documentationRef;
   protected String description;
@@ -131,6 +132,11 @@ public class ElementTemplateBuilder {
     return this;
   }
 
+  public ElementTemplateBuilder category(ElementTemplateCategory category) {
+    this.category = category;
+    return this;
+  }
+
   public ElementTemplateBuilder engines(Engines engines) {
     this.engines = engines;
     return this;
@@ -202,6 +208,7 @@ public class ElementTemplateBuilder {
         id,
         name,
         version,
+        category,
         documentationRef,
         engines,
         description,

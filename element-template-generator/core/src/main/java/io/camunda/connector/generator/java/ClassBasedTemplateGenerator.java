@@ -203,6 +203,9 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .type(context.connectorType(), isHybridMode)
                   .name(createName(context, template.name(), elementType, isHybridMode))
                   .version(template.version())
+                  .category(
+                      new ElementTemplateCategory(
+                          template.category().id(), template.category().name()))
                   .appliesTo(elementType.appliesTo())
                   .engines(
                       !template.engineVersion().isBlank()
