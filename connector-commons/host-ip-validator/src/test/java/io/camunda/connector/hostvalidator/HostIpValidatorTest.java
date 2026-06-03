@@ -106,6 +106,91 @@ class HostIpValidatorTest {
   }
 
   @Test
+  void ipv4ThisNetworkRangeIsDeniedAsReserved() throws Exception {
+    // Java's isAnyLocalAddress() only matches 0.0.0.0 exactly, but 0.0.0.1 routes to loopback on
+    // Linux — must be blocked by the reserved-range check.
+    InetAddress addr = InetAddress.getByName("0.0.0.1");
+    assertThat(HostIpValidator.classify(addr, List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+  }
+
+  @Test
+  void ipv4LimitedBroadcastIsDeniedAsReserved() throws Exception {
+    // 255.255.255.255 isn't flagged by any Java is* method.
+    InetAddress addr = InetAddress.getByName("255.255.255.255");
+    assertThat(HostIpValidator.classify(addr, List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+  }
+
+  @Test
+  void ipv4CgnSharedAddressIsDeniedAsReserved() throws Exception {
+    InetAddress addr = InetAddress.getByName("100.64.0.1");
+    assertThat(HostIpValidator.classify(addr, List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+  }
+
+  @Test
+  void ipv4TestNetIsDeniedAsReserved() throws Exception {
+    assertThat(
+            HostIpValidator.classify(
+                InetAddress.getByName("192.0.2.1"), List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+    assertThat(
+            HostIpValidator.classify(
+                InetAddress.getByName("198.51.100.1"), List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+    assertThat(
+            HostIpValidator.classify(
+                InetAddress.getByName("203.0.113.1"), List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+  }
+
+  @Test
+  void ipv6TransitionPrefixesAreDeniedAsReserved() throws Exception {
+    // 2002::/16 (6to4) — 2002:0a00:0001:: would decode to embedded IPv4 10.0.0.1.
+    assertThat(
+            HostIpValidator.classify(
+                InetAddress.getByName("2002:0a00:0001::"), List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+    // 64:ff9b::/96 (NAT64) — 64:ff9b::10.0.0.1 embeds IPv4 10.0.0.1.
+    assertThat(
+            HostIpValidator.classify(
+                InetAddress.getByName("64:ff9b::10.0.0.1"), List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+    // 2001::/32 (Teredo).
+    assertThat(
+            HostIpValidator.classify(
+                InetAddress.getByName("2001::1"), List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+  }
+
+  @Test
+  void ipv6DocumentationRangeIsDeniedAsReserved() throws Exception {
+    InetAddress addr = InetAddress.getByName("2001:db8::1");
+    assertThat(HostIpValidator.classify(addr, List.of(), List.of(), false, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+  }
+
+  @Test
+  void reservedRangeIsNotUnlockedByUnsafeAllowPrivateRanges() throws Exception {
+    // The unsafeAllowPrivateRanges escape hatch is for RFC 1918, not for reserved/special-use
+    // ranges — those must stay blocked.
+    InetAddress addr = InetAddress.getByName("192.0.2.1");
+    assertThat(HostIpValidator.classify(addr, List.of(), List.of(), true, false))
+        .isEqualTo(Classification.DENY_RESERVED_RANGE);
+  }
+
+  @Test
+  void reservedRangeIsOverriddenByExplicitAllow() throws Exception {
+    // An operator can still allow a reserved range if they have a legitimate need (e.g. a test
+    // harness pointing at TEST-NET).
+    InetAddress addr = InetAddress.getByName("198.18.0.1");
+    List<CidrRange> allow = List.of(CidrRange.parse("198.18.0.0/15"));
+    assertThat(HostIpValidator.classify(addr, allow, List.of(), false, false))
+        .isEqualTo(Classification.ALLOW_USER_CONFIGURED);
+  }
+
+  @Test
   void userConfiguredDenyOverridesAllowDefault() throws Exception {
     InetAddress addr = InetAddress.getByName("8.8.8.8");
     List<CidrRange> deny = List.of(CidrRange.parse("8.8.8.0/24"));
