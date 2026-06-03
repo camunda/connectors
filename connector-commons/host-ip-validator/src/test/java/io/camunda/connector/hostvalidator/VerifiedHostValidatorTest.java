@@ -146,7 +146,6 @@ class VerifiedHostValidatorTest {
   }
 
   @Test
-  @Test
   void testWithUrl() {
     VerifiedHostValidator.Config config =
         new VerifiedHostValidator.Config(true, List.of(), List.of(), false, false);
