@@ -6,8 +6,8 @@
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-polling-connector/",
   "version" : 0,
   "category" : {
-    "id" : "connectors",
-    "name" : "Connectors"
+    "id" : "aiTools",
+    "name" : "AI Tools"
   },
   "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
   "elementType" : {

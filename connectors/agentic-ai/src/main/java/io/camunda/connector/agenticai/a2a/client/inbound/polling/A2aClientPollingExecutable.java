@@ -29,6 +29,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
         "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-polling-connector/",
     icon = "a2a-client.svg",
     engineVersion = "^8.9",
+    category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = A2aPollingRequest.class,
     defaultResultExpression = "={response: result}",
     propertyGroups = {

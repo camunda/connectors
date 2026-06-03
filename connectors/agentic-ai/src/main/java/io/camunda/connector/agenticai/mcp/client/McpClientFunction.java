@@ -32,6 +32,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
         "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client-connector/",
     engineVersion = "^8.9",
     version = 2,
+    category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = McpClientRequest.class,
     defaultResultVariable = "toolCallResult",
     propertyGroups = {
