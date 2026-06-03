@@ -82,8 +82,8 @@ limitations under the License.</license.inlineheader>
     <version.mockito>5.23.0</version.mockito>
     <version.junit-jupiter>5.14.4</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
-    <version.jackson-bom>2.21.3</version.jackson-bom>
-    <version.jackson-datatype-jsr310>2.21.3</version.jackson-datatype-jsr310>
+    <version.jackson-bom>2.22.0</version.jackson-bom>
+    <version.jackson-datatype-jsr310>2.22.0</version.jackson-datatype-jsr310>
     <version.hibernate-validator>9.1.0.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.failsafe>3.3.2</version.failsafe>
@@ -94,16 +94,16 @@ limitations under the License.</license.inlineheader>
          Remove once Spring Boot upgrades to Tomcat >= 10.1.55 (likely in 3.5.15+).
          Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
     <version.tomcat>10.1.55</version.tomcat>
-    <version.spring-cloud-gcp-starter-logging>7.4.8</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.32</version.logback>
+    <version.spring-cloud-gcp-starter-logging>7.4.9</version.spring-cloud-gcp-starter-logging>
+    <version.logback>1.5.34</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.44.13</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.46.2</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.44.13</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.46.2</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.44.13</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.46.2</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -146,7 +146,7 @@ limitations under the License.</license.inlineheader>
     <version.awaitility>4.3.0</version.awaitility>
     <version.json-path>2.10.0</version.json-path>
 
-    <version.netty>4.2.14.Final</version.netty>
+    <version.netty>4.2.15.Final</version.netty>
 
     <version.snappy-java>1.1.10.8</version.snappy-java>
     <version.commons-codec>1.22.0</version.commons-codec>
@@ -159,7 +159,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.2</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
     
-    <version.langchain4j>1.15.0</version.langchain4j>
+    <version.langchain4j>1.15.1</version.langchain4j>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
@@ -169,8 +169,8 @@ limitations under the License.</license.inlineheader>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.2</plugin.version.maven-shade-plugin>
-    <plugin.version.maven-surefire-plugin>3.5.5</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.5.1</plugin.version.spotless-maven-plugin>
+    <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
+    <plugin.version.spotless-maven-plugin>3.6.0</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
   </properties>
 
@@ -632,7 +632,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>10.9</version>
+        <version>10.9.1</version>
       </dependency>
 
       <!-- Fixes CWE-835 -->
@@ -970,7 +970,7 @@ Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575
         </plugin>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
-          <version>3.10.0</version>
+          <version>3.11.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
