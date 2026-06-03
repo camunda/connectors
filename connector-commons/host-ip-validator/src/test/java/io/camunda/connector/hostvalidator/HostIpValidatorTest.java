@@ -216,7 +216,7 @@ class HostIpValidatorTest {
   }
 
   @Test
-  void allowRangeOverridesLoopbackValidatio() throws Exception {
+  void allowRangeOverridesLoopbackValidation() throws Exception {
     List<CidrRange> allow = List.of(CidrRange.parse("127.0.0.0/8"));
     HostIpValidator.validate("127.0.0.1", allow, List.of(), false, false);
   }
