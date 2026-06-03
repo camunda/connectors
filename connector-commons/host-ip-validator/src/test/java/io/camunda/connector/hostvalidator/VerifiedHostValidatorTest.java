@@ -146,10 +146,11 @@ class VerifiedHostValidatorTest {
   }
 
   @Test
+  @Test
   void testWithUrl() {
     VerifiedHostValidator.Config config =
         new VerifiedHostValidator.Config(true, List.of(), List.of(), false, false);
     Validator v = validatorWith(new VerifiedHostValidator(config));
-    assertThat(v.validate(new TargetWithURL("http://example.com"))).isEmpty();
+    assertThat(v.validate(new TargetWithURL("http://8.8.8.8"))).isEmpty();
   }
 }
