@@ -156,6 +156,7 @@ class GoogleVertexAiChatModelProviderTest {
       assertThat(delegate).isInstanceOf(VertexAiGeminiChatModel.class);
       assertThat(delegate).isSameAs(chatModelResultCaptor.getResult());
 
+      verify(chatModelBuilder).maxRetries(0);
       builderAssertions.accept(chatModelBuilder);
     }
   }

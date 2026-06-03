@@ -50,7 +50,8 @@ public class AzureOpenAiChatModelProvider
             .deploymentName(connection.model().deploymentName())
             .timeout(
                 deriveTimeoutSetting(
-                    "Azure OpenAI model call", config, connection.timeouts(), LOGGER));
+                    "Azure OpenAI model call", config, connection.timeouts(), LOGGER))
+            .maxRetries(0);
 
     proxySupport.createAzureProxyOptions(connection.endpoint()).ifPresent(builder::proxyOptions);
 
