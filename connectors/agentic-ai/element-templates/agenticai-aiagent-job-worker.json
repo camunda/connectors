@@ -7,8 +7,8 @@
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/",
   "version" : 10,
   "category" : {
-    "id" : "connectors",
-    "name" : "Connectors"
+    "id" : "aiTools",
+    "name" : "AI Tools"
   },
   "appliesTo" : [ "bpmn:SubProcess" ],
   "elementType" : {

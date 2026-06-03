@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
         "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-webhook-connector/",
     icon = "a2a-client.svg",
     engineVersion = "^8.9",
+    category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = A2aWebhookPropertiesWrapper.class,
     defaultResultExpression = "={response: request.body}",
     propertyGroups = {
