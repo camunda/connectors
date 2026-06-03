@@ -6,17 +6,23 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
+import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -27,10 +33,9 @@ import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Optional;
-import org.apache.commons.lang3.tuple.Pair;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.lang.Nullable;
 
 public abstract class BaseAgentRequestHandler<
         C extends AgentExecutionContext, R extends ConnectorResponse>
@@ -47,6 +52,7 @@ public abstract class BaseAgentRequestHandler<
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AiFrameworkAdapter<?> framework;
   private final AgentResponseHandler responseHandler;
+  private final AgentInstanceClient agentInstanceClient;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -55,7 +61,8 @@ public abstract class BaseAgentRequestHandler<
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
-      AgentResponseHandler responseHandler) {
+      AgentResponseHandler responseHandler,
+      AgentInstanceClient agentInstanceClient) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.limitsValidator = limitsValidator;
@@ -63,6 +70,7 @@ public abstract class BaseAgentRequestHandler<
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.framework = framework;
     this.responseHandler = responseHandler;
+    this.agentInstanceClient = agentInstanceClient;
   }
 
   @Override
@@ -71,11 +79,13 @@ public abstract class BaseAgentRequestHandler<
     return switch (agentInitializationResult) {
       // directly return agent response if needed (e.g. tool discovery tool calls before calling the
       // LLM)
-      case AgentResponseInitializationResult(AgentResponse agentResponse) -> {
+      case AgentResponseInitializationResult(
+              AgentResponse agentResponse,
+              AgentJobCompletionListener initCompletionListener) -> {
         LOGGER.debug(
             "AI Agent initialization returned direct response including {} tool calls. Completing job without further processing.",
             agentResponse.toolCalls().size());
-        yield buildConnectorResponse(executionContext, agentResponse, null);
+        yield buildConnectorResponse(executionContext, agentResponse, initCompletionListener);
       }
 
       // discovery still in progress (not all tool call results present)
@@ -102,6 +112,7 @@ public abstract class BaseAgentRequestHandler<
       final List<ToolCallResult> toolCallResults) {
     final var store =
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
+    final var initialMetrics = agentContext.metrics();
 
     try (var session = store.createSession(executionContext, agentContext)) {
       var agentResponse =
@@ -111,9 +122,25 @@ public abstract class BaseAgentRequestHandler<
           "Request processing completed {} agent response, completing job",
           agentResponse == null ? "without" : "with");
 
-      var completionListener =
-          createStoreCompletionListener(executionContext, store, agentResponse);
-      return buildConnectorResponse(executionContext, agentResponse, completionListener);
+      AgentJobCompletionListener metricsListener = null;
+      if (agentResponse != null) {
+        final var metricsDelta = agentResponse.context().metrics().minus(initialMetrics);
+        final var nextStatus = nextAgentInstanceState(metricsDelta.toolCalls());
+        if (shouldUpdateAgentInstanceBeforeJobCompletion(agentResponse)) {
+          notifyMetrics(executionContext, agentResponse.context(), metricsDelta, nextStatus, true);
+        } else {
+          metricsListener =
+              createMetricsCompletionListener(
+                  executionContext, agentResponse.context(), metricsDelta, nextStatus);
+        }
+      }
+
+      return buildConnectorResponse(
+          executionContext,
+          agentResponse,
+          AgentJobCompletionListener.compose(
+              metricsListener,
+              createStoreCompletionListener(executionContext, store, agentResponse)));
     }
   }
 
@@ -122,72 +149,104 @@ public abstract class BaseAgentRequestHandler<
       AgentContext agentContext,
       final List<ToolCallResult> toolCallResults,
       final ConversationSession session) {
-    // set up memory and load from context if available
+    final var runtimeMemory = initializeRuntimeMemory(executionContext, agentContext, session);
+
+    LOGGER.trace("Validating configured limits for agent execution");
+    limitsValidator.validateConfiguredLimits(executionContext, agentContext);
+
+    final var addedUserMessages =
+        prepareMessages(executionContext, agentContext, runtimeMemory, toolCallResults);
+
+    if (!modelCallPrerequisitesFulfilled(executionContext, agentContext, addedUserMessages)) {
+      LOGGER.debug("Model call prerequisites not fulfilled, returning without agent response");
+      return null;
+    }
+    handleAddedUserMessages(executionContext, agentContext, addedUserMessages);
+
+    notifyThinking(executionContext, agentContext);
+    LOGGER.debug("Executing chat request with AI framework");
+    final var chatResponse =
+        framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
+
+    agentContext = updateContextMetrics(chatResponse.agentContext(), chatResponse);
+
+    return buildResponse(executionContext, agentContext, chatResponse, session, runtimeMemory);
+  }
+
+  private RuntimeMemory initializeRuntimeMemory(
+      C executionContext, AgentContext agentContext, ConversationSession session) {
+    LOGGER.trace("Loading previous conversation (if any) into runtime memory");
     final var runtimeMemory =
         new MessageWindowRuntimeMemory(
             Optional.ofNullable(executionContext.memory())
                 .map(MemoryConfiguration::contextWindowSize)
                 .orElse(DEFAULT_CONTEXT_WINDOW_SIZE));
+    runtimeMemory.addMessages(session.loadMessages(agentContext).messages());
+    return runtimeMemory;
+  }
 
-    LOGGER.trace("Loading previous conversation (if any) into runtime memory");
-    var loadResult = session.loadMessages(agentContext);
-    runtimeMemory.addMessages(loadResult.messages());
-
-    // validate configured limits
-    LOGGER.trace("Validating configured limits for agent execution");
-    limitsValidator.validateConfiguredLimits(executionContext, agentContext);
-
-    // update memory with system message
+  private List<Message> prepareMessages(
+      C executionContext,
+      AgentContext agentContext,
+      RuntimeMemory runtimeMemory,
+      List<ToolCallResult> toolCallResults) {
     LOGGER.trace("Adding system message (if necessary)");
     messagesHandler.addSystemMessage(
         executionContext, agentContext, runtimeMemory, executionContext.systemPrompt());
 
-    // update memory with user messages/tool call responses
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "Adding user messages including the following {} tool call results: {}",
-          toolCallResults.size(),
-          toolCallResults.stream().map(tcr -> Pair.of(tcr.id(), tcr.name())).toList());
+    return messagesHandler.addUserMessages(
+        executionContext,
+        agentContext,
+        runtimeMemory,
+        executionContext.userPrompt(),
+        toolCallResults);
+  }
+
+  private AgentContext updateContextMetrics(
+      AgentContext agentContext, AiFrameworkChatResponse<?> chatResponse) {
+    final var assistantToolCalls = chatResponse.assistantMessage().toolCalls();
+    final int toolCallsDelta = Optional.ofNullable(assistantToolCalls).map(List::size).orElse(0);
+
+    if (toolCallsDelta == 0) {
+      return agentContext;
     }
 
-    final var userMessages =
-        messagesHandler.addUserMessages(
-            executionContext,
-            agentContext,
-            runtimeMemory,
-            executionContext.userPrompt(),
-            toolCallResults);
+    return agentContext.withMetrics(agentContext.metrics().incrementToolCalls(toolCallsDelta));
+  }
 
-    // check if we're actually able to call the model, abort early otherwise
-    if (!modelCallPrerequisitesFulfilled(executionContext, agentContext, userMessages)) {
-      LOGGER.debug("Model call prerequisites not fulfilled, returning without agent response");
-      return null;
-    }
+  private void notifyThinking(C executionContext, AgentContext agentContext) {
+    LOGGER.debug("Notifying agent instance: status=THINKING before LLM call");
+    agentInstanceClient.update(
+        executionContext,
+        agentContext,
+        AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+  }
 
-    handleAddedUserMessages(executionContext, agentContext, userMessages);
+  private AgentInstanceUpdateStatus nextAgentInstanceState(int toolCallsDelta) {
+    return toolCallsDelta == 0
+        ? AgentInstanceUpdateStatus.IDLE
+        : AgentInstanceUpdateStatus.TOOL_CALLING;
+  }
 
-    // call framework with memory
-    LOGGER.debug("Executing chat request with AI framework");
-    final var frameworkChatResponse =
-        framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
-    agentContext = frameworkChatResponse.agentContext();
-
-    final var assistantMessage = frameworkChatResponse.assistantMessage();
+  private AgentResponse buildResponse(
+      C executionContext,
+      AgentContext agentContext,
+      AiFrameworkChatResponse<?> chatResponse,
+      ConversationSession session,
+      RuntimeMemory runtimeMemory) {
+    final var assistantMessage = chatResponse.assistantMessage();
     LOGGER.debug(
         "Received assistant message containing {} tool call requests",
         assistantMessage.toolCalls() != null ? assistantMessage.toolCalls().size() : 0);
     runtimeMemory.addMessage(assistantMessage);
 
-    // apply potential gateway tool call transformations & map tool call to process
-    // variable format
     final var toolCalls =
         gatewayToolHandlers.transformToolCalls(agentContext, assistantMessage.toolCalls());
     final var processVariableToolCalls =
         toolCalls.stream().map(ToolCallProcessVariable::from).toList();
 
-    // store memory reference to context
     LOGGER.debug("Storing runtime memory to conversation session");
-    var updatedConversation =
+    final var updatedConversation =
         session.storeMessages(
             agentContext, ConversationStoreRequest.of(runtimeMemory.allMessages()));
     agentContext = agentContext.withConversation(updatedConversation);
@@ -198,6 +257,16 @@ public abstract class BaseAgentRequestHandler<
 
   protected abstract boolean modelCallPrerequisitesFulfilled(
       C executionContext, AgentContext agentContext, List<Message> addedUserMessages);
+
+  /**
+   * Returns {@code true} when the agent-instance PATCH must be sent synchronously before the job
+   * completion command is issued. Returning {@code false} defers the PATCH to {@link
+   * AgentJobCompletionListener#onJobCompleted()}, which is safe as long as the element instance
+   * survives job completion (e.g. an AHSP intermediate turn where tool elements are activated and
+   * the subprocess stays open).
+   */
+  protected abstract boolean shouldUpdateAgentInstanceBeforeJobCompletion(
+      AgentResponse agentResponse);
 
   protected void handleAddedUserMessages(
       C executionContext, AgentContext agentContext, List<Message> addedUserMessages) {
@@ -211,6 +280,57 @@ public abstract class BaseAgentRequestHandler<
       final C executionContext,
       @Nullable final AgentResponse agentResponse,
       @Nullable final AgentJobCompletionListener completionListener);
+
+  private void notifyMetrics(
+      C executionContext,
+      AgentContext agentContext,
+      AgentMetrics metricsDelta,
+      @Nullable AgentInstanceUpdateStatus nextStatus,
+      boolean rethrowOnFailure) {
+    try {
+      LOGGER.debug(
+          "Updating agent instance metrics: status={}, modelCalls=+{}, inputTokens=+{}, outputTokens=+{}, toolCalls=+{}",
+          nextStatus,
+          metricsDelta.modelCalls(),
+          metricsDelta.tokenUsage().inputTokenCount(),
+          metricsDelta.tokenUsage().outputTokenCount(),
+          metricsDelta.toolCalls());
+      agentInstanceClient.update(
+          executionContext,
+          agentContext,
+          AgentInstanceUpdateRequest.builder().status(nextStatus).delta(metricsDelta).build());
+    } catch (Exception e) {
+      LOGGER.error("Failed to update agent instance metrics; metrics may be inaccurate", e);
+      if (rethrowOnFailure) {
+        throw e;
+      }
+    }
+  }
+
+  private AgentJobCompletionListener createMetricsCompletionListener(
+      C executionContext,
+      AgentContext agentContext,
+      AgentMetrics metricsDelta,
+      AgentInstanceUpdateStatus nextStatus) {
+    return new AgentJobCompletionListener() {
+      @Override
+      public void onJobCompleted() {
+        notifyMetrics(executionContext, agentContext, metricsDelta, nextStatus, false);
+      }
+
+      @Override
+      public void onJobCompletionFailed(JobCompletionFailure failure) {
+        final var strippedDelta = metricsDelta.withToolCalls(0);
+        if (failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored) {
+          // Superseded job: report model/token cost but don't overwrite the current status
+          notifyMetrics(executionContext, agentContext, strippedDelta, null, false);
+        } else {
+          notifyMetrics(
+              executionContext, agentContext, strippedDelta, AgentInstanceUpdateStatus.IDLE, false);
+        }
+      }
+    };
+  }
 
   private static <C extends AgentExecutionContext>
       AgentJobCompletionListener createStoreCompletionListener(

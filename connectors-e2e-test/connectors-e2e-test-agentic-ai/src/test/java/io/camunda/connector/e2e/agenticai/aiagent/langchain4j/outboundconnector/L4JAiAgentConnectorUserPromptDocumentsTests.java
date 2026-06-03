@@ -103,7 +103,7 @@ public class L4JAiAgentConnectorUserPromptDocumentsTests extends BaseL4JAiAgentC
             AgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
@@ -158,7 +158,7 @@ public class L4JAiAgentConnectorUserPromptDocumentsTests extends BaseL4JAiAgentC
             AgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
@@ -185,7 +185,7 @@ public class L4JAiAgentConnectorUserPromptDocumentsTests extends BaseL4JAiAgentC
         });
   }
 
-  private Content asContentBlock(String filename) throws Exception {
+  private Content asContentBlock(String filename) {
     final Supplier<String> text = testFileContent(filename);
     final Supplier<String> b64 = testFileContentBase64(filename);
 

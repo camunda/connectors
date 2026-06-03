@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse.ToolCallElementActivation;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -40,7 +41,8 @@ public class JobWorkerAgentRequestHandler
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
-      AgentResponseHandler responseHandler) {
+      AgentResponseHandler responseHandler,
+      AgentInstanceClient agentInstanceClient) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -48,7 +50,13 @@ public class JobWorkerAgentRequestHandler
         messagesHandler,
         gatewayToolHandlers,
         framework,
-        responseHandler);
+        responseHandler,
+        agentInstanceClient);
+  }
+
+  @Override
+  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentResponse agentResponse) {
+    return agentResponse.toolCalls().isEmpty();
   }
 
   @Override

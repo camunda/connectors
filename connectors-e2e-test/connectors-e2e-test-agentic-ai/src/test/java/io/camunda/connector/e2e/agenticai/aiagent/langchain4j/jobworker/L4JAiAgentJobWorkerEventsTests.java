@@ -113,8 +113,9 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
   private static final UserMessage INITIAL_USER_MESSAGE = new UserMessage(INITIAL_USER_PROMPT);
   private static final AiMessage AI_FINAL_MESSAGE = new AiMessage(FINAL_AI_RESPONSE);
 
-  private static final AgentMetrics EXPECTED_TWO_ITERATION_METRICS =
-      new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220));
+  private static AgentMetrics twoIterationMetrics(int toolCalls) {
+    return new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220), toolCalls);
+  }
 
   /** Re-rolled per test method to keep message correlations isolated. */
   private String eventCorrelationKey;
@@ -153,7 +154,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
 
     zeebeTest.waitForProcessCompletion();
 
-    assertCompleted(zeebeTest, expectedConversation);
+    assertCompleted(zeebeTest, expectedConversation, 1);
   }
 
   /** Default {@code WAIT_FOR_TOOL_CALL_RESULTS}: agent waits for all tools before proceeding. */
@@ -235,7 +236,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
 
     zeebeTest.waitForProcessCompletion();
 
-    assertCompleted(zeebeTest, expectedConversation);
+    assertCompleted(zeebeTest, expectedConversation, 2);
   }
 
   // ---- shared scenarios for the "during execution" variants ---------------
@@ -270,7 +271,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
 
     zeebeTest.waitForProcessCompletion();
 
-    assertCompleted(zeebeTest, expectedConversation);
+    assertCompleted(zeebeTest, expectedConversation, 2);
   }
 
   private void runEventDuringExecutionWithCancel(
@@ -301,7 +302,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
 
     zeebeTest.waitForProcessCompletion();
 
-    assertCompleted(zeebeTest, expectedConversation);
+    assertCompleted(zeebeTest, expectedConversation, 2);
   }
 
   // ---- helpers ------------------------------------------------------------
@@ -314,9 +315,10 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
         Map.of("userPrompt", INITIAL_USER_PROMPT, "eventCorrelationKey", eventCorrelationKey));
   }
 
-  private void assertCompleted(ZeebeTest zeebeTest, List<ChatMessage> expectedConversation) {
+  private void assertCompleted(
+      ZeebeTest zeebeTest, List<ChatMessage> expectedConversation, int expectedToolCalls) {
     assertLastChatRequest(expectedConversation, false);
-    assertReadyAgentResponse(zeebeTest, EXPECTED_TWO_ITERATION_METRICS);
+    assertReadyAgentResponse(zeebeTest, twoIterationMetrics(expectedToolCalls));
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
     assertNoToolCallVariableLeakToProcessScope(zeebeTest);
   }

@@ -20,15 +20,21 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -45,7 +51,6 @@ import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionConte
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
@@ -53,6 +58,7 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -69,7 +75,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -95,8 +100,7 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private AgentResponseHandler responseHandler;
-
-  private ConversationStore conversationStore;
+  @Mock private AgentInstanceClient agentInstanceClient;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private JobWorkerAgentExecutionContext agentExecutionContext;
@@ -107,15 +111,19 @@ class JobWorkerAgentRequestHandlerTest {
 
   @BeforeEach
   void setUp() {
-    conversationStore = spy(new InProcessConversationStore());
+    ConversationStore conversationStore = spy(new InProcessConversationStore());
     doReturn(conversationStore)
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+    lenient()
+        .doReturn(List.of())
+        .when(messagesHandler)
+        .addUserMessages(any(), any(), any(), any(), anyList());
   }
 
   @Test
   void directlyReturnsAgentResponseWhenInitializationReturnsResponse() {
-    Mockito.reset(conversationStoreRegistry);
+    reset(conversationStoreRegistry);
 
     final var agentResponse =
         AgentResponse.builder()
@@ -141,7 +149,7 @@ class JobWorkerAgentRequestHandlerTest {
 
   @Test
   void orchestratesRequestExecutionWithoutToolCalls() {
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockSystemPrompt();
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -182,7 +190,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -203,7 +211,7 @@ class JobWorkerAgentRequestHandlerTest {
 
   @Test
   void orchestratesRequestExecutionWithToolCalls() {
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockSystemPrompt();
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -248,7 +256,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 2));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -293,8 +301,8 @@ class JobWorkerAgentRequestHandlerTest {
 
   @Test
   void orchestratesRequestExecutionWithInterruptedToolCall() {
-    List<ToolCallResult> toolCallResults = List.of(TOOL_CALL_RESULTS.get(0));
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    List<ToolCallResult> toolCallResults = List.of(TOOL_CALL_RESULTS.getFirst());
+    mockSystemPrompt();
     mockInterruptedToolCall(toolCallResults);
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -345,7 +353,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -413,7 +421,7 @@ class JobWorkerAgentRequestHandlerTest {
 
   @Test
   void silentlyCompletesJobWhenNoUserMessageContent() {
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockSystemPrompt();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
@@ -425,6 +433,214 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.elementActivations()).isEmpty();
 
     verifyNoInteractions(framework);
+  }
+
+  @Test
+  void shouldEmitOnlyThinkingPatchSynchronouslyAndDeferMetricsPatchOnToolCallTurn() {
+    // given: LLM returns tool calls → intermediate turn → element instance stays alive after
+    // completionConditionFulfilled=false → deferred PATCH is safe
+    mockSystemPrompt();
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    mockFrameworkExecution(assistantMessage);
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    lenient()
+        .when(
+            responseHandler.createResponse(
+                eq(agentExecutionContext),
+                any(AgentContext.class),
+                eq(assistantMessage),
+                anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .toolCalls(i.getArgument(3))
+                    .build());
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // then: only THINKING patch is synchronous; metrics PATCH is NOT sent yet
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    verifyNoMoreInteractions(agentInstanceClient);
+
+    // when: job completes — deferred metrics PATCH fires now
+    response.onJobCompleted();
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.TOOL_CALLING)
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
+                    .build()));
+    verifyNoMoreInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void shouldEmitThinkingAndMetricsPatchSynchronouslyOnFinalTurn() {
+    // given: LLM returns no tool calls → final turn → AHSP closes
+    // (completionConditionFulfilled=true)
+    // → element instance dies after job completion → synchronous PATCH required
+    mockSystemPrompt();
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = AssistantMessage.builder().build();
+    mockFrameworkExecution(assistantMessage);
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    lenient()
+        .when(
+            responseHandler.createResponse(
+                eq(agentExecutionContext),
+                any(AgentContext.class),
+                eq(assistantMessage),
+                anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .toolCalls(List.of())
+                    .build());
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // then: THINKING + IDLE metrics PATCH both synchronous
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.IDLE)
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .build()));
+    verifyNoMoreInteractions(agentInstanceClient);
+
+    // when: job completes — no deferred PATCH (was already sent synchronously)
+    response.onJobCompleted();
+    verifyNoMoreInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void shouldReportMetricsWithoutToolCallsWhenJobCompletionFails() {
+    // given: LLM returns tool calls → deferred path
+    mockSystemPrompt();
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    mockFrameworkExecution(assistantMessage);
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    lenient()
+        .when(
+            responseHandler.createResponse(
+                eq(agentExecutionContext),
+                any(AgentContext.class),
+                eq(assistantMessage),
+                anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .toolCalls(i.getArgument(3))
+                    .build());
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // only THINKING was synchronous
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(),
+            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    verifyNoMoreInteractions(agentInstanceClient);
+
+    // when: job completion fails (execution error)
+    // toolCalls are stripped to avoid inflating the counter for unactivated elements
+    response.onJobCompletionFailed(
+        new JobCompletionFailure.ExecutionFailed(new RuntimeException(), null));
+
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.IDLE)
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .build()));
+    verifyNoMoreInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void shouldReportMetricsWithoutToolCallsWhenJobSuperseded() {
+    // given: LLM returns tool calls → deferred path
+    mockSystemPrompt();
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    mockFrameworkExecution(assistantMessage);
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    lenient()
+        .when(
+            responseHandler.createResponse(
+                eq(agentExecutionContext),
+                any(AgentContext.class),
+                eq(assistantMessage),
+                anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .toolCalls(i.getArgument(3))
+                    .build());
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // only THINKING was synchronous
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(),
+            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    verifyNoMoreInteractions(agentInstanceClient);
+
+    // when: job superseded (NOT_FOUND) — deferred listener fires, strips toolCalls, no status
+    // change
+    response.onJobCompletionFailed(
+        new JobCompletionFailure.CommandFailure.CommandIgnored(new RuntimeException()));
+
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .build()));
+    verifyNoMoreInteractions(agentInstanceClient);
   }
 
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
@@ -461,12 +677,12 @@ class JobWorkerAgentRequestHandlerTest {
         null, new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), null));
   }
 
-  private void mockSystemPrompt(SystemPromptConfiguration systemPromptConfiguration) {
-    when(agentExecutionContext.systemPrompt()).thenReturn(systemPromptConfiguration);
+  private void mockSystemPrompt() {
+    when(agentExecutionContext.systemPrompt()).thenReturn(SYSTEM_PROMPT_CONFIGURATION);
     doAnswer(
             i -> {
               final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
-              runtimeMemory.addMessage(systemMessage(systemPromptConfiguration.prompt()));
+              runtimeMemory.addMessage(systemMessage(SYSTEM_PROMPT_CONFIGURATION.prompt()));
               return null;
             })
         .when(messagesHandler)
@@ -474,7 +690,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(agentExecutionContext),
             any(AgentContext.class),
             any(RuntimeMemory.class),
-            eq(systemPromptConfiguration));
+            eq(SYSTEM_PROMPT_CONFIGURATION));
   }
 
   private void mockUserPrompt(

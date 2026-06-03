@@ -116,7 +116,7 @@ public class L4JAiAgentConnectorElementTemplateRegressionTests extends BaseL4JAi
             AgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 2))
                 .hasResponseText(expectedResponseText)
                 .hasNoResponseMessage()
                 .hasNoResponseJson());

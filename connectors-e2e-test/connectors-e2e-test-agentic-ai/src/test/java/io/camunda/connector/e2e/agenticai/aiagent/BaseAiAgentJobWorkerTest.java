@@ -23,6 +23,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.process.test.api.CamundaAssert;
+import java.time.Duration;
 import java.util.Map;
 import org.assertj.core.api.ThrowingConsumer;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,6 +51,7 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
   protected void assertAgentResponse(
       ZeebeTest zeebeTest, ThrowingConsumer<JobWorkerAgentResponse> assertions) {
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+        .withAssertionTimeout(Duration.ofSeconds(15))
         .hasVariableSatisfies(
             AGENT_RESPONSE_VARIABLE,
             Map.class,

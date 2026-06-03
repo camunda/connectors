@@ -102,7 +102,7 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
@@ -156,7 +156,7 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
