@@ -28,6 +28,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
         "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/",
     engineVersion = "^8.8",
     version = 2,
+    category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = AdHocToolsSchemaRequest.class,
     propertyGroups = {@PropertyGroup(id = "tools", label = "Available tools")},
     icon = "adhoctoolsschema.svg")
