@@ -31,7 +31,6 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
-import io.camunda.connector.hostvalidator.VerifiedHostValidator;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -40,15 +39,8 @@ import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecu
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.connector.test.MapSecretProvider;
-import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorFactory;
-import jakarta.validation.Validation;
-import jakarta.validation.ValidatorFactory;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 
 /** Test helper class for creating a {@link OutboundConnectorContext} with a fluent API. */
 public class OutboundConnectorContextBuilder {
@@ -198,41 +190,7 @@ public class OutboundConnectorContextBuilder {
   }
 
   public OutboundConnectorContextBuilder includeAllValidators() {
-    // TODO extract into test utils
-    VerifiedHostValidator verifiedHostValidator =
-        new VerifiedHostValidator(
-            new VerifiedHostValidator.Config(true, List.of(), List.of(), true, true));
-
-    // TODO extract into test utils
-    ConstraintValidatorFactory factory =
-        new ConstraintValidatorFactory() {
-          @Override
-          public <T extends ConstraintValidator<?, ?>> T getInstance(Class<T> key) {
-            if (key.equals(VerifiedHostValidator.class)) {
-              return key.cast(verifiedHostValidator);
-            }
-            try {
-              return key.getDeclaredConstructor().newInstance();
-            } catch (ReflectiveOperationException e) {
-              throw new IllegalStateException(e);
-            }
-          }
-
-          @Override
-          public void releaseInstance(ConstraintValidator<?, ?> instance) {}
-        };
-
-    // TODO extract into test utils
-    ValidatorFactory validatorFactory =
-        Validation.byDefaultProvider()
-            .configure()
-            .constraintValidatorFactory(factory)
-            .messageInterpolator(new ParameterMessageInterpolator())
-            .buildValidatorFactory();
-
-    ValidationProvider validationProvider = new DefaultValidationProvider(validatorFactory);
-
-    this.validationProvider = validationProvider;
+    this.validationProvider = new TestValidationProvider();
     return this;
   }
 
