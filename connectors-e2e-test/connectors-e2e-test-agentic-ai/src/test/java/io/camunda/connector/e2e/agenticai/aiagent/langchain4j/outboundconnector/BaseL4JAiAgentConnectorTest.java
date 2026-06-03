@@ -117,7 +117,7 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
                 .isReady()
                 .hasNoToolCalls()
                 .hasAgentInstanceKey()
-                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
                 .satisfies(agentResponseAssertions));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
@@ -196,7 +196,7 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
             AgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 3))
                 .satisfies(agentResponseAssertions));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);

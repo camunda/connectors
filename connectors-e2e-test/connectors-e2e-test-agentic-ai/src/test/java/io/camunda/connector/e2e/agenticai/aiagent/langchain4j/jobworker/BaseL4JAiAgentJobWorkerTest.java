@@ -118,7 +118,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasAgentInstanceKey()
-                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
                 .satisfies(agentResponseAssertions));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
@@ -196,7 +196,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 3))
                 .satisfies(agentResponseAssertions));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
@@ -301,10 +301,9 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
     await()
         .alias("Chat request with expected conversation")
         .untilAsserted(
-            () -> {
-              assertThat(chatRequestCaptor.getValue().messages())
-                  .hasSize(expectedConversation.size() - 1);
-            });
+            () ->
+                assertThat(chatRequestCaptor.getValue().messages())
+                    .hasSize(expectedConversation.size() - 1));
 
     final var lastChatRequest = chatRequestCaptor.getValue();
 

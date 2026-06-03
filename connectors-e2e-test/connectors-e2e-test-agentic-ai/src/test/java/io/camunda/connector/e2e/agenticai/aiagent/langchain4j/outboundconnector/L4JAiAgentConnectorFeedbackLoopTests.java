@@ -122,7 +122,7 @@ public class L4JAiAgentConnectorFeedbackLoopTests extends BaseL4JAiAgentConnecto
             AgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)))
+                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42), 0))
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 

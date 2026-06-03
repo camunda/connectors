@@ -13,7 +13,19 @@ import java.io.IOException;
 
 public final class AgentInstanceErrorClassifier implements ErrorClassifier {
 
-  public static final AgentInstanceErrorClassifier INSTANCE = new AgentInstanceErrorClassifier();
+  /** For create: 404 is retryable (idempotent re-create against a transient lookup race). */
+  public static final AgentInstanceErrorClassifier FOR_CREATE =
+      new AgentInstanceErrorClassifier(true);
+
+  /** For update: 404 is permanent (the instance must exist; 404 = not found = bug). */
+  public static final AgentInstanceErrorClassifier FOR_UPDATE =
+      new AgentInstanceErrorClassifier(false);
+
+  private final boolean notFoundIsRetryable;
+
+  private AgentInstanceErrorClassifier(boolean notFoundIsRetryable) {
+    this.notFoundIsRetryable = notFoundIsRetryable;
+  }
 
   @Override
   public Decision classify(Throwable t) {
@@ -22,7 +34,7 @@ public final class AgentInstanceErrorClassifier implements ErrorClassifier {
       if (current instanceof ClientHttpException httpEx) {
         int status = httpEx.code();
         if (status == 404) {
-          return Decision.RETRYABLE;
+          return notFoundIsRetryable ? Decision.RETRYABLE : Decision.PERMANENT;
         }
         if (status >= 400 && status < 500) {
           return Decision.PERMANENT;
@@ -45,6 +57,4 @@ public final class AgentInstanceErrorClassifier implements ErrorClassifier {
 
     return Decision.PERMANENT;
   }
-
-  private AgentInstanceErrorClassifier() {}
 }

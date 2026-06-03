@@ -280,7 +280,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
-      AgentResponseHandler responseHandler) {
+      AgentResponseHandler responseHandler,
+      AgentInstanceClient agentInstanceClient) {
     return new OutboundConnectorAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -288,7 +289,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         messagesHandler,
         gatewayToolHandlers,
         aiFrameworkAdapter,
-        responseHandler);
+        responseHandler,
+        agentInstanceClient);
   }
 
   @Bean
@@ -314,7 +316,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
-      AgentResponseHandler responseHandler) {
+      AgentResponseHandler responseHandler,
+      AgentInstanceClient agentInstanceClient) {
     return new JobWorkerAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -322,7 +325,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         messagesHandler,
         gatewayToolHandlers,
         aiFrameworkAdapter,
-        responseHandler);
+        responseHandler,
+        agentInstanceClient);
   }
 
   @Bean

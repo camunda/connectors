@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -20,11 +22,16 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class AgentInitializerImpl implements AgentInitializer {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AgentInitializerImpl.class);
 
   private final AgentToolsResolver toolsResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -103,10 +110,11 @@ public class AgentInitializerImpl implements AgentInitializer {
 
     // handle gateway tool definitions (e.g. MCP)
     return initiateGatewayToolDiscovery(
-        agentContext, toolCallResults, adHocToolsSchema.gatewayToolDefinitions());
+        executionContext, agentContext, toolCallResults, adHocToolsSchema.gatewayToolDefinitions());
   }
 
   private AgentInitializationResult initiateGatewayToolDiscovery(
+      AgentExecutionContext executionContext,
       AgentContext agentContext,
       List<ToolCallResult> toolCallResults,
       List<GatewayToolDefinition> gatewayToolDefinitions) {
@@ -116,19 +124,46 @@ public class AgentInitializerImpl implements AgentInitializer {
 
     if (!CollectionUtils.isEmpty(initiationResult.toolDiscoveryToolCalls())) {
       // execute tool discovery tool calls before agent is ready for requests
+      final var discoveryAgentContext = agentContext.withState(AgentState.TOOL_DISCOVERY);
       return new AgentResponseInitializationResult(
           AgentResponse.builder()
-              .context(agentContext.withState(AgentState.TOOL_DISCOVERY))
+              .context(discoveryAgentContext)
               .toolCalls(
                   initiationResult.toolDiscoveryToolCalls().stream()
                       .map(ToolCallProcessVariable::from)
                       .toList())
-              .build());
+              .build(),
+          createToolDiscoveryCompletionListener(executionContext, discoveryAgentContext));
     } else {
       // no tool discovery needed -> agent is ready for requests
       return new AgentContextInitializationResult(
           agentContext.withState(AgentState.READY), toolCallResults);
     }
+  }
+
+  private AgentJobCompletionListener createToolDiscoveryCompletionListener(
+      AgentExecutionContext executionContext, AgentContext agentContext) {
+    return new AgentJobCompletionListener() {
+      @Override
+      public void onJobCompleted() {
+        try {
+          agentInstanceClient.update(
+              executionContext,
+              agentContext,
+              AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY));
+        } catch (Exception e) {
+          LOGGER.error(
+              "Failed to update agent instance status to TOOL_DISCOVERY after job completion", e);
+        }
+      }
+
+      @Override
+      public void onJobCompletionFailed(JobCompletionFailure failure) {
+        LOGGER.debug(
+            "Job completion failed ({}), skipping TOOL_DISCOVERY status update",
+            failure.getClass().getSimpleName());
+      }
+    };
   }
 
   private AgentInitializationResult handleToolDiscoveryResults(

@@ -310,7 +310,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
             AgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 3))
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
@@ -438,7 +438,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
             AgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220)))
+                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220), 1))
                 .hasResponseMessageText(aiFinalResponse.text())
                 .hasResponseText(aiFinalResponse.text()));
   }

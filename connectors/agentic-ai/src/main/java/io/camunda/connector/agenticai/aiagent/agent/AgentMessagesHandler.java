@@ -34,7 +34,10 @@ public interface AgentMessagesHandler {
       RuntimeMemory memory,
       SystemPromptConfiguration systemPrompt);
 
-  /** Adds user and tool call results messages to the agent's memory. Returns the added messages. */
+  /**
+   * Adds user and tool call results messages to the agent's memory. Returns the messages added to
+   * the runtime memory.
+   */
   List<Message> addUserMessages(
       AgentExecutionContext executionContext,
       AgentContext agentContext,

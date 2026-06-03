@@ -199,7 +199,7 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
         agentResponse ->
             AgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 4))
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 

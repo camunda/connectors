@@ -115,7 +115,7 @@ public class L4JAiAgentJobWorkerElementTemplateRegressionTests extends BaseL4JAi
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 2))
                 .hasResponseText(expectedResponseText)
                 .hasNoResponseMessage()
                 .hasNoResponseJson());
