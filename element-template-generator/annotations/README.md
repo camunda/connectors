@@ -304,7 +304,7 @@ You can override this by defining a custom category in the `@ElementTemplate` an
     id = "myConnector",
     name = "My Connector",
     version = 1,
-    category = @ElementTemplate.Category(id = "agentic-ai", name = "Agentic AI"))
+    category = @ElementTemplate.Category(id = "custom-category", name = "Custom Category"))
 public class MyConnectorFunction { }
 ```
 

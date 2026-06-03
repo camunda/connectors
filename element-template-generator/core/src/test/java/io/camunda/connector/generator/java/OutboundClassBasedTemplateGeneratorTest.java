@@ -142,7 +142,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     @Test
     void elementTemplateAnnotation_categoryDefaultsToConnectors() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
-      assertThat(template.category()).isEqualTo(ElementTemplateCategory.CONNECTORS);
+      assertThat(template.category())
+          .isEqualTo(new ElementTemplateCategory("connectors", "Connectors"));
     }
 
     @Test

@@ -16,8 +16,4 @@
  */
 package io.camunda.connector.generator.dsl;
 
-public record ElementTemplateCategory(String id, String name) {
-
-  public static final ElementTemplateCategory CONNECTORS =
-      new ElementTemplateCategory("connectors", "Connectors");
-}
+public record ElementTemplateCategory(String id, String name) {}

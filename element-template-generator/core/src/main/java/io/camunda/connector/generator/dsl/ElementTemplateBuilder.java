@@ -37,7 +37,8 @@ public class ElementTemplateBuilder {
   protected String id;
   protected String name;
   protected long version;
-  protected ElementTemplateCategory category = ElementTemplateCategory.CONNECTORS;
+  protected ElementTemplateCategory category =
+      new ElementTemplateCategory("connectors", "Connectors");
   protected ElementTemplateIcon icon;
   protected String documentationRef;
   protected String description;
