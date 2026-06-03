@@ -76,6 +76,12 @@ public record ElementTemplate(
     if (version < 0) {
       errors.add("version cannot be negative");
     }
+    if (category.id() == null
+        || category.id().isBlank()
+        || category.name() == null
+        || category.name().isBlank()) {
+      errors.add("category id and name must be non-blank");
+    }
     if (appliesTo == null || appliesTo.isEmpty() || appliesTo.stream().allMatch(String::isBlank)) {
       errors.add("appliesTo must be defined");
     }

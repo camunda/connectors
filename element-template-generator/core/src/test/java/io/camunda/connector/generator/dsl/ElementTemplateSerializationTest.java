@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.dsl;
 
 import static io.camunda.connector.generator.java.annotation.BpmnType.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
@@ -65,6 +66,29 @@ public class ElementTemplateSerializationTest {
     // then
     JSONAssert.assertEquals(
         "{\"category\":{\"id\":\"agentic-ai\",\"name\":\"Agentic AI\"}}", json, false);
+  }
+
+  @Test
+  void blankCategoryIsRejected() {
+    var builder =
+        ElementTemplate.builderForOutbound()
+            .id("io.camunda.connector.Template.v1")
+            .type("io.camunda:template:1")
+            .name("Template: Some Function")
+            .appliesTo(Set.of(TASK))
+            .elementType(SERVICE_TASK)
+            .category(new ElementTemplateCategory("", ""))
+            .propertyGroups(
+                PropertyGroup.builder()
+                    .id("default")
+                    .label("Properties")
+                    .properties(
+                        StringProperty.builder().label("Foo").binding(new ZeebeInput("foo")))
+                    .build());
+
+    assertThatThrownBy(builder::build)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("category");
   }
 
   @Test
