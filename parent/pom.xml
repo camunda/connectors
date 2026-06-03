@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.9.5</version.camunda>
+    <version.camunda>8.9.6</version.camunda>
     <version.feel-engine>1.21.0</version.feel-engine>
     <version.camunda-xml-model>7.24.0</version.camunda-xml-model>
 
@@ -86,8 +86,8 @@ limitations under the License.</license.inlineheader>
     <version.mockito>5.23.0</version.mockito>
     <version.junit-jupiter>6.1.0</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
-    <version.jackson-bom>2.21.3</version.jackson-bom>
-    <version.jackson-datatype-jsr310>2.21.3</version.jackson-datatype-jsr310>
+    <version.jackson-bom>2.22.0</version.jackson-bom>
+    <version.jackson-datatype-jsr310>2.22.0</version.jackson-datatype-jsr310>
     <version.hibernate-validator>9.1.0.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.json>20250517</version.json>
@@ -99,12 +99,12 @@ limitations under the License.</license.inlineheader>
          Remove once Spring Boot upgrades to Tomcat >= 11.0.22 (likely in 4.0.7).
          Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
     <version.tomcat>11.0.22</version.tomcat>
-    <version.netty>4.2.14.Final</version.netty>
-    <version.spring-cloud-gcp-starter-logging>8.0.3</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.32</version.logback>
+    <version.netty>4.2.15.Final</version.netty>
+    <version.spring-cloud-gcp-starter-logging>8.0.4</version.spring-cloud-gcp-starter-logging>
+    <version.logback>1.5.34</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.44.13</version.aws-sdk2>
+    <version.aws-sdk2>2.46.2</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -175,11 +175,11 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.2</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
-    <version.langchain4j>1.15.0</version.langchain4j>
+    <version.langchain4j>1.15.1</version.langchain4j>
     <version.mcp-sdk>1.1.3</version.mcp-sdk>
-    <version.elasticsearch-java-client>8.19.15</version.elasticsearch-java-client>
+    <version.elasticsearch-java-client>8.19.16</version.elasticsearch-java-client>
 
-    <version.scala>3.8.3</version.scala>
+    <version.scala>3.8.4</version.scala>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
@@ -189,11 +189,11 @@ limitations under the License.</license.inlineheader>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
-    <plugin.version.maven-surefire-plugin>3.5.5</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.5.1</plugin.version.spotless-maven-plugin>
+    <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
+    <plugin.version.spotless-maven-plugin>3.6.0</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
 
-    <plugin.version.maven-dependency-plugin>3.10.0</plugin.version.maven-dependency-plugin>
+    <plugin.version.maven-dependency-plugin>3.11.0</plugin.version.maven-dependency-plugin>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
   </properties>
 
@@ -771,7 +771,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>10.9</version>
+        <version>10.9.1</version>
       </dependency>
 
       <!-- Fixes CWE-835 -->
