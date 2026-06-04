@@ -338,7 +338,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(inputs.version, 'rc')"
-        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
+        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded -DdeploymentName=connectors-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
