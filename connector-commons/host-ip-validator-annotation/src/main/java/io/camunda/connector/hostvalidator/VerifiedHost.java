@@ -69,5 +69,23 @@ public @interface VerifiedHost {
 
   Class<? extends Payload>[] payload() default {};
 
+  /**
+   * Indicates whether the annotated string is a full URI rather than a bare hostname.
+   *
+   * <p>The validator resolves and checks an IP address, so it needs a hostname — not a URI. When
+   * this flag is {@code true}, the {@code VerifiedHostValidator} first extracts the host component
+   * from the value (via {@link java.net.URI#getHost()}) before resolving and validating its IP
+   * address. For example, {@code https://example.com/path} is reduced to {@code example.com} prior
+   * to validation. If the value cannot be parsed as a URI with a host, it is validated as-is.
+   *
+   * <p>When {@code false} (the default), the annotated value is treated as a bare hostname (e.g.
+   * {@code example.com}) and validated directly without any URI parsing.
+   *
+   * <p>Set this to {@code true} when annotating properties that hold full request URLs (see {@code
+   * HttpCommonRequest} and {@code GraphQLRequest}); leave it {@code false} for plain host/IP fields.
+   *
+   * @return {@code true} if the value is a URI from which the host must be extracted before
+   *     validation; {@code false} if the value is already a bare hostname
+   */
   boolean isUri() default false;
 }
