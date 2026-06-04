@@ -23,6 +23,7 @@ import java.util.Map;
 /** Represents a BPMN process element that contains an inbound connector definition. */
 public record ProcessElementWithRuntimeData(
     String bpmnProcessId,
+    String processName,
     int version,
     long processDefinitionKey,
     String elementId,
@@ -41,6 +42,7 @@ public record ProcessElementWithRuntimeData(
       String tenantId) {
     this(
         bpmnProcessId,
+        null,
         version,
         processDefinitionKey,
         elementId,

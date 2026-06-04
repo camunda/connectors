@@ -6,7 +6,7 @@
     <bpmn:messageFlow id="Flow_0v8mcd7" sourceRef="Activity_0bbhjnc" targetRef="Activity_0wgjxnj" />
     <bpmn:messageFlow id="Flow_1w42yir" sourceRef="Activity_1svog89" targetRef="Activity_1up34yp" />
   </bpmn:collaboration>
-  <bpmn:process id="process" isExecutable="true">
+  <bpmn:process id="process" name="My Webhook Process" isExecutable="true">
     <bpmn:task id="Activity_0wgjxnj" name="yo">
       <bpmn:outgoing>Flow_1c6ej6l</bpmn:outgoing>
     </bpmn:task>

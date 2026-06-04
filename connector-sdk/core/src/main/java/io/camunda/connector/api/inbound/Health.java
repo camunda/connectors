@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.api.inbound;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -31,6 +32,7 @@ public class Health {
   private final Status status;
   private final Error error;
   private final Map<String, Object> details;
+  private final Instant lastUpdatedAt;
 
   public enum Status {
     UP,
@@ -50,6 +52,10 @@ public class Health {
     return error;
   }
 
+  public Instant getLastUpdatedAt() {
+    return lastUpdatedAt;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -67,7 +73,16 @@ public class Health {
 
   @Override
   public String toString() {
-    return "Health{" + "status=" + status + ", error=" + error + ", details=" + details + '}';
+    return "Health{"
+        + "status="
+        + status
+        + ", error="
+        + error
+        + ", details="
+        + details
+        + ", lastUpdatedAt="
+        + lastUpdatedAt
+        + '}';
   }
 
   static DetailsStep status(Status status) {
@@ -147,12 +162,14 @@ public class Health {
     this.status = builder.status;
     this.error = builder.error;
     this.details = builder.details;
+    this.lastUpdatedAt = Instant.now();
   }
 
   private Health(Status status, Error error, Map<String, Object> details) {
     this.status = status;
     this.error = error;
     this.details = details;
+    this.lastUpdatedAt = Instant.now();
   }
 
   private Health() {

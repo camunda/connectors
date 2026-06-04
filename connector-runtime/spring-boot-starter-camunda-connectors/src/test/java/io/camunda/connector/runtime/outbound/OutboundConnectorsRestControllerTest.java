@@ -42,7 +42,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = TestConnectorRuntimeApplication.class)
+@SpringBootTest(
+    classes = TestConnectorRuntimeApplication.class,
+    properties = "camunda.connector.hostname=localhost")
 @AutoConfigureMockMvc
 class OutboundConnectorsRestControllerTest {
 

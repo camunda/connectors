@@ -161,6 +161,7 @@ public class ProcessDefinitionInspector {
       var processElement =
           new ProcessElementWithRuntimeData(
               process.getId(),
+              process.getName(),
               version.version(),
               version.processDefinitionKey(),
               element.getId(),
