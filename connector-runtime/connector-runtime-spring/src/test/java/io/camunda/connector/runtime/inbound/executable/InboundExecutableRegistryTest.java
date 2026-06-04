@@ -385,7 +385,7 @@ public class InboundExecutableRegistryTest {
             null,
             t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
             new ObjectMapper(),
-            null);
+            activityLogRegistry);
 
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
@@ -416,16 +416,18 @@ public class InboundExecutableRegistryTest {
 
     var executable = mock(InboundConnectorExecutable.class);
     var definition = mock(InboundConnectorDefinition.class);
+    var connectorDetails2 = mock(InboundConnectorDetails.ValidInboundConnectorDetails.class);
+    when(connectorDetails2.deduplicationId()).thenReturn(RANDOM_STRING);
     var context =
         spy(
             new InboundConnectorContextImpl(
                 mock(SecretProvider.class),
                 mock(ValidationProvider.class),
-                mock(InboundConnectorDetails.ValidInboundConnectorDetails.class),
+                connectorDetails2,
                 null,
                 t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
                 new ObjectMapper(),
-                null));
+                activityLogRegistry));
 
     doNothing().doThrow(new Exception()).when(executable).activate(any());
     when(definition.deduplicationId()).thenReturn(RANDOM_STRING);

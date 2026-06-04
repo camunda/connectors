@@ -209,9 +209,14 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         batchExecutableProcessor.deactivateBatch(List.of(activated));
       }
       var invalid = target.invalid().get(id);
+      var reason = invalid.error().getMessage();
       stateStore.put(
           id,
-          new RegisteredExecutable.InvalidDefinition(invalid, invalid.error().getMessage(), id));
+          new RegisteredExecutable.InvalidDefinition(
+              invalid,
+              reason,
+              id,
+              Health.down(new RuntimeException("Invalid connector definition: " + reason))));
     }
   }
 
