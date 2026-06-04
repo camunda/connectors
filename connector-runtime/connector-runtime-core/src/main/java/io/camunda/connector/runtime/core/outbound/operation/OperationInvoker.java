@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.outbound.operation;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -26,6 +27,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Type;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,10 +103,13 @@ public class OperationInvoker {
     return value;
   }
 
-  private Object readValueAs(JsonNode jsonNode, JsonPointer jsonPointer, Class<?> type) {
+  private Object readValueAs(JsonNode jsonNode, JsonPointer jsonPointer, Type type) {
     JsonNode node = jsonNode.at(jsonPointer);
+
+    JavaType javaType = objectMapper.getTypeFactory().constructType(type);
+
     try (JsonParser parser = node.traverse(objectMapper)) {
-      return parser.readValueAs(type);
+      return objectMapper.readValue(parser, javaType);
     } catch (IOException ex) {
       throw new RuntimeException(ex);
     }
