@@ -30,6 +30,7 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -98,7 +99,10 @@ public class InboundKafkaTests extends BaseKafkaTest {
             TOPIC, MESSAGE_KEY_JSON_AS_OBJECT, MESSAGE_VALUE, MESSAGE_HEADERS_AS_OBJECT);
 
     var bpmnTest =
-        ZeebeTest.with(camundaClient).deploy(model).createInstance().waitForProcessCompletion();
+        ZeebeTest.with(camundaClient)
+            .deploy(model)
+            .createInstance()
+            .waitForProcessCompletion(Duration.ofSeconds(60));
 
     kafkaProducerThreadRun.set(false);
 
