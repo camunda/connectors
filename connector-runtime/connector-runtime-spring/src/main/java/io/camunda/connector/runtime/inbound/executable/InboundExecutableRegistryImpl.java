@@ -30,6 +30,7 @@ import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTra
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService.TargetState;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Cancelled;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -322,7 +323,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
       // elements and issue a RESTART plan. On activation failure, activateBatch stores a
       // FailedToActivate entry so the executable remains visible and retryable by operators.
       var targetState =
-          stateTransitionService.computeTargetState(extractContext(current).connectorElements());
+          stateTransitionService.computeTargetState(extractConnectorElements(current));
       executeStateTransition(
           new StateTransitionPlan(List.of(new PlannedAction(id, ActionType.RESTART))), targetState);
 
@@ -340,14 +341,27 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     if (current == null) {
       throw new IllegalArgumentException("No executable found with ID: " + id);
     }
-    if (!(current instanceof Activated) && !(current instanceof Cancelled)) {
+    if (!(current instanceof Activated)
+        && !(current instanceof Cancelled)
+        && !(current instanceof FailedToActivate)) {
       throw new IllegalStateException(
           "Cannot reset executable '"
               + id
-              + "': must be in Activated or Cancelled state, but was: "
+              + "': not in a resettable state, was: "
               + current.getClass().getSimpleName());
     }
     return current;
+  }
+
+  private List<InboundConnectorElement> extractConnectorElements(RegisteredExecutable executable) {
+    return switch (executable) {
+      case Activated a -> a.context().connectorElements();
+      case Cancelled c -> c.context().connectorElements();
+      case FailedToActivate f -> f.data().connectorElements();
+      default ->
+          throw new IllegalArgumentException(
+              "Cannot extract connector elements from: " + executable.getClass().getSimpleName());
+    };
   }
 
   /**
@@ -355,22 +369,12 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
    * {@link #handleProcessStateChanged} to synchronize state transitions.
    */
   private String extractProcessLockKey(RegisteredExecutable executable) {
-    var element = extractContext(executable).connectorElements().getFirst();
+    var element = extractConnectorElements(executable).getFirst();
     return processLockKey(element.tenantId(), element.element().bpmnProcessId());
   }
 
   private String processLockKey(String tenantId, String bpmnProcessId) {
     return tenantId + bpmnProcessId;
-  }
-
-  private InboundConnectorManagementContext extractContext(RegisteredExecutable executable) {
-    return switch (executable) {
-      case Activated a -> a.context();
-      case Cancelled c -> c.context();
-      default ->
-          throw new IllegalArgumentException(
-              "Cannot extract context from: " + executable.getClass().getSimpleName());
-    };
   }
 
   @Scheduled(fixedDelay = 30000)
