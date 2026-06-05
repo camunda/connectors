@@ -20,14 +20,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
-import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
-import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
@@ -37,11 +35,9 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.outbound.JobCompletionFailure;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -113,10 +109,10 @@ class AgentInitializerTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext()).usingRecursiveComparison().isEqualTo(agentContext);
-                assertThat(res.toolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
+                assertThat(res.engineToolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
               });
 
       verifyNoInteractions(toolsResolver, gatewayToolHandlers);
@@ -138,7 +134,7 @@ class AgentInitializerTest {
           new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 12345L);
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext())
                     .usingRecursiveComparison()
@@ -146,7 +142,7 @@ class AgentInitializerTest {
                         AgentContext.empty()
                             .withState(AgentState.READY)
                             .withMetadata(expectedMetadata));
-                assertThat(res.toolCallResults()).isEmpty();
+                assertThat(res.engineToolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(gatewayToolHandlers);
@@ -162,10 +158,10 @@ class AgentInitializerTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext()).isEqualTo(agentContext);
-                assertThat(res.toolCallResults()).isEmpty();
+                assertThat(res.engineToolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(toolsResolver, gatewayToolHandlers);
@@ -195,12 +191,12 @@ class AgentInitializerTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext())
                     .usingRecursiveComparison()
                     .isEqualTo(AGENT_CONTEXT.withState(AgentState.READY));
-                assertThat(res.toolCallResults()).isEmpty();
+                assertThat(res.engineToolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(gatewayToolHandlers);
@@ -218,7 +214,7 @@ class AgentInitializerTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext())
                     .usingRecursiveComparison()
@@ -226,7 +222,7 @@ class AgentInitializerTest {
                         AGENT_CONTEXT
                             .withState(AgentState.READY)
                             .withToolDefinitions(TOOL_DEFINITIONS));
-                assertThat(res.toolCallResults()).isEmpty();
+                assertThat(res.engineToolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(gatewayToolHandlers);
@@ -253,7 +249,7 @@ class AgentInitializerTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext())
                     .usingRecursiveComparison()
@@ -262,12 +258,12 @@ class AgentInitializerTest {
                             .withState(AgentState.READY)
                             .withToolDefinitions(TOOL_DEFINITIONS)
                             .withProperty("mcpClients", List.of("AnMcpClient")));
-                assertThat(res.toolCallResults()).isEmpty();
+                assertThat(res.engineToolCallResults()).isEmpty();
               });
     }
 
     @Test
-    void shouldReturnAgentResponseWithDiscoveryToolCallsWhenToolDiscoveryCallsAreReturned() {
+    void shouldReturnDiscoverToolsWithDiscoveryToolCallsWhenToolDiscoveryCallsAreReturned() {
       final var toolDiscoveryToolCalls =
           List.of(
               ToolCall.builder()
@@ -293,107 +289,18 @@ class AgentInitializerTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentResponseInitializationResult.class,
+              DiscoverTools.class,
               res -> {
-                assertThat(res.agentResponse()).isNotNull();
-                assertThat(res.agentResponse().context())
+                assertThat(res.agentContext())
                     .usingRecursiveComparison()
                     .isEqualTo(
                         AGENT_CONTEXT
                             .withState(AgentState.TOOL_DISCOVERY)
                             .withToolDefinitions(TOOL_DEFINITIONS)
                             .withProperty("mcpClients", List.of("AnMcpClient")));
-                assertThat(res.agentResponse().toolCalls())
-                    .containsExactlyElementsOf(
-                        toolDiscoveryToolCalls.stream()
-                            .map(ToolCallProcessVariable::from)
-                            .toList());
+                assertThat(res.toolDiscoveryToolCalls())
+                    .containsExactlyElementsOf(toolDiscoveryToolCalls);
               });
-    }
-
-    @Test
-    void shouldDeferToolDiscoveryPatchToJobCompletionWhenGatewayDiscoveryCallsAreDispatched() {
-      // given
-      final var toolDiscoveryToolCalls =
-          List.of(ToolCall.builder().id("tool1").name("AnMcpClient").build());
-
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
-          .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
-      when(gatewayToolHandlers.initiateToolDiscovery(
-              any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
-          .thenAnswer(
-              args ->
-                  new GatewayToolDiscoveryInitiationResult(
-                      args.getArgument(0, AgentContext.class), toolDiscoveryToolCalls));
-
-      // when
-      final var result =
-          (AgentResponseInitializationResult) agentInitializer.initializeAgent(executionContext);
-
-      // then: no eager update during initialization
-      verify(agentInstanceClient, never()).update(any(), any(), any());
-      assertThat(result.completionListener()).isNotNull();
-
-      // when: job completes
-      result.completionListener().onJobCompleted();
-
-      // then: TOOL_DISCOVERY status reported on completion
-      verify(agentInstanceClient)
-          .update(
-              eq(executionContext),
-              any(AgentContext.class),
-              eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY)));
-    }
-
-    @Test
-    void shouldSkipToolDiscoveryPatchWhenJobCompletionFails() {
-      // given
-      final var toolDiscoveryToolCalls =
-          List.of(ToolCall.builder().id("tool1").name("AnMcpClient").build());
-
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
-          .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
-      when(gatewayToolHandlers.initiateToolDiscovery(
-              any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
-          .thenAnswer(
-              args ->
-                  new GatewayToolDiscoveryInitiationResult(
-                      args.getArgument(0, AgentContext.class), toolDiscoveryToolCalls));
-
-      // when
-      final var result =
-          (AgentResponseInitializationResult) agentInitializer.initializeAgent(executionContext);
-      result
-          .completionListener()
-          .onJobCompletionFailed(
-              new JobCompletionFailure.CommandFailure.CommandIgnored(new RuntimeException()));
-
-      // then: no update on failure
-      verify(agentInstanceClient, never()).update(any(), any(), any());
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    void shouldNotCreateCompletionListenerWhenNoDiscoveryCallsAreDispatched(
-        List<ToolCall> toolDiscoveryToolCalls) {
-      // given
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
-          .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
-      when(gatewayToolHandlers.initiateToolDiscovery(
-              any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
-          .thenAnswer(
-              args ->
-                  new GatewayToolDiscoveryInitiationResult(
-                      args.getArgument(0, AgentContext.class), toolDiscoveryToolCalls));
-
-      // when
-      agentInitializer.initializeAgent(executionContext);
-
-      // then
-      verify(agentInstanceClient, never()).update(any(), any(), any());
     }
   }
 
@@ -454,7 +361,7 @@ class AgentInitializerTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext())
                     .usingRecursiveComparison()
@@ -466,7 +373,7 @@ class AgentInitializerTest {
                             .withProperty("discovered", true));
 
                 // filtered out by the gateway tool handler
-                assertThat(res.toolCallResults()).isEmpty();
+                assertThat(res.engineToolCallResults()).isEmpty();
               });
     }
 
@@ -498,7 +405,7 @@ class AgentInitializerTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext())
                     .usingRecursiveComparison()
@@ -509,7 +416,8 @@ class AgentInitializerTest {
                             .withProperty("mcpClients", List.of("AnMcpClient"))
                             .withProperty("discovered", true));
 
-                assertThat(res.toolCallResults()).containsExactlyElementsOf(TOOL_CALL_RESULTS);
+                assertThat(res.engineToolCallResults())
+                    .containsExactlyElementsOf(TOOL_CALL_RESULTS);
               });
     }
 
@@ -524,7 +432,7 @@ class AgentInitializerTest {
 
       final var result = agentInitializer.initializeAgent(executionContext);
 
-      assertThat(result).isInstanceOf(AgentDiscoveryInProgressInitializationResult.class);
+      assertThat(result).isInstanceOf(DeferConversation.class);
     }
 
     @Test
@@ -545,7 +453,7 @@ class AgentInitializerTest {
 
       final var result = agentInitializer.initializeAgent(executionContext);
 
-      assertThat(result).isInstanceOf(AgentDiscoveryInProgressInitializationResult.class);
+      assertThat(result).isInstanceOf(DeferConversation.class);
     }
   }
 
@@ -575,7 +483,7 @@ class AgentInitializerTest {
           new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext().metadata()).isEqualTo(expectedMetadata);
                 assertThat(res.agentContext().properties()).containsEntry("updated", true);
@@ -606,7 +514,7 @@ class AgentInitializerTest {
           new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext().metadata()).isEqualTo(expectedMetadata);
                 assertThat(res.agentContext().properties()).containsEntry("migrated", true);
@@ -631,10 +539,10 @@ class AgentInitializerTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              AgentContextInitializationResult.class,
+              ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext()).isEqualTo(agentContext);
-                assertThat(res.toolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
+                assertThat(res.engineToolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
               });
 
       verifyNoInteractions(toolsResolver, gatewayToolHandlers);
@@ -663,8 +571,7 @@ class AgentInitializerTest {
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
-      final var result =
-          (AgentContextInitializationResult) agentInitializer.initializeAgent(executionContext);
+      final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
 
       verify(agentInstanceClient, times(1)).create(any(AgentExecutionContext.class));
       assertThat(result.agentContext().metadata().agentInstanceKey()).isEqualTo(12345L);
