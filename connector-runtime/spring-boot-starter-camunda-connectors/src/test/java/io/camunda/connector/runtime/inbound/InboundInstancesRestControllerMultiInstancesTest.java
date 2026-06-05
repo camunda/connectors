@@ -296,4 +296,64 @@ class InboundInstancesRestControllerMultiInstancesTest extends BaseMultiInstance
     List<ConnectorInstances> instance = response.getBody();
     assertEquals(0, instance.size());
   }
+
+  @Test
+  public void shouldResetExecutable_whenExistsOnlyOnInstance1() {
+    ResponseEntity<ActiveInboundConnectorResponse> response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/inbound-instances/executables/"
+                + ONLY_IN_RUNTIME_1_ID.getId()
+                + "/reset",
+            HttpMethod.POST,
+            null,
+            new ParameterizedTypeReference<>() {});
+
+    assertEquals(200, response.getStatusCode().value());
+    var body = response.getBody();
+    assertNotNull(body);
+    assertEquals(ONLY_IN_RUNTIME_1_ID, body.executableId());
+    // reset() called on the instance that owns the executable, never on the other
+    verify(executableRegistry1).reset(ONLY_IN_RUNTIME_1_ID);
+    verify(executableRegistry2, never()).reset(any());
+  }
+
+  @Test
+  public void shouldResetExecutable_whenExistsOnBothInstances() {
+    ResponseEntity<ActiveInboundConnectorResponse> response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/inbound-instances/executables/"
+                + RANDOM_ID_1.getId()
+                + "/reset",
+            HttpMethod.POST,
+            null,
+            new ParameterizedTypeReference<>() {});
+
+    assertEquals(200, response.getStatusCode().value());
+    var body = response.getBody();
+    assertNotNull(body);
+    assertEquals(RANDOM_ID_1, body.executableId());
+    // reset() called on both instances since both own the executable
+    verify(executableRegistry1).reset(RANDOM_ID_1);
+    verify(executableRegistry2).reset(RANDOM_ID_1);
+  }
+
+  @Test
+  public void shouldReturn404_whenResettingUnknownExecutable() {
+    var response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/inbound-instances/executables/"
+                + UNKNOWN_ID.getId()
+                + "/reset",
+            HttpMethod.POST,
+            null,
+            String.class);
+
+    assertThat(404, equalTo(response.getStatusCode().value()));
+  }
 }

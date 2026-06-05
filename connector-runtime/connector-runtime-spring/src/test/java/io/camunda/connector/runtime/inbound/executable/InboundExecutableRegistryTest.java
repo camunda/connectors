@@ -526,6 +526,46 @@ public class InboundExecutableRegistryTest {
   }
 
   // -------------------------------------------------------------------------
+  // reset() tests
+  // -------------------------------------------------------------------------
+
+  @Test
+  public void reset_failedToActivate_shouldRetryAndSucceed() throws Exception {
+    // given - a connector that fails to activate on the first attempt
+    var elementId = "elementId";
+    var element =
+        spy(
+            new InboundConnectorElement(
+                Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
+                new StartEventCorrelationPoint("processId", 0, 0),
+                new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant")));
+    when(element.deduplicationId(any())).thenReturn(RANDOM_STRING);
+
+    var executable = mock(InboundConnectorExecutable.class);
+    var context = mock(InboundConnectorManagementContext.class);
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+    when(context.getDefinition())
+        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null));
+    when(context.connectorElements()).thenReturn(List.of(element));
+    when(factory.getInstance(any())).thenReturn(executable);
+
+    // First activate() throws → FailedToActivate; second call succeeds
+    doThrow(new RuntimeException("Missing secret")).doNothing().when(executable).activate(any());
+
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+
+    var beforeReset = registry.query(f -> f.executableId(RANDOM_ID)).getFirst();
+    assertThat(beforeReset.health().getStatus()).isEqualTo(Status.DOWN);
+
+    // when
+    var result = registry.reset(RANDOM_ID);
+
+    // then
+    assertThat(result).isInstanceOf(RegisteredExecutable.Activated.class);
+    verify(executable, times(2)).activate(any());
+  }
+
+  // -------------------------------------------------------------------------
   // Activity log tests
   // -------------------------------------------------------------------------
 
