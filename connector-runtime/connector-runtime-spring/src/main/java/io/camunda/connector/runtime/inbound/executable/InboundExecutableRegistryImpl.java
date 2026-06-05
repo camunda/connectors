@@ -339,7 +339,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
       throw new IllegalStateException(
           "Cannot reset executable '"
               + id
-              + "': not in a resettable state, but was: "
+              + "': not in a resettable state, was: "
               + current.getClass().getSimpleName());
     }
     return current;
