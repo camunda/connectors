@@ -209,8 +209,7 @@ public class BatchExecutableProcessor {
       LOG.error("Failed to activate connector", e);
       connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());
       var reason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-      return new FailedToActivate(
-          data, reason, id, Health.down(new RuntimeException(reason)));
+      return new FailedToActivate(data, reason, id, Health.down(new RuntimeException(reason)));
     }
     log(
         id,
