@@ -137,7 +137,7 @@ public class InboundExecutableQueryService {
         cancelled.id(),
         cancelled.executable().getClass(),
         context.connectorElements(),
-        Health.down(cancelled.exceptionThrown()),
+        context.getHealth(),
         activityLogRegistry.getLogs(cancelled.id()),
         context.getActivationTimestamp());
   }
@@ -149,7 +149,7 @@ public class InboundExecutableQueryService {
         notRegistered.id(),
         null,
         data.connectorElements(),
-        Health.down(new RuntimeException("Connector " + data.type() + " not registered")),
+        notRegistered.health(),
         activityLogRegistry.getLogs(notRegistered.id()),
         null);
   }
@@ -161,7 +161,7 @@ public class InboundExecutableQueryService {
         failed.id(),
         null,
         data.connectorElements(),
-        Health.down(new RuntimeException(failed.reason())),
+        failed.health(),
         activityLogRegistry.getLogs(failed.id()),
         null);
   }
@@ -173,7 +173,7 @@ public class InboundExecutableQueryService {
         invalid.id(),
         null,
         data.connectorElements(),
-        Health.down(new RuntimeException("Invalid connector definition: " + invalid.reason())),
+        invalid.health(),
         activityLogRegistry.getLogs(invalid.id()),
         null);
   }
@@ -208,10 +208,10 @@ public class InboundExecutableQueryService {
   private Health getHealthFromExecutable(RegisteredExecutable executable) {
     return switch (executable) {
       case Activated activated -> activated.context().getHealth();
-      case Cancelled cancelled -> Health.down(cancelled.exceptionThrown());
-      case ConnectorNotRegistered ignored -> Health.down(new RuntimeException("Not registered"));
-      case FailedToActivate failed -> Health.down(new RuntimeException(failed.reason()));
-      case InvalidDefinition invalid -> Health.down(new RuntimeException(invalid.reason()));
+      case Cancelled cancelled -> cancelled.context().getHealth();
+      case ConnectorNotRegistered notRegistered -> notRegistered.health();
+      case FailedToActivate failed -> failed.health();
+      case InvalidDefinition invalid -> invalid.health();
     };
   }
 }
