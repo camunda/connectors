@@ -24,6 +24,7 @@ import io.camunda.connector.runtime.inbound.executable.ConnectorDataMapper;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -43,7 +44,13 @@ public class InboundInstancesService {
     Health health = executable.health();
     return List.of(
         new InstanceAwareModel.InstanceAwareHealth(
-            health.getStatus(), health.getError(), health.getDetails(), hostname));
+            health.getStatus(),
+            health.getError(),
+            health.getDetails(),
+            health.getLastUpdatedAt() != null
+                ? health.getLastUpdatedAt().atOffset(ZoneOffset.UTC)
+                : null,
+            hostname));
   }
 
   public List<InstanceAwareModel.InstanceAwareActivity> findInstanceAwareActivityLogs(
