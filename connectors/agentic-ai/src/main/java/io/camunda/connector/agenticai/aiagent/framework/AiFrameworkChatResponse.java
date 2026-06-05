@@ -6,13 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 
 public interface AiFrameworkChatResponse<T> {
-  AgentContext agentContext();
-
   AssistantMessage assistantMessage();
 
-  T rawChatResponse();
+  AgentMetrics.TokenUsage tokenUsage();
 }

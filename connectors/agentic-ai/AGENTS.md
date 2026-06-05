@@ -59,17 +59,17 @@ If not all expected results are present, the worker completes as a no-op and wai
 
 ```
 agent/
-├── AgentInitializerImpl        # State machine: INITIALIZING → TOOL_DISCOVERY → READY
-├── BaseAgentRequestHandler     # Core orchestrator: init → memory → messages → LLM → response → complete
-├── JobWorkerAgentRequestHandler    # Job worker completion logic
+├── AgentInitializerImpl              # State machine: INITIALIZING → TOOL_DISCOVERY → READY
+├── BaseAgentRequestHandler           # Core orchestrator: init → memory → compose → LLM → ingest → complete
+├── JobWorkerAgentRequestHandler      # Job worker completion logic
 ├── OutboundConnectorAgentRequestHandler  # Connector completion logic
-├── AgentMessagesHandlerImpl    # Message assembly (prompts, tool results, events)
-├── AgentResponseHandlerImpl    # Response formatting (text/JSON/full message)
-├── AgentToolsResolverImpl      # Tool definition loading & migration updates
-└── AgentLimitsValidatorImpl    # Safety limits (max model calls)
+├── ConversationMessageComposerImpl   # Message assembly: compose(context, conversation) → AgentConversation
+├── AgentResponseHandlerImpl          # Response formatting (text/JSON/full message)
+├── AgentToolsResolverImpl            # Tool definition loading & migration updates
+└── AgentLimitsValidatorImpl          # Safety limits (max model calls)
 
 framework/
-├── AiFrameworkAdapter          # Abstract LLM interface (RuntimeMemory → response)
+├── AiFrameworkAdapter          # Abstract LLM interface (ConversationSnapshot → AiFrameworkChatResponse)
 └── langchain4j/                # LangChain4J implementation
 
 memory/
@@ -80,8 +80,11 @@ memory/
 │   ├── inprocess/              # In-process store (messages in agentContext variable)
 │   └── document/               # Camunda Document Storage backend
 └── runtime/
-    ├── RuntimeMemory           # Transient working memory for single execution
-    └── MessageWindowRuntimeMemory  # Sliding window filter (keeps last N messages)
+    └── SlidingMessagesWindow   # Pure windowing strategy (keeps last N non-system messages)
+
+model/
+├── AgentConversation           # Immutable aggregate: start() → withTurn() → ingest() → window()
+└── ConversationSnapshot        # Immutable windowed view passed to the LLM
 
 tool/
 ├── GatewayToolHandler          # Interface for gateway tools (MCP, A2A)
@@ -132,14 +135,19 @@ complete — handled via `CommandWrapper` retries. For detailed mechanics, see
 
 ### Conversation Session Lifecycle
 
-`ConversationStore.createSession()` returns an `AutoCloseable` session used via try-with-resources:
+`ConversationStore.createSession()` returns an `AutoCloseable` session used via try-with-resources.
+`AgentConversation` is the immutable aggregate that carries messages through the turn:
 
 ```
 try (var session = store.createSession(ctx, agentContext)) {
     var loaded = session.loadMessages(agentContext)
-    [add messages to runtime memory, call LLM, etc.]
-    var cursor = session.storeMessages(agentContext, request)
-    agentContext = agentContext.withConversation(cursor)
+    conversation = AgentConversation.start(agentContext, loaded.messages(), toolCallResults)
+    conversation = messageComposer.compose(executionContext, conversation)
+    snapshot = conversation.window(SlidingMessagesWindow.of(executionContext.memory()))
+    chatResponse = framework.executeChatRequest(executionContext, conversation.context(), snapshot)
+    conversation = conversation.ingest(chatResponse.assistantMessage(), chatResponse.tokenUsage())
+    cursor = session.storeMessages(conversation.context(), request)
+    agentContext = conversation.context().withConversation(cursor)
 } → buildConnectorResponse
 ```
 
@@ -168,7 +176,7 @@ Migration detection: `AgentMetadata.processDefinitionKey` vs current job's key.
 | Camunda Document | `camunda-document` | JSON document in document storage                | Conversation stored externally; only a reference in `agentContext`                                             |
 | Custom           | `custom`           | User-provided implementation                     | Implement `ConversationStore`, `ConversationSession`, `ConversationContext`; register custom `ConversationContext` subtypes with the runtime `ObjectMapper` |
 
-`MessageWindowRuntimeMemory` limits messages sent to LLM (default: 20). Full history is always persisted.
+`SlidingMessagesWindow` limits messages sent to LLM (default: 20). Full history is always persisted.
 For eviction rules and architecture details, see [ai-agent.md §6](docs/reference/ai-agent.md#6-conversation-memory).
 
 ## Building & Testing

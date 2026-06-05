@@ -8,9 +8,11 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import dev.langchain4j.model.chat.response.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 
 public record Langchain4JAiFrameworkChatResponse(
-    AgentContext agentContext, AssistantMessage assistantMessage, ChatResponse rawChatResponse)
+    AssistantMessage assistantMessage,
+    AgentMetrics.TokenUsage tokenUsage,
+    ChatResponse rawChatResponse)
     implements AiFrameworkChatResponse<ChatResponse> {}

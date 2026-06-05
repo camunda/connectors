@@ -42,12 +42,14 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
+import io.camunda.connector.agenticai.aiagent.memory.runtime.SlidingMessagesWindow;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
@@ -62,6 +64,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -97,7 +100,7 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
   @Mock private AgentLimitsValidator limitsValidator;
-  @Mock private AgentMessagesHandler messagesHandler;
+  @Mock private ConversationMessageComposer messageComposer;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private AgentResponseHandler responseHandler;
@@ -106,7 +109,7 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private JobWorkerAgentExecutionContext agentExecutionContext;
 
-  @Captor private ArgumentCaptor<RuntimeMemory> runtimeMemoryCaptor;
+  @Captor private ArgumentCaptor<ConversationSnapshot> snapshotCaptor;
 
   @InjectMocks private JobWorkerAgentRequestHandler requestHandler;
 
@@ -117,9 +120,11 @@ class JobWorkerAgentRequestHandlerTest {
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
     lenient()
-        .doReturn(List.of())
-        .when(messagesHandler)
-        .addUserMessages(any(), any(), any(), any(), anyList());
+        .doAnswer(inv -> inv.getArgument(1, AgentConversation.class))
+        .when(messageComposer)
+        .compose(any(), any());
+    // default: no memory config → SlidingMessagesWindow uses default window size (not 0)
+    lenient().when(agentExecutionContext.memory()).thenReturn(null);
   }
 
   @Test
@@ -141,10 +146,10 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.responseValue()).isNotNull();
     assertThat(response.responseValue().context()).isEqualTo(discoveryAgentContext);
     assertThat(response.responseValue().toolCalls())
-        .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.get(0)));
+        .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.getFirst()));
 
     verifyNoInteractions(
-        limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
+        limitsValidator, messageComposer, gatewayToolHandlers, framework, responseHandler);
   }
 
   @Test
@@ -208,13 +213,13 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.completionConditionFulfilled()).isFalse();
 
     verifyNoInteractions(
-        limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
+        limitsValidator, messageComposer, gatewayToolHandlers, framework, responseHandler);
   }
 
   @Test
   void orchestratesRequestExecutionWithoutToolCalls() {
     mockSystemPrompt();
-    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS);
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
@@ -266,9 +271,6 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.toolCalls()).isEmpty();
     assertThat(response.elementActivations()).isEmpty();
 
-    assertThat(runtimeMemoryCaptor.getValue().allMessages())
-        .containsExactlyElementsOf(expectedMessages);
-
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
     verify(agentExecutionContext, never()).setCancelRemainingInstances(anyBoolean());
   }
@@ -276,7 +278,7 @@ class JobWorkerAgentRequestHandlerTest {
   @Test
   void orchestratesRequestExecutionWithToolCalls() {
     mockSystemPrompt();
-    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS);
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
@@ -356,9 +358,6 @@ class JobWorkerAgentRequestHandlerTest {
                 AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE,
                 ""));
 
-    assertThat(runtimeMemoryCaptor.getValue().allMessages())
-        .containsExactlyElementsOf(expectedMessages);
-
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
     verify(agentExecutionContext, never()).setCancelRemainingInstances(anyBoolean());
   }
@@ -429,25 +428,21 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.toolCalls()).isEmpty();
     assertThat(response.elementActivations()).isEmpty();
 
-    assertThat(runtimeMemoryCaptor.getValue().allMessages())
-        .containsExactlyElementsOf(expectedMessages);
-
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
     verify(agentExecutionContext).setCancelRemainingInstances(true);
   }
 
   @Test
   void usesConfiguredMaxMessagesWhenMessagesExceedContextWindow() {
-    final var runtimeMemory =
+    final var result =
         setupRuntimeMemorySizeTest(
             new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 11));
 
-    assertThat(runtimeMemory.allMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages()).hasSize(11);
+    assertThat(result.allMessages()).hasSize(31);
+    assertThat(result.windowedMessages()).hasSize(11);
 
-    assertThat(runtimeMemory.filteredMessages().getFirst())
-        .isEqualTo(userMessage("User message 20"));
-    assertThat(runtimeMemory.filteredMessages().getLast())
+    assertThat(result.windowedMessages().getFirst()).isEqualTo(userMessage("User message 20"));
+    assertThat(result.windowedMessages().getLast())
         .isEqualTo(assistantMessage("This is the assistant message"));
   }
 
@@ -455,31 +450,28 @@ class JobWorkerAgentRequestHandlerTest {
   @MethodSource("memoryConfigurationsWithoutMaxMessages")
   void fallsBackToDefaultContextWindowSizeWhenMemoryConfigurationIsMissing(
       MemoryConfiguration memoryConfiguration) {
-    final var runtimeMemory = setupRuntimeMemorySizeTest(memoryConfiguration);
+    final var result = setupRuntimeMemorySizeTest(memoryConfiguration);
 
-    assertThat(runtimeMemory.allMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages()).hasSize(20);
+    assertThat(result.allMessages()).hasSize(31);
+    assertThat(result.windowedMessages()).hasSize(20);
 
-    assertThat(runtimeMemory.filteredMessages().getFirst())
-        .isEqualTo(userMessage("User message 11"));
-    assertThat(runtimeMemory.filteredMessages().getLast())
+    assertThat(result.windowedMessages().getFirst()).isEqualTo(userMessage("User message 11"));
+    assertThat(result.windowedMessages().getLast())
         .isEqualTo(assistantMessage("This is the assistant message"));
   }
 
   @Test
   void usesAllMessagesWhenMessagesWithinContextWindow() {
-    final var runtimeMemory =
+    final var result =
         setupRuntimeMemorySizeTest(
             new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 35));
 
-    assertThat(runtimeMemory.allMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages())
-        .containsExactlyElementsOf(runtimeMemory.allMessages());
+    assertThat(result.allMessages()).hasSize(31);
+    assertThat(result.windowedMessages()).hasSize(31);
+    assertThat(result.windowedMessages()).containsExactlyElementsOf(result.allMessages());
 
-    assertThat(runtimeMemory.filteredMessages().getFirst())
-        .isEqualTo(userMessage("User message 0"));
-    assertThat(runtimeMemory.filteredMessages().getLast())
+    assertThat(result.windowedMessages().getFirst()).isEqualTo(userMessage("User message 0"));
+    assertThat(result.windowedMessages().getLast())
         .isEqualTo(assistantMessage("This is the assistant message"));
   }
 
@@ -504,7 +496,7 @@ class JobWorkerAgentRequestHandlerTest {
     // given: LLM returns tool calls → intermediate turn → element instance stays alive after
     // completionConditionFulfilled=false → deferred PATCH is safe
     mockSystemPrompt();
-    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS);
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
@@ -556,7 +548,7 @@ class JobWorkerAgentRequestHandlerTest {
     // (completionConditionFulfilled=true)
     // → element instance dies after job completion → synchronous PATCH required
     mockSystemPrompt();
-    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS);
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     final var assistantMessage = AssistantMessage.builder().build();
@@ -606,7 +598,7 @@ class JobWorkerAgentRequestHandlerTest {
   void shouldReportMetricsWithoutToolCallsWhenJobCompletionFails() {
     // given: LLM returns tool calls → deferred path
     mockSystemPrompt();
-    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS);
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
@@ -707,8 +699,8 @@ class JobWorkerAgentRequestHandlerTest {
     verifyNoMoreInteractions(agentInstanceClient);
   }
 
-  private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
-    mockUserPrompt(new UserPromptConfiguration("User message 30", List.of()), List.of());
+  private MemorySizeTestResult setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
+    mockUserPrompt(new UserPromptConfiguration("User message 30", List.of()));
 
     when(agentExecutionContext.memory()).thenReturn(memoryConfiguration);
 
@@ -731,10 +723,28 @@ class JobWorkerAgentRequestHandlerTest {
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
         .thenAnswer(i -> i.getArgument(1));
 
+    final var capturedAgentContext = new AtomicReference<AgentContext>();
+    when(responseHandler.createResponse(
+            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
+        .thenAnswer(
+            i -> {
+              capturedAgentContext.set(i.getArgument(1, AgentContext.class));
+              return AgentResponse.builder()
+                  .context(i.getArgument(1, AgentContext.class))
+                  .responseMessage(assistantMessage)
+                  .toolCalls(List.of())
+                  .build();
+            });
+
     requestHandler.handleRequest(agentExecutionContext);
 
-    return runtimeMemoryCaptor.getValue();
+    final var allMessages =
+        ((InProcessConversationContext) capturedAgentContext.get().conversation()).messages();
+    final var windowedMessages = SlidingMessagesWindow.of(memoryConfiguration).apply(allMessages);
+    return new MemorySizeTestResult(allMessages, windowedMessages);
   }
+
+  private record MemorySizeTestResult(List<Message> allMessages, List<Message> windowedMessages) {}
 
   static Stream<MemoryConfiguration> memoryConfigurationsWithoutMaxMessages() {
     return Stream.of(
@@ -742,81 +752,58 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   private void mockSystemPrompt() {
-    when(agentExecutionContext.systemPrompt()).thenReturn(SYSTEM_PROMPT_CONFIGURATION);
-    doAnswer(
-            i -> {
-              final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
-              runtimeMemory.addMessage(systemMessage(SYSTEM_PROMPT_CONFIGURATION.prompt()));
-              return null;
-            })
-        .when(messagesHandler)
-        .addSystemMessage(
-            eq(agentExecutionContext),
-            any(AgentContext.class),
-            any(RuntimeMemory.class),
-            eq(SYSTEM_PROMPT_CONFIGURATION));
+    lenient().when(agentExecutionContext.systemPrompt()).thenReturn(SYSTEM_PROMPT_CONFIGURATION);
   }
 
   private void mockUserPrompt(
-      UserPromptConfiguration userPromptConfiguration, List<ToolCallResult> toolCallResults) {
-    when(agentExecutionContext.userPrompt()).thenReturn(userPromptConfiguration);
+      UserPromptConfiguration userPromptConfiguration) {
     doAnswer(
             i -> {
-              final var userMessage = userMessage(userPromptConfiguration.prompt());
-              final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
-              runtimeMemory.addMessage(userMessage);
-              return List.of(userMessage);
+              final var conversation = i.getArgument(1, AgentConversation.class);
+              final var sysConfig = agentExecutionContext.systemPrompt();
+              final var sysMsg =
+                  (sysConfig != null && sysConfig.prompt() != null && !sysConfig.prompt().isBlank())
+                      ? systemMessage(sysConfig.prompt())
+                      : null;
+              return conversation.withTurn(
+                  sysMsg, List.of(userMessage(userPromptConfiguration.prompt())));
             })
-        .when(messagesHandler)
-        .addUserMessages(
-            eq(agentExecutionContext),
-            any(AgentContext.class),
-            any(RuntimeMemory.class),
-            eq(userPromptConfiguration),
-            eq(toolCallResults));
+        .when(messageComposer)
+        .compose(eq(agentExecutionContext), any(AgentConversation.class));
   }
 
   private void mockInterruptedToolCall(List<ToolCallResult> toolCallResults) {
     doAnswer(
             i -> {
+              final var conversation = i.getArgument(1, AgentConversation.class);
+              final var sysConfig = agentExecutionContext.systemPrompt();
+              final var sysMsg =
+                  (sysConfig != null && sysConfig.prompt() != null && !sysConfig.prompt().isBlank())
+                      ? systemMessage(sysConfig.prompt())
+                      : null;
               final var toolCallMessage =
                   toolCallResultMessage(
                       toolCallResults.stream()
                           .map(tc -> ToolCallResult.forCancelledToolCall(tc.id(), tc.name()))
                           .toList());
-              final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
-              runtimeMemory.addMessage(toolCallMessage);
-              return List.of(toolCallMessage);
+              return conversation.withTurn(sysMsg, List.of(toolCallMessage));
             })
-        .when(messagesHandler)
-        .addUserMessages(
-            eq(agentExecutionContext),
-            any(AgentContext.class),
-            any(RuntimeMemory.class),
-            any(UserPromptConfiguration.class),
-            anyList());
+        .when(messageComposer)
+        .compose(eq(agentExecutionContext), any(AgentConversation.class));
   }
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
     when(framework.executeChatRequest(
-            eq(agentExecutionContext), any(AgentContext.class), runtimeMemoryCaptor.capture()))
+            eq(agentExecutionContext), any(AgentContext.class), snapshotCaptor.capture()))
         .thenAnswer(
-            i -> {
-              final var agentContext = i.getArgument(1, AgentContext.class);
-              return new TestFrameworkChatResponse(
-                  agentContext.withMetrics(
-                      agentContext
-                          .metrics()
-                          .incrementModelCalls(1)
-                          .incrementTokenUsage(new TokenUsage(10, 20))),
-                  assistantMessage,
-                  Map.of("message", assistantMessage.content()));
-            });
+            i ->
+                new TestFrameworkChatResponse(
+                    assistantMessage, new AgentMetrics.TokenUsage(10, 20), Map.of()));
   }
 
   private record TestFrameworkChatResponse(
-      AgentContext agentContext,
       AssistantMessage assistantMessage,
+      AgentMetrics.TokenUsage tokenUsage,
       Map<String, Object> rawChatResponse)
       implements AiFrameworkChatResponse<Map<String, Object>> {}
 }

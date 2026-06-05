@@ -22,9 +22,9 @@ import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
-import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
+import io.camunda.connector.agenticai.aiagent.agent.ConversationMessageComposer;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
@@ -100,7 +100,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AwsAgentCoreConversationStore.class,
           ConversationStoreRegistry.class,
           AgentLimitsValidator.class,
-          AgentMessagesHandler.class,
+          ConversationMessageComposer.class,
           AgentResponseHandler.class,
           OutboundConnectorAgentRequestHandler.class,
           AiAgentFunction.class,
@@ -238,21 +238,19 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     .rootCause()
                     .isInstanceOfSatisfying(
                         BindValidationException.class,
-                        e -> {
-                          assertThat(e.getValidationErrors().getAllErrors())
-                              .hasSize(1)
-                              .first(InstanceOfAssertFactories.type(FieldError.class))
-                              .extracting(
-                                  FieldError::getObjectName,
-                                  FieldError::getField,
-                                  FieldError::getRejectedValue,
-                                  FieldError::getDefaultMessage)
-                              .containsExactly(
-                                  "camunda.connector.agenticai",
-                                  "tools.processDefinition.cache.maximumSize",
-                                  -10L,
-                                  "must be greater than or equal to 0");
-                        }));
+                        e -> assertThat(e.getValidationErrors().getAllErrors())
+                            .hasSize(1)
+                            .first(InstanceOfAssertFactories.type(FieldError.class))
+                            .extracting(
+                                FieldError::getObjectName,
+                                FieldError::getField,
+                                FieldError::getRejectedValue,
+                                FieldError::getDefaultMessage)
+                            .containsExactly(
+                                "camunda.connector.agenticai",
+                                "tools.processDefinition.cache.maximumSize",
+                                -10L,
+                                "must be greater than or equal to 0")));
   }
 
   @Test

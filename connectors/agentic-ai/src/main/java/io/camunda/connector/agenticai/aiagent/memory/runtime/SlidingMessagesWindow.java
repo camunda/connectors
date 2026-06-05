@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.runtime;
 
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
@@ -13,65 +14,45 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Exposes a filtered view of the last-n messages in the conversation. Oldest messages are removed
- * first, while making sure to also remove orphaned tool call results.
+ * Pure windowing strategy that returns the last-N messages from a conversation, preserving the
+ * system message and evicting orphaned tool-call results when their request is evicted.
+ *
+ * <p>This is the windowed view of the conversation sent to the model this turn — NOT a full copy.
  */
-public class MessageWindowRuntimeMemory implements RuntimeMemory {
+public final class SlidingMessagesWindow {
 
-  private final RuntimeMemory delegate;
+  public static final int DEFAULT_MAX_MESSAGES = 20;
+
   private final int maxMessages;
-  private List<Message> filteredMessages;
 
-  public MessageWindowRuntimeMemory(int maxMessages) {
-    this(new DefaultRuntimeMemory(), maxMessages);
-  }
-
-  public MessageWindowRuntimeMemory(RuntimeMemory delegate, int maxMessages) {
+  private SlidingMessagesWindow(int maxMessages) {
     if (maxMessages < 0) {
       throw new IllegalArgumentException(
           "maxMessages must be greater than zero (was %d)".formatted(maxMessages));
     }
-
-    this.delegate = delegate;
     this.maxMessages = maxMessages;
   }
 
-  @Override
-  public void addMessage(Message message) {
-    delegate.addMessage(message);
-    filteredMessages = null;
+  public static SlidingMessagesWindow of(MemoryConfiguration memory) {
+    return new SlidingMessagesWindow(
+        Optional.ofNullable(memory)
+            .map(MemoryConfiguration::contextWindowSize)
+            .orElse(DEFAULT_MAX_MESSAGES));
   }
 
-  @Override
-  public void addMessages(List<Message> messages) {
-    delegate.addMessages(messages);
-    filteredMessages = null;
+  public static SlidingMessagesWindow ofSize(int maxMessages) {
+    return new SlidingMessagesWindow(maxMessages);
   }
 
-  @Override
-  public List<Message> allMessages() {
-    return delegate.allMessages();
-  }
-
-  @Override
-  public List<Message> filteredMessages() {
-    if (filteredMessages == null) {
-      filteredMessages = filteredMessages(delegate.allMessages(), maxMessages);
-    }
-
-    return filteredMessages;
-  }
-
-  @Override
-  public void clear() {
-    delegate.clear();
-    filteredMessages = null;
+  public int maxMessages() {
+    return maxMessages;
   }
 
   // original implementation see Langchain4j
-  private static List<Message> filteredMessages(List<Message> messages, int maxMessages) {
+  public List<Message> apply(List<Message> messages) {
     final var filtered = new ArrayList<>(messages);
     int effectiveCount = (int) filtered.stream().filter(m -> !isToolCallDocumentMessage(m)).count();
 

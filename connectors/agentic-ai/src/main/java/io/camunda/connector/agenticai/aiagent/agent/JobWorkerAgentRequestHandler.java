@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
@@ -38,7 +39,7 @@ public class JobWorkerAgentRequestHandler
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
+      ConversationMessageComposer messageComposer,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
       AgentResponseHandler responseHandler,
@@ -47,7 +48,7 @@ public class JobWorkerAgentRequestHandler
         agentInitializer,
         conversationStoreRegistry,
         limitsValidator,
-        messagesHandler,
+        messageComposer,
         gatewayToolHandlers,
         framework,
         responseHandler,
@@ -63,17 +64,15 @@ public class JobWorkerAgentRequestHandler
   protected boolean modelCallPrerequisitesFulfilled(
       JobWorkerAgentExecutionContext executionContext,
       AgentContext agentContext,
-      List<Message> addedUserMessages) {
-    return !CollectionUtils.isEmpty(addedUserMessages);
+      List<Message> addedMessages) {
+    return !CollectionUtils.isEmpty(addedMessages);
   }
 
   @Override
-  protected void handleAddedUserMessages(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentContext agentContext,
-      List<Message> addedUserMessages) {
+  protected void reactToInterruptedToolCalls(
+      JobWorkerAgentExecutionContext executionContext, AgentConversation conversation) {
     final boolean hasInterruptedToolCalls =
-        addedUserMessages.stream()
+        conversation.addedMessages().stream()
             .filter(ToolCallResultMessage.class::isInstance)
             .map(ToolCallResultMessage.class::cast)
             .flatMap(msg -> msg.results().stream())
@@ -84,7 +83,6 @@ public class JobWorkerAgentRequestHandler
                             .properties()
                             .getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
 
-    // cancel remaining instances if any tool call was interrupted
     if (hasInterruptedToolCalls) {
       executionContext.setCancelRemainingInstances(true);
     }
@@ -100,8 +98,6 @@ public class JobWorkerAgentRequestHandler
           "No agent response provided, completing job {} without response",
           executionContext.jobContext().getJobKey());
 
-      // no-op (do not activate elements, do not complete agent process) -> wait for next job to
-      // proceed (e.g. by adding user messages or to complete tool call results)
       return AiAgentSubProcessConnectorResponse.builder()
           .completionConditionFulfilled(false)
           .cancelRemainingInstances(false)
@@ -186,9 +182,6 @@ public class JobWorkerAgentRequestHandler
                       toolCall.metadata().name(),
                       Map.ofEntries(
                           Map.entry(AiAgentJobWorker.TOOL_CALL_VARIABLE, toolCall),
-                          // Creating empty toolCallResult variable to avoid variable
-                          // to bubble up in the upper scopes while merging variables on
-                          // ad-hoc sub-process inner instance completion.
                           Map.entry(AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE, "")));
             })
         .toList();

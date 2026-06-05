@@ -12,8 +12,9 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCal
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
@@ -24,62 +25,45 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class MessageWindowRuntimeMemoryTest {
+class SlidingMessagesWindowTest {
 
-  private static final List<Message> TEST_MESSAGES = TestMessagesFixture.testMessages();
-  private static final Integer MAX_MESSAGES = 8;
+  private static final int MAX_MESSAGES = 8;
+  private static final SlidingMessagesWindow WINDOW = SlidingMessagesWindow.ofSize(MAX_MESSAGES);
 
-  private RuntimeMemory delegateMemory;
-  private RuntimeMemory memory;
-
-  @BeforeEach
-  void setUp() {
-    delegateMemory = new DefaultRuntimeMemory();
-    memory = new MessageWindowRuntimeMemory(delegateMemory, MAX_MESSAGES);
+  @Test
+  void rejectsNegativeMaxMessages() {
+    assertThatThrownBy(() -> SlidingMessagesWindow.ofSize(-1))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
-  void delegatesAddingSingleMessages() {
-    TEST_MESSAGES.forEach(memory::addMessage);
-
-    assertThat(memory.allMessages()).containsExactlyElementsOf(TEST_MESSAGES);
-    assertThat(memory.filteredMessages()).containsExactlyElementsOf(TEST_MESSAGES);
-
-    assertThat(delegateMemory.allMessages()).containsExactlyElementsOf(TEST_MESSAGES);
-    assertThat(delegateMemory.filteredMessages()).containsExactlyElementsOf(TEST_MESSAGES);
+  void usesDefaultWhenMemoryConfigurationIsNull() {
+    assertThat(SlidingMessagesWindow.of(null).maxMessages())
+        .isEqualTo(SlidingMessagesWindow.DEFAULT_MAX_MESSAGES);
   }
 
   @Test
-  void delegatesAddingListOfMessages() {
-    memory.addMessages(TEST_MESSAGES);
-
-    assertThat(memory.allMessages()).containsExactlyElementsOf(TEST_MESSAGES);
-    assertThat(memory.filteredMessages()).containsExactlyElementsOf(TEST_MESSAGES);
-
-    assertThat(delegateMemory.allMessages()).containsExactlyElementsOf(TEST_MESSAGES);
-    assertThat(delegateMemory.filteredMessages()).containsExactlyElementsOf(TEST_MESSAGES);
+  void usesDefaultWhenContextWindowSizeIsNull() {
+    assertThat(SlidingMessagesWindow.of(new MemoryConfiguration(null, null)).maxMessages())
+        .isEqualTo(SlidingMessagesWindow.DEFAULT_MAX_MESSAGES);
   }
 
   @Test
-  void delegatesClearingMessages() {
-    memory.addMessages(TEST_MESSAGES);
+  void usesConfiguredContextWindowSize() {
+    assertThat(SlidingMessagesWindow.of(new MemoryConfiguration(null, 5)).maxMessages())
+        .isEqualTo(5);
+  }
 
-    assertThat(memory.allMessages()).containsExactlyElementsOf(TEST_MESSAGES);
-    assertThat(memory.filteredMessages()).containsExactlyElementsOf(TEST_MESSAGES);
+  @Test
+  void returnsAllMessagesWhenUnderLimit() {
+    List<Message> messages = new ArrayList<>();
+    for (int i = 1; i <= MAX_MESSAGES; i++) {
+      messages.add(userMessage("Message " + i));
+    }
 
-    assertThat(delegateMemory.allMessages()).containsExactlyElementsOf(TEST_MESSAGES);
-    assertThat(delegateMemory.filteredMessages()).containsExactlyElementsOf(TEST_MESSAGES);
-
-    memory.clear();
-
-    assertThat(memory.allMessages()).isEmpty();
-    assertThat(memory.filteredMessages()).isEmpty();
-
-    assertThat(delegateMemory.allMessages()).isEmpty();
-    assertThat(delegateMemory.filteredMessages()).isEmpty();
+    assertThat(WINDOW.apply(messages)).containsExactlyElementsOf(messages);
   }
 
   @Test
@@ -89,18 +73,13 @@ class MessageWindowRuntimeMemoryTest {
       messages.add(userMessage("Message " + i));
     }
 
-    memory.addMessages(messages);
+    var result = WINDOW.apply(messages);
 
-    assertThat(memory.allMessages()).hasSize(MAX_MESSAGES + 2).containsExactlyElementsOf(messages);
-    assertThat(memory.filteredMessages()).hasSize(MAX_MESSAGES);
-    assertThat(((UserMessage) memory.filteredMessages().getFirst()).content())
+    assertThat(result).hasSize(MAX_MESSAGES);
+    assertThat(((UserMessage) result.getFirst()).content())
         .containsExactly(TextContent.textContent("Message 3"));
-    assertThat(((UserMessage) memory.filteredMessages().getLast()).content())
+    assertThat(((UserMessage) result.getLast()).content())
         .containsExactly(TextContent.textContent("Message 10"));
-
-    // delegate memory should not be affected
-    assertThat(delegateMemory.allMessages()).containsExactlyElementsOf(messages);
-    assertThat(delegateMemory.filteredMessages()).containsExactlyElementsOf(messages);
   }
 
   @Test
@@ -113,19 +92,14 @@ class MessageWindowRuntimeMemoryTest {
       messages.add(userMessage("Message " + i));
     }
 
-    memory.addMessages(messages);
+    var result = WINDOW.apply(messages);
 
-    assertThat(memory.allMessages()).hasSize(MAX_MESSAGES + 3).containsExactlyElementsOf(messages);
-    assertThat(memory.filteredMessages()).hasSize(MAX_MESSAGES);
-    assertThat(memory.filteredMessages().getFirst()).isEqualTo(systemMessage);
-    assertThat(((UserMessage) memory.filteredMessages().get(1)).content())
+    assertThat(result).hasSize(MAX_MESSAGES);
+    assertThat(result.getFirst()).isEqualTo(systemMessage);
+    assertThat(((UserMessage) result.get(1)).content())
         .containsExactly(TextContent.textContent("Message 4"));
-    assertThat(((UserMessage) memory.filteredMessages().getLast()).content())
+    assertThat(((UserMessage) result.getLast()).content())
         .containsExactly(TextContent.textContent("Message 10"));
-
-    // delegate memory should not be affected
-    assertThat(delegateMemory.allMessages()).containsExactlyElementsOf(messages);
-    assertThat(delegateMemory.filteredMessages()).containsExactlyElementsOf(messages);
   }
 
   @Test
@@ -139,7 +113,7 @@ class MessageWindowRuntimeMemoryTest {
                         textContent("Is it typical for this time of the year?")))
                 .withName("user1"),
             assistantMessage(
-                "To give an answer, I need to first look up the weather in Munich. Considering available tools, I should call the getWeather tool. In addition I will call the getDateTime tool to know the current date and time.",
+                "To give an answer, I need to first look up the weather in Munich.",
                 List.of(
                     ToolCall.builder()
                         .id("abcdef")
@@ -166,27 +140,26 @@ class MessageWindowRuntimeMemoryTest {
                                 "iso",
                                 "2025-04-14T15:56:50"))
                         .build())),
-            assistantMessage(
-                    "The weather in Munich is sunny with a temperature of 22°C. This is typical for April.")
+            assistantMessage("The weather in Munich is sunny with a temperature of 22°C.")
                 .withMetadata(Map.of("some", "value")),
             userMessage("Thank you!").withName("user1"));
 
-    memory.addMessages(messages);
-    memory.addMessage(userMessage("User message 1"));
-    memory.addMessage(userMessage("User message 2"));
+    List<Message> all = new ArrayList<>(messages);
+    all.add(userMessage("User message 1"));
+    all.add(userMessage("User message 2"));
 
-    assertThat(memory.filteredMessages()).hasSize(MAX_MESSAGES);
-    assertThat(memory.filteredMessages().get(1)).isEqualTo(messages.get(1));
+    assertThat(WINDOW.apply(all)).hasSize(MAX_MESSAGES);
+    assertThat(WINDOW.apply(all).get(1)).isEqualTo(messages.get(1));
 
     // evict first message
-    memory.addMessage(userMessage("User message 3"));
-    assertThat(memory.filteredMessages()).hasSize(MAX_MESSAGES);
-    assertThat(memory.filteredMessages().get(1)).isEqualTo(messages.get(2));
+    all.add(userMessage("User message 3"));
+    assertThat(WINDOW.apply(all)).hasSize(MAX_MESSAGES);
+    assertThat(WINDOW.apply(all).get(1)).isEqualTo(messages.get(2));
 
     // evict assistant message with tool call requests -> also remove tool call result messages
-    memory.addMessage(userMessage("User message 4"));
-    assertThat(memory.filteredMessages()).hasSize(MAX_MESSAGES - 1);
-    assertThat(memory.filteredMessages().get(1)).isEqualTo(messages.get(4));
+    all.add(userMessage("User message 4"));
+    assertThat(WINDOW.apply(all)).hasSize(MAX_MESSAGES - 1);
+    assertThat(WINDOW.apply(all).get(1)).isEqualTo(messages.get(4));
   }
 
   @Test
@@ -207,11 +180,8 @@ class MessageWindowRuntimeMemoryTest {
     // insert document message in the middle — should not count toward limit
     messages.add(4, documentUserMessage);
 
-    memory.addMessages(messages);
-
     // all messages kept: document message doesn't count, so effective count is MAX_MESSAGES
-    assertThat(memory.allMessages()).hasSize(MAX_MESSAGES + 1);
-    assertThat(memory.filteredMessages()).hasSize(MAX_MESSAGES + 1);
+    assertThat(WINDOW.apply(messages)).hasSize(MAX_MESSAGES + 1);
   }
 
   @Test
@@ -239,14 +209,12 @@ class MessageWindowRuntimeMemoryTest {
             assistantMessage("Response"),
             userMessage("User 2"));
 
-    memory.addMessages(messages);
-
-    // add messages until assistant message with tool calls gets evicted
+    List<Message> all = new ArrayList<>(messages);
     for (int i = 3; i <= 8; i++) {
-      memory.addMessage(userMessage("User " + i));
+      all.add(userMessage("User " + i));
     }
 
-    var filtered = memory.filteredMessages();
+    var filtered = WINDOW.apply(all);
     assertThat(filtered).noneMatch(m -> m == documentUserMessage);
     assertThat(filtered)
         .noneMatch(
@@ -257,8 +225,6 @@ class MessageWindowRuntimeMemoryTest {
 
   @Test
   void handlesOrphanedDocumentMessageDuringEviction() {
-    // edge case: a document message ends up at the eviction position without a preceding
-    // tool call result (e.g. from corrupted/migrated persisted history)
     final var documentUserMessage =
         UserMessage.builder()
             .content(
@@ -276,24 +242,22 @@ class MessageWindowRuntimeMemoryTest {
       messages.add(userMessage("Message " + i));
     }
 
-    memory.addMessages(messages);
-
-    // the document message should be evicted without affecting the effective count;
-    // effective count = system + 7 remaining user messages = 8 = MAX_MESSAGES
-    var filtered = memory.filteredMessages();
+    var filtered = WINDOW.apply(messages);
     assertThat(filtered).noneMatch(m -> m == documentUserMessage);
     assertThat(filtered).hasSize(MAX_MESSAGES);
     assertThat(filtered.getFirst()).isEqualTo(systemMessage("System"));
   }
 
   @Test
-  void returnsLastMessage() {
-    memory.addMessages(TEST_MESSAGES);
-    assertThat(memory.lastMessage()).isPresent().get().isEqualTo(TEST_MESSAGES.getLast());
-  }
+  void doesNotMutateInputList() {
+    List<Message> messages = new ArrayList<>();
+    for (int i = 1; i <= MAX_MESSAGES + 2; i++) {
+      messages.add(userMessage("Message " + i));
+    }
+    int originalSize = messages.size();
 
-  @Test
-  void returnsEmptyLastMessageWhenNoMessages() {
-    assertThat(memory.lastMessage()).isEmpty();
+    WINDOW.apply(messages);
+
+    assertThat(messages).hasSize(originalSize);
   }
 }

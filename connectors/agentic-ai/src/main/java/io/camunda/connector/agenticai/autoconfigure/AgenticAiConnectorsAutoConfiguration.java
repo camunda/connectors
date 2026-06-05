@@ -30,12 +30,12 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidatorImpl;
-import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
-import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
+import io.camunda.connector.agenticai.aiagent.agent.ConversationMessageComposer;
+import io.camunda.connector.agenticai.aiagent.agent.ConversationMessageComposerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
@@ -253,11 +253,11 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentMessagesHandler aiAgentMessagesHandler(
+  public ConversationMessageComposer aiAgentConversationMessageComposer(
       GatewayToolHandlerRegistry gatewayToolHandlers,
       SystemPromptComposer systemPromptComposer,
       ToolCallResultDocumentExtractor documentExtractor) {
-    return new AgentMessagesHandlerImpl(
+    return new ConversationMessageComposerImpl(
         gatewayToolHandlers, systemPromptComposer, documentExtractor);
   }
 
@@ -277,7 +277,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
+      ConversationMessageComposer messageComposer,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       AgentResponseHandler responseHandler,
@@ -286,7 +286,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         agentInitializer,
         conversationStoreRegistry,
         limitsValidator,
-        messagesHandler,
+        messageComposer,
         gatewayToolHandlers,
         aiFrameworkAdapter,
         responseHandler,
@@ -313,7 +313,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
+      ConversationMessageComposer messageComposer,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       AgentResponseHandler responseHandler,
@@ -322,7 +322,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         agentInitializer,
         conversationStoreRegistry,
         limitsValidator,
-        messagesHandler,
+        messageComposer,
         gatewayToolHandlers,
         aiFrameworkAdapter,
         responseHandler,

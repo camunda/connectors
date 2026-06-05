@@ -29,7 +29,7 @@ public class OutboundConnectorAgentRequestHandler
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
+      ConversationMessageComposer messageComposer,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
       AgentResponseHandler responseHandler,
@@ -38,7 +38,7 @@ public class OutboundConnectorAgentRequestHandler
         agentInitializer,
         conversationStoreRegistry,
         limitsValidator,
-        messagesHandler,
+        messageComposer,
         gatewayToolHandlers,
         framework,
         responseHandler,
@@ -54,8 +54,8 @@ public class OutboundConnectorAgentRequestHandler
   protected boolean modelCallPrerequisitesFulfilled(
       OutboundConnectorAgentExecutionContext executionContext,
       AgentContext agentContext,
-      List<Message> addedUserMessages) {
-    if (CollectionUtils.isEmpty(addedUserMessages)) {
+      List<Message> addedMessages) {
+    if (CollectionUtils.isEmpty(addedMessages)) {
       throw new ConnectorException(
           ERROR_CODE_NO_USER_MESSAGE_CONTENT,
           "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");

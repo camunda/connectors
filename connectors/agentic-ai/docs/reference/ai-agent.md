@@ -337,8 +337,8 @@ Arguments are **flattened to the top level** so BPMN expressions can access them
 Memory is managed through a layered architecture:
 
 ```
-RuntimeMemory (in-process, transient)
-    ▲ loadMessages           │ storeMessages
+AgentConversation (immutable aggregate, transient per execution)
+    ▲ start() / ingest()     │ storeMessages
     │                        ▼
 ConversationSession (per-invocation, AutoCloseable)
     ▲ createSession          │ persist
@@ -351,16 +351,17 @@ ConversationStore (registered backend)
     └── Custom implementations
 ```
 
-### RuntimeMemory
+### AgentConversation & Windowing
 
-`RuntimeMemory` is the in-process working memory for a single agent execution:
-- `DefaultRuntimeMemory`: Simple list of messages
-- `MessageWindowRuntimeMemory`: Wraps a delegate with a sliding window filter:
-  - Keeps at most `maxMessages` (default: 20) messages
+`AgentConversation` is the immutable, in-process working aggregate for a single agent execution:
+- Created via `AgentConversation.start(agentContext, loadedMessages, toolCallResults)` at the start of each turn
+- Extended immutably: `withTurn(systemMessage, userMessages)` adds the current turn's messages, `ingest(assistantMessage, tokenUsage)` records the LLM response and accumulates metrics
+- Full message history is always carried for persistence (`messages()` returns everything)
+- `window(SlidingMessagesWindow.of(memoryConfig))` produces a `ConversationSnapshot` — the windowed view passed to the LLM:
+  - Keeps at most `maxMessages` (default: 20) non-system messages
   - System message is never evicted
   - When evicting an `AssistantMessage` with tool calls, also evicts the follow-up `ToolCallResultMessage` entries
-  - `allMessages()` returns the full history (for persistence)
-  - `filteredMessages()` returns the windowed view (for LLM API calls)
+  - Eviction is a pure function (`SlidingMessagesWindow.apply(List<Message>)`) — no mutable state
 
 ### ConversationStore Implementations
 
@@ -374,7 +375,7 @@ ConversationStore (registered backend)
 **CamundaDocumentConversationStore** (`type = "camunda-document"`):
 - Stores messages as a JSON document in Camunda Document Storage
 - `AgentContext.conversation` only contains a `CamundaDocumentConversationContext` with a document reference and `previousDocuments` list
-- On load: fetches document content, deserializes messages into `RuntimeMemory`
+- On load: fetches document content, deserializes messages into a list returned by `loadMessages`
 - On store: creates a **new document** each time (immutable documents), adds the previous reference to `previousDocuments`
 - Supports configurable TTL and custom properties
 - Supports transparent migration from `InProcessConversationContext`: if the context is in-process, it reads messages directly (no document to load)
@@ -432,20 +433,26 @@ If job completion fails (e.g., the job was superseded), Zeebe retries with the *
 ```java
 try (var session = store.createSession(executionContext, agentContext)) {
     var loadResult = session.loadMessages(agentContext);          // load history
-    runtimeMemory.addMessages(loadResult.messages());
-    // [add messages, call LLM, etc.]
-    var cursor = session.storeMessages(agentContext, request);    // persist
-    agentContext = agentContext.withConversation(cursor);          // assemble
+    conversation = AgentConversation.start(agentContext, loadResult.messages(), toolCallResults);
+    conversation = messageComposer.compose(executionContext, conversation);
+    var snapshot = conversation.window(SlidingMessagesWindow.of(executionContext.memory()));
+    var chatResponse = framework.executeChatRequest(executionContext, conversation.context(), snapshot);
+    conversation = conversation.ingest(chatResponse.assistantMessage(), chatResponse.tokenUsage());
+    var cursor = session.storeMessages(conversation.context(), request); // persist
+    agentContext = conversation.context().withConversation(cursor);       // assemble
 }
 ```
 
 1. `ConversationStore.createSession()` creates and returns a session (the caller owns its lifecycle)
 2. `session.loadMessages(agentContext)` returns a `ConversationLoadResult` containing the stored message history
-3. Agent logic adds messages to `RuntimeMemory`, calls LLM, gets response
-4. `session.storeMessages(agentContext, request)` persists and returns only the `ConversationContext` (storage cursor)
-5. The caller assembles the updated `AgentContext` via `agentContext.withConversation(cursor)`
-6. `session.close()` handles resource cleanup (e.g., closing AWS clients)
-7. Job completion sends the updated `AgentContext` back to Zeebe
+3. `AgentConversation.start()` initialises the immutable aggregate with loaded history and any pending tool results
+4. `messageComposer.compose()` appends the current turn's system + user messages, returning a new `AgentConversation`
+5. `conversation.window()` produces a `ConversationSnapshot` — the windowed view sent to the LLM
+6. `conversation.ingest()` records the LLM response and accumulates token metrics, returning a new `AgentConversation`
+7. `session.storeMessages()` persists and returns only the `ConversationContext` (storage cursor)
+8. The caller assembles the updated `AgentContext` via `conversation.context().withConversation(cursor)`
+9. `session.close()` handles resource cleanup (e.g., closing AWS clients)
+10. Job completion sends the updated `AgentContext` back to Zeebe
 
 **Critical insight**: The conversation is stored **before** job completion. This is safe because all stores follow the write-ahead with pointer-based visibility contract — see [Storage Contract](#storage-contract) above.
 
@@ -704,14 +711,14 @@ The method checks each tool call from the last assistant message against the ava
 `BaseAgentRequestHandler` checks whether any user messages were added after the message assembly step via the abstract `modelCallPrerequisitesFulfilled` method:
 
 ```java
-// BaseAgentRequestHandler.handleRequest()
-var addedUserMessages = messagesHandler.addUserMessages(...);
-if (!modelCallPrerequisitesFulfilled(addedUserMessages)) {
-    return buildConnectorResponse(executionContext, null);
+// BaseAgentRequestHandler.processConversation()
+conversation = messageComposer.compose(executionContext, conversation);
+if (!modelCallPrerequisitesFulfilled(executionContext, agentContext, conversation.addedMessages())) {
+    return null;
 }
 ```
 
-This is the key gate: if no user messages were added (because tool results were incomplete), the handler returns a null response. The job worker handler (`modelCallPrerequisitesFulfilled` returns `false`) completes the job as a no-op and waits for the next job (which will have more results). The outbound connector handler throws a `ConnectorException` since it cannot proceed without user content.
+This is the key gate: if `addedMessages()` is empty (because tool results were incomplete), the handler returns null. The job worker handler (`modelCallPrerequisitesFulfilled` returns `false`) completes the job as a no-op and waits for the next job (which will have more results). The outbound connector handler throws a `ConnectorException` since it cannot proceed without user content.
 
 ---
 
@@ -738,7 +745,7 @@ This is the key gate: if no user messages were added (because tool results were 
 
 **Problem**: If tools A and B complete almost simultaneously, Job #1 (with only A's result) and Job #2 (with both results) may both attempt LLM calls.
 
-**Mitigation**: This CANNOT happen due to the missing-results check. Job #1 will see that B's result is missing, return `null` for `addedUserMessages`, and `modelCallPrerequisitesFulfilled` returns `false`. Only Job #2 (with complete results) will call the LLM.
+**Mitigation**: This CANNOT happen due to the missing-results check. Job #1 will see that B's result is missing, `compose()` produces empty `addedMessages()`, and `modelCallPrerequisitesFulfilled` returns `false`. Only Job #2 (with complete results) will call the LLM.
 
 ### Challenge 4: Variable Scoping and Merging
 
@@ -828,17 +835,16 @@ public interface AiFrameworkAdapter<R extends AiFrameworkChatResponse<?>> {
     R executeChatRequest(
         AgentExecutionContext executionContext,
         AgentContext agentContext,
-        RuntimeMemory runtimeMemory);
+        ConversationSnapshot snapshot);
 }
 ```
 
-The adapter receives a `RuntimeMemory` instance (which provides the context window via `filteredMessages()`) and returns a response. `BaseAgentRequestHandler` manages the runtime memory lifecycle and passes it to the adapter.
+The adapter receives a `ConversationSnapshot` — the immutable windowed view of the conversation — and returns a response containing the raw `assistantMessage()` and `tokenUsage()`. `BaseAgentRequestHandler` creates the snapshot via `AgentConversation.window()` and passes it to the adapter; the returned token usage is then accumulated into the conversation via `AgentConversation.ingest()`.
 
 The agent core is framework-agnostic. `AiFrameworkAdapter` abstracts:
 - Converting internal message models to framework-specific formats
 - Calling the LLM
-- Converting the framework response back to internal models
-- Updating `AgentContext` with metrics (model calls, token usage)
+- Converting the framework response back to internal models (`AssistantMessage`, `TokenUsage`)
 
 ### LangChain4J Implementation
 
@@ -908,7 +914,7 @@ The architecture supports adding more contributors by creating a Spring bean imp
 
 ### Usage Site
 
-`AgentMessagesHandlerImpl.addSystemMessage()` calls `systemPromptComposer.composeSystemPrompt(...)` and adds the result as a `SystemMessage` to `RuntimeMemory`.
+`ConversationMessageComposerImpl.compose()` calls `systemPromptComposer.composeSystemPrompt(...)` and passes the result as a `SystemMessage` to `AgentConversation.withTurn()`.
 
 ---
 
@@ -951,7 +957,7 @@ On tool call iteration (tool calls present):
 | Constant                                                | Value                                          | Where Thrown                                                                   |
 |---------------------------------------------------------|------------------------------------------------|--------------------------------------------------------------------------------|
 | `ERROR_CODE_NO_USER_MESSAGE_CONTENT`                    | `NO_USER_MESSAGE_CONTENT`                      | `OutboundConnectorAgentRequestHandler` — user messages list empty              |
-| `ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`        | `TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`           | `AgentMessagesHandlerImpl` — tool results arrive but no prior conversation     |
+| `ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`        | `TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`           | `ConversationMessageComposerImpl` — tool results arrive but no prior conversation |
 | `ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED`     | `MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED`        | `AgentLimitsValidatorImpl` — model calls >= maxModelCalls                      |
 | `ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT`          | `FAILED_TO_PARSE_RESPONSE_CONTENT`             | `AgentResponseHandlerImpl` — JSON parse failure (explicit JSON format only)    |
 | `ERROR_CODE_FAILED_MODEL_CALL`                          | `FAILED_MODEL_CALL`                            | `Langchain4JAiFrameworkAdapter` — any exception from `ChatModel.chat()`        |
@@ -1059,10 +1065,9 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AiAgentJobWorker.execute()` wraps into `AiAgentSubProcessConnectorResponse` → handled by `SpringConnectorJobHandler`
 
 ### Core Agent Logic
-- `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → memory → messages → LLM → response → complete
+- `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → memory → compose → LLM → ingest → response → complete
 - `AgentInitializerImpl.initializeAgent()` → State machine / initialization
-- `AgentMessagesHandlerImpl.addUserMessages()` → Message assembly (tool results, events, user prompt)
-- `AgentMessagesHandlerImpl.createToolCallResultMessage()` → Tool result matching & missing detection
+- `ConversationMessageComposerImpl.compose()` → Message assembly (system prompt, tool results, events, user prompt)
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting
 
 ### Job Completion
@@ -1073,7 +1078,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `ConversationStoreRegistryImpl.getConversationStore()` → Store resolution
 - `InProcessConversationSession.loadMessages()` / `storeMessages()` → In-process persistence
 - `CamundaDocumentConversationSession.loadMessages()` / `storeMessages()` → Document persistence
-- `MessageWindowRuntimeMemory.filteredMessages()` → Context window sliding (used by BaseAgentRequestHandler)
+- `AgentConversation.window(SlidingMessagesWindow)` → Context window sliding (produces `ConversationSnapshot`)
 
 ### Tool Resolution
 - `AgentToolsResolverImpl.loadAdHocToolsSchema()` → Tool schema loading
@@ -1132,7 +1137,7 @@ classDiagram
     class AgentInitializer {
         <<interface>>
     }
-    class AgentMessagesHandler {
+    class ConversationMessageComposer {
         <<interface>>
     }
     class AgentResponseHandler {
@@ -1140,7 +1145,7 @@ classDiagram
     }
 
     BaseAgentRequestHandler --> AgentInitializer
-    BaseAgentRequestHandler --> AgentMessagesHandler
+    BaseAgentRequestHandler --> ConversationMessageComposer
     BaseAgentRequestHandler --> AiFrameworkAdapter
     BaseAgentRequestHandler --> AgentResponseHandler
     BaseAgentRequestHandler --> ConversationStoreRegistry
@@ -1183,10 +1188,9 @@ classDiagram
     class ConversationSession {
         <<interface>>
     }
-    class RuntimeMemory {
-        <<interface>>
-    }
-    class MessageWindowRuntimeMemory
+    class AgentConversation
+    class ConversationSnapshot
+    class SlidingMessagesWindow
     class InProcessConversationStore
     class CamundaDocumentConversationStore
 
@@ -1194,9 +1198,8 @@ classDiagram
     InProcessConversationStore ..|> ConversationStore
     CamundaDocumentConversationStore ..|> ConversationStore
     ConversationStore ..> ConversationSession : creates
-    ConversationSession --> RuntimeMemory
-    MessageWindowRuntimeMemory ..|> RuntimeMemory
-    MessageWindowRuntimeMemory --> RuntimeMemory : wraps
+    AgentConversation ..> ConversationSnapshot : window()
+    AgentConversation --> SlidingMessagesWindow : uses
 
     %% --- System prompt composition ---
     class SystemPromptComposer {
@@ -1206,7 +1209,7 @@ classDiagram
         <<interface>>
     }
 
-    AgentMessagesHandler --> SystemPromptComposer
+    ConversationMessageComposer --> SystemPromptComposer
     SystemPromptComposer o-- SystemPromptContributor : aggregates *
 
     %% --- Framework abstraction ---
@@ -1369,7 +1372,7 @@ embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifact
 extracts those documents into a synthetic follow-up `UserMessage` with native `DocumentContent`
 blocks so LLMs can interpret them; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md).
 
-`ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentMessagesHandlerImpl` after
+`ToolCallResultDocumentExtractor` is the entrypoint, called from `ConversationMessageComposerImpl` after
 the `ToolCallResultMessage` is built. For each result it asks the registry which handler manages
 the tool name (`GatewayToolHandlerRegistry.handlerForToolDefinition`) and either:
 

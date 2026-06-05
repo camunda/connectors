@@ -18,10 +18,10 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
@@ -56,8 +56,8 @@ public class Langchain4JAiFrameworkAdapter
   public Langchain4JAiFrameworkChatResponse executeChatRequest(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      RuntimeMemory runtimeMemory) {
-    final var messages = chatMessageConverter.map(runtimeMemory.filteredMessages());
+      ConversationSnapshot snapshot) {
+    final var messages = chatMessageConverter.map(snapshot.messages());
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(agentContext.toolDefinitions());
 
@@ -70,15 +70,8 @@ public class Langchain4JAiFrameworkAdapter
       final AssistantMessage assistantMessage =
           chatMessageConverter.toAssistantMessage(chatResponse);
 
-      final var updatedAgentContext =
-          agentContext.withMetrics(
-              agentContext
-                  .metrics()
-                  .incrementModelCalls(1)
-                  .incrementTokenUsage(tokenUsage(chatResponse.tokenUsage())));
-
       return new Langchain4JAiFrameworkChatResponse(
-          updatedAgentContext, assistantMessage, chatResponse);
+          assistantMessage, tokenUsage(chatResponse.tokenUsage()), chatResponse);
     }
   }
 
@@ -91,20 +84,20 @@ public class Langchain4JAiFrameworkAdapter
   }
 
   private ResponseFormat createResponseFormat(ResponseConfiguration responseConfiguration) {
-    // do not explicitely configure response format to TEXT as (depending on the model) this might
-    // lead to exceptions
     if (responseConfiguration != null
         && responseConfiguration.format() != null
-        && responseConfiguration.format() instanceof JsonResponseFormatConfiguration jsonFormat) {
+        && responseConfiguration.format() instanceof JsonResponseFormatConfiguration(
+            java.util.Map<String, Object> schema, String schemaName
+    )) {
       final var builder = ResponseFormat.builder().type(ResponseFormatType.JSON);
-      if (jsonFormat.schema() != null) {
+      if (schema != null) {
         final var jsonSchema =
             JsonSchema.builder()
                 .name(
-                    Optional.ofNullable(jsonFormat.schemaName())
+                    Optional.ofNullable(schemaName)
                         .filter(StringUtils::isNotBlank)
                         .orElse("Response"))
-                .rootElement(jsonSchemaConverter.mapToSchema(jsonFormat.schema()))
+                .rootElement(jsonSchemaConverter.mapToSchema(schema))
                 .build();
         builder.jsonSchema(jsonSchema);
       }

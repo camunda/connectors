@@ -11,11 +11,10 @@ import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTex
 import static io.camunda.connector.agenticai.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -27,6 +26,7 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
@@ -45,9 +45,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
+public class ConversationMessageComposerImpl implements ConversationMessageComposer {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AgentMessagesHandlerImpl.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(ConversationMessageComposerImpl.class);
 
   private static final String EVENT_CONTENT_EMPTY =
       "An event was triggered but no content was returned.";
@@ -66,7 +67,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
   private final SystemPromptComposer systemPromptComposer;
   private final ToolCallResultDocumentExtractor documentExtractor;
 
-  public AgentMessagesHandlerImpl(
+  public ConversationMessageComposerImpl(
       GatewayToolHandlerRegistry gatewayToolHandlers,
       SystemPromptComposer systemPromptComposer,
       ToolCallResultDocumentExtractor documentExtractor) {
@@ -76,29 +77,33 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
   }
 
   @Override
-  public void addSystemMessage(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      RuntimeMemory memory,
-      SystemPromptConfiguration systemPrompt) {
-    final var composedSystemPrompt =
-        systemPromptComposer.composeSystemPrompt(executionContext, agentContext, systemPrompt);
-
-    if (StringUtils.isNotBlank(composedSystemPrompt)) {
-      // memory will take care of replacing any existing system message if already present
-      memory.addMessage(
-          SystemMessage.builder().content(singleTextContent(composedSystemPrompt)).build());
-    }
+  public AgentConversation compose(
+      AgentExecutionContext executionContext, AgentConversation conversation) {
+    final var agentContext = conversation.context();
+    final SystemMessage systemMessage = buildSystemMessage(executionContext, agentContext);
+    final List<Message> turnMessages =
+        buildTurnMessages(executionContext, agentContext, conversation);
+    return conversation.withTurn(systemMessage, turnMessages);
   }
 
-  @Override
-  public List<Message> addUserMessages(
+  private SystemMessage buildSystemMessage(
+      AgentExecutionContext executionContext, AgentContext agentContext) {
+    final var composedSystemPrompt =
+        systemPromptComposer.composeSystemPrompt(
+            executionContext, agentContext, executionContext.systemPrompt());
+    if (StringUtils.isBlank(composedSystemPrompt)) {
+      return null;
+    }
+    return SystemMessage.builder().content(singleTextContent(composedSystemPrompt)).build();
+  }
+
+  private List<Message> buildTurnMessages(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      RuntimeMemory memory,
-      UserPromptConfiguration userPrompt,
-      List<ToolCallResult> toolCallResults) {
+      AgentConversation conversation) {
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(executionContext);
+
+    final var toolCallResults = conversation.engineToolCallResults();
 
     // partitioned into 2 buckets - true -> with tool call ID, false -> without (from an event)
     final var partitionedByToolCallId =
@@ -117,7 +122,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
           "Agent received tool call results, but the agent context was empty (no previous conversation). Is the context configured correctly?");
     }
 
-    final var lastChatMessage = memory.lastMessage().orElse(null);
+    final var lastChatMessage = conversation.lastMessage().orElse(null);
 
     List<Message> messages = new ArrayList<>();
     if (lastChatMessage instanceof AssistantMessage assistantMessage
@@ -143,26 +148,21 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
         messages.addAll(eventMessages);
       }
     } else {
-      messages.add(createUserPromptMessage(userPrompt));
+      messages.add(createUserPromptMessage(executionContext.userPrompt()));
       messages.addAll(eventMessages);
     }
 
-    messages = messages.stream().filter(Objects::nonNull).toList();
-    messages.forEach(memory::addMessage);
-
-    return messages;
+    return messages.stream().filter(Objects::nonNull).toList();
   }
 
   private UserMessage createUserPromptMessage(UserPromptConfiguration userPrompt) {
     final var content = new ArrayList<Content>();
 
-    // add user prompt text
     final var userPromptText = userPrompt.prompt();
     if (StringUtils.isNotBlank(userPromptText)) {
       content.add(textContent(userPromptText));
     }
 
-    // add documents
     Optional.ofNullable(userPrompt.documents()).orElseGet(Collections::emptyList).stream()
         .map(DocumentContent::documentContent)
         .forEach(content::add);
@@ -230,7 +230,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
     content.addAll(createDocumentPairs(toolCallDocuments));
 
-    final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
+    final var metadata = new HashMap<>(defaultMessageMetadata());
     metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
 
     return UserMessage.builder().content(content).metadata(metadata).build();
@@ -248,11 +248,11 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
                   ? EVENT_CONTENT_EMPTY_INTERRUPT_TOOL_CALLS_EMPTY_MESSAGE
                   : EVENT_CONTENT_EMPTY_WAIT_FOR_TOOL_CALL_RESULTS_EMPTY_MESSAGE));
     } else {
-      userMessageContent.add(
-          switch (eventContent) {
-            case String textContent -> textContent(textContent);
-            default -> objectContent(eventContent);
-          });
+      var addedContent = eventContent instanceof TextContent textContent
+              ? textContent(textContent.text())
+              : objectContent(eventContent);
+
+      userMessageContent.add(addedContent);
     }
 
     // events arrive as ToolCallResult with null id/name — no tool-call attributes

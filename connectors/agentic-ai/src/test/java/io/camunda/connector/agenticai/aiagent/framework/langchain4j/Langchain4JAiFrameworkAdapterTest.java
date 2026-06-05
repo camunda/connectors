@@ -29,12 +29,11 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
@@ -107,14 +106,13 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Captor private ArgumentCaptor<ChatRequest> chatRequestCaptor;
 
-  private RuntimeMemory runtimeMemory;
+  private ConversationSnapshot snapshot;
   private Langchain4JAiFrameworkAdapter adapter;
 
   @BeforeEach
   void setUp() {
-    runtimeMemory = new DefaultRuntimeMemory();
-    runtimeMemory.addMessages(INPUT_MESSAGES);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    snapshot = new ConversationSnapshot(INPUT_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES)).thenReturn(L4J_MESSAGES);
 
     when(toolSpecificationConverter.asToolSpecifications(TOOL_DEFINITIONS))
         .thenReturn(L4J_TOOL_SPECIFICATIONS);
@@ -134,7 +132,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void modelRequestContainsMessagesAndToolSpecifications() {
-    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
+    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, snapshot);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.messages()).containsExactlyElementsOf(L4J_MESSAGES);
@@ -144,14 +142,13 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void wrapsUnderlyingExceptionsInConnectorException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES)).thenReturn(L4J_MESSAGES);
 
     final var cause = new ModelNotFoundException("Model 'dummy' was not found");
     doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
 
     assertThatThrownBy(
-            () ->
-                adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
+            () -> adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, snapshot))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             ex -> {
@@ -165,14 +162,13 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void usesExceptionClassIfNoMessageIncludedInException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES)).thenReturn(L4J_MESSAGES);
 
     final var cause = new UnresolvedModelServerException((String) null);
     doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
 
     assertThatThrownBy(
-            () ->
-                adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
+            () -> adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, snapshot))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             ex -> {
@@ -185,7 +181,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void doesNotExplicitelyConfigureResponseFormatWhenTextFormatIsConfigured() {
-    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
+    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, snapshot);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat()).isNull();
@@ -193,7 +189,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void doesNotExplicitelyConfigureResponseFormatWhenResponseConfigurationIsMissing() {
-    adapter.executeChatRequest(createExecutionContext(null), AGENT_CONTEXT, runtimeMemory);
+    adapter.executeChatRequest(createExecutionContext(null), AGENT_CONTEXT, snapshot);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat()).isNull();
@@ -204,7 +200,7 @@ class Langchain4JAiFrameworkAdapterTest {
     adapter.executeChatRequest(
         createExecutionContext(new OutboundConnectorResponseConfiguration(null, false)),
         AGENT_CONTEXT,
-        runtimeMemory);
+        snapshot);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat()).isNull();
@@ -217,7 +213,7 @@ class Langchain4JAiFrameworkAdapterTest {
             new OutboundConnectorResponseConfiguration(
                 new JsonResponseFormatConfiguration(null, null), false)),
         AGENT_CONTEXT,
-        runtimeMemory);
+        snapshot);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.JSON);
@@ -237,7 +233,7 @@ class Langchain4JAiFrameworkAdapterTest {
             new OutboundConnectorResponseConfiguration(
                 new JsonResponseFormatConfiguration(schema, schemaName), false)),
         AGENT_CONTEXT,
-        runtimeMemory);
+        snapshot);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.JSON);
@@ -260,7 +256,7 @@ class Langchain4JAiFrameworkAdapterTest {
             new OutboundConnectorResponseConfiguration(
                 new JsonResponseFormatConfiguration(schema, schemaName), false)),
         AGENT_CONTEXT,
-        runtimeMemory);
+        snapshot);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.JSON);
@@ -272,19 +268,10 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void incrementsMetricsFromResponse() {
     final var adapterResponse =
-        adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
-    final var expectedMetrics =
-        AGENT_CONTEXT
-            .metrics()
-            .withModelCalls(6)
-            .withTokenUsage(
-                AgentMetrics.TokenUsage.empty()
-                    .withInputTokenCount(15) // 10 from context + 5 from response
-                    .withOutputTokenCount(26)); // 20 from context + 6 from response
+        adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, snapshot);
 
-    assertThat(adapterResponse.agentContext())
-        .usingRecursiveComparison()
-        .isEqualTo(AGENT_CONTEXT.withMetrics(expectedMetrics));
+    assertThat(adapterResponse.tokenUsage())
+        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
   }
 
   @Test
@@ -292,28 +279,25 @@ class Langchain4JAiFrameworkAdapterTest {
     when(chatResponse.tokenUsage()).thenReturn(null);
 
     final var adapterResponse =
-        adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
+        adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, snapshot);
 
-    assertThat(adapterResponse.agentContext())
-        .usingRecursiveComparison()
-        .isEqualTo(AGENT_CONTEXT.withMetrics(AGENT_CONTEXT.metrics().withModelCalls(6)));
+    assertThat(adapterResponse.tokenUsage()).isEqualTo(AgentMetrics.TokenUsage.empty());
   }
 
   @Test
-  void closesChatModelAfterSuccessfulCall() throws Exception {
-    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
+  void closesChatModelAfterSuccessfulCall() {
+    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, snapshot);
     verify(chatModel).close();
   }
 
   @Test
-  void closesChatModelEvenWhenChatCallThrows() throws Exception {
+  void closesChatModelEvenWhenChatCallThrows() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES)).thenReturn(L4J_MESSAGES);
     doThrow(new RuntimeException("model unavailable")).when(chatModel).chat(any(ChatRequest.class));
 
     assertThatThrownBy(
-            () ->
-                adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
+            () -> adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, snapshot))
         .isInstanceOf(ConnectorException.class);
 
     verify(chatModel).close();
