@@ -142,7 +142,17 @@
       "matchUpdateTypes": ["major"],
       "matchPackageNames": ["com.box:box-java-sdk"],
       "enabled": false
-    }
+    },
+    {
+      "description": "Disable major version updates for json-schema-validator — v3 is a complete API rewrite requiring a dedicated migration.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "matchPackageNames": [
+        "com.networknt:json-schema-validator"
+      ],
+      "enabled": false,
+      }
   ],
   "baseBranchPatterns": [
     "main",
