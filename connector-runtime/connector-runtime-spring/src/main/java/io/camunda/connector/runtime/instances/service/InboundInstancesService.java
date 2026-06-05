@@ -47,9 +47,7 @@ public class InboundInstancesService {
             health.getStatus(),
             health.getError(),
             health.getDetails(),
-            health.getLastUpdatedAt() != null
-                ? health.getLastUpdatedAt().atOffset(ZoneOffset.UTC)
-                : null,
+            health.getLastUpdatedAt().atOffset(ZoneOffset.UTC),
             hostname));
   }
 
