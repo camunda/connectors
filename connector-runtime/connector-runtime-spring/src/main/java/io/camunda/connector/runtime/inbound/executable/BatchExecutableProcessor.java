@@ -91,7 +91,10 @@ public class BatchExecutableProcessor {
       final ValidInboundConnectorDetails data;
 
       if (maybeValidData instanceof InvalidInboundConnectorDetails invalid) {
-        var reason = invalid.error().getMessage();
+        var reason =
+            invalid.error().getMessage() != null
+                ? invalid.error().getMessage()
+                : invalid.error().getClass().getSimpleName();
         alreadyActivated.put(
             id,
             new RegisteredExecutable.InvalidDefinition(
@@ -142,7 +145,7 @@ public class BatchExecutableProcessor {
                   new FailedToActivate(
                       failedEntry.getValue(),
                       failureReasonForOthers,
-                      id,
+                      failedEntry.getKey(),
                       Health.down(new RuntimeException(failureReasonForOthers))));
             }
           }
@@ -159,7 +162,10 @@ public class BatchExecutableProcessor {
 
     final ExecutableId id = ExecutableId.fromDeduplicationId(data.deduplicationId());
     if (data instanceof InvalidInboundConnectorDetails invalid) {
-      var reason = invalid.error().getMessage();
+      var reason =
+          invalid.error().getMessage() != null
+              ? invalid.error().getMessage()
+              : invalid.error().getClass().getSimpleName();
       return new InvalidDefinition(
           invalid,
           reason,
@@ -202,8 +208,9 @@ public class BatchExecutableProcessor {
     } catch (Exception e) {
       LOG.error("Failed to activate connector", e);
       connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());
+      var reason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
       return new FailedToActivate(
-          data, e.getMessage(), id, Health.down(new RuntimeException(e.getMessage())));
+          data, reason, id, Health.down(new RuntimeException(reason)));
     }
     log(
         id,
