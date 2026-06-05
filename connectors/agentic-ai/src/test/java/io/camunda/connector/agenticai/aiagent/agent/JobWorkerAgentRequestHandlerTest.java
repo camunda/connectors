@@ -31,8 +31,9 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
-import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
-import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -122,26 +123,89 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   @Test
-  void directlyReturnsAgentResponseWhenInitializationReturnsResponse() {
+  void dispatchesToolDiscoveryWhenInitializationReturnsDiscoverTools() {
     reset(conversationStoreRegistry);
 
-    final var agentResponse =
-        AgentResponse.builder()
-            .context(AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build())
-            .toolCalls(
-                List.of(
-                    ToolCallProcessVariable.from(
-                        ToolCall.builder().id("tool_discovery").name("AGatewayTool").build())))
-            .build();
+    final var toolDiscoveryToolCalls =
+        List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
+    final var discoveryAgentContext =
+        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentResponseInitializationResult(agentResponse));
+        .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response.variables()).containsOnlyKeys("agentContext", "toolCallResults");
     assertThat(response.completionConditionFulfilled()).isFalse();
     assertThat(response.cancelRemainingInstances()).isFalse();
-    assertThat(response.responseValue()).isNotNull().isEqualTo(agentResponse);
+    assertThat(response.responseValue()).isNotNull();
+    assertThat(response.responseValue().context()).isEqualTo(discoveryAgentContext);
+    assertThat(response.responseValue().toolCalls())
+        .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.get(0)));
+
+    verifyNoInteractions(
+        limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
+  }
+
+  @Test
+  void toolDiscoveryListenerPatchesStatusOnJobCompletion() {
+    reset(conversationStoreRegistry);
+
+    final var toolDiscoveryToolCalls =
+        List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
+    final var discoveryAgentContext =
+        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // no agentInstanceClient calls during handleRequest itself
+    verifyNoInteractions(agentInstanceClient);
+
+    // when: job completes — TOOL_DISCOVERY status patch fires
+    response.onJobCompleted();
+    verify(agentInstanceClient)
+        .update(
+            eq(agentExecutionContext),
+            eq(discoveryAgentContext),
+            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY)));
+    verifyNoMoreInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void toolDiscoveryListenerSkipsStatusPatchOnJobCompletionFailure() {
+    reset(conversationStoreRegistry);
+
+    final var toolDiscoveryToolCalls =
+        List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
+    final var discoveryAgentContext =
+        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verifyNoInteractions(agentInstanceClient);
+
+    // when: job completion fails — listener logs and does nothing
+    response.onJobCompletionFailed(
+        new JobCompletionFailure.ExecutionFailed(new RuntimeException(), null));
+    verifyNoInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void returnsNoOpResponseWhenInitializationReturnsDeferConversation() {
+    reset(conversationStoreRegistry);
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new DeferConversation());
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.responseValue()).isNull();
+    assertThat(response.completionConditionFulfilled()).isFalse();
 
     verifyNoInteractions(
         limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
@@ -153,7 +217,7 @@ class JobWorkerAgentRequestHandlerTest {
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var assistantMessageText =
         "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
@@ -215,7 +279,7 @@ class JobWorkerAgentRequestHandlerTest {
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
 
@@ -306,7 +370,7 @@ class JobWorkerAgentRequestHandlerTest {
     mockInterruptedToolCall(toolCallResults);
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     when(agentExecutionContext.cancelRemainingInstances()).thenReturn(true);
 
@@ -424,7 +488,7 @@ class JobWorkerAgentRequestHandlerTest {
     mockSystemPrompt();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response.variables()).isEmpty();
@@ -442,7 +506,7 @@ class JobWorkerAgentRequestHandlerTest {
     mockSystemPrompt();
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
     mockFrameworkExecution(assistantMessage);
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
@@ -494,7 +558,7 @@ class JobWorkerAgentRequestHandlerTest {
     mockSystemPrompt();
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     final var assistantMessage = AssistantMessage.builder().build();
     mockFrameworkExecution(assistantMessage);
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
@@ -544,7 +608,7 @@ class JobWorkerAgentRequestHandlerTest {
     mockSystemPrompt();
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
     mockFrameworkExecution(assistantMessage);
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
@@ -597,7 +661,7 @@ class JobWorkerAgentRequestHandlerTest {
     mockSystemPrompt();
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
     mockFrameworkExecution(assistantMessage);
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
@@ -658,7 +722,7 @@ class JobWorkerAgentRequestHandlerTest {
             InProcessConversationContext.builder("in-process").messages(previousMessages).build());
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(initialAgentContext, List.of()));
+        .thenReturn(new ReadyToConverse(initialAgentContext, List.of()));
 
     final var assistantMessageText = "This is the assistant message";
     final var assistantMessage = assistantMessage(assistantMessageText);
