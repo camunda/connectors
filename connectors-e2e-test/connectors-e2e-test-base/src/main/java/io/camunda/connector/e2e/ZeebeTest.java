@@ -102,14 +102,10 @@ public class ZeebeTest {
   }
 
   public ZeebeTest waitForProcessCompletion() {
-    return waitForProcessCompletion(Duration.ofSeconds(20));
-  }
-
-  public ZeebeTest waitForProcessCompletion(Duration timeout) {
     Awaitility.with()
         .pollInSameThread()
         .await()
-        .atMost(timeout)
+        .atMost(20, TimeUnit.SECONDS)
         .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).isCompleted());
     return this;
   }
