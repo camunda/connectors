@@ -18,6 +18,8 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.appintegrations.model.AppIntegrationsConfiguration;
+import io.camunda.connector.appintegrations.model.CreateChannelRequest;
+import io.camunda.connector.appintegrations.model.CreateChannelResult;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
 import io.camunda.connector.appintegrations.model.SendMessageResult;
 import jakarta.validation.Validation;
@@ -287,5 +289,89 @@ class AppIntegrationsConnectorTest {
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining(
             "One of 'message', 'adaptiveCardJson', or a linked form must be provided");
+  }
+
+  // --- createChannel ---
+
+  @Test
+  void createChannel_success_returnsChannelIdAndVerifiesRequestBody()
+      throws IOException, InterruptedException {
+    when(httpResponse.statusCode()).thenReturn(201);
+    when(httpResponse.body()).thenReturn("{\"channelId\":\"19:new-channel@thread.tacv2\"}");
+    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+        .thenReturn(httpResponse);
+
+    var request =
+        new CreateChannelRequest(
+            CONFIG, "b7779302-e8cb-4b34-901b-5b150a19fd47", "My Channel", null, "standard");
+    var result = connector.createChannel(request, context);
+
+    assertThat(result).isInstanceOf(CreateChannelResult.class);
+    assertThat(result.channelId()).isEqualTo("19:new-channel@thread.tacv2");
+
+    var captor = ArgumentCaptor.forClass(HttpRequest.class);
+    verify(httpClient).send(captor.capture(), any());
+    var body = readBody(captor.getValue());
+    assertThat(body).contains("\"teamId\":\"b7779302-e8cb-4b34-901b-5b150a19fd47\"");
+    assertThat(body).contains("\"displayName\":\"My Channel\"");
+    assertThat(body).contains("\"membershipType\":\"standard\"");
+    assertThat(body).doesNotContain("\"description\"");
+
+    var req = captor.getValue();
+    assertThat(req.uri().toString()).endsWith("/api/connector/channel");
+    assertThat(req.headers().firstValue("Authorization").orElse("")).isEqualTo("Bearer test-token");
+  }
+
+  @Test
+  void createChannel_teamsUrl_extractsGroupIdBeforeSending()
+      throws IOException, InterruptedException {
+    when(httpResponse.statusCode()).thenReturn(201);
+    when(httpResponse.body()).thenReturn("{\"channelId\":\"19:new@thread.tacv2\"}");
+    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+        .thenReturn(httpResponse);
+
+    var request =
+        new CreateChannelRequest(
+            CONFIG,
+            "https://teams.cloud.microsoft/l/team/19%3Axxx?groupId=b7779302-e8cb-4b34-901b-5b150a19fd47&tenantId=abc",
+            "My Channel",
+            null,
+            "standard");
+    connector.createChannel(request, context);
+
+    var captor = ArgumentCaptor.forClass(HttpRequest.class);
+    verify(httpClient).send(captor.capture(), any());
+    assertThat(readBody(captor.getValue()))
+        .contains("\"teamId\":\"b7779302-e8cb-4b34-901b-5b150a19fd47\"");
+  }
+
+  @Test
+  void createChannel_backendError_throwsConnectorException()
+      throws IOException, InterruptedException {
+    when(httpResponse.statusCode()).thenReturn(500);
+    when(httpResponse.body()).thenReturn("Internal Server Error");
+    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+        .thenReturn(httpResponse);
+
+    var request =
+        new CreateChannelRequest(
+            CONFIG, "b7779302-e8cb-4b34-901b-5b150a19fd47", "My Channel", null, "standard");
+    assertThatThrownBy(() -> connector.createChannel(request, context))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("500");
+  }
+
+  @Test
+  void createChannel_ioException_throwsConnectorException()
+      throws IOException, InterruptedException {
+    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+        .thenThrow(new IOException("Connection refused"));
+
+    var request =
+        new CreateChannelRequest(
+            CONFIG, "b7779302-e8cb-4b34-901b-5b150a19fd47", "My Channel", null, "standard");
+    assertThatThrownBy(() -> connector.createChannel(request, context))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Connection refused");
   }
 }

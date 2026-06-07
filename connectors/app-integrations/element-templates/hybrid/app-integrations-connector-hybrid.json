@@ -3,6 +3,7 @@
   "name" : "Hybrid App Integrations Connector",
   "id" : "io.camunda.connector.AppIntegrations.v1-hybrid",
   "description" : "Send notifications and manage channels via Microsoft Teams",
+  "keywords" : [ "teams", "microsoft teams", "send message", "notification", "channel", "adaptive card" ],
   "version" : 1,
   "category" : {
     "id" : "connectors",
@@ -368,7 +369,7 @@
   }, {
     "id" : "createChannel:teamId",
     "label" : "Team ID",
-    "description" : "ID of the Microsoft Teams team to create the channel in.",
+    "description" : "ID of the Microsoft Teams team, or a full Teams URL (the groupId query parameter will be extracted automatically).",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -527,6 +528,6 @@
     "type" : "String"
   } ],
   "icon" : {
-    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTgiIHdpZHRoPSIxOCIgdmlld0JveD0iMCAwIDEwIDEwIiBzaGFwZS1yZW5kZXJpbmc9Imdlb21ldHJpY1ByZWNpc2lvbiI+PHRpdGxlPkFwcCBJbnRlZ3JhdGlvbnM8L3RpdGxlPjxnIGZpbGw9Im5vbmUiPjxwYXRoIGQ9Ik0wLDAgTDAsMTAgTDEwLDEwIEwxMCwwIHoiIGZpbGw9IiNlY2IxMmYiLz48L2c+PC9zdmc+"
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cGF0aCBkPSJNMiAxLjVoMTJhMSAxIDAgMCAxIDEgMXY4YTEgMSAwIDAgMS0xIDFINi41TDQuNSAxNC41di0zSDJhMSAxIDAgMCAxLTEtMXYtOGExIDEgMCAwIDEgMS0xeiIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI1LjUiIHI9IjEuNCIgZmlsbD0iIzAwMDAwMCIvPgogIDxwYXRoIGQ9Ik01LjUgOS41YzAtMi4yIDUtMi4yIDUgMHoiIGZpbGw9IiMwMDAwMDAiLz4KPC9zdmc+Cg=="
   }
 }
