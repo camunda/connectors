@@ -22,6 +22,7 @@ import io.camunda.connector.appintegrations.model.LinkedResource;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
 import io.camunda.connector.appintegrations.model.SendMessageResult;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -39,6 +40,14 @@ import org.slf4j.LoggerFactory;
     name = "App Integrations Connector",
     version = 1,
     description = "Send notifications and manage channels via Microsoft Teams",
+    keywords = {
+      "teams",
+      "microsoft teams",
+      "send message",
+      "notification",
+      "channel",
+      "adaptive card"
+    },
     icon = "icon.svg",
     engineVersion = "^8.8",
     propertyGroups = {
@@ -63,7 +72,7 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
   private final HttpClient httpClient;
 
   public AppIntegrationsConnector() {
-    this.objectMapper = new ObjectMapper();
+    this.objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     this.httpClient = HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build();
   }
 

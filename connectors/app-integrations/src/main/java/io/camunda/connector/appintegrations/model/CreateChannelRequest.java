@@ -10,6 +10,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import java.net.URI;
 
 public record CreateChannelRequest(
     @NotNull @Valid AppIntegrationsConfiguration configuration,
@@ -17,7 +18,9 @@ public record CreateChannelRequest(
         @TemplateProperty(
             group = "channel",
             label = "Team ID",
-            description = "ID of the Microsoft Teams team to create the channel in.")
+            description =
+                "ID of the Microsoft Teams team, or a full Teams URL"
+                    + " (the groupId query parameter will be extracted automatically).")
         String teamId,
     @NotEmpty
         @TemplateProperty(
@@ -42,4 +45,27 @@ public record CreateChannelRequest(
               @TemplateProperty.DropdownPropertyChoice(label = "Shared", value = "shared")
             },
             defaultValue = "standard")
-        String membershipType) {}
+        String membershipType) {
+
+  public CreateChannelRequest {
+    teamId = extractGroupId(teamId);
+  }
+
+  private static String extractGroupId(String input) {
+    if (input == null || !input.startsWith("http")) {
+      return input;
+    }
+    try {
+      var query = new URI(input).getQuery();
+      if (query != null) {
+        for (var param : query.split("&")) {
+          if (param.startsWith("groupId=")) {
+            return param.substring("groupId=".length());
+          }
+        }
+      }
+    } catch (Exception ignored) {
+    }
+    return input;
+  }
+}
