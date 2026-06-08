@@ -78,12 +78,6 @@ public abstract class BaseAgentRequestHandler<
   @Override
   public R handleRequest(final C executionContext) {
     return switch (agentInitializer.initializeAgent(executionContext)) {
-      case ReadyToConverse(var agentContext, var engineToolCallResults) -> {
-        LOGGER.debug(
-            "Handling agent request with {} tool call results",
-            engineToolCallResults != null ? engineToolCallResults.size() : 0);
-        yield converse(executionContext, agentContext, engineToolCallResults);
-      }
       case DiscoverTools(var agentContext, var toolDiscoveryToolCalls) -> {
         LOGGER.debug(
             "AI Agent initialization dispatching {} gateway tool discovery calls. Completing job without further processing.",
@@ -94,6 +88,11 @@ public abstract class BaseAgentRequestHandler<
         LOGGER.debug(
             "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
         yield buildConnectorResponse(executionContext, null, null);
+      }
+      case ReadyToConverse(var agentContext, var engineToolCallResults) -> {
+        LOGGER.debug(
+            "Handling agent request with {} tool call results", engineToolCallResults.size());
+        yield converse(executionContext, agentContext, engineToolCallResults);
       }
     };
   }
@@ -157,7 +156,7 @@ public abstract class BaseAgentRequestHandler<
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =
         framework.executeChatRequest(
-            executionContext, conversation.context(), conversation.messageMemory());
+            executionContext, conversation.context(), conversation.runtimeMemory());
 
     conversation.updateContext(updateContextMetrics(chatResponse.agentContext(), chatResponse));
 
@@ -181,13 +180,13 @@ public abstract class BaseAgentRequestHandler<
     messagesHandler.addSystemMessage(
         executionContext,
         conversation.context(),
-        conversation.messageMemory(),
+        conversation.runtimeMemory(),
         executionContext.systemPrompt());
 
     return messagesHandler.addUserMessages(
         executionContext,
         conversation.context(),
-        conversation.messageMemory(),
+        conversation.runtimeMemory(),
         executionContext.userPrompt(),
         conversation.engineToolCallResults());
   }
@@ -227,7 +226,7 @@ public abstract class BaseAgentRequestHandler<
     LOGGER.debug(
         "Received assistant message containing {} tool call requests",
         assistantMessage.toolCalls() != null ? assistantMessage.toolCalls().size() : 0);
-    conversation.messageMemory().addMessage(assistantMessage);
+    conversation.runtimeMemory().addMessage(assistantMessage);
 
     final var toolCalls =
         gatewayToolHandlers.transformToolCalls(
@@ -239,7 +238,7 @@ public abstract class BaseAgentRequestHandler<
     final var updatedConversation =
         session.storeMessages(
             conversation.context(),
-            ConversationStoreRequest.of(conversation.messageMemory().allMessages()));
+            ConversationStoreRequest.of(conversation.runtimeMemory().allMessages()));
     conversation.updateContext(conversation.context().withConversation(updatedConversation));
 
     return responseHandler.createResponse(

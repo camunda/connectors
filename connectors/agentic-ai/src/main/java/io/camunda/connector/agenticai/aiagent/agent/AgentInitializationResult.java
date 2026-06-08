@@ -11,10 +11,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 
-public sealed interface AgentInitializationResult
-    permits AgentInitializationResult.ReadyToConverse,
-        AgentInitializationResult.DiscoverTools,
-        AgentInitializationResult.DeferConversation {
+public sealed interface AgentInitializationResult {
 
   /** Agent provisioned and tools resolved: proceed to the conversation phase. */
   record ReadyToConverse(AgentContext agentContext, List<ToolCallResult> engineToolCallResults)

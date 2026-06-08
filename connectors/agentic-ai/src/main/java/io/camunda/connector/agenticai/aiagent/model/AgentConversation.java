@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Transient domain aggregate representing the agent's conversation state for one turn.
  *
- * <p>{@code context} and {@code messageMemory} are <em>restored</em> from persisted state at the
+ * <p>{@code context} and {@code runtimeMemory} are <em>restored</em> from persisted state at the
  * start of each turn. {@code engineToolCallResults} is <em>this turn's new engine input</em>,
  * primed to be folded into the conversation by the message handler.
  */
@@ -37,7 +37,7 @@ public final class AgentConversation {
    * Builds the aggregate from persisted state and this turn's engine input.
    *
    * @param context the durable agent context restored from the process variable
-   * @param messageMemory transient messages restored from the conversation store
+   * @param messageMemory runtime memory restored from the conversation store
    * @param engineToolCallResults this turn's new tool-call results from the engine, to be folded in
    * @return a rehydrated {@code AgentConversation}
    */
@@ -64,7 +64,7 @@ public final class AgentConversation {
     return context.toolDefinitions();
   }
 
-  public RuntimeMemory messageMemory() {
+  public RuntimeMemory runtimeMemory() {
     return messageMemory;
   }
 
