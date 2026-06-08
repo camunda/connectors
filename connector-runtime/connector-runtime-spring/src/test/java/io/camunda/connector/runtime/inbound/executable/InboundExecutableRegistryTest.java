@@ -387,7 +387,7 @@ public class InboundExecutableRegistryTest {
             null,
             t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
             new ObjectMapper(),
-            null,
+            activityLogRegistry,
             mock(CamundaClient.class));
 
     when(factory.getInstance(any())).thenReturn(executable);
@@ -430,7 +430,7 @@ public class InboundExecutableRegistryTest {
                 null,
                 t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
                 new ObjectMapper(),
-                null,
+                activityLogRegistry,
                 mock(CamundaClient.class)));
 
     doNothing().doThrow(new Exception()).when(executable).activate(any());
