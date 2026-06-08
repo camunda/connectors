@@ -241,7 +241,7 @@ jobs:
                       "operateVersion": "SNAPSHOT",
                       "tasklistVersion": "SNAPSHOT",
                       "connectorsVersion": "${{ needs.build-image.outputs.connectors-version }}",
-                      "optimizeVersion": "8-SNAPSHOT"
+                      "optimizeVersion": "SNAPSHOT"
                   }
                 }'
 
