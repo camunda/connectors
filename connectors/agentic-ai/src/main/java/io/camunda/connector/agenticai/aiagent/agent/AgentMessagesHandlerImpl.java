@@ -89,7 +89,13 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
             List.of(),
             agentContext,
             new AgentInvocationInput(null, List.of()),
-            AgentConfiguration.from(executionContext));
+            new AgentConfiguration(
+                executionContext.provider(),
+                systemPrompt,
+                executionContext.memory(),
+                executionContext.limits(),
+                executionContext.events(),
+                executionContext.response()));
     final var composedSystemPrompt = systemPromptComposer.compose(conversation);
 
     if (StringUtils.isNotBlank(composedSystemPrompt)) {
