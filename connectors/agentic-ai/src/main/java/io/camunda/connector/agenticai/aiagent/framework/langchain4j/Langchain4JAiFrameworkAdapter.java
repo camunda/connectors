@@ -18,8 +18,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
@@ -54,12 +53,10 @@ public class Langchain4JAiFrameworkAdapter
 
   @Override
   public Langchain4JAiFrameworkChatResponse executeChatRequest(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      RuntimeMemory runtimeMemory) {
-    final var messages = chatMessageConverter.map(runtimeMemory.filteredMessages());
+      AgentExecutionContext executionContext, ConversationSnapshot snapshot) {
+    final var messages = chatMessageConverter.map(snapshot.messages());
     final var toolSpecifications =
-        toolSpecificationConverter.asToolSpecifications(agentContext.toolDefinitions());
+        toolSpecificationConverter.asToolSpecifications(snapshot.toolDefinitions());
 
     final var chatRequestBuilder =
         ChatRequest.builder().messages(messages).toolSpecifications(toolSpecifications);
@@ -69,16 +66,8 @@ public class Langchain4JAiFrameworkAdapter
       final ChatResponse chatResponse = doChat(chatModel, chatRequestBuilder);
       final AssistantMessage assistantMessage =
           chatMessageConverter.toAssistantMessage(chatResponse);
-
-      final var updatedAgentContext =
-          agentContext.withMetrics(
-              agentContext
-                  .metrics()
-                  .incrementModelCalls(1)
-                  .incrementTokenUsage(tokenUsage(chatResponse.tokenUsage())));
-
-      return new Langchain4JAiFrameworkChatResponse(
-          updatedAgentContext, assistantMessage, chatResponse);
+      final var tokenUsage = tokenUsage(chatResponse.tokenUsage());
+      return new Langchain4JAiFrameworkChatResponse(assistantMessage, tokenUsage, chatResponse);
     }
   }
 
