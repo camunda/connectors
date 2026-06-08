@@ -6,12 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
-import java.util.List;
 
 /**
  * Handles the creation of an agent response based on the configuration and the returned assistant
@@ -21,9 +17,5 @@ import java.util.List;
  * desired format (such as JSON).
  */
 public interface AgentResponseHandler {
-  AgentResponse createResponse(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      AssistantMessage assistantMessage,
-      List<ToolCallProcessVariable> toolCalls);
+  AgentResponse createResponse(AgentConversation conversation);
 }
