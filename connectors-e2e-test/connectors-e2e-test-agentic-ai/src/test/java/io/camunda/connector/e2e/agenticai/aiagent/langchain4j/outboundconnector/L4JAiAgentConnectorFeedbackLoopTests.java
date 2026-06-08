@@ -20,14 +20,10 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAI
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
@@ -35,7 +31,10 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
-public class L4JAiAgentConnectorFeedbackLoopTests extends BaseL4JAiAgentConnectorTest {
+public class L4JAiAgentConnectorFeedbackLoopTests extends BaseWireMockL4JAiAgentConnectorTest {
+
+  private static final String EMOJI_HAIKU_TEXT =
+      "Endless waves whisper 🌊 | moonlight dances on the tide 🌕 | secrets drift below 🌌";
 
   @Test
   void executesAgentWithoutUserFeedback() throws Exception {
@@ -76,46 +75,25 @@ public class L4JAiAgentConnectorFeedbackLoopTests extends BaseL4JAiAgentConnecto
   @Test
   void executesAgentWithUserFeedback() throws Exception {
     final var initialUserPrompt = "Write a haiku about the sea";
-    final var expectedConversation =
-        List.of(
-            new SystemMessage(
-                "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
-            new UserMessage(initialUserPrompt),
-            new AiMessage(HAIKU_TEXT),
-            new UserMessage("Add emojis!"),
-            new AiMessage(
-                "Endless waves whisper \uD83C\uDF0A | moonlight dances on the tide \uD83C\uDF15 | secrets drift below \uD83C\uDF0C"));
 
-    mockChatInteractions(
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(10, 20))
-                        .build())
-                .aiMessage(new AiMessage(HAIKU_TEXT))
-                .build(),
-            userFollowUpFeedback("Add emojis!")),
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(11, 22))
-                        .build())
-                .aiMessage(
-                    new AiMessage(
-                        "Endless waves whisper \uD83C\uDF0A | moonlight dances on the tide \uD83C\uDF15 | secrets drift below \uD83C\uDF0C"))
-                .build(),
-            userSatisfiedFeedback()));
+    OpenAiChatModelStubs.stubConversation(
+        Turn.text(HAIKU_TEXT, 10, 20), Turn.text(EMOJI_HAIKU_TEXT, 11, 22));
+
+    enqueueUserFeedback(userFollowUpFeedback("Add emojis!"), userSatisfiedFeedback());
 
     final var zeebeTest =
         createProcessInstance(Map.of("userPrompt", initialUserPrompt)).waitForProcessCompletion();
 
-    assertLastChatRequest(2, expectedConversation);
+    final var recorded = RecordedLlmConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(2);
 
-    String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+    assertConversationMessages(
+        recorded.lastRequest(),
+        ExpectedMessage.system(SYSTEM_PROMPT),
+        ExpectedMessage.user(initialUserPrompt),
+        ExpectedMessage.assistant(HAIKU_TEXT),
+        ExpectedMessage.user("Add emojis!"));
+
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
@@ -123,8 +101,8 @@ public class L4JAiAgentConnectorFeedbackLoopTests extends BaseL4JAiAgentConnecto
                 .isReady()
                 .hasNoToolCalls()
                 .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42), 0))
-                .hasResponseMessageText(expectedResponseText)
-                .hasResponseText(expectedResponseText));
+                .hasResponseMessageText(EMOJI_HAIKU_TEXT)
+                .hasResponseText(EMOJI_HAIKU_TEXT));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }

@@ -33,8 +33,10 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -49,8 +51,23 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   private JobWorker userFeedbackJobWorker;
   protected final AtomicInteger userFeedbackJobWorkerCounter = new AtomicInteger(0);
+
+  /**
+   * Single-shot user feedback returned on every {@code user_feedback} job that is not covered by an
+   * entry in {@link #userFeedbackQueue}. Used by single-turn tests (e.g. the HTTP timeout tests)
+   * and by tests that still drive feedback imperatively.
+   */
   protected final AtomicReference<Map<String, Object>> userFeedbackVariables =
       new AtomicReference<>(Collections.emptyMap());
+
+  /**
+   * Ordered user feedback consumed one entry per {@code user_feedback} job invocation. This
+   * decouples per-turn feedback from the model call, which the WireMock-based tests need (the
+   * previous Mockito mock set feedback as a side effect of each {@code chat()} call). When the queue
+   * is exhausted, the worker falls back to {@link #userFeedbackVariables}.
+   */
+  protected final ConcurrentLinkedQueue<Map<String, Object>> userFeedbackQueue =
+      new ConcurrentLinkedQueue<>();
 
   @BeforeEach
   void clearDocumentStore() {
@@ -72,6 +89,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   @BeforeEach
   void openUserFeedbackJobWorker() {
     userFeedbackVariables.set(Collections.emptyMap());
+    userFeedbackQueue.clear();
     userFeedbackJobWorkerCounter.set(0);
     userFeedbackJobWorker =
         camundaClient
@@ -80,9 +98,10 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
             .handler(
                 (client, job) -> {
                   userFeedbackJobWorkerCounter.incrementAndGet();
+                  final Map<String, Object> feedback = userFeedbackQueue.poll();
                   client
                       .newCompleteCommand(job.getKey())
-                      .variables(userFeedbackVariables.get())
+                      .variables(feedback != null ? feedback : userFeedbackVariables.get())
                       .send()
                       .join();
                 })
@@ -138,6 +157,12 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   protected BpmnModelInstance modelWithModifications(File model, File elementTemplate) {
     return new BpmnFile(model)
         .apply(elementTemplate, AI_AGENT_TASK_ID, new File(tempDir, "updated.bpmn"));
+  }
+
+  /** Enqueues the user feedback returned, in order, by successive {@code user_feedback} jobs. */
+  @SafeVarargs
+  protected final void enqueueUserFeedback(Map<String, Object>... feedback) {
+    userFeedbackQueue.addAll(Arrays.asList(feedback));
   }
 
   protected Map<String, Object> userSatisfiedFeedback() {
