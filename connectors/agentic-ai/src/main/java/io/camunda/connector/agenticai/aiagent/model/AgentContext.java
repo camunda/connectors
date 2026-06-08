@@ -27,8 +27,7 @@ public record AgentContext(
     @RecordBuilder.Initializer(source = AgentMetrics.class, value = "empty") AgentMetrics metrics,
     List<ToolDefinition> toolDefinitions,
     @Nullable ConversationContext conversation,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties,
-    @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String agentInstanceKey)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
     implements AgentContextBuilder.With {
 
   public static final AgentState DEFAULT_STATE = AgentState.INITIALIZING;
