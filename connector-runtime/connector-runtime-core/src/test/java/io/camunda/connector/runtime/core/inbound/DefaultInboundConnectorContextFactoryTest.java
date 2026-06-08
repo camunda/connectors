@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -46,6 +47,7 @@ class DefaultInboundConnectorContextFactoryTest {
   @Mock private Consumer<Throwable> cancellationCallback;
   @Mock private ValidInboundConnectorDetails newConnector;
   @Mock private DocumentFactory documentFactory;
+  @Mock private CamundaClient camundaClient;
   private DefaultInboundConnectorContextFactory factory;
   private final ActivityLogRegistry activityLogRegistry = new ActivityLogRegistry();
 
@@ -58,7 +60,8 @@ class DefaultInboundConnectorContextFactoryTest {
             secretProviderAggregator,
             validationProvider,
             processInstanceClient,
-            documentFactory);
+            documentFactory,
+            camundaClient);
   }
 
   @Test

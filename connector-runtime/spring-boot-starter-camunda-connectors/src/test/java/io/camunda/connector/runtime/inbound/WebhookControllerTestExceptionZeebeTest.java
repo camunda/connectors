@@ -245,7 +245,8 @@ class WebhookControllerTestExceptionZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            new ActivityLogRegistry(),
+            camundaClient);
 
     webhookConnectorRegistry.register(
         new RegisteredExecutable.Activated(

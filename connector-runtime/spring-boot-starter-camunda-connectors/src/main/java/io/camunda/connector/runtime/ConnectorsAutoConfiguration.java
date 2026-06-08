@@ -25,9 +25,8 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
-import io.camunda.connector.feel.CamundaClientFeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
-import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
+import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
@@ -106,8 +105,7 @@ public class ConnectorsAutoConfiguration {
   @Primary
   @ConditionalOnMissingBean(FeelExpressionEvaluator.class)
   public FeelExpressionEvaluator camundaClientFeelExpressionEvaluator(CamundaClient camundaClient) {
-    return new CamundaClientFeelExpressionEvaluator(
-        camundaClient, ConnectorsObjectMapperSupplier.getCopy());
+    return FeelExpressionEvaluatorBuilder.camundaClient(camundaClient).build();
   }
 
   /**
@@ -228,7 +226,7 @@ public class ConnectorsAutoConfiguration {
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
-            true, feelExpressionEvaluator, new LocalFeelExpressionEvaluator()),
+            true, feelExpressionEvaluator, FeelExpressionEvaluatorBuilder.local().build()),
         new JacksonModuleDocumentSerializer());
   }
 
@@ -255,7 +253,8 @@ public class ConnectorsAutoConfiguration {
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
-            false, new LocalFeelExpressionEvaluator()), // FEEL annotation processing disabled
+            false,
+            FeelExpressionEvaluatorBuilder.local().build()), // FEEL annotation processing disabled
         new JacksonModuleDocumentSerializer());
   }
 

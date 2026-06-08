@@ -251,6 +251,25 @@ public class FeelDeserializerTest {
   }
 
   @Test
+  void feelDeserializer_evaluatorOverride_invalidObjectProvided() {
+    // given
+    String json =
+        """
+        { "props": "= \"foobar\"" }
+        """;
+    var objectReader =
+        mapper
+            .readerFor(TargetTypeString.class)
+            .withAttribute(
+                FeelContextAwareObjectReader.FEEL_EVALUATOR_ATTRIBUTE, "not an evaluator");
+
+    // when && then
+    var e = assertThrows(JsonMappingException.class, () -> objectReader.readValue(json));
+    assertThat(e.getMessage())
+        .contains("Attribute FEEL_EVALUATOR must be a FeelExpressionEvaluator");
+  }
+
+  @Test
   void feelDeserializer_notFeel_java8Time_parsed() {
     // this test is to ensure that deserialization takes active jackson modules into account
 

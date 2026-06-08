@@ -74,8 +74,9 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
   }
 
   private void removeInactiveTasks(final List<ProcessInstanceContext> processInstanceContexts) {
+    String prefix = context.getDefinition().deduplicationId();
     List<String> activeTasks =
-        processInstanceContexts.stream().map(this::getRequestTaskKey).toList();
+        processInstanceContexts.stream().map(p -> p.taskKey(prefix)).toList();
 
     List<Map.Entry<String, ScheduledPoll>> inactiveTasks =
         runningPollTasks.entrySet().stream()
@@ -90,7 +91,7 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
   }
 
   private void scheduleRequest(ProcessInstanceContext processInstanceContext) {
-    String taskKey = getRequestTaskKey(processInstanceContext);
+    String taskKey = processInstanceContext.taskKey(context.getDefinition().deduplicationId());
     runningPollTasks.computeIfAbsent(
         taskKey,
         (key) -> {
@@ -109,10 +110,6 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
 
           return new ScheduledPoll(task, future);
         });
-  }
-
-  private String getRequestTaskKey(final ProcessInstanceContext processInstanceContext) {
-    return context.getDefinition().deduplicationId() + processInstanceContext.getKey();
   }
 
   public void start() {

@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.Health.Status;
@@ -339,7 +340,8 @@ public class InboundExecutableRegistryTest {
             null,
             t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
             new ObjectMapper(),
-            null);
+            null,
+            mock(CamundaClient.class));
 
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
@@ -385,7 +387,8 @@ public class InboundExecutableRegistryTest {
             null,
             t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
             new ObjectMapper(),
-            activityLogRegistry);
+            activityLogRegistry,
+            mock(CamundaClient.class));
 
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
@@ -427,7 +430,8 @@ public class InboundExecutableRegistryTest {
                 null,
                 t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
                 new ObjectMapper(),
-                activityLogRegistry));
+                activityLogRegistry,
+                mock(CamundaClient.class)));
 
     doNothing().doThrow(new Exception()).when(executable).activate(any());
     when(definition.deduplicationId()).thenReturn(RANDOM_STRING);
@@ -689,7 +693,8 @@ public class InboundExecutableRegistryTest {
             null,
             t -> {},
             new ObjectMapper(),
-            activityLogRegistry);
+            activityLogRegistry,
+            mock(CamundaClient.class));
 
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(realContext);
     when(factory.getInstance(any())).thenReturn(executable);

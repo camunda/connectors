@@ -113,7 +113,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -153,7 +154,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -199,7 +201,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -239,7 +242,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -281,7 +285,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -318,7 +323,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -355,7 +361,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -387,7 +394,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -421,7 +429,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -467,7 +476,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -517,7 +527,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -563,7 +574,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -599,7 +611,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -636,7 +649,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     webhookConnectorRegistry.register(
         new RegisteredExecutable.Activated(
@@ -674,7 +688,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     webhookConnectorRegistry.register(
         new RegisteredExecutable.Activated(
@@ -718,7 +733,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     webhookConnectorRegistry.register(
         new RegisteredExecutable.Activated(
@@ -756,7 +772,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     webhookConnectorRegistry.register(
         new RegisteredExecutable.Activated(
@@ -794,7 +811,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     webhookConnectorRegistry.register(
         new RegisteredExecutable.Activated(
@@ -832,7 +850,8 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            activityLogRegistry);
+            activityLogRegistry,
+            camundaClient);
 
     webhookConnectorRegistry.register(
         new RegisteredExecutable.Activated(
