@@ -24,7 +24,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.tomakehurst.wiremock.client.MappingBuilder;
+import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.util.Arrays;
 import java.util.List;
@@ -36,8 +36,8 @@ import java.util.List;
  *
  * <p>A conversation is expressed as an ordered list of {@link Turn turns}. Each model call advances
  * a WireMock {@link Scenario} state, so sequential calls deterministically receive the next turn's
- * response regardless of request body. This mirrors the previous Mockito {@code mockChatInteractions}
- * queue.
+ * response regardless of request body. This mirrors the previous Mockito {@code
+ * mockChatInteractions} queue.
  *
  * <p>The real ad-hoc sub-process tools execute between turns (as before), so tool <em>results</em>
  * are produced by the engine — only the assistant turns (text and tool-call requests) are stubbed
@@ -62,7 +62,7 @@ public final class OpenAiChatModelStubs {
     for (int i = 0; i < turnList.size(); i++) {
       final String fromState = i == 0 ? Scenario.STARTED : stateName(i);
 
-      MappingBuilder mapping =
+      ScenarioMappingBuilder mapping =
           post(urlPathEqualTo(CHAT_COMPLETIONS_PATH))
               .inScenario(SCENARIO_NAME)
               .whenScenarioStateIs(fromState)
