@@ -30,10 +30,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInputComposerImpl;
-import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
-import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidatorImpl;
-import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
-import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
@@ -235,12 +231,6 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentLimitsValidator aiAgentLimitsValidator() {
-    return new AgentLimitsValidatorImpl();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public SystemPromptComposer aiAgentSystemPromptComposer(
       List<SystemPromptContributor> contributors) {
     return new SystemPromptComposerImpl(contributors);
@@ -251,16 +241,6 @@ public class AgenticAiConnectorsAutoConfiguration {
   public ToolCallResultDocumentExtractor toolCallResultDocumentExtractor(
       GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new ToolCallResultDocumentExtractor(gatewayToolHandlers);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public AgentMessagesHandler aiAgentMessagesHandler(
-      GatewayToolHandlerRegistry gatewayToolHandlers,
-      SystemPromptComposer systemPromptComposer,
-      ToolCallResultDocumentExtractor documentExtractor) {
-    return new AgentMessagesHandlerImpl(
-        gatewayToolHandlers, systemPromptComposer, documentExtractor);
   }
 
   @Bean
