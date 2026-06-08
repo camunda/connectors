@@ -48,14 +48,14 @@ public class AgentInitializerImpl implements AgentInitializer {
         Optional.ofNullable(executionContext.initialAgentContext())
             .orElseGet(() -> provisionAgentInstance(executionContext));
 
-    List<ToolCallResult> engineToolCallResults =
+    List<ToolCallResult> initialToolCallResults =
         Optional.ofNullable(executionContext.initialToolCallResults()).orElseGet(List::of);
 
     return switch (agentContext.state()) {
       case INITIALIZING ->
-          beginToolDiscovery(executionContext, agentContext, engineToolCallResults);
-      case TOOL_DISCOVERY -> completeToolDiscovery(agentContext, engineToolCallResults);
-      default -> resumeReadyAgent(executionContext, agentContext, engineToolCallResults);
+          beginToolDiscovery(executionContext, agentContext, initialToolCallResults);
+      case TOOL_DISCOVERY -> completeToolDiscovery(agentContext, initialToolCallResults);
+      default -> resumeReadyAgent(executionContext, agentContext, initialToolCallResults);
     };
   }
 
@@ -77,7 +77,7 @@ public class AgentInitializerImpl implements AgentInitializer {
   private AgentInitializationResult resumeReadyAgent(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      List<ToolCallResult> engineToolCallResults) {
+      List<ToolCallResult> initialToolCallResults) {
 
     final var agentMetadata = agentContext.metadata();
     final var executionMetadata = AgentMetadata.of(executionContext.jobContext());
@@ -89,29 +89,29 @@ public class AgentInitializerImpl implements AgentInitializer {
               .withMetadata(executionMetadata);
     }
 
-    return new ReadyToConverse(agentContext, engineToolCallResults);
+    return new ReadyToConverse(agentContext, initialToolCallResults);
   }
 
   private AgentInitializationResult beginToolDiscovery(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      List<ToolCallResult> engineToolCallResults) {
+      List<ToolCallResult> initialToolCallResults) {
     // add ad-hoc tool definitions to agent context
     final var adHocToolsSchema = toolsResolver.loadAdHocToolsSchema(executionContext, agentContext);
     agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());
 
     if (CollectionUtils.isEmpty(adHocToolsSchema.gatewayToolDefinitions())) {
-      return new ReadyToConverse(agentContext.withState(AgentState.READY), engineToolCallResults);
+      return new ReadyToConverse(agentContext.withState(AgentState.READY), initialToolCallResults);
     }
 
     // handle gateway tool definitions (e.g. MCP)
     return dispatchGatewayToolDiscovery(
-        agentContext, engineToolCallResults, adHocToolsSchema.gatewayToolDefinitions());
+        agentContext, initialToolCallResults, adHocToolsSchema.gatewayToolDefinitions());
   }
 
   private AgentInitializationResult dispatchGatewayToolDiscovery(
       AgentContext agentContext,
-      List<ToolCallResult> engineToolCallResults,
+      List<ToolCallResult> initialToolCallResults,
       List<GatewayToolDefinition> gatewayToolDefinitions) {
     GatewayToolDiscoveryInitiationResult initiationResult =
         gatewayToolHandlers.initiateToolDiscovery(agentContext, gatewayToolDefinitions);
@@ -124,18 +124,18 @@ public class AgentInitializerImpl implements AgentInitializer {
           agentContext.withState(AgentState.TOOL_DISCOVERY), discoveryToolCalls);
     } else {
       // no tool discovery needed -> agent is ready for requests
-      return new ReadyToConverse(agentContext.withState(AgentState.READY), engineToolCallResults);
+      return new ReadyToConverse(agentContext.withState(AgentState.READY), initialToolCallResults);
     }
   }
 
   private AgentInitializationResult completeToolDiscovery(
-      AgentContext agentContext, List<ToolCallResult> engineToolCallResults) {
-    if (!gatewayToolHandlers.allToolDiscoveryResultsPresent(agentContext, engineToolCallResults)) {
+      AgentContext agentContext, List<ToolCallResult> initialToolCallResults) {
+    if (!gatewayToolHandlers.allToolDiscoveryResultsPresent(agentContext, initialToolCallResults)) {
       return new DeferConversation();
     }
 
     final var gatewayToolDiscoveryResult =
-        gatewayToolHandlers.handleToolDiscoveryResults(agentContext, engineToolCallResults);
+        gatewayToolHandlers.handleToolDiscoveryResults(agentContext, initialToolCallResults);
 
     return new ReadyToConverse(
         gatewayToolDiscoveryResult.agentContext().withState(AgentState.READY),
