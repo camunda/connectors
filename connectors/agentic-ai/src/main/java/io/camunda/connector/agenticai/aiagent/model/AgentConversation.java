@@ -15,22 +15,20 @@ import java.util.List;
  * Transient domain aggregate representing the agent's conversation state for one turn.
  *
  * <p>{@code context} and {@code runtimeMemory} are <em>restored</em> from persisted state at the
- * start of each turn. {@code engineToolCallResults} is <em>this turn's new engine input</em>,
- * primed to be folded into the conversation by the message handler.
+ * start of each turn. {@code toolCallResults} is <em>this turn's new engine input</em>, primed to
+ * be folded into the conversation by the message handler.
  */
 public final class AgentConversation {
 
   private AgentContext context;
   private final RuntimeMemory messageMemory;
-  private final List<ToolCallResult> engineToolCallResults;
+  private final List<ToolCallResult> toolCallResults;
 
   private AgentConversation(
-      AgentContext context,
-      RuntimeMemory messageMemory,
-      List<ToolCallResult> engineToolCallResults) {
+      AgentContext context, RuntimeMemory messageMemory, List<ToolCallResult> toolCallResults) {
     this.context = context;
     this.messageMemory = messageMemory;
-    this.engineToolCallResults = engineToolCallResults;
+    this.toolCallResults = toolCallResults;
   }
 
   /**
@@ -38,14 +36,12 @@ public final class AgentConversation {
    *
    * @param context the durable agent context restored from the process variable
    * @param messageMemory runtime memory restored from the conversation store
-   * @param engineToolCallResults this turn's new tool-call results from the engine, to be folded in
+   * @param toolCallResults this turn's new tool-call results from the engine, to be folded in
    * @return a rehydrated {@code AgentConversation}
    */
   public static AgentConversation rehydrate(
-      AgentContext context,
-      RuntimeMemory messageMemory,
-      List<ToolCallResult> engineToolCallResults) {
-    return new AgentConversation(context, messageMemory, engineToolCallResults);
+      AgentContext context, RuntimeMemory messageMemory, List<ToolCallResult> toolCallResults) {
+    return new AgentConversation(context, messageMemory, toolCallResults);
   }
 
   public AgentContext context() {
@@ -68,7 +64,7 @@ public final class AgentConversation {
     return messageMemory;
   }
 
-  public List<ToolCallResult> engineToolCallResults() {
-    return engineToolCallResults;
+  public List<ToolCallResult> toolCallResults() {
+    return toolCallResults;
   }
 }

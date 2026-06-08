@@ -89,10 +89,9 @@ public abstract class BaseAgentRequestHandler<
             "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
         yield buildConnectorResponse(executionContext, null, null);
       }
-      case ReadyToConverse(var agentContext, var engineToolCallResults) -> {
-        LOGGER.debug(
-            "Handling agent request with {} tool call results", engineToolCallResults.size());
-        yield converse(executionContext, agentContext, engineToolCallResults);
+      case ReadyToConverse(var agentContext, var toolCallResults) -> {
+        LOGGER.debug("Handling agent request with {} tool call results", toolCallResults.size());
+        yield converse(executionContext, agentContext, toolCallResults);
       }
     };
   }
@@ -100,15 +99,14 @@ public abstract class BaseAgentRequestHandler<
   private R converse(
       final C executionContext,
       AgentContext agentContext,
-      final List<ToolCallResult> engineToolCallResults) {
+      final List<ToolCallResult> toolCallResults) {
     final var store =
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
     final var initialMetrics = agentContext.metrics();
 
     try (var session = store.createSession(executionContext, agentContext)) {
       final var runtimeMemory = initializeRuntimeMemory(executionContext, agentContext, session);
-      var conversation =
-          AgentConversation.rehydrate(agentContext, runtimeMemory, engineToolCallResults);
+      var conversation = AgentConversation.rehydrate(agentContext, runtimeMemory, toolCallResults);
 
       var agentResponse = processConversation(executionContext, conversation, session);
 
@@ -188,7 +186,7 @@ public abstract class BaseAgentRequestHandler<
         conversation.context(),
         conversation.runtimeMemory(),
         executionContext.userPrompt(),
-        conversation.engineToolCallResults());
+        conversation.toolCallResults());
   }
 
   private AgentContext updateContextMetrics(

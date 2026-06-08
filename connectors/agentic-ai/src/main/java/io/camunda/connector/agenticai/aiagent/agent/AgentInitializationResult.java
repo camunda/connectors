@@ -14,7 +14,7 @@ import java.util.List;
 public sealed interface AgentInitializationResult {
 
   /** Agent provisioned and tools resolved: proceed to the conversation phase. */
-  record ReadyToConverse(AgentContext agentContext, List<ToolCallResult> engineToolCallResults)
+  record ReadyToConverse(AgentContext agentContext, List<ToolCallResult> toolCallResults)
       implements AgentInitializationResult {}
 
   /** Gateway tools require discovery: dispatch these discovery tool calls, then await results. */

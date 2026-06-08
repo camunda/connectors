@@ -112,7 +112,7 @@ class AgentInitializerTest {
               ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext()).usingRecursiveComparison().isEqualTo(agentContext);
-                assertThat(res.engineToolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
+                assertThat(res.toolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
               });
 
       verifyNoInteractions(toolsResolver, gatewayToolHandlers);
@@ -142,7 +142,7 @@ class AgentInitializerTest {
                         AgentContext.empty()
                             .withState(AgentState.READY)
                             .withMetadata(expectedMetadata));
-                assertThat(res.engineToolCallResults()).isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(gatewayToolHandlers);
@@ -161,7 +161,7 @@ class AgentInitializerTest {
               ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext()).isEqualTo(agentContext);
-                assertThat(res.engineToolCallResults()).isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(toolsResolver, gatewayToolHandlers);
@@ -196,7 +196,7 @@ class AgentInitializerTest {
                 assertThat(res.agentContext())
                     .usingRecursiveComparison()
                     .isEqualTo(AGENT_CONTEXT.withState(AgentState.READY));
-                assertThat(res.engineToolCallResults()).isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(gatewayToolHandlers);
@@ -222,7 +222,7 @@ class AgentInitializerTest {
                         AGENT_CONTEXT
                             .withState(AgentState.READY)
                             .withToolDefinitions(TOOL_DEFINITIONS));
-                assertThat(res.engineToolCallResults()).isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(gatewayToolHandlers);
@@ -258,7 +258,7 @@ class AgentInitializerTest {
                             .withState(AgentState.READY)
                             .withToolDefinitions(TOOL_DEFINITIONS)
                             .withProperty("mcpClients", List.of("AnMcpClient")));
-                assertThat(res.engineToolCallResults()).isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
     }
 
@@ -373,7 +373,7 @@ class AgentInitializerTest {
                             .withProperty("discovered", true));
 
                 // filtered out by the gateway tool handler
-                assertThat(res.engineToolCallResults()).isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
     }
 
@@ -416,8 +416,7 @@ class AgentInitializerTest {
                             .withProperty("mcpClients", List.of("AnMcpClient"))
                             .withProperty("discovered", true));
 
-                assertThat(res.engineToolCallResults())
-                    .containsExactlyElementsOf(TOOL_CALL_RESULTS);
+                assertThat(res.toolCallResults()).containsExactlyElementsOf(TOOL_CALL_RESULTS);
               });
     }
 
@@ -542,7 +541,7 @@ class AgentInitializerTest {
               ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext()).isEqualTo(agentContext);
-                assertThat(res.engineToolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
+                assertThat(res.toolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
               });
 
       verifyNoInteractions(toolsResolver, gatewayToolHandlers);
