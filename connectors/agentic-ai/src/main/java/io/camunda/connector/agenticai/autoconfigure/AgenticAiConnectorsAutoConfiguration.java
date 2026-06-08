@@ -264,8 +264,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentResponseHandler aiAgentResponseHandler(
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new AgentResponseHandlerImpl(objectMapper);
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
   }
 
   @Bean

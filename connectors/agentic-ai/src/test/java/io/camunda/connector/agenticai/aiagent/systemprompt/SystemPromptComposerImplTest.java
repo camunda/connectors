@@ -7,10 +7,12 @@
 package io.camunda.connector.agenticai.aiagent.systemprompt;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
+import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -20,28 +22,30 @@ import org.junit.jupiter.params.provider.NullSource;
 
 class SystemPromptComposerImplTest {
 
+  private static AgentConversation conversationWithSystemPrompt(SystemPromptConfiguration config) {
+    var ctx = AgentContext.builder().state(AgentState.READY).build();
+    var agentConfig = new AgentConfiguration(null, config, null, null, null, null);
+    var input = new AgentInvocationInput(null, List.of());
+    return AgentConversation.rehydrate(List.of(), ctx, input, agentConfig);
+  }
+
   @Test
   void shouldComposeWithBasePromptOnly() {
     SystemPromptComposer composer = new SystemPromptComposerImpl(List.of());
-    AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
-    AgentContext agentContext = mock(AgentContext.class);
-    SystemPromptConfiguration config = new SystemPromptConfiguration("Base prompt");
+    var conversation = conversationWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
 
-    String result = composer.composeSystemPrompt(executionContext, agentContext, config);
+    String result = composer.compose(conversation);
 
     assertThat(result).isEqualTo("Base prompt");
   }
 
   @Test
   void shouldComposeWithSingleContributor() {
-    SystemPromptContributor contributor = (ctx, agentCtx) -> "Additional instructions";
+    SystemPromptContributor contributor = conv -> "Additional instructions";
     SystemPromptComposer composer = new SystemPromptComposerImpl(List.of(contributor));
+    var conversation = conversationWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
 
-    AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
-    AgentContext agentContext = mock(AgentContext.class);
-    SystemPromptConfiguration config = new SystemPromptConfiguration("Base prompt");
-
-    String result = composer.composeSystemPrompt(executionContext, agentContext, config);
+    String result = composer.compose(conversation);
 
     assertThat(result).isEqualTo("Base prompt\n\nAdditional instructions");
   }
@@ -51,7 +55,7 @@ class SystemPromptComposerImplTest {
     SystemPromptContributor contributor1 =
         new SystemPromptContributor() {
           @Override
-          public String contributeSystemPrompt(AgentExecutionContext ctx, AgentContext agentCtx) {
+          public String contribute(AgentConversation conv) {
             return "First contribution";
           }
 
@@ -64,7 +68,7 @@ class SystemPromptComposerImplTest {
     SystemPromptContributor contributor2 =
         new SystemPromptContributor() {
           @Override
-          public String contributeSystemPrompt(AgentExecutionContext ctx, AgentContext agentCtx) {
+          public String contribute(AgentConversation conv) {
             return "Second contribution";
           }
 
@@ -77,12 +81,9 @@ class SystemPromptComposerImplTest {
     // Add in reverse order to test sorting
     SystemPromptComposer composer =
         new SystemPromptComposerImpl(List.of(contributor2, contributor1));
+    var conversation = conversationWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
 
-    AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
-    AgentContext agentContext = mock(AgentContext.class);
-    SystemPromptConfiguration config = new SystemPromptConfiguration("Base prompt");
-
-    String result = composer.composeSystemPrompt(executionContext, agentContext, config);
+    String result = composer.compose(conversation);
 
     assertThat(result).isEqualTo("Base prompt\n\nFirst contribution\n\nSecond contribution");
   }
@@ -91,32 +92,37 @@ class SystemPromptComposerImplTest {
   @NullSource
   @EmptySource
   void shouldSkipNullOrEmptyContributions(String contribution) {
-    SystemPromptContributor contributor1 = (ctx, agentCtx) -> "Valid contribution";
-    SystemPromptContributor contributor2 = (ctx, agentCtx) -> contribution;
-    SystemPromptContributor contributor3 = (ctx, agentCtx) -> "Another valid";
+    SystemPromptContributor contributor1 = conv -> "Valid contribution";
+    SystemPromptContributor contributor2 = conv -> contribution;
+    SystemPromptContributor contributor3 = conv -> "Another valid";
 
     SystemPromptComposer composer =
         new SystemPromptComposerImpl(List.of(contributor1, contributor2, contributor3));
+    var conversation = conversationWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
 
-    AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
-    AgentContext agentContext = mock(AgentContext.class);
-    SystemPromptConfiguration config = new SystemPromptConfiguration("Base prompt");
-
-    String result = composer.composeSystemPrompt(executionContext, agentContext, config);
+    String result = composer.compose(conversation);
 
     assertThat(result).isEqualTo("Base prompt\n\nValid contribution\n\nAnother valid");
   }
 
   @Test
   void shouldHandleEmptyBasePrompt() {
-    SystemPromptContributor contributor = (ctx, agentCtx) -> "Contribution";
+    SystemPromptContributor contributor = conv -> "Contribution";
     SystemPromptComposer composer = new SystemPromptComposerImpl(List.of(contributor));
+    var conversation = conversationWithSystemPrompt(new SystemPromptConfiguration(""));
 
-    AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
-    AgentContext agentContext = mock(AgentContext.class);
-    SystemPromptConfiguration config = new SystemPromptConfiguration("");
+    String result = composer.compose(conversation);
 
-    String result = composer.composeSystemPrompt(executionContext, agentContext, config);
+    assertThat(result).isEqualTo("Contribution");
+  }
+
+  @Test
+  void shouldHandleNullSystemPromptConfiguration() {
+    SystemPromptContributor contributor = conv -> "Contribution";
+    SystemPromptComposer composer = new SystemPromptComposerImpl(List.of(contributor));
+    var conversation = conversationWithSystemPrompt(null);
+
+    String result = composer.compose(conversation);
 
     assertThat(result).isEqualTo("Contribution");
   }

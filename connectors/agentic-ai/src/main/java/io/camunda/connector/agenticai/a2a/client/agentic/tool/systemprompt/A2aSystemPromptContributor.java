@@ -8,8 +8,7 @@ package io.camunda.connector.agenticai.a2a.client.agentic.tool.systemprompt;
 
 import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.PROPERTY_A2A_CLIENTS;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContributor;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -38,12 +37,11 @@ public class A2aSystemPromptContributor implements SystemPromptContributor {
   }
 
   @Override
-  public String contributeSystemPrompt(
-      AgentExecutionContext executionContext, AgentContext agentContext) {
+  public String contribute(AgentConversation conversation) {
 
-    // Only contribute if A2A tools are present in the execution context
+    // Only contribute if A2A tools are present in the agent context
     boolean hasA2aTools =
-        agentContext.properties().getOrDefault(PROPERTY_A2A_CLIENTS, List.of())
+        conversation.baseAgentContext().properties().getOrDefault(PROPERTY_A2A_CLIENTS, List.of())
                 instanceof List<?> a2aClients
             && !a2aClients.isEmpty();
 

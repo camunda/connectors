@@ -12,8 +12,11 @@ import static io.camunda.connector.agenticai.model.message.content.ObjectContent
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
@@ -81,8 +84,13 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       AgentContext agentContext,
       RuntimeMemory memory,
       SystemPromptConfiguration systemPrompt) {
-    final var composedSystemPrompt =
-        systemPromptComposer.composeSystemPrompt(executionContext, agentContext, systemPrompt);
+    final var conversation =
+        AgentConversation.rehydrate(
+            List.of(),
+            agentContext,
+            new AgentInvocationInput(null, List.of()),
+            AgentConfiguration.from(executionContext));
+    final var composedSystemPrompt = systemPromptComposer.compose(conversation);
 
     if (StringUtils.isNotBlank(composedSystemPrompt)) {
       // memory will take care of replacing any existing system message if already present

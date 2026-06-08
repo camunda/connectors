@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -216,15 +217,14 @@ class OutboundConnectorAgentRequestHandlerTest {
 
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
         .thenAnswer(i -> i.getArgument(1));
-    when(responseHandler.createResponse(
-            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
+    when(responseHandler.createResponse(any(AgentConversation.class)))
         .thenAnswer(
             i ->
                 AgentResponse.builder()
-                    .context(i.getArgument(1, AgentContext.class))
-                    .responseMessage(i.getArgument(2, AssistantMessage.class))
+                    .context(i.getArgument(0, AgentConversation.class).toAgentContext())
+                    .responseMessage(assistantMessage)
                     .responseText(assistantMessageText)
-                    .toolCalls(i.getArgument(3))
+                    .toolCalls(List.of())
                     .build());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -278,14 +278,22 @@ class OutboundConnectorAgentRequestHandlerTest {
               return toolCalls.stream().map(toolCallTransformer).toList();
             });
 
-    when(responseHandler.createResponse(
-            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
+    when(responseHandler.createResponse(any(AgentConversation.class)))
         .thenAnswer(
             i ->
                 AgentResponse.builder()
-                    .context(i.getArgument(1, AgentContext.class))
-                    .responseMessage(i.getArgument(2, AssistantMessage.class))
-                    .toolCalls(i.getArgument(3))
+                    .context(i.getArgument(0, AgentConversation.class).toAgentContext())
+                    .responseMessage(assistantMessage)
+                    .toolCalls(
+                        i
+                            .getArgument(0, AgentConversation.class)
+                            .lastTurn()
+                            .orElseThrow()
+                            .assistantMessage()
+                            .toolCalls()
+                            .stream()
+                            .map(ToolCallProcessVariable::from)
+                            .toList())
                     .build());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -395,17 +403,12 @@ class OutboundConnectorAgentRequestHandlerTest {
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
         .thenAnswer(i -> i.getArgument(1));
     lenient()
-        .when(
-            responseHandler.createResponse(
-                eq(agentExecutionContext),
-                any(AgentContext.class),
-                eq(assistantMessage),
-                anyList()))
+        .when(responseHandler.createResponse(any(AgentConversation.class)))
         .thenAnswer(
             i ->
                 AgentResponse.builder()
-                    .context(i.getArgument(1, AgentContext.class))
-                    .responseMessage(i.getArgument(2, AssistantMessage.class))
+                    .context(i.getArgument(0, AgentConversation.class).toAgentContext())
+                    .responseMessage(assistantMessage)
                     .build());
 
     // when
@@ -445,17 +448,21 @@ class OutboundConnectorAgentRequestHandlerTest {
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
         .thenAnswer(i -> i.getArgument(1));
     lenient()
-        .when(
-            responseHandler.createResponse(
-                eq(agentExecutionContext),
-                any(AgentContext.class),
-                eq(assistantMessage),
-                anyList()))
+        .when(responseHandler.createResponse(any(AgentConversation.class)))
         .thenAnswer(
             i ->
                 AgentResponse.builder()
-                    .context(i.getArgument(1, AgentContext.class))
-                    .toolCalls(i.getArgument(3))
+                    .context(i.getArgument(0, AgentConversation.class).toAgentContext())
+                    .toolCalls(
+                        i
+                            .getArgument(0, AgentConversation.class)
+                            .lastTurn()
+                            .orElseThrow()
+                            .assistantMessage()
+                            .toolCalls()
+                            .stream()
+                            .map(ToolCallProcessVariable::from)
+                            .toList())
                     .build());
 
     // when
@@ -510,14 +517,12 @@ class OutboundConnectorAgentRequestHandlerTest {
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
         .thenAnswer(i -> i.getArgument(1));
     lenient()
-        .when(
-            responseHandler.createResponse(
-                eq(agentExecutionContext),
-                any(AgentContext.class),
-                eq(assistantMessage),
-                anyList()))
+        .when(responseHandler.createResponse(any(AgentConversation.class)))
         .thenAnswer(
-            i -> AgentResponse.builder().context(i.getArgument(1, AgentContext.class)).build());
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(0, AgentConversation.class).toAgentContext())
+                    .build());
 
     // when
     requestHandler.handleRequest(agentExecutionContext);

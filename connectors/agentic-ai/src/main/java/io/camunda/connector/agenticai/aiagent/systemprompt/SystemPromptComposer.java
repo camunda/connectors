@@ -6,9 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.systemprompt;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 
 /**
  * Composes the final system prompt by combining a base prompt with contributions from registered
@@ -16,8 +14,5 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
  */
 public interface SystemPromptComposer {
 
-  String composeSystemPrompt(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      SystemPromptConfiguration baseSystemPrompt);
+  String compose(AgentConversation conversation);
 }

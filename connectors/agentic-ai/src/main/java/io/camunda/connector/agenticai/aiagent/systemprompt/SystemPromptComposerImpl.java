@@ -6,12 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.systemprompt;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,14 +41,13 @@ public class SystemPromptComposerImpl implements SystemPromptComposer {
   }
 
   @Override
-  public String composeSystemPrompt(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      SystemPromptConfiguration baseSystemPrompt) {
-
+  public String compose(AgentConversation conversation) {
     ArrayList<String> composed = new ArrayList<>();
 
-    String basePrompt = baseSystemPrompt.prompt();
+    String basePrompt =
+        Optional.ofNullable(conversation.configuration().systemPrompt())
+            .map(sp -> sp.prompt())
+            .orElse(null);
     if (StringUtils.isNotBlank(basePrompt)) {
       composed.add(basePrompt);
       LOGGER.trace("Added base system prompt");
@@ -57,7 +55,7 @@ public class SystemPromptComposerImpl implements SystemPromptComposer {
 
     contributors.forEach(
         contributor -> {
-          String contribution = contributor.contributeSystemPrompt(executionContext, agentContext);
+          String contribution = contributor.contribute(conversation);
           if (StringUtils.isNotBlank(contribution)) {
             composed.add(contribution);
             LOGGER.debug(
