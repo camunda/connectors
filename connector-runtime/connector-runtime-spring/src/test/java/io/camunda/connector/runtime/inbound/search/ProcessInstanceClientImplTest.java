@@ -18,27 +18,19 @@ package io.camunda.connector.runtime.inbound.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.client.api.search.response.SearchResponse;
-import io.camunda.client.api.search.response.Variable;
-import io.camunda.client.impl.CamundaObjectMapper;
 import io.camunda.client.impl.search.response.ElementInstanceImpl;
 import io.camunda.client.impl.search.response.SearchResponseImpl;
 import io.camunda.client.impl.search.response.SearchResponsePageImpl;
-import io.camunda.client.impl.search.response.VariableImpl;
 import io.camunda.client.protocol.rest.ElementInstanceResult;
-import io.camunda.client.protocol.rest.VariableResult;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -48,17 +40,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ProcessInstanceClientImplTest {
 
   @Mock private SearchQueryClient searchQueryClient;
-  private ObjectMapper objectMapper;
-
-  @BeforeEach
-  public void setUp() {
-    objectMapper = new ObjectMapper();
-  }
 
   @Test
   public void testFetchFlowNodeInstanceByDefinitionKeyAndElementId() {
-    ProcessInstanceClient processInstanceClient =
-        new ProcessInstanceClientImpl(searchQueryClient, objectMapper);
+    ProcessInstanceClient processInstanceClient = new ProcessInstanceClientImpl(searchQueryClient);
 
     // Given
     Long processDefinitionKey = 123L;
@@ -107,46 +92,6 @@ class ProcessInstanceClientImplTest {
     item.setElementId(flowNodeId);
     item.setTenantId(tenantId);
     return new ElementInstanceImpl(item);
-  }
-
-  @Test
-  public void testFetchVariablesByProcessInstanceKey() {
-    ProcessInstanceClient processInstanceClient =
-        new ProcessInstanceClientImpl(searchQueryClient, objectMapper);
-
-    // Given
-    Long processInstanceKey = 456L;
-    Long elementInstanceKey = 789L;
-
-    Variable variable1 = createVariable("12345", "var1", "value1");
-    Variable variable2 = createVariable("67890", "var2", "value2");
-
-    SearchResponse<Variable> variableSearchResult = createSearchResult(variable1, variable2);
-    SearchResponse<Variable> variableEmptySearchResult = createEmptySearchResult();
-
-    when(searchQueryClient.queryVariables(eq(processInstanceKey), eq(elementInstanceKey), any()))
-        .thenReturn(variableSearchResult)
-        .thenReturn(variableEmptySearchResult);
-
-    // When
-    Map<String, Object> result =
-        processInstanceClient.fetchVariablesByProcessInstanceKey(
-            processInstanceKey, elementInstanceKey);
-
-    // Then
-    assertThat(result.size()).isEqualTo(2);
-
-    assertThat(result.get("var1")).isEqualTo("value1");
-    assertThat(result.get("var2")).isEqualTo("value2");
-  }
-
-  private Variable createVariable(String key, String name, String value) {
-    final var item = new VariableResult();
-    item.setVariableKey(key);
-    item.setScopeKey(key);
-    item.setName(name);
-    item.setValue(value);
-    return new VariableImpl(item, new CamundaObjectMapper());
   }
 
   @SafeVarargs

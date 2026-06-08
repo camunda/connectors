@@ -44,6 +44,12 @@
       <artifactId>connector-runtime-core</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>camunda-client-java</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <profiles>
