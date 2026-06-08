@@ -104,7 +104,8 @@ public class L4JAiAgentConnectorToolCallingTests extends BaseWireMockL4JAiAgentC
     // tool result: document serialized as a document reference (parsed from the tool message text)
     assertRole(lastMessages.get(3), "tool");
     assertThat(lastMessages.get(3).path("tool_call_id").asText()).isEqualTo("aaa111");
-    final var documentReference = parseDocumentReference(lastMessages.get(3).path("content").asText());
+    final var documentReference =
+        parseDocumentReference(lastMessages.get(3).path("content").asText());
     assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
 
     // synthetic user message carrying the extracted document content
@@ -216,8 +217,9 @@ public class L4JAiAgentConnectorToolCallingTests extends BaseWireMockL4JAiAgentC
   }
 
   /**
-   * Asserts the synthetic "extracted documents" user message in OpenAI-compatible form: a multimodal
-   * {@code content} array of {@code preamble (text) + <doc/> tag (text) + content block}.
+   * Asserts the synthetic "extracted documents" user message in OpenAI-compatible form: a
+   * multimodal {@code content} array of {@code preamble (text) + <doc/> tag (text) + content
+   * block}.
    *
    * <p>The content block is classified the same way as {@link
    * io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions#assertDocumentContentBlock}:

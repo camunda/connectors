@@ -63,8 +63,8 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   /**
    * Ordered user feedback consumed one entry per {@code user_feedback} job invocation. This
    * decouples per-turn feedback from the model call, which the WireMock-based tests need (the
-   * previous Mockito mock set feedback as a side effect of each {@code chat()} call). When the queue
-   * is exhausted, the worker falls back to {@link #userFeedbackVariables}.
+   * previous Mockito mock set feedback as a side effect of each {@code chat()} call). When the
+   * queue is exhausted, the worker falls back to {@link #userFeedbackVariables}.
    */
   protected final ConcurrentLinkedQueue<Map<String, Object>> userFeedbackQueue =
       new ConcurrentLinkedQueue<>();

@@ -52,9 +52,7 @@ public final class RecordedLlmConversation {
   public static RecordedLlmConversation recorded() {
     final List<LoggedRequest> loggedRequests =
         new ArrayList<>(
-            findAll(
-                postRequestedFor(
-                    urlPathEqualTo(OpenAiChatModelStubs.CHAT_COMPLETIONS_PATH))));
+            findAll(postRequestedFor(urlPathEqualTo(OpenAiChatModelStubs.CHAT_COMPLETIONS_PATH))));
 
     // WireMock does not guarantee ordering across versions; sort chronologically. The agent loop is
     // strictly sequential (each model call waits for the previous turn's tools), so logged

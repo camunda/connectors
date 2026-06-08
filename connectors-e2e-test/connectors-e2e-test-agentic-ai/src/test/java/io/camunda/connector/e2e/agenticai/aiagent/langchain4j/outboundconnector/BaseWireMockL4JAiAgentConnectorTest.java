@@ -51,12 +51,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  *
  * <p>The default element template ({@code provider.type = openai}) cannot redirect its base URL, so
  * this base swaps the provider to {@code openaiCompatible} pointed at the WireMock server. The real
- * LangChain4j {@code OpenAiChatModel} then performs the HTTP calls, exercising request serialization
- * and response parsing end-to-end.
+ * LangChain4j {@code OpenAiChatModel} then performs the HTTP calls, exercising request
+ * serialization and response parsing end-to-end.
  *
- * <p>Conversations are stubbed via {@link OpenAiChatModelStubs}; the requests the connector actually
- * sent are inspected via {@link RecordedLlmConversation} (the replacement for the previous {@code
- * ArgumentCaptor<ChatRequest>}).
+ * <p>Conversations are stubbed via {@link OpenAiChatModelStubs}; the requests the connector
+ * actually sent are inspected via {@link RecordedLlmConversation} (the replacement for the previous
+ * {@code ArgumentCaptor<ChatRequest>}).
  */
 @SlowTest
 abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
@@ -90,7 +90,8 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       Map<String, Object> variables)
       throws IOException {
-    // Apply the provider redirect first, then the caller's modifier (so callers can still override).
+    // Apply the provider redirect first, then the caller's modifier (so callers can still
+    // override).
     final Function<ElementTemplate, ElementTemplate> composed =
         ((Function<ElementTemplate, ElementTemplate>) this::withOpenAiCompatibleProvider)
             .andThen(elementTemplateModifier);
@@ -203,7 +204,9 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
             20,
             ToolCall.of("aaa111", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"),
             ToolCall.of(
-                "bbb222", "Search_The_Web", "{\"searchQuery\": \"Where does this data come from?\"}"),
+                "bbb222",
+                "Search_The_Web",
+                "{\"searchQuery\": \"Where does this data come from?\"}"),
             ToolCall.of("ccc333", "SuperfluxProduct", "{\"a\": 6, \"b\": 4}")),
         Turn.text(secondAiMessage, 100, 200),
         Turn.text(responseText, 11, 22));
@@ -226,8 +229,7 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
         ExpectedMessage.assistantWithToolCalls(
             firstAiMessage, "SuperfluxProduct", "Search_The_Web", "SuperfluxProduct"),
         ExpectedMessage.toolResult("aaa111", "24"),
-        ExpectedMessage.toolResult(
-            "bbb222", "No results for 'Where does this data come from?'"),
+        ExpectedMessage.toolResult("bbb222", "No results for 'Where does this data come from?'"),
         ExpectedMessage.toolResult("ccc333", "30"),
         ExpectedMessage.assistant(secondAiMessage),
         ExpectedMessage.user(followUpPrompt));
@@ -303,19 +305,14 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
     }
 
     void assertMatches(int index, JsonNode message) {
-      assertThat(message.path("role").asText())
-          .as("role of message %d", index)
-          .isEqualTo(role);
+      assertThat(message.path("role").asText()).as("role of message %d", index).isEqualTo(role);
 
       if (text != null) {
-        assertThat(textContent(message))
-            .as("text content of message %d", index)
-            .isEqualTo(text);
+        assertThat(textContent(message)).as("text content of message %d", index).isEqualTo(text);
       }
 
       if (toolCallNames != null) {
-        final var actualNames =
-            toolCallNamesOf(message);
+        final var actualNames = toolCallNamesOf(message);
         assertThat(actualNames)
             .as("tool call names of message %d", index)
             .containsExactlyElementsOf(toolCallNames);
