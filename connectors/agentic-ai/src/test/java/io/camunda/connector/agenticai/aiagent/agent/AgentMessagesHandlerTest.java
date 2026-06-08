@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -124,6 +125,8 @@ class AgentMessagesHandlerTest {
 
     @Test
     void addsSystemMessage() {
+      // deep stubs would otherwise try to mock the sealed ProviderConfiguration
+      doReturn(null).when(executionContext).provider();
       final var systemPrompt = new SystemPromptConfiguration("You are a helpful assistant.");
       messagesHandler.addSystemMessage(
           executionContext, AgentContext.empty(), runtimeMemory, systemPrompt);

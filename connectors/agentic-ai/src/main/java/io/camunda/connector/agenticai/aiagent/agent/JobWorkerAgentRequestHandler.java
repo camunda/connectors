@@ -12,12 +12,12 @@ import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.ConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 public class JobWorkerAgentRequestHandler
     extends BaseAgentRequestHandler<
@@ -37,43 +36,47 @@ public class JobWorkerAgentRequestHandler
   public JobWorkerAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
-      AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
-      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentInputComposer agentInputComposer,
       AiFrameworkAdapter<?> framework,
+      SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
     super(
         agentInitializer,
         conversationStoreRegistry,
-        limitsValidator,
-        messagesHandler,
-        gatewayToolHandlers,
+        agentInputComposer,
         framework,
+        systemPromptComposer,
         responseHandler,
         agentInstanceClient);
   }
 
   @Override
-  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentResponse agentResponse) {
-    return agentResponse.toolCalls().isEmpty();
+  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentConversation conversation) {
+    return !conversation.lastTurn().map(ConversationTurn::hasToolCalls).orElse(false);
   }
 
   @Override
-  protected boolean modelCallPrerequisitesFulfilled(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentContext agentContext,
-      List<Message> addedUserMessages) {
-    return !CollectionUtils.isEmpty(addedUserMessages);
+  protected AiAgentSubProcessConnectorResponse handleInputCancel(
+      JobWorkerAgentExecutionContext executionContext, String errorCode, String message) {
+    LOGGER.warn(
+        "Agent cannot proceed ({}): {}. Completing job {} without response.",
+        errorCode,
+        message,
+        executionContext.jobContext().getJobKey());
+    return buildConnectorResponse(executionContext, null, null);
   }
 
   @Override
-  protected void handleAddedUserMessages(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentContext agentContext,
-      List<Message> addedUserMessages) {
+  protected void onInputApplied(
+      JobWorkerAgentExecutionContext executionContext, AgentConversation conversation) {
+    final var pendingInputMessages = conversation.pendingInputMessages();
+    if (pendingInputMessages == null) {
+      return;
+    }
+
     final boolean hasInterruptedToolCalls =
-        addedUserMessages.stream()
+        pendingInputMessages.stream()
             .filter(ToolCallResultMessage.class::isInstance)
             .map(ToolCallResultMessage.class::cast)
             .flatMap(msg -> msg.results().stream())

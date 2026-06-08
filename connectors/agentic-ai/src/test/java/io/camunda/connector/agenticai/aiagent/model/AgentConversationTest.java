@@ -35,7 +35,7 @@ class AgentConversationTest {
   @Test
   void rehydrate_reconstructsTurnsFromHistory() {
     var messages =
-        List.of(
+        List.<Message>of(
             userMessage("hi"),
             assistantMessage("thinking", TOOL_CALLS),
             toolCallResultMessage(TOOL_CALL_RESULTS),
@@ -145,7 +145,7 @@ class AgentConversationTest {
 
   @Test
   void expectingToolCallResults_trueWhenLastTurnHasToolCalls() {
-    var messages = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
+    var messages = List.<Message>of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var conv = AgentConversation.rehydrate(messages, BASE_CONTEXT, EMPTY_INPUT, CONFIG);
     assertThat(conv.expectingToolCallResults()).isTrue();
   }
