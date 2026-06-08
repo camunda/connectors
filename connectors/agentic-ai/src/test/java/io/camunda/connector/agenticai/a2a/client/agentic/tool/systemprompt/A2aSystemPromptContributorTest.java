@@ -9,11 +9,12 @@ package io.camunda.connector.agenticai.a2a.client.agentic.tool.systemprompt;
 import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.PROPERTY_A2A_CLIENTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
+import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Map;
@@ -26,17 +27,20 @@ import org.springframework.core.io.ClassPathResource;
 
 class A2aSystemPromptContributorTest {
 
+  private static AgentConversation conversationWithProperties(Map<String, Object> properties) {
+    var ctx = AgentContext.builder().state(AgentState.READY).properties(properties).build();
+    var config = new AgentConfiguration(null, null, null, null, null, null);
+    var input = new AgentInvocationInput(null, List.of());
+    return AgentConversation.rehydrate(List.of(), ctx, input, config);
+  }
+
   @Test
   void shouldContributeWhenA2aToolsPresent() {
     A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
+    var conversation =
+        conversationWithProperties(Map.of(PROPERTY_A2A_CLIENTS, List.of("RemoteAgent")));
 
-    AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
-    AgentContext agentContext = mock(AgentContext.class);
-
-    when(agentContext.properties())
-        .thenReturn(Map.of(PROPERTY_A2A_CLIENTS, List.of("RemoteAgent")));
-
-    String result = contributor.contributeSystemPrompt(executionContext, agentContext);
+    String result = contributor.contribute(conversation);
 
     assertThat(result).isNotNull();
     assertThat(result).contains("A2A Remote Agent Interaction Guide");
@@ -46,13 +50,9 @@ class A2aSystemPromptContributorTest {
   @MethodSource("noA2aToolsPropertiesProvider")
   void shouldNotContributeWhenNoA2aTools(Map<String, Object> properties) {
     A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
+    var conversation = conversationWithProperties(properties);
 
-    AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
-    AgentContext agentContext = mock(AgentContext.class);
-
-    when(agentContext.properties()).thenReturn(properties);
-
-    String result = contributor.contributeSystemPrompt(executionContext, agentContext);
+    String result = contributor.contribute(conversation);
 
     assertThat(result).isNull();
   }
