@@ -6,65 +6,280 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.agent.ValidationResult;
+import io.camunda.connector.agenticai.aiagent.agent.ValidationResult.Violation;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
+import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
+import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.model.message.MessageUtil;
+import io.camunda.connector.agenticai.model.message.SystemMessage;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 
 /**
- * Transient domain aggregate representing the agent's conversation state for one turn.
+ * Immutable domain aggregate representing the agent's full conversation across all turns.
  *
- * <p>{@code context} and {@code runtimeMemory} are <em>restored</em> from persisted state at the
- * start of each turn. {@code toolCallResults} is <em>this turn's new engine input</em>, primed to
- * be folded into the conversation by the message handler.
+ * <p>Built once per invocation via {@link #rehydrate}, then mutated through copy-on-write methods:
+ * {@link #updateSystemMessage}, {@link #applyInput}, {@link #ingest}, {@link
+ * #withStoredConversation}.
  */
 public final class AgentConversation {
 
-  private AgentContext context;
-  private final RuntimeMemory runtimeMemory;
-  private final List<ToolCallResult> toolCallResults;
+  private static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
+  private static final int DEFAULT_MAX_MODEL_CALLS = 10;
+  private static final String ERROR_MAX_MODEL_CALLS = "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED";
+
+  private final @Nullable SystemMessage systemMessage;
+  private final List<ConversationTurn> turns;
+  private final @Nullable List<Message> pendingInputMessages;
+  private final AgentContext baseAgentContext;
+  private final AgentInvocationInput invocationInput;
+  private final AgentConfiguration configuration;
+  private final AgentMetrics metricsDelta;
 
   private AgentConversation(
-      AgentContext context, RuntimeMemory runtimeMemory, List<ToolCallResult> toolCallResults) {
-    this.context = context;
-    this.runtimeMemory = runtimeMemory;
-    this.toolCallResults = toolCallResults;
+      @Nullable SystemMessage systemMessage,
+      List<ConversationTurn> turns,
+      @Nullable List<Message> pendingInputMessages,
+      AgentContext baseAgentContext,
+      AgentInvocationInput invocationInput,
+      AgentConfiguration configuration,
+      AgentMetrics metricsDelta) {
+    this.systemMessage = systemMessage;
+    this.turns = List.copyOf(turns);
+    this.pendingInputMessages =
+        pendingInputMessages == null ? null : List.copyOf(pendingInputMessages);
+    this.baseAgentContext = baseAgentContext;
+    this.invocationInput = invocationInput;
+    this.configuration = configuration;
+    this.metricsDelta = metricsDelta;
   }
 
   /**
-   * Builds the aggregate from persisted state and this turn's engine input.
+   * Rehydrates a conversation from persisted messages and current invocation inputs.
    *
-   * @param context the durable agent context restored from the process variable
-   * @param messageMemory runtime memory restored from the conversation store
-   * @param toolCallResults this turn's new tool-call results from the engine, to be folded in
+   * @param loadedMessages flat message list loaded from the conversation store
+   * @param agentContext durable agent context restored from the process variable
+   * @param invocationInput per-invocation user prompt and engine tool call results
+   * @param configuration static per-invocation configuration
    * @return a rehydrated {@code AgentConversation}
    */
   public static AgentConversation rehydrate(
-      AgentContext context, RuntimeMemory messageMemory, List<ToolCallResult> toolCallResults) {
-    return new AgentConversation(context, messageMemory, toolCallResults);
+      List<Message> loadedMessages,
+      AgentContext agentContext,
+      AgentInvocationInput invocationInput,
+      AgentConfiguration configuration) {
+    var reconstructed = TurnReconstructor.reconstruct(loadedMessages);
+    return new AgentConversation(
+        reconstructed.systemMessage().orElse(null),
+        reconstructed.turns(),
+        null,
+        agentContext,
+        invocationInput,
+        configuration,
+        AgentMetrics.empty());
   }
 
-  public AgentContext context() {
-    return context;
+  /**
+   * Returns a new instance with the system message set (or removed if blank).
+   *
+   * @param composedPrompt the composed system prompt; blank or null removes the system message
+   */
+  public AgentConversation updateSystemMessage(String composedPrompt) {
+    SystemMessage newSysMsg =
+        StringUtils.isBlank(composedPrompt)
+            ? null
+            : SystemMessage.builder()
+                .content(MessageUtil.singleTextContent(composedPrompt))
+                .build();
+    return new AgentConversation(
+        newSysMsg,
+        turns,
+        pendingInputMessages,
+        baseAgentContext,
+        invocationInput,
+        configuration,
+        metricsDelta);
   }
 
-  public void updateContext(AgentContext newContext) {
-    this.context = newContext;
+  /**
+   * Returns a new instance with the given messages set as the pending input for the next LLM call.
+   */
+  public AgentConversation applyInput(List<Message> inputMessages) {
+    return new AgentConversation(
+        systemMessage,
+        turns,
+        inputMessages,
+        baseAgentContext,
+        invocationInput,
+        configuration,
+        metricsDelta);
   }
 
-  public AgentState state() {
-    return context.state();
+  /**
+   * Completes the current pending turn by recording the assistant response and token usage. Clears
+   * {@code pendingInputMessages} and appends a new {@link ConversationTurn}.
+   *
+   * @throws IllegalStateException if called before {@link #applyInput}
+   */
+  public AgentConversation ingest(
+      AssistantMessage assistantMessage, AgentMetrics.TokenUsage tokenUsage) {
+    if (pendingInputMessages == null) {
+      throw new IllegalStateException("ingest() called before applyInput()");
+    }
+    int nextKey = turns.size() + 1;
+    int toolCallCount =
+        assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size();
+    var turnMetrics =
+        AgentMetrics.builder()
+            .modelCalls(1)
+            .tokenUsage(tokenUsage)
+            .toolCalls(toolCallCount)
+            .build();
+    var newTurn =
+        new ConversationTurn(nextKey, pendingInputMessages, assistantMessage, turnMetrics);
+    var newTurns = new ArrayList<>(turns);
+    newTurns.add(newTurn);
+    var newDelta =
+        metricsDelta
+            .incrementModelCalls(1)
+            .incrementTokenUsage(tokenUsage)
+            .incrementToolCalls(toolCallCount);
+    return new AgentConversation(
+        systemMessage, newTurns, null, baseAgentContext, invocationInput, configuration, newDelta);
   }
 
-  public List<ToolDefinition> toolDefinitions() {
-    return context.toolDefinitions();
+  /**
+   * Returns a new instance with the base agent context updated to reference the stored
+   * conversation.
+   */
+  public AgentConversation withStoredConversation(ConversationContext ref) {
+    var updatedCtx = baseAgentContext.withConversation(ref);
+    return new AgentConversation(
+        systemMessage,
+        turns,
+        pendingInputMessages,
+        updatedCtx,
+        invocationInput,
+        configuration,
+        metricsDelta);
   }
 
-  public RuntimeMemory runtimeMemory() {
-    return runtimeMemory;
+  // --- query methods ---
+
+  public Optional<SystemMessage> systemMessage() {
+    return Optional.ofNullable(systemMessage);
   }
 
-  public List<ToolCallResult> toolCallResults() {
-    return toolCallResults;
+  public List<ConversationTurn> turns() {
+    return turns;
+  }
+
+  public @Nullable List<Message> pendingInputMessages() {
+    return pendingInputMessages;
+  }
+
+  public AgentContext baseAgentContext() {
+    return baseAgentContext;
+  }
+
+  public AgentInvocationInput invocationInput() {
+    return invocationInput;
+  }
+
+  public AgentConfiguration configuration() {
+    return configuration;
+  }
+
+  public AgentMetrics metricsDelta() {
+    return metricsDelta;
+  }
+
+  /** Returns the agent instance key from metadata, or {@code null} if metadata is absent. */
+  public @Nullable Long agentInstanceKey() {
+    var metadata = baseAgentContext.metadata();
+    return metadata != null ? metadata.agentInstanceKey() : null;
+  }
+
+  /** Returns {@code true} if the last turn issued tool calls and results are not yet received. */
+  public boolean expectingToolCallResults() {
+    return !turns.isEmpty() && turns.getLast().hasToolCalls();
+  }
+
+  /**
+   * Returns the flat list of all messages: system message (if present), all turn messages (input +
+   * assistant), and any pending input messages.
+   */
+  public List<Message> allMessages() {
+    var messages = new ArrayList<Message>();
+    if (systemMessage != null) {
+      messages.add(systemMessage);
+    }
+    for (var turn : turns) {
+      messages.addAll(turn.inputMessages());
+      messages.add(turn.assistantMessage());
+    }
+    if (pendingInputMessages != null) {
+      messages.addAll(pendingInputMessages);
+    }
+    return List.copyOf(messages);
+  }
+
+  /**
+   * Applies the context window filter and returns a {@link ConversationSnapshot} ready to send to
+   * the LLM.
+   */
+  public ConversationSnapshot window() {
+    int windowSize =
+        Optional.ofNullable(configuration.memory())
+            .map(m -> m.contextWindowSize())
+            .orElse(DEFAULT_CONTEXT_WINDOW_SIZE);
+    var windowed = MessageWindowFilter.apply(allMessages(), windowSize);
+    return new ConversationSnapshot(windowed, baseAgentContext.toolDefinitions());
+  }
+
+  /** Validates the agent has not exceeded configured model call limits. */
+  public ValidationResult checkLimits(LimitsConfiguration limits) {
+    int maxModelCalls =
+        Optional.ofNullable(limits)
+            .map(LimitsConfiguration::maxModelCalls)
+            .filter(v -> v != null)
+            .orElse(DEFAULT_MAX_MODEL_CALLS);
+    int current = baseAgentContext.metrics().modelCalls();
+    if (current >= maxModelCalls) {
+      return ValidationResult.of(
+          List.of(
+              new Violation(
+                  ERROR_MAX_MODEL_CALLS,
+                  "Maximum number of model calls reached (modelCalls: %d, limit: %d)"
+                      .formatted(current, maxModelCalls))));
+    }
+    return ValidationResult.valid();
+  }
+
+  /**
+   * Produces an updated {@link AgentContext} with cumulative metrics from all turns ingested in
+   * this invocation applied on top of the base context metrics.
+   */
+  public AgentContext toAgentContext() {
+    var delta = metricsDelta;
+    var total =
+        baseAgentContext
+            .metrics()
+            .incrementModelCalls(delta.modelCalls())
+            .incrementTokenUsage(delta.tokenUsage())
+            .incrementToolCalls(delta.toolCalls());
+    return baseAgentContext.withMetrics(total);
+  }
+
+  /** Returns the last turn, or empty if no turns have been completed. */
+  public Optional<ConversationTurn> lastTurn() {
+    return turns.isEmpty() ? Optional.empty() : Optional.of(turns.getLast());
   }
 }
