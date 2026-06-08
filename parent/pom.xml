@@ -111,7 +111,7 @@ limitations under the License.</license.inlineheader>
 
     <version.localstack>2.0.5</version.localstack>
 
-    <version.okhttp>5.3.2</version.okhttp>
+    <version.okhttp>5.4.0</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
     <version.opensearch-client>2.26.0</version.opensearch-client>
 
