@@ -115,12 +115,8 @@ public class L4JAiAgentConnectorToolCallingTests extends BaseWireMockL4JAiAgentC
                 "Download_A_File",
                 documentReference.documentId(),
                 documentReference.storeId(),
-                documentReference.metadata() != null
-                    ? documentReference.metadata().getContentType()
-                    : null,
-                documentReference.metadata() != null
-                    ? documentReference.metadata().getFileName()
-                    : null)
+                documentReference.metadata().getContentType(),
+                documentReference.metadata().getFileName())
             .toXml();
     assertExtractedDocumentsUserMessage(lastMessages.get(4), expectedXmlTag, type, mimeType);
 
