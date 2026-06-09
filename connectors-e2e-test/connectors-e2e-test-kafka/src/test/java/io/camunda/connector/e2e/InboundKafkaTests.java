@@ -21,6 +21,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.search.response.ProcessDefinition;
+import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.e2e.helper.KafkaTestProducer;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
@@ -30,6 +31,7 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -158,5 +161,16 @@ public class InboundKafkaTests extends BaseKafkaTest {
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
     lenient().when(processDef.getVersion()).thenReturn(1);
     when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
+
+    // Stub queryProcessDefinitions so the periodic import scheduler keeps re-registering the
+    // process definition. Without this, the scheduler calls queryProcessDefinitions() every 5s,
+    // gets null (unstubbed mock), produces an empty ImportResult, and deactivates the connector.
+    @SuppressWarnings("unchecked")
+    SearchResponse<ProcessDefinition> processDefSearchResponse =
+        Mockito.mock(SearchResponse.class, Mockito.RETURNS_DEEP_STUBS);
+    when(processDefSearchResponse.items()).thenReturn(List.of(processDef));
+    lenient()
+        .when(searchQueryClient.queryProcessDefinitions(Mockito.nullable(String.class)))
+        .thenReturn(processDefSearchResponse);
   }
 }
