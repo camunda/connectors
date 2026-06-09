@@ -23,11 +23,14 @@ import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.hostvalidator.CidrRange;
+import io.camunda.connector.hostvalidator.VerifiedHostValidator;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
@@ -41,15 +44,20 @@ import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.console.JwtCredential;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import jakarta.validation.ConstraintValidatorFactory;
+import jakarta.validation.Validation;
 import java.net.URL;
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -266,5 +274,51 @@ public class ConnectorsAutoConfiguration {
 
     OAuthTokenCache cache = oAuthTokenCacheProvider.getIfAvailable(OAuthTokenCacheHolder::get);
     LOG.debug("OAuth token cache stats: {}", cache.getStats());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(ValidationProvider.class)
+  VerifiedHostValidator verifiedHostValidator(ConnectorProperties connectorProperties) {
+    var validation =
+        Optional.ofNullable(connectorProperties.validation())
+            .orElseGet(
+                () ->
+                    new ConnectorProperties.Validation(
+                        new ConnectorProperties.Validation.Hosts(false, null, null, false, false)));
+    var allowRanges =
+        Optional.ofNullable(validation.hosts().allowRanges()).orElseGet(List::of).stream()
+            .map(CidrRange::parse)
+            .toList();
+    List<CidrRange> denyRanges =
+        Optional.ofNullable(validation.hosts().denyRanges()).orElseGet(List::of).stream()
+            .map(CidrRange::parse)
+            .toList();
+    var config =
+        new VerifiedHostValidator.Config(
+            validation.hosts().enabled(),
+            allowRanges,
+            denyRanges,
+            validation.hosts().unsafeAllowPrivateRanges(),
+            validation.hosts().unsafeAllowLoopback());
+    return new VerifiedHostValidator(config);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(ValidationProvider.class)
+  SpringBeanConstraintValidatorFactory springConstraintValidatorFactory(
+      AutowireCapableBeanFactory autowireCapableBeanFactory) {
+    return new SpringBeanConstraintValidatorFactory(autowireCapableBeanFactory);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(ValidationProvider.class)
+  ValidationProvider validationProvider(ConstraintValidatorFactory constraintValidatorFactory) {
+    var validationFactory =
+        Validation.byDefaultProvider()
+            .configure()
+            .messageInterpolator(new ParameterMessageInterpolator())
+            .constraintValidatorFactory(constraintValidatorFactory)
+            .buildValidatorFactory();
+    return new DefaultValidationProvider(validationFactory);
   }
 }

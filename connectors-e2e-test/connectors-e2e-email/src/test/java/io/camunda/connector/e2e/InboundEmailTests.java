@@ -52,7 +52,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=true"
+      "camunda.connector.polling.enabled=true",
+      "camunda.connector.validation.hosts.enabled=true",
+      "camunda.connector.validation.hosts.unsafe-allow-loopback=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest

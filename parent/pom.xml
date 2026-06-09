@@ -433,6 +433,18 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>host-ip-validator</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>host-ip-validator-annotation</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
         <groupId>io.camunda</groupId>
         <artifactId>camunda-spring-boot-starter</artifactId>
         <version>${version.camunda}</version>
