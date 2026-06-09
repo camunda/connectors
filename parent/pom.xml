@@ -145,7 +145,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-kiota-abstraction>1.9.2</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.3</version.azure-identity>
-    <version.azure-core>1.58.0</version.azure-core>
+    <version.azure-core>1.58.1</version.azure-core>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
     <version.bouncycastle>1.84</version.bouncycastle>
