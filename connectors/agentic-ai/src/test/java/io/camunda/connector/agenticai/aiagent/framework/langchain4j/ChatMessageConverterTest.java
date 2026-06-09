@@ -204,6 +204,7 @@ class ChatMessageConverterTest {
     final var chatResponseMetadata =
         ChatResponseMetadata.builder()
             .id("chatcmpl-123")
+            .modelName("my-model")
             .finishReason(FinishReason.STOP)
             .tokenUsage(new TokenUsage(10, 20))
             .build();
@@ -234,6 +235,7 @@ class ChatMessageConverterTest {
         .asInstanceOf(InstanceOfAssertFactories.MAP)
         .containsExactly(
             entry("id", "chatcmpl-123"),
+            entry("model", "my-model"),
             entry("finishReason", "STOP"),
             entry(
                 "tokenUsage",
@@ -247,6 +249,7 @@ class ChatMessageConverterTest {
     final var chatResponseMetadata =
         OpenAiChatResponseMetadata.builder()
             .id("chatcmpl-123")
+            .modelName("gpt-4o")
             .finishReason(FinishReason.TOOL_EXECUTION)
             .tokenUsage(
                 OpenAiTokenUsage.builder()
@@ -281,9 +284,36 @@ class ChatMessageConverterTest {
         .asInstanceOf(InstanceOfAssertFactories.MAP)
         .containsExactly(
             entry("id", "chatcmpl-123"),
+            entry("model", "gpt-4o"),
             entry("finishReason", "TOOL_EXECUTION"),
             entry("tokenUsage", expectedTokenUsage))
         .doesNotContainKeys("serviceTier", "rawHttpResponse");
+  }
+
+  @Test
+  void toAssistantMessage_omitsModelFromFrameworkMetadata_whenNotSet() {
+    final var aiMessage = AiMessage.builder().text("AI response").build();
+
+    final var chatResponseMetadata =
+        ChatResponseMetadata.builder()
+            .id("chatcmpl-123")
+            .finishReason(FinishReason.STOP)
+            .tokenUsage(new TokenUsage(10, 20))
+            .build();
+
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.metadata().get("framework"))
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .containsExactly(
+            entry("id", "chatcmpl-123"),
+            entry("finishReason", "STOP"),
+            entry(
+                "tokenUsage",
+                Map.of("inputTokenCount", 10, "outputTokenCount", 20, "totalTokenCount", 30)));
   }
 
   @Test
@@ -293,6 +323,7 @@ class ChatMessageConverterTest {
     final var chatResponseMetadata =
         ChatResponseMetadata.builder()
             .id("chatcmpl-123")
+            .modelName("my-model")
             .finishReason(FinishReason.CONTENT_FILTER)
             .tokenUsage(new TokenUsage(10, 0))
             .build();
@@ -309,6 +340,7 @@ class ChatMessageConverterTest {
         .asInstanceOf(InstanceOfAssertFactories.MAP)
         .containsExactly(
             entry("id", "chatcmpl-123"),
+            entry("model", "my-model"),
             entry("finishReason", "CONTENT_FILTER"),
             entry(
                 "tokenUsage",

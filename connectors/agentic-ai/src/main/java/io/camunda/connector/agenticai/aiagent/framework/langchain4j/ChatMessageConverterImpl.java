@@ -162,6 +162,9 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     Optional.ofNullable(chatResponseMetadata.id())
         .filter(StringUtils::isNotBlank)
         .ifPresent(id -> metadata.put("id", id));
+    Optional.ofNullable(chatResponseMetadata.modelName())
+        .filter(StringUtils::isNotBlank)
+        .ifPresent(model -> metadata.put("model", model));
     Optional.ofNullable(chatResponseMetadata.finishReason())
         .ifPresent(finishReason -> metadata.put("finishReason", finishReason.name()));
 
