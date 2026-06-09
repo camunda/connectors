@@ -21,13 +21,13 @@ import java.util.List;
 public final class AgentConversation {
 
   private AgentContext context;
-  private final RuntimeMemory messageMemory;
+  private final RuntimeMemory runtimeMemory;
   private final List<ToolCallResult> toolCallResults;
 
   private AgentConversation(
-      AgentContext context, RuntimeMemory messageMemory, List<ToolCallResult> toolCallResults) {
+      AgentContext context, RuntimeMemory runtimeMemory, List<ToolCallResult> toolCallResults) {
     this.context = context;
-    this.messageMemory = messageMemory;
+    this.runtimeMemory = runtimeMemory;
     this.toolCallResults = toolCallResults;
   }
 
@@ -61,7 +61,7 @@ public final class AgentConversation {
   }
 
   public RuntimeMemory runtimeMemory() {
-    return messageMemory;
+    return runtimeMemory;
   }
 
   public List<ToolCallResult> toolCallResults() {
