@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
@@ -32,11 +31,12 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.ExpectedTool;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
-import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation;
-import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.outboundconnector.BaseAiAgentConnectorTest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -47,7 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.assertj.core.api.ThrowingConsumer;
-import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -71,15 +70,8 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
 
   @MockitoSpyBean protected AdHocToolsSchemaResolver toolsSchemaResolver;
 
-  protected WireMockRuntimeInfo wireMock;
-
   @Value("classpath:agentic-ai-ahsp-connectors.bpmn")
   protected Resource testProcess;
-
-  @BeforeEach
-  void captureWireMockInfo(WireMockRuntimeInfo wireMock) {
-    this.wireMock = wireMock;
-  }
 
   @Override
   protected Resource testProcess() {

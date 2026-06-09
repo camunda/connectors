@@ -22,6 +22,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.api.worker.JobWorker;
 import io.camunda.connector.e2e.BpmnFile;
@@ -69,17 +70,21 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   protected final ConcurrentLinkedQueue<Map<String, Object>> userFeedbackQueue =
       new ConcurrentLinkedQueue<>();
 
+  protected WireMockRuntimeInfo wireMock;
+
   @BeforeEach
   void clearDocumentStore() {
     InMemoryDocumentStore.INSTANCE.clear();
   }
 
   @BeforeEach
-  void setupWireMock() {
+  void setupWireMock(WireMockRuntimeInfo wm) {
+    wireMock = wm;
     // WireMock returns the content type for the YAML file as application/json, so
     // we need to override the stub manually
     stubFor(
         get(urlPathEqualTo("/test.yaml"))
+            .atPriority(1)
             .willReturn(
                 aResponse()
                     .withBodyFile("test.yaml")
