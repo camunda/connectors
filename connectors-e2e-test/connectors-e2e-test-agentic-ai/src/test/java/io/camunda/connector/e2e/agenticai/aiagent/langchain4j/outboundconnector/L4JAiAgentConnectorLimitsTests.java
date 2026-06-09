@@ -19,25 +19,21 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doAnswer;
 
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
-public class L4JAiAgentConnectorLimitsTests extends BaseL4JAiAgentConnectorTest {
+public class L4JAiAgentConnectorLimitsTests extends BaseWireMockL4JAiAgentConnectorTest {
 
   @Test
   void raisesIncidentWhenMaximumModelCallsAreReached() throws Throwable {
@@ -61,21 +57,10 @@ public class L4JAiAgentConnectorLimitsTests extends BaseL4JAiAgentConnectorTest 
   private void testMaxModelCallsLoop(
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier, int expectedMaxModelCalls)
       throws Throwable {
-    // infinite loop - always returning the same answer and handling the same user feedback
-    doAnswer(
-            invocationOnMock -> {
-              userFeedbackVariables.set(userFollowUpFeedback("I don't like it"));
-              return ChatResponse.builder()
-                  .metadata(
-                      ChatResponseMetadata.builder()
-                          .finishReason(FinishReason.STOP)
-                          .tokenUsage(new TokenUsage(10, 20))
-                          .build())
-                  .aiMessage(new AiMessage(HAIKU_TEXT))
-                  .build();
-            })
-        .when(chatModel)
-        .chat(chatRequestCaptor.capture());
+    OpenAiChatModelStubs.stubRepeatingTurn(Turn.text(HAIKU_TEXT, 10, 20));
+    for (int i = 0; i < expectedMaxModelCalls; i++) {
+      enqueueUserFeedback(userFollowUpFeedback("I don't like it"));
+    }
 
     final var zeebeTest =
         createProcessInstance(

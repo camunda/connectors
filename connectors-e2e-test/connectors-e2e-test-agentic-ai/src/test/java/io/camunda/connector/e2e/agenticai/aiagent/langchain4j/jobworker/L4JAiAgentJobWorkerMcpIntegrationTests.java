@@ -28,22 +28,11 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ImageContent;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
@@ -53,6 +42,12 @@ import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportC
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.ExtractedDocument;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -65,17 +60,20 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SlowTest
+@ExtendWith(MockitoExtension.class)
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
-public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWorkerTest {
+public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseWireMockL4JAiAgentJobWorkerTest {
 
   public static final String MCP_CLIENT_ID = "a-mcp-client";
 
@@ -104,13 +102,10 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
   @BeforeEach
   void mockMcpClients() {
     when(aMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
-
     when(aHttpRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
     when(aSseRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
-
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
-    // clients configured on the runtime
     doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, aMcpClient, objectMapper))
         .when(mcpClientRegistry)
         .getClient(MCP_CLIENT_ID);
@@ -118,7 +113,6 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
         .when(mcpClientRegistry)
         .getClient("filesystem");
 
-    // remote MCP clients configured only on the process
     requestedRemoteMcpClients.clear();
     doAnswer(
             i -> {
@@ -149,14 +143,50 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
     return EXPECTED_MCP_TOOL_SPECIFICATIONS;
   }
 
+  @Override
+  protected void assertToolSpecifications(RecordedChatRequest request) {
+    assertThat(request.toolNames())
+        .containsExactlyInAnyOrder(
+            "GetDateAndTime",
+            "SuperfluxProduct",
+            "Search_The_Web",
+            "Download_A_File",
+            "MCP_A_MCP_Client___toolA",
+            "MCP_A_MCP_Client___toolC",
+            "MCP_A_HTTP_Remote_MCP_Client___toolA",
+            "MCP_A_HTTP_Remote_MCP_Client___toolC",
+            "MCP_A_SSE_Remote_MCP_Client___toolA",
+            "MCP_A_SSE_Remote_MCP_Client___toolC",
+            "MCP_Filesystem_MCP_Flow___toolA",
+            "MCP_Filesystem_MCP_Flow___toolB",
+            "MCP_Filesystem_MCP_Flow___toolC");
+
+    assertMcpToolDescription(
+        request,
+        "MCP_A_MCP_Client___toolA",
+        Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(0));
+    assertMcpToolDescription(
+        request,
+        "MCP_Filesystem_MCP_Flow___toolB",
+        Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(1));
+    assertMcpToolDescription(
+        request,
+        "MCP_A_HTTP_Remote_MCP_Client___toolC",
+        Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(2));
+    assertMcpToolDescription(
+        request,
+        "MCP_A_SSE_Remote_MCP_Client___toolC",
+        Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(2));
+  }
+
   @Test
   void executesMcpToolDiscovery() throws Exception {
     final var zeebeTest =
         testBasicExecutionWithoutFeedbackLoop(
             testProcessWithMcp,
             e -> e,
-            HAIKU_TEXT,
             Map.of(),
+            HAIKU_TEXT,
             true,
             (agentResponse) ->
                 JobWorkerAgentResponseAssert.assertThat(agentResponse)
@@ -166,16 +196,11 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasCompletedElements(
-            // entering the AI Agent
             "AI_Agent",
-
-            // MCP tool discovery start
             "A_MCP_Client",
             "A_HTTP_Remote_MCP_Client",
             "A_SSE_Remote_MCP_Client",
             "Filesystem_MCP_Flow",
-            // MCP tool discovery end
-
             "User_Feedback");
 
     verify(aMcpClient).listTools();
@@ -183,7 +208,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
     verify(aSseRemoteMcpClient).listTools();
     verify(filesystemMcpClient).listTools();
 
-    verify(chatModel, times(1)).chat(any(ChatRequest.class));
+    assertThat(RecordedLlmConversation.recorded().modelCallCount()).isEqualTo(1);
 
     assertThat(requestedRemoteMcpClients)
         .hasSize(2)
@@ -225,92 +250,68 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
         .thenReturn(mcpCallToolResult("A SSE Remote MCP Client result"));
 
     final var initialUserPrompt = "Explore some of your MCP tools!";
-    final var expectedConversation =
-        List.of(
-            new SystemMessage(
-                "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
-            new UserMessage(initialUserPrompt),
-            new AiMessage(
-                "The user asked me to call some of my MCP tools. I will call MCP_A_MCP_Client___toolA, MCP_A_HTTP_Remote_MCP_Client___toolC, and MCP_A_SSE_Remote_MCP_Client___toolA as they look interesting to me.",
-                List.of(
-                    ToolExecutionRequest.builder()
-                        .id("aaa111")
-                        .name("MCP_A_MCP_Client___toolA")
-                        .arguments("{\"paramA1\": \"someValue\", \"paramA2\": 3}")
-                        .build(),
-                    ToolExecutionRequest.builder()
-                        .id("ccc222")
-                        .name("MCP_A_HTTP_Remote_MCP_Client___toolC")
-                        .arguments("{\"paramC1\": \"someOtherValue\"}")
-                        .build(),
-                    ToolExecutionRequest.builder()
-                        .id("aaa333")
-                        .name("MCP_A_SSE_Remote_MCP_Client___toolA")
-                        .arguments("{\"paramA1\": \"someValue2\", \"paramA2\": 6}")
-                        .build())),
-            new ToolExecutionResultMessage(
-                "aaa111", "MCP_A_MCP_Client___toolA", "A MCP Client result"),
-            new ToolExecutionResultMessage(
+    final var firstAiText =
+        "The user asked me to call some of my MCP tools. I will call MCP_A_MCP_Client___toolA, MCP_A_HTTP_Remote_MCP_Client___toolC, and MCP_A_SSE_Remote_MCP_Client___toolA as they look interesting to me.";
+    final var secondAiText =
+        """
+        I called some of my MCP tools and got the following results:
+        MCP_A_MCP_Client___toolA: A MCP Client result
+        MCP_A_HTTP_Remote_MCP_Client___toolC: A HTTP Remote MCP Client result
+        MCP_A_SSE_Remote_MCP_Client___toolA: A SSE Remote MCP Client result""";
+    final var finalAiText = "No.";
+
+    OpenAiChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            firstAiText,
+            10,
+            20,
+            ToolCall.of(
+                "aaa111",
+                "MCP_A_MCP_Client___toolA",
+                "{\"paramA1\": \"someValue\", \"paramA2\": 3}"),
+            ToolCall.of(
                 "ccc222",
                 "MCP_A_HTTP_Remote_MCP_Client___toolC",
-                "A HTTP Remote MCP Client result"),
-            new ToolExecutionResultMessage(
-                "aaa333", "MCP_A_SSE_Remote_MCP_Client___toolA", "A SSE Remote MCP Client result"),
-            new AiMessage(
-                """
-                      I called some of my MCP tools and got the following results:
-                      MCP_A_MCP_Client___toolA: A MCP Client result
-                      MCP_A_HTTP_Remote_MCP_Client___toolC: A HTTP Remote MCP Client result
-                      MCP_A_SSE_Remote_MCP_Client___toolA: A SSE Remote MCP Client result"""),
-            new UserMessage("Ok thanks, anything else?"),
-            new AiMessage("No."));
+                "{\"paramC1\": \"someOtherValue\"}"),
+            ToolCall.of(
+                "aaa333",
+                "MCP_A_SSE_Remote_MCP_Client___toolA",
+                "{\"paramA1\": \"someValue2\", \"paramA2\": 6}")),
+        Turn.text(secondAiText, 100, 200),
+        Turn.text(finalAiText, 11, 22));
 
-    mockChatInteractions(
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.TOOL_EXECUTION)
-                        .tokenUsage(new TokenUsage(10, 20))
-                        .build())
-                .aiMessage((AiMessage) expectedConversation.get(2))
-                .build()),
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(100, 200))
-                        .build())
-                .aiMessage((AiMessage) expectedConversation.get(6))
-                .build(),
-            userFollowUpFeedback("Ok thanks, anything else?")),
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(11, 22))
-                        .build())
-                .aiMessage((AiMessage) expectedConversation.get(8))
-                .build(),
-            userSatisfiedFeedback()));
+    enqueueUserFeedback(userFollowUpFeedback("Ok thanks, anything else?"), userSatisfiedFeedback());
 
     final var zeebeTest =
         createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(expectedConversation);
+    final var recorded = RecordedLlmConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
 
-    String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+    assertConversationMessages(
+        recorded.lastRequest(),
+        ExpectedMessage.system(SYSTEM_PROMPT),
+        ExpectedMessage.user(initialUserPrompt),
+        ExpectedMessage.assistantWithToolCalls(
+            firstAiText,
+            "MCP_A_MCP_Client___toolA",
+            "MCP_A_HTTP_Remote_MCP_Client___toolC",
+            "MCP_A_SSE_Remote_MCP_Client___toolA"),
+        ExpectedMessage.toolResult("aaa111", "A MCP Client result"),
+        ExpectedMessage.toolResult("ccc222", "A HTTP Remote MCP Client result"),
+        ExpectedMessage.toolResult("aaa333", "A SSE Remote MCP Client result"),
+        ExpectedMessage.assistant(secondAiText),
+        ExpectedMessage.user("Ok thanks, anything else?"));
+
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 3))
-                .hasResponseMessageText(expectedResponseText)
-                .hasResponseText(expectedResponseText));
+                .hasResponseMessageText(finalAiText)
+                .hasResponseText(finalAiText));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
 
@@ -343,8 +344,6 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                   assertThat(toolExecutionRequest.arguments())
                       .containsExactly(entry("paramA1", "someValue2"), entry("paramA2", 6));
                 }));
-
-    verify(chatModel, times(3)).chat(any(ChatRequest.class));
   }
 
   @Test
@@ -356,65 +355,41 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
         .thenReturn(mcpCallToolResultWithImage(imageBase64, "image/png"));
 
     final var initialUserPrompt = "Get me an image from MCP!";
+    final var aiFinalResponseText = "Here is the image I retrieved from MCP.";
 
-    final var aiToolCallMessage =
-        new AiMessage(
+    OpenAiChatModelStubs.stubConversation(
+        Turn.toolCalls(
             "I will call the MCP tool to get an image.",
-            List.of(
-                ToolExecutionRequest.builder()
-                    .id("img111")
-                    .name("MCP_A_MCP_Client___toolA")
-                    .arguments("{\"paramA1\": \"getImage\", \"paramA2\": 1}")
-                    .build()));
-    final var aiFinalResponse = new AiMessage("Here is the image I retrieved from MCP.");
+            10,
+            20,
+            ToolCall.of(
+                "img111",
+                "MCP_A_MCP_Client___toolA",
+                "{\"paramA1\": \"getImage\", \"paramA2\": 1}")),
+        Turn.text(aiFinalResponseText, 100, 200));
 
-    mockChatInteractions(
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.TOOL_EXECUTION)
-                        .tokenUsage(new TokenUsage(10, 20))
-                        .build())
-                .aiMessage(aiToolCallMessage)
-                .build()),
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(100, 200))
-                        .build())
-                .aiMessage(aiFinalResponse)
-                .build(),
-            userSatisfiedFeedback()));
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
         createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    assertThat(chatRequestCaptor.getAllValues()).hasSize(2);
-    final var lastMessages = chatRequestCaptor.getValue().messages();
+    final var recorded = RecordedLlmConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(2);
+
+    final var lastMessages = recorded.lastRequest().messages();
     assertThat(lastMessages).hasSize(5);
 
-    assertThat(lastMessages.get(0)).isInstanceOf(SystemMessage.class);
-    assertThat(lastMessages.get(1)).isInstanceOf(UserMessage.class); // initial prompt
-    assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class); // tool call
+    assertThat(lastMessages.get(0).path("role").asText()).isEqualTo("system");
+    assertThat(lastMessages.get(1).path("role").asText()).isEqualTo("user");
+    assertThat(lastMessages.get(2).path("role").asText()).isEqualTo("assistant");
 
-    // tool result: document serialized as document reference
-    var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
-    var documentReference = parseDocumentReference(toolResultText);
-
-    assertThat(lastMessages.get(3))
-        .isInstanceOfSatisfying(
-            ToolExecutionResultMessage.class,
-            msg -> {
-              assertThat(msg.id()).isEqualTo("img111");
-              assertThat(msg.toolName()).isEqualTo("MCP_A_MCP_Client___toolA");
-            });
+    final var toolResultText = lastMessages.get(3).path("content").asText();
+    final var documentReference = parseDocumentReference(toolResultText);
+    assertThat(lastMessages.get(3).path("role").asText()).isEqualTo("tool");
+    assertThat(lastMessages.get(3).path("tool_call_id").asText()).isEqualTo("img111");
     assertThat(documentReference.metadata().contentType()).isEqualTo("image/png");
 
-    // document user message: extracted document content
     assertExtractedDocumentsUserMessage(
         lastMessages.get(4),
         ExtractedDocument.forToolCall(
@@ -436,8 +411,8 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220), 1))
-                .hasResponseMessageText(aiFinalResponse.text())
-                .hasResponseText(aiFinalResponse.text()));
+                .hasResponseMessageText(aiFinalResponseText)
+                .hasResponseText(aiFinalResponseText));
   }
 
   protected McpSchema.CallToolResult mcpCallToolResult(String resultText) {
@@ -451,5 +426,17 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
     return McpSchema.CallToolResult.builder()
         .addContent(new McpSchema.ImageContent(null, base64Data, mimeType))
         .build();
+  }
+
+  private static void assertMcpToolDescription(
+      RecordedChatRequest request, String toolName, ToolSpecification expectedSpec) {
+    final var tool =
+        request.tools().stream()
+            .filter(t -> toolName.equals(t.path("function").path("name").asText()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Tool not found: " + toolName));
+    assertThat(tool.path("function").path("description").asText())
+        .as("description of " + toolName)
+        .isEqualTo(expectedSpec.description());
   }
 }

@@ -17,33 +17,25 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.Content;
-import dev.langchain4j.data.message.ImageContent;
-import dev.langchain4j.data.message.PdfFileContent;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.TextContent;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.data.pdf.PdfFile;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @SlowTest
-public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJobWorkerTest {
+public class L4JAiAgentJobWorkerUserPromptDocumentsTests
+    extends BaseWireMockL4JAiAgentJobWorkerTest {
 
   @ParameterizedTest
   @ValueSource(
@@ -61,27 +53,10 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
       })
   void handlesDocumentType(String filename, WireMockRuntimeInfo wireMock) throws Exception {
     final var initialUserPrompt = "Summarize the following document";
-    final var expectedConversation =
-        List.of(
-            new SystemMessage(
-                "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
-            UserMessage.builder()
-                .addContent(new TextContent(initialUserPrompt))
-                .addContent(asContentBlock(filename))
-                .build(),
-            new AiMessage("TL;DR: it is pretty interesting"));
+    final var responseText = "TL;DR: it is pretty interesting";
 
-    mockChatInteractions(
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(10, 20))
-                        .build())
-                .aiMessage(new AiMessage("TL;DR: it is pretty interesting"))
-                .build(),
-            userSatisfiedFeedback()));
+    OpenAiChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
         createProcessInstance(
@@ -94,17 +69,33 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename)))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(expectedConversation);
+    final var recorded = RecordedLlmConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(1);
+    assertThat(recorded.lastRequest().messages()).hasSize(2);
 
-    String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+    assertThat(recorded.lastRequest().messages().get(0).path("role").asText()).isEqualTo("system");
+    assertThat(recorded.lastRequest().messages().get(0).path("content").asText())
+        .isEqualTo(SYSTEM_PROMPT);
+
+    // user message: prompt text + document block (text files produce two text blocks,
+    // so assertConversationMessages cannot be used here as it would concatenate them)
+    final var userMessage = recorded.lastRequest().messages().get(1);
+    final var content = userMessage.path("content");
+    assertThat(userMessage.path("role").asText()).isEqualTo("user");
+    assertThat(content.isArray()).as("user message should have multipart content").isTrue();
+    assertThat(content.size()).as("expected text + document block").isEqualTo(2);
+    assertThat(content.get(0).path("type").asText()).isEqualTo("text");
+    assertThat(content.get(0).path("text").asText()).isEqualTo(initialUserPrompt);
+    assertDocumentContentBlockJson(content.get(1), contentBlockType(filename), mimeType(filename));
+
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
-                .hasResponseMessageText(expectedResponseText)
-                .hasResponseText(expectedResponseText));
+                .hasResponseMessageText(responseText)
+                .hasResponseText(responseText));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
@@ -112,28 +103,10 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
   @Test
   void handlesMultipleDocuments(WireMockRuntimeInfo wireMock) throws Exception {
     final var initialUserPrompt = "Summarize the following documents";
-    final var expectedConversation =
-        List.of(
-            new SystemMessage(
-                "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
-            UserMessage.builder()
-                .addContent(new TextContent(initialUserPrompt))
-                .addContent(asContentBlock("test.txt"))
-                .addContent(asContentBlock("test.jpg"))
-                .build(),
-            new AiMessage("TL;DR: they contain a lot of interesting information."));
+    final var responseText = "TL;DR: they contain a lot of interesting information.";
 
-    mockChatInteractions(
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(10, 20))
-                        .build())
-                .aiMessage(new AiMessage("TL;DR: they contain a lot of interesting information."))
-                .build(),
-            userSatisfiedFeedback()));
+    OpenAiChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
         createProcessInstance(
@@ -148,17 +121,32 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
                         wireMock.getHttpBaseUrl() + "/test.jpg")))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(expectedConversation);
+    final var recorded = RecordedLlmConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(1);
+    assertThat(recorded.lastRequest().messages()).hasSize(2);
 
-    String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+    assertThat(recorded.lastRequest().messages().get(0).path("role").asText()).isEqualTo("system");
+    assertThat(recorded.lastRequest().messages().get(0).path("content").asText())
+        .isEqualTo(SYSTEM_PROMPT);
+
+    final var userMessage = recorded.lastRequest().messages().get(1);
+    final var content = userMessage.path("content");
+    assertThat(userMessage.path("role").asText()).isEqualTo("user");
+    assertThat(content.isArray()).isTrue();
+    assertThat(content.size()).as("expected text + 2 document blocks").isEqualTo(3);
+    assertThat(content.get(0).path("type").asText()).isEqualTo("text");
+    assertThat(content.get(0).path("text").asText()).isEqualTo(initialUserPrompt);
+    assertDocumentContentBlockJson(content.get(1), "text", "text/plain");
+    assertDocumentContentBlockJson(content.get(2), "base64", "image/jpeg");
+
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
-                .hasResponseMessageText(expectedResponseText)
-                .hasResponseText(expectedResponseText));
+                .hasResponseMessageText(responseText)
+                .hasResponseText(responseText));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
@@ -183,19 +171,26 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
         });
   }
 
-  private Content asContentBlock(String filename) throws Exception {
-    final Supplier<String> text = testFileContent(filename);
-    final Supplier<String> b64 = testFileContentBase64(filename);
-
+  private static String contentBlockType(String filename) {
     return switch (filename) {
-      case "test.txt", "test.yaml", "test.csv", "test.json", "test.xml" ->
-          TextContent.from(text.get());
-      case "test.pdf" -> PdfFileContent.from(PdfFile.builder().base64Data(b64.get()).build());
-      case "test.gif" -> ImageContent.from(b64.get(), "image/gif", ImageContent.DetailLevel.AUTO);
-      case "test.jpg" -> ImageContent.from(b64.get(), "image/jpeg", ImageContent.DetailLevel.AUTO);
-      case "test.png" -> ImageContent.from(b64.get(), "image/png", ImageContent.DetailLevel.AUTO);
-      case "test.webp" -> ImageContent.from(b64.get(), "image/webp", ImageContent.DetailLevel.AUTO);
-      default -> throw new IllegalStateException("Unsupported file: " + filename);
+      case "test.txt", "test.yaml", "test.csv", "test.json", "test.xml" -> "text";
+      default -> "base64";
+    };
+  }
+
+  private static String mimeType(String filename) {
+    return switch (filename) {
+      case "test.csv" -> "text/csv";
+      case "test.gif" -> "image/gif";
+      case "test.jpg" -> "image/jpeg";
+      case "test.json" -> "application/json";
+      case "test.pdf" -> "application/pdf";
+      case "test.png" -> "image/png";
+      case "test.txt" -> "text/plain";
+      case "test.webp" -> "image/webp";
+      case "test.xml" -> "application/xml";
+      case "test.yaml" -> "application/yaml";
+      default -> throw new IllegalArgumentException("Unknown file: " + filename);
     };
   }
 }

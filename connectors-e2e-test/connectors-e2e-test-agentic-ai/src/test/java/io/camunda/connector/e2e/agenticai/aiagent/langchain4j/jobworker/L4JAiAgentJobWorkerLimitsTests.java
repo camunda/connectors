@@ -20,18 +20,14 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doAnswer;
 
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
 import java.util.Map;
@@ -39,7 +35,7 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
-public class L4JAiAgentJobWorkerLimitsTests extends BaseL4JAiAgentJobWorkerTest {
+public class L4JAiAgentJobWorkerLimitsTests extends BaseWireMockL4JAiAgentJobWorkerTest {
 
   @Test
   void raisesIncidentWhenMaximumModelCallsAreReached() throws Throwable {
@@ -62,7 +58,7 @@ public class L4JAiAgentJobWorkerLimitsTests extends BaseL4JAiAgentJobWorkerTest 
 
   @Test
   void mapsExceededLimitToBpmnError() throws IOException {
-    mockInfiniteLoop();
+    mockInfiniteLoop(10);
 
     final var errorExpression =
         """
@@ -87,7 +83,7 @@ public class L4JAiAgentJobWorkerLimitsTests extends BaseL4JAiAgentJobWorkerTest 
   private void testMaxModelCallsLoop(
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier, int expectedMaxModelCalls)
       throws Throwable {
-    mockInfiniteLoop();
+    mockInfiniteLoop(expectedMaxModelCalls);
 
     final var zeebeTest =
         createProcessInstance(
@@ -124,21 +120,10 @@ public class L4JAiAgentJobWorkerLimitsTests extends BaseL4JAiAgentJobWorkerTest 
         });
   }
 
-  private void mockInfiniteLoop() {
-    // infinite loop - always returning the same answer and handling the same user feedback
-    doAnswer(
-            invocationOnMock -> {
-              userFeedbackVariables.set(userFollowUpFeedback("I don't like it"));
-              return ChatResponse.builder()
-                  .metadata(
-                      ChatResponseMetadata.builder()
-                          .finishReason(FinishReason.STOP)
-                          .tokenUsage(new TokenUsage(10, 20))
-                          .build())
-                  .aiMessage(new AiMessage(HAIKU_TEXT))
-                  .build();
-            })
-        .when(chatModel)
-        .chat(chatRequestCaptor.capture());
+  private void mockInfiniteLoop(int maxIterations) {
+    OpenAiChatModelStubs.stubRepeatingTurn(Turn.text(HAIKU_TEXT, 10, 20));
+    for (int i = 0; i < maxIterations; i++) {
+      enqueueUserFeedback(userFollowUpFeedback("I don't like it"));
+    }
   }
 }

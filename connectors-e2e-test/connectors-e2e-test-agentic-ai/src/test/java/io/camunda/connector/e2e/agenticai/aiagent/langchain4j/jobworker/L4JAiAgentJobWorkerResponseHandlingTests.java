@@ -22,9 +22,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAI
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.langchain4j.model.chat.request.ResponseFormatType;
-import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.chat.request.json.JsonSchema;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
@@ -34,15 +32,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
-public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobWorkerTest {
+public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseWireMockL4JAiAgentJobWorkerTest {
 
   @Nested
   class ResponseText {
 
     @AfterEach
     void verifyRequestedResponseFormat() {
-      final var lastChatRequest = chatRequestCaptor.getValue();
-      assertThat(lastChatRequest.responseFormat()).isNull();
+      assertThat(RecordedLlmConversation.recorded().lastRequest().responseFormat()).isEmpty();
     }
 
     @Test
@@ -127,30 +124,29 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
   @Nested
   class ResponseJson {
 
-    private JsonSchema expectedJsonSchema;
+    private String expectedJsonSchemaName;
 
     @BeforeEach
     void setUp() {
-      expectedJsonSchema = null;
+      expectedJsonSchemaName = null;
     }
 
     @AfterEach
     void verifyRequestedResponseFormat() {
-      final var lastChatRequest = chatRequestCaptor.getValue();
-      assertThat(lastChatRequest.responseFormat())
-          .isNotNull()
-          .satisfies(
-              format -> {
-                assertThat(format.type()).isEqualTo(ResponseFormatType.JSON);
-
-                if (expectedJsonSchema == null) {
-                  assertThat(format.jsonSchema()).isNull();
-                } else {
-                  assertThat(format.jsonSchema())
-                      .usingRecursiveComparison()
-                      .isEqualTo(expectedJsonSchema);
-                }
-              });
+      final var fmt = RecordedLlmConversation.recorded().lastRequest().responseFormat();
+      assertThat(fmt).isPresent();
+      if (expectedJsonSchemaName == null) {
+        assertThat(fmt.get().path("type").asText()).isEqualTo("json_object");
+      } else {
+        assertThat(fmt.get().path("type").asText()).isEqualTo("json_schema");
+        assertThat(fmt.get().path("json_schema").path("name").asText())
+            .isEqualTo(expectedJsonSchemaName);
+        final var schema = fmt.get().path("json_schema").path("schema");
+        assertThat(schema.path("type").asText()).isEqualTo("object");
+        assertThat(schema.path("properties").has("text")).isTrue();
+        assertThat(schema.path("properties").has("length")).isTrue();
+        assertThat(schema.path("required").toString()).contains("text").contains("length");
+      }
     }
 
     @Test
@@ -215,30 +211,21 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
                   .hasNoResponseText()
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
 
-      expectedJsonSchema =
-          JsonSchema.builder()
-              .name("HaikuSchema")
-              .rootElement(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("text")
-                      .addNumberProperty("length")
-                      .required("text", "length")
-                      .build())
-              .build();
+      expectedJsonSchemaName = "HaikuSchema";
     }
 
     @Test
     void raisesIncidentWhenJsonCouldNotBeParsed() throws Exception {
-      final var setup =
+      final var zeebeTest =
           setupBasicTestWithoutFeedbackLoop(
               testProcess,
               elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
-              HAIKU_TEXT,
-              Map.of());
-      setup.getRight().waitForActiveIncidents();
+              Map.of(),
+              HAIKU_TEXT);
+      zeebeTest.waitForActiveIncidents();
 
       assertIncident(
-          setup.getRight(),
+          zeebeTest,
           incident -> {
             assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
             assertThat(incident.getErrorMessage())

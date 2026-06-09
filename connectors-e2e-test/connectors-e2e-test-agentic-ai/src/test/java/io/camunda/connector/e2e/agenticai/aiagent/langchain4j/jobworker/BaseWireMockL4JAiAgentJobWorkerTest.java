@@ -14,28 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentConnectorTest;
+import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentJobWorkerTest;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation.RecordedChatRequest;
-import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,20 +48,15 @@ import org.springframework.core.io.Resource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
- * Base class for AI Agent (outbound connector flavor) e2e tests that drive the conversation loop
- * against a WireMock-stubbed OpenAI-compatible model instead of a Mockito mock.
+ * Base class for AI Agent (job-worker flavor) e2e tests that drive the conversation loop against a
+ * WireMock-stubbed OpenAI-compatible model instead of a Mockito mock.
  *
- * <p>The default element template ({@code provider.type = openai}) cannot redirect its base URL, so
- * this base swaps the provider to {@code openaiCompatible} pointed at the WireMock server. The real
- * LangChain4j {@code OpenAiChatModel} then performs the HTTP calls, exercising request
- * serialization and response parsing end-to-end.
- *
- * <p>Conversations are stubbed via {@link OpenAiChatModelStubs}; the requests the connector
- * actually sent are inspected via {@link RecordedLlmConversation} (the replacement for the previous
- * {@code ArgumentCaptor<ChatRequest>}).
+ * <p>Mirror of {@link
+ * io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector.BaseWireMockL4JAiAgentConnectorTest}
+ * for the job-worker flavor.
  */
 @SlowTest
-abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
+abstract class BaseWireMockL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
 
   protected static final String SYSTEM_PROMPT =
       "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking.";
@@ -69,8 +66,6 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
     return SYSTEM_PROMPT;
   }
 
-  // Retained per scope: only the LLM conversation mock is replaced. Subclasses verify schema
-  // resolution against this spy.
   @MockitoSpyBean protected AdHocToolsSchemaResolver toolsSchemaResolver;
 
   protected WireMockRuntimeInfo wireMock;
@@ -95,8 +90,6 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       Map<String, Object> variables)
       throws IOException {
-    // Apply the provider redirect first, then the caller's modifier (so callers can still
-    // override).
     final Function<ElementTemplate, ElementTemplate> composed =
         ((Function<ElementTemplate, ElementTemplate>) this::withOpenAiCompatibleProvider)
             .andThen(elementTemplateModifier);
@@ -111,7 +104,7 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       String responseText,
       boolean assertToolSpecifications,
-      ThrowingConsumer<AgentResponse> agentResponseAssertions)
+      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
       throws Exception {
     return testBasicExecutionWithoutFeedbackLoop(
         testProcess,
@@ -128,7 +121,7 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
       Map<String, Object> extraProcessVariables,
       String responseText,
       boolean assertToolSpecifications,
-      ThrowingConsumer<AgentResponse> agentResponseAssertions)
+      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
       throws Exception {
     final var zeebeTest =
         setupBasicTestWithoutFeedbackLoop(
@@ -151,9 +144,8 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasNoToolCalls()
                 .hasAgentInstanceKey()
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
                 .satisfies(agentResponseAssertions));
@@ -193,7 +185,7 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       String responseText,
       boolean assertToolSpecifications,
-      ThrowingConsumer<AgentResponse> agentResponseAssertions)
+      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
       throws Exception {
     final var initialUserPrompt = "Explore some of your tools!";
     final var firstAiMessage =
@@ -246,15 +238,48 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasNoToolCalls()
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 3))
                 .satisfies(agentResponseAssertions));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
 
     return zeebeTest;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Regression guard
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Asserts that the {@code toolCall} variable does not exist at the root (process instance) scope.
+   * Regression guard for camunda/camunda#51939.
+   */
+  protected void assertNoToolCallVariableLeakToProcessScope(ZeebeTest zeebeTest) {
+    final long processInstanceKey = zeebeTest.getProcessInstanceEvent().getProcessInstanceKey();
+
+    await()
+        .alias("toolCall variable does not leak to root scope")
+        .atMost(Duration.ofSeconds(15))
+        .untilAsserted(
+            () -> {
+              final var leaked =
+                  camundaClient
+                      .newVariableSearchRequest()
+                      .filter(
+                          f ->
+                              f.processInstanceKey(processInstanceKey)
+                                  .scopeKey(processInstanceKey)
+                                  .name("toolCall"))
+                      .send()
+                      .join()
+                      .items();
+              assertThat(leaked)
+                  .as(
+                      "toolCall should only exist on inner-instance scopes — leak to root scope detected")
+                  .isEmpty();
+            });
   }
 
   // ---------------------------------------------------------------------------
@@ -335,11 +360,9 @@ abstract class BaseWireMockL4JAiAgentConnectorTest extends BaseAiAgentConnectorT
       if (content == null || content.isNull()) {
         return null;
       }
-      // simple text messages carry a plain string content
       if (content.isTextual()) {
         return content.asText();
       }
-      // multimodal content is an array of parts; concatenate the text parts
       final StringBuilder sb = new StringBuilder();
       content.forEach(
           part -> {

@@ -24,11 +24,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
@@ -37,6 +32,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.e2e.agenticai.AgentCoreMemoryTestConfiguration;
 import io.camunda.connector.e2e.agenticai.InMemoryBedrockAgentCoreClientFactory;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -52,7 +49,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 @Import(AgentCoreMemoryTestConfiguration.class)
-public class L4JAiAgentJobWorkerMemoryStorageTests extends BaseL4JAiAgentJobWorkerTest {
+public class L4JAiAgentJobWorkerMemoryStorageTests extends BaseWireMockL4JAiAgentJobWorkerTest {
 
   @MockitoSpyBean private CamundaDocumentConversationStore documentConversationStore;
   @MockitoSpyBean private CamundaDocumentStore documentStore;
@@ -144,11 +141,18 @@ public class L4JAiAgentJobWorkerMemoryStorageTests extends BaseL4JAiAgentJobWork
         .when(documentConversationStore)
         .createSession(any(), any());
 
-    // capture the reference of the document created by storeMessages during this job —
-    // this is the document that becomes orphaned when job completion fails
+    // fail the job when the document is created (before completeJob runs) and capture the
+    // reference — this is the document that becomes orphaned when job completion fails
     var createdReference = new AtomicReference<CamundaDocumentReference>();
     doAnswer(
             invocation -> {
+              camundaClient
+                  .newFailCommand(jobKey.get())
+                  .retries(0)
+                  .errorMessage("Deliberately failed for e2e test")
+                  .send()
+                  .join();
+
               CamundaDocumentReference ref = (CamundaDocumentReference) invocation.callRealMethod();
               createdReference.set(ref);
               return ref;
@@ -159,27 +163,7 @@ public class L4JAiAgentJobWorkerMemoryStorageTests extends BaseL4JAiAgentJobWork
     final var initialUserPrompt = "Write a haiku about the sea";
     final var responseText = "Waves crash on the shore";
 
-    doAnswer(
-            invocation -> {
-              // fail the job via Zeebe API — causes the subsequent completeJob to be rejected
-              camundaClient
-                  .newFailCommand(jobKey.get())
-                  .retries(0)
-                  .errorMessage("Deliberately failed for e2e test")
-                  .send()
-                  .join();
-
-              return ChatResponse.builder()
-                  .metadata(
-                      ChatResponseMetadata.builder()
-                          .finishReason(FinishReason.STOP)
-                          .tokenUsage(new TokenUsage(10, 20))
-                          .build())
-                  .aiMessage(new AiMessage(responseText))
-                  .build();
-            })
-        .when(chatModel)
-        .chat(chatRequestCaptor.capture());
+    OpenAiChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
 
     createProcessInstance(
         elementTemplate ->

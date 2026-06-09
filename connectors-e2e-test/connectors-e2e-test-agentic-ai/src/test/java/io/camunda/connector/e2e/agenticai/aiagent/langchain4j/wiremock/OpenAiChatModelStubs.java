@@ -52,6 +52,21 @@ public final class OpenAiChatModelStubs {
 
   private OpenAiChatModelStubs() {}
 
+  /**
+   * Stubs the endpoint to always return the same response regardless of how many times it is
+   * called. Useful for limit-testing scenarios where the agent loops until an external condition
+   * (e.g., max model calls) terminates it.
+   */
+  public static void stubRepeatingTurn(Turn turn) {
+    stubFor(
+        post(urlPathEqualTo(CHAT_COMPLETIONS_PATH))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(turn.toResponseJson())));
+  }
+
   /** Wires the scenario chain returning each turn's response in order. */
   public static void stubConversation(Turn... turns) {
     final var turnList = Arrays.asList(turns);

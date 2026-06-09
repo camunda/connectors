@@ -24,17 +24,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.TestUtil;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.common.L4JAiAgentA2aIntegrationTestSupport;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
@@ -43,8 +40,6 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,7 +56,7 @@ import org.springframework.test.context.TestPropertySource;
       "camunda.connector.webhook.enabled=true"
     })
 @Import(InboundConnectorTestConfiguration.class)
-public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWorkerTest {
+public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseWireMockL4JAiAgentJobWorkerTest {
 
   public static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
 
@@ -90,42 +85,23 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
   }
 
   @Override
+  protected String expectedSystemPrompt() {
+    return testSupport.systemMessage(SYSTEM_PROMPT).text();
+  }
+
+  @Override
   protected List<ToolSpecification> expectedToolSpecifications() {
     return EXPECTED_A2A_TOOL_SPECIFICATIONS;
   }
 
-  @Override
-  protected Pair<List<ChatMessage>, ZeebeTest> setupBasicTestWithoutFeedbackLoop(
-      Resource process,
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText,
-      Map<String, Object> extraProcessVariables)
-      throws Exception {
-    Pair<List<ChatMessage>, ZeebeTest> conversationAndTest =
-        super.setupBasicTestWithoutFeedbackLoop(
-            process, elementTemplateModifier, responseText, extraProcessVariables);
-    List<ChatMessage> conversation =
-        conversationAndTest.getLeft().stream()
-            .map(
-                msg -> {
-                  // inject the A2A system prompt into the system message
-                  if (msg instanceof SystemMessage systemMessage) {
-                    return testSupport.systemMessage(systemMessage.text());
-                  }
-                  return msg;
-                })
-            .toList();
-    return Pair.of(conversation, conversationAndTest.getRight());
-  }
-
   @Test
-  void executesToolDiscovery(WireMockRuntimeInfo wireMock) throws Exception {
+  void executesToolDiscovery() throws Exception {
     final var zeebeTest =
         testBasicExecutionWithoutFeedbackLoop(
             testProcessWithA2a,
             e -> e,
-            HAIKU_TEXT,
             Map.of("a2aServerUrl", wireMock.getHttpBaseUrl(), "webhookUrl", webhookUrl),
+            HAIKU_TEXT,
             true,
             (agentResponse) ->
                 JobWorkerAgentResponseAssert.assertThat(agentResponse)
@@ -137,39 +113,34 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
   }
 
   @Test
-  void handlesA2aToolCalls(WireMockRuntimeInfo wireMock) throws IOException {
+  void handlesA2aToolCalls() throws IOException {
     final var expectedConversation = testSupport.getExpectedConversation();
+    final var firstAiMessage = (AiMessage) expectedConversation.get(2);
+    final var secondAiMessage = (AiMessage) expectedConversation.get(7);
+    final var finalAiMessage = (AiMessage) expectedConversation.get(9);
 
-    mockChatInteractions(
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.TOOL_EXECUTION)
-                        .tokenUsage(new TokenUsage(10, 20))
-                        .build())
-                .aiMessage((AiMessage) expectedConversation.get(2))
-                .build()),
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(100, 200))
-                        .build())
-                .aiMessage((AiMessage) expectedConversation.get(7))
-                .build(),
-            userFollowUpFeedback("Ok thanks, anything else?")),
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(11, 22))
-                        .build())
-                .aiMessage((AiMessage) expectedConversation.get(9))
-                .build(),
-            userSatisfiedFeedback()));
+    OpenAiChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            firstAiMessage.text(),
+            10,
+            20,
+            ToolCall.of("aaa111", "SuperfluxProduct", "{\"a\":10,\"b\":3}"),
+            ToolCall.of("bbb222", "A2A_Travel_Agent", "{\"text\":\"Book a single hotel room\"}"),
+            ToolCall.of(
+                "ccc333", "A2A_Weather_Agent", "{\"text\":\"What's the weather in London?\"}"),
+            ToolCall.of(
+                "ddd444",
+                "A2A_Exchange_Rate_Agent",
+                "{\"text\":\"What's the exchange rate for USD to EUR?\"}")),
+        Turn.text(secondAiMessage.text(), 100, 200),
+        Turn.text(finalAiMessage.text(), 11, 22));
+
+    enqueueUserFeedback(userFollowUpFeedback("Ok thanks, anything else?"), userSatisfiedFeedback());
+
+    final var travelResult = ((ToolExecutionResultMessage) expectedConversation.get(4)).text();
+    final var weatherResult = ((ToolExecutionResultMessage) expectedConversation.get(5)).text();
+    final var exchangeRateResult =
+        ((ToolExecutionResultMessage) expectedConversation.get(6)).text();
 
     final var zeebeTest =
         createProcessInstance(
@@ -190,17 +161,34 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
 
     zeebeTest.waitForProcessCompletion();
 
-    assertLastChatRequest(expectedConversation);
+    final var recorded = RecordedLlmConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
 
-    String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+    assertConversationMessages(
+        recorded.lastRequest(),
+        ExpectedMessage.system(expectedSystemPrompt()),
+        ExpectedMessage.user(testSupport.initialUserPrompt),
+        ExpectedMessage.assistantWithToolCalls(
+            firstAiMessage.text(),
+            "SuperfluxProduct",
+            "A2A_Travel_Agent",
+            "A2A_Weather_Agent",
+            "A2A_Exchange_Rate_Agent"),
+        ExpectedMessage.toolResult("aaa111", "39"),
+        ExpectedMessage.toolResult("bbb222", travelResult),
+        ExpectedMessage.toolResult("ccc333", weatherResult),
+        ExpectedMessage.toolResult("ddd444", exchangeRateResult),
+        ExpectedMessage.assistant(secondAiMessage.text()),
+        ExpectedMessage.user("Ok thanks, anything else?"));
+
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 4))
-                .hasResponseMessageText(expectedResponseText)
-                .hasResponseText(expectedResponseText));
+                .hasResponseMessageText(finalAiMessage.text())
+                .hasResponseText(finalAiMessage.text()));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }

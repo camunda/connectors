@@ -18,18 +18,14 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaProcessTestContext;
@@ -40,7 +36,6 @@ import io.camunda.zeebe.model.bpmn.instance.ScriptTask;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,19 +43,27 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @SlowTest
-public class L4JAiAgentJobWorkerProcessMigrationTests extends BaseL4JAiAgentJobWorkerTest {
+public class L4JAiAgentJobWorkerProcessMigrationTests extends BaseWireMockL4JAiAgentJobWorkerTest {
 
   private static final String COMPLEX_TOOL_ID = "A_Complex_Tool";
   private static final String NEW_TOOL_ID = "A_New_Tool";
+
+  private static final String FIRST_AI_MESSAGE =
+      "The user asked me superflux calculate the product of 5 and 3 and to call the complex tool.";
 
   @Autowired private CamundaProcessTestContext processTestContext;
 
   @BeforeEach
   void updateTestFixtures() {
-    // make sure process exits after exiting the AHSP
-    userFeedbackVariables.set(userSatisfiedFeedback());
-
-    mockModelInteractions();
+    OpenAiChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            FIRST_AI_MESSAGE,
+            10,
+            20,
+            ToolCall.of("aaa111", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"),
+            ToolCall.of("bbb222", COMPLEX_TOOL_ID, "{}")),
+        Turn.text("Ok, all done.", 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
   }
 
   @Test
@@ -69,10 +72,9 @@ public class L4JAiAgentJobWorkerProcessMigrationTests extends BaseL4JAiAgentJobW
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasActiveElements(COMPLEX_TOOL_ID);
 
-    assertToolSpecifications(chatRequestCaptor.getValue());
-    assertThat(chatRequestCaptor.getValue().toolSpecifications())
-        .extracting(ToolSpecification::name)
-        .doesNotContain(NEW_TOOL_ID);
+    final var firstRequest = RecordedLlmConversation.recorded().requests().get(0);
+    assertToolSpecifications(firstRequest);
+    assertThat(firstRequest.toolNames()).doesNotContain(NEW_TOOL_ID);
 
     final var updatedProcessDefinition =
         deployModelUpdate(
@@ -102,16 +104,19 @@ public class L4JAiAgentJobWorkerProcessMigrationTests extends BaseL4JAiAgentJobW
         .hasCompletedElements(COMPLEX_TOOL_ID)
         .isCompleted();
 
-    assertThat(chatRequestCaptor.getAllValues()).hasSize(2);
-    assertThat(chatRequestCaptor.getValue().toolSpecifications())
+    final var recorded = RecordedLlmConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(2);
+    assertThat(recorded.lastRequest().toolNames())
         .hasSize(expectedToolSpecifications().size() + 1)
-        .extracting(ToolSpecification::name)
         .contains(NEW_TOOL_ID);
-    assertThat(chatRequestCaptor.getValue().toolSpecifications())
-        .filteredOn(t -> t.name().equals("GetDateAndTime"))
-        .first()
-        .satisfies(
-            toolSpec -> assertThat(toolSpec.description()).isEqualTo("Updated documentation"));
+
+    final var getDateAndTimeTool =
+        recorded.lastRequest().tools().stream()
+            .filter(t -> "GetDateAndTime".equals(t.path("function").path("name").asText()))
+            .findFirst()
+            .orElseThrow();
+    assertThat(getDateAndTimeTool.path("function").path("description").asText())
+        .isEqualTo("Updated documentation");
   }
 
   @Test
@@ -193,40 +198,6 @@ public class L4JAiAgentJobWorkerProcessMigrationTests extends BaseL4JAiAgentJobW
     assertThat(zeebeTest.getProcessInstanceEvent().getVersion()).isEqualTo(1);
 
     return zeebeTest;
-  }
-
-  private void mockModelInteractions() {
-    when(chatModel.chat(chatRequestCaptor.capture()))
-        .thenReturn(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.TOOL_EXECUTION)
-                        .tokenUsage(new TokenUsage(10, 20))
-                        .build())
-                .aiMessage(
-                    new AiMessage(
-                        "The user asked me superflux calculate the product of 5 and 3 and to call the complex tool.",
-                        List.of(
-                            ToolExecutionRequest.builder()
-                                .id("aaa111")
-                                .name("SuperfluxProduct")
-                                .arguments("{\"a\": 5, \"b\": 3}")
-                                .build(),
-                            ToolExecutionRequest.builder()
-                                .id("bbb222")
-                                .name(COMPLEX_TOOL_ID)
-                                .arguments("{}")
-                                .build())))
-                .build(),
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(11, 22))
-                        .build())
-                .aiMessage(new AiMessage("Ok, all done."))
-                .build());
   }
 
   private ProcessDefinition deployModelUpdate(

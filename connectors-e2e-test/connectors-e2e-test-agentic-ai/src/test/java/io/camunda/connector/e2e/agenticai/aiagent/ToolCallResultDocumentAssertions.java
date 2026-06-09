@@ -27,6 +27,7 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.pdf.PdfFile;
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
@@ -139,6 +140,102 @@ public final class ToolCallResultDocumentAssertions {
             e);
       }
     }
+  }
+
+  /**
+   * Same as {@link #assertExtractedDocumentsUserMessage(ChatMessage, ExtractedDocument...)} but for
+   * WireMock-recorded wire-format messages (OpenAI-compatible JSON). The content-block types are
+   * decoded back to LangChain4j {@link Content} objects before being passed to the existing {@link
+   * ExtractedDocument#contentBlockAssertion()}, so all assertion logic is reused unchanged.
+   */
+  public static void assertExtractedDocumentsUserMessage(
+      JsonNode message, ExtractedDocument... expectedDocuments) {
+    assertThat(message.path("role").asText()).as("message role").isEqualTo("user");
+    final JsonNode content = message.path("content");
+    assertThat(content.isArray()).as("content should be an array").isTrue();
+    assertThat(content.size())
+        .as("expected preamble + 2 contents per document (%d documents)", expectedDocuments.length)
+        .isEqualTo(1 + 2 * expectedDocuments.length);
+
+    assertThat(content.get(0).path("type").asText()).as("preamble type").isEqualTo("text");
+    assertThat(content.get(0).path("text").asText())
+        .as("preamble text")
+        .isEqualTo(EXTRACTED_DOCUMENTS_PREAMBLE);
+
+    for (int i = 0; i < expectedDocuments.length; i++) {
+      final var expected = expectedDocuments[i];
+      final var tagIndex = 1 + 2 * i;
+      final var contentIndex = tagIndex + 1;
+
+      assertThat(content.get(tagIndex).path("type").asText())
+          .as("XML tag type at index %d", tagIndex)
+          .isEqualTo("text");
+      assertThat(content.get(tagIndex).path("text").asText())
+          .as("XML tag text at index %d", tagIndex)
+          .isEqualTo(expected.expectedXmlTag());
+
+      final var contentBlock = decodeJsonContentBlock(content.get(contentIndex));
+      try {
+        expected.contentBlockAssertion().accept(contentBlock);
+      } catch (AssertionError e) {
+        throw new AssertionError(
+            "Content block at index %d (document %d) failed: %s"
+                .formatted(contentIndex, i, e.getMessage()),
+            e);
+      }
+    }
+  }
+
+  /**
+   * Asserts a wire-format content block node (OpenAI JSON) based on a coarse type/mime
+   * classification used by user-prompt document tests. Used when the request was recorded via
+   * WireMock and messages are {@link JsonNode} rather than LangChain4j objects.
+   */
+  public static void assertDocumentContentBlockJson(
+      JsonNode block, String expectedType, String expectedMimeType) {
+    if ("text".equals(expectedType)) {
+      assertThat(block.path("type").asText()).as("content block type for text").isEqualTo("text");
+      assertThat(block.path("text").asText()).as("text content").isNotBlank();
+    } else if ("application/pdf".equals(expectedMimeType)) {
+      // LangChain4j serializes PdfFileContent as a "file" block with base64-encoded file_data
+      assertThat(block.path("type").asText()).as("content block type for PDF").isEqualTo("file");
+      assertThat(block.path("file").path("file_data").asText())
+          .as("PDF file_data")
+          .startsWith("data:application/pdf;base64,");
+    } else {
+      // image types: image_url with data URI
+      assertThat(block.path("type").asText())
+          .as("content block type for image")
+          .isEqualTo("image_url");
+      assertThat(block.path("image_url").path("url").asText())
+          .as("image data URL")
+          .startsWith("data:" + expectedMimeType + ";base64,");
+    }
+  }
+
+  /**
+   * Decodes an OpenAI-compatible wire-format content block {@link JsonNode} back into the
+   * corresponding LangChain4j {@link Content} type, so existing {@link Content}-based assertions
+   * can be reused against WireMock-recorded messages without duplication.
+   */
+  private static Content decodeJsonContentBlock(JsonNode block) {
+    final var type = block.path("type").asText();
+    return switch (type) {
+      case "text" -> TextContent.from(block.path("text").asText());
+      case "image_url" -> {
+        final var url = block.path("image_url").path("url").asText();
+        final var mimeType = url.substring(5, url.indexOf(';'));
+        final var base64 = url.substring(url.indexOf(',') + 1);
+        yield ImageContent.from(base64, mimeType, ImageContent.DetailLevel.AUTO);
+      }
+      case "file" -> {
+        // LangChain4j serializes PdfFileContent with file_data = "data:application/pdf;base64,..."
+        final var fileData = block.path("file").path("file_data").asText();
+        final var base64 = fileData.substring(fileData.indexOf(',') + 1);
+        yield PdfFileContent.from(PdfFile.builder().base64Data(base64).build());
+      }
+      default -> throw new AssertionError("Unknown content block type in wire format: " + type);
+    };
   }
 
   /**

@@ -18,19 +18,13 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.RecordedLlmConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -38,7 +32,6 @@ import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.process.test.api.assertions.JobSelectors;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -79,7 +72,7 @@ import org.springframework.core.io.Resource;
  * leaves it for the engine to cancel ({@code INTERRUPT_TOOL_CALLS}).
  */
 @SlowTest
-public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest {
+public class L4JAiAgentJobWorkerEventsTests extends BaseWireMockL4JAiAgentJobWorkerTest {
 
   @Value("classpath:agentic-ai-ahsp-connectors-event.bpmn")
   private Resource testProcessWithEvents;
@@ -107,12 +100,6 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
           + " All in-flight tool executions were canceled.";
   private static final String CANCELLED_TOOL_RESULT = "Tool execution was canceled.";
 
-  private static final SystemMessage SYSTEM_MESSAGE =
-      new SystemMessage(
-          "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking.");
-  private static final UserMessage INITIAL_USER_MESSAGE = new UserMessage(INITIAL_USER_PROMPT);
-  private static final AiMessage AI_FINAL_MESSAGE = new AiMessage(FINAL_AI_RESPONSE);
-
   private static AgentMetrics twoIterationMetrics(int toolCalls) {
     return new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220), toolCalls);
   }
@@ -133,34 +120,35 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
    */
   @Test
   void eventBeforeProcessActivation_withPayload() throws Exception {
-    final var aiToolCallMessage = aiSuperfluxToolCall();
-
-    final var expectedConversation =
-        List.of(
-            SYSTEM_MESSAGE,
-            INITIAL_USER_MESSAGE,
-            new UserMessage(EVENT_PAYLOAD),
-            aiToolCallMessage,
-            new ToolExecutionResultMessage(
-                SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_RESULT),
-            AI_FINAL_MESSAGE);
-
-    mockChatInteractions(
-        ChatInteraction.of(toolExecutionResponse(aiToolCallMessage)),
-        ChatInteraction.of(stopResponse(AI_FINAL_MESSAGE), userSatisfiedFeedback()));
+    OpenAiChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            "I will use the superflux tool.",
+            10,
+            20,
+            ToolCall.of(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_ARGS)),
+        Turn.text(FINAL_AI_RESPONSE, 100, 200));
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     publishEventMessage(EVENT_PAYLOAD);
     final var zeebeTest = startProcessInstance(e -> e);
 
     zeebeTest.waitForProcessCompletion();
 
-    assertCompleted(zeebeTest, expectedConversation, 1);
+    assertCompleted(
+        zeebeTest,
+        1,
+        ExpectedMessage.system(SYSTEM_PROMPT),
+        ExpectedMessage.user(INITIAL_USER_PROMPT),
+        ExpectedMessage.user(EVENT_PAYLOAD),
+        ExpectedMessage.assistantWithToolCalls(
+            "I will use the superflux tool.", SUPERFLUX_TOOL_NAME),
+        ExpectedMessage.toolResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT));
   }
 
   /** Default {@code WAIT_FOR_TOOL_CALL_RESULTS}: agent waits for all tools before proceeding. */
   @Test
   void eventDuringToolExecution_waitForToolCallResults_withPayload() throws Exception {
-    runEventDuringExecution(EVENT_PAYLOAD, new UserMessage(EVENT_PAYLOAD), PENDING_TOOL_RESULT);
+    runEventDuringExecution(EVENT_PAYLOAD, EVENT_PAYLOAD, PENDING_TOOL_RESULT);
   }
 
   /**
@@ -170,7 +158,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
    */
   @Test
   void eventDuringToolExecution_emptyPayload() throws Exception {
-    runEventDuringExecution("", new UserMessage(EVENT_CONTENT_EMPTY_WAIT), PENDING_TOOL_RESULT);
+    runEventDuringExecution("", EVENT_CONTENT_EMPTY_WAIT, PENDING_TOOL_RESULT);
   }
 
   /**
@@ -181,7 +169,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
    */
   @Test
   void eventDuringToolExecution_cancelToolCalls_withPayload() throws Exception {
-    runEventDuringExecutionWithCancel(EVENT_PAYLOAD, new UserMessage(EVENT_PAYLOAD));
+    runEventDuringExecutionWithCancel(EVENT_PAYLOAD, EVENT_PAYLOAD);
   }
 
   /**
@@ -191,7 +179,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
    */
   @Test
   void eventDuringToolExecution_cancelToolCalls_emptyPayload() throws Exception {
-    runEventDuringExecutionWithCancel("", new UserMessage(EVENT_CONTENT_EMPTY_INTERRUPT));
+    runEventDuringExecutionWithCancel("", EVENT_CONTENT_EMPTY_INTERRUPT);
   }
 
   /**
@@ -204,24 +192,16 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
   void multipleEventsDuringToolExecution_preservesOrder() throws Exception {
     final var firstEventPayload = "First event arrived.";
     final var secondEventPayload = "Second event arrived.";
-    final var aiToolCallMessage = aiMessageWithTwoToolCallInstructions();
 
-    final var expectedConversation =
-        List.of(
-            SYSTEM_MESSAGE,
-            INITIAL_USER_MESSAGE,
-            aiToolCallMessage,
-            new ToolExecutionResultMessage(
-                SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_RESULT),
-            new ToolExecutionResultMessage(
-                PENDING_TOOL_CALL_ID, PENDING_TOOL_NAME, PENDING_TOOL_RESULT),
-            new UserMessage(firstEventPayload),
-            new UserMessage(secondEventPayload),
-            AI_FINAL_MESSAGE);
-
-    mockChatInteractions(
-        ChatInteraction.of(toolExecutionResponse(aiToolCallMessage)),
-        ChatInteraction.of(stopResponse(AI_FINAL_MESSAGE), userSatisfiedFeedback()));
+    OpenAiChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            "Calling the superflux and pending tools.",
+            10,
+            20,
+            ToolCall.of(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_ARGS),
+            ToolCall.of(PENDING_TOOL_CALL_ID, PENDING_TOOL_NAME, "{}")),
+        Turn.text(FINAL_AI_RESPONSE, 100, 200));
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest = startProcessInstance(e -> e);
 
@@ -236,31 +216,33 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
 
     zeebeTest.waitForProcessCompletion();
 
-    assertCompleted(zeebeTest, expectedConversation, 2);
+    assertCompleted(
+        zeebeTest,
+        2,
+        ExpectedMessage.system(SYSTEM_PROMPT),
+        ExpectedMessage.user(INITIAL_USER_PROMPT),
+        ExpectedMessage.assistantWithToolCalls(
+            "Calling the superflux and pending tools.", SUPERFLUX_TOOL_NAME, PENDING_TOOL_NAME),
+        ExpectedMessage.toolResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT),
+        ExpectedMessage.toolResult(PENDING_TOOL_CALL_ID, PENDING_TOOL_RESULT),
+        ExpectedMessage.user(firstEventPayload),
+        ExpectedMessage.user(secondEventPayload));
   }
 
   // ---- shared scenarios for the "during execution" variants ---------------
 
   private void runEventDuringExecution(
-      String publishedPayload, ChatMessage expectedEventMessage, String pendingToolResultValue)
+      String publishedPayload, String expectedEventText, String pendingToolResultValue)
       throws Exception {
-    final var aiToolCallMessage = aiMessageWithTwoToolCallInstructions();
-
-    final var expectedConversation =
-        List.of(
-            SYSTEM_MESSAGE,
-            INITIAL_USER_MESSAGE,
-            aiToolCallMessage,
-            new ToolExecutionResultMessage(
-                SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_RESULT),
-            new ToolExecutionResultMessage(
-                PENDING_TOOL_CALL_ID, PENDING_TOOL_NAME, pendingToolResultValue),
-            expectedEventMessage,
-            AI_FINAL_MESSAGE);
-
-    mockChatInteractions(
-        ChatInteraction.of(toolExecutionResponse(aiToolCallMessage)),
-        ChatInteraction.of(stopResponse(AI_FINAL_MESSAGE), userSatisfiedFeedback()));
+    OpenAiChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            "Calling the superflux and pending tools.",
+            10,
+            20,
+            ToolCall.of(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_ARGS),
+            ToolCall.of(PENDING_TOOL_CALL_ID, PENDING_TOOL_NAME, "{}")),
+        Turn.text(FINAL_AI_RESPONSE, 100, 200));
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest = startProcessInstance(e -> e);
 
@@ -271,28 +253,29 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
 
     zeebeTest.waitForProcessCompletion();
 
-    assertCompleted(zeebeTest, expectedConversation, 2);
+    assertCompleted(
+        zeebeTest,
+        2,
+        ExpectedMessage.system(SYSTEM_PROMPT),
+        ExpectedMessage.user(INITIAL_USER_PROMPT),
+        ExpectedMessage.assistantWithToolCalls(
+            "Calling the superflux and pending tools.", SUPERFLUX_TOOL_NAME, PENDING_TOOL_NAME),
+        ExpectedMessage.toolResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT),
+        ExpectedMessage.toolResult(PENDING_TOOL_CALL_ID, pendingToolResultValue),
+        ExpectedMessage.user(expectedEventText));
   }
 
-  private void runEventDuringExecutionWithCancel(
-      String publishedPayload, ChatMessage expectedEventMessage) throws Exception {
-    final var aiToolCallMessage = aiMessageWithTwoToolCallInstructions();
-
-    final var expectedConversation =
-        List.of(
-            SYSTEM_MESSAGE,
-            INITIAL_USER_MESSAGE,
-            aiToolCallMessage,
-            new ToolExecutionResultMessage(
-                SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_RESULT),
-            new ToolExecutionResultMessage(
-                PENDING_TOOL_CALL_ID, PENDING_TOOL_NAME, CANCELLED_TOOL_RESULT),
-            expectedEventMessage,
-            AI_FINAL_MESSAGE);
-
-    mockChatInteractions(
-        ChatInteraction.of(toolExecutionResponse(aiToolCallMessage)),
-        ChatInteraction.of(stopResponse(AI_FINAL_MESSAGE), userSatisfiedFeedback()));
+  private void runEventDuringExecutionWithCancel(String publishedPayload, String expectedEventText)
+      throws Exception {
+    OpenAiChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            "Calling the superflux and pending tools.",
+            10,
+            20,
+            ToolCall.of(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_ARGS),
+            ToolCall.of(PENDING_TOOL_CALL_ID, PENDING_TOOL_NAME, "{}")),
+        Turn.text(FINAL_AI_RESPONSE, 100, 200));
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
         startProcessInstance(e -> e.property("data.events.behavior", "INTERRUPT_TOOL_CALLS"));
@@ -302,7 +285,16 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
 
     zeebeTest.waitForProcessCompletion();
 
-    assertCompleted(zeebeTest, expectedConversation, 2);
+    assertCompleted(
+        zeebeTest,
+        2,
+        ExpectedMessage.system(SYSTEM_PROMPT),
+        ExpectedMessage.user(INITIAL_USER_PROMPT),
+        ExpectedMessage.assistantWithToolCalls(
+            "Calling the superflux and pending tools.", SUPERFLUX_TOOL_NAME, PENDING_TOOL_NAME),
+        ExpectedMessage.toolResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT),
+        ExpectedMessage.toolResult(PENDING_TOOL_CALL_ID, CANCELLED_TOOL_RESULT),
+        ExpectedMessage.user(expectedEventText));
   }
 
   // ---- helpers ------------------------------------------------------------
@@ -316,8 +308,10 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
   }
 
   private void assertCompleted(
-      ZeebeTest zeebeTest, List<ChatMessage> expectedConversation, int expectedToolCalls) {
-    assertLastChatRequest(expectedConversation, false);
+      ZeebeTest zeebeTest, int expectedToolCalls, ExpectedMessage... expectedMessages) {
+    final var recorded = RecordedLlmConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(2);
+    assertConversationMessages(recorded.lastRequest(), expectedMessages);
     assertReadyAgentResponse(zeebeTest, twoIterationMetrics(expectedToolCalls));
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
     assertNoToolCallVariableLeakToProcessScope(zeebeTest);
@@ -332,46 +326,6 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
                 .hasMetrics(expectedMetrics)
                 .hasResponseMessageText(FINAL_AI_RESPONSE)
                 .hasResponseText(FINAL_AI_RESPONSE));
-  }
-
-  private AiMessage aiSuperfluxToolCall() {
-    return new AiMessage(
-        "I will use the superflux tool.",
-        List.of(toolCall(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_ARGS)));
-  }
-
-  private AiMessage aiMessageWithTwoToolCallInstructions() {
-    return new AiMessage(
-        "Calling the superflux and pending tools.",
-        List.of(
-            toolCall(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_NAME, SUPERFLUX_TOOL_ARGS),
-            toolCall(PENDING_TOOL_CALL_ID, PENDING_TOOL_NAME, "{}")));
-  }
-
-  private ToolExecutionRequest toolCall(String id, String name, String arguments) {
-    return ToolExecutionRequest.builder().id(id).name(name).arguments(arguments).build();
-  }
-
-  private ChatResponse toolExecutionResponse(AiMessage aiMessage) {
-    return ChatResponse.builder()
-        .metadata(
-            ChatResponseMetadata.builder()
-                .finishReason(FinishReason.TOOL_EXECUTION)
-                .tokenUsage(new TokenUsage(10, 20))
-                .build())
-        .aiMessage(aiMessage)
-        .build();
-  }
-
-  private ChatResponse stopResponse(AiMessage aiMessage) {
-    return ChatResponse.builder()
-        .metadata(
-            ChatResponseMetadata.builder()
-                .finishReason(FinishReason.STOP)
-                .tokenUsage(new TokenUsage(100, 200))
-                .build())
-        .aiMessage(aiMessage)
-        .build();
   }
 
   private void publishEventMessage(String payload) {
