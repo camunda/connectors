@@ -82,7 +82,8 @@ public @interface VerifiedHost {
    * {@code example.com}) and validated directly without any URI parsing.
    *
    * <p>Set this to {@code true} when annotating properties that hold full request URLs (see {@code
-   * HttpCommonRequest} and {@code GraphQLRequest}); leave it {@code false} for plain host/IP fields.
+   * HttpCommonRequest} and {@code GraphQLRequest}); leave it {@code false} for plain host/IP
+   * fields.
    *
    * @return {@code true} if the value is a URI from which the host must be extracted before
    *     validation; {@code false} if the value is already a bare hostname
