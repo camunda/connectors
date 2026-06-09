@@ -7,9 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
-import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
-import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
-import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -21,12 +21,14 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.ConnectorResponse;
@@ -75,38 +77,26 @@ public abstract class BaseAgentRequestHandler<
 
   @Override
   public R handleRequest(final C executionContext) {
-    final var agentInitializationResult = agentInitializer.initializeAgent(executionContext);
-    return switch (agentInitializationResult) {
-      // directly return agent response if needed (e.g. tool discovery tool calls before calling the
-      // LLM)
-      case AgentResponseInitializationResult(
-              AgentResponse agentResponse,
-              AgentJobCompletionListener initCompletionListener) -> {
+    return switch (agentInitializer.initializeAgent(executionContext)) {
+      case DiscoverTools(var agentContext, var toolDiscoveryToolCalls) -> {
         LOGGER.debug(
-            "AI Agent initialization returned direct response including {} tool calls. Completing job without further processing.",
-            agentResponse.toolCalls().size());
-        yield buildConnectorResponse(executionContext, agentResponse, initCompletionListener);
+            "AI Agent initialization dispatching {} gateway tool discovery calls. Completing job without further processing.",
+            toolDiscoveryToolCalls.size());
+        yield dispatchToolDiscovery(executionContext, agentContext, toolDiscoveryToolCalls);
       }
-
-      // discovery still in progress (not all tool call results present)
-      case AgentDiscoveryInProgressInitializationResult ignored -> {
+      case DeferConversation() -> {
         LOGGER.debug(
             "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
         yield buildConnectorResponse(executionContext, null, null);
       }
-
-      case AgentContextInitializationResult(
-              AgentContext agentContext,
-              List<ToolCallResult> toolCallResults) -> {
-        LOGGER.debug(
-            "Handling agent request with {} tool call results",
-            toolCallResults != null ? toolCallResults.size() : 0);
-        yield handleRequest(executionContext, agentContext, toolCallResults);
+      case ReadyToConverse(var agentContext, var toolCallResults) -> {
+        LOGGER.debug("Handling agent request with {} tool call results", toolCallResults.size());
+        yield converse(executionContext, agentContext, toolCallResults);
       }
     };
   }
 
-  private R handleRequest(
+  private R converse(
       final C executionContext,
       AgentContext agentContext,
       final List<ToolCallResult> toolCallResults) {
@@ -115,8 +105,10 @@ public abstract class BaseAgentRequestHandler<
     final var initialMetrics = agentContext.metrics();
 
     try (var session = store.createSession(executionContext, agentContext)) {
-      var agentResponse =
-          processConversation(executionContext, agentContext, toolCallResults, session);
+      final var runtimeMemory = initializeRuntimeMemory(executionContext, agentContext, session);
+      var conversation = AgentConversation.rehydrate(agentContext, runtimeMemory, toolCallResults);
+
+      var agentResponse = processConversation(executionContext, conversation, session);
 
       LOGGER.debug(
           "Request processing completed {} agent response, completing job",
@@ -145,32 +137,28 @@ public abstract class BaseAgentRequestHandler<
   }
 
   private AgentResponse processConversation(
-      final C executionContext,
-      AgentContext agentContext,
-      final List<ToolCallResult> toolCallResults,
-      final ConversationSession session) {
-    final var runtimeMemory = initializeRuntimeMemory(executionContext, agentContext, session);
-
+      final C executionContext, AgentConversation conversation, final ConversationSession session) {
     LOGGER.trace("Validating configured limits for agent execution");
-    limitsValidator.validateConfiguredLimits(executionContext, agentContext);
+    limitsValidator.validateConfiguredLimits(executionContext, conversation.context());
 
-    final var addedUserMessages =
-        prepareMessages(executionContext, agentContext, runtimeMemory, toolCallResults);
+    final var addedUserMessages = prepareMessages(executionContext, conversation);
 
-    if (!modelCallPrerequisitesFulfilled(executionContext, agentContext, addedUserMessages)) {
+    if (!modelCallPrerequisitesFulfilled(
+        executionContext, conversation.context(), addedUserMessages)) {
       LOGGER.debug("Model call prerequisites not fulfilled, returning without agent response");
       return null;
     }
-    handleAddedUserMessages(executionContext, agentContext, addedUserMessages);
+    handleAddedUserMessages(executionContext, conversation.context(), addedUserMessages);
 
-    notifyThinking(executionContext, agentContext);
+    notifyThinking(executionContext, conversation);
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =
-        framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
+        framework.executeChatRequest(
+            executionContext, conversation.context(), conversation.runtimeMemory());
 
-    agentContext = updateContextMetrics(chatResponse.agentContext(), chatResponse);
+    conversation.updateContext(updateContextMetrics(chatResponse.agentContext(), chatResponse));
 
-    return buildResponse(executionContext, agentContext, chatResponse, session, runtimeMemory);
+    return buildResponse(executionContext, conversation, chatResponse, session);
   }
 
   private RuntimeMemory initializeRuntimeMemory(
@@ -185,21 +173,20 @@ public abstract class BaseAgentRequestHandler<
     return runtimeMemory;
   }
 
-  private List<Message> prepareMessages(
-      C executionContext,
-      AgentContext agentContext,
-      RuntimeMemory runtimeMemory,
-      List<ToolCallResult> toolCallResults) {
+  private List<Message> prepareMessages(C executionContext, AgentConversation conversation) {
     LOGGER.trace("Adding system message (if necessary)");
     messagesHandler.addSystemMessage(
-        executionContext, agentContext, runtimeMemory, executionContext.systemPrompt());
+        executionContext,
+        conversation.context(),
+        conversation.runtimeMemory(),
+        executionContext.systemPrompt());
 
     return messagesHandler.addUserMessages(
         executionContext,
-        agentContext,
-        runtimeMemory,
+        conversation.context(),
+        conversation.runtimeMemory(),
         executionContext.userPrompt(),
-        toolCallResults);
+        conversation.toolCallResults());
   }
 
   private AgentContext updateContextMetrics(
@@ -214,11 +201,11 @@ public abstract class BaseAgentRequestHandler<
     return agentContext.withMetrics(agentContext.metrics().incrementToolCalls(toolCallsDelta));
   }
 
-  private void notifyThinking(C executionContext, AgentContext agentContext) {
+  private void notifyThinking(C executionContext, AgentConversation conversation) {
     LOGGER.debug("Notifying agent instance: status=THINKING before LLM call");
     agentInstanceClient.update(
         executionContext,
-        agentContext,
+        conversation.context(),
         AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
   }
 
@@ -230,29 +217,66 @@ public abstract class BaseAgentRequestHandler<
 
   private AgentResponse buildResponse(
       C executionContext,
-      AgentContext agentContext,
+      AgentConversation conversation,
       AiFrameworkChatResponse<?> chatResponse,
-      ConversationSession session,
-      RuntimeMemory runtimeMemory) {
+      ConversationSession session) {
     final var assistantMessage = chatResponse.assistantMessage();
     LOGGER.debug(
         "Received assistant message containing {} tool call requests",
         assistantMessage.toolCalls() != null ? assistantMessage.toolCalls().size() : 0);
-    runtimeMemory.addMessage(assistantMessage);
+    conversation.runtimeMemory().addMessage(assistantMessage);
 
     final var toolCalls =
-        gatewayToolHandlers.transformToolCalls(agentContext, assistantMessage.toolCalls());
+        gatewayToolHandlers.transformToolCalls(
+            conversation.context(), assistantMessage.toolCalls());
     final var processVariableToolCalls =
         toolCalls.stream().map(ToolCallProcessVariable::from).toList();
 
     LOGGER.debug("Storing runtime memory to conversation session");
     final var updatedConversation =
         session.storeMessages(
-            agentContext, ConversationStoreRequest.of(runtimeMemory.allMessages()));
-    agentContext = agentContext.withConversation(updatedConversation);
+            conversation.context(),
+            ConversationStoreRequest.of(conversation.runtimeMemory().allMessages()));
+    conversation.updateContext(conversation.context().withConversation(updatedConversation));
 
     return responseHandler.createResponse(
-        executionContext, agentContext, assistantMessage, processVariableToolCalls);
+        executionContext, conversation.context(), assistantMessage, processVariableToolCalls);
+  }
+
+  private R dispatchToolDiscovery(
+      C executionContext, AgentContext agentContext, List<ToolCall> discoveryToolCalls) {
+    var response =
+        AgentResponse.builder()
+            .context(agentContext)
+            .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
+            .build();
+    var listener = createToolDiscoveryCompletionListener(executionContext, agentContext);
+    return buildConnectorResponse(executionContext, response, listener);
+  }
+
+  private AgentJobCompletionListener createToolDiscoveryCompletionListener(
+      C executionContext, AgentContext agentContext) {
+    return new AgentJobCompletionListener() {
+      @Override
+      public void onJobCompleted() {
+        try {
+          agentInstanceClient.update(
+              executionContext,
+              agentContext,
+              AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY));
+        } catch (Exception e) {
+          LOGGER.error(
+              "Failed to update agent instance status to TOOL_DISCOVERY after job completion", e);
+        }
+      }
+
+      @Override
+      public void onJobCompletionFailed(JobCompletionFailure failure) {
+        LOGGER.debug(
+            "Job completion failed ({}), skipping TOOL_DISCOVERY status update",
+            failure.getClass().getSimpleName());
+      }
+    };
   }
 
   protected abstract boolean modelCallPrerequisitesFulfilled(
