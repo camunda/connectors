@@ -107,7 +107,7 @@ public class L4JAiAgentJobWorkerProcessMigrationTests extends BaseWireMockL4JAiA
     final var recorded = RecordedLlmConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
     assertThat(recorded.lastRequest().toolNames())
-        .hasSize(expectedToolSpecifications().size() + 1)
+        .hasSize(expectedTools().size() + 1)
         .contains(NEW_TOOL_ID);
 
     final var getDateAndTimeTool =

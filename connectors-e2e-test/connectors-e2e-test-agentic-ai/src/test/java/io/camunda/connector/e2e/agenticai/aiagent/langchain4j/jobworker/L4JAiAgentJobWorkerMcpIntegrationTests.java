@@ -17,9 +17,9 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
-import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.mcp.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
@@ -31,8 +31,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.ImageContent;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
@@ -41,8 +39,8 @@ import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpC
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
+import io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.ExpectedTool;
 import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.ExtractedDocument;
-import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.Turn;
@@ -139,44 +137,20 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseWireMockL4JAiAge
   }
 
   @Override
-  protected List<ToolSpecification> expectedToolSpecifications() {
+  protected List<ExpectedTool> expectedTools() {
     return EXPECTED_MCP_TOOL_SPECIFICATIONS;
   }
 
   @Override
   protected void assertToolSpecifications(RecordedChatRequest request) {
     assertThat(request.toolNames())
-        .containsExactlyInAnyOrder(
-            "GetDateAndTime",
-            "SuperfluxProduct",
-            "Search_The_Web",
-            "Download_A_File",
-            "MCP_A_MCP_Client___toolA",
-            "MCP_A_MCP_Client___toolC",
-            "MCP_A_HTTP_Remote_MCP_Client___toolA",
-            "MCP_A_HTTP_Remote_MCP_Client___toolC",
-            "MCP_A_SSE_Remote_MCP_Client___toolA",
-            "MCP_A_SSE_Remote_MCP_Client___toolC",
-            "MCP_Filesystem_MCP_Flow___toolA",
-            "MCP_Filesystem_MCP_Flow___toolB",
-            "MCP_Filesystem_MCP_Flow___toolC");
+        .containsExactlyInAnyOrderElementsOf(
+            expectedTools().stream().map(ExpectedTool::name).toList());
 
-    assertMcpToolDescription(
-        request,
-        "MCP_A_MCP_Client___toolA",
-        Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(0));
-    assertMcpToolDescription(
-        request,
-        "MCP_Filesystem_MCP_Flow___toolB",
-        Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(1));
-    assertMcpToolDescription(
-        request,
-        "MCP_A_HTTP_Remote_MCP_Client___toolC",
-        Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(2));
-    assertMcpToolDescription(
-        request,
-        "MCP_A_SSE_Remote_MCP_Client___toolC",
-        Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(2));
+    assertMcpToolDescription(request, "MCP_A_MCP_Client___toolA", "The first tool");
+    assertMcpToolDescription(request, "MCP_Filesystem_MCP_Flow___toolB", "The second tool");
+    assertMcpToolDescription(request, "MCP_A_HTTP_Remote_MCP_Client___toolC", "The third tool");
+    assertMcpToolDescription(request, "MCP_A_SSE_Remote_MCP_Client___toolC", "The third tool");
   }
 
   @Test
@@ -396,14 +370,12 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseWireMockL4JAiAge
             "img111",
             "MCP_A_MCP_Client___toolA",
             documentReference,
-            content ->
-                assertThat(content)
-                    .isInstanceOfSatisfying(
-                        ImageContent.class,
-                        img -> {
-                          assertThat(img.image().mimeType()).isEqualTo("image/png");
-                          assertThat(img.image().base64Data()).isEqualTo(imageBase64);
-                        })));
+            block -> {
+              assertThat(block.path("type").asText()).isEqualTo("image_url");
+              final var url = block.path("image_url").path("url").asText();
+              assertThat(url).startsWith("data:image/png;base64,");
+              assertThat(url.substring(url.indexOf(',') + 1)).isEqualTo(imageBase64);
+            }));
 
     assertAgentResponse(
         zeebeTest,
@@ -429,7 +401,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseWireMockL4JAiAge
   }
 
   private static void assertMcpToolDescription(
-      RecordedChatRequest request, String toolName, ToolSpecification expectedSpec) {
+      RecordedChatRequest request, String toolName, String expectedDescription) {
     final var tool =
         request.tools().stream()
             .filter(t -> toolName.equals(t.path("function").path("name").asText()))
@@ -437,6 +409,6 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseWireMockL4JAiAge
             .orElseThrow(() -> new AssertionError("Tool not found: " + toolName));
     assertThat(tool.path("function").path("description").asText())
         .as("description of " + toolName)
-        .isEqualTo(expectedSpec.description());
+        .isEqualTo(expectedDescription);
   }
 }

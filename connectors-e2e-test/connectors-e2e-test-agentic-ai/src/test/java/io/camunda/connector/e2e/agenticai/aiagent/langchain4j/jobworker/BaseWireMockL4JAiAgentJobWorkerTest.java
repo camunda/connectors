@@ -16,18 +16,18 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import dev.langchain4j.agent.tool.ToolSpecification;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.ExpectedTool;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentJobWorkerTest;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.wiremock.OpenAiChatModelStubs.ToolCall;
@@ -286,7 +286,7 @@ abstract class BaseWireMockL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerT
   // Assertions on the recorded request
   // ---------------------------------------------------------------------------
 
-  protected List<ToolSpecification> expectedToolSpecifications() {
+  protected List<ExpectedTool> expectedTools() {
     return EXPECTED_TOOL_SPECIFICATIONS;
   }
 
@@ -294,7 +294,7 @@ abstract class BaseWireMockL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerT
   protected void assertToolSpecifications(RecordedChatRequest request) {
     assertThat(request.toolNames())
         .containsExactlyInAnyOrderElementsOf(
-            expectedToolSpecifications().stream().map(ToolSpecification::name).toList());
+            expectedTools().stream().map(ExpectedTool::name).toList());
   }
 
   /** Asserts the ordered conversation messages sent on the (last) request. */

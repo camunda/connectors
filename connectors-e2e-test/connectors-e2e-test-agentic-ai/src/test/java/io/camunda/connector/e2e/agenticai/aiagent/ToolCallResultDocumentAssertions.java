@@ -21,13 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.Content;
-import dev.langchain4j.data.message.ImageContent;
-import dev.langchain4j.data.message.PdfFileContent;
-import dev.langchain4j.data.message.TextContent;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.data.pdf.PdfFile;
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
@@ -37,13 +30,16 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocu
 import java.util.function.Consumer;
 
 /**
- * Assertion helpers for the synthetic {@link UserMessage} that carries documents extracted from
- * tool call results.
+ * Assertion helpers for the synthetic user message that carries documents extracted from tool call
+ * results.
  *
  * <p>The user message has the structure {@code preamble + (xml-tag, content-block)*}, so it can
  * carry documents from one or many tool call results. Use {@link
- * #assertExtractedDocumentsUserMessage(ChatMessage, ExtractedDocument...)} to assert against any
+ * #assertExtractedDocumentsUserMessage(JsonNode, ExtractedDocument...)} to assert against any
  * number of documents in one go.
+ *
+ * <p>All assertions operate on OpenAI-compatible wire-format {@link JsonNode} objects recorded by
+ * WireMock — no framework-specific types required.
  */
 public final class ToolCallResultDocumentAssertions {
 
@@ -98,55 +94,13 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
-   * Asserts that {@code message} is a {@link UserMessage} with the standard "extracted documents"
-   * structure: a preamble {@link TextContent} followed by an {@code (xml-tag, content-block)} pair
-   * per expected document.
+   * Asserts that {@code message} is a wire-format user message (OpenAI-compatible JSON) with the
+   * standard "extracted documents" structure: a preamble text block followed by an {@code (xml-tag,
+   * content-block)} pair per expected document.
    *
    * <p>The XML tag is built using the production {@link DocumentReferenceXmlTag}, so the assertion
-   * stays in sync with the production format.
-   */
-  public static void assertExtractedDocumentsUserMessage(
-      ChatMessage message, ExtractedDocument... expectedDocuments) {
-    assertThat(message).isInstanceOf(UserMessage.class);
-    final var contents = ((UserMessage) message).contents();
-
-    assertThat(contents)
-        .as("expected preamble + 2 contents per document (%d documents)", expectedDocuments.length)
-        .hasSize(1 + 2 * expectedDocuments.length);
-
-    assertThat(contents.get(0))
-        .as("preamble TextContent")
-        .isInstanceOfSatisfying(
-            TextContent.class, tc -> assertThat(tc.text()).isEqualTo(EXTRACTED_DOCUMENTS_PREAMBLE));
-
-    for (int i = 0; i < expectedDocuments.length; i++) {
-      final var expected = expectedDocuments[i];
-      final var expectedXml = expected.expectedXmlTag();
-      final var tagIndex = 1 + 2 * i;
-      final var contentIndex = tagIndex + 1;
-
-      assertThat(contents.get(tagIndex))
-          .as("XML tag at index %d (document %d)", tagIndex, i)
-          .isInstanceOfSatisfying(
-              TextContent.class, tc -> assertThat(tc.text()).isEqualTo(expectedXml));
-
-      final var contentBlock = contents.get(contentIndex);
-      try {
-        expected.contentBlockAssertion().accept(contentBlock);
-      } catch (AssertionError e) {
-        throw new AssertionError(
-            "Content block at index %d (document %d) failed: %s"
-                .formatted(contentIndex, i, e.getMessage()),
-            e);
-      }
-    }
-  }
-
-  /**
-   * Same as {@link #assertExtractedDocumentsUserMessage(ChatMessage, ExtractedDocument...)} but for
-   * WireMock-recorded wire-format messages (OpenAI-compatible JSON). The content-block types are
-   * decoded back to LangChain4j {@link Content} objects before being passed to the existing {@link
-   * ExtractedDocument#contentBlockAssertion()}, so all assertion logic is reused unchanged.
+   * stays in sync with the production format. The content-block {@link JsonNode} is passed directly
+   * to each {@link ExtractedDocument#contentBlockAssertion()}.
    */
   public static void assertExtractedDocumentsUserMessage(
       JsonNode message, ExtractedDocument... expectedDocuments) {
@@ -174,7 +128,7 @@ public final class ToolCallResultDocumentAssertions {
           .as("XML tag text at index %d", tagIndex)
           .isEqualTo(expected.expectedXmlTag());
 
-      final var contentBlock = decodeJsonContentBlock(content.get(contentIndex));
+      final var contentBlock = content.get(contentIndex);
       try {
         expected.contentBlockAssertion().accept(contentBlock);
       } catch (AssertionError e) {
@@ -188,8 +142,7 @@ public final class ToolCallResultDocumentAssertions {
 
   /**
    * Asserts a wire-format content block node (OpenAI JSON) based on a coarse type/mime
-   * classification used by user-prompt document tests. Used when the request was recorded via
-   * WireMock and messages are {@link JsonNode} rather than LangChain4j objects.
+   * classification used by user-prompt document tests.
    */
   public static void assertDocumentContentBlockJson(
       JsonNode block, String expectedType, String expectedMimeType) {
@@ -197,72 +150,17 @@ public final class ToolCallResultDocumentAssertions {
       assertThat(block.path("type").asText()).as("content block type for text").isEqualTo("text");
       assertThat(block.path("text").asText()).as("text content").isNotBlank();
     } else if ("application/pdf".equals(expectedMimeType)) {
-      // LangChain4j serializes PdfFileContent as a "file" block with base64-encoded file_data
       assertThat(block.path("type").asText()).as("content block type for PDF").isEqualTo("file");
       assertThat(block.path("file").path("file_data").asText())
           .as("PDF file_data")
           .startsWith("data:application/pdf;base64,");
     } else {
-      // image types: image_url with data URI
       assertThat(block.path("type").asText())
           .as("content block type for image")
           .isEqualTo("image_url");
       assertThat(block.path("image_url").path("url").asText())
           .as("image data URL")
           .startsWith("data:" + expectedMimeType + ";base64,");
-    }
-  }
-
-  /**
-   * Decodes an OpenAI-compatible wire-format content block {@link JsonNode} back into the
-   * corresponding LangChain4j {@link Content} type, so existing {@link Content}-based assertions
-   * can be reused against WireMock-recorded messages without duplication.
-   */
-  private static Content decodeJsonContentBlock(JsonNode block) {
-    final var type = block.path("type").asText();
-    return switch (type) {
-      case "text" -> TextContent.from(block.path("text").asText());
-      case "image_url" -> {
-        final var url = block.path("image_url").path("url").asText();
-        final var mimeType = url.substring(5, url.indexOf(';'));
-        final var base64 = url.substring(url.indexOf(',') + 1);
-        yield ImageContent.from(base64, mimeType, ImageContent.DetailLevel.AUTO);
-      }
-      case "file" -> {
-        // LangChain4j serializes PdfFileContent with file_data = "data:application/pdf;base64,..."
-        final var fileData = block.path("file").path("file_data").asText();
-        final var base64 = fileData.substring(fileData.indexOf(',') + 1);
-        yield PdfFileContent.from(PdfFile.builder().base64Data(base64).build());
-      }
-      default -> throw new AssertionError("Unknown content block type in wire format: " + type);
-    };
-  }
-
-  /**
-   * Asserts a content block based on a coarse type/mime classification used by tool calling tests:
-   *
-   * <ul>
-   *   <li>{@code "text"} → {@link TextContent}
-   *   <li>{@code "application/pdf"} → {@link PdfFileContent} with non-blank base64
-   *   <li>otherwise → {@link ImageContent} with matching mime type and non-blank base64
-   * </ul>
-   */
-  public static void assertDocumentContentBlock(
-      Content content, String expectedType, String expectedMimeType) {
-    if ("text".equals(expectedType)) {
-      assertThat(content).isInstanceOf(TextContent.class);
-    } else if ("application/pdf".equals(expectedMimeType)) {
-      assertThat(content)
-          .isInstanceOfSatisfying(
-              PdfFileContent.class, pdf -> assertThat(pdf.pdfFile().base64Data()).isNotBlank());
-    } else {
-      assertThat(content)
-          .isInstanceOfSatisfying(
-              ImageContent.class,
-              img -> {
-                assertThat(img.image().mimeType()).isEqualTo(expectedMimeType);
-                assertThat(img.image().base64Data()).isNotBlank();
-              });
     }
   }
 
@@ -293,16 +191,17 @@ public final class ToolCallResultDocumentAssertions {
 
   /**
    * Specification of one expected extracted document slot in the synthetic user message: an XML tag
-   * with optional tool call correlation attributes plus a content block check.
+   * with optional tool call correlation attributes plus a content block check operating on the raw
+   * OpenAI wire-format {@link JsonNode}.
    */
-  public record ExtractedDocument(String expectedXmlTag, Consumer<Content> contentBlockAssertion) {
+  public record ExtractedDocument(String expectedXmlTag, Consumer<JsonNode> contentBlockAssertion) {
 
     /** Camunda document extracted from a tool call result. */
     public static ExtractedDocument forToolCall(
         String toolCallId,
         String toolName,
         CamundaDocumentReferenceModel reference,
-        Consumer<Content> contentBlockAssertion) {
+        Consumer<JsonNode> contentBlockAssertion) {
       final var metadata = reference.metadata();
       return new ExtractedDocument(
           new CamundaDocumentReferenceXmlTag(
@@ -321,7 +220,7 @@ public final class ToolCallResultDocumentAssertions {
         String toolCallId,
         String toolName,
         ExternalDocumentReferenceModel reference,
-        Consumer<Content> contentBlockAssertion) {
+        Consumer<JsonNode> contentBlockAssertion) {
       return new ExtractedDocument(
           new ExternalDocumentReferenceXmlTag(
                   toolCallId, toolName, reference.url(), reference.name())

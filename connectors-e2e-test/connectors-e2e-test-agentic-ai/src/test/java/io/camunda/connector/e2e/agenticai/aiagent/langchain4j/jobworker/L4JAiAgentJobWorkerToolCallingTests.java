@@ -17,7 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlock;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseExternalDocumentReference;
@@ -127,7 +127,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseWireMockL4JAiAgentJ
             "aaa111",
             "Download_A_File",
             documentReference,
-            content -> assertDocumentContentBlock(content, type, mimeType)));
+            block -> assertDocumentContentBlockJson(block, type, mimeType)));
 
     assertThat(lastMessages.get(5).path("role").asText()).isEqualTo("assistant");
     assertThat(lastMessages.get(6).path("role").asText()).isEqualTo("user");
@@ -196,7 +196,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseWireMockL4JAiAgentJ
             "ext111",
             "External_File_Reference",
             externalRef,
-            content -> assertDocumentContentBlock(content, "base64", "application/pdf")));
+            block -> assertDocumentContentBlockJson(block, "base64", "application/pdf")));
 
     assertAgentResponse(
         zeebeTest,
