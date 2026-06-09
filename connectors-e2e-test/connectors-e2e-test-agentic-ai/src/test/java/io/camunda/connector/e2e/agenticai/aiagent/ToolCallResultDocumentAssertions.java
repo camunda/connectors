@@ -46,7 +46,7 @@ import java.util.function.Consumer;
  */
 public final class ToolCallResultDocumentAssertions {
 
-  static final String EXTRACTED_DOCUMENTS_PREAMBLE =
+  public static final String EXTRACTED_DOCUMENTS_PREAMBLE =
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
