@@ -43,7 +43,9 @@ public class OutboundEmailTest extends BaseEmailTest {
   JakartaEmailActionExecutor jakartaEmailActionExecutor =
       JakartaEmailActionExecutor.create(
           new JakartaUtils(), ConnectorsObjectMapperSupplier.getCopy());
-  private OutboundConnectorContextBuilder contextBuilder = OutboundConnectorContextBuilder.create();
+
+  private OutboundConnectorContextBuilder contextBuilder =
+      OutboundConnectorContextBuilder.create().includeAllValidators();
 
   private static Stream<String> getStreamFromPath(String path) {
     ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();

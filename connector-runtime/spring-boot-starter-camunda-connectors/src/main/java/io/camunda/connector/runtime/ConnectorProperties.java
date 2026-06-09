@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime;
 
 import java.time.Duration;
+import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Configuration properties for Camunda Connectors. */
@@ -27,7 +28,8 @@ public record ConnectorProperties(
     SecretProvider secretProvider,
     VirtualThreads virtualThreads,
     Inbound inbound,
-    OAuth oauth) {
+    OAuth oauth,
+    Validation validation) {
   // NOTE: this class is not used in directly in the code, but is used by Spring Boot
   // configuration annotation processor to generate the configuration properties metadata
 
@@ -85,4 +87,29 @@ public record ConnectorProperties(
    *     Default is 10 seconds.
    */
   public record OAuthCache(Duration skewBuffer) {}
+
+  /**
+   * Configuration for custom validations that are managed by the runtime.
+   *
+   * @param hosts
+   */
+  public record Validation(Hosts hosts) {
+
+    /**
+     * Used by the {@link io.camunda.connector.hostvalidator.VerifiedHostValidator} to verify hosts
+     * used by Connectors as an input configuration.
+     *
+     * @param enabled
+     * @param allowRanges
+     * @param denyRanges
+     * @param unsafeAllowPrivateRanges
+     * @param unsafeAllowLoopback
+     */
+    public record Hosts(
+        boolean enabled,
+        List<String> allowRanges,
+        List<String> denyRanges,
+        boolean unsafeAllowPrivateRanges,
+        boolean unsafeAllowLoopback) {}
+  }
 }
