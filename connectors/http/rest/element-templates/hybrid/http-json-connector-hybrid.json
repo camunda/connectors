@@ -413,7 +413,7 @@
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken.scopes",
-    "label" : "Oauth refresh token.scopes",
+    "label" : "Scopes",
     "description" : "The scopes to request authorization for (space-separated)",
     "optional" : true,
     "feel" : "optional",

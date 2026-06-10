@@ -106,7 +106,7 @@ public class OAuthService {
    * for common failure modes ({@code invalid_grant}, {@code interaction_required}).
    *
    * @param body the raw token endpoint response
-   * @return the access token
+   * @return token response containing the access token (and expires_in if present)
    * @throws ConnectorException if the response contains an OAuth error or no access_token
    */
   public TokenResponse extractTokenFromRefreshTokenResponse(StreamingHttpResponse body) {
