@@ -37,7 +37,8 @@ public record ConnectorProperties(
   public record Webhook(boolean enabled) {}
 
   /** Configuration for Operate polling that enables inbound Connectors. */
-  public record Polling(boolean enabled, boolean activeVersionsEnabled, long interval) {}
+  public record Polling(
+      boolean enabled, boolean activeVersionsEnabled, long interval, long initialDelay) {}
 
   public record VirtualThreads(boolean enabled) {}
 
