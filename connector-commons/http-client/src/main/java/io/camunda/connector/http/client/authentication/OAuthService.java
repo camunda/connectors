@@ -25,6 +25,7 @@ import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.model.auth.OAuthRefreshTokenAuthentication;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -69,6 +70,72 @@ public class OAuthService {
 
   public TokenResponse extractTokenFromResponse(StreamingHttpResponse body) {
     var jsonNode = ResponseMappers.asJsonNode(() -> OBJECT_MAPPER).apply(body);
+    return Optional.ofNullable(jsonNode)
+        .filter(JsonNode::isObject)
+        .map(node -> node.findValue(OAuthConstants.ACCESS_TOKEN))
+        .map(JsonNode::asText)
+        .map(accessToken -> toTokenResponse(accessToken, jsonNode))
+        .orElseThrow(
+            () ->
+                new ConnectorException(
+                    "OAUTH_TOKEN_ERROR",
+                    "OAuth token response does not contain an access_token field"));
+  }
+
+  /**
+   * Creates an OAuth token request for the refresh-token grant flow.
+   *
+   * @param authentication the refresh-token authentication configuration
+   * @return a request targeting the token endpoint with the refresh-token body
+   */
+  public HttpClientRequest createOAuthRefreshTokenRequestFrom(
+      OAuthRefreshTokenAuthentication authentication) {
+    HttpClientRequest oauthRequest = new HttpClientRequest();
+    Map<String, String> headers = new HashMap<>();
+    headers.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.getMimeType());
+
+    oauthRequest.setMethod(HttpMethod.POST);
+    oauthRequest.setUrl(authentication.oauthTokenEndpoint());
+    oauthRequest.setBody(authentication.getDataForAuthRequestBody());
+    oauthRequest.setHeaders(headers);
+    return oauthRequest;
+  }
+
+  /**
+   * Extracts an access token from a refresh-token grant response, with actionable error messages
+   * for common failure modes ({@code invalid_grant}, {@code interaction_required}).
+   *
+   * @param body the raw token endpoint response
+   * @return the access token
+   * @throws ConnectorException if the response contains an OAuth error or no access_token
+   */
+  public TokenResponse extractTokenFromRefreshTokenResponse(StreamingHttpResponse body) {
+    var jsonNode = ResponseMappers.asJsonNode(() -> OBJECT_MAPPER).apply(body);
+    if (jsonNode != null && jsonNode.isObject()) {
+      var errorNode = jsonNode.findValue(OAuthConstants.ERROR);
+      if (errorNode != null) {
+        String error = errorNode.asText();
+        String description =
+            Optional.ofNullable(jsonNode.findValue(OAuthConstants.ERROR_DESCRIPTION))
+                .map(JsonNode::asText)
+                .orElse("no description provided");
+        if (OAuthConstants.INVALID_GRANT.equals(error)) {
+          throw new ConnectorException(
+              "OAUTH_REFRESH_TOKEN_EXPIRED",
+              "Refresh token is invalid or expired; re-authorization is required. Details: "
+                  + description);
+        }
+        if (OAuthConstants.INTERACTION_REQUIRED.equals(error)) {
+          throw new ConnectorException(
+              "OAUTH_INTERACTION_REQUIRED",
+              "The identity provider requires user interaction before a token can be issued; "
+                  + "re-authorization is required. Details: "
+                  + description);
+        }
+        throw new ConnectorException(
+            "OAUTH_TOKEN_ERROR", "OAuth token exchange failed: " + error + ". " + description);
+      }
+    }
     return Optional.ofNullable(jsonNode)
         .filter(JsonNode::isObject)
         .map(node -> node.findValue(OAuthConstants.ACCESS_TOKEN))
