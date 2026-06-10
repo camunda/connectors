@@ -67,11 +67,25 @@ public sealed interface InboundConnectorDetails {
       implements InboundConnectorDetails {
 
     /**
+     * Properties that are relevant for deduplication, i.e. excluding runtime-level properties and
+     * the webhook response expression (see {@link
+     * io.camunda.connector.runtime.core.Keywords#PROPERTIES_EXCLUDED_FROM_DEDUPLICATION}). All
+     * grouped elements are guaranteed to share these properties by construction, so the first
+     * element is representative.
+     */
+    @JsonIgnore
+    public Map<String, String> propertiesForDeduplication() {
+      return connectorElements.getFirst().propertiesForDeduplication();
+    }
+
+    /**
      * Whether this InboundConnectorDetails is compatible with another one. Two
      * InboundConnectorDetails are compatible if they have the same type, tenantId, deduplicationId,
-     * are related to the same process definition, AND have the same properties. They can have
-     * different connector elements. This is useful to know if we can update an existing inbound
-     * connector if it has not been changed when a new process version is deployed.
+     * are related to the same process definition, AND have the same deduplication-relevant
+     * properties. They can have different connector elements, and they may differ in properties
+     * excluded from deduplication (e.g. the webhook response expression). This is useful to know if
+     * we can update an existing inbound connector if it has not been changed when a new process
+     * version is deployed.
      */
     public Optional<List<String>> checkCompatibility(ValidInboundConnectorDetails other) {
       List<String> validationErrors = new ArrayList<>();
@@ -88,7 +102,7 @@ public sealed interface InboundConnectorDetails {
         validationErrors.add("processDefinitionId mismatch");
       }
       MapDifference<String, String> diff =
-          Maps.difference(this.rawPropertiesWithoutKeywords, other.rawPropertiesWithoutKeywords);
+          Maps.difference(this.propertiesForDeduplication(), other.propertiesForDeduplication());
       if (!diff.areEqual()) {
         validationErrors.add("properties mismatch: " + diff);
       }

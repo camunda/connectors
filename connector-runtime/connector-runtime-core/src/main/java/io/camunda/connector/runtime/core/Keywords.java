@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core;
 
+import io.camunda.connector.api.inbound.webhook.WebhookPropertyNames;
 import java.util.Set;
 
 public class Keywords {
@@ -152,6 +153,23 @@ public class Keywords {
   public static final String SYNCHRONOUS_RESPONSE = "synchronousResponse";
 
   /**
+   * The webhook connector's `response expression` property. Unlike the other keywords, this is a
+   * connector(user)-space property: it is part of the webhook connector's request model and is
+   * passed to the connector. It is referenced here only to exclude it from deduplication — the HTTP
+   * response expression does not affect the inbound subscription itself, so changing it must not
+   * produce a new executable.
+   */
+  public static final String WEBHOOK_RESPONSE_EXPRESSION_KEYWORD =
+      "inbound." + WebhookPropertyNames.RESPONSE_EXPRESSION;
+
+  /**
+   * The legacy predecessor of {@link #WEBHOOK_RESPONSE_EXPRESSION_KEYWORD}. Hidden from element
+   * templates since 8.6.0, but still supported at runtime and equally excluded from deduplication.
+   */
+  public static final String WEBHOOK_RESPONSE_BODY_EXPRESSION_KEYWORD =
+      "inbound." + WebhookPropertyNames.RESPONSE_BODY_EXPRESSION;
+
+  /**
    * Properties that are handled by the connector runtime and should not be passed to the inbound
    * connector along with the properties defined by the connector.
    */
@@ -169,8 +187,9 @@ public class Keywords {
           SYNCHRONOUS_RESPONSE);
 
   /**
-   * Subset of {@link #INBOUND_RUNTIME_PROPERTIES} that should not be used for connector
-   * deduplication
+   * Properties that should not be used for connector deduplication. Mostly a subset of {@link
+   * #INBOUND_RUNTIME_PROPERTIES}, plus the webhook response expression properties, which are
+   * connector-level but must not split otherwise identical elements into separate executables.
    */
   public static final Set<String> PROPERTIES_EXCLUDED_FROM_DEDUPLICATION =
       Set.of(
@@ -187,5 +206,7 @@ public class Keywords {
           RESULT_EXPRESSION_KEYWORD,
           RESULT_VARIABLE_KEYWORD,
           CONSUME_UNMATCHED_EVENTS_KEYWORD,
-          SYNCHRONOUS_RESPONSE);
+          SYNCHRONOUS_RESPONSE,
+          WEBHOOK_RESPONSE_EXPRESSION_KEYWORD,
+          WEBHOOK_RESPONSE_BODY_EXPRESSION_KEYWORD);
 }

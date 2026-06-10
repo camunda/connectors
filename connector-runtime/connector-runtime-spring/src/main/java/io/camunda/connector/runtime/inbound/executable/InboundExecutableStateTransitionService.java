@@ -223,9 +223,7 @@ public class InboundExecutableStateTransitionService {
     if (!existing.deduplicationId().equals(newDetails.deduplicationId())) {
       return false;
     }
-    return existing
-        .rawPropertiesWithoutKeywords()
-        .equals(newDetails.rawPropertiesWithoutKeywords());
+    return existing.propertiesForDeduplication().equals(newDetails.propertiesForDeduplication());
   }
 
   private List<InboundConnectorDetails> groupElementsByDeduplicationId(
