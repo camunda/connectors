@@ -9,7 +9,6 @@ package io.camunda.connector.inbound.model;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookPropertyNames;
-import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
@@ -106,16 +105,6 @@ public record WebhookConnectorProperties(
         HMACScope[] hmacScopes,
     WebhookAuthorization auth,
     @TemplateProperty(
-            id = WebhookPropertyNames.RESPONSE_EXPRESSION,
-            label = "Response expression",
-            type = PropertyType.Text,
-            group = "webhookResponse",
-            description = "Expression used to generate the HTTP response",
-            feel = FeelMode.required,
-            optional = true)
-        Function<WebhookResultContext, WebhookHttpResponse> responseExpression,
-    @TemplateProperty(ignore = true) Function<WebhookResultContext, Object> responseBodyExpression,
-    @TemplateProperty(
             id = "verificationExpression",
             label = "One time verification response expression",
             description =
@@ -125,6 +114,25 @@ public record WebhookConnectorProperties(
             feel = FeelMode.required,
             optional = true)
         Function<Map<String, Object>, WebhookHttpResponse> verificationExpression) {
+
+  /**
+   * The webhook response expression is a template-only property: it appears in the element template
+   * but is never bound to this model. Because it is excluded from deduplication, several elements
+   * may share one executable while declaring different response expressions, so the runtime
+   * resolves it per request from the element that was actually activated (see {@code
+   * InboundWebhookRestController}) rather than from this connector instance. Declaring it as a
+   * static field keeps the template definition co-located with the other webhook properties while
+   * guaranteeing it cannot be read as bound data.
+   */
+  @TemplateProperty(
+      id = WebhookPropertyNames.RESPONSE_EXPRESSION,
+      label = "Response expression",
+      type = PropertyType.Text,
+      group = "webhookResponse",
+      description = "Expression used to generate the HTTP response",
+      feel = FeelMode.required,
+      optional = true)
+  private static final String responseExpression = null;
 
   public WebhookConnectorProperties(WebhookConnectorPropertiesWrapper wrapper) {
     this(
@@ -137,8 +145,6 @@ public record WebhookConnectorProperties(
         // default to BODY if no scopes are provided
         getOrDefault(wrapper.inbound.hmacScopes, new HMACScope[] {HMACScope.BODY}),
         getOrDefault(wrapper.inbound.auth, new WebhookAuthorization.None()),
-        wrapper.inbound.responseExpression,
-        wrapper.inbound.responseBodyExpression,
         wrapper.inbound.verificationExpression);
   }
 
@@ -171,10 +177,6 @@ public record WebhookConnectorProperties(
         + Arrays.toString(hmacScopes)
         + ", auth="
         + auth
-        + ", responseExpression="
-        + responseExpression
-        + ", responseBodyExpression="
-        + responseBodyExpression
         + ", verificationExpression="
         + verificationExpression
         + "}";
