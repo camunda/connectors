@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.generator.java.util;
 
-import static io.camunda.connector.util.reflection.ReflectionUtil.getAllFields;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Variable;
@@ -41,6 +39,7 @@ import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbou
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -122,7 +121,7 @@ public class TemplatePropertiesUtil {
       return handleSealedType(type, context);
     }
 
-    var fields = getAllFields(type);
+    var fields = getAllTemplateFields(type);
     var properties = new ArrayList<PropertyBuilder>();
 
     for (Field field : fields) {
@@ -184,6 +183,35 @@ public class TemplatePropertiesUtil {
       }
     }
     return properties.stream().filter(Objects::nonNull).toList();
+  }
+
+  /**
+   * Collects the fields of {@code type} (and its supertypes) that contribute template properties.
+   *
+   * <p>Behaves like {@link io.camunda.connector.util.reflection.ReflectionUtil#getAllFields} for
+   * instance fields, preserving their declaration order. In addition, {@code static} fields are
+   * included when (and only when) they carry a {@link TemplateProperty} or {@link
+   * TemplateDocumentProperty} annotation. Such fields let a connector declare a property that
+   * appears in the element template but is never part of the bound data model: a {@code static}
+   * field is ignored by Jackson during binding and has no record component accessor, so it cannot
+   * be read as element data. The runtime is responsible for handling the corresponding binding.
+   *
+   * <p>Non-annotated {@code static} fields (e.g. plain constants) are skipped, so they never leak
+   * into templates.
+   */
+  private static List<Field> getAllTemplateFields(Class<?> type) {
+    var fields = new ArrayList<Field>();
+    for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+      for (Field field : current.getDeclaredFields()) {
+        if (!Modifier.isStatic(field.getModifiers())) {
+          fields.add(field);
+        } else if (field.isAnnotationPresent(TemplateProperty.class)
+            || field.isAnnotationPresent(TemplateDocumentProperty.class)) {
+          fields.add(field);
+        }
+      }
+    }
+    return fields;
   }
 
   /**
