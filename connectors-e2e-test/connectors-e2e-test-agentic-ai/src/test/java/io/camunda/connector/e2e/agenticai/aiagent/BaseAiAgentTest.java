@@ -33,6 +33,7 @@ import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaProcessTestContext;
+import io.camunda.process.test.api.assertions.JobSelectors;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
@@ -40,7 +41,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,8 +54,6 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   @Autowired private CamundaProcessTestContext processTestContext;
 
   protected final AtomicInteger userFeedbackJobWorkerCounter = new AtomicInteger(0);
-
-  private volatile ProcessInstanceEvent currentProcess;
 
   protected WireMockRuntimeInfo wireMock;
 
@@ -99,6 +97,11 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
     return createProcessInstance(e -> e, variables);
   }
 
+  protected ZeebeTest createProcessInstance(Resource process, Map<String, Object> variables)
+      throws IOException {
+    return createProcessInstance(process, e -> e, variables);
+  }
+
   protected ZeebeTest createProcessInstance(
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       Map<String, Object> variables)
@@ -117,9 +120,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
         updatedElementTemplate.writeTo(new File(tempDir, "template.json"));
     final var updatedModel = modelWithModifications(process.getFile(), updatedElementTemplateFile);
 
-    final var zeebeTest = deployModel(updatedModel).createInstance(variables);
-    currentProcess = zeebeTest.getProcessInstanceEvent();
-    return zeebeTest;
+    return createProcessInstance(updatedModel, variables);
   }
 
   protected ElementTemplate elementTemplateWithModifications(
@@ -158,7 +159,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
       builder.then(
           () -> {
             userFeedbackJobWorkerCounter.incrementAndGet();
-            processTestContext.completeJob("user_feedback", f);
+            processTestContext.completeJob(JobSelectors.byElementId("User_Feedback"), f);
           });
     }
   }

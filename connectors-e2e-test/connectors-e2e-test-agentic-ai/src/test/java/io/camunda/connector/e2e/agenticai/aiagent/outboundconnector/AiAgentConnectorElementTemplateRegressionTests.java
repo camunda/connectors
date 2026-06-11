@@ -25,7 +25,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
-import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -62,8 +61,8 @@ public class AiAgentConnectorElementTemplateRegressionTests extends BaseAiAgentC
 
     final var processResource = resourceLoader.getResource("classpath:regression/" + processFile);
     final var zeebeTest =
-        deployModel(Bpmn.readModelFromStream(processResource.getInputStream()))
-            .createInstance(
+        createProcessInstance(
+                processResource,
                 Map.of(
                     "userPrompt",
                     initialUserPrompt,
