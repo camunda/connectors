@@ -28,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -119,13 +121,15 @@ public class AiAgentConnectorHttpTimeoutTests extends BaseAiAgentConnectorTest {
 
     @Test
     void processCompletesWhenResponseArrivesWithinSocketTimeout() {
-      stubOpenAiCompatible(RESPONSE_DELAY_BELOW_TIMEOUT);
+      OpenAiCompletionsChatModelStubs.stubConversation(
+          Turn.text(AGENT_RESPONSE_TEXT, 10, 20).withRequestDelay(RESPONSE_DELAY_BELOW_TIMEOUT));
       runPositiveCase(openAiCompatibleProvider());
     }
 
     @Test
     void raisesIncidentWhenResponseExceedsSocketTimeout() {
-      stubOpenAiCompatible(RESPONSE_DELAY_ABOVE_TIMEOUT);
+      OpenAiCompletionsChatModelStubs.stubConversation(
+          Turn.text(AGENT_RESPONSE_TEXT, 10, 20).withRequestDelay(RESPONSE_DELAY_ABOVE_TIMEOUT));
       runNegativeCase(openAiCompatibleProvider());
     }
   }

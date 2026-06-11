@@ -25,8 +25,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,13 +59,9 @@ public final class OpenAiCompletionsChatModelStubs {
    * called.
    */
   public static void stubRepeatingTurn(Turn turn) {
-    stubFor(
-        post(urlPathEqualTo(CHAT_COMPLETIONS_PATH))
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(turn.toResponseJson())));
+    var responseBuilder = createResponse(turn);
+
+    stubFor(post(urlPathEqualTo(CHAT_COMPLETIONS_PATH)).willReturn(responseBuilder));
   }
 
   /** Wires the scenario chain returning each turn's response in order. */
@@ -80,11 +78,7 @@ public final class OpenAiCompletionsChatModelStubs {
           post(urlPathEqualTo(CHAT_COMPLETIONS_PATH))
               .inScenario(SCENARIO_NAME)
               .whenScenarioStateIs(fromState)
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "application/json")
-                      .withBody(turnList.get(i).toResponseJson()));
+              .willReturn(createResponse(turns[i]));
 
       // Advance to the next state unless this is the final turn.
       if (i < turnList.size() - 1) {
@@ -93,6 +87,20 @@ public final class OpenAiCompletionsChatModelStubs {
 
       stubFor(mapping);
     }
+  }
+
+  private static ResponseDefinitionBuilder createResponse(Turn turn) {
+    var responseBuilder =
+        aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(turn.toResponseJson());
+
+    if (turn.requestDelay != null) {
+      return responseBuilder.withFixedDelay((int) turn.requestDelay.toMillis());
+    }
+
+    return responseBuilder;
   }
 
   private static String stateName(int index) {
@@ -107,6 +115,7 @@ public final class OpenAiCompletionsChatModelStubs {
     private final List<ToolCall> toolCalls;
     private final int promptTokens;
     private final int completionTokens;
+    private Duration requestDelay;
 
     private Turn(String text, List<ToolCall> toolCalls, int promptTokens, int completionTokens) {
       this.id = TURN_COUNTER.getAndIncrement();
@@ -129,6 +138,12 @@ public final class OpenAiCompletionsChatModelStubs {
     public static Turn toolCalls(
         String text, int promptTokens, int completionTokens, ToolCall... toolCalls) {
       return new Turn(text, Arrays.asList(toolCalls), promptTokens, completionTokens);
+    }
+
+    public Turn withRequestDelay(Duration duration) {
+      this.requestDelay = duration;
+
+      return this;
     }
 
     private String toResponseJson() {

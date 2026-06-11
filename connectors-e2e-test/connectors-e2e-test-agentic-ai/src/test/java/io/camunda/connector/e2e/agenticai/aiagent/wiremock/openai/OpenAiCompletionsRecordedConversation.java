@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -174,7 +175,13 @@ public final class OpenAiCompletionsRecordedConversation {
     private record RequestBodyWire(
         List<MessageWire> messages,
         List<ToolWire> tools,
-        @JsonProperty("response_format") ResponseFormatWire responseFormat) {}
+        @JsonProperty("response_format") ResponseFormatWire responseFormat) {
+
+      private RequestBodyWire {
+        messages = messages == null ? Collections.emptyList() : messages;
+        tools = tools == null ? Collections.emptyList() : tools;
+      }
+    }
 
     /** Wire format for a single chat message. */
     @JsonIgnoreProperties(ignoreUnknown = true)
