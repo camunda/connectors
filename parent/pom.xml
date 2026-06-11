@@ -1258,7 +1258,7 @@ limitations under the License.</license.inlineheader>
               <artifactId>central-publishing-maven-plugin</artifactId>
               <extensions>true</extensions>
               <configuration>
-                <excludeArtifacts>connector-runtime-bundle-saas,connector-runtime-bundle,connector-runtime-application</excludeArtifacts>
+                <excludeArtifacts>connector-runtime-bundle-saas,connector-runtime-bundle,connector-runtime-application,element-template-validator</excludeArtifacts>
               </configuration>
             </plugin>
           </plugins>
