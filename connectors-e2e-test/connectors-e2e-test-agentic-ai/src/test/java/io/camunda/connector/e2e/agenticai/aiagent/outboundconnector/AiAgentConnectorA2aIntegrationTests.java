@@ -22,8 +22,8 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecificatio
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.agenticai.TestUtil;
-import io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.ExpectedTool;
 import io.camunda.connector.e2e.agenticai.aiagent.common.AiAgentA2aIntegrationTestSupport;
 import io.camunda.connector.e2e.agenticai.aiagent.common.AiAgentA2aIntegrationTestSupport.A2aExpectedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
@@ -88,7 +88,7 @@ public class AiAgentConnectorA2aIntegrationTests extends BaseAiAgentConnectorTes
   }
 
   @Override
-  protected List<ExpectedTool> expectedTools() {
+  protected List<ToolDefinition> expectedTools() {
     return EXPECTED_A2A_TOOL_SPECIFICATIONS;
   }
 

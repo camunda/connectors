@@ -23,9 +23,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -117,6 +119,35 @@ public final class OpenAiCompletionsRecordedConversation {
     /** Tool function names in the order they were declared. */
     public List<String> toolNames() {
       return tools().stream().map(tool -> tool.path("function").path("name").asText()).toList();
+    }
+
+    /**
+     * Tool definitions (name + description + input schema) parsed from the {@code tools} array. The
+     * input schema is the {@code function.parameters} object converted to a plain Map, which
+     * matches the format used by {@link ToolDefinition#inputSchema()}.
+     */
+    @SuppressWarnings("unchecked")
+    public List<ToolDefinition> toolDefinitions() {
+      return tools().stream()
+          .map(
+              tool -> {
+                final JsonNode fn = tool.path("function");
+                final String name = fn.path("name").asText();
+                final JsonNode descNode = fn.get("description");
+                final String description =
+                    descNode != null && !descNode.isNull() ? descNode.asText() : null;
+                final JsonNode paramsNode = fn.get("parameters");
+                final Map<String, Object> inputSchema =
+                    paramsNode != null && !paramsNode.isNull()
+                        ? OBJECT_MAPPER.convertValue(paramsNode, Map.class)
+                        : Map.of("type", "object", "properties", Map.of(), "required", List.of());
+                return ToolDefinition.builder()
+                    .name(name)
+                    .description(description)
+                    .inputSchema(inputSchema)
+                    .build();
+              })
+          .toList();
     }
 
     /** The {@code response_format} node, or empty if the request did not request a format. */

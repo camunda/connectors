@@ -27,9 +27,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.ExpectedTool;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.outboundconnector.BaseAiAgentConnectorTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
@@ -298,14 +298,12 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
   // Assertions on the recorded request
   // ---------------------------------------------------------------------------
 
-  protected List<ExpectedTool> expectedTools() {
+  protected List<ToolDefinition> expectedTools() {
     return EXPECTED_TOOL_SPECIFICATIONS;
   }
 
   protected void assertToolSpecifications(RecordedChatRequest request) {
-    assertThat(request.toolNames())
-        .containsExactlyInAnyOrderElementsOf(
-            expectedTools().stream().map(ExpectedTool::name).toList());
+    assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expectedTools());
   }
 
   protected void assertConversationMessages(

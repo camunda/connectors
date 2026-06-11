@@ -39,13 +39,12 @@ import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpC
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
-import io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.ExpectedTool;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.ExtractedDocument;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -137,20 +136,8 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
   }
 
   @Override
-  protected List<ExpectedTool> expectedTools() {
+  protected List<ToolDefinition> expectedTools() {
     return EXPECTED_MCP_TOOL_SPECIFICATIONS;
-  }
-
-  @Override
-  protected void assertToolSpecifications(RecordedChatRequest request) {
-    assertThat(request.toolNames())
-        .containsExactlyInAnyOrderElementsOf(
-            expectedTools().stream().map(ExpectedTool::name).toList());
-
-    assertMcpToolDescription(request, "MCP_A_MCP_Client___toolA", "The first tool");
-    assertMcpToolDescription(request, "MCP_Filesystem_MCP_Flow___toolB", "The second tool");
-    assertMcpToolDescription(request, "MCP_A_HTTP_Remote_MCP_Client___toolC", "The third tool");
-    assertMcpToolDescription(request, "MCP_A_SSE_Remote_MCP_Client___toolC", "The third tool");
   }
 
   @Test
@@ -398,17 +385,5 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
     return McpSchema.CallToolResult.builder()
         .addContent(new McpSchema.ImageContent(null, base64Data, mimeType))
         .build();
-  }
-
-  private static void assertMcpToolDescription(
-      RecordedChatRequest request, String toolName, String expectedDescription) {
-    final var tool =
-        request.tools().stream()
-            .filter(t -> toolName.equals(t.path("function").path("name").asText()))
-            .findFirst()
-            .orElseThrow(() -> new AssertionError("Tool not found: " + toolName));
-    assertThat(tool.path("function").path("description").asText())
-        .as("description of " + toolName)
-        .isEqualTo(expectedDescription);
   }
 }
