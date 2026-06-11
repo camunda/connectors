@@ -21,9 +21,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.util.Arrays;
@@ -131,46 +132,61 @@ public final class OpenAiCompletionsChatModelStubs {
     }
 
     private String toResponseJson() {
-      final ObjectNode root = OBJECT_MAPPER.createObjectNode();
-      root.put("id", "chatcmpl-test-%s".formatted(id));
-      root.put("object", "chat.completion");
-      root.put("created", 1700000000);
-      root.put("model", "test-model");
-
-      final ObjectNode message = OBJECT_MAPPER.createObjectNode();
-      message.put("role", "assistant");
-      if (text != null) {
-        message.put("content", text);
-      } else {
-        message.putNull("content");
+      try {
+        return OBJECT_MAPPER.writeValueAsString(buildResponse());
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
       }
-
-      if (!toolCalls.isEmpty()) {
-        final ArrayNode toolCallsNode = message.putArray("tool_calls");
-        for (final ToolCall toolCall : toolCalls) {
-          final ObjectNode toolCallNode = toolCallsNode.addObject();
-          toolCallNode.put("id", toolCall.id());
-          toolCallNode.put("type", "function");
-          final ObjectNode function = toolCallNode.putObject("function");
-          function.put("name", toolCall.name());
-          // arguments must be a JSON-encoded string, not a nested object
-          function.put("arguments", toolCall.argumentsJson());
-        }
-      }
-
-      final ObjectNode choice = OBJECT_MAPPER.createObjectNode();
-      choice.put("index", 0);
-      choice.set("message", message);
-      choice.put("finish_reason", toolCalls.isEmpty() ? "stop" : "tool_calls");
-      root.putArray("choices").add(choice);
-
-      final ObjectNode usage = root.putObject("usage");
-      usage.put("prompt_tokens", promptTokens);
-      usage.put("completion_tokens", completionTokens);
-      usage.put("total_tokens", promptTokens + completionTokens);
-
-      return root.toString();
     }
+
+    private ChatCompletionResponse buildResponse() {
+      final var toolCallResponses =
+          toolCalls.isEmpty()
+              ? null
+              : toolCalls.stream()
+                  .map(
+                      tc ->
+                          new ToolCallResponse(
+                              tc.id(), "function", new FunctionCall(tc.name(), tc.argumentsJson())))
+                  .toList();
+      final var message = new AssistantMessage("assistant", text, toolCallResponses);
+      final var choice = new Choice(0, message, toolCalls.isEmpty() ? "stop" : "tool_calls");
+      final var usage =
+          new UsageInfo(promptTokens, completionTokens, promptTokens + completionTokens);
+      return new ChatCompletionResponse(
+          "chatcmpl-test-%s".formatted(id),
+          "chat.completion",
+          1700000000L,
+          "test-model",
+          List.of(choice),
+          usage);
+    }
+
+    private record ChatCompletionResponse(
+        String id,
+        String object,
+        long created,
+        String model,
+        List<Choice> choices,
+        UsageInfo usage) {}
+
+    private record Choice(
+        int index, AssistantMessage message, @JsonProperty("finish_reason") String finishReason) {}
+
+    private record AssistantMessage(
+        String role,
+        String content,
+        @JsonProperty("tool_calls") @JsonInclude(JsonInclude.Include.NON_NULL)
+            List<ToolCallResponse> toolCalls) {}
+
+    private record ToolCallResponse(String id, String type, FunctionCall function) {}
+
+    private record FunctionCall(String name, String arguments) {}
+
+    private record UsageInfo(
+        @JsonProperty("prompt_tokens") int promptTokens,
+        @JsonProperty("completion_tokens") int completionTokens,
+        @JsonProperty("total_tokens") int totalTokens) {}
   }
 
   /** A tool call requested by the stubbed model. */

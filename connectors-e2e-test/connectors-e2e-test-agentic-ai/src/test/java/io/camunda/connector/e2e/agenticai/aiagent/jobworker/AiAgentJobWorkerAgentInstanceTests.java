@@ -85,7 +85,7 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
                     .withHeader("Content-Type", "application/json")
                     .withBody(finalAnswerResponseBody())));
 
-    userFeedbackVariables.set(userSatisfiedFeedback());
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
         createProcessInstance(Map.of("userPrompt", "Calculate the superflux product of 5 and 3"))
@@ -195,7 +195,7 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
                     .withHeader("Content-Type", "application/json")
                     .withBody(finalAnswerResponseBody())));
 
-    userFeedbackVariables.set(userSatisfiedFeedback());
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
         createProcessInstance(

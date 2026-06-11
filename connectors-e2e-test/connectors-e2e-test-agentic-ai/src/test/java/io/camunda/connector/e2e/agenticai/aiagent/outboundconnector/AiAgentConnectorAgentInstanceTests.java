@@ -87,7 +87,7 @@ class AiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
                     .withHeader("Content-Type", "application/json")
                     .withBody(finalAnswerResponseBody())));
 
-    userFeedbackVariables.set(userSatisfiedFeedback());
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
         createProcessInstance(
@@ -200,7 +200,7 @@ class AiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
                     .withHeader("Content-Type", "application/json")
                     .withBody(finalAnswerResponseBody())));
 
-    userFeedbackVariables.set(userSatisfiedFeedback());
+    enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
         createProcessInstance(

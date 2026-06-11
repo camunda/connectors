@@ -39,7 +39,8 @@ public class AiAgentJobWorkerResponseHandlingTests extends BaseAiAgentJobWorkerT
 
     @AfterEach
     void verifyRequestedResponseFormat() {
-      assertThat(OpenAiCompletionsRecordedConversation.recorded().lastRequest().responseFormat()).isEmpty();
+      assertThat(OpenAiCompletionsRecordedConversation.recorded().lastRequest().responseFormat())
+          .isEmpty();
     }
 
     @Test
@@ -133,7 +134,8 @@ public class AiAgentJobWorkerResponseHandlingTests extends BaseAiAgentJobWorkerT
 
     @AfterEach
     void verifyRequestedResponseFormat() {
-      final var fmt = OpenAiCompletionsRecordedConversation.recorded().lastRequest().responseFormat();
+      final var fmt =
+          OpenAiCompletionsRecordedConversation.recorded().lastRequest().responseFormat();
       assertThat(fmt).isPresent();
       if (expectedJsonSchemaName == null) {
         assertThat(fmt.get().path("type").asText()).isEqualTo("json_object");

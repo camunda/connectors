@@ -152,7 +152,7 @@ public class AiAgentConnectorHttpTimeoutTests extends BaseAiAgentConnectorTest {
 
   private void runPositiveCase(Function<ElementTemplate, ElementTemplate> providerConfig) {
     try {
-      userFeedbackVariables.set(userSatisfiedFeedback());
+      enqueueUserFeedback(userSatisfiedFeedback());
 
       final ZeebeTest zeebeTest =
           createProcessInstance(providerConfig, Map.of("userPrompt", "Write a haiku about the sea"))

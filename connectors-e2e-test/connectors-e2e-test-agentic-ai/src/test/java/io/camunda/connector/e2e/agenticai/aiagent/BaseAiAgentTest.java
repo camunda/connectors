@@ -24,25 +24,23 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import io.camunda.client.api.worker.JobWorker;
+import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
 
@@ -50,25 +48,11 @@ import org.springframework.core.io.Resource;
 @Import(CamundaDocumentTestConfiguration.class)
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
-  private JobWorker userFeedbackJobWorker;
+  @Autowired private CamundaProcessTestContext processTestContext;
+
   protected final AtomicInteger userFeedbackJobWorkerCounter = new AtomicInteger(0);
 
-  /**
-   * Single-shot user feedback returned on every {@code user_feedback} job that is not covered by an
-   * entry in {@link #userFeedbackQueue}. Used by single-turn tests (e.g. the HTTP timeout tests)
-   * and by tests that still drive feedback imperatively.
-   */
-  protected final AtomicReference<Map<String, Object>> userFeedbackVariables =
-      new AtomicReference<>(Collections.emptyMap());
-
-  /**
-   * Ordered user feedback consumed one entry per {@code user_feedback} job invocation. This
-   * decouples per-turn feedback from the model call, which the WireMock-based tests need (the
-   * previous Mockito mock set feedback as a side effect of each {@code chat()} call). When the
-   * queue is exhausted, the worker falls back to {@link #userFeedbackVariables}.
-   */
-  protected final ConcurrentLinkedQueue<Map<String, Object>> userFeedbackQueue =
-      new ConcurrentLinkedQueue<>();
+  private volatile ProcessInstanceEvent currentProcess;
 
   protected WireMockRuntimeInfo wireMock;
 
@@ -92,32 +76,9 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   }
 
   @BeforeEach
-  void openUserFeedbackJobWorker() {
-    userFeedbackVariables.set(Collections.emptyMap());
-    userFeedbackQueue.clear();
+  void resetFeedbackState() {
+    currentProcess = null;
     userFeedbackJobWorkerCounter.set(0);
-    userFeedbackJobWorker =
-        camundaClient
-            .newWorker()
-            .jobType("user_feedback")
-            .handler(
-                (client, job) -> {
-                  userFeedbackJobWorkerCounter.incrementAndGet();
-                  final Map<String, Object> feedback = userFeedbackQueue.poll();
-                  client
-                      .newCompleteCommand(job.getKey())
-                      .variables(feedback != null ? feedback : userFeedbackVariables.get())
-                      .send()
-                      .join();
-                })
-            .open();
-  }
-
-  @AfterEach
-  void closeUserFeedbackJobWorker() {
-    if (userFeedbackJobWorker != null) {
-      userFeedbackJobWorker.close();
-    }
   }
 
   protected abstract Resource testProcess();
@@ -148,7 +109,9 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
         updatedElementTemplate.writeTo(new File(tempDir, "template.json"));
     final var updatedModel = modelWithModifications(process.getFile(), updatedElementTemplateFile);
 
-    return deployModel(updatedModel).createInstance(variables);
+    final var zeebeTest = deployModel(updatedModel).createInstance(variables);
+    currentProcess = zeebeTest.getProcessInstanceEvent();
+    return zeebeTest;
   }
 
   protected ElementTemplate elementTemplateWithModifications(
@@ -164,10 +127,32 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
         .apply(elementTemplate, AI_AGENT_TASK_ID, new File(tempDir, "updated.bpmn"));
   }
 
-  /** Enqueues the user feedback returned, in order, by successive {@code user_feedback} jobs. */
+  /**
+   * Registers a conditional behavior that completes {@code user_feedback} jobs in the order given.
+   * The last entry repeats indefinitely once all preceding entries are consumed. Behaviors are
+   * cleared automatically after each test by CPT.
+   */
   @SafeVarargs
   protected final void enqueueUserFeedback(Map<String, Object>... feedback) {
-    userFeedbackQueue.addAll(Arrays.asList(feedback));
+    if (feedback.length == 0) {
+      return;
+    }
+    final var builder =
+        processTestContext
+            .when(
+                () -> {
+                  final ProcessInstanceEvent pi = currentProcess;
+                  if (pi == null) throw new AssertionError("process not yet created");
+                  CamundaAssert.assertThat(pi).hasActiveElements("User_Feedback");
+                })
+            .as("user-feedback");
+    for (final Map<String, Object> f : feedback) {
+      builder.then(
+          () -> {
+            userFeedbackJobWorkerCounter.incrementAndGet();
+            processTestContext.completeJob("user_feedback", f);
+          });
+    }
   }
 
   protected Map<String, Object> userSatisfiedFeedback() {
