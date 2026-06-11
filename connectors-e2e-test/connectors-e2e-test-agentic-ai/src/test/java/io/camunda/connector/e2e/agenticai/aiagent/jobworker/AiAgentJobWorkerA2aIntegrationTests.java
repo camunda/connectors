@@ -164,10 +164,10 @@ public class AiAgentJobWorkerA2aIntegrationTests extends BaseAiAgentJobWorkerTes
             "A2A_Travel_Agent",
             "A2A_Weather_Agent",
             "A2A_Exchange_Rate_Agent"),
-        ExpectedMessage.toolResult("aaa111", conversation.superfluxToolResult()),
-        ExpectedMessage.toolResult("bbb222", conversation.travelAgentToolResult()),
-        ExpectedMessage.toolResult("ccc333", conversation.weatherAgentToolResult()),
-        ExpectedMessage.toolResult("ddd444", conversation.exchangeRateAgentToolResult()),
+        ExpectedMessage.toolCallResult("aaa111", conversation.superfluxToolResult()),
+        ExpectedMessage.toolCallResult("bbb222", conversation.travelAgentToolResult()),
+        ExpectedMessage.toolCallResult("ccc333", conversation.weatherAgentToolResult()),
+        ExpectedMessage.toolCallResult("ddd444", conversation.exchangeRateAgentToolResult()),
         ExpectedMessage.assistant(conversation.secondAiMessageText()),
         ExpectedMessage.user("Ok thanks, anything else?"));
 

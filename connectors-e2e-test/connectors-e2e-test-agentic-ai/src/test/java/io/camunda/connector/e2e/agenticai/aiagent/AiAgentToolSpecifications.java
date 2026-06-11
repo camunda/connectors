@@ -29,9 +29,9 @@ import java.util.stream.Collectors;
 import org.springframework.core.io.ClassPathResource;
 
 /**
- * Framework-agnostic tool specification constants for AI agent e2e tests. Uses {@link
- * ToolDefinition} records (name + description + input schema) so these lists serve as a full
- * regression baseline for what the connector sends to the LLM.
+ * Tool specification constants for AI agent e2e tests. Uses {@link ToolDefinition} records (name +
+ * description + input schema) so these lists serve as a full regression baseline for what the
+ * connector sends to the LLM.
  */
 public interface AiAgentToolSpecifications {
 

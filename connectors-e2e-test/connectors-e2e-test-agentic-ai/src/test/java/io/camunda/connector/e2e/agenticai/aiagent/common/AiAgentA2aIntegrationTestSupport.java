@@ -118,15 +118,7 @@ public class AiAgentA2aIntegrationTestSupport {
 
   public final String initialUserPrompt = "Explore some of your normal and A2A tools!";
 
-  // ---------------------------------------------------------------------------
-  // Framework-agnostic conversation record
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Precomputed strings extracted from the expected A2A conversation. No framework-specific message
-   * types are exposed — callers receive plain strings suitable for building WireMock stubs and
-   * wire-level assertions.
-   */
+  /** Precomputed strings extracted from the expected A2A conversation */
   public record A2aExpectedConversation(
       String aiToolCallMessageText,
       String superfluxToolResult,

@@ -142,7 +142,7 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
         ExpectedMessage.user(EVENT_PAYLOAD),
         ExpectedMessage.assistantWithToolCalls(
             "I will use the superflux tool.", SUPERFLUX_TOOL_NAME),
-        ExpectedMessage.toolResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT));
+        ExpectedMessage.toolCallResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT));
   }
 
   /** Default {@code WAIT_FOR_TOOL_CALL_RESULTS}: agent waits for all tools before proceeding. */
@@ -223,8 +223,8 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
         ExpectedMessage.user(INITIAL_USER_PROMPT),
         ExpectedMessage.assistantWithToolCalls(
             "Calling the superflux and pending tools.", SUPERFLUX_TOOL_NAME, PENDING_TOOL_NAME),
-        ExpectedMessage.toolResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT),
-        ExpectedMessage.toolResult(PENDING_TOOL_CALL_ID, PENDING_TOOL_RESULT),
+        ExpectedMessage.toolCallResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT),
+        ExpectedMessage.toolCallResult(PENDING_TOOL_CALL_ID, PENDING_TOOL_RESULT),
         ExpectedMessage.user(firstEventPayload),
         ExpectedMessage.user(secondEventPayload));
   }
@@ -260,8 +260,8 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
         ExpectedMessage.user(INITIAL_USER_PROMPT),
         ExpectedMessage.assistantWithToolCalls(
             "Calling the superflux and pending tools.", SUPERFLUX_TOOL_NAME, PENDING_TOOL_NAME),
-        ExpectedMessage.toolResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT),
-        ExpectedMessage.toolResult(PENDING_TOOL_CALL_ID, pendingToolResultValue),
+        ExpectedMessage.toolCallResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT),
+        ExpectedMessage.toolCallResult(PENDING_TOOL_CALL_ID, pendingToolResultValue),
         ExpectedMessage.user(expectedEventText));
   }
 
@@ -292,8 +292,8 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
         ExpectedMessage.user(INITIAL_USER_PROMPT),
         ExpectedMessage.assistantWithToolCalls(
             "Calling the superflux and pending tools.", SUPERFLUX_TOOL_NAME, PENDING_TOOL_NAME),
-        ExpectedMessage.toolResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT),
-        ExpectedMessage.toolResult(PENDING_TOOL_CALL_ID, CANCELLED_TOOL_RESULT),
+        ExpectedMessage.toolCallResult(SUPERFLUX_TOOL_CALL_ID, SUPERFLUX_TOOL_RESULT),
+        ExpectedMessage.toolCallResult(PENDING_TOOL_CALL_ID, CANCELLED_TOOL_RESULT),
         ExpectedMessage.user(expectedEventText));
   }
 

@@ -19,13 +19,11 @@ package io.camunda.connector.e2e.agenticai.aiagent.outboundconnector;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AGENT_RESPONSE_VARIABLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PROPERTIES;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
@@ -33,14 +31,11 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.assertj.core.api.ThrowingConsumer;
@@ -50,8 +45,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
  * Base class for AI Agent (outbound connector flavor) e2e tests. Drives the conversation loop
- * against a WireMock-stubbed OpenAI-compatible model and provides framework-agnostic assertion
- * helpers.
+ * against a WireMock-stubbed OpenAI-compatible model and provides assertion helpers.
  */
 @SlowTest
 public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
@@ -235,9 +229,10 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
         ExpectedMessage.user(initialUserPrompt),
         ExpectedMessage.assistantWithToolCalls(
             firstAiMessage, "SuperfluxProduct", "Search_The_Web", "SuperfluxProduct"),
-        ExpectedMessage.toolResult("aaa111", "24"),
-        ExpectedMessage.toolResult("bbb222", "No results for 'Where does this data come from?'"),
-        ExpectedMessage.toolResult("ccc333", "30"),
+        ExpectedMessage.toolCallResult("aaa111", "24"),
+        ExpectedMessage.toolCallResult(
+            "bbb222", "No results for 'Where does this data come from?'"),
+        ExpectedMessage.toolCallResult("ccc333", "30"),
         ExpectedMessage.assistant(secondAiMessage),
         ExpectedMessage.user(followUpPrompt));
 
@@ -259,34 +254,6 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
     return zeebeTest;
   }
 
-  // ---------------------------------------------------------------------------
-  // Assertions on the recorded request
-  // ---------------------------------------------------------------------------
-
-  protected List<ToolDefinition> expectedTools() {
-    return EXPECTED_TOOL_SPECIFICATIONS;
-  }
-
-  protected void assertToolSpecifications(RecordedChatRequest request) {
-    assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expectedTools());
-  }
-
-  protected void assertConversationMessages(
-      RecordedChatRequest request, ExpectedMessage... expectedMessages) {
-    final var messages = request.messages();
-    assertThat(messages)
-        .as("number of messages sent to the model")
-        .hasSize(expectedMessages.length);
-
-    for (int i = 0; i < expectedMessages.length; i++) {
-      expectedMessages[i].assertMatches(i, messages.get(i));
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Agent response assertion
-  // ---------------------------------------------------------------------------
-
   protected void assertAgentResponse(
       ZeebeTest zeebeTest, ThrowingConsumer<AgentResponse> assertions) {
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
@@ -298,55 +265,5 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
                   objectMapper.convertValue(agentResponseMap, AgentResponse.class);
               assertions.accept(agentResponse);
             });
-  }
-
-  // ---------------------------------------------------------------------------
-  // ExpectedMessage inner record
-  // ---------------------------------------------------------------------------
-
-  protected record ExpectedMessage(
-      String role, String text, List<String> toolCallNames, String toolCallId) {
-
-    static ExpectedMessage system(String text) {
-      return new ExpectedMessage("system", text, null, null);
-    }
-
-    static ExpectedMessage user(String text) {
-      return new ExpectedMessage("user", text, null, null);
-    }
-
-    static ExpectedMessage assistant(String text) {
-      return new ExpectedMessage("assistant", text, null, null);
-    }
-
-    static ExpectedMessage assistantWithToolCalls(String text, String... toolCallNames) {
-      return new ExpectedMessage("assistant", text, List.of(toolCallNames), null);
-    }
-
-    static ExpectedMessage toolResult(String toolCallId, String text) {
-      return new ExpectedMessage("tool", text, null, toolCallId);
-    }
-
-    void assertMatches(int index, RecordedMessage message) {
-      assertThat(message.role()).as("role of message %d", index).isEqualTo(role);
-
-      if (text != null) {
-        assertThat(message.textContent()).as("text content of message %d", index).isEqualTo(text);
-      }
-
-      if (toolCallNames != null) {
-        final var actualNames =
-            message.toolCalls().stream().map(RecordedMessage.RecordedToolCall::name).toList();
-        assertThat(actualNames)
-            .as("tool call names of message %d", index)
-            .containsExactlyElementsOf(toolCallNames);
-      }
-
-      if (toolCallId != null) {
-        assertThat(message.toolCallId())
-            .as("tool_call_id of message %d", index)
-            .isEqualTo(toolCallId);
-      }
-    }
   }
 }

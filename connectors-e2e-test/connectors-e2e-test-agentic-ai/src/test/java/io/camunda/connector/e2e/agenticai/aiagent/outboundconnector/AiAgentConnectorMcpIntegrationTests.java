@@ -70,7 +70,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @SlowTest
 @ExtendWith(MockitoExtension.class)
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
-public class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
+class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
 
   public static final String MCP_CLIENT_ID = "a-mcp-client";
 
@@ -260,9 +260,9 @@ public class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTes
             "MCP_A_MCP_Client___toolA",
             "MCP_A_HTTP_Remote_MCP_Client___toolC",
             "MCP_A_SSE_Remote_MCP_Client___toolA"),
-        ExpectedMessage.toolResult("aaa111", "A MCP Client result"),
-        ExpectedMessage.toolResult("ccc222", "A HTTP Remote MCP Client result"),
-        ExpectedMessage.toolResult("aaa333", "A SSE Remote MCP Client result"),
+        ExpectedMessage.toolCallResult("aaa111", "A MCP Client result"),
+        ExpectedMessage.toolCallResult("ccc222", "A HTTP Remote MCP Client result"),
+        ExpectedMessage.toolCallResult("aaa333", "A SSE Remote MCP Client result"),
         ExpectedMessage.assistant(secondAiText),
         ExpectedMessage.user("Ok thanks, anything else?"));
 

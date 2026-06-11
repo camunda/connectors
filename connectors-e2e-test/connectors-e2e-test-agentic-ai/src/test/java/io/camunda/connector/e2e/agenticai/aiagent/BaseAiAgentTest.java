@@ -21,15 +21,19 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaProcessTestContext;
@@ -38,6 +42,7 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -170,5 +175,80 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   protected Map<String, Object> userFollowUpFeedback(String followUp) {
     return Map.of("userSatisfied", false, "followUpUserPrompt", followUp);
+  }
+
+  protected List<ToolDefinition> expectedTools() {
+    return EXPECTED_TOOL_SPECIFICATIONS;
+  }
+
+  protected void assertToolSpecifications(
+      OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
+    assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expectedTools());
+  }
+
+  protected void assertConversationMessages(
+      OpenAiCompletionsRecordedConversation.RecordedChatRequest request,
+      ExpectedMessage... expectedMessages) {
+    final var messages = request.messages();
+    assertThat(messages)
+        .as("number of messages sent to the model")
+        .hasSize(expectedMessages.length);
+
+    for (int i = 0; i < expectedMessages.length; i++) {
+      expectedMessages[i].assertMatches(i, messages.get(i));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // ExpectedMessage inner record
+  // ---------------------------------------------------------------------------
+
+  protected record ExpectedMessage(
+      String role, String text, List<String> toolCallNames, String toolCallId) {
+
+    public static ExpectedMessage system(String text) {
+      return new ExpectedMessage("system", text, null, null);
+    }
+
+    public static ExpectedMessage user(String text) {
+      return new ExpectedMessage("user", text, null, null);
+    }
+
+    public static ExpectedMessage assistant(String text) {
+      return new ExpectedMessage("assistant", text, null, null);
+    }
+
+    public static ExpectedMessage assistantWithToolCalls(String text, String... toolCallNames) {
+      return new ExpectedMessage("assistant", text, List.of(toolCallNames), null);
+    }
+
+    public static ExpectedMessage toolCallResult(String toolCallId, String text) {
+      return new ExpectedMessage("tool", text, null, toolCallId);
+    }
+
+    public void assertMatches(
+        int index, OpenAiCompletionsRecordedConversation.RecordedMessage message) {
+      assertThat(message.role()).as("role of message %d", index).isEqualTo(role);
+
+      if (text != null) {
+        assertThat(message.textContent()).as("text content of message %d", index).isEqualTo(text);
+      }
+
+      if (toolCallNames != null) {
+        final var actualNames =
+            message.toolCalls().stream()
+                .map(OpenAiCompletionsRecordedConversation.RecordedMessage.RecordedToolCall::name)
+                .toList();
+        assertThat(actualNames)
+            .as("tool call names of message %d", index)
+            .containsExactlyElementsOf(toolCallNames);
+      }
+
+      if (toolCallId != null) {
+        assertThat(message.toolCallId())
+            .as("tool_call_id of message %d", index)
+            .isEqualTo(toolCallId);
+      }
+    }
   }
 }

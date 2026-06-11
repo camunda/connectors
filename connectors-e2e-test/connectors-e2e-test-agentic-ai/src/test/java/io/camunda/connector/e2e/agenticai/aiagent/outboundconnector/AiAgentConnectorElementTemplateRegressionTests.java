@@ -79,8 +79,9 @@ public class AiAgentConnectorElementTemplateRegressionTests extends BaseAiAgentC
         ExpectedMessage.user(initialUserPrompt),
         ExpectedMessage.assistantWithToolCalls(
             firstAiMessage, "SuperfluxProduct", "Search_The_Web"),
-        ExpectedMessage.toolResult("aaa111", "24"),
-        ExpectedMessage.toolResult("bbb222", "No results for 'Where does this data come from?'"),
+        ExpectedMessage.toolCallResult("aaa111", "24"),
+        ExpectedMessage.toolCallResult(
+            "bbb222", "No results for 'Where does this data come from?'"),
         ExpectedMessage.assistant(secondAiMessage),
         ExpectedMessage.user(followUpPrompt));
 

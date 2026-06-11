@@ -157,11 +157,14 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasCompletedElements(
+            // entering the AI Agent
             "AI_Agent",
+            // MCP tool discovery start
             "A_MCP_Client",
             "A_HTTP_Remote_MCP_Client",
             "A_SSE_Remote_MCP_Client",
             "Filesystem_MCP_Flow",
+            // MCP tool discovery end
             "User_Feedback");
 
     verify(aMcpClient).listTools();
@@ -259,9 +262,9 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
             "MCP_A_MCP_Client___toolA",
             "MCP_A_HTTP_Remote_MCP_Client___toolC",
             "MCP_A_SSE_Remote_MCP_Client___toolA"),
-        ExpectedMessage.toolResult("aaa111", "A MCP Client result"),
-        ExpectedMessage.toolResult("ccc222", "A HTTP Remote MCP Client result"),
-        ExpectedMessage.toolResult("aaa333", "A SSE Remote MCP Client result"),
+        ExpectedMessage.toolCallResult("aaa111", "A MCP Client result"),
+        ExpectedMessage.toolCallResult("ccc222", "A HTTP Remote MCP Client result"),
+        ExpectedMessage.toolCallResult("aaa333", "A SSE Remote MCP Client result"),
         ExpectedMessage.assistant(secondAiText),
         ExpectedMessage.user("Ok thanks, anything else?"));
 
