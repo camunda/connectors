@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -138,16 +139,26 @@ public class AiAgentJobWorkerResponseHandlingTests extends BaseAiAgentJobWorkerT
           OpenAiCompletionsRecordedConversation.recorded().lastRequest().responseFormat();
       assertThat(fmt).isPresent();
       if (expectedJsonSchemaName == null) {
-        assertThat(fmt.get().path("type").asText()).isEqualTo("json_object");
+        assertThat(fmt.get().type()).isEqualTo("json_object");
       } else {
-        assertThat(fmt.get().path("type").asText()).isEqualTo("json_schema");
-        assertThat(fmt.get().path("json_schema").path("name").asText())
-            .isEqualTo(expectedJsonSchemaName);
-        final var schema = fmt.get().path("json_schema").path("schema");
-        assertThat(schema.path("type").asText()).isEqualTo("object");
-        assertThat(schema.path("properties").has("text")).isTrue();
-        assertThat(schema.path("properties").has("length")).isTrue();
-        assertThat(schema.path("required").toString()).contains("text").contains("length");
+        assertThat(fmt.get().type()).isEqualTo("json_schema");
+        assertThat(fmt.get().jsonSchema())
+            .isEqualTo(
+                Map.of(
+                    "name",
+                    expectedJsonSchemaName,
+                    "strict",
+                    false,
+                    "schema",
+                    Map.of(
+                        "type",
+                        "object",
+                        "properties",
+                        Map.of(
+                            "text", Map.of("type", "string"),
+                            "length", Map.of("type", "number")),
+                        "required",
+                        List.of("text", "length"))));
       }
     }
 

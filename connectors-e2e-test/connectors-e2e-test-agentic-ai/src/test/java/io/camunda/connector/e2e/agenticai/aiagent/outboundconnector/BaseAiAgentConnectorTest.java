@@ -22,7 +22,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -35,6 +34,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -327,53 +327,26 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
       return new ExpectedMessage("tool", text, null, toolCallId);
     }
 
-    void assertMatches(int index, JsonNode message) {
-      assertThat(message.path("role").asText()).as("role of message %d", index).isEqualTo(role);
+    void assertMatches(int index, RecordedMessage message) {
+      assertThat(message.role()).as("role of message %d", index).isEqualTo(role);
 
       if (text != null) {
-        assertThat(textContent(message)).as("text content of message %d", index).isEqualTo(text);
+        assertThat(message.textContent()).as("text content of message %d", index).isEqualTo(text);
       }
 
       if (toolCallNames != null) {
-        final var actualNames = toolCallNamesOf(message);
+        final var actualNames =
+            message.toolCalls().stream().map(RecordedMessage.RecordedToolCall::name).toList();
         assertThat(actualNames)
             .as("tool call names of message %d", index)
             .containsExactlyElementsOf(toolCallNames);
       }
 
       if (toolCallId != null) {
-        assertThat(message.path("tool_call_id").asText())
+        assertThat(message.toolCallId())
             .as("tool_call_id of message %d", index)
             .isEqualTo(toolCallId);
       }
-    }
-
-    private static String textContent(JsonNode message) {
-      final JsonNode content = message.get("content");
-      if (content == null || content.isNull()) {
-        return null;
-      }
-      if (content.isTextual()) {
-        return content.asText();
-      }
-      final StringBuilder sb = new StringBuilder();
-      content.forEach(
-          part -> {
-            if ("text".equals(part.path("type").asText())) {
-              sb.append(part.path("text").asText());
-            }
-          });
-      return sb.toString();
-    }
-
-    private static List<String> toolCallNamesOf(JsonNode message) {
-      final JsonNode toolCalls = message.get("tool_calls");
-      if (toolCalls == null || !toolCalls.isArray()) {
-        return List.of();
-      }
-      final var names = new java.util.ArrayList<String>();
-      toolCalls.forEach(tc -> names.add(tc.path("function").path("name").asText()));
-      return names;
     }
   }
 }

@@ -30,6 +30,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
@@ -103,9 +104,8 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
 
     // tool result: document serialized as a document reference (parsed from the tool message text)
     assertRole(lastMessages.get(3), "tool");
-    assertThat(lastMessages.get(3).path("tool_call_id").asText()).isEqualTo("aaa111");
-    final var documentReference =
-        parseDocumentReference(lastMessages.get(3).path("content").asText());
+    assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
+    final var documentReference = parseDocumentReference(lastMessages.get(3).content());
     assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
 
     // synthetic user message carrying the extracted document content
@@ -122,7 +122,7 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
 
     assertRole(lastMessages.get(5), "assistant"); // response after tool
     assertRole(lastMessages.get(6), "user"); // follow-up prompt
-    assertThat(textContent(lastMessages.get(6))).isEqualTo("What is the content type?");
+    assertThat(lastMessages.get(6).content()).isEqualTo("What is the content type?");
 
     assertAgentResponse(
         zeebeTest,
@@ -173,8 +173,7 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
 
     // tool result: external document reference serialized as { url, name }
     assertRole(lastMessages.get(3), "tool");
-    final var externalRef =
-        parseExternalDocumentReference(lastMessages.get(3).path("content").asText());
+    final var externalRef = parseExternalDocumentReference(lastMessages.get(3).content());
     assertThat(externalRef.url()).isEqualTo(docUrl);
     assertThat(externalRef.name()).isEqualTo(docName);
 
@@ -203,13 +202,8 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
   // OpenAI-compatible multimodal message assertions
   // ---------------------------------------------------------------------------
 
-  private static void assertRole(JsonNode message, String expectedRole) {
-    assertThat(message.path("role").asText()).isEqualTo(expectedRole);
-  }
-
-  private static String textContent(JsonNode message) {
-    final JsonNode content = message.get("content");
-    return content != null && content.isTextual() ? content.asText() : null;
+  private static void assertRole(RecordedMessage message, String expectedRole) {
+    assertThat(message.role()).isEqualTo(expectedRole);
   }
 
   /**
@@ -223,14 +217,13 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
    * type=image_url} with a {@code data:<mime>;base64,} URL.
    */
   private static void assertExtractedDocumentsUserMessage(
-      JsonNode message, String expectedXmlTag, String expectedType, String expectedMimeType) {
+      RecordedMessage message,
+      String expectedXmlTag,
+      String expectedType,
+      String expectedMimeType) {
     assertRole(message, "user");
 
-    final JsonNode content = message.get("content");
-    assertThat(content).as("multimodal content array").isNotNull();
-    assertThat(content.isArray()).as("content is an array").isTrue();
-    final List<JsonNode> parts = new java.util.ArrayList<>();
-    content.forEach(parts::add);
+    final List<JsonNode> parts = message.contentParts();
     assertThat(parts).as("preamble + <doc/> tag + content block").hasSize(3);
 
     assertThat(parts.get(0).path("type").asText()).isEqualTo("text");

@@ -107,15 +107,15 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
     final var lastMessages = recorded.lastRequest().messages();
     assertThat(lastMessages).hasSize(7);
 
-    assertThat(lastMessages.get(0).path("role").asText()).isEqualTo("system");
-    assertThat(lastMessages.get(1).path("role").asText()).isEqualTo("user");
-    assertThat(lastMessages.get(2).path("role").asText()).isEqualTo("assistant");
+    assertThat(lastMessages.get(0).role()).isEqualTo("system");
+    assertThat(lastMessages.get(1).role()).isEqualTo("user");
+    assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
     // tool result: document reference serialized as JSON
-    final var toolResultText = lastMessages.get(3).path("content").asText();
+    final var toolResultText = lastMessages.get(3).content();
     final var documentReference = parseDocumentReference(toolResultText);
-    assertThat(lastMessages.get(3).path("role").asText()).isEqualTo("tool");
-    assertThat(lastMessages.get(3).path("tool_call_id").asText()).isEqualTo("aaa111");
+    assertThat(lastMessages.get(3).role()).isEqualTo("tool");
+    assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
     assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
 
     // document user message: extracted document content (decoded from wire format)
@@ -127,9 +127,9 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
             documentReference,
             block -> assertDocumentContentBlockJson(block, type, mimeType)));
 
-    assertThat(lastMessages.get(5).path("role").asText()).isEqualTo("assistant");
-    assertThat(lastMessages.get(6).path("role").asText()).isEqualTo("user");
-    assertThat(lastMessages.get(6).path("content").asText()).isEqualTo("What is the content type?");
+    assertThat(lastMessages.get(5).role()).isEqualTo("assistant");
+    assertThat(lastMessages.get(6).role()).isEqualTo("user");
+    assertThat(lastMessages.get(6).content()).isEqualTo("What is the content type?");
 
     assertAgentResponse(
         zeebeTest,
@@ -176,12 +176,12 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
     final var lastMessages = recorded.lastRequest().messages();
     assertThat(lastMessages).hasSize(5);
 
-    assertThat(lastMessages.get(0).path("role").asText()).isEqualTo("system");
-    assertThat(lastMessages.get(1).path("role").asText()).isEqualTo("user");
-    assertThat(lastMessages.get(2).path("role").asText()).isEqualTo("assistant");
+    assertThat(lastMessages.get(0).role()).isEqualTo("system");
+    assertThat(lastMessages.get(1).role()).isEqualTo("user");
+    assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
     // tool result: external document reference serialized as { url, name }
-    final var toolResultText = lastMessages.get(3).path("content").asText();
+    final var toolResultText = lastMessages.get(3).content();
     final var externalRef = parseExternalDocumentReference(toolResultText);
     assertThat(externalRef.url()).isEqualTo(docUrl);
     assertThat(externalRef.name()).isEqualTo(docName);

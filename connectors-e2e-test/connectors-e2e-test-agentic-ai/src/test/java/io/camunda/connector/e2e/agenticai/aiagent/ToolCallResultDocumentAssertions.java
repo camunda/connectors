@@ -27,6 +27,8 @@ import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.Exte
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -103,16 +105,16 @@ public final class ToolCallResultDocumentAssertions {
    * to each {@link ExtractedDocument#contentBlockAssertion()}.
    */
   public static void assertExtractedDocumentsUserMessage(
-      JsonNode message, ExtractedDocument... expectedDocuments) {
-    assertThat(message.path("role").asText()).as("message role").isEqualTo("user");
-    final JsonNode content = message.path("content");
-    assertThat(content.isArray()).as("content should be an array").isTrue();
-    assertThat(content.size())
+      RecordedMessage message, ExtractedDocument... expectedDocuments) {
+    assertThat(message.role()).as("message role").isEqualTo("user");
+    final List<JsonNode> contentParts = message.contentParts();
+    assertThat(contentParts).as("content should be an array").isNotEmpty();
+    assertThat(contentParts.size())
         .as("expected preamble + 2 contents per document (%d documents)", expectedDocuments.length)
         .isEqualTo(1 + 2 * expectedDocuments.length);
 
-    assertThat(content.get(0).path("type").asText()).as("preamble type").isEqualTo("text");
-    assertThat(content.get(0).path("text").asText())
+    assertThat(contentParts.get(0).path("type").asText()).as("preamble type").isEqualTo("text");
+    assertThat(contentParts.get(0).path("text").asText())
         .as("preamble text")
         .isEqualTo(EXTRACTED_DOCUMENTS_PREAMBLE);
 
@@ -121,14 +123,14 @@ public final class ToolCallResultDocumentAssertions {
       final var tagIndex = 1 + 2 * i;
       final var contentIndex = tagIndex + 1;
 
-      assertThat(content.get(tagIndex).path("type").asText())
+      assertThat(contentParts.get(tagIndex).path("type").asText())
           .as("XML tag type at index %d", tagIndex)
           .isEqualTo("text");
-      assertThat(content.get(tagIndex).path("text").asText())
+      assertThat(contentParts.get(tagIndex).path("text").asText())
           .as("XML tag text at index %d", tagIndex)
           .isEqualTo(expected.expectedXmlTag());
 
-      final var contentBlock = content.get(contentIndex);
+      final var contentBlock = contentParts.get(contentIndex);
       try {
         expected.contentBlockAssertion().accept(contentBlock);
       } catch (AssertionError e) {

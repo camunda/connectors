@@ -72,20 +72,22 @@ public class AiAgentConnectorUserPromptDocumentsTests extends BaseAiAgentConnect
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
     // system message
-    assertThat(recorded.lastRequest().messages().get(0).path("role").asText()).isEqualTo("system");
-    assertThat(recorded.lastRequest().messages().get(0).path("content").asText())
-        .isEqualTo(SYSTEM_PROMPT);
+    assertThat(recorded.lastRequest().messages().get(0).role()).isEqualTo("system");
+    assertThat(recorded.lastRequest().messages().get(0).content()).isEqualTo(SYSTEM_PROMPT);
 
     // user message: content is an array with the prompt text + document block
     // (text files produce two text-type blocks; assertConversationMessages would concatenate them)
     final var userMessage = recorded.lastRequest().messages().get(1);
-    final var content = userMessage.path("content");
-    assertThat(userMessage.path("role").asText()).isEqualTo("user");
-    assertThat(content.isArray()).as("user message should have multipart content").isTrue();
-    assertThat(content.size()).as("expected text + document block").isEqualTo(2);
-    assertThat(content.get(0).path("type").asText()).isEqualTo("text");
-    assertThat(content.get(0).path("text").asText()).isEqualTo(initialUserPrompt);
-    assertDocumentContentBlockJson(content.get(1), contentBlockType(filename), mimeType(filename));
+    assertThat(userMessage.role()).isEqualTo("user");
+    assertThat(userMessage.contentParts())
+        .as("user message should have multipart content")
+        .isNotEmpty();
+    assertThat(userMessage.contentParts().size()).as("expected text + document block").isEqualTo(2);
+    assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
+    assertThat(userMessage.contentParts().get(0).path("text").asText())
+        .isEqualTo(initialUserPrompt);
+    assertDocumentContentBlockJson(
+        userMessage.contentParts().get(1), contentBlockType(filename), mimeType(filename));
 
     assertAgentResponse(
         zeebeTest,
@@ -125,20 +127,21 @@ public class AiAgentConnectorUserPromptDocumentsTests extends BaseAiAgentConnect
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
-    assertThat(recorded.lastRequest().messages().get(0).path("role").asText()).isEqualTo("system");
-    assertThat(recorded.lastRequest().messages().get(0).path("content").asText())
-        .isEqualTo(SYSTEM_PROMPT);
+    assertThat(recorded.lastRequest().messages().get(0).role()).isEqualTo("system");
+    assertThat(recorded.lastRequest().messages().get(0).content()).isEqualTo(SYSTEM_PROMPT);
 
     // user message: prompt text + two document blocks
     final var userMessage = recorded.lastRequest().messages().get(1);
-    final var content = userMessage.path("content");
-    assertThat(userMessage.path("role").asText()).isEqualTo("user");
-    assertThat(content.isArray()).isTrue();
-    assertThat(content.size()).as("expected text + 2 document blocks").isEqualTo(3);
-    assertThat(content.get(0).path("type").asText()).isEqualTo("text");
-    assertThat(content.get(0).path("text").asText()).isEqualTo(initialUserPrompt);
-    assertDocumentContentBlockJson(content.get(1), "text", "text/plain");
-    assertDocumentContentBlockJson(content.get(2), "base64", "image/jpeg");
+    assertThat(userMessage.role()).isEqualTo("user");
+    assertThat(userMessage.contentParts()).isNotEmpty();
+    assertThat(userMessage.contentParts().size())
+        .as("expected text + 2 document blocks")
+        .isEqualTo(3);
+    assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
+    assertThat(userMessage.contentParts().get(0).path("text").asText())
+        .isEqualTo(initialUserPrompt);
+    assertDocumentContentBlockJson(userMessage.contentParts().get(1), "text", "text/plain");
+    assertDocumentContentBlockJson(userMessage.contentParts().get(2), "base64", "image/jpeg");
 
     assertAgentResponse(
         zeebeTest,

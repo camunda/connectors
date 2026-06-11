@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -111,12 +112,11 @@ public class AiAgentJobWorkerProcessMigrationTests extends BaseAiAgentJobWorkerT
         .contains(NEW_TOOL_ID);
 
     final var getDateAndTimeTool =
-        recorded.lastRequest().tools().stream()
-            .filter(t -> "GetDateAndTime".equals(t.path("function").path("name").asText()))
+        recorded.lastRequest().toolDefinitions().stream()
+            .filter(t -> t.name().equals(AiAgentToolSpecifications.GET_DATE_AND_TIME_TOOL_NAME))
             .findFirst()
             .orElseThrow();
-    assertThat(getDateAndTimeTool.path("function").path("description").asText())
-        .isEqualTo("Updated documentation");
+    assertThat(getDateAndTimeTool.description()).isEqualTo("Updated documentation");
   }
 
   @Test

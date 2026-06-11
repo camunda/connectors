@@ -341,14 +341,14 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
     final var lastMessages = recorded.lastRequest().messages();
     assertThat(lastMessages).hasSize(5);
 
-    assertThat(lastMessages.get(0).path("role").asText()).isEqualTo("system");
-    assertThat(lastMessages.get(1).path("role").asText()).isEqualTo("user");
-    assertThat(lastMessages.get(2).path("role").asText()).isEqualTo("assistant");
+    assertThat(lastMessages.get(0).role()).isEqualTo("system");
+    assertThat(lastMessages.get(1).role()).isEqualTo("user");
+    assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
-    final var toolResultText = lastMessages.get(3).path("content").asText();
+    final var toolResultText = lastMessages.get(3).content();
     final var documentReference = parseDocumentReference(toolResultText);
-    assertThat(lastMessages.get(3).path("role").asText()).isEqualTo("tool");
-    assertThat(lastMessages.get(3).path("tool_call_id").asText()).isEqualTo("img111");
+    assertThat(lastMessages.get(3).role()).isEqualTo("tool");
+    assertThat(lastMessages.get(3).toolCallId()).isEqualTo("img111");
     assertThat(documentReference.metadata().contentType()).isEqualTo("image/png");
 
     assertExtractedDocumentsUserMessage(
