@@ -90,10 +90,6 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>3.5.15</version.spring-boot>
-    <!-- CVE override: Spring Boot 3.5.14 ships Tomcat 10.1.54 which has a known vulnerability.
-         Remove once Spring Boot upgrades to Tomcat >= 10.1.55 (likely in 3.5.15+).
-         Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
-    <version.tomcat>10.1.55</version.tomcat>
     <version.spring-cloud-gcp-starter-logging>7.4.9</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.34</version.logback>
 
@@ -206,23 +202,6 @@ limitations under the License.</license.inlineheader>
         <version>${version.spring-boot}</version>
         <scope>import</scope>
         <type>pom</type>
-      </dependency>
-
-      <!-- CVE override for Tomcat - remove when version.tomcat property is removed -->
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-core</artifactId>
-        <version>${version.tomcat}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-el</artifactId>
-        <version>${version.tomcat}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.tomcat.embed</groupId>
-        <artifactId>tomcat-embed-websocket</artifactId>
-        <version>${version.tomcat}</version>
       </dependency>
 
       <!-- Override Spring Boot BOM postgresql pin -->
@@ -872,18 +851,6 @@ limitations under the License.</license.inlineheader>
               <requirePluginVersions>
                 <banSnapshots>false</banSnapshots>
               </requirePluginVersions>
-              <!-- CVE override reminder: fail build when Spring Boot is bumped past 3.5.14
-                   so we remember to check if the Tomcat override (version.tomcat) can be removed.
-                   Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
-              <requireProperty>
-                <property>version.spring-boot</property>
-                <regex>3\.5\.14</regex>
-                <regexMessage>
-Spring Boot version was bumped! Check if the Tomcat CVE override (version.tomcat in parent/pom.xml) can be removed.
-If the new Spring Boot version ships Tomcat >= 10.1.55, remove version.tomcat property and the tomcat-embed-* dependencyManagement entries.
-Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575
-                </regexMessage>
-              </requireProperty>
             </rules>
           </configuration>
           <executions>
