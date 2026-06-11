@@ -87,7 +87,7 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>3.5.14</version.spring-boot>
+    <version.spring-boot>3.5.15</version.spring-boot>
     <!-- CVE override: Spring Boot 3.5.14 ships Tomcat 10.1.54 which has a known vulnerability.
          Remove once Spring Boot upgrades to Tomcat >= 10.1.55 (likely in 3.5.15+).
          Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/3575 -->
@@ -96,12 +96,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.34</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.44.13</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.46.9</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.44.13</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.46.9</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.46.4</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.46.9</version.aws-sdk-secretsmanager>
 
     <version.google-api-client>2.9.0</version.google-api-client>
 
@@ -584,13 +584,13 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>4.35.0</version>
+        <version>4.35.1</version>
       </dependency>
 
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java-util</artifactId>
-        <version>4.35.0</version>
+        <version>4.35.1</version>
       </dependency>
 
       <dependency>
