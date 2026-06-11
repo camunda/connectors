@@ -14,6 +14,13 @@ import io.camunda.connector.idp.extraction.jackson.StringToMapDeserializer;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
+/**
+ * @deprecated Legacy IDP extraction provider model, used only by {@link
+ *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. The structured /
+ *     unstructured / classification connectors use the {@code request.common} provider model
+ *     instead. Retained for backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 @TemplateSubType(id = "openai", label = "OpenAi API Specification Provider")
 public final class OpenAiProvider implements ProviderConfig {
 
