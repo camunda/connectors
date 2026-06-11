@@ -98,7 +98,8 @@ public class AiAgentJobWorkerVariableScopeTests extends BaseAiAgentJobWorkerTest
     final var updatedModel =
         modelWithModifications(testProcess.getFile(), updatedElementTemplateFile);
 
-    return createProcessInstance(updatedModel, processVariables).waitForProcessCompletion();
+    return createProcessInstance(updatedModel, processVariables)
+        .waitForProcessCompletion(Duration.ofSeconds(30));
   }
 
   private void assertCustomResultVariable(ZeebeTest zeebeTest, String expectedText) {

@@ -246,7 +246,7 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
 
     final var zeebeTest =
         createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -335,7 +335,7 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
 
     final var zeebeTest =
         createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);

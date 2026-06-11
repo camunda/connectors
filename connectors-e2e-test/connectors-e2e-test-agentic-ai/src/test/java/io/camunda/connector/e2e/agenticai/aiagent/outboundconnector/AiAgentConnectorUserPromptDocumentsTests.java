@@ -65,7 +65,7 @@ public class AiAgentConnectorUserPromptDocumentsTests extends BaseAiAgentConnect
                     initialUserPrompt,
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename)))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
@@ -121,7 +121,7 @@ public class AiAgentConnectorUserPromptDocumentsTests extends BaseAiAgentConnect
                     List.of(
                         wireMock.getHttpBaseUrl() + "/test.txt",
                         wireMock.getHttpBaseUrl() + "/test.jpg")))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);

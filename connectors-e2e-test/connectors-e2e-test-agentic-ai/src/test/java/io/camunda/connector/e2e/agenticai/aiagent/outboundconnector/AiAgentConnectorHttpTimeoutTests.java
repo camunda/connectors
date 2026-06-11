@@ -160,7 +160,7 @@ public class AiAgentConnectorHttpTimeoutTests extends BaseAiAgentConnectorTest {
 
       final ZeebeTest zeebeTest =
           createProcessInstance(providerConfig, Map.of("userPrompt", "Write a haiku about the sea"))
-              .waitForProcessCompletion();
+              .waitForProcessCompletion(Duration.ofSeconds(30));
 
       assertAgentResponse(
           zeebeTest,

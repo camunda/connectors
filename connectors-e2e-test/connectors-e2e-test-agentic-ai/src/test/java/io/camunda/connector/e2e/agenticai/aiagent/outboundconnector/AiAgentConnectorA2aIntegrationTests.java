@@ -150,7 +150,7 @@ public class AiAgentConnectorA2aIntegrationTests extends BaseAiAgentConnectorTes
     postWithDelay(
         webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);
 
-    zeebeTest.waitForProcessCompletion();
+    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);

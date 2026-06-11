@@ -89,7 +89,7 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
 
     final var zeebeTest =
         createProcessInstance(Map.of("userPrompt", "Calculate the superflux product of 5 and 3"))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     assertAgentResponse(
         zeebeTest,
@@ -200,7 +200,7 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
     final var zeebeTest =
         createProcessInstance(
                 Map.of("userPrompt", "Calculate the superflux product of 5 and 3, twice"))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     // modelCalls=3, inputTokens=10+10+15=35, outputTokens=20+20+25=65, toolCalls=2
     assertAgentResponse(

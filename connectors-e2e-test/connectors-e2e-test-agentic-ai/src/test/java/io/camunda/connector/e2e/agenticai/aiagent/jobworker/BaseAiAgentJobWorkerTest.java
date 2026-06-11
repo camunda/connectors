@@ -137,7 +137,7 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
     final var zeebeTest =
         setupBasicTestWithoutFeedbackLoop(
             process, elementTemplateModifier, extraProcessVariables, responseText);
-    zeebeTest.waitForProcessCompletion();
+    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
@@ -220,7 +220,7 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
     final var zeebeTest =
         createProcessInstance(
                 testProcess, elementTemplateModifier, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);

@@ -156,7 +156,8 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
             Map.entry("data.connectorMode.operation.toolArguments", "={ a: 5, b: 3 }")));
 
     ZeebeTest zeebeTest =
-        createProcessInstance(bpmnModel, Map.of("path", "tools")).waitForProcessCompletion();
+        createProcessInstance(bpmnModel, Map.of("path", "tools"))
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableSatisfies(

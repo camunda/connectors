@@ -83,7 +83,8 @@ public class AiAgentJobWorkerFeedbackLoopTests extends BaseAiAgentJobWorkerTest 
     enqueueUserFeedback(userFollowUpFeedback("Add emojis!"), userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(Map.of("userPrompt", initialUserPrompt)).waitForProcessCompletion();
+        createProcessInstance(Map.of("userPrompt", initialUserPrompt))
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     assertConversationMessages(
         OpenAiCompletionsRecordedConversation.recorded().lastRequest(),

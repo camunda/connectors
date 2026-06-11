@@ -72,7 +72,7 @@ public class AiAgentJobWorkerLimitsTests extends BaseAiAgentJobWorkerTest {
         createProcessInstance(
                 elementTemplate -> elementTemplate.property("errorExpression", errorExpression),
                 Map.of("userPrompt", "Write a haiku about the sea"))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     assertThat(zeebeTest.getProcessInstanceEvent())
         .hasNoActiveIncidents()

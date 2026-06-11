@@ -68,7 +68,7 @@ public class AiAgentJobWorkerElementTemplateRegressionTests extends BaseAiAgentJ
                     initialUserPrompt,
                     "providerEndpoint",
                     wireMock.getHttpBaseUrl() + "/v1"))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);

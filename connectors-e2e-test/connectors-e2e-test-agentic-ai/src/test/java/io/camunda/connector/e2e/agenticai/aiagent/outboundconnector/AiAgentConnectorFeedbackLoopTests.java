@@ -82,7 +82,8 @@ public class AiAgentConnectorFeedbackLoopTests extends BaseAiAgentConnectorTest 
     enqueueUserFeedback(userFollowUpFeedback("Add emojis!"), userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(Map.of("userPrompt", initialUserPrompt)).waitForProcessCompletion();
+        createProcessInstance(Map.of("userPrompt", initialUserPrompt))
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);

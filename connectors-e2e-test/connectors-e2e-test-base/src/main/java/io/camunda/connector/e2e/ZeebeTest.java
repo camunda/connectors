@@ -27,7 +27,6 @@ import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 import org.springframework.util.CollectionUtils;
@@ -102,20 +101,18 @@ public class ZeebeTest {
   }
 
   public ZeebeTest waitForProcessCompletion() {
-    Awaitility.with()
-        .pollInSameThread()
-        .await()
-        .atMost(20, TimeUnit.SECONDS)
-        .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).isCompleted());
+    return waitForProcessCompletion(Duration.ofSeconds(20));
+  }
+
+  public ZeebeTest waitForProcessCompletion(Duration timeout) {
+    CamundaAssert.assertThat(processInstanceEvent).withAssertionTimeout(timeout).isCompleted();
     return this;
   }
 
   public ZeebeTest waitForActiveIncidents() {
-    Awaitility.with()
-        .pollInSameThread()
-        .await()
-        .atMost(20, TimeUnit.SECONDS)
-        .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).hasActiveIncidents());
+    CamundaAssert.assertThat(processInstanceEvent)
+        .withAssertionTimeout(Duration.ofSeconds(20))
+        .hasActiveIncidents();
     return this;
   }
 

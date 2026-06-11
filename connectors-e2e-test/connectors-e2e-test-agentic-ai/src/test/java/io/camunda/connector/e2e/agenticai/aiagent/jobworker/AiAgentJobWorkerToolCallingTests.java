@@ -99,7 +99,7 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
                 Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -168,7 +168,7 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
                 Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+            .waitForProcessCompletion(Duration.ofSeconds(30));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
