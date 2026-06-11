@@ -16,9 +16,17 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.core.io.ClassPathResource;
 
 /**
  * Framework-agnostic tool specification constants for AI agent e2e tests. Uses {@link
@@ -27,173 +35,32 @@ import java.util.Map;
  */
 public interface AiAgentToolSpecifications {
 
-  // ── Schema helpers ───────────────────────────────────────────────────────────
-
-  /** Empty object schema: no parameters. */
-  private static Map<String, Object> noParams() {
-    return Map.of("type", "object", "properties", Map.of(), "required", List.of());
-  }
-
   // ── Standard tools ──────────────────────────────────────────────────────────
 
-  ToolDefinition GET_DATE_AND_TIME_TOOL =
-      ToolDefinition.builder()
-          .name("GetDateAndTime")
-          .description("Returns the current date and time including the timezone.")
-          .inputSchema(noParams())
-          .build();
+  String GET_DATE_AND_TIME_TOOL_NAME = "GetDateAndTime";
+  String SUPERFLUX_PRODUCT_TOOL_NAME = "SuperfluxProduct";
+  String SEARCH_THE_WEB_TOOL_NAME = "Search_The_Web";
+  String DOWNLOAD_A_FILE_TOOL_NAME = "Download_A_File";
 
-  ToolDefinition SUPERFLUX_PRODUCT_TOOL =
-      ToolDefinition.builder()
-          .name("SuperfluxProduct")
-          .description(
-              "Calculates the superflux product (a very complicated method only this tool can do) given two input numbers")
-          .inputSchema(
-              Map.of(
-                  "type", "object",
-                  "properties",
-                      Map.of(
-                          "a",
-                          Map.of(
-                              "type",
-                              "number",
-                              "description",
-                              "The first number to be superflux calculated."),
-                          "b",
-                          Map.of(
-                              "type",
-                              "number",
-                              "description",
-                              "The second number to be superflux calculated.")),
-                  "required", List.of("a", "b")))
-          .build();
+  List<ToolDefinition> EXPECTED_TOOL_SPECIFICATIONS = parseExpectedToolDefinitions();
 
-  ToolDefinition SEARCH_THE_WEB_TOOL =
-      ToolDefinition.builder()
-          .name("Search_The_Web")
-          .description("Do a web search to find the needed information.")
-          .inputSchema(
-              Map.of(
-                  "type", "object",
-                  "properties",
-                      Map.of(
-                          "searchQuery",
-                          Map.of("type", "string", "description", "The search query to use")),
-                  "required", List.of("searchQuery")))
-          .build();
+  Map<String, ToolDefinition> EXPECTED_TOOL_SPECIFICATIONS_BY_NAME =
+      parseExpectedToolDefinitions().stream()
+          .collect(Collectors.toMap(ToolDefinition::name, Function.identity()));
 
-  ToolDefinition DOWNLOAD_A_FILE_TOOL =
-      ToolDefinition.builder()
-          .name("Download_A_File")
-          .description("Download a file from the provided URL")
-          .inputSchema(
-              Map.of(
-                  "type", "object",
-                  "properties",
-                      Map.of(
-                          "url",
-                          Map.of(
-                              "type",
-                              "string",
-                              "description",
-                              "The URL to download the file from")),
-                  "required", List.of("url")))
-          .build();
+  private static List<ToolDefinition> parseExpectedToolDefinitions() {
+    try {
+      var objectMapper = new ObjectMapper();
+      JsonNode result =
+          objectMapper
+              .readTree(new ClassPathResource("expected-schema-result.json").getInputStream())
+              .get("toolDefinitions");
 
-  ToolDefinition EXTERNAL_FILE_REFERENCE_TOOL =
-      ToolDefinition.builder()
-          .name("External_File_Reference")
-          .description(
-              "Returns a reference to an externally hosted file (URL + display name) without downloading it.")
-          .inputSchema(
-              Map.of(
-                  "type", "object",
-                  "properties",
-                      Map.of(
-                          "url",
-                          Map.of(
-                              "type",
-                              "string",
-                              "description",
-                              "The URL of the externally hosted file"),
-                          "name",
-                          Map.of("type", "string", "description", "A display name for the file")),
-                  "required", List.of("url", "name")))
-          .build();
-
-  ToolDefinition A_COMPLEX_TOOL =
-      ToolDefinition.builder()
-          .name("A_Complex_Tool")
-          .description("A very complex tool")
-          .inputSchema(
-              Map.of(
-                  "type", "object",
-                  "properties",
-                      Map.ofEntries(
-                          Map.entry(
-                              "aSimpleValue",
-                              Map.of("type", "string", "description", "A simple value")),
-                          Map.entry(
-                              "anEnumValue",
-                              Map.of(
-                                  "type", "string",
-                                  "description", "An enum value",
-                                  "enum", List.of("A", "B", "C"))),
-                          Map.entry(
-                              "anArrayValue",
-                              Map.of(
-                                  "type",
-                                  "array",
-                                  "description",
-                                  "An array value",
-                                  "items",
-                                  Map.of("type", "string", "enum", List.of("foo", "bar", "baz")))),
-                          Map.entry(
-                              "urlPath",
-                              Map.of("type", "string", "description", "The URL path to use")),
-                          Map.entry("firstValue", Map.of("type", "string")),
-                          Map.entry(
-                              "secondValue",
-                              Map.of("type", "integer", "description", "The second value")),
-                          Map.entry(
-                              "thirdValue",
-                              Map.of("type", "string", "description", "The third value to add")),
-                          Map.entry(
-                              "fourthValue",
-                              Map.of(
-                                  "type",
-                                  "array",
-                                  "description",
-                                  "The fourth value to add",
-                                  "items",
-                                  Map.of("type", "string", "enum", List.of("foo", "bar", "baz"))))),
-                  "required",
-                      List.of(
-                          "aSimpleValue",
-                          "anEnumValue",
-                          "anArrayValue",
-                          "urlPath",
-                          "firstValue",
-                          "secondValue",
-                          "thirdValue")))
-          .build();
-
-  ToolDefinition AN_EVENT_TOOL =
-      ToolDefinition.builder()
-          .name("An_Event")
-          .description("An event!")
-          .inputSchema(noParams())
-          .build();
-
-  List<ToolDefinition> EXPECTED_TOOL_SPECIFICATIONS =
-      List.of(
-          GET_DATE_AND_TIME_TOOL,
-          SUPERFLUX_PRODUCT_TOOL,
-          SEARCH_THE_WEB_TOOL,
-          A_COMPLEX_TOOL,
-          DOWNLOAD_A_FILE_TOOL,
-          EXTERNAL_FILE_REFERENCE_TOOL,
-          AN_EVENT_TOOL);
+      return objectMapper.treeToValue(result, new TypeReference<>() {});
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   // ── MCP tools ───────────────────────────────────────────────────────────────
   // MCP tool schemas originate from the MCP server and are passed through without modification.
@@ -204,7 +71,8 @@ public interface AiAgentToolSpecifications {
     return ToolDefinition.builder()
         .name(prefixedName)
         .description(description)
-        .inputSchema(Map.of("type", "object", "properties", properties))
+        .inputSchema(
+            Map.of("type", "object", "properties", properties, "required", Collections.emptyList()))
         .build();
   }
 
@@ -226,10 +94,10 @@ public interface AiAgentToolSpecifications {
 
   List<ToolDefinition> EXPECTED_MCP_TOOL_SPECIFICATIONS =
       List.of(
-          GET_DATE_AND_TIME_TOOL,
-          SUPERFLUX_PRODUCT_TOOL,
-          SEARCH_THE_WEB_TOOL,
-          DOWNLOAD_A_FILE_TOOL,
+          EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(GET_DATE_AND_TIME_TOOL_NAME),
+          EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(SUPERFLUX_PRODUCT_TOOL_NAME),
+          EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(SEARCH_THE_WEB_TOOL_NAME),
+          EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(DOWNLOAD_A_FILE_TOOL_NAME),
           mcpTool("MCP_A_MCP_Client___toolA", "The first tool", mcpToolAProperties()),
           mcpTool("MCP_A_MCP_Client___toolC", "The third tool", mcpToolCProperties()),
           mcpTool("MCP_A_HTTP_Remote_MCP_Client___toolA", "The first tool", mcpToolAProperties()),
@@ -264,17 +132,20 @@ public interface AiAgentToolSpecifications {
                           "The context ID for this message, used to group related interactions. OMIT on first message; include on subsequent messages."),
                   "referenceTaskIds",
                   Map.of(
-                      "type", "array",
+                      "type",
+                      "array",
                       "description",
-                          "A list of other task IDs that this message references for additional context.")),
+                      "A list of other task IDs that this message references for additional context.",
+                      "items",
+                      Collections.emptyMap())),
           "required", List.of("text"));
 
   List<ToolDefinition> EXPECTED_A2A_TOOL_SPECIFICATIONS =
       List.of(
-          GET_DATE_AND_TIME_TOOL,
-          SUPERFLUX_PRODUCT_TOOL,
-          SEARCH_THE_WEB_TOOL,
-          DOWNLOAD_A_FILE_TOOL,
+          EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(GET_DATE_AND_TIME_TOOL_NAME),
+          EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(SUPERFLUX_PRODUCT_TOOL_NAME),
+          EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(SEARCH_THE_WEB_TOOL_NAME),
+          EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(DOWNLOAD_A_FILE_TOOL_NAME),
           ToolDefinition.builder()
               .name("A2A_Travel_Agent")
               .description(
