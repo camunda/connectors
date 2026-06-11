@@ -35,6 +35,7 @@ public abstract class PropertyBuilder {
   protected String tooltip;
   protected String placeholder;
   protected Object exampleValue;
+  protected String language;
 
   protected PropertyBuilder() {}
 
@@ -127,6 +128,11 @@ public abstract class PropertyBuilder {
 
   public PropertyBuilder exampleValue(Object exampleValue) {
     this.exampleValue = exampleValue;
+    return this;
+  }
+
+  public PropertyBuilder language(String language) {
+    this.language = language;
     return this;
   }
 

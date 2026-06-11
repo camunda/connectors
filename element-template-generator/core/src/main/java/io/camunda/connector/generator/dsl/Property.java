@@ -44,6 +44,7 @@ public abstract sealed class Property
   protected final String tooltip;
   protected final String placeholder;
   protected final Object exampleValue;
+  protected final String language;
   protected final String type;
 
   public record GeneratedValue(String type) {}
@@ -63,6 +64,7 @@ public abstract sealed class Property
       String tooltip,
       String placeholder,
       Object exampleValue,
+      String language,
       String type) {
     this.id = id;
     this.label = label;
@@ -77,6 +79,7 @@ public abstract sealed class Property
     this.condition = condition;
     this.tooltip = tooltip;
     this.placeholder = placeholder;
+    this.language = language;
     this.type = type;
     this.exampleValue = exampleValue;
   }
@@ -146,6 +149,10 @@ public abstract sealed class Property
 
   public Object getExampleValue() {
     return exampleValue;
+  }
+
+  public String getLanguage() {
+    return language;
   }
 
   @Override
