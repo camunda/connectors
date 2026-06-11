@@ -36,9 +36,12 @@ import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
@@ -55,6 +58,11 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   private volatile ProcessInstanceEvent currentProcess;
 
   protected WireMockRuntimeInfo wireMock;
+
+  @BeforeAll
+  static void setCamundaAssertDefaultTimeout() {
+    CamundaAssert.setAssertionTimeout(Duration.ofSeconds(30));
+  }
 
   @BeforeEach
   void clearDocumentStore() {
