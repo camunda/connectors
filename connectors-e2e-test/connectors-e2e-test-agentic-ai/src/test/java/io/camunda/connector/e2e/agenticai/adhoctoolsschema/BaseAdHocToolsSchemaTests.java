@@ -29,6 +29,7 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 import org.springframework.core.io.Resource;
 

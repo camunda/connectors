@@ -36,6 +36,7 @@ import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.Inboun
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

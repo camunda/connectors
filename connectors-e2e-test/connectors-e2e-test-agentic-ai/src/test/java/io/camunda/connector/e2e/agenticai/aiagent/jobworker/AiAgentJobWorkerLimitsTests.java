@@ -30,6 +30,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
