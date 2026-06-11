@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.wiremock;
+package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -28,34 +28,32 @@ import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Stubs the OpenAI-compatible chat completions endpoint ({@code POST /v1/chat/completions}) so the
- * real LangChain4j {@code OpenAiChatModel} drives the agent conversation loop against WireMock
- * instead of a Mockito mock.
+ * Stubs the OpenAI-compatible chat completions endpoint ({@code POST /v1/chat/completions}) AI
+ * agent connector drives the conversation loop against a mock HTTP endpoint.
  *
  * <p>A conversation is expressed as an ordered list of {@link Turn turns}. Each model call advances
- * a WireMock {@link Scenario} state, so sequential calls deterministically receive the next turn's
- * response regardless of request body. This mirrors the previous Mockito {@code
- * mockChatInteractions} queue.
+ * a {@link Scenario} state, so sequential calls deterministically receive the next turn's response
+ * regardless of request body.
  *
- * <p>The real ad-hoc sub-process tools execute between turns (as before), so tool <em>results</em>
- * are produced by the engine — only the assistant turns (text and tool-call requests) are stubbed
- * here.
+ * <p>The ad-hoc sub-process tools execute between turns, so tool <em>results</em> are produced by
+ * the engine. Only the assistant turns (text and tool-call requests) are stubbed here.
  */
-public final class OpenAiChatModelStubs {
+public final class OpenAiCompletionsChatModelStubs {
 
   public static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
 
   private static final String SCENARIO_NAME = "llm-conversation";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final AtomicInteger TURN_COUNTER = new AtomicInteger(0);
 
-  private OpenAiChatModelStubs() {}
+  private OpenAiCompletionsChatModelStubs() {}
 
   /**
    * Stubs the endpoint to always return the same response regardless of how many times it is
-   * called. Useful for limit-testing scenarios where the agent loops until an external condition
-   * (e.g., max model calls) terminates it.
+   * called.
    */
   public static void stubRepeatingTurn(Turn turn) {
     stubFor(
@@ -103,12 +101,14 @@ public final class OpenAiChatModelStubs {
   /** A single assistant turn in the conversation. */
   public static final class Turn {
 
+    private final Integer id;
     private final String text;
     private final List<ToolCall> toolCalls;
     private final int promptTokens;
     private final int completionTokens;
 
     private Turn(String text, List<ToolCall> toolCalls, int promptTokens, int completionTokens) {
+      this.id = TURN_COUNTER.getAndIncrement();
       this.text = text;
       this.toolCalls = toolCalls;
       this.promptTokens = promptTokens;
@@ -132,7 +132,7 @@ public final class OpenAiChatModelStubs {
 
     private String toResponseJson() {
       final ObjectNode root = OBJECT_MAPPER.createObjectNode();
-      root.put("id", "chatcmpl-test");
+      root.put("id", "chatcmpl-test-%s".formatted(id));
       root.put("object", "chat.completion");
       root.put("created", 1700000000);
       root.put("model", "test-model");

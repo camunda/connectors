@@ -41,11 +41,6 @@ import java.util.function.Function;
 import org.springframework.core.io.Resource;
 import org.springframework.util.StreamUtils;
 
-/**
- * Framework-agnostic test support for A2A integration tests. Provides the expected conversation
- * data as a plain record rather than LangChain4j message objects, so it can serve as a regression
- * baseline when switching AI frameworks.
- */
 public class AiAgentA2aIntegrationTestSupport {
 
   private final Resource a2aSystemPromptResource;

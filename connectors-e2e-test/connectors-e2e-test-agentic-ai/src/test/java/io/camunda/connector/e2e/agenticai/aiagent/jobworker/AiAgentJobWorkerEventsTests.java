@@ -21,10 +21,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -120,7 +120,7 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
    */
   @Test
   void eventBeforeProcessActivation_withPayload() throws Exception {
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             "I will use the superflux tool.",
             10,
@@ -193,7 +193,7 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
     final var firstEventPayload = "First event arrived.";
     final var secondEventPayload = "Second event arrived.";
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             "Calling the superflux and pending tools.",
             10,
@@ -234,7 +234,7 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
   private void runEventDuringExecution(
       String publishedPayload, String expectedEventText, String pendingToolResultValue)
       throws Exception {
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             "Calling the superflux and pending tools.",
             10,
@@ -267,7 +267,7 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
 
   private void runEventDuringExecutionWithCancel(String publishedPayload, String expectedEventText)
       throws Exception {
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             "Calling the superflux and pending tools.",
             10,
@@ -309,7 +309,7 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
 
   private void assertCompleted(
       ZeebeTest zeebeTest, int expectedToolCalls, ExpectedMessage... expectedMessages) {
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
     assertConversationMessages(recorded.lastRequest(), expectedMessages);
     assertReadyAgentResponse(zeebeTest, twoIterationMetrics(expectedToolCalls));

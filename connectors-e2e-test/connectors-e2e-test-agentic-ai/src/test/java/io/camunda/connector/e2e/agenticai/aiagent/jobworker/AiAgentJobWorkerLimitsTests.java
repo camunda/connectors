@@ -26,8 +26,8 @@ import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
 import java.util.Map;
@@ -121,7 +121,7 @@ public class AiAgentJobWorkerLimitsTests extends BaseAiAgentJobWorkerTest {
   }
 
   private void mockInfiniteLoop(int maxIterations) {
-    OpenAiChatModelStubs.stubRepeatingTurn(Turn.text(HAIKU_TEXT, 10, 20));
+    OpenAiCompletionsChatModelStubs.stubRepeatingTurn(Turn.text(HAIKU_TEXT, 10, 20));
     for (int i = 0; i < maxIterations; i++) {
       enqueueUserFeedback(userFollowUpFeedback("I don't like it"));
     }

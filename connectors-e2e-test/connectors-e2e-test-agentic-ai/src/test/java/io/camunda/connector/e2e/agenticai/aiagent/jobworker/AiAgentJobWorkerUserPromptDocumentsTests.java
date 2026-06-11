@@ -21,9 +21,9 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
@@ -53,7 +53,7 @@ public class AiAgentJobWorkerUserPromptDocumentsTests extends BaseAiAgentJobWork
     final var initialUserPrompt = "Summarize the following document";
     final var responseText = "TL;DR: it is pretty interesting";
 
-    OpenAiChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
+    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
@@ -67,7 +67,7 @@ public class AiAgentJobWorkerUserPromptDocumentsTests extends BaseAiAgentJobWork
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename)))
             .waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
@@ -103,7 +103,7 @@ public class AiAgentJobWorkerUserPromptDocumentsTests extends BaseAiAgentJobWork
     final var initialUserPrompt = "Summarize the following documents";
     final var responseText = "TL;DR: they contain a lot of interesting information.";
 
-    OpenAiChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
+    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
@@ -119,7 +119,7 @@ public class AiAgentJobWorkerUserPromptDocumentsTests extends BaseAiAgentJobWork
                         wireMock.getHttpBaseUrl() + "/test.jpg")))
             .waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 

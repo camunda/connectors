@@ -26,10 +26,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
@@ -73,7 +73,7 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
     final var fileUrl = wireMock.getHttpBaseUrl() + "/" + filename;
     final var aiFinalResponseText = "The content type is '%s'".formatted(mimeType);
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             "The user asked me to download a document. I will call the Download_A_File tool to do so.",
             10,
@@ -91,7 +91,7 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
         createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     final var lastMessages = recorded.lastRequest().messages();
@@ -144,7 +144,7 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
     final var docName = "Quarterly Report";
     final var aiFinalResponseText = "Referenced the external document.";
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             "I will reference an externally hosted file.",
             10,
@@ -161,7 +161,7 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
         createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     final var lastMessages = recorded.lastRequest().messages();

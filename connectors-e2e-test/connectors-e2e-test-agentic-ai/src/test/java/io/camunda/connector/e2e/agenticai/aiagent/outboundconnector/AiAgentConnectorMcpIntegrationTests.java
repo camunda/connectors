@@ -41,11 +41,11 @@ import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportC
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.ExpectedTool;
 import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.ExtractedDocument;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -184,7 +184,7 @@ public class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTes
     verify(aSseRemoteMcpClient).listTools();
     verify(filesystemMcpClient).listTools();
 
-    assertThat(RecordedLlmConversation.recorded().modelCallCount()).isEqualTo(1);
+    assertThat(OpenAiCompletionsRecordedConversation.recorded().modelCallCount()).isEqualTo(1);
 
     assertThat(requestedRemoteMcpClients)
         .hasSize(2)
@@ -236,7 +236,7 @@ public class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTes
         MCP_A_SSE_Remote_MCP_Client___toolA: A SSE Remote MCP Client result""";
     final var finalAiText = "No.";
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             firstAiText,
             10,
@@ -262,7 +262,7 @@ public class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTes
         createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     assertConversationMessages(
@@ -334,7 +334,7 @@ public class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTes
     final var initialUserPrompt = "Get me an image from MCP!";
     final var aiFinalResponseText = "Here is the image I retrieved from MCP.";
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             "I will call the MCP tool to get an image.",
             10,
@@ -351,7 +351,7 @@ public class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTes
         createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     final var lastMessages = recorded.lastRequest().messages();

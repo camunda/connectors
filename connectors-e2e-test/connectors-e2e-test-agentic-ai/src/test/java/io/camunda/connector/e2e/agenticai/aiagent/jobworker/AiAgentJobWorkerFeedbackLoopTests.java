@@ -22,9 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.client.api.search.enums.IncidentErrorType;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
@@ -77,7 +77,7 @@ public class AiAgentJobWorkerFeedbackLoopTests extends BaseAiAgentJobWorkerTest 
     final var emojiResponse =
         "Endless waves whisper 🌊 | moonlight dances on the tide 🌕 | secrets drift below 🌌";
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.text(HAIKU_TEXT, 10, 20), Turn.text(emojiResponse, 11, 22));
 
     enqueueUserFeedback(userFollowUpFeedback("Add emojis!"), userSatisfiedFeedback());
@@ -86,7 +86,7 @@ public class AiAgentJobWorkerFeedbackLoopTests extends BaseAiAgentJobWorkerTest 
         createProcessInstance(Map.of("userPrompt", initialUserPrompt)).waitForProcessCompletion();
 
     assertConversationMessages(
-        RecordedLlmConversation.recorded().lastRequest(),
+        OpenAiCompletionsRecordedConversation.recorded().lastRequest(),
         ExpectedMessage.system(SYSTEM_PROMPT),
         ExpectedMessage.user(initialUserPrompt),
         ExpectedMessage.assistant(HAIKU_TEXT),

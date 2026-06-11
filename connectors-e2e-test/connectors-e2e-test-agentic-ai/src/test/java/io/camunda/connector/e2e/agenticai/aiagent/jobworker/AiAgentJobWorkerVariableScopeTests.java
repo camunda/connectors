@@ -23,9 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
@@ -48,7 +48,7 @@ public class AiAgentJobWorkerVariableScopeTests extends BaseAiAgentJobWorkerTest
   @ValueSource(
       strings = {AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH, LAST_8_8_ELEMENT_TEMPLATE_PATH})
   void agentVariableDoesNotLeakToGlobalScope(String elementTemplatePath) throws Exception {
-    OpenAiChatModelStubs.stubConversation(Turn.text(HAIKU_TEXT, 10, 20));
+    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(HAIKU_TEXT, 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     var zeebeTest =
@@ -64,7 +64,7 @@ public class AiAgentJobWorkerVariableScopeTests extends BaseAiAgentJobWorkerTest
       strings = {AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH, LAST_8_8_ELEMENT_TEMPLATE_PATH})
   void agentVariableDoesNotLeakAfterToolCallingAndFeedbackLoop(String elementTemplatePath)
       throws Exception {
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             "Let me call some tools.",
             10,

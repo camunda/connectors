@@ -19,10 +19,10 @@ package io.camunda.connector.e2e.agenticai.aiagent.jobworker;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -45,7 +45,7 @@ public class AiAgentJobWorkerElementTemplateRegressionTests extends BaseAiAgentJ
     final var finalAiMessage =
         "A very complex calculation only the superflux calculation tool can do.";
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             firstAiMessage,
             10,
@@ -71,7 +71,7 @@ public class AiAgentJobWorkerElementTemplateRegressionTests extends BaseAiAgentJ
                     wireMock.getHttpBaseUrl() + "/v1"))
             .waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     assertConversationMessages(

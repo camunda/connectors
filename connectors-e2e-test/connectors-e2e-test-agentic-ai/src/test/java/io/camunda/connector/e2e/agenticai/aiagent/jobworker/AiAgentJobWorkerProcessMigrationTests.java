@@ -22,10 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaProcessTestContext;
@@ -55,7 +55,7 @@ public class AiAgentJobWorkerProcessMigrationTests extends BaseAiAgentJobWorkerT
 
   @BeforeEach
   void updateTestFixtures() {
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             FIRST_AI_MESSAGE,
             10,
@@ -72,7 +72,7 @@ public class AiAgentJobWorkerProcessMigrationTests extends BaseAiAgentJobWorkerT
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasActiveElements(COMPLEX_TOOL_ID);
 
-    final var firstRequest = RecordedLlmConversation.recorded().requests().get(0);
+    final var firstRequest = OpenAiCompletionsRecordedConversation.recorded().requests().get(0);
     assertToolSpecifications(firstRequest);
     assertThat(firstRequest.toolNames()).doesNotContain(NEW_TOOL_ID);
 
@@ -104,7 +104,7 @@ public class AiAgentJobWorkerProcessMigrationTests extends BaseAiAgentJobWorkerT
         .hasCompletedElements(COMPLEX_TOOL_ID)
         .isCompleted();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
     assertThat(recorded.lastRequest().toolNames())
         .hasSize(expectedTools().size() + 1)

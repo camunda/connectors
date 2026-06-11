@@ -26,10 +26,10 @@ import io.camunda.connector.e2e.agenticai.TestUtil;
 import io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.ExpectedTool;
 import io.camunda.connector.e2e.agenticai.aiagent.common.AiAgentA2aIntegrationTestSupport;
 import io.camunda.connector.e2e.agenticai.aiagent.common.AiAgentA2aIntegrationTestSupport.A2aExpectedConversation;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
@@ -114,7 +114,7 @@ public class AiAgentJobWorkerA2aIntegrationTests extends BaseAiAgentJobWorkerTes
   void handlesA2aToolCalls() throws IOException {
     final A2aExpectedConversation conversation = testSupport.getExpectedConversation();
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             conversation.aiToolCallMessageText(),
             10,
@@ -151,7 +151,7 @@ public class AiAgentJobWorkerA2aIntegrationTests extends BaseAiAgentJobWorkerTes
 
     zeebeTest.waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     assertConversationMessages(

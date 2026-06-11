@@ -32,8 +32,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.e2e.agenticai.AgentCoreMemoryTestConfiguration;
 import io.camunda.connector.e2e.agenticai.InMemoryBedrockAgentCoreClientFactory;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -163,7 +163,7 @@ public class AiAgentJobWorkerMemoryStorageTests extends BaseAiAgentJobWorkerTest
     final var initialUserPrompt = "Write a haiku about the sea";
     final var responseText = "Waves crash on the shore";
 
-    OpenAiChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
+    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
 
     createProcessInstance(
         elementTemplate ->

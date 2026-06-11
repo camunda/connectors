@@ -25,10 +25,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.ExtractedDocument;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
@@ -80,7 +80,7 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
         "I loaded a document and learned that it contains interesting data. Anything specific you want to know?";
     final var aiFinalResponseText = "The content type is '%s'".formatted(mimeType);
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             aiToolCallText,
             10,
@@ -101,7 +101,7 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
                 Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     final var lastMessages = recorded.lastRequest().messages();
@@ -150,7 +150,7 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
     final var docName = "Quarterly Report";
     final var aiFinalResponseText = "Referenced the external document.";
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             "I will reference an externally hosted file.",
             10,
@@ -170,7 +170,7 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
                 Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     final var lastMessages = recorded.lastRequest().messages();

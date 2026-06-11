@@ -22,7 +22,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAI
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
@@ -39,7 +39,7 @@ public class AiAgentJobWorkerResponseHandlingTests extends BaseAiAgentJobWorkerT
 
     @AfterEach
     void verifyRequestedResponseFormat() {
-      assertThat(RecordedLlmConversation.recorded().lastRequest().responseFormat()).isEmpty();
+      assertThat(OpenAiCompletionsRecordedConversation.recorded().lastRequest().responseFormat()).isEmpty();
     }
 
     @Test
@@ -133,7 +133,7 @@ public class AiAgentJobWorkerResponseHandlingTests extends BaseAiAgentJobWorkerT
 
     @AfterEach
     void verifyRequestedResponseFormat() {
-      final var fmt = RecordedLlmConversation.recorded().lastRequest().responseFormat();
+      final var fmt = OpenAiCompletionsRecordedConversation.recorded().lastRequest().responseFormat();
       assertThat(fmt).isPresent();
       if (expectedJsonSchemaName == null) {
         assertThat(fmt.get().path("type").asText()).isEqualTo("json_object");

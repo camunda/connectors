@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.wiremock;
+package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -29,30 +29,27 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Inspects the chat completion requests the connector actually sent to WireMock. This replaces the
- * Mockito {@code ArgumentCaptor<ChatRequest>} used by the previous mock-based tests: instead of
- * capturing the in-process LangChain4j request object, we parse the real OpenAI-compatible request
- * bodies recorded by WireMock.
+ * Inspects the chat completion requests the connector actually sent to WireMock.
  *
- * <p>Each model call produces one recorded request. The last recorded request carries the full
- * conversation (all messages assembled so far), equivalent to the previous {@code
- * chatRequestCaptor.getValue()}.
+ * <p>Each model call produces one recorded request.
  */
-public final class RecordedLlmConversation {
+public final class OpenAiCompletionsRecordedConversation {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final List<RecordedChatRequest> requests;
 
-  private RecordedLlmConversation(List<RecordedChatRequest> requests) {
+  private OpenAiCompletionsRecordedConversation(List<RecordedChatRequest> requests) {
     this.requests = requests;
   }
 
   /** Reads and parses all recorded {@code POST /v1/chat/completions} requests, oldest first. */
-  public static RecordedLlmConversation recorded() {
+  public static OpenAiCompletionsRecordedConversation recorded() {
     final List<LoggedRequest> loggedRequests =
         new ArrayList<>(
-            findAll(postRequestedFor(urlPathEqualTo(OpenAiChatModelStubs.CHAT_COMPLETIONS_PATH))));
+            findAll(
+                postRequestedFor(
+                    urlPathEqualTo(OpenAiCompletionsChatModelStubs.CHAT_COMPLETIONS_PATH))));
 
     // WireMock does not guarantee ordering across versions; sort chronologically. The agent loop is
     // strictly sequential (each model call waits for the previous turn's tools), so logged
@@ -62,11 +59,11 @@ public final class RecordedLlmConversation {
     final List<RecordedChatRequest> parsed =
         loggedRequests.stream()
             .map(LoggedRequest::getBodyAsString)
-            .map(RecordedLlmConversation::parse)
+            .map(OpenAiCompletionsRecordedConversation::parse)
             .map(RecordedChatRequest::new)
             .toList();
 
-    return new RecordedLlmConversation(parsed);
+    return new OpenAiCompletionsRecordedConversation(parsed);
   }
 
   private static JsonNode parse(String body) {

@@ -21,9 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
@@ -76,7 +76,7 @@ public class AiAgentConnectorFeedbackLoopTests extends BaseAiAgentConnectorTest 
   void executesAgentWithUserFeedback() throws Exception {
     final var initialUserPrompt = "Write a haiku about the sea";
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.text(HAIKU_TEXT, 10, 20), Turn.text(EMOJI_HAIKU_TEXT, 11, 22));
 
     enqueueUserFeedback(userFollowUpFeedback("Add emojis!"), userSatisfiedFeedback());
@@ -84,7 +84,7 @@ public class AiAgentConnectorFeedbackLoopTests extends BaseAiAgentConnectorTest 
     final var zeebeTest =
         createProcessInstance(Map.of("userPrompt", initialUserPrompt)).waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     assertConversationMessages(

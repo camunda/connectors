@@ -32,11 +32,11 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.ExpectedTool;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.outboundconnector.BaseAiAgentConnectorTest;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.OpenAiChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.RecordedLlmConversation.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -144,7 +144,7 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
             process, elementTemplateModifier, extraProcessVariables, responseText);
     zeebeTest.waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
 
     final var lastRequest = recorded.lastRequest();
@@ -179,7 +179,7 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
       throws Exception {
     final var initialUserPrompt = "Write a haiku about the sea";
 
-    OpenAiChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
+    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final Map<String, Object> processVariables = new HashMap<>();
@@ -206,7 +206,7 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
         "I played with the tools and learned that the data comes from the follow-up task and that a superflux calculation of 5 and 3 results in 24 and 6 and 4 in 30.";
     final var followUpPrompt = "So what is a superflux calculation anyway?";
 
-    OpenAiChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             firstAiMessage,
             10,
@@ -227,7 +227,7 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
                 testProcess, elementTemplateModifier, Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    final var recorded = RecordedLlmConversation.recorded();
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     final var lastRequest = recorded.lastRequest();
