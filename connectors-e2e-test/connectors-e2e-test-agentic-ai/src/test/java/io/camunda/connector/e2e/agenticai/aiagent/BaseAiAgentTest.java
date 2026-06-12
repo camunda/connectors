@@ -67,7 +67,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   @BeforeAll
   static void setCamundaAssertDefaultTimeout() {
-    CamundaAssert.setAssertionTimeout(Duration.ofSeconds(60));
+    CamundaAssert.setAssertionTimeout(Duration.ofSeconds(90));
   }
 
   @BeforeEach

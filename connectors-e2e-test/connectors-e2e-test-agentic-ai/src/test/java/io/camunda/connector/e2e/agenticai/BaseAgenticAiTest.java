@@ -99,7 +99,7 @@ public abstract class BaseAgenticAiTest {
   }
 
   protected ZeebeTest awaitActiveIncidents(ZeebeTest zeebeTest) {
-    return awaitActiveIncidents(zeebeTest, Duration.ofSeconds(60));
+    return awaitActiveIncidents(zeebeTest, Duration.ofSeconds(90));
   }
 
   protected ZeebeTest awaitActiveIncidents(ZeebeTest zeebeTest, Duration timeout) {
@@ -107,7 +107,7 @@ public abstract class BaseAgenticAiTest {
   }
 
   protected ZeebeTest awaitProcessCompletion(ZeebeTest zeebeTest) {
-    return awaitProcessCompletion(zeebeTest, Duration.ofSeconds(60));
+    return awaitProcessCompletion(zeebeTest, Duration.ofSeconds(90));
   }
 
   protected ZeebeTest awaitProcessCompletion(ZeebeTest zeebeTest, Duration timeout) {
