@@ -289,8 +289,24 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public <T> T bindProperties(Class<T> cls) {
+    return bindPropertiesWithSecrets(cls, getPropertiesWithSecrets(properties));
+  }
+
+  @Override
+  public <T> T bindProperties(Class<T> cls, Map<String, String> rawProperties) {
+    var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
+    var withSecrets =
+        InboundPropertyHandler.getPropertiesWithSecrets(
+            getSecretHandler(),
+            objectMapper,
+            wrapped,
+            new SecretContext(connectorDetails.tenantId(), connectorDetails.processDefinitionId()));
+    return bindPropertiesWithSecrets(cls, withSecrets);
+  }
+
+  private <T> T bindPropertiesWithSecrets(Class<T> cls, Map<String, Object> propertiesWithSecrets) {
     try {
-      var propertiesJson = objectMapper.valueToTree(getPropertiesWithSecrets(properties));
+      var propertiesJson = objectMapper.valueToTree(propertiesWithSecrets);
       var result =
           FeelContextAwareObjectReader.of(objectMapper)
               .withEvaluator(evaluator)

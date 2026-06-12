@@ -105,6 +105,72 @@ public class InboundConnectorDetailsTest {
   }
 
   @Test
+  void notMatchingResponseExpressions_returnsValid() {
+    // given
+    List<InboundConnectorElement> elements = new ArrayList<>();
+    elements.add(
+        new InboundConnectorElement(
+            Map.of(
+                "inbound.type", "type1",
+                "deduplicationMode", "AUTO",
+                "property1", "value1",
+                "inbound.responseExpression", "={statusCode: 200}",
+                "inbound.responseBodyExpression", "={body: request.body}"),
+            null,
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>")));
+    elements.add(
+        new InboundConnectorElement(
+            Map.of(
+                "inbound.type", "type1",
+                "deduplicationMode", "AUTO",
+                "property1", "value1",
+                "inbound.responseExpression", "={statusCode: 201}",
+                "inbound.responseBodyExpression", "={body: \"changed\"}"),
+            null,
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element2", "<default>")));
+
+    // when & then
+    var result =
+        InboundConnectorDetails.of(elements.getFirst().deduplicationId(List.of()), elements);
+    assertThat(result).isInstanceOf(InboundConnectorDetails.ValidInboundConnectorDetails.class);
+  }
+
+  @Test
+  void checkCompatibility_ignoresResponseExpressions() {
+    // given two valid groups that only differ in their webhook response expressions
+    var elementsA =
+        List.of(
+            new InboundConnectorElement(
+                Map.of(
+                    "inbound.type", "type1",
+                    "deduplicationMode", "AUTO",
+                    "property1", "value1",
+                    "inbound.responseExpression", "={statusCode: 200}"),
+                null,
+                new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>")));
+    var elementsB =
+        List.of(
+            new InboundConnectorElement(
+                Map.of(
+                    "inbound.type", "type1",
+                    "deduplicationMode", "AUTO",
+                    "property1", "value1",
+                    "inbound.responseExpression", "={statusCode: 201}"),
+                null,
+                new ProcessElementWithRuntimeData("myProcess", 0, 1, "element1", "<default>")));
+
+    var detailsA =
+        (InboundConnectorDetails.ValidInboundConnectorDetails)
+            InboundConnectorDetails.of(elementsA.getFirst().deduplicationId(List.of()), elementsA);
+    var detailsB =
+        (InboundConnectorDetails.ValidInboundConnectorDetails)
+            InboundConnectorDetails.of(elementsB.getFirst().deduplicationId(List.of()), elementsB);
+
+    // when & then
+    assertThat(detailsA.checkCompatibility(detailsB)).isEmpty();
+  }
+
+  @Test
   void notMatchingProperties_returnsInvalid() {
     // given
     List<InboundConnectorElement> elements = new ArrayList<>();

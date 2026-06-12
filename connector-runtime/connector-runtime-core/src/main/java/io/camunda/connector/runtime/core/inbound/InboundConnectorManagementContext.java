@@ -20,6 +20,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.List;
+import java.util.Map;
 
 public interface InboundConnectorManagementContext extends InboundConnectorContext {
 
@@ -34,6 +35,27 @@ public interface InboundConnectorManagementContext extends InboundConnectorConte
   Health getHealth();
 
   List<InboundConnectorElement> connectorElements();
+
+  /**
+   * Binds the given raw element properties to an instance of {@code cls}, applying secret
+   * replacement, validation and FEEL evaluation/deserialization the same way as {@link
+   * #bindProperties(Class)}.
+   *
+   * <p>Unlike {@link #bindProperties(Class)}, which always binds the properties of the (first)
+   * element this context was created from, this overload binds arbitrary element properties. This
+   * is needed when several elements are deduplicated into a single executable but a request must be
+   * answered using the properties of the element that was actually activated (e.g. the webhook
+   * response expression).
+   *
+   * @param cls the target type to bind to
+   * @param rawProperties the unwrapped, raw properties of the element (FEEL not evaluated, secret
+   *     placeholders not resolved), e.g. {@link
+   *     io.camunda.connector.api.inbound.ProcessElement#properties()}
+   */
+  default <T> T bindProperties(Class<T> cls, Map<String, String> rawProperties) {
+    throw new UnsupportedOperationException(
+        "Binding arbitrary element properties is not supported by this context implementation");
+  }
 
   Long getActivationTimestamp();
 

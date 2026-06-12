@@ -128,6 +128,36 @@ public class InboundConnectorElementTest {
   }
 
   @Test
+  void deduplicationId_autoMode_ignoresWebhookResponseExpression() {
+    // given
+    var testObj =
+        new InboundConnectorElement(
+            Map.of(
+                "inbound.type", "test",
+                "deduplicationMode", "AUTO",
+                "property", "value",
+                "inbound.responseExpression", "={statusCode: 200}",
+                "inbound.responseBodyExpression", "={body: request.body}"),
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
+
+    var testObjWithDifferentResponseExpressions =
+        new InboundConnectorElement(
+            Map.of(
+                "inbound.type", "test",
+                "deduplicationMode", "AUTO",
+                "property", "value",
+                "inbound.responseExpression", "={statusCode: 201}",
+                "inbound.responseBodyExpression", "={body: \"changed\"}"),
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
+
+    // when && then
+    assertThat(testObj.deduplicationId(List.of()))
+        .isEqualTo(testObjWithDifferentResponseExpressions.deduplicationId(List.of()));
+  }
+
+  @Test
   void deduplicationId_autoMode_customPropertyScope() {
     // given
     var testObj =

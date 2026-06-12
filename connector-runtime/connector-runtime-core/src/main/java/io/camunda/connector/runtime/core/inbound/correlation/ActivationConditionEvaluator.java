@@ -20,6 +20,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
 import org.slf4j.Logger;
@@ -109,6 +110,8 @@ public class ActivationConditionEvaluator {
    *   <li>All have the same message name
    *   <li>All have the same resultExpression, resultVariable, correlationKeyExpression,
    *       messageIdExpression, and timeToLive
+   *   <li>All have the same webhook response expression (excluded from deduplication, so it must be
+   *       checked here to avoid ambiguity about which response to return)
    * </ul>
    *
    * <p>When compatible, we can pick any one (the first) since they're functionally identical and
@@ -186,6 +189,28 @@ public class ActivationConditionEvaluator {
             .toList();
     if (timeToLives.size() > 1) {
       mismatches.add("timeToLive: " + timeToLives);
+    }
+
+    // The webhook response expression is excluded from deduplication, so otherwise-identical
+    // elements may be grouped into a single executable while declaring different response
+    // expressions. When several such elements match the same request we cannot tell which response
+    // to return, so they must be treated as incompatible.
+    var responseExpressions =
+        matchingElements.stream()
+            .map(e -> e.rawProperties().get(Keywords.WEBHOOK_RESPONSE_EXPRESSION_KEYWORD))
+            .distinct()
+            .toList();
+    if (responseExpressions.size() > 1) {
+      mismatches.add("responseExpression: " + responseExpressions);
+    }
+
+    var responseBodyExpressions =
+        matchingElements.stream()
+            .map(e -> e.rawProperties().get(Keywords.WEBHOOK_RESPONSE_BODY_EXPRESSION_KEYWORD))
+            .distinct()
+            .toList();
+    if (responseBodyExpressions.size() > 1) {
+      mismatches.add("responseBodyExpression: " + responseBodyExpressions);
     }
 
     if (!mismatches.isEmpty()) {
