@@ -24,6 +24,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
@@ -75,7 +76,8 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
         .mockJobWorker("user_feedback")
         .withHandler(
             (client, job) -> {
-              var nextFeedback = userFeedback.isEmpty() ? Collections.emptyMap() : userFeedback.poll();
+              var nextFeedback =
+                  userFeedback.isEmpty() ? Collections.emptyMap() : userFeedback.poll();
               userFeedbackJobWorkerCounter.incrementAndGet();
               client.newCompleteCommand(job.getKey()).variables(nextFeedback).execute();
             });
@@ -91,6 +93,8 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
     wireMock = wm;
     // WireMock returns the content type for the YAML file as application/json, so
     // we need to override the stub manually
+    WireMock.resetAllScenarios();
+    WireMock.reset();
     stubFor(
         get(urlPathEqualTo("/test.yaml"))
             .atPriority(1)
