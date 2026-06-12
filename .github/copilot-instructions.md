@@ -573,6 +573,17 @@ For examples, see existing connectors in `connectors/` directory:
 - **Kafka connector** (`connectors/kafka/`): Example of both inbound and outbound patterns
 - **Azure Blob Storage** (`connectors/microsoft/azure-blobstorage/`): Document handling example
 
+## Architecture Decision Records (ADRs)
+
+Significant architectural decisions are recorded in [`docs/adr/`](docs/adr/). Read [`docs/adr/README.md`](docs/adr/README.md) for the full process, template, and agent instructions before creating or updating an ADR.
+
+**When to write one:** a decision that affects multiple modules, involves a meaningful trade-off, or changes an established pattern in the SDK, runtime, or out-of-box connectors.
+
+**Quick start:**
+1. Find the next sequence number from the index in `docs/adr/README.md`.
+2. Create `docs/adr/ADR-NNNN-<kebab-title>.md` using the template in that README.
+3. Add a one-line entry to the index table in `docs/adr/README.md`.
+
 ## Documentation
 
 For detailed documentation, see
