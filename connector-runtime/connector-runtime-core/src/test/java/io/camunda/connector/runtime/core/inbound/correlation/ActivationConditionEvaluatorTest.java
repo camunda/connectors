@@ -338,6 +338,56 @@ public class ActivationConditionEvaluatorTest {
   }
 
   @Nested
+  @DisplayName("Webhook response expression compatibility (excluded from deduplication)")
+  class WebhookResponseExpression {
+
+    @Test
+    @DisplayName("Same response expression should be compatible")
+    void sameResponseExpression_shouldBeCompatible() {
+      var element1 = createMessageElement("elem1", "shared-msg", "", "=result", "var", "=key");
+      var element2 = createMessageElement("elem2", "shared-msg", "", "=result", "var", "=key");
+      when(element1.rawProperties())
+          .thenReturn(Map.of("inbound.responseExpression", "={statusCode: 200}"));
+      when(element2.rawProperties())
+          .thenReturn(Map.of("inbound.responseExpression", "={statusCode: 200}"));
+
+      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Success.CanActivate.class);
+    }
+
+    @Test
+    @DisplayName("Different response expression should be incompatible")
+    void differentResponseExpression_shouldBeIncompatible() {
+      var element1 = createMessageElement("elem1", "shared-msg", "", "=result", "var", "=key");
+      var element2 = createMessageElement("elem2", "shared-msg", "", "=result", "var", "=key");
+      when(element1.rawProperties())
+          .thenReturn(Map.of("inbound.responseExpression", "={statusCode: 200}"));
+      when(element2.rawProperties())
+          .thenReturn(Map.of("inbound.responseExpression", "={statusCode: 201}"));
+
+      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+    }
+
+    @Test
+    @DisplayName("Different legacy responseBodyExpression should be incompatible")
+    void differentResponseBodyExpression_shouldBeIncompatible() {
+      var element1 = createMessageElement("elem1", "shared-msg", "", "=result", "var", "=key");
+      var element2 = createMessageElement("elem2", "shared-msg", "", "=result", "var", "=key");
+      when(element1.rawProperties())
+          .thenReturn(Map.of("inbound.responseBodyExpression", "={body: \"a\"}"));
+      when(element2.rawProperties())
+          .thenReturn(Map.of("inbound.responseBodyExpression", "={body: \"b\"}"));
+
+      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+    }
+  }
+
+  @Nested
   @DisplayName("Different message names (always incompatible when both match)")
   class DifferentMessageNames {
 

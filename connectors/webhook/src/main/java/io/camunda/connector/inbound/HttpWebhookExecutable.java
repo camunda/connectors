@@ -17,7 +17,6 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
@@ -30,9 +29,7 @@ import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
-import jakarta.annotation.Nullable;
 import java.util.Map;
-import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +98,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private WebhookConnectorProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
   private InboundConnectorContext context;
-  private Function<WebhookResultContext, WebhookHttpResponse> responseExpression;
   private HMACVerifier hmacVerifier;
 
   @Override
@@ -110,7 +106,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
-    responseExpression = mapResponseExpression();
     hmacVerifier =
         new HMACVerifier(
             props.hmacScopes(), props.hmacHeader(), props.hmacSecret(), props.hmacAlgorithm());
@@ -130,7 +125,9 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     }
 
     var mappedRequest = mapRequest(payload);
-    return new WebhookProcessingResultImpl(mappedRequest, responseExpression, null);
+    // The response expression is resolved by the runtime from the activated element after
+    // correlation, so the executable does not provide a response function here.
+    return new WebhookProcessingResultImpl(mappedRequest, null, null);
   }
 
   private void validateHttpMethod(WebhookProcessingPayload payload) {
@@ -146,24 +143,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
             payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
         payload.headers(),
         payload.params());
-  }
-
-  @Nullable
-  private Function<WebhookResultContext, WebhookHttpResponse> mapResponseExpression() {
-    Function<WebhookResultContext, WebhookHttpResponse> responseExpression = null;
-    if (props.responseExpression() != null) {
-      responseExpression = props.responseExpression();
-    } else if (props.responseBodyExpression() != null) {
-      // To be backwards compatible we need to wrap the responseBodyExpression into a
-      // responseExpression
-      // and only use the body in the final response
-      responseExpression =
-          (context) -> {
-            Object responseBody = props.responseBodyExpression().apply(context);
-            return WebhookHttpResponse.ok(responseBody);
-          };
-    }
-    return responseExpression;
   }
 
   private void verifyHmac(WebhookProcessingPayload payload) {

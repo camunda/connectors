@@ -35,6 +35,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
@@ -83,6 +84,10 @@ class WebhookControllerTestZeebeTest {
   @Autowired private SecretProviderAggregator secretProvider;
 
   @Autowired private ObjectMapper mapper;
+
+  // FEEL-enabled mapper used by inbound connector contexts in production; required for binding
+  // response expressions (Function fields) the same way the runtime does.
+  @Autowired @ConnectorsObjectMapper private ObjectMapper connectorObjectMapper;
 
   @Autowired private InboundCorrelationHandler correlationHandler;
 
@@ -592,6 +597,152 @@ class WebhookControllerTestZeebeTest {
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertNull(responseEntity.getBody());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testResponseExpressionResolvedFromActivatedElement() throws Exception {
+    var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+
+    var activatedElement = mock(ProcessElement.class);
+    when(activatedElement.properties())
+        .thenReturn(
+            Map.of(
+                "inbound.responseExpression",
+                "={statusCode: 201, body: {greeting: \"hello world\"}}"));
+    when(correlationHandlerMock.correlate(any(), any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(activatedElement, 1L, "test"));
+
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    // The executable provides no response; it must be resolved from the activated element.
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+
+    var webhookDef = webhookDefinition("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandlerMock,
+            (e) -> {},
+            connectorObjectMapper,
+            activityLogRegistry,
+            camundaClient);
+
+    webhookConnectorRegistry.register(
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
+
+    deployProcess("processA");
+
+    ResponseEntity<Map> responseEntity =
+        (ResponseEntity<Map>)
+            controller.inbound(
+                "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+
+    assertEquals(201, responseEntity.getStatusCode().value());
+    assertEquals("hello world", responseEntity.getBody().get("greeting"));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testLegacyResponseBodyExpressionResolvedFromActivatedElement() throws Exception {
+    var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+
+    var activatedElement = mock(ProcessElement.class);
+    when(activatedElement.properties())
+        .thenReturn(Map.of("inbound.responseBodyExpression", "={msg: \"legacy\"}"));
+    when(correlationHandlerMock.correlate(any(), any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(activatedElement, 1L, "test"));
+
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+
+    var webhookDef = webhookDefinition("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandlerMock,
+            (e) -> {},
+            connectorObjectMapper,
+            activityLogRegistry,
+            camundaClient);
+
+    webhookConnectorRegistry.register(
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
+
+    deployProcess("processA");
+
+    ResponseEntity<Map> responseEntity =
+        (ResponseEntity<Map>)
+            controller.inbound(
+                "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+
+    // Legacy responseBodyExpression only configures the body; the status defaults to 200.
+    assertEquals(200, responseEntity.getStatusCode().value());
+    assertEquals("legacy", responseEntity.getBody().get("msg"));
+  }
+
+  @Test
+  public void testActivatedElementResponseTakesPrecedenceOverExecutableResponse() throws Exception {
+    var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+
+    var activatedElement = mock(ProcessElement.class);
+    when(activatedElement.properties())
+        .thenReturn(Map.of("inbound.responseExpression", "={statusCode: 202}"));
+    when(correlationHandlerMock.correlate(any(), any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(activatedElement, 1L, "test"));
+
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    // Executable-provided response must be ignored when the activated element declares one.
+    when(webhookResult.response())
+        .thenReturn((c) -> new WebhookHttpResponse(Map.of("from", "fallback"), null, 500));
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+
+    var webhookDef = webhookDefinition("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandlerMock,
+            (e) -> {},
+            connectorObjectMapper,
+            activityLogRegistry,
+            camundaClient);
+
+    webhookConnectorRegistry.register(
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
+
+    deployProcess("processA");
+
+    ResponseEntity<?> responseEntity =
+        controller.inbound(
+            "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+
+    assertEquals(202, responseEntity.getStatusCode().value());
   }
 
   @Test
