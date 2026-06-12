@@ -80,7 +80,7 @@ limitations under the License.</license.inlineheader>
     <version.grpc>1.82.0</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
-    <version.protobuf>4.35.0</version.protobuf>
+    <version.protobuf>4.35.1</version.protobuf>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
@@ -100,7 +100,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.34</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.46.8</version.aws-sdk2>
+    <version.aws-sdk2>2.46.9</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -145,7 +145,7 @@ limitations under the License.</license.inlineheader>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
     <version.bouncycastle>1.84</version.bouncycastle>
-    <version.box-sdk>5.12.0</version.box-sdk>
+    <version.box-sdk>5.13.0</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
