@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.inbound.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookPropertyNames;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateOnly;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
@@ -104,6 +106,22 @@ public record WebhookConnectorProperties(
         @FEEL
         HMACScope[] hmacScopes,
     WebhookAuthorization auth,
+    // Template-only property: appears in the element template but is never bound. The
+    // uninstantiable TemplateOnly type makes "no value" type-enforced (only null is assignable),
+    // and @JsonIgnore keeps Jackson from binding it during bindProperties(). The runtime resolves
+    // the response expression per request from the activated element (see
+    // InboundWebhookRestController),
+    // not from this model. Kept in its original position so the generated template is unchanged.
+    @JsonIgnore
+        @TemplateProperty(
+            id = WebhookPropertyNames.RESPONSE_EXPRESSION,
+            label = "Response expression",
+            type = PropertyType.Text,
+            group = "webhookResponse",
+            description = "Expression used to generate the HTTP response",
+            feel = FeelMode.required,
+            optional = true)
+        TemplateOnly responseExpression,
     @TemplateProperty(
             id = "verificationExpression",
             label = "One time verification response expression",
@@ -114,25 +132,6 @@ public record WebhookConnectorProperties(
             feel = FeelMode.required,
             optional = true)
         Function<Map<String, Object>, WebhookHttpResponse> verificationExpression) {
-
-  /**
-   * The webhook response expression is a template-only property: it appears in the element template
-   * but is never bound to this model. Because it is excluded from deduplication, several elements
-   * may share one executable while declaring different response expressions, so the runtime
-   * resolves it per request from the element that was actually activated (see {@code
-   * InboundWebhookRestController}) rather than from this connector instance. Declaring it as a
-   * static field keeps the template definition co-located with the other webhook properties while
-   * guaranteeing it cannot be read as bound data.
-   */
-  @TemplateProperty(
-      id = WebhookPropertyNames.RESPONSE_EXPRESSION,
-      label = "Response expression",
-      type = PropertyType.Text,
-      group = "webhookResponse",
-      description = "Expression used to generate the HTTP response",
-      feel = FeelMode.required,
-      optional = true)
-  private static final String responseExpression = null;
 
   public WebhookConnectorProperties(WebhookConnectorPropertiesWrapper wrapper) {
     this(
@@ -145,6 +144,8 @@ public record WebhookConnectorProperties(
         // default to BODY if no scopes are provided
         getOrDefault(wrapper.inbound.hmacScopes, new HMACScope[] {HMACScope.BODY}),
         getOrDefault(wrapper.inbound.auth, new WebhookAuthorization.None()),
+        // responseExpression is template-only (never bound); always null on the model
+        null,
         wrapper.inbound.verificationExpression);
   }
 
