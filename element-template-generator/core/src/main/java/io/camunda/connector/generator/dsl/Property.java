@@ -174,6 +174,7 @@ public abstract sealed class Property
         && feel == property.feel
         && Objects.equals(group, property.group)
         && Objects.equals(binding, property.binding)
+        && Objects.equals(language, property.language)
         && Objects.equals(type, property.type);
   }
 
@@ -190,6 +191,7 @@ public abstract sealed class Property
         feel,
         group,
         binding,
+        language,
         type,
         tooltip);
   }
