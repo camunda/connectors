@@ -25,7 +25,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
-import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -62,14 +61,14 @@ public class AiAgentConnectorElementTemplateRegressionTests extends BaseAiAgentC
 
     final var processResource = resourceLoader.getResource("classpath:regression/" + processFile);
     final var zeebeTest =
-        createProcessInstance(
+        awaitProcessCompletion(
+            createProcessInstance(
                 processResource,
                 Map.of(
                     "userPrompt",
                     initialUserPrompt,
                     "providerEndpoint",
-                    wireMock.getHttpBaseUrl() + "/v1"))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+                    wireMock.getHttpBaseUrl() + "/v1")));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);

@@ -35,7 +35,6 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -134,7 +133,7 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
     final var zeebeTest =
         setupBasicTestWithoutFeedbackLoop(
             process, elementTemplateModifier, extraProcessVariables, responseText);
-    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
+    awaitProcessCompletion(zeebeTest);
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
@@ -216,9 +215,9 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
     enqueueUserFeedback(userFollowUpFeedback(followUpPrompt), userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
-                testProcess, elementTemplateModifier, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+        awaitProcessCompletion(
+            createProcessInstance(
+                testProcess, elementTemplateModifier, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);

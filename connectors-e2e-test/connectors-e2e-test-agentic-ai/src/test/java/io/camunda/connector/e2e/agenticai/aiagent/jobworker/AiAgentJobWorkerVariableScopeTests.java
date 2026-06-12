@@ -31,7 +31,6 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
 import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -99,8 +98,7 @@ public class AiAgentJobWorkerVariableScopeTests extends BaseAiAgentJobWorkerTest
     final var updatedModel =
         modelWithModifications(testProcess.getFile(), updatedElementTemplateFile);
 
-    return createProcessInstance(updatedModel, processVariables)
-        .waitForProcessCompletion(Duration.ofSeconds(30));
+    return awaitProcessCompletion(createProcessInstance(updatedModel, processVariables));
   }
 
   private void assertCustomResultVariable(ZeebeTest zeebeTest, String expectedText) {

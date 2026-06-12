@@ -132,7 +132,7 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
     publishEventMessage(EVENT_PAYLOAD);
     final var zeebeTest = startProcessInstance(e -> e);
 
-    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
+    awaitProcessCompletion(zeebeTest);
 
     assertCompleted(
         zeebeTest,
@@ -214,7 +214,7 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
 
     completePendingToolJob(PENDING_TOOL_RESULT);
 
-    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
+    awaitProcessCompletion(zeebeTest);
 
     assertCompleted(
         zeebeTest,
@@ -251,7 +251,7 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
     awaitEventSubprocessCompletions(zeebeTest, 1);
     completePendingToolJob(pendingToolResultValue);
 
-    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
+    awaitProcessCompletion(zeebeTest);
 
     assertCompleted(
         zeebeTest,
@@ -283,7 +283,7 @@ public class AiAgentJobWorkerEventsTests extends BaseAiAgentJobWorkerTest {
     awaitPendingToolJobCreated(zeebeTest);
     publishEventMessage(publishedPayload);
 
-    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
+    awaitProcessCompletion(zeebeTest);
 
     assertCompleted(
         zeebeTest,

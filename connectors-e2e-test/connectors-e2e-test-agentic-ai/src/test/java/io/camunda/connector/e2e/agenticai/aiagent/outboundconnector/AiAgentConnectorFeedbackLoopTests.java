@@ -26,7 +26,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -83,8 +82,7 @@ public class AiAgentConnectorFeedbackLoopTests extends BaseAiAgentConnectorTest 
     enqueueUserFeedback(userFollowUpFeedback("Add emojis!"), userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+        awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);

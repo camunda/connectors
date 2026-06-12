@@ -48,7 +48,6 @@ import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -105,7 +104,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
     awaitInboundConnectorReady(zeebeTest, POLLING_ELEMENT_ID);
 
-    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
+    awaitProcessCompletion(zeebeTest);
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableSatisfies(
@@ -144,7 +143,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-completed.json").get()),
         300);
 
-    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
+    awaitProcessCompletion(zeebeTest);
 
     assertVariablesWithWebhook(zeebeTest);
   }
@@ -193,7 +192,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
         Map.of("X-A2A-Notification-Token", token),
         500);
 
-    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
+    awaitProcessCompletion(zeebeTest);
 
     assertVariablesWithWebhook(zeebeTest);
 
@@ -247,7 +246,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
         authHeaders,
         500);
 
-    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
+    awaitProcessCompletion(zeebeTest);
 
     assertVariablesWithWebhook(zeebeTest);
   }
@@ -297,7 +296,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
             "X-HMAC-Signature", "1fe75a1c849df2aacb18952f187938b64edff510f341c9ab55df03783aee85a0"),
         500);
 
-    zeebeTest.waitForProcessCompletion(Duration.ofSeconds(30));
+    awaitProcessCompletion(zeebeTest);
 
     assertVariablesWithWebhook(zeebeTest);
   }

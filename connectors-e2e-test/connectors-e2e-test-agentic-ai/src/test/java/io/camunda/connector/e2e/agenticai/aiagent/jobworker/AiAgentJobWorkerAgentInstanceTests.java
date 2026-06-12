@@ -32,7 +32,6 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateR
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
-import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -89,8 +88,9 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(Map.of("userPrompt", "Calculate the superflux product of 5 and 3"))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+        awaitProcessCompletion(
+            createProcessInstance(
+                Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
 
     assertAgentResponse(
         zeebeTest,
@@ -199,9 +199,9 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
-                Map.of("userPrompt", "Calculate the superflux product of 5 and 3, twice"))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+        awaitProcessCompletion(
+            createProcessInstance(
+                Map.of("userPrompt", "Calculate the superflux product of 5 and 3, twice")));
 
     // modelCalls=3, inputTokens=10+10+15=35, outputTokens=20+20+25=65, toolCalls=2
     assertAgentResponse(

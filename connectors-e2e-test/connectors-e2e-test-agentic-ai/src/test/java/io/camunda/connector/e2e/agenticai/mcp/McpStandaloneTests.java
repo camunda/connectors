@@ -49,7 +49,6 @@ import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterAll;
@@ -374,8 +373,7 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
       BpmnModelInstance model,
       Map<String, Object> variables,
       Consumer<ProcessInstanceEvent> assertion) {
-    ZeebeTest zeebeTest =
-        createProcessInstance(model, variables).waitForProcessCompletion(Duration.ofSeconds(30));
+    ZeebeTest zeebeTest = awaitProcessCompletion(createProcessInstance(model, variables));
 
     assertion.accept(zeebeTest.getProcessInstanceEvent());
   }

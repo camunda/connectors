@@ -26,7 +26,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -58,15 +57,15 @@ public class AiAgentConnectorUserPromptDocumentsTests extends BaseAiAgentConnect
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
+        awaitProcessCompletion(
+            createProcessInstance(
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
                 Map.of(
                     "userPrompt",
                     initialUserPrompt,
                     "downloadUrls",
-                    List.of(wireMock.getHttpBaseUrl() + "/" + filename)))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+                    List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
@@ -112,7 +111,8 @@ public class AiAgentConnectorUserPromptDocumentsTests extends BaseAiAgentConnect
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
+        awaitProcessCompletion(
+            createProcessInstance(
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
                 Map.of(
@@ -121,8 +121,7 @@ public class AiAgentConnectorUserPromptDocumentsTests extends BaseAiAgentConnect
                     "downloadUrls",
                     List.of(
                         wireMock.getHttpBaseUrl() + "/test.txt",
-                        wireMock.getHttpBaseUrl() + "/test.jpg")))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+                        wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);

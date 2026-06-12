@@ -33,7 +33,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -90,8 +89,8 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
     enqueueUserFeedback(userFollowUpFeedback("What is the content type?"), userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+        awaitProcessCompletion(
+            createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -159,8 +158,8 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+        awaitProcessCompletion(
+            createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);

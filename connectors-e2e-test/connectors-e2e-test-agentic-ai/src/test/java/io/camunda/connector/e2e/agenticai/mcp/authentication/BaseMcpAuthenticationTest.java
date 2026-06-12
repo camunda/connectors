@@ -33,7 +33,6 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
@@ -157,8 +156,7 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
             Map.entry("data.connectorMode.operation.toolArguments", "={ a: 5, b: 3 }")));
 
     ZeebeTest zeebeTest =
-        createProcessInstance(bpmnModel, Map.of("path", "tools"))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+        awaitProcessCompletion(createProcessInstance(bpmnModel, Map.of("path", "tools")));
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableSatisfies(

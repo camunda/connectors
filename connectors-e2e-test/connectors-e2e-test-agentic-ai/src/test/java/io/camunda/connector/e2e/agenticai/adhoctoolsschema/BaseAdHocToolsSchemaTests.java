@@ -29,7 +29,6 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
 import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Map;
 import org.springframework.core.io.Resource;
 
@@ -50,8 +49,8 @@ abstract class BaseAdHocToolsSchemaTests extends BaseAgenticAiTest {
             .apply(elementTemplate, SCHEMA_RESOLVER_ELEMENT_ID, new File(tempDir, "updated.bpmn"));
 
     final var zeebeTest =
-        createProcessInstance(updatedModel, Map.of("action", "resolveSchema"))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+        awaitProcessCompletion(
+            createProcessInstance(updatedModel, Map.of("action", "resolveSchema")));
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableNames(RESOLVED_SCHEMA_VARIABLE);

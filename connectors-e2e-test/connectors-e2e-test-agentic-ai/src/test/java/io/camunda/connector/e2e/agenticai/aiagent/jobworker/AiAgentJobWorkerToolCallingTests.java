@@ -31,7 +31,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
-import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -96,11 +95,11 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
     enqueueUserFeedback(userFollowUpFeedback("What is the content type?"), userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
+        awaitProcessCompletion(
+            createProcessInstance(
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
-                Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+                Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -165,11 +164,11 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
+        awaitProcessCompletion(
+            createProcessInstance(
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
-                Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion(Duration.ofSeconds(30));
+                Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
