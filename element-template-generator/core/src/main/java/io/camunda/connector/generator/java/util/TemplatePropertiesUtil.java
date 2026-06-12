@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.java.util;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Variable;
@@ -130,6 +131,33 @@ public class TemplatePropertiesUtil {
         throw new IllegalStateException(
             "@TemplateProperty and @TemplateDocumentProperty are mutually exclusive on: "
                 + field.getName());
+      }
+      if (field.getType() == TemplateOnly.class) {
+        // A TemplateOnly field declares a template-only property: it must be excluded from binding
+        // (either declared static, or annotated @JsonIgnore if kept as a record component/field)
+        // and carries no inferable property type (hence an explicit type is required).
+        var templateOnlyAnnotation = field.getAnnotation(TemplateProperty.class);
+        boolean excludedFromBinding =
+            Modifier.isStatic(field.getModifiers()) || field.isAnnotationPresent(JsonIgnore.class);
+        if (!excludedFromBinding) {
+          throw new IllegalStateException(
+              "TemplateOnly field '"
+                  + field.getName()
+                  + "' in "
+                  + type.getName()
+                  + " must be excluded from binding (declare it static or annotate it @JsonIgnore):"
+                  + " a template-only property is never bound to the model.");
+        }
+        if (templateOnlyAnnotation == null
+            || templateOnlyAnnotation.type() == PropertyType.Unknown) {
+          throw new IllegalStateException(
+              "TemplateOnly field '"
+                  + field.getName()
+                  + "' in "
+                  + type.getName()
+                  + " must declare an explicit @TemplateProperty(type=...): the marker type"
+                  + " carries no property type to infer.");
+        }
       }
       if (documentAnnotation != null) {
         properties.addAll(
