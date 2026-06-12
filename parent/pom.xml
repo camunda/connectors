@@ -128,7 +128,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.3.0</version.kafka-clients>
 
     <version.microsoft-graph>6.65.0</version.microsoft-graph>
-    <version.azure-identity>1.18.3</version.azure-identity>
+    <version.azure-identity>1.18.4</version.azure-identity>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
     <version.bouncycastle>1.84</version.bouncycastle>
