@@ -159,13 +159,13 @@ public class AiAgentConnectorUserPromptDocumentsTests extends BaseAiAgentConnect
   @Test
   void raisesIncidentWhenDocumentTypeIsNotSupported() throws Exception {
     final var zeebeTest =
-        createProcessInstance(
+        awaitActiveIncidents(
+            createProcessInstance(
                 Map.of(
                     "userPrompt",
                     "Summarize the following document",
                     "downloadUrls",
-                    List.of(wireMock.getHttpBaseUrl() + "/unsupported.zip")))
-            .waitForActiveIncidents();
+                    List.of(wireMock.getHttpBaseUrl() + "/unsupported.zip"))));
 
     assertIncident(
         zeebeTest,

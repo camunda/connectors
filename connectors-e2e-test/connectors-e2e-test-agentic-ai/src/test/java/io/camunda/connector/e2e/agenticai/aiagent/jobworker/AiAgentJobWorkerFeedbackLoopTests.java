@@ -106,7 +106,7 @@ public class AiAgentJobWorkerFeedbackLoopTests extends BaseAiAgentJobWorkerTest 
 
   @Test
   void raisesIncidentWhenUserPromptIsEmpty() throws Exception {
-    final var zeebeTest = createProcessInstance(Map.of("userPrompt", "")).waitForActiveIncidents();
+    final var zeebeTest = awaitActiveIncidents(createProcessInstance(Map.of("userPrompt", "")));
 
     assertIncident(
         zeebeTest,
@@ -123,12 +123,12 @@ public class AiAgentJobWorkerFeedbackLoopTests extends BaseAiAgentJobWorkerTest 
   @Test
   void mapsIncidentToJobError() throws Exception {
     final var zeebeTest =
-        createProcessInstance(
+        awaitActiveIncidents(
+            createProcessInstance(
                 elementTemplate ->
                     elementTemplate.property(
                         "errorExpression", "=jobError(\"Job error: \" + error.message)"),
-                Map.of("userPrompt", ""))
-            .waitForActiveIncidents();
+                Map.of("userPrompt", "")));
 
     assertIncident(
         zeebeTest,

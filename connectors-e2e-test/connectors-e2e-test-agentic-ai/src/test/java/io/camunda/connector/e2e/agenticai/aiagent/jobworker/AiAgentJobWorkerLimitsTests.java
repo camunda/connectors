@@ -86,9 +86,9 @@ public class AiAgentJobWorkerLimitsTests extends BaseAiAgentJobWorkerTest {
     mockInfiniteLoop(expectedMaxModelCalls);
 
     final var zeebeTest =
-        createProcessInstance(
-                elementTemplateModifier, Map.of("userPrompt", "Write a haiku about the sea"))
-            .waitForActiveIncidents();
+        awaitActiveIncidents(
+            createProcessInstance(
+                elementTemplateModifier, Map.of("userPrompt", "Write a haiku about the sea")));
 
     assertIncident(
         zeebeTest,

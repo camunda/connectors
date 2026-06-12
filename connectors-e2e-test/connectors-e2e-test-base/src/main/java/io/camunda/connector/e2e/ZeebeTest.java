@@ -110,8 +110,12 @@ public class ZeebeTest {
   }
 
   public ZeebeTest waitForActiveIncidents() {
+    return waitForActiveIncidents(Duration.ofSeconds(20));
+  }
+
+  public ZeebeTest waitForActiveIncidents(Duration timeout) {
     CamundaAssert.assertThat(processInstanceEvent)
-        .withAssertionTimeout(Duration.ofSeconds(20))
+        .withAssertionTimeout(timeout)
         .hasActiveIncidents();
     return this;
   }

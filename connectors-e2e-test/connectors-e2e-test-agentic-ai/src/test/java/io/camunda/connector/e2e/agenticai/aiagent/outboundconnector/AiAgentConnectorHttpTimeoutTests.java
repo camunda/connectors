@@ -81,13 +81,13 @@ public class AiAgentConnectorHttpTimeoutTests extends BaseAiAgentConnectorTest {
   /**
    * WireMock response delay used in positive cases: must be shorter than {@link #MODEL_TIMEOUT}.
    */
-  private static final Duration RESPONSE_DELAY_BELOW_TIMEOUT = Duration.ofSeconds(3);
+  private static final Duration RESPONSE_DELAY_BELOW_TIMEOUT = Duration.ofSeconds(1);
 
   /** WireMock response delay used in negative cases: must be longer than {@link #MODEL_TIMEOUT}. */
-  private static final Duration RESPONSE_DELAY_ABOVE_TIMEOUT = Duration.ofSeconds(8);
+  private static final Duration RESPONSE_DELAY_ABOVE_TIMEOUT = Duration.ofSeconds(5);
 
   /** Connector-level model call timeout: short enough to keep negative cases under ~10s. */
-  private static final Duration MODEL_TIMEOUT = Duration.ofSeconds(6);
+  private static final Duration MODEL_TIMEOUT = Duration.ofSeconds(3);
 
   /** This test configures its own providers — skip the base's openaiCompatible redirect. */
   @Override
@@ -176,8 +176,9 @@ public class AiAgentConnectorHttpTimeoutTests extends BaseAiAgentConnectorTest {
   private void runNegativeCase(Function<ElementTemplate, ElementTemplate> providerConfig) {
     try {
       final ZeebeTest zeebeTest =
-          createProcessInstance(providerConfig, Map.of("userPrompt", "Write a haiku about the sea"))
-              .waitForActiveIncidents();
+          awaitActiveIncidents(
+              createProcessInstance(
+                  providerConfig, Map.of("userPrompt", "Write a haiku about the sea")));
 
       assertIncident(
           zeebeTest,
@@ -258,34 +259,6 @@ public class AiAgentConnectorHttpTimeoutTests extends BaseAiAgentConnectorTest {
                           "stop_reason": "end_turn",
                           "stop_sequence": null,
                           "usage": {"input_tokens": 10, "output_tokens": 20}
-                        }
-                        """
-                            .formatted(AGENT_RESPONSE_TEXT))));
-  }
-
-  private void stubOpenAiCompatible(Duration delay) {
-    stubFor(
-        post(urlPathEqualTo("/v1/chat/completions"))
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withFixedDelay((int) delay.toMillis())
-                    .withBody(
-                        """
-                        {
-                          "id": "chatcmpl-test",
-                          "object": "chat.completion",
-                          "created": 1700000000,
-                          "model": "test-model",
-                          "choices": [
-                            {
-                              "index": 0,
-                              "message": {"role": "assistant", "content": "%s"},
-                              "finish_reason": "stop"
-                            }
-                          ],
-                          "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
                         }
                         """
                             .formatted(AGENT_RESPONSE_TEXT))));
