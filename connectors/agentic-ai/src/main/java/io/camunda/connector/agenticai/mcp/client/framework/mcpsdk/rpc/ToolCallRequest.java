@@ -116,6 +116,9 @@ final class ToolCallRequest {
           fromBlob(imageContent.data(), imageContent.mimeType(), imageContent.meta());
       case McpSchema.ResourceLink resourceLink -> mapResourceLink(resourceLink);
       case McpSchema.TextContent textContent -> McpTextContent.textContent(textContent.text());
+      default ->
+          throw new UnsupportedOperationException(
+              "Unsupported content type: " + responseContent.getClass().getSimpleName());
     };
   }
 
@@ -131,6 +134,10 @@ final class ToolCallRequest {
                   blobResource.uri(),
                   blobResource.mimeType(),
                   Base64.getDecoder().decode(blobResource.blob()));
+          default ->
+              throw new UnsupportedOperationException(
+                  "Unsupported resource type: "
+                      + embeddedResource.resource().getClass().getSimpleName());
         };
     return new McpEmbeddedResourceContent(resource, embeddedResource.meta());
   }

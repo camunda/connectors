@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
@@ -31,7 +30,7 @@ class ListToolsRequestTest {
 
   @Mock private McpSyncClient mcpClient;
 
-  private final ListToolsRequest testee = new ListToolsRequest("testClient", new ObjectMapper());
+  private final ListToolsRequest testee = new ListToolsRequest("testClient");
 
   @Test
   void returnsEmptyList_whenNoToolsAvailable() {
@@ -111,19 +110,16 @@ class ListToolsRequestTest {
   }
 
   private McpSchema.Tool createTool(String name, String title, String description) {
-    return new McpSchema.Tool(
-        name,
-        title,
-        description,
-        new McpSchema.JsonSchema(
-            "object",
-            Map.of("toolArg", Map.of("type", "string", "description", "A tool argument")),
-            List.of("toolArg"),
-            null,
-            null,
-            null),
-        null,
-        null,
-        null);
+    return McpSchema.Tool.builder()
+        .name(name)
+        .title(title)
+        .description(description)
+        .inputSchema(
+            Map.of(
+                "type", "object",
+                "properties",
+                    Map.of("toolArg", Map.of("type", "string", "description", "A tool argument")),
+                "required", List.of("toolArg")))
+        .build();
   }
 }
