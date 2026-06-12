@@ -157,13 +157,17 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
       builder.placeholder(annotation.placeholder());
     }
     if (!annotation.language().isBlank()) {
-      if (!annotation.language().equals("json")) {
+      var language = annotation.language();
+      if (!(builder instanceof StringProperty.StringPropertyBuilder
+          || builder instanceof TextProperty.TextPropertyBuilder)) {
         throw new IllegalArgumentException(
-            "Unsupported language value '"
-                + annotation.language()
-                + "'. Only 'json' is currently supported.");
+            "`language` is only supported for String and Text properties.");
       }
-      builder.language(annotation.language());
+      if (!language.equals("json")) {
+        throw new IllegalArgumentException(
+            "Unsupported language value '" + language + "'. Only 'json' is currently supported.");
+      }
+      builder.language(language);
     }
     if (!annotation.defaultValue().isBlank()) {
       builder.value(getValue(annotation, type, isOutbound(context)));
