@@ -33,6 +33,18 @@ public @interface InboundConnector {
   /**
    * Names of the properties that are taken into account for connector deduplication. If empty, all
    * properties are taken into account.
+   *
+   * @deprecated since 8.10.0, scheduled for removal. This inclusion allow-list names the only
+   *     properties that contribute to the deduplication ID, which silently leaves every other
+   *     <em>bound</em> property out of the deduplication scope while it remains bound to the shared
+   *     executable model. When several elements share a deduplication ID but differ in such a
+   *     property, the value retained by the deduplicated executable is arbitrary (whichever element
+   *     won the grouping). Instead, rely on the default deduplication scope — all bound properties
+   *     except the runtime-managed ones — and declare any property that must not influence
+   *     deduplication as a <em>template-only</em> property (see {@code TemplateOnly}), resolving
+   *     its value per request at runtime rather than binding it to the model. See issue <a
+   *     href="https://github.com/camunda/connectors/issues/6684">#6684</a>.
    */
+  @Deprecated(since = "8.10.0", forRemoval = true)
   String[] deduplicationProperties() default {};
 }

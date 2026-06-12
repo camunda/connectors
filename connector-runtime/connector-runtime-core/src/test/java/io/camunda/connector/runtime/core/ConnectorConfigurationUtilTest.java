@@ -205,7 +205,7 @@ public class ConnectorConfigurationUtilTest {
               config -> {
                 assertThat(config.name()).isEqualTo("ANNOTATED");
                 assertThat(config.type()).isEqualTo("io.camunda.Annotated");
-                assertThat(config.deduplicationProperties()).containsExactly("id");
+                assertThat(config.deduplicationProperties()).isEmpty();
               });
     }
 
@@ -301,10 +301,7 @@ class UnannotatedFunction implements OutboundConnectorFunction {
   }
 }
 
-@InboundConnector(
-    name = "ANNOTATED",
-    type = "io.camunda.Annotated",
-    deduplicationProperties = {"id"})
+@InboundConnector(name = "ANNOTATED", type = "io.camunda.Annotated")
 class AnnotatedExecutable implements InboundConnectorExecutable {
 
   @Override

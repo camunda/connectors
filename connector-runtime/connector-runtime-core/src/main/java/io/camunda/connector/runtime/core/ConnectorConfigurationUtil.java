@@ -62,6 +62,9 @@ public final class ConnectorConfigurationUtil {
         configurationOverrides.timeoutOverride().orElse(null));
   }
 
+  // Deprecation bridge: reads the deprecated @InboundConnector#deduplicationProperties to keep
+  // honoring it for backward compatibility. Removed together with the attribute in Phase 2 (#6684).
+  @SuppressWarnings("removal")
   public static InboundConnectorConfiguration getInboundConnectorConfiguration(
       Class<? extends InboundConnectorExecutable> cls) {
 

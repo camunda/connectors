@@ -82,3 +82,4 @@ When asked to create an ADR:
 |-----|-------|--------|
 | [ADR-0001](ADR-0001-annotation-driven-element-template-generation.md) | Annotation-Driven Element Template Generation | Accepted |
 | [ADR-0002](ADR-0002-template-only-properties.md) | Template-Only Properties via the TemplateOnly Marker | Accepted |
+| [ADR-0003](ADR-0003-deduplication-scope-deprecate-deduplication-properties.md) | Deduplication Scope and Deprecation of deduplicationProperties | Accepted |

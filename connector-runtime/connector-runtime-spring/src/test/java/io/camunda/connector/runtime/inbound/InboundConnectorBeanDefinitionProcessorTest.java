@@ -67,7 +67,7 @@ class InboundConnectorBeanDefinitionProcessorTest {
                   config -> {
                     assertThat(config.name()).isEqualTo("My Executable");
                     assertThat(config.type()).isEqualTo("io.camunda:annotated");
-                    assertThat(config.deduplicationProperties()).containsExactly("id");
+                    assertThat(config.deduplicationProperties()).isEmpty();
                     assertThat(config.customInstanceSupplier().get())
                         .isInstanceOf(AnnotatedExecutable.class);
                   });
@@ -88,7 +88,7 @@ class InboundConnectorBeanDefinitionProcessorTest {
                       config -> {
                         assertThat(config.name()).isEqualTo("My Executable");
                         assertThat(config.type()).isEqualTo("io.camunda:overridden");
-                        assertThat(config.deduplicationProperties()).containsExactly("id");
+                        assertThat(config.deduplicationProperties()).isEmpty();
                         assertThat(config.customInstanceSupplier().get())
                             .isInstanceOf(AnnotatedExecutable.class);
                       });
@@ -96,10 +96,7 @@ class InboundConnectorBeanDefinitionProcessorTest {
   }
 }
 
-@InboundConnector(
-    name = "My Executable",
-    type = "io.camunda:annotated",
-    deduplicationProperties = {"id"})
+@InboundConnector(name = "My Executable", type = "io.camunda:annotated")
 @Component
 @Scope("prototype")
 class AnnotatedExecutable implements InboundConnectorExecutable {

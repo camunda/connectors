@@ -88,6 +88,9 @@ public class InboundConnectorBeanDefinitionProcessor
     }
   }
 
+  // Deprecation bridge: reads the deprecated @InboundConnector#deduplicationProperties to keep
+  // honoring it for backward compatibility. Removed together with the attribute in Phase 2 (#6684).
+  @SuppressWarnings("removal")
   private InboundConnectorConfiguration getInboundConnectorConfiguration(
       InboundConnector inboundConnector, String beanName, BeanFactory beanFactory) {
     final var configurationOverrides =
