@@ -30,9 +30,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Static functionality for discovery via environment variables */
 public class EnvVarsConnectorDiscovery {
+
+  private static final Logger LOG = LoggerFactory.getLogger(EnvVarsConnectorDiscovery.class);
 
   /** Pattern describing the outbound connector env configuration pattern. */
   public static final Pattern OUTBOUND_CONNECTOR_FUNCTION_PATTERN =
@@ -126,24 +130,37 @@ public class EnvVarsConnectorDiscovery {
       }
       var annotationConfig = tmpAnnotationConfig;
 
+      // Deprecated (scheduled for removal): the deduplication-properties allow-list. See #6684.
+      var deduplicationPropertiesEnv =
+          getConnectorEnvironmentVariable(name, "DEDUPLICATION_PROPERTIES");
+      if (deduplicationPropertiesEnv.isPresent()) {
+        LOG.warn(
+            "Connector '{}' uses the deprecated CONNECTOR_{}_DEDUPLICATION_PROPERTIES environment "
+                + "variable. This deduplication-properties allow-list is scheduled for removal: it "
+                + "leaves every other bound property out of the deduplication scope, so the value "
+                + "retained by a deduplicated executable is arbitrary when elements diverge. Rely on "
+                + "the default deduplication scope and declare non-deduplicating properties as "
+                + "template-only instead. See https://github.com/camunda/connectors/issues/6684",
+            name,
+            name);
+      }
+
       return new InboundConnectorConfiguration(
           name,
           getConnectorEnvironmentVariable(name, "TYPE")
               .or(() -> annotationConfig.map(InboundConnectorConfiguration::type))
               .orElseThrow(() -> envMissing("Type not specified", name, "TYPE")),
           cls,
-          getConnectorEnvironmentVariable(name, "DEDUPLICATION_PROPERTIES")
+          deduplicationPropertiesEnv
               .map(properties -> properties.split(","))
               .map(Arrays::asList)
               .or(
                   () ->
                       annotationConfig.map(InboundConnectorConfiguration::deduplicationProperties))
-              .orElseThrow(
-                  () ->
-                      envMissing(
-                          "Deduplication properties not specified",
-                          name,
-                          "DEDUPLICATION_PROPERTIES")));
+              // The deduplication-properties allow-list is deprecated and therefore optional:
+              // default to the empty (deny-list) deduplication scope when neither the env var nor
+              // the annotation provides one.
+              .orElse(List.of()));
 
     } catch (ClassNotFoundException | ClassCastException e) {
       throw loadFailed("Failed to load " + executableFqdn, e);

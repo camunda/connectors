@@ -20,10 +20,7 @@ import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 
-@InboundConnector(
-    name = "ANNOTATED",
-    type = "io.camunda:annotated",
-    deduplicationProperties = {"id"})
+@InboundConnector(name = "ANNOTATED", type = "io.camunda:annotated")
 public class AnnotatedExecutable implements InboundConnectorExecutable {
 
   @Override

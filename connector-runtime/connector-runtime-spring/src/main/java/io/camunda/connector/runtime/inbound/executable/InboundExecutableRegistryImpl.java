@@ -66,6 +66,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                     config -> config.type(),
                     config -> config.deduplicationProperties(),
                     (a, b) -> a));
+    warnAboutDeprecatedDeduplicationProperties(deduplicationScopesByType);
     this.stateTransitionService =
         new InboundExecutableStateTransitionService(deduplicationScopesByType, stateStore);
     this.queryService =
@@ -83,6 +84,25 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     this.stateTransitionService = stateTransitionService;
     this.queryService = queryService;
     this.batchExecutableProcessor = batchExecutableProcessor;
+  }
+
+  private static void warnAboutDeprecatedDeduplicationProperties(
+      Map<String, List<String>> deduplicationScopesByType) {
+    deduplicationScopesByType.forEach(
+        (type, deduplicationProperties) -> {
+          if (deduplicationProperties != null && !deduplicationProperties.isEmpty()) {
+            LOG.warn(
+                "Connector type '{}' declares a deduplication-properties allow-list {}. "
+                    + "This feature is deprecated and scheduled for removal: it keeps the listed "
+                    + "properties as the only deduplication scope while leaving every other bound "
+                    + "property out of it, so the value retained by a deduplicated executable is "
+                    + "arbitrary when elements diverge. Migrate to the default deduplication scope "
+                    + "and declare non-deduplicating properties as template-only (resolved per "
+                    + "request at runtime). See https://github.com/camunda/connectors/issues/6684",
+                type,
+                deduplicationProperties);
+          }
+        });
   }
 
   @Override

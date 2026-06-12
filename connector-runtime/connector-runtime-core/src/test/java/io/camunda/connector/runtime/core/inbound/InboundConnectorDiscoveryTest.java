@@ -41,8 +41,6 @@ public class InboundConnectorDiscoveryTest {
           "io.camunda.connector.runtime.core.inbound.AnnotatedExecutable",
           "CONNECTOR_ANNOTATED_OVERRIDE_TYPE",
           "io.camunda:annotated-override",
-          "CONNECTOR_ANNOTATED_OVERRIDE_DEDUPLICATION_PROPERTIES",
-          "prop1,prop2,prop3",
 
           // shall be picked up with meta-data
           "CONNECTOR_ANNOTATED_EXECUTABLE",
@@ -52,9 +50,7 @@ public class InboundConnectorDiscoveryTest {
           "CONNECTOR_NOT_ANNOTATED_EXECUTABLE",
           "io.camunda.connector.runtime.core.inbound.NotAnnotatedExecutable",
           "CONNECTOR_NOT_ANNOTATED_TYPE",
-          "io.camunda:not-annotated",
-          "CONNECTOR_NOT_ANNOTATED_DEDUPLICATION_PROPERTIES",
-          "prop1,prop2"
+          "io.camunda:not-annotated"
         };
 
     // when
@@ -68,22 +64,16 @@ public class InboundConnectorDiscoveryTest {
         registrations,
         "ANNOTATED_OVERRIDE",
         "io.camunda:annotated-override",
-        AnnotatedExecutable.class.getName(),
-        List.of("prop1", "prop2", "prop3"));
+        AnnotatedExecutable.class.getName());
 
     assertRegistration(
-        registrations,
-        "ANNOTATED",
-        "io.camunda:annotated",
-        AnnotatedExecutable.class.getName(),
-        List.of("id"));
+        registrations, "ANNOTATED", "io.camunda:annotated", AnnotatedExecutable.class.getName());
 
     assertRegistration(
         registrations,
         "NOT_ANNOTATED",
         "io.camunda:not-annotated",
-        NotAnnotatedExecutable.class.getName(),
-        List.of("prop1", "prop2"));
+        NotAnnotatedExecutable.class.getName());
   }
 
   @Test
@@ -172,25 +162,11 @@ public class InboundConnectorDiscoveryTest {
       String type,
       String functionCls) {
 
-    assertRegistration(registrations, name, type, functionCls, null);
-  }
-
-  private static void assertRegistration(
-      Collection<InboundConnectorConfiguration> registrations,
-      String name,
-      String type,
-      String functionCls,
-      List<String> deduplicationProperties) {
-
     Assertions.assertThatCollection(registrations)
         .anyMatch(
             registration ->
-                (registration.name().equals(name)
+                registration.name().equals(name)
                     && registration.type().equals(type)
-                    && registration.connectorClass().getName().equals(functionCls)
-                    && (deduplicationProperties == null
-                        || registration
-                            .deduplicationProperties()
-                            .equals(deduplicationProperties))));
+                    && registration.connectorClass().getName().equals(functionCls));
   }
 }
