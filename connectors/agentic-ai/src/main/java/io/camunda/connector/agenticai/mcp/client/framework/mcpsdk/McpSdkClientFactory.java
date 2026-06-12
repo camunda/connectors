@@ -98,8 +98,8 @@ public class McpSdkClientFactory implements McpClientFactory {
                 ProtocolVersions.MCP_2024_11_05,
                 ProtocolVersions.MCP_2025_03_26,
                 ProtocolVersions.MCP_2025_06_18))
-        .customizeRequest(
-            request -> {
+        .httpRequestCustomizer(
+            (request, method, uri, protocolVersion, context) -> {
               var headers = headerSupplier.get();
               headers.forEach(request::header);
             })
@@ -114,8 +114,8 @@ public class McpSdkClientFactory implements McpClientFactory {
         .sseEndpoint(sseConfig.url()) // see https://github.com/camunda/connectors/issues/6393
         .customizeClient(proxyConfigurator::configure)
         .connectTimeout(timeout(sseConfig.timeout()))
-        .customizeRequest(
-            request -> {
+        .httpRequestCustomizer(
+            (request, method, uri, protocolVersion, context) -> {
               var headers = headerSuppliers.get();
               headers.forEach(request::header);
             })

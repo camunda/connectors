@@ -94,6 +94,9 @@ public class ReadResourceRequest {
               textResourceContents.uri(),
               textResourceContents.mimeType(),
               textResourceContents.text());
+      default ->
+          throw new UnsupportedOperationException(
+              "Unsupported resource type: " + content.getClass().getSimpleName());
     };
   }
 }
