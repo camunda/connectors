@@ -575,7 +575,7 @@ For examples, see existing connectors in `connectors/` directory:
 
 ## Architecture Decision Records (ADRs)
 
-Significant architectural decisions are recorded in [`docs/adr/`](docs/adr/). Read [`docs/adr/README.md`](docs/adr/README.md) for the full process, template, and agent instructions before creating or updating an ADR.
+Significant architectural decisions are recorded in [`docs/adr/`](../docs/adr/). Read [`docs/adr/README.md`](../docs/adr/README.md) for the full process, template, and agent instructions before creating or updating an ADR.
 
 **When to write one:** a decision that affects multiple modules, involves a meaningful trade-off, or changes an established pattern in the SDK, runtime, or out-of-box connectors.
 
