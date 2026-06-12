@@ -1633,6 +1633,20 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("javascript");
     }
+
+    @Test
+    void languageOnBooleanProperty_throwsException() {
+      assertThatThrownBy(() -> generator.generate(InvalidLanguageBooleanConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("only supported for String and Text properties");
+    }
+
+    @Test
+    void languageOnNumberProperty_throwsException() {
+      assertThatThrownBy(() -> generator.generate(InvalidLanguageNumberConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("only supported for String and Text properties");
+    }
   }
 
   // Fixture for inbound connector linked-resource test
@@ -1647,6 +1661,36 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       name = "Test",
       inputDataClass = InvalidLanguageInput.class)
   private static class InvalidLanguageConnector implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  // Fixtures for language on unsupported property types
+
+  record InvalidLanguageBooleanInput(@TemplateProperty(language = "json") Boolean field) {}
+
+  @OutboundConnector(name = "test", type = "test:invalid-lang-boolean")
+  @ElementTemplate(
+      id = "test-invalid-lang-boolean",
+      name = "Test",
+      inputDataClass = InvalidLanguageBooleanInput.class)
+  private static class InvalidLanguageBooleanConnector implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  record InvalidLanguageNumberInput(@TemplateProperty(language = "json") Integer field) {}
+
+  @OutboundConnector(name = "test", type = "test:invalid-lang-number")
+  @ElementTemplate(
+      id = "test-invalid-lang-number",
+      name = "Test",
+      inputDataClass = InvalidLanguageNumberInput.class)
+  private static class InvalidLanguageNumberConnector implements OutboundConnectorFunction {
     @Override
     public Object execute(OutboundConnectorContext context) {
       return null;
