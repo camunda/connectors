@@ -265,10 +265,13 @@ public class InboundWebhookRestController {
       response = buildSuccessfulResponse(context, webhookResult, documents, success);
     } else {
       if (correlationResult instanceof CorrelationResult.Failure failure) {
-        switch (failure.handlingStrategy()) {
-          case ForwardErrorToUpstream ignored -> response = buildErrorResponse(failure);
-          case Ignore ignored ->
-              response = buildSuccessfulResponse(context, webhookResult, documents, null);
+        var handlingStrategy = failure.handlingStrategy();
+        if (handlingStrategy instanceof ForwardErrorToUpstream) {
+          response = buildErrorResponse(failure);
+        } else if (handlingStrategy instanceof Ignore) {
+          response = buildSuccessfulResponse(context, webhookResult, documents, null);
+        } else {
+          throw new IllegalStateException("Unexpected handling strategy: " + handlingStrategy);
         }
       } else {
         throw new IllegalStateException("Illegal correlation result : " + correlationResult);
