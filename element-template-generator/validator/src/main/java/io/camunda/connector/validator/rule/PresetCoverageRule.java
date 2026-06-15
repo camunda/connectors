@@ -48,6 +48,8 @@ import java.util.TreeMap;
  */
 public class PresetCoverageRule implements Rule {
 
+  static final int MAX_CANDIDATES = 100_000;
+
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
     if (OperationMetadataIgnoreList.isIgnored(file)) {
@@ -63,6 +65,20 @@ public class PresetCoverageRule implements Rule {
     }
     Map<String, List<Declaration>> declsByKey = collectDeclarations(template, opKeys);
 
+    long searchSpace = candidateSearchSpace(opKeys, declsByKey);
+    if (searchSpace > MAX_CANDIDATES) {
+      return List.of(
+          Finding.error(
+              file,
+              "/presets",
+              id(),
+              "Operation-metadata search space is too large to exhaustively check ("
+                  + searchSpace
+                  + " candidate assignments, cap is "
+                  + MAX_CANDIDATES
+                  + "). Reduce the number of operation discriminators or choices, or split the template."));
+    }
+
     Set<Map<String, String>> reachable = enumerateReachableLeaves(opKeys, declsByKey);
     Set<Map<String, String>> presetAssignments = extractPresetAssignments(presetsNode);
     List<Map<String, String>> stepLeafAssignments =
@@ -73,6 +89,25 @@ public class PresetCoverageRule implements Rule {
     findings.addAll(reportOrphanAndDuplicatePresets(file, presetsNode, reachable));
     findings.addAll(reportStepLeafCoverage(file, reachable, stepLeafAssignments));
     return findings;
+  }
+
+  private long candidateSearchSpace(Set<String> opKeys, Map<String, List<Declaration>> declsByKey) {
+    long product = 1L;
+    for (String k : opKeys) {
+      Set<String> union = new LinkedHashSet<>();
+      for (Declaration d : declsByKey.get(k)) {
+        union.addAll(d.choices);
+      }
+      long factor = 1L + union.size();
+      if (factor > MAX_CANDIDATES) {
+        return Long.MAX_VALUE;
+      }
+      product = Math.multiplyExact(product, factor);
+      if (product > MAX_CANDIDATES) {
+        return product;
+      }
+    }
+    return product;
   }
 
   private Set<String> discoverOpKeys(JsonNode presets) {
@@ -197,16 +232,7 @@ public class PresetCoverageRule implements Rule {
       if (!properties.isObject()) {
         continue;
       }
-      Map<String, String> assignment = new LinkedHashMap<>();
-      properties
-          .properties()
-          .forEach(
-              e -> {
-                if (e.getValue().isTextual()) {
-                  assignment.put(e.getKey(), e.getValue().asText());
-                }
-              });
-      result.add(normalize(assignment));
+      result.add(normalize(extractTextAssignment(properties)));
     }
     return result;
   }
@@ -220,16 +246,7 @@ public class PresetCoverageRule implements Rule {
       if (!idNode.isTextual() || !properties.isObject()) {
         continue;
       }
-      Map<String, String> assignment = new LinkedHashMap<>();
-      properties
-          .properties()
-          .forEach(
-              e -> {
-                if (e.getValue().isTextual()) {
-                  assignment.put(e.getKey(), e.getValue().asText());
-                }
-              });
-      presetsById.put(idNode.asText(), normalize(assignment));
+      presetsById.put(idNode.asText(), normalize(extractTextAssignment(properties)));
     }
     List<Map<String, String>> result = new ArrayList<>();
     JsonNode steps = template.path(ElementTemplate.STEPS);
@@ -237,6 +254,19 @@ public class PresetCoverageRule implements Rule {
       collectLeaves(steps, presetsById, result);
     }
     return result;
+  }
+
+  private static Map<String, String> extractTextAssignment(JsonNode properties) {
+    Map<String, String> assignment = new LinkedHashMap<>();
+    properties
+        .properties()
+        .forEach(
+            e -> {
+              if (e.getValue().isTextual()) {
+                assignment.put(e.getKey(), e.getValue().asText());
+              }
+            });
+    return assignment;
   }
 
   private void collectLeaves(
@@ -284,16 +314,7 @@ public class PresetCoverageRule implements Rule {
       if (!idNode.isTextual() || !properties.isObject()) {
         continue;
       }
-      Map<String, String> assignment = new LinkedHashMap<>();
-      properties
-          .properties()
-          .forEach(
-              e -> {
-                if (e.getValue().isTextual()) {
-                  assignment.put(e.getKey(), e.getValue().asText());
-                }
-              });
-      Map<String, String> normalized = normalize(assignment);
+      Map<String, String> normalized = normalize(extractTextAssignment(properties));
       if (!reachable.contains(normalized)) {
         findings.add(
             Finding.error(
