@@ -55,6 +55,7 @@ public class OpenAiCompatibleChatModelProvider
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint())
             .timeout(apiTimeout)
+            .maxRetries(0)
             .httpClientBuilder(http.connectTimeout(CONNECT_TIMEOUT).readTimeout(apiTimeout));
 
     Optional.ofNullable(connection.authentication())
