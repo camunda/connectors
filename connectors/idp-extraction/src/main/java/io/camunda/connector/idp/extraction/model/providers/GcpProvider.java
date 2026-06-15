@@ -12,8 +12,15 @@ import io.camunda.connector.idp.extraction.model.providers.gcp.GcpRequestConfigu
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * @deprecated Legacy IDP extraction provider model, used only by {@link
+ *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. The structured /
+ *     unstructured / classification connectors use the {@code request.common} provider model
+ *     instead. Retained for backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 @TemplateSubType(id = "gcp", label = "GCP Provider")
-public final class GcpProvider implements ProviderConfig, ExtractorConfig {
+public final class GcpProvider implements ProviderConfig {
 
   @Valid @NotNull private GcpAuthentication authentication;
 

@@ -15,8 +15,15 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.idp.extraction.model.providers.aws.TextExtractionEngineType;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * @deprecated Legacy IDP extraction provider model, used only by {@link
+ *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. The structured /
+ *     unstructured / classification connectors use the {@code request.common} provider model
+ *     instead. Retained for backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 @TemplateSubType(id = "aws", label = "Amazon Web Services Provider")
-public final class AwsProvider extends AwsBaseRequest implements ProviderConfig, ExtractorConfig {
+public final class AwsProvider extends AwsBaseRequest implements ProviderConfig {
 
   @TemplateProperty(
       id = "s3BucketName",
