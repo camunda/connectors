@@ -8,10 +8,14 @@ package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
 import static io.camunda.connector.agenticai.util.BpmnUtils.getElementDocumentation;
 import static io.camunda.connector.agenticai.util.BpmnUtils.getExtensionProperties;
+import static io.camunda.connector.agenticai.util.BpmnUtils.getExternalInputParameters;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
+import io.camunda.connector.agenticai.util.BpmnUtils.InputSpecItem;
+import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -28,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +41,8 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(CamundaClientProcessDefinitionAdHocToolElementsResolver.class);
+
+  private static final ObjectMapper SCHEMA_OBJECT_MAPPER = new ObjectMapper();
 
   private static final String ERROR_CODE_AD_HOC_SUB_PROCESS_NOT_FOUND =
       "AD_HOC_SUB_PROCESS_NOT_FOUND";
@@ -103,6 +110,14 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
   }
 
   private List<AdHocToolElementParameter> extractParameters(FlowNode element) {
+    final List<InputSpecItem> externalParams = getExternalInputParameters(element);
+    if (!externalParams.isEmpty()) {
+      return externalParams.stream()
+          .filter(spec -> spec.name() != null && !spec.name().isBlank())
+          .map(CamundaClientProcessDefinitionAdHocToolElementsResolver::toToolElementParameter)
+          .toList();
+    }
+
     final var ioMapping = element.getSingleExtensionElement(ZeebeIoMapping.class);
     if (ioMapping == null) {
       return Collections.emptyList();
@@ -113,6 +128,26 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
     result.addAll(extractParameters(element, ioMapping.getOutputs()));
 
     return result;
+  }
+
+  private static AdHocToolElementParameter toToolElementParameter(InputSpecItem spec) {
+    Map<String, Object> schema = null;
+    if (spec.schema() != null && !spec.schema().isBlank()) {
+      try {
+        schema =
+            SCHEMA_OBJECT_MAPPER.readValue(
+                spec.schema(), ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
+      } catch (final Exception ignored) {
+        // invalid schema override — proceed without it
+      }
+    }
+    final String jsonType = spec.type() != null && !spec.type().isBlank() ? spec.type() : "string";
+    return new AdHocToolElementParameter(
+        "toolCall." + spec.name(),
+        spec.description(),
+        jsonType,
+        schema,
+        Map.of("required", spec.required()));
   }
 
   private List<AdHocToolElementParameter> extractParameters(

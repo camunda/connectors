@@ -70,6 +70,7 @@ class AdHocToolsSchemaFunctionIntegrationTest {
 
   private AdHocToolsSchemaFunction function;
   private AdHocToolsSchemaFunction functionWithGatewayToolDefinitionResolvers;
+  private CamundaClientProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
 
   private String bpmnXml;
 
@@ -80,7 +81,7 @@ class AdHocToolsSchemaFunctionIntegrationTest {
             camundaClient,
             new AgenticAiConnectorsConfigurationProperties.RetriesProperties(
                 4, Duration.ofMillis(500)));
-    final var toolElementsResolver =
+    toolElementsResolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
             procsssDefinitionClient, parameterExtractor);
 
@@ -150,6 +151,11 @@ class AdHocToolsSchemaFunctionIntegrationTest {
                 .name("A_Complex_Tool")
                 .description("A very complex tool")
                 .inputSchema(EXPECTED_EMPTY_SCHEMA)
+                .build(),
+            ToolDefinition.builder()
+                .name("Tool_With_Spec")
+                .description("A tool with external input spec")
+                .inputSchema(EXPECTED_EMPTY_SCHEMA)
                 .build());
 
     assertThat(result.toolDefinitions())
@@ -197,6 +203,11 @@ class AdHocToolsSchemaFunctionIntegrationTest {
             ToolDefinition.builder()
                 .name("An_Event")
                 .description("An event!")
+                .inputSchema(EXPECTED_EMPTY_SCHEMA)
+                .build(),
+            ToolDefinition.builder()
+                .name("Tool_With_Spec")
+                .description("A tool with external input spec")
                 .inputSchema(EXPECTED_EMPTY_SCHEMA)
                 .build());
     assertThat(result.toolDefinitions())
@@ -346,6 +357,35 @@ class AdHocToolsSchemaFunctionIntegrationTest {
               assertThat(e.getErrorCode()).isEqualTo("AD_HOC_TOOL_SCHEMA_INVALID");
               assertThat(e.getMessage()).isEqualTo("I can't generate this schema");
             });
+  }
+
+  @Test
+  void extractsParametersFromExternalInputSpec() {
+    // given
+    when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
+        .thenReturn(bpmnXml);
+
+    // when — call resolver directly to inspect the extracted parameters
+    final var elements =
+        toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID);
+
+    // then
+    final var toolWithSpec =
+        elements.stream()
+            .filter(e -> "Tool_With_Spec".equals(e.elementId()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Tool_With_Spec element not found"));
+
+    assertThat(toolWithSpec.parameters())
+        .containsExactly(
+            new AdHocToolElementParameter(
+                "toolCall.userId", "The user ID", "string", null, Map.of("required", true)),
+            new AdHocToolElementParameter(
+                "toolCall.count",
+                "The count",
+                "integer",
+                Map.of("minimum", 0),
+                Map.of("required", false)));
   }
 
   private OutboundConnectorContext outboundConnectorContext(
