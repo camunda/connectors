@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.api.inbound;
 
+import java.util.Map;
+
 public interface ProcessElement {
 
   String bpmnProcessId();
@@ -35,4 +37,16 @@ public interface ProcessElement {
   String elementType();
 
   String tenantId();
+
+  /**
+   * Raw properties of this element as defined in the process model. FEEL expressions are not
+   * evaluated and secret placeholders are not resolved.
+   *
+   * <p>This allows the runtime to resolve element-scoped properties (for example, a webhook
+   * response expression) from the specific activated element even when several elements were
+   * deduplicated into a single connector executable.
+   */
+  default Map<String, String> properties() {
+    return Map.of();
+  }
 }

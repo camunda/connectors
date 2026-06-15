@@ -209,7 +209,7 @@ public class InboundWebhookRestController {
         // correlate
         var correlationResult =
             connector.context().correlate(CorrelationRequest.builder().variables(ctxData).build());
-        response = buildResponse(webhookResult, documents, correlationResult);
+        response = buildResponse(webhookResult, documents, correlationResult, connector.context());
       }
     } catch (Exception e) {
       connector
@@ -263,15 +263,19 @@ public class InboundWebhookRestController {
   }
 
   private ResponseEntity<?> buildResponse(
-      WebhookResult webhookResult, List<Document> documents, CorrelationResult correlationResult) {
+      WebhookResult webhookResult,
+      List<Document> documents,
+      CorrelationResult correlationResult,
+      InboundConnectorManagementContext context) {
     ResponseEntity<?> response;
     if (correlationResult instanceof CorrelationResult.Success success) {
-      response = buildSuccessfulResponse(webhookResult, documents, success);
+      response = buildSuccessfulResponse(webhookResult, documents, success, context);
     } else {
       if (correlationResult instanceof CorrelationResult.Failure failure) {
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream ignored -> response = buildErrorResponse(failure);
-          case Ignore ignored -> response = buildSuccessfulResponse(webhookResult, documents, null);
+          case Ignore ignored ->
+              response = buildSuccessfulResponse(webhookResult, documents, null, context);
         }
       } else {
         throw new IllegalStateException("Illegal correlation result : " + correlationResult);
@@ -311,21 +315,55 @@ public class InboundWebhookRestController {
   private ResponseEntity<?> buildSuccessfulResponse(
       WebhookResult webhookResult,
       List<Document> documents,
-      CorrelationResult.Success correlationResult) {
-    ResponseEntity<?> response;
-    if (webhookResult.response() != null) {
-      var processVariablesContext =
-          toWebhookResultContext(webhookResult, documents, correlationResult);
-      var httpResponseData = webhookResult.response().apply(processVariablesContext);
-      if (httpResponseData != null) {
-        response = toResponseEntity(httpResponseData);
-      } else {
-        response = ResponseEntity.ok().build();
-      }
-    } else {
-      response = ResponseEntity.ok().build();
+      CorrelationResult.Success correlationResult,
+      InboundConnectorManagementContext context) {
+    var processVariablesContext =
+        toWebhookResultContext(webhookResult, documents, correlationResult);
+    // The response expression is an element-scoped property: it is resolved from the specific
+    // activated element rather than from the executable, so that webhook elements that were
+    // deduplicated into a single executable each produce their own response. Note this runs after
+    // correlation (past the transaction boundary): the process instance / message has already been
+    // created, so a failure evaluating the response cannot undo it.
+    WebhookHttpResponse httpResponseData =
+        resolveActivatedElementResponse(correlationResult, context, processVariablesContext);
+    if (httpResponseData == null && webhookResult.response() != null) {
+      httpResponseData = webhookResult.response().apply(processVariablesContext);
     }
-    return response;
+    return httpResponseData != null
+        ? toResponseEntity(httpResponseData)
+        : ResponseEntity.ok().build();
+  }
+
+  /**
+   * Resolves the webhook response from the element that was actually activated by this request. The
+   * response expression(s) are bound per request from the matched element's raw properties (see
+   * {@link WebhookResponseExpressionProperties}); returns {@code null} when no element matched or
+   * the element declares no response expression.
+   */
+  private WebhookHttpResponse resolveActivatedElementResponse(
+      CorrelationResult.Success correlationResult,
+      InboundConnectorManagementContext context,
+      WebhookResultContext resultContext) {
+    if (correlationResult == null || correlationResult.activatedElement() == null) {
+      return null;
+    }
+    var rawProperties = correlationResult.activatedElement().properties();
+    if (rawProperties == null || rawProperties.isEmpty()) {
+      return null;
+    }
+    var expressions =
+        context.bindProperties(WebhookResponseExpressionProperties.class, rawProperties).inbound();
+    if (expressions == null) {
+      return null;
+    }
+    if (expressions.responseExpression() != null) {
+      return expressions.responseExpression().apply(resultContext);
+    }
+    if (expressions.responseBodyExpression() != null) {
+      // Backwards compatibility: the legacy body-only expression is wrapped into a full response.
+      return WebhookHttpResponse.ok(expressions.responseBodyExpression().apply(resultContext));
+    }
+    return null;
   }
 
   protected ResponseEntity<?> buildErrorResponse(Exception e) {

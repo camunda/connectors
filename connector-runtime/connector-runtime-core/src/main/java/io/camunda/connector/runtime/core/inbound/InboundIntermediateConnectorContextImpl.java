@@ -117,6 +117,11 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   @Override
+  public <T> T bindProperties(final Class<T> cls, final Map<String, String> rawProperties) {
+    return inboundContext.bindProperties(cls, rawProperties);
+  }
+
+  @Override
   public InboundConnectorDefinition getDefinition() {
     return inboundContext.getDefinition();
   }

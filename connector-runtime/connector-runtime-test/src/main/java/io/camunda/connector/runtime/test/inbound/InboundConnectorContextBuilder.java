@@ -37,6 +37,7 @@ import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
+import io.camunda.connector.runtime.core.inbound.InboundPropertyHandler;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
@@ -310,6 +311,22 @@ public class InboundConnectorContextBuilder {
     public <T> T bindProperties(Class<T> cls) {
       try {
         var mappedObject = objectMapper.readValue(propertiesWithSecrets, cls);
+        if (validationProvider != null) {
+          getValidationProvider().validate(mappedObject);
+        }
+        return mappedObject;
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override
+    public <T> T bindProperties(Class<T> cls, Map<String, String> rawProperties) {
+      try {
+        var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
+        var json =
+            getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(wrapped), null);
+        var mappedObject = objectMapper.readValue(json, cls);
         if (validationProvider != null) {
           getValidationProvider().validate(mappedObject);
         }

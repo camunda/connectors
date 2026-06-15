@@ -310,6 +310,35 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   @Override
+  public <T> T bindProperties(Class<T> cls, Map<String, String> rawProperties) {
+    try {
+      var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
+      var withSecrets =
+          InboundPropertyHandler.getPropertiesWithSecrets(
+              getSecretHandler(),
+              objectMapper,
+              wrapped,
+              new SecretContext(
+                  connectorDetails.tenantId(), connectorDetails.processDefinitionId()));
+      var propertiesJson = objectMapper.valueToTree(withSecrets);
+      var result =
+          FeelContextAwareObjectReader.of(objectMapper)
+              .withEvaluator(evaluator)
+              .readValue(propertiesJson, cls);
+      getValidationProvider().validate(result);
+      return result;
+    } catch (IOException | FeelEngineWrapperException e) {
+      throw new RuntimeException(
+          "Failed to bind element properties to "
+              + cls.getName()
+              + " using FEEL evaluation/deserialization (tenantId="
+              + connectorDetails.tenantId()
+              + ")",
+          e);
+    }
+  }
+
+  @Override
   public InboundConnectorDefinition getDefinition() {
     return new InboundConnectorDefinition(
         connectorDetails.type(),

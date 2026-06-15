@@ -12,8 +12,6 @@ import static io.camunda.connector.inbound.utils.HttpWebhookUtil.FORM_DATA_CONTE
 import static io.camunda.connector.inbound.utils.HttpWebhookUtil.HEADER_CONTENT_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -91,13 +89,11 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    assertNotNull(result.response());
+    // The response expression is no longer resolved by the executable; it is resolved per activated
+    // element by the runtime (see InboundWebhookRestController). The executable only maps the
+    // request here, so it carries no response function.
+    assertNull(result.response());
     assertThat((Map) result.request().body()).containsEntry("key", "value");
-
-    var request = new MappedHttpRequest(Map.of("key", "value"), null, null);
-    var context = new WebhookResultContext(request, null, null);
-    var response = result.response().apply(context);
-    assertEquals("value", response.body());
   }
 
   @Test
@@ -127,13 +123,8 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    assertNotNull(result.response());
+    assertNull(result.response());
     assertThat((List<String>) result.request().body()).contains("test1", "test2");
-
-    var request = new MappedHttpRequest(Map.of("key", "value"), null, null);
-    var context = new WebhookResultContext(request, null, null);
-    var response = result.response().apply(context);
-    assertEquals("value", response.body());
   }
 
   @Test
@@ -164,14 +155,9 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    assertNotNull(result.response());
+    assertNull(result.response());
     assertThat((List<Map>) result.request().body())
         .contains(Map.of("key", "value"), Map.of("key", "value"));
-
-    var request = new MappedHttpRequest(Map.of("key", "value"), null, null);
-    var context = new WebhookResultContext(request, null, null);
-    var response = result.response().apply(context);
-    assertEquals("value", response.body());
   }
 
   @Test

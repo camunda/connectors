@@ -38,6 +38,17 @@ public @interface ElementTemplate {
    */
   Class<?> inputDataClass() default Void.class;
 
+  /**
+   * Reference to an optional element-scoped input data class. Its properties are merged into the
+   * same element template as {@link #inputDataClass()}, but unlike the connector-scoped input class
+   * they are <em>not</em> bound once at connector activation. Instead they are intended to be bound
+   * per activated element at correlation time, and they are excluded from deduplication.
+   *
+   * <p>Use this for properties that may legitimately differ between BPMN elements that are
+   * deduplicated into a single connector executable (for example, a webhook response expression).
+   */
+  Class<?> elementInputDataClass() default Void.class;
+
   Class<?> outputDataClass() default Void.class;
 
   /**
