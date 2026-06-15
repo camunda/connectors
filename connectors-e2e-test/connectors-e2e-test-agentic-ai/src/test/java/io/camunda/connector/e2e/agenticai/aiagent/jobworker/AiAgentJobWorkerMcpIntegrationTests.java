@@ -386,7 +386,7 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
   protected McpSchema.CallToolResult mcpCallToolResultWithImage(
       String base64Data, String mimeType) {
     return McpSchema.CallToolResult.builder()
-        .addContent(new McpSchema.ImageContent(null, base64Data, mimeType))
+        .addContent(McpSchema.ImageContent.builder(base64Data, mimeType).build())
         .build();
   }
 }
