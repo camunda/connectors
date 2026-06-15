@@ -14,13 +14,19 @@ This pattern has recurring costs:
 - Request modeling, routing, and execution are spread across several types, making a connector harder to read than the set of operations it offers.
 
 ## Decision
-Introduce a method-level programming model built on the `@Operation` annotation. A connector implements the marker interface `OutboundConnectorProvider` and exposes one method per operation, each annotated with `@Operation(id = ..., name = ...)`. Method parameters are bound declaratively:
+Introduce a method-level programming model built on the `@Operation` annotation. 
+
+A connector implements the marker interface `OutboundConnectorProvider` and exposes one method per operation, each annotated with `@Operation(id = ..., name = ...)`. Method parameters are bound declaratively:
 
 - `@Variable` binds a job variable (resolved from the request JSON);
 - `@Header` binds a custom job header;
 - an `OutboundConnectorContext` parameter is injected directly, with no annotation.
 
-At runtime, `ConnectorOperations` discovers the annotated methods by reflection and builds a registry keyed by operation id. `OutboundConnectorOperationFunction` reads the selected operation from the `operation` custom header (`OPERATION_ID_KEYWORD`) and looks up the matching `OperationInvoker`, which binds each parameter — applying required-checks and bean validation per parameter — and invokes the method. No hand-written router is involved. The CSV connector (`connectors/csv/CsvConnector`) is the first connector built this way.
+At runtime, `ConnectorOperations` discovers the annotated methods by reflection and builds a registry keyed by operation id.
+
+`OutboundConnectorOperationFunction` reads the selected operation from the `operation` custom header (`OPERATION_ID_KEYWORD`) and looks up the matching `OperationInvoker`, which binds each parameter — applying required-checks and bean validation per parameter — and invokes the method.
+
+The CSV connector (`connectors/csv/CsvConnector`) is the first connector built this way.
 
 This is intentionally analogous to **Spring MVC**: where a `@Controller` exposes `@RequestMapping` handler methods whose arguments are bound with `@RequestParam`/`@RequestBody`, a connector provider exposes `@Operation` methods whose arguments are bound with `@Variable`/`@Header`. Operations become routed endpoints with precise signatures, rather than branches inside one monolithic function.
 
@@ -40,5 +46,4 @@ The `@Operation` model is the **recommended default for new connectors and any c
 - Reflection-based dispatch is less explicit than a `switch`: call paths are harder to trace statically, and some errors (missing or duplicate operation id, unsupported parameter type) surface at runtime rather than compile time.
 - Two supported models increase the conceptual surface area and the documentation and example burden.
 - The fixed set of parameter sources (`@Variable`, `@Header`, `OutboundConnectorContext`) constrains advanced cases that the classic single-request style can express directly.
-- Element-template and operation-discriminator wiring for Camunda Modeler is still required per operation; this annotation model addresses execution, not template generation.
 - Reflective method invocation adds minor overhead and offers weaker compile-time guarantees than a directly implemented interface method.
