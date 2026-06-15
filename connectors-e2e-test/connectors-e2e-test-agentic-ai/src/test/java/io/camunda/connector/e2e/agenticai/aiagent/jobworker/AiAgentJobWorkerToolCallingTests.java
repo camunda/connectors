@@ -95,11 +95,11 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
     enqueueUserFeedback(userFollowUpFeedback("What is the content type?"), userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
+        awaitProcessCompletion(
+            createProcessInstance(
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
-                Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+                Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -164,11 +164,11 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
+        awaitProcessCompletion(
+            createProcessInstance(
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
-                Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+                Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);

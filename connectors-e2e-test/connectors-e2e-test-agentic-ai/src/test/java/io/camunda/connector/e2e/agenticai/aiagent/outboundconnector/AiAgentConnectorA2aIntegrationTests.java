@@ -35,9 +35,11 @@ import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +53,8 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(
     properties = {
       "camunda.connector.polling.enabled=true",
-      "camunda.connector.webhook.enabled=true"
+      "camunda.connector.webhook.enabled=true",
+      "camunda.connector.polling.interval=2000"
     })
 @Import(InboundConnectorTestConfiguration.class)
 public class AiAgentConnectorA2aIntegrationTests extends BaseAiAgentConnectorTest {
@@ -71,15 +74,25 @@ public class AiAgentConnectorA2aIntegrationTests extends BaseAiAgentConnectorTes
 
   private AiAgentA2aIntegrationTestSupport testSupport;
   private String webhookUrl;
+  private String webhookContext;
 
   @BeforeEach
   void setUp() {
     testSupport = new AiAgentA2aIntegrationTestSupport(a2aSystemPromptResource, objectMapper);
     testSupport.setUpWireMockStubs(wireMock, (testFile) -> testFileContent(testFile).get());
-    webhookUrl = "http://localhost:%s/inbound/test-webhook-id".formatted(port);
+    // Unique webhook context per test so consecutive A2A tests/reruns don't collide on the same
+    // inbound context in the shared per-class runtime. webhookUrl must match the registered path.
+    webhookContext = "test-webhook-id-" + UUID.randomUUID();
+    webhookUrl = "http://localhost:%s/inbound/%s".formatted(port, webhookContext);
 
     // clear process definition caches & reset executables from previous tests
     inboundConnectorTestHelper.setUpTest();
+  }
+
+  @Override
+  protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
+    TestUtil.setWebhookContext(model, WEBHOOK_ELEMENT_ID, webhookContext);
+    return model;
   }
 
   @Override
@@ -150,7 +163,7 @@ public class AiAgentConnectorA2aIntegrationTests extends BaseAiAgentConnectorTes
     postWithDelay(
         webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);
 
-    zeebeTest.waitForProcessCompletion();
+    awaitProcessCompletion(zeebeTest);
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
