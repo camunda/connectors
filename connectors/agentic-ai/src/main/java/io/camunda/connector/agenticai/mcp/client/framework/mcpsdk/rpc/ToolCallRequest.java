@@ -183,7 +183,7 @@ final class ToolCallRequest {
 
     final var arguments = Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
 
-    return McpSchema.CallToolRequest.builder().name(params.name()).arguments(arguments).build();
+    return McpSchema.CallToolRequest.builder(params.name()).arguments(arguments).build();
   }
 
   record ToolExecutionParameters(String name, Map<String, Object> arguments) {}
