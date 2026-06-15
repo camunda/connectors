@@ -28,7 +28,6 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
-import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
@@ -264,20 +263,17 @@ public class InboundWebhookRestController {
 
   private ResponseEntity<?> buildResponse(
       WebhookResult webhookResult, List<Document> documents, CorrelationResult correlationResult) {
-    ResponseEntity<?> response;
     if (correlationResult instanceof CorrelationResult.Success success) {
-      response = buildSuccessfulResponse(webhookResult, documents, success);
-    } else {
-      if (correlationResult instanceof CorrelationResult.Failure failure) {
-        switch (failure.handlingStrategy()) {
-          case ForwardErrorToUpstream ignored -> response = buildErrorResponse(failure);
-          case Ignore ignored -> response = buildSuccessfulResponse(webhookResult, documents, null);
-        }
-      } else {
-        throw new IllegalStateException("Illegal correlation result : " + correlationResult);
-      }
+      return buildSuccessfulResponse(webhookResult, documents, success);
     }
-    return response;
+    if (correlationResult instanceof CorrelationResult.Failure failure) {
+      // Ignore strategy: treat as a successful (no-op) correlation; otherwise forward the error.
+      if (failure.handlingStrategy() instanceof Ignore) {
+        return buildSuccessfulResponse(webhookResult, documents, null);
+      }
+      return buildErrorResponse(failure);
+    }
+    throw new IllegalStateException("Illegal correlation result : " + correlationResult);
   }
 
   private ResponseEntity<?> buildErrorResponse(CorrelationResult.Failure failure) {
