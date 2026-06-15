@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Collections;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -53,7 +54,11 @@ final class ListPromptsRequest {
                             fr.name(),
                             fr.title(),
                             fr.description(),
-                            fr.arguments().stream().map(this::from).toList()))
+                            Optional.ofNullable(fr.arguments())
+                                .orElse(Collections.emptyList())
+                                .stream()
+                                .map(this::from)
+                                .toList()))
                 .toList());
 
     LOGGER.debug(
