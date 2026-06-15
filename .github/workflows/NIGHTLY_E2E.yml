@@ -96,7 +96,21 @@ jobs:
       - name: Install element templates CLI
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
+      # TEMPORARY (experiment, do NOT merge): on PRs, build the whole reactor without running
+      # tests (-DskipTests, install so the e2e module resolves sibling artifacts from ~/.m2),
+      # then run tests only for the agentic-ai e2e module to iterate fast on the flaky A2A tests.
+      # To widen to all e2e modules, replace the -pl target below with `-f connectors-e2e-test/pom.xml`.
+      # Revert to the single full-build step below before merge.
+      - name: Build all modules without tests (PR experiment)
+        if: github.event_name == 'pull_request'
+        run: ./mvnw --batch-mode -U clean install -DskipTests -PcheckFormat
+
+      - name: Test connectors-e2e-test (PR experiment)
+        if: github.event_name == 'pull_request'
+        run: ./mvnw --batch-mode test -pl connectors-e2e-test
+
       - name: Build Connectors
+        if: github.event_name != 'pull_request'
         run: ./mvnw --batch-mode -U clean test -PcheckFormat
 
       - name: Publish Test Report
