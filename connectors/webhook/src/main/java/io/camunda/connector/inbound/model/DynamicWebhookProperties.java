@@ -36,7 +36,9 @@ public record DynamicWebhookProperties(
             feel = FeelMode.required,
             optional = true)
         Function<WebhookResultContext, WebhookHttpResponse> responseExpression,
-    @TemplateProperty(ignore = true)
+    // Legacy body-only expression, superseded by responseExpression (which can produce a full HTTP
+    // response). Retained only for backward compatibility.
+    @Deprecated @TemplateProperty(ignore = true)
         Function<WebhookResultContext, Object> responseBodyExpression) {
 
   public record DynamicWebhookPropertiesWrapper(DynamicWebhookProperties inbound) {}

@@ -20,21 +20,8 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.List;
-import java.util.Map;
 
 public interface InboundConnectorManagementContext extends InboundConnectorContext {
-
-  /**
-   * Binds the given raw element properties to a typed object using the same secret-replacement and
-   * FEEL-evaluation pipeline as {@link #bindProperties(Class)}, but against an explicitly provided
-   * property map rather than the executable's connector-level properties.
-   *
-   * <p>Intended for resolving element-scoped properties from a specific activated element after
-   * correlation (for example, a webhook response expression), where several elements may have been
-   * deduplicated into a single executable. The raw map is typically obtained from {@link
-   * io.camunda.connector.api.inbound.ProcessElement#properties()} of the activated element.
-   */
-  <T> T bindProperties(Class<T> cls, Map<String, String> rawProperties);
 
   /**
    * Provides a Health object to get information about the current status of the Connector with

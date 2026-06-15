@@ -37,5 +37,7 @@ public record WebhookResponseExpressionProperties(WebhookResponseExpressions inb
 
   public record WebhookResponseExpressions(
       Function<WebhookResultContext, WebhookHttpResponse> responseExpression,
-      Function<WebhookResultContext, Object> responseBodyExpression) {}
+      // Legacy body-only expression, superseded by responseExpression (which can produce a full
+      // HTTP response). Retained only for backward compatibility.
+      @Deprecated Function<WebhookResultContext, Object> responseBodyExpression) {}
 }

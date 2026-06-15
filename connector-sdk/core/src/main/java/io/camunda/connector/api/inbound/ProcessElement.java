@@ -49,4 +49,18 @@ public interface ProcessElement {
   default Map<String, String> properties() {
     return Map.of();
   }
+
+  /**
+   * Binds this element's raw properties to a typed object using the runtime's secret-replacement
+   * and FEEL-evaluation pipeline.
+   *
+   * <p>Use this to resolve element-scoped properties (for example, a webhook response expression)
+   * from the specific element that matched a request, even when several elements were deduplicated
+   * into a single connector executable. Only elements supplied by the runtime support binding; the
+   * default implementation throws.
+   */
+  default <T> T bindProperties(Class<T> cls) {
+    throw new UnsupportedOperationException(
+        "This process element does not support property binding");
+  }
 }
