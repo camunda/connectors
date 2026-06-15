@@ -47,6 +47,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 @SlowTest
@@ -57,6 +58,7 @@ import org.springframework.test.context.TestPropertySource;
       "camunda.connector.polling.interval=2000"
     })
 @Import(InboundConnectorTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class AiAgentConnectorA2aIntegrationTests extends BaseAiAgentConnectorTest {
 
   public static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
