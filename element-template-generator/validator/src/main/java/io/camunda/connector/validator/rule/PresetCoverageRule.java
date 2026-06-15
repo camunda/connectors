@@ -72,11 +72,9 @@ public class PresetCoverageRule implements Rule {
               file,
               "/presets",
               id(),
-              "Operation-metadata search space is too large to exhaustively check ("
-                  + searchSpace
-                  + " candidate assignments, cap is "
+              "Operation-metadata search space is too large to exhaustively check (more than "
                   + MAX_CANDIDATES
-                  + "). Reduce the number of operation discriminators or choices, or split the template."));
+                  + " candidate assignments). Reduce the number of operation discriminators or choices, or split the template."));
     }
 
     Set<Map<String, String>> reachable = enumerateReachableLeaves(opKeys, declsByKey);

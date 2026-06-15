@@ -183,12 +183,12 @@ class HybridParityRuleTest {
   void opsMetadataIgnoredConnector_notCompared() throws Exception {
     Map<Path, JsonNode> templates = new LinkedHashMap<>();
     templates.put(
-        Path.of("connectors/aws/element-templates/aws.json"),
+        Path.of("connectors/agentic-ai/element-templates/foo.json"),
         read("{ \"properties\": [], \"groups\": [], \"steps\": [ { \"presetId\": \"a\" } ] }"));
     templates.put(
-        Path.of("connectors/aws/element-templates/hybrid/aws-hybrid.json"),
+        Path.of("connectors/agentic-ai/element-templates/hybrid/foo-hybrid.json"),
         read("{ \"properties\": [], \"groups\": [], \"steps\": [ { \"presetId\": \"b\" } ] }"));
-    // Steps differ, but aws is on the ignore list — no /steps finding.
+    // Steps differ, but agentic-ai is on the ignore list — no /steps finding.
     assertThat(rule.apply(templates))
         .extracting(Finding::jsonPointer)
         .doesNotContain("/steps", "/presets");

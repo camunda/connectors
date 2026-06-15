@@ -40,7 +40,9 @@ import java.util.Set;
   "elementType",
   "engines",
   "groups",
-  "properties"
+  "properties",
+  "steps",
+  "presets"
 })
 @JsonInclude(Include.NON_NULL)
 public record ElementTemplate(
@@ -56,7 +58,9 @@ public record ElementTemplate(
     ElementTypeWrapper elementType,
     List<PropertyGroup> groups,
     List<Property> properties,
-    ElementTemplateIcon icon) {
+    ElementTemplateIcon icon,
+    List<Step> steps,
+    List<Preset> presets) {
 
   static final String SCHEMA_FIELD_NAME = "$schema";
   static final String SCHEMA_URL =

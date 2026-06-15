@@ -14,7 +14,10 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "uploadObject", label = "Upload object")
+@TemplateSubType(
+    id = "uploadObject",
+    description = "Upload an object to an S3 bucket",
+    keywords = {"upload", "put object", "store file"})
 public record UploadObject(
     @TemplateProperty(
             label = "AWS bucket",

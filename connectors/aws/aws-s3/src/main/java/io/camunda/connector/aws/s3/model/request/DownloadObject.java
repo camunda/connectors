@@ -11,7 +11,10 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(id = "downloadObject", label = "Download object")
+@TemplateSubType(
+    id = "downloadObject",
+    description = "Download an object from an S3 bucket",
+    keywords = {"download", "get object", "fetch s3 object"})
 public record DownloadObject(
     @TemplateProperty(
             label = "AWS bucket",

@@ -144,7 +144,8 @@ class PresetConditionsSatisfiedRuleTest {
           "presets": [ { "id": "p", "properties": { "x": "v" } } ]
         }
         """);
-    assertThat(rule.apply(Path.of("connectors/aws/element-templates/x.json"), template)).isEmpty();
+    assertThat(rule.apply(Path.of("connectors/agentic-ai/element-templates/x.json"), template))
+        .isEmpty();
   }
 
   private static JsonNode read(String json) throws Exception {

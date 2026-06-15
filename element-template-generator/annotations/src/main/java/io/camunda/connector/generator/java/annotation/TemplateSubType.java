@@ -50,4 +50,16 @@ public @interface TemplateSubType {
 
   /** Use this property to exclude the subtype from the discriminator property dropdown. */
   boolean ignore() default false;
+
+  /**
+   * Free-text description of the subtype. Surfaced in the Modeler search/discovery UI as the step's
+   * description on both leaf and group nodes. Optional.
+   */
+  String description() default "";
+
+  /**
+   * Search aliases for the subtype. Required on leaf subtypes (records implementing a sealed
+   * interface)
+   */
+  String[] keywords() default {};
 }
