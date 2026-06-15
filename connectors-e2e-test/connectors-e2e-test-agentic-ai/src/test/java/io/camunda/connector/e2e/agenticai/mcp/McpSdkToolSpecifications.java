@@ -27,54 +27,50 @@ public class McpSdkToolSpecifications {
   public static final McpSchema.ListToolsResult MCP_TOOL_SPECIFICATIONS =
       new McpSchema.ListToolsResult(
           List.of(
-              McpSchema.Tool.builder()
-                  .name("toolA")
-                  .description("The first tool")
-                  .title("Tool A")
-                  .inputSchema(
-                      new McpSchema.JsonSchema(
-                          "object",
-                          Map.of(
-                              "paramA1",
-                                  Map.of("type", "string", "description", "The first parameter"),
-                              "paramA2",
-                                  Map.of("type", "number", "description", "The second parameter")),
-                          null,
-                          null,
-                          null,
-                          null))
-                  .build(),
-              McpSchema.Tool.builder()
-                  .name("toolB")
-                  .description("The second tool")
-                  .title("Tool B")
-                  .inputSchema(
-                      new McpSchema.JsonSchema(
-                          "object",
-                          Map.of(
-                              "paramB1",
-                              Map.of("type", "string", "description", "The first parameter"),
-                              "paramB2",
-                              Map.of("type", "string", "enum", List.of("A", "B", "C"))),
-                          null,
-                          null,
-                          null,
-                          null))
-                  .build(),
-              McpSchema.Tool.builder()
-                  .name("toolC")
-                  .description("The third tool")
-                  .title("Tool C")
-                  .inputSchema(
-                      new McpSchema.JsonSchema(
-                          "object",
-                          Map.of(
-                              "paramC1",
-                              Map.of("type", "string", "description", "The first parameter")),
-                          null,
-                          null,
-                          null,
-                          null))
-                  .build()),
+              new McpSchema.Tool(
+                  "toolA",
+                  "Tool A",
+                  "The first tool",
+                  Map.of(
+                      "type",
+                      "object",
+                      "properties",
+                      Map.of(
+                          "paramA1", Map.of("type", "string", "description", "The first parameter"),
+                          "paramA2",
+                              Map.of("type", "number", "description", "The second parameter"))),
+                  null,
+                  null,
+                  null),
+              new McpSchema.Tool(
+                  "toolB",
+                  "Tool B",
+                  "The second tool",
+                  Map.of(
+                      "type",
+                      "object",
+                      "properties",
+                      Map.of(
+                          "paramB1",
+                          Map.of("type", "string", "description", "The first parameter"),
+                          "paramB2",
+                          Map.of("type", "string", "enum", List.of("A", "B", "C")))),
+                  null,
+                  null,
+                  null),
+              new McpSchema.Tool(
+                  "toolC",
+                  "Tool C",
+                  "The third tool",
+                  Map.of(
+                      "type",
+                      "object",
+                      "properties",
+                      Map.of(
+                          "paramC1",
+                          Map.of("type", "string", "description", "The first parameter"))),
+                  null,
+                  null,
+                  null)),
           null);
 }
