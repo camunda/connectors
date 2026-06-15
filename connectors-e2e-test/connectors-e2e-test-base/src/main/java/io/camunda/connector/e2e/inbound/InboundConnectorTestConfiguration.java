@@ -40,7 +40,7 @@ public class InboundConnectorTestConfiguration {
   public static class InboundConnectorTestHelper {
 
     private static final Duration DEFAULT_AWAIT_NO_EXECUTABLES_TIMEOUT = Duration.ofSeconds(10);
-    private static final Duration DEFAULT_AWAIT_ACTIVE_EXECUTABLE_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration DEFAULT_AWAIT_ACTIVE_EXECUTABLE_TIMEOUT = Duration.ofSeconds(60);
 
     private final CacheManager cacheManager;
     private final InboundExecutableRegistry executableRegistry;

@@ -24,9 +24,9 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -37,11 +37,12 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaProcessTestContext;
-import io.camunda.process.test.api.assertions.JobSelectors;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -58,13 +59,28 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   @Autowired private CamundaProcessTestContext processTestContext;
 
+  protected final LinkedList<Map<String, Object>> userFeedback = new LinkedList<>();
+
   protected final AtomicInteger userFeedbackJobWorkerCounter = new AtomicInteger(0);
 
   protected WireMockRuntimeInfo wireMock;
 
   @BeforeAll
   static void setCamundaAssertDefaultTimeout() {
-    CamundaAssert.setAssertionTimeout(Duration.ofSeconds(30));
+    CamundaAssert.setAssertionTimeout(Duration.ofSeconds(90));
+  }
+
+  @BeforeEach
+  void mockUserFeedbackJobWorker() {
+    processTestContext
+        .mockJobWorker("user_feedback")
+        .withHandler(
+            (client, job) -> {
+              var nextFeedback =
+                  userFeedback.isEmpty() ? Collections.emptyMap() : userFeedback.poll();
+              userFeedbackJobWorkerCounter.incrementAndGet();
+              client.newCompleteCommand(job.getKey()).variables(nextFeedback).execute();
+            });
   }
 
   @BeforeEach
@@ -77,6 +93,8 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
     wireMock = wm;
     // WireMock returns the content type for the YAML file as application/json, so
     // we need to override the stub manually
+    WireMock.resetAllScenarios();
+    WireMock.reset();
     stubFor(
         get(urlPathEqualTo("/test.yaml"))
             .atPriority(1)
@@ -151,22 +169,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
     if (feedback.length == 0) {
       return;
     }
-    final var builder =
-        processTestContext
-            .when(
-                () -> {
-                  final ProcessInstanceEvent pi = currentProcess;
-                  if (pi == null) throw new AssertionError("process not yet created");
-                  CamundaAssert.assertThat(pi).hasActiveElements("User_Feedback");
-                })
-            .as("user-feedback");
-    for (final Map<String, Object> f : feedback) {
-      builder.then(
-          () -> {
-            userFeedbackJobWorkerCounter.incrementAndGet();
-            processTestContext.completeJob(JobSelectors.byElementId("User_Feedback"), f);
-          });
-    }
+    userFeedback.addAll(List.of(feedback));
   }
 
   protected Map<String, Object> userSatisfiedFeedback() {

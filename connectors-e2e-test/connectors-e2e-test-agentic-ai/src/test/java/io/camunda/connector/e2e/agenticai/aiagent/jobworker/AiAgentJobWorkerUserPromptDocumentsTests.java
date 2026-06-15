@@ -57,15 +57,15 @@ public class AiAgentJobWorkerUserPromptDocumentsTests extends BaseAiAgentJobWork
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
+        awaitProcessCompletion(
+            createProcessInstance(
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
                 Map.of(
                     "userPrompt",
                     initialUserPrompt,
                     "downloadUrls",
-                    List.of(wireMock.getHttpBaseUrl() + "/" + filename)))
-            .waitForProcessCompletion();
+                    List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
@@ -109,7 +109,8 @@ public class AiAgentJobWorkerUserPromptDocumentsTests extends BaseAiAgentJobWork
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
+        awaitProcessCompletion(
+            createProcessInstance(
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
                 Map.of(
@@ -118,8 +119,7 @@ public class AiAgentJobWorkerUserPromptDocumentsTests extends BaseAiAgentJobWork
                     "downloadUrls",
                     List.of(
                         wireMock.getHttpBaseUrl() + "/test.txt",
-                        wireMock.getHttpBaseUrl() + "/test.jpg")))
-            .waitForProcessCompletion();
+                        wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
@@ -155,13 +155,13 @@ public class AiAgentJobWorkerUserPromptDocumentsTests extends BaseAiAgentJobWork
   @Test
   void raisesIncidentWhenDocumentTypeIsNotSupported() throws Exception {
     final var zeebeTest =
-        createProcessInstance(
+        awaitActiveIncidents(
+            createProcessInstance(
                 Map.of(
                     "userPrompt",
                     "Summarize the following document",
                     "downloadUrls",
-                    List.of(wireMock.getHttpBaseUrl() + "/unsupported.zip")))
-            .waitForActiveIncidents();
+                    List.of(wireMock.getHttpBaseUrl() + "/unsupported.zip"))));
 
     assertIncident(
         zeebeTest,

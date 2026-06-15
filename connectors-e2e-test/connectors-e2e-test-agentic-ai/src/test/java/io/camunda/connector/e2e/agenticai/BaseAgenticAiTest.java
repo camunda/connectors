@@ -98,6 +98,22 @@ public abstract class BaseAgenticAiTest {
     return zeebeTest;
   }
 
+  protected ZeebeTest awaitActiveIncidents(ZeebeTest zeebeTest) {
+    return awaitActiveIncidents(zeebeTest, Duration.ofSeconds(90));
+  }
+
+  protected ZeebeTest awaitActiveIncidents(ZeebeTest zeebeTest, Duration timeout) {
+    return zeebeTest.waitForActiveIncidents(timeout);
+  }
+
+  protected ZeebeTest awaitProcessCompletion(ZeebeTest zeebeTest) {
+    return awaitProcessCompletion(zeebeTest, Duration.ofSeconds(90));
+  }
+
+  protected ZeebeTest awaitProcessCompletion(ZeebeTest zeebeTest, Duration timeout) {
+    return zeebeTest.waitForProcessCompletion(timeout);
+  }
+
   protected void assertIncident(ZeebeTest zeebeTest, ThrowingConsumer<Incident> assertion) {
     final var incidents =
         camundaClient

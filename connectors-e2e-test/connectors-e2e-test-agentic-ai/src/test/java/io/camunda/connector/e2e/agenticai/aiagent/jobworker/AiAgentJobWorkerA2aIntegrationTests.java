@@ -51,7 +51,8 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(
     properties = {
       "camunda.connector.polling.enabled=true",
-      "camunda.connector.webhook.enabled=true"
+      "camunda.connector.webhook.enabled=true",
+      "camunda.connector.polling.interval=2000"
     })
 @Import(InboundConnectorTestConfiguration.class)
 public class AiAgentJobWorkerA2aIntegrationTests extends BaseAiAgentJobWorkerTest {
@@ -149,7 +150,7 @@ public class AiAgentJobWorkerA2aIntegrationTests extends BaseAiAgentJobWorkerTes
     postWithDelay(
         webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);
 
-    zeebeTest.waitForProcessCompletion();
+    awaitProcessCompletion(zeebeTest);
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
