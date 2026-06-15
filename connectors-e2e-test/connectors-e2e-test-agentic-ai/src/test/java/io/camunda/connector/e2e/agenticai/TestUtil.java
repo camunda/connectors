@@ -61,14 +61,7 @@ public final class TestUtil {
   }
 
   public static void waitForElementActivation(ZeebeTest zeebeTest, String elementId) {
-    Awaitility.with()
-        .pollInSameThread()
-        .await()
-        .atMost(20, TimeUnit.SECONDS)
-        .untilAsserted(
-            () ->
-                CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-                    .hasActiveElement(elementId, 1));
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent()).hasActiveElement(elementId, 1);
   }
 
   /**
