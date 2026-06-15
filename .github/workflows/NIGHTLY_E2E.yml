@@ -39,7 +39,7 @@ jobs:
   run-e2e-tests:
     name: (${{ matrix.branch }}) Nightly E2E test run
     needs: get-branches
-    runs-on: ubuntu-latest
+    runs-on: gcp-core-8-default
     strategy:
       fail-fast: false
       matrix:
