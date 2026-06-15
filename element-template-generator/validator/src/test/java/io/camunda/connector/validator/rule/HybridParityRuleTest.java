@@ -142,6 +142,58 @@ class HybridParityRuleTest {
     assertThat(findings).extracting(Finding::jsonPointer).containsExactly("/groups", "/groups");
   }
 
+  @Test
+  void opsMetadataIdentical_noFindings() throws Exception {
+    Map<Path, JsonNode> templates = new LinkedHashMap<>();
+    String body =
+        """
+        { "groups": [], "properties": [],
+          "steps":  [ { "presetId": "p" } ],
+          "presets": [ { "id": "p", "properties": { "x": "y" } } ] }
+        """;
+    templates.put(Path.of("connectors/foo/element-templates/foo.json"), read(body));
+    templates.put(Path.of("connectors/foo/element-templates/hybrid/foo-hybrid.json"), read(body));
+    assertThat(rule.apply(templates)).isEmpty();
+  }
+
+  @Test
+  void opsMetadataStepsDiffer_flagged() throws Exception {
+    Map<Path, JsonNode> templates = new LinkedHashMap<>();
+    templates.put(
+        Path.of("connectors/foo/element-templates/foo.json"),
+        read(
+            """
+        { "groups": [], "properties": [],
+          "steps":  [ { "presetId": "p" } ],
+          "presets": [ { "id": "p", "properties": {} } ] }
+        """));
+    templates.put(
+        Path.of("connectors/foo/element-templates/hybrid/foo-hybrid.json"),
+        read(
+            """
+        { "groups": [], "properties": [],
+          "steps":  [ { "presetId": "other" } ],
+          "presets": [ { "id": "p", "properties": {} } ] }
+        """));
+    List<Finding> findings = rule.apply(templates);
+    assertThat(findings).extracting(Finding::jsonPointer).contains("/steps");
+  }
+
+  @Test
+  void opsMetadataIgnoredConnector_notCompared() throws Exception {
+    Map<Path, JsonNode> templates = new LinkedHashMap<>();
+    templates.put(
+        Path.of("connectors/aws/element-templates/aws.json"),
+        read("{ \"properties\": [], \"groups\": [], \"steps\": [ { \"presetId\": \"a\" } ] }"));
+    templates.put(
+        Path.of("connectors/aws/element-templates/hybrid/aws-hybrid.json"),
+        read("{ \"properties\": [], \"groups\": [], \"steps\": [ { \"presetId\": \"b\" } ] }"));
+    // Steps differ, but aws is on the ignore list — no /steps finding.
+    assertThat(rule.apply(templates))
+        .extracting(Finding::jsonPointer)
+        .doesNotContain("/steps", "/presets");
+  }
+
   private static JsonNode read(String json) throws Exception {
     return MAPPER.readTree(json);
   }

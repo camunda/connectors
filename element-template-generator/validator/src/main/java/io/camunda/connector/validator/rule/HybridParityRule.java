@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.MultiFileRule;
+import io.camunda.connector.validator.core.OperationMetadataIgnoreList;
 import io.camunda.connector.validator.core.TemplateFinder;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -76,8 +77,46 @@ public class HybridParityRule implements MultiFileRule {
       JsonNode mainTemplate = templates.get(sibling);
       compareIdSet(hybrid, hybridTemplate, mainTemplate, sibling, "properties", findings);
       compareIdSet(hybrid, hybridTemplate, mainTemplate, sibling, "groups", findings);
+      compareNativeOperationMetadata(hybrid, hybridTemplate, mainTemplate, sibling, findings);
     }
     return findings;
+  }
+
+  private void compareNativeOperationMetadata(
+      Path hybrid,
+      JsonNode hybridTemplate,
+      JsonNode mainTemplate,
+      Path mainPath,
+      List<Finding> findings) {
+    if (OperationMetadataIgnoreList.isIgnored(hybrid)
+        || OperationMetadataIgnoreList.isIgnored(mainPath)) {
+      return;
+    }
+    compareField(hybrid, hybridTemplate, mainTemplate, mainPath, ElementTemplate.STEPS, findings);
+    compareField(hybrid, hybridTemplate, mainTemplate, mainPath, ElementTemplate.PRESETS, findings);
+  }
+
+  private void compareField(
+      Path hybrid,
+      JsonNode hybridTemplate,
+      JsonNode mainTemplate,
+      Path mainPath,
+      String field,
+      List<Finding> findings) {
+    JsonNode hybridNode = hybridTemplate.path(field);
+    JsonNode mainNode = mainTemplate.path(field);
+    if (!hybridNode.equals(mainNode)) {
+      findings.add(
+          Finding.error(
+              hybrid,
+              "/" + field,
+              id(),
+              "Hybrid \""
+                  + field
+                  + "\" does not match the non-hybrid sibling ("
+                  + mainPath.getFileName()
+                  + ")."));
+    }
   }
 
   private void compareIdSet(
