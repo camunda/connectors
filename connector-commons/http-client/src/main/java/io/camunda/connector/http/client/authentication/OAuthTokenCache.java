@@ -17,6 +17,7 @@
 package io.camunda.connector.http.client.authentication;
 
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.model.auth.OAuthRefreshTokenAuthentication;
 import java.util.function.Supplier;
 
 /**
@@ -40,12 +41,30 @@ public interface OAuthTokenCache {
   String getOrFetch(OAuthAuthentication auth, Supplier<TokenResponse> tokenSupplier);
 
   /**
+   * Returns a cached token for the given refresh-token authentication configuration, or fetches a
+   * new one using the provided supplier and caches it according to the configured TTL strategy.
+   *
+   * @param auth the refresh-token authentication configuration used to derive the cache key
+   * @param tokenSupplier a supplier that fetches a new token from the token endpoint
+   * @return the access token string
+   */
+  String getOrFetch(OAuthRefreshTokenAuthentication auth, Supplier<TokenResponse> tokenSupplier);
+
+  /**
    * Invalidates the cached token for the given authentication configuration, e.g. after receiving a
    * 401 response from a downstream service.
    *
    * @param auth the OAuth authentication configuration whose cached token should be removed
    */
   void invalidate(OAuthAuthentication auth);
+
+  /**
+   * Invalidates the cached token for the given refresh-token authentication configuration, e.g.
+   * after receiving a 401 response from a downstream service.
+   *
+   * @param auth the refresh-token authentication configuration whose cached token should be removed
+   */
+  void invalidate(OAuthRefreshTokenAuthentication auth);
 
   /** Invalidates all cached tokens. */
   void invalidateAll();
