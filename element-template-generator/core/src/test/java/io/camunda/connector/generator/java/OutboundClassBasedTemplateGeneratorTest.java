@@ -54,6 +54,7 @@ import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateLinkedResource;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.example.outbound.ClassBasedConnectorWithLinkedResource;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
@@ -1609,7 +1610,92 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
   }
 
+  @Nested
+  class LanguageProperty {
+
+    @Test
+    void propertyWithLanguageJson_hasLanguageField() {
+      var template = generator.generate(MyConnectorFunction.WithLanguageProperty.class).getFirst();
+      var property = getPropertyById("jsonField", template);
+      assertThat(property.getLanguage()).isEqualTo("json");
+    }
+
+    @Test
+    void propertyWithoutLanguage_hasNullLanguageField() {
+      var template = generator.generate(MyConnectorFunction.WithLanguageProperty.class).getFirst();
+      var property = getPropertyById("normalField", template);
+      assertThat(property.getLanguage()).isNull();
+    }
+
+    @Test
+    void unsupportedLanguageValue_throwsException() {
+      assertThatThrownBy(() -> generator.generate(InvalidLanguageConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("javascript");
+    }
+
+    @Test
+    void languageOnBooleanProperty_throwsException() {
+      assertThatThrownBy(() -> generator.generate(InvalidLanguageBooleanConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("only supported for String and Text properties");
+    }
+
+    @Test
+    void languageOnNumberProperty_throwsException() {
+      assertThatThrownBy(() -> generator.generate(InvalidLanguageNumberConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("only supported for String and Text properties");
+    }
+  }
+
   // Fixture for inbound connector linked-resource test
+
+  // Fixture for invalid language value test
+
+  record InvalidLanguageInput(@TemplateProperty(language = "javascript") String field) {}
+
+  @OutboundConnector(name = "test", type = "test:invalid-lang")
+  @ElementTemplate(
+      id = "test-invalid-lang",
+      name = "Test",
+      inputDataClass = InvalidLanguageInput.class)
+  private static class InvalidLanguageConnector implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  // Fixtures for language on unsupported property types
+
+  record InvalidLanguageBooleanInput(@TemplateProperty(language = "json") Boolean field) {}
+
+  @OutboundConnector(name = "test", type = "test:invalid-lang-boolean")
+  @ElementTemplate(
+      id = "test-invalid-lang-boolean",
+      name = "Test",
+      inputDataClass = InvalidLanguageBooleanInput.class)
+  private static class InvalidLanguageBooleanConnector implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
+
+  record InvalidLanguageNumberInput(@TemplateProperty(language = "json") Integer field) {}
+
+  @OutboundConnector(name = "test", type = "test:invalid-lang-number")
+  @ElementTemplate(
+      id = "test-invalid-lang-number",
+      name = "Test",
+      inputDataClass = InvalidLanguageNumberInput.class)
+  private static class InvalidLanguageNumberConnector implements OutboundConnectorFunction {
+    @Override
+    public Object execute(OutboundConnectorContext context) {
+      return null;
+    }
+  }
 
   @TemplateLinkedResource(linkName = "form", resourceType = "form")
   private record InboundLinkedResourceRequest() {}
