@@ -97,9 +97,12 @@ jobs:
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
       # TEMPORARY (experiment, do NOT merge): on PRs, build the whole reactor without running
-      # tests (-DskipTests, install so the e2e module resolves sibling artifacts from ~/.m2),
-      # then run tests only for the agentic-ai e2e module to iterate fast on the flaky A2A tests.
-      # To widen to all e2e modules, replace the -pl target below with `-f connectors-e2e-test/pom.xml`.
+      # tests (-DskipTests, install so the e2e modules resolve sibling artifacts from ~/.m2),
+      # then run tests only for the connectors-e2e-test modules to iterate fast on the flaky tests.
+      # `-f connectors-e2e-test/pom.xml` makes that aggregator the reactor root so ALL its
+      # submodules are tested. NOTE: `-pl connectors-e2e-test` would NOT work — it selects only the
+      # aggregator pom (no tests) and does not recurse into children. To narrow to just the flaky
+      # A2A tests, use `-pl connectors-e2e-test/connectors-e2e-test-agentic-ai` instead.
       # Revert to the single full-build step below before merge.
       - name: Build all modules without tests (PR experiment)
         if: github.event_name == 'pull_request'
@@ -107,7 +110,7 @@ jobs:
 
       - name: Test connectors-e2e-test (PR experiment)
         if: github.event_name == 'pull_request'
-        run: ./mvnw --batch-mode test -pl connectors-e2e-test
+        run: ./mvnw --batch-mode test -f connectors-e2e-test/pom.xml
 
       - name: Build Connectors
         if: github.event_name != 'pull_request'
