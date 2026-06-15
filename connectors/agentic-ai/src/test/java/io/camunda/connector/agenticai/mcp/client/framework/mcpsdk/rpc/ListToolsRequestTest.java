@@ -110,16 +110,15 @@ class ListToolsRequestTest {
   }
 
   private McpSchema.Tool createTool(String name, String title, String description) {
-    return McpSchema.Tool.builder()
-        .name(name)
-        .title(title)
-        .description(description)
-        .inputSchema(
+    return McpSchema.Tool.builder(
+            name,
             Map.of(
                 "type", "object",
                 "properties",
                     Map.of("toolArg", Map.of("type", "string", "description", "A tool argument")),
                 "required", List.of("toolArg")))
+        .title(title)
+        .description(description)
         .build();
   }
 }
