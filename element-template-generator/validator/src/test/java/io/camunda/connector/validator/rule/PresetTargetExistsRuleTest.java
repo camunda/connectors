@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 class PresetTargetExistsRuleTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final Path FILE = Path.of("test.json");
+  private static final Path FILE = Path.of("my-connector/element-templates/foo.json");
   private final PresetTargetExistsRule rule = new PresetTargetExistsRule();
 
   @Test
@@ -36,11 +36,7 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "operationGroup", "choices": [{"value": "issues"}] }
-          ]
-        }
+        { "properties": [ { "id": "operationGroup", "choices": [{"value": "issues"}] } ] }
         """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
@@ -56,13 +52,8 @@ class PresetTargetExistsRuleTest {
               { "value": "actions" }, { "value": "issues" }
             ]}
           ],
-          "steps": [
-            {
-              "name": "Actions",
-              "steps": [
-                { "name": "Create dispatch", "presets": { "operationGroup": "actions" } }
-              ]
-            }
+          "presets": [
+            { "id": "p1", "properties": { "operationGroup": "actions" } }
           ]
         }
         """);
@@ -75,19 +66,15 @@ class PresetTargetExistsRuleTest {
         read(
             """
         {
-          "properties": [
-            { "id": "operationGroup", "choices": [{"value": "actions"}] }
-          ],
-          "steps": [
-            { "steps": [ { "presets": { "operationGruop": "actions" } } ] }
-          ]
+          "properties": [ { "id": "operationGroup", "choices": [{"value": "actions"}] } ],
+          "presets": [ { "id": "p", "properties": { "operationGruop": "actions" } } ]
         }
         """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
     assertThat(f.ruleId()).isEqualTo("preset-target-exists");
-    assertThat(f.jsonPointer()).isEqualTo("/steps/0/steps/0/presets/operationGruop");
+    assertThat(f.jsonPointer()).isEqualTo("/presets/0/properties/operationGruop");
     assertThat(f.message()).contains("operationGruop");
   }
 
@@ -102,20 +89,18 @@ class PresetTargetExistsRuleTest {
               { "value": "actions" }, { "value": "issues" }
             ]}
           ],
-          "steps": [
-            { "steps": [ { "presets": { "operationGroup": "deployments" } } ] }
-          ]
+          "presets": [ { "id": "p", "properties": { "operationGroup": "deployments" } } ]
         }
         """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
-    assertThat(f.jsonPointer()).isEqualTo("/steps/0/steps/0/presets/operationGroup");
+    assertThat(f.jsonPointer()).isEqualTo("/presets/0/properties/operationGroup");
     assertThat(f.message()).contains("deployments").contains("operationGroup");
   }
 
   @Test
-  void multipleEntriesInOnePresetsObject_independentFindings() throws Exception {
+  void multipleEntriesInOnePreset_independentFindings() throws Exception {
     JsonNode template =
         read(
             """
@@ -124,13 +109,11 @@ class PresetTargetExistsRuleTest {
             { "id": "operationGroup", "choices": [{"value": "actions"}] },
             { "id": "eventOperationType" }
           ],
-          "steps": [
-            { "steps": [ { "presets": {
-              "operationGroup": "deployments",
-              "eventOperationType": "createWorkflowDispatchEvent",
-              "missing": "x"
-            }}]}
-          ]
+          "presets": [ { "id": "p", "properties": {
+            "operationGroup": "deployments",
+            "eventOperationType": "createWorkflowDispatchEvent",
+            "missing": "x"
+          }}]
         }
         """);
     List<Finding> findings = rule.apply(FILE, template);
@@ -138,7 +121,7 @@ class PresetTargetExistsRuleTest {
     assertThat(findings)
         .extracting(Finding::jsonPointer)
         .containsExactlyInAnyOrder(
-            "/steps/0/steps/0/presets/operationGroup", "/steps/0/steps/0/presets/missing");
+            "/presets/0/properties/operationGroup", "/presets/0/properties/missing");
   }
 
   @Test
@@ -147,12 +130,8 @@ class PresetTargetExistsRuleTest {
         read(
             """
         {
-          "properties": [
-            { "id": "freeText" }
-          ],
-          "steps": [
-            { "steps": [ { "presets": { "freeText": "anything goes" } } ] }
-          ]
+          "properties": [ { "id": "freeText" } ],
+          "presets": [ { "id": "p", "properties": { "freeText": "anything goes" } } ]
         }
         """);
     assertThat(rule.apply(FILE, template)).isEmpty();
@@ -160,9 +139,6 @@ class PresetTargetExistsRuleTest {
 
   @Test
   void duplicateIdsWithDifferentChoices_unionAccepted() throws Exception {
-    // Mutually-exclusive switching pattern: same id "eventOperationType" appears twice with
-    // disjoint choices, gated on different operationGroup values. A preset value valid under
-    // either variant must not be flagged.
     JsonNode template =
         read(
             """
@@ -178,50 +154,57 @@ class PresetTargetExistsRuleTest {
               "choices": [{ "value": "createIssue" }, { "value": "closeIssue" }],
               "condition": { "property": "operationGroup", "equals": "issues" } }
           ],
-          "steps": [
-            { "steps": [ { "presets": {
-              "operationGroup": "issues",
-              "eventOperationType": "createIssue"
-            }}]}
-          ]
+          "presets": [ { "id": "p", "properties": {
+            "operationGroup": "issues",
+            "eventOperationType": "createIssue"
+          }}]
         }
         """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
   @Test
-  void duplicateIdsWithDifferentChoices_valueOutsideUnion_flagged() throws Exception {
+  void duplicateIdsWithDifferentChoices_valueOutsideUnion_oneFinding() throws Exception {
     JsonNode template =
         read(
             """
         {
           "properties": [
-            { "id": "eventOperationType", "choices": [{ "value": "a" }] },
-            { "id": "eventOperationType", "choices": [{ "value": "b" }] }
+            { "id": "operationGroup", "choices": [
+              { "value": "actions" }, { "value": "issues" }
+            ]},
+            { "id": "eventOperationType",
+              "choices": [{ "value": "createWorkflowDispatchEvent" }],
+              "condition": { "property": "operationGroup", "equals": "actions" } },
+            { "id": "eventOperationType",
+              "choices": [{ "value": "createIssue" }, { "value": "closeIssue" }],
+              "condition": { "property": "operationGroup", "equals": "issues" } }
           ],
-          "steps": [
-            { "steps": [ { "presets": { "eventOperationType": "c" } } ] }
-          ]
+          "presets": [ { "id": "p", "properties": {
+            "operationGroup": "issues",
+            "eventOperationType": "notInEither"
+          }}]
         }
         """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
-    assertThat(findings.get(0).message()).contains("\"c\"");
+    Finding f = findings.get(0);
+    assertThat(f.jsonPointer()).isEqualTo("/presets/0/properties/eventOperationType");
+    assertThat(f.message()).contains("notInEither").contains("eventOperationType");
   }
 
   @Test
-  void presetsAtTopLevel_alsoValidated() throws Exception {
+  void ignoredConnector_noFindings() throws Exception {
     JsonNode template =
         read(
             """
         {
           "properties": [ { "id": "x" } ],
-          "presets": { "missing": "y" }
+          "presets": [ { "id": "p", "properties": { "missing": "y" } } ]
         }
         """);
-    List<Finding> findings = rule.apply(FILE, template);
-    assertThat(findings).hasSize(1);
-    assertThat(findings.get(0).jsonPointer()).isEqualTo("/presets/missing");
+    assertThat(rule.apply(Path.of("connectors/aws/element-templates/aws.json"), template))
+        .isEmpty();
   }
 
   private static JsonNode read(String json) throws Exception {

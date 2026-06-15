@@ -17,6 +17,7 @@
 package io.camunda.connector.validator.rule;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.validator.core.ConditionEvaluator;
 import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.JsonPointers;
@@ -25,17 +26,17 @@ import io.camunda.connector.validator.core.Rule;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
- * For every entry of the top-level {@code presets[]} array, each key inside {@code properties} must
- * reference a property declared in the template's top-level {@code properties[]}, and the value
- * must be one of the property's declared {@code choices} (when choices are declared).
+ * For each preset, every pinned property's {@code condition} must evaluate to true under the
+ * preset's own assignment. Catches presets whose pinned values are mutually exclusive under the
+ * template's conditions (e.g. setting {@code operationGroup=A} alongside a property gated on {@code
+ * operationGroup=B}).
  */
-public class PresetTargetExistsRule implements Rule {
+public class PresetConditionsSatisfiedRule implements Rule {
 
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
@@ -46,7 +47,7 @@ public class PresetTargetExistsRule implements Rule {
     if (!presets.isArray()) {
       return List.of();
     }
-    Map<String, Set<String>> propertyChoices = collectPropertyChoices(template);
+    Map<String, List<JsonNode>> conditionsByPropertyId = collectConditions(template);
     List<Finding> findings = new ArrayList<>();
     for (int i = 0; i < presets.size(); i++) {
       JsonNode preset = presets.get(i);
@@ -54,46 +55,46 @@ public class PresetTargetExistsRule implements Rule {
       if (!properties.isObject()) {
         continue;
       }
-      String pointer = "/presets/" + i + "/properties";
-      for (Map.Entry<String, JsonNode> entry : properties.properties()) {
+      Map<String, String> assignment = new LinkedHashMap<>();
+      properties
+          .properties()
+          .forEach(
+              e -> {
+                if (e.getValue().isTextual()) {
+                  assignment.put(e.getKey(), e.getValue().asText());
+                }
+              });
+      for (Map.Entry<String, String> entry : assignment.entrySet()) {
         String key = entry.getKey();
-        JsonNode value = entry.getValue();
-        String entryPointer = pointer + "/" + JsonPointers.escape(key);
-
-        if (!propertyChoices.containsKey(key)) {
+        List<JsonNode> conditions = conditionsByPropertyId.get(key);
+        if (conditions == null || conditions.isEmpty()) {
+          continue;
+        }
+        boolean anyHolds = false;
+        for (JsonNode cond : conditions) {
+          if (ConditionEvaluator.evaluate(cond, assignment)) {
+            anyHolds = true;
+            break;
+          }
+        }
+        if (!anyHolds) {
           findings.add(
               Finding.error(
                   file,
-                  entryPointer,
+                  "/presets/" + i + "/properties/" + JsonPointers.escape(key),
                   id(),
-                  "Preset references property \""
+                  "Preset pins property \""
                       + key
-                      + "\" which does not exist in this template."));
-          continue;
-        }
-        if (!value.isTextual()) {
-          continue;
-        }
-        Set<String> choices = propertyChoices.get(key);
-        if (!choices.isEmpty() && !choices.contains(value.asText())) {
-          findings.add(
-              Finding.error(
-                  file,
-                  entryPointer,
-                  id(),
-                  "Preset value \""
-                      + value.asText()
-                      + "\" is not one of the declared choices for property \""
-                      + key
-                      + "\"."));
+                      + "\" but no declaration of that property has a condition that holds under "
+                      + "the preset's assignment."));
         }
       }
     }
     return findings;
   }
 
-  private Map<String, Set<String>> collectPropertyChoices(JsonNode template) {
-    Map<String, Set<String>> result = new HashMap<>();
+  private Map<String, List<JsonNode>> collectConditions(JsonNode template) {
+    Map<String, List<JsonNode>> result = new HashMap<>();
     JsonNode props = template.path(ElementTemplate.PROPERTIES);
     if (!props.isArray()) {
       return result;
@@ -103,16 +104,8 @@ public class PresetTargetExistsRule implements Rule {
       if (!idNode.isTextual()) {
         continue;
       }
-      Set<String> choices = result.computeIfAbsent(idNode.asText(), k -> new HashSet<>());
-      JsonNode choicesNode = prop.path(ElementTemplate.CHOICES);
-      if (choicesNode.isArray()) {
-        for (JsonNode choice : choicesNode) {
-          JsonNode value = choice.path(ElementTemplate.VALUE);
-          if (value.isTextual()) {
-            choices.add(value.asText());
-          }
-        }
-      }
+      JsonNode condition = prop.path(ElementTemplate.CONDITION);
+      result.computeIfAbsent(idNode.asText(), k -> new ArrayList<>()).add(condition);
     }
     return result;
   }
