@@ -105,7 +105,11 @@ public class ZeebeTest {
   }
 
   public ZeebeTest waitForProcessCompletion(Duration timeout) {
-    CamundaAssert.assertThat(processInstanceEvent).withAssertionTimeout(timeout).isCompleted();
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(timeout)
+        .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).isCompleted());
     return this;
   }
 
@@ -114,9 +118,11 @@ public class ZeebeTest {
   }
 
   public ZeebeTest waitForActiveIncidents(Duration timeout) {
-    CamundaAssert.assertThat(processInstanceEvent)
-        .withAssertionTimeout(timeout)
-        .hasActiveIncidents();
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(timeout)
+        .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).hasActiveIncidents());
     return this;
   }
 
