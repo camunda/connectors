@@ -51,6 +51,7 @@ public final class NumberProperty extends Property {
         tooltip,
         null,
         exampleValue,
+        null,
         TYPE);
   }
 
