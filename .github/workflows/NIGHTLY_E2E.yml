@@ -172,7 +172,7 @@ jobs:
           # Override the runner for resource-heavy modules; all others use ubuntu-latest.
           # To add more, append entries here.
           - module: connectors-e2e-test-agentic-ai
-            runner: gcp-core-4-default
+            runner: gcp-core-8-default
     steps:
       - uses: actions/checkout@v6
         with:
