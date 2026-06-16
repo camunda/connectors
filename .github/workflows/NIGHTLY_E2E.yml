@@ -39,7 +39,7 @@ jobs:
   run-e2e-tests:
     name: (${{ matrix.branch }}) Nightly E2E test run
     needs: get-branches
-    runs-on: gcp-core-8-default
+    runs-on: gcp-core-4-default
     strategy:
       fail-fast: false
       matrix:
@@ -107,19 +107,19 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           E2E_EXCLUDES=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' -printf '!%h\n' | paste -sd, -)
-          ./mvnw --batch-mode -U clean install -PcheckFormat -pl "$E2E_EXCLUDES"
+          ./mvnw -T1C --batch-mode -U clean install -PcheckFormat -pl "$E2E_EXCLUDES"
 
       # PR: build all connector modules without running tests (e2e is the only thing tested).
       - name: Build connectors without tests (PR)
         if: github.event_name == 'pull_request'
-        run: ./mvnw --batch-mode -U clean install -DskipTests
+        run: ./mvnw -T1C --batch-mode -U clean install -DskipTests
 
       # Phase 2 (both events): test the e2e-test modules against the just-built artifacts.
       # `-f connectors-e2e-test/pom.xml` makes that aggregator the reactor root so ALL its submodules
       # are tested. To narrow to just the flaky A2A tests, use
       # `-pl connectors-e2e-test/connectors-e2e-test-agentic-ai` from the repo root instead.
       - name: Test e2e-test modules
-        run: ./mvnw --batch-mode test -f connectors-e2e-test/pom.xml
+        run: ./mvnw -T1C --batch-mode test -f connectors-e2e-test/pom.xml
 
       - name: Publish Test Report
         if: always()
