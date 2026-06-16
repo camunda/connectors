@@ -155,7 +155,7 @@ jobs:
   # one flaky/slow module no longer blocks the others. Defaults to ubuntu-latest; resource-heavy
   # modules override the runner via matrix.include.
   run-e2e-tests:
-    name: (${{ matrix.branch }}) ${{ matrix.module }}
+    name: ${{ matrix.module }} E2E tests
     needs: [ setup, build ]
     runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
     strategy:
