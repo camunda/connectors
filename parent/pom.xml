@@ -984,7 +984,7 @@ limitations under the License.</license.inlineheader>
           <configuration>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
             <runOrder>hourly</runOrder>
-            <argLine>-XX:InitialRAMPercentage=75.0 -XX:MaxRAMPercentage=75.0 -Duser.language=en -Duser.region=US</argLine>
+            <argLine>-XX:InitialRAMPercentage=65.0 -XX:MaxRAMPercentage=65.0 -Duser.language=en -Duser.region=US</argLine>
           </configuration>
         </plugin>
         <plugin>
