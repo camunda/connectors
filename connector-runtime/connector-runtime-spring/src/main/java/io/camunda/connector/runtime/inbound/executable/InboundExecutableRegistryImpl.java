@@ -33,6 +33,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Canc
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -52,6 +53,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final BatchExecutableProcessor batchExecutableProcessor;
 
   private final BlockingQueue<InboundExecutableEvent> eventQueue = new LinkedBlockingQueue<>();
+  private final ConcurrentHashMap<String, Object> processLocks = new ConcurrentHashMap<>();
 
   public InboundExecutableRegistryImpl(
       InboundConnectorFactory connectorFactory,
@@ -119,7 +121,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
     var processLockKey = processLockKey(event.tenantId(), event.bpmnProcessId());
 
-    synchronized (processLockKey.intern()) {
+    synchronized (processLocks.computeIfAbsent(processLockKey, k -> new Object())) {
       try {
         List<InboundConnectorElement> allElements =
             event.elementsByProcessDefinitionKey().values().stream().flatMap(List::stream).toList();
@@ -315,7 +317,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     // could run during restart, leaving the newly-activated executable invisible to the state
     // machine (zombie connector).
     var processLockKey = extractProcessLockKey(validateResettable(id));
-    synchronized (processLockKey.intern()) {
+    synchronized (processLocks.computeIfAbsent(processLockKey, k -> new Object())) {
       // Re-validate inside the lock; state may have changed since the peek
       var current = validateResettable(id);
 
