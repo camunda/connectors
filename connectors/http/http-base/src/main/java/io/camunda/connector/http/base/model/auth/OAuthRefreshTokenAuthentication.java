@@ -55,6 +55,7 @@ public record OAuthRefreshTokenAuthentication(
             id = "oauthRefreshToken.scopes",
             group = "authentication",
             description = "The scopes to request authorization for (space-separated)",
+            label = "Scopes",
             optional = true)
         String scopes)
     implements Authentication {
