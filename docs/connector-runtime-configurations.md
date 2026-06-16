@@ -54,7 +54,7 @@ zeebe.client.cloud.auth-url=https://login.cloud.dev.ultrawombat.com/oauth/token
 # operate config
 operate.client.enabled=true
 camunda.operate.client.url=https://lpp-1.operate.dev.ultrawombat.com/<your-cluster-id>
-camunda.operate.client.authUrl=https://login.cloud.ultrawombat.com/oauth/token
+camunda.operate.client.authUrl=https://login.cloud.dev.ultrawombat.com/oauth/token
 camunda.operate.client.baseUrl=operate.dev.ultrawombat.com
 
 # inbound config
