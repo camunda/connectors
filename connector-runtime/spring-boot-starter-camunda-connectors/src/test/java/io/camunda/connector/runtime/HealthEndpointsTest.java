@@ -34,9 +34,9 @@ import org.springframework.test.web.servlet.MockMvc;
     classes = TestConnectorRuntimeApplication.class,
     properties = {
       // Define health groups manually — avoids conflict with built-in probes.enabled behaviour
-      "management.endpoint.health.group.startup.include=startupCheck",
-      "management.endpoint.health.group.liveness.include=zeebeClient",
-      "management.endpoint.health.group.readiness.include=zeebeClient",
+      "management.endpoint.health.group.startup.include[]=startupCheck",
+      "management.endpoint.health.group.liveness.include[]=zeebeClient",
+      "management.endpoint.health.group.readiness.include[]=zeebeClient",
       "management.endpoints.web.exposure.include=health",
       "management.endpoint.health.show-details=always"
     })

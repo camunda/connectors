@@ -584,52 +584,6 @@ Significant architectural decisions are recorded in [`docs/adr/`](../docs/adr/).
 2. Create `docs/adr/ADR-NNNN-<kebab-title>.md` using the template in that README.
 3. Add a one-line entry to the index table in `docs/adr/README.md`.
 
-## Production Debugging
-
-### Heap Dumping a Connectors Pod
-
-Connectors pods run OpenJDK minimos (stripped JRE — no `jmap`/`jcmd`). Use `jattach` instead.
-The Spring Boot Actuator `heapdump` endpoint is **not enabled** on port 9080.
-
-**Namespace format:** `<cluster-uuid>-zeebe`
-
-#### 1. Find the right kubectl context
-
-```bash
-for ctx in $(kubectl config get-contexts -o name); do
-  kubectl get namespace <uuid>-zeebe --context="$ctx" --request-timeout=3s &>/dev/null && echo "FOUND: $ctx" && break
-done
-kubectx <found-context>
-kubens <uuid>-zeebe
-```
-
-#### 2. Download jattach into the pod
-
-```bash
-kubectl exec -n <uuid>-zeebe <pod> -- sh -c '
-  cd /tmp &&
-  wget -q -O jattach.tgz https://github.com/jattach/jattach/releases/download/v2.2/jattach-linux-x64.tgz &&
-  tar -xzf jattach.tgz && chmod +x jattach'
-```
-
-#### 3. Trigger and copy the heap dump
-
-```bash
-# Dump (JVM runs as PID 1 in these pods)
-kubectl exec -n <uuid>-zeebe <pod> -- /tmp/jattach 1 dumpheap /tmp/heap.hprof
-
-# Copy locally
-kubectl cp <uuid>-zeebe/<pod>:/tmp/heap.hprof ./heap-<pod>.hprof
-```
-
-For multiple pods, run steps 2–3 in parallel with `&` / `wait`.
-
-#### Required RBAC permissions
-
-Your account needs `pods/exec` **and** `pods/portforward` in the target namespace. If forbidden, request a temporary elevation from the SRE/platform team.
-
----
-
 ## Documentation
 
 For detailed documentation, see
