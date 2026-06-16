@@ -720,11 +720,16 @@ public class InboundExecutableRegistryTest {
     var executableId = registry.query(f -> f.elementId(elementId)).getFirst().executableId();
     assertThat(activityLogRegistry.getLogs(executableId)).hasSize(1); // initial activation log
 
+    // capture logs before reset to verify they survive the restart
+    var logsBeforeReset = List.copyOf(activityLogRegistry.getLogs(executableId));
+
     // when - restart (RESTART action, not permanent DEACTIVATE)
     registry.reset(executableId);
 
-    // then - logs from before the restart are still present alongside new activation log
-    assertThat(activityLogRegistry.getLogs(executableId)).hasSizeGreaterThanOrEqualTo(2);
+    // then - all logs from before the restart are still present alongside the new activation log
+    var logsAfterReset = activityLogRegistry.getLogs(executableId);
+    assertThat(logsAfterReset).containsAll(logsBeforeReset);
+    assertThat(logsAfterReset).hasSizeGreaterThan(logsBeforeReset.size());
   }
 
   @Test

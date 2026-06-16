@@ -80,12 +80,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
       InboundExecutableStateStore stateStore,
       InboundExecutableStateTransitionService stateTransitionService,
       InboundExecutableQueryService queryService,
-      BatchExecutableProcessor batchExecutableProcessor) {
+      BatchExecutableProcessor batchExecutableProcessor,
+      ActivityLogRegistry activityLogRegistry) {
     this.stateStore = stateStore;
     this.stateTransitionService = stateTransitionService;
     this.queryService = queryService;
     this.batchExecutableProcessor = batchExecutableProcessor;
-    this.activityLogRegistry = new ActivityLogRegistry();
+    this.activityLogRegistry = activityLogRegistry;
   }
 
   @Override
