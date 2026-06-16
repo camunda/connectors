@@ -55,9 +55,6 @@ jobs:
           done | jq -R -s -c 'split("\n") | map(select(length>0))')
           echo "modules=$modules" >> $GITHUB_OUTPUT
 
-  # Build phase (per branch): build the connector modules + install the e2e-test base libraries, then
-  # hand the freshly built first-party SNAPSHOTs to the test matrix as a branch-scoped artifact. The
-  # test jobs resolve everything from this artifact and never rebuild it.
   build:
     name: (${{ matrix.branch }}) Build
     needs: setup
@@ -111,10 +108,8 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      # Non-PR (nightly/manual): build + unit-test + format-check all connector modules, EXCLUDING
-      # the connectors-e2e-test subtree (its tests run in the test matrix). The exclusion list is
-      # generated from the pom layout so new e2e modules are covered automatically — excluding only
-      # the aggregator (`-pl !connectors-e2e-test`) does NOT drop its submodules from the reactor.
+      # Non-PR (nightly/manual): build + unit-test + format-check all connector modules
+      # without the connectors-e2e-test subtree
       - name: Build connectors with tests (non-PR)
         if: github.event_name != 'pull_request'
         run: |
@@ -127,8 +122,6 @@ jobs:
         run: ./mvnw --batch-mode -U clean install -DskipTests
 
       # Install the e2e-test base libraries so the test matrix can resolve them from ~/.m2 without
-      # rebuilding: connectors-e2e-test-base (test dependency of every module) and the AWS test-jar
-      # base (connectors-e2e-test-aws-base). Idempotent for the PR path, which already installs them.
       - name: Build e2e-test base libraries
         run: |
           ./mvnw --batch-mode install -DskipTests -f connectors-e2e-test/pom.xml \
@@ -142,11 +135,7 @@ jobs:
         env:
           BRANCH: ${{ matrix.branch }}
 
-      # Hand the freshly built first-party SNAPSHOTs (connectors + e2e base) to the test matrix.
-      # Name is scoped to run_id only (NOT run_attempt): re-running a single failed test job bumps
-      # run_attempt but does NOT re-run build, so the test job must still find the artifact built on
-      # the first attempt. overwrite:true lets "re-run all jobs" (build re-runs under the same run_id)
-      # replace the artifact instead of failing on a duplicate name.
+      # Hand the built artifacts (connectors + e2e base) to the test matrix.
       - name: Upload first-party artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -157,8 +146,7 @@ jobs:
           overwrite: true
 
   # Test phase (matrix: branch x module): each e2e-test module runs in its own job, in isolation, so
-  # one flaky/slow module no longer blocks the others. Defaults to ubuntu-latest; resource-heavy
-  # modules override the runner via matrix.include.
+  # Defaults to ubuntu-latest; resource-heavy modules override the runner via matrix.include.
   run-e2e-tests:
     name: ${{ matrix.module }} E2E tests
     needs: [ setup, build ]
@@ -220,8 +208,6 @@ jobs:
         with:
           node-version: '24'
 
-      # element-templates-cli is invoked at runtime by BpmnFile.java (in connectors-e2e-test-base)
-      # to apply element templates during the tests, so it must be installed on the test runner.
       - name: Install element templates CLI
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
