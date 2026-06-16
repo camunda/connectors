@@ -54,6 +54,10 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
           var token = tokenCache.getOrFetch(auth, () -> fetchOAuthToken(auth));
           builder.addHeader(AUTHORIZATION, String.format(BEARER, token));
         }
+        case OAuthRefreshTokenAuthentication auth -> {
+          var token = tokenCache.getOrFetch(auth, () -> fetchOAuthRefreshToken(auth));
+          builder.addHeader(AUTHORIZATION, String.format(BEARER, token));
+        }
         case BearerAuthentication auth ->
             builder.addHeader(AUTHORIZATION, String.format(BEARER, auth.token()));
         case ApiKeyAuthentication auth -> {
@@ -74,6 +78,14 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
     HttpClientRequest oAuthRequest = oAuthService.createOAuthRequestFrom(authentication);
     return new CustomApacheHttpClient()
         .execute(oAuthRequest, oAuthService::extractTokenFromResponse)
+        .entity();
+  }
+
+  TokenResponse fetchOAuthRefreshToken(OAuthRefreshTokenAuthentication authentication) {
+    HttpClientRequest oAuthRequest =
+        oAuthService.createOAuthRefreshTokenRequestFrom(authentication);
+    return new CustomApacheHttpClient()
+        .execute(oAuthRequest, oAuthService::extractTokenFromRefreshTokenResponse)
         .entity();
   }
 }
