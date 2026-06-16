@@ -107,7 +107,7 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           E2E_EXCLUDES=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' -printf '!%h\n' | paste -sd, -)
-          ./mvnw -T1C --batch-mode -U clean install -PcheckFormat -pl "$E2E_EXCLUDES"
+          ./mvnw --batch-mode -U clean install -PcheckFormat -pl "$E2E_EXCLUDES"
 
       # PR: build all connector modules without running tests (e2e is the only thing tested).
       - name: Build connectors without tests (PR)
@@ -119,7 +119,7 @@ jobs:
       # are tested. To narrow to just the flaky A2A tests, use
       # `-pl connectors-e2e-test/connectors-e2e-test-agentic-ai` from the repo root instead.
       - name: Test e2e-test modules
-        run: ./mvnw -T1C --batch-mode test -f connectors-e2e-test/pom.xml
+        run: ./mvnw --batch-mode test -f connectors-e2e-test/pom.xml
 
       - name: Publish Test Report
         if: always()
