@@ -33,6 +33,12 @@ public sealed interface CorrelationResult {
      * <p>Use this to resolve element-scoped properties (for example, a webhook response expression)
      * from the element that actually matched this correlation, even when several elements were
      * deduplicated into a single executable.
+     *
+     * <p><b>Warning:</b> by the time a {@link Success} exists, correlation has already taken effect
+     * — the process instance was created or the message was published (i.e. this runs past the
+     * transaction boundary). A failure while binding or evaluating these properties cannot undo
+     * that, so callers must handle exceptions carefully and must not report the event as
+     * unprocessed.
      */
     default <T> T bindProperties(Class<T> cls) {
       return activatedElement().bindProperties(cls);

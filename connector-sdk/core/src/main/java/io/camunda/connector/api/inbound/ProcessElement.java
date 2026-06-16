@@ -58,6 +58,11 @@ public interface ProcessElement {
    * from the specific element that matched a request, even when several elements were deduplicated
    * into a single connector executable. Only elements supplied by the runtime support binding; the
    * default implementation throws.
+   *
+   * <p><b>Warning:</b> this is typically invoked after correlation has already taken effect (past
+   * the transaction boundary) — the process instance was created or the message was published. A
+   * failure while binding or evaluating these properties cannot undo that, so callers must handle
+   * exceptions carefully and must not report the event as unprocessed.
    */
   default <T> T bindProperties(Class<T> cls) {
     throw new UnsupportedOperationException(
