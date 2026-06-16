@@ -15,7 +15,7 @@ If in doubt, contact the team's Engineering Manager.
 ## Third party notices
 
 All relevant projects (see above) produce a `THIRD_PARTY_NOTICES` file as part of their build.
-Those projects also feature a GitHub workflow that creates a Pull Request in case this file needs to be adjusted.
+This repository has CI license checks (see `.github/workflows/CHECK_LICENSES.yml`) to detect newly introduced license issues on pull requests and releases.
 
 Checking those Pull Requests thoroughly is a vital part of the development cycle.
 The following scenarios can occur:
