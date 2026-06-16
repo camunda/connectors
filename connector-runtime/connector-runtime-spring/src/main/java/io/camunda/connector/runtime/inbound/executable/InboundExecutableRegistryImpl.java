@@ -50,6 +50,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final InboundExecutableStateTransitionService stateTransitionService;
   private final InboundExecutableQueryService queryService;
   private final BatchExecutableProcessor batchExecutableProcessor;
+  private final ActivityLogRegistry activityLogRegistry;
 
   private final BlockingQueue<InboundExecutableEvent> eventQueue = new LinkedBlockingQueue<>();
 
@@ -71,6 +72,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     this.queryService =
         new InboundExecutableQueryService(stateStore, connectorFactory, activityLogRegistry);
     this.batchExecutableProcessor = batchExecutableProcessor;
+    this.activityLogRegistry = activityLogRegistry;
   }
 
   // Constructor for testing with injected dependencies
@@ -83,6 +85,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     this.stateTransitionService = stateTransitionService;
     this.queryService = queryService;
     this.batchExecutableProcessor = batchExecutableProcessor;
+    this.activityLogRegistry = new ActivityLogRegistry();
   }
 
   @Override
@@ -143,8 +146,10 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     // Process actions in order: deactivate first, then updates, then activate
     // This ensures we free resources before allocating new ones
 
-    // 1. Deactivate executables no longer needed
-    deactivateExecutables(plan.getExecutableIds(ActionType.DEACTIVATE));
+    // 1. Deactivate executables no longer needed and purge their logs
+    var toDeactivatePermanently = plan.getExecutableIds(ActionType.DEACTIVATE);
+    deactivateExecutables(toDeactivatePermanently);
+    toDeactivatePermanently.forEach(activityLogRegistry::remove);
 
     // 2. Restart executables (deactivate + activate)
     var toRestart = plan.getExecutableIds(ActionType.RESTART);
