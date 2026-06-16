@@ -153,7 +153,11 @@ class ListPromptsRequestTest {
 
   private McpSchema.Prompt createMcpPrompt(
       String name, String title, String description, List<McpSchema.PromptArgument> arguments) {
-    return new McpSchema.Prompt(name, title, description, List.copyOf(arguments));
+    return McpSchema.Prompt.builder(name)
+        .title(title)
+        .description(description)
+        .arguments(List.copyOf(arguments))
+        .build();
   }
 
   private PromptDescription createPrompt(
