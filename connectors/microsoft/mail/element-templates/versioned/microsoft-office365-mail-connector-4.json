@@ -16,7 +16,7 @@
     "email notification"
   ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail/",
-  "version": 5,
+  "version": 4,
   "engines": {
     "camunda": "^8.4"
   },
@@ -138,10 +138,6 @@
         {
           "name": "OAuth 2.0",
           "value": "oauth-client-credentials-flow"
-        },
-        {
-          "name": "Refresh token",
-          "value": "oauth-refresh-token"
         }
       ]
     },
@@ -255,117 +251,6 @@
       "condition": {
         "property": "authentication.type",
         "equals": "oauth-client-credentials-flow",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "authentication.refreshToken.tenantId",
-      "label": "Tenant ID",
-      "description": "The tenant ID of the Microsoft Entra (Azure AD) application",
-      "optional": false,
-      "constraints": {
-        "notEmpty": true
-      },
-      "feel": "optional",
-      "group": "authentication",
-      "binding": {
-        "name": "refreshToken_tenantId",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-refresh-token",
-        "type": "simple"
-      },
-      "type": "String"
-    },
-    {
-      "id": "authentication.refreshToken.clientId",
-      "label": "Client ID",
-      "description": "The client ID of the application",
-      "optional": false,
-      "constraints": {
-        "notEmpty": true
-      },
-      "feel": "optional",
-      "group": "authentication",
-      "binding": {
-        "name": "authentication.clientId",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-refresh-token",
-        "type": "simple"
-      },
-      "type": "String"
-    },
-    {
-      "id": "authentication.refreshToken.clientSecret",
-      "label": "Client secret",
-      "description": "The secret value of the Azure AD application; optional for public clients",
-      "optional": true,
-      "feel": "optional",
-      "group": "authentication",
-      "binding": {
-        "name": "authentication.clientSecret",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-refresh-token",
-        "type": "simple"
-      },
-      "type": "String"
-    },
-    {
-      "id": "authentication.refreshToken.token",
-      "label": "Refresh token",
-      "description": "The OAuth 2.0 refresh token used to obtain a new access token",
-      "optional": false,
-      "constraints": {
-        "notEmpty": true
-      },
-      "feel": "optional",
-      "group": "authentication",
-      "binding": {
-        "name": "authentication.refreshToken",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-refresh-token",
-        "type": "simple"
-      },
-      "type": "String"
-    },
-    {
-      "id": "authentication.refreshToken.oauthTokenEndpoint",
-      "value": "=\"https://login.microsoftonline.com/\"+refreshToken_tenantId+\"/oauth2/v2.0/token\"",
-      "group": "authentication",
-      "binding": {
-        "name": "authentication.oauthTokenEndpoint",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-refresh-token",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "authentication.refreshToken.scopes",
-      "value": "https://graph.microsoft.com/.default",
-      "group": "authentication",
-      "binding": {
-        "name": "authentication.scopes",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-refresh-token",
         "type": "simple"
       },
       "type": "Hidden"

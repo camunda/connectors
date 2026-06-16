@@ -340,7 +340,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
           Path.of(
               this.versionedDirectory
                   + File.separator
-                  + fileName.replaceFirst(".json", "")
+                  + fileName.replaceFirst("\\.json$", "")
                   + "-"
                   + latestVersionedElementTemplate.version()
                   + ".json"));
