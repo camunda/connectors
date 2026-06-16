@@ -53,7 +53,8 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final BatchExecutableProcessor batchExecutableProcessor;
 
   private final BlockingQueue<InboundExecutableEvent> eventQueue = new LinkedBlockingQueue<>();
-  // Per-(tenantId,bpmnProcessId) lock objects to serialize state transitions within this registry instance.
+  // Per-(tenantId,bpmnProcessId) lock objects to serialize state transitions within this registry
+  // instance.
   // Intentionally never evicted to avoid handing out different locks for the same key under race;
   // size grows with distinct (tenantId,bpmnProcessId) pairs observed during runtime.
   private final ConcurrentHashMap<String, Object> processLocks = new ConcurrentHashMap<>();
