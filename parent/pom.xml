@@ -950,18 +950,18 @@ limitations under the License.</license.inlineheader>
     </repository>
 
     <!-- opensaml dependencies for soap connector -->
-<!--    <repository>-->
-<!--      <id>shibboleth</id>-->
-<!--      <name>Shibboleth Releases Repository</name>-->
-<!--      <url>https://build.shibboleth.net/maven/releases/</url>-->
-<!--      <releases>-->
-<!--        <enabled>true</enabled>-->
-<!--        <checksumPolicy>warn</checksumPolicy>-->
-<!--      </releases>-->
-<!--      <snapshots>-->
-<!--        <enabled>false</enabled>-->
-<!--      </snapshots>-->
-<!--    </repository>-->
+    <repository>
+      <id>shibboleth</id>
+      <name>Shibboleth Releases Repository</name>
+      <url>https://build.shibboleth.net/maven/releases/</url>
+      <releases>
+        <enabled>true</enabled>
+        <checksumPolicy>warn</checksumPolicy>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
   </repositories>
 
   <build>
