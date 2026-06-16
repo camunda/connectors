@@ -84,8 +84,8 @@ public class ClusterStateDumpExtension implements AfterTestExecutionCallback {
           .forEach(
               broker -> {
                 System.err.printf(
-                    "[cluster-dump]   broker %d (%s:%d) version=%s%n",
-                    broker.getNodeId(), broker.getHost(), broker.getPort(), broker.getVersion());
+                    "[cluster-dump]   broker %s (%s:%d) version=%s%n",
+                    broker.getMemberId(), broker.getHost(), broker.getPort(), broker.getVersion());
                 broker
                     .getPartitions()
                     .forEach(

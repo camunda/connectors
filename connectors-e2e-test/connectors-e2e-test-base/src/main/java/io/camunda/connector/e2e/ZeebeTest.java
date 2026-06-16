@@ -89,7 +89,7 @@ public class ZeebeTest {
                                   .map(
                                       p ->
                                           "broker "
-                                              + broker.getNodeId()
+                                              + broker.getMemberId()
                                               + " partition "
                                               + p.getPartitionId()
                                               + " = "
