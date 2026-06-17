@@ -40,10 +40,8 @@ class TurnReconstructorTest {
     var result = TurnReconstructor.reconstruct(List.of(u, a));
     assertThat(result.turns()).hasSize(1);
     var turn = result.turns().getFirst();
-    assertThat(turn.iterationKey()).isEqualTo(1);
-    assertThat(turn.inputMessages()).containsExactly(u);
+    assertTurn(turn, 1, false, u);
     assertThat(turn.assistantMessage()).isEqualTo(a);
-    assertThat(turn.hasToolCalls()).isFalse();
   }
 
   @Test
@@ -54,11 +52,24 @@ class TurnReconstructorTest {
     var a2 = assistantMessage("It's sunny.");
     var result = TurnReconstructor.reconstruct(List.of(u, a1, tcr, a2));
     assertThat(result.turns()).hasSize(2);
-    assertThat(result.turns().get(0).iterationKey()).isEqualTo(1);
-    assertThat(result.turns().get(0).hasToolCalls()).isTrue();
-    assertThat(result.turns().get(1).iterationKey()).isEqualTo(2);
-    assertThat(result.turns().get(1).inputMessages()).containsExactly(tcr);
-    assertThat(result.turns().get(1).hasToolCalls()).isFalse();
+    assertTurn(result.turns().get(0), 1, true, u);
+    assertTurn(result.turns().get(1), 2, false, tcr);
+  }
+
+  @Test
+  void threeTurns_toolCallsThenUserFeedback() {
+    var u1 = userMessage("what's the weather?");
+    var a1 = assistantMessage("let me check", TOOL_CALLS);
+    var tcr = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var a2 = assistantMessage("It's sunny.");
+    var u2 = userMessage("and tomorrow?");
+    var a3 = assistantMessage("Also sunny.");
+    var result = TurnReconstructor.reconstruct(List.of(u1, a1, tcr, a2, u2, a3));
+    assertThat(result.turns()).hasSize(3);
+    assertTurn(result.turns().get(0), 1, true, u1);
+    assertTurn(result.turns().get(1), 2, false, tcr);
+    assertTurn(result.turns().get(2), 3, false, u2);
+    assertThat(result.turns().get(2).assistantMessage()).isEqualTo(a3);
   }
 
   @Test
@@ -70,5 +81,15 @@ class TurnReconstructorTest {
     var result = TurnReconstructor.reconstruct(List.of(u1, a1, u2, a2));
     assertThat(result.turns().get(0).iterationKey()).isEqualTo(1);
     assertThat(result.turns().get(1).iterationKey()).isEqualTo(2);
+  }
+
+  private static void assertTurn(
+      ConversationTurn turn,
+      int expectedKey,
+      boolean expectedHasToolCalls,
+      Message... expectedInput) {
+    assertThat(turn.iterationKey()).isEqualTo(expectedKey);
+    assertThat(turn.inputMessages()).containsExactly(expectedInput);
+    assertThat(turn.hasToolCalls()).isEqualTo(expectedHasToolCalls);
   }
 }
