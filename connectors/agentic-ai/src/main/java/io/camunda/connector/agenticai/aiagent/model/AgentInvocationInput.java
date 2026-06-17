@@ -11,12 +11,12 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Per-invocation input: pre-partitioned from the raw engine data. {@link #toolCallResults} holds
  * results with a non-null ID; {@link #eventMessages} holds results with a null ID (from
- * non-interrupting events). Construct exclusively via {@link #from}.
+ * non-interrupting events).
  */
 public final class AgentInvocationInput {
 
@@ -39,14 +39,6 @@ public final class AgentInvocationInput {
     var partitioned =
         engineToolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
     return new AgentInvocationInput(userPrompt, partitioned.get(true), partitioned.get(false));
-  }
-
-  public static AgentInvocationInput from(AgentExecutionContext executionContext) {
-    var engineToolCallResults =
-        executionContext.initialToolCallResults() != null
-            ? executionContext.initialToolCallResults()
-            : List.<ToolCallResult>of();
-    return from(executionContext.userPrompt(), engineToolCallResults);
   }
 
   public @Nullable UserPromptConfiguration userPrompt() {

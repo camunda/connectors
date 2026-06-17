@@ -12,13 +12,13 @@ import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.MessageUtil;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -181,7 +181,7 @@ public final class AgentConversation {
       return AgentMetrics.empty();
     }
     AgentMetrics lastTurnMetrics =
-        previousTurns.isEmpty() ? null : previousTurns.getLast().metrics();
+        previousTurns.isEmpty() ? AgentMetrics.empty() : previousTurns.getLast().metrics();
     return lastTurnMetrics == null
         ? currentTurn.metrics()
         : currentTurn.metrics().minus(lastTurnMetrics);
@@ -225,7 +225,7 @@ public final class AgentConversation {
   public ConversationSnapshot window() {
     int windowSize =
         Optional.ofNullable(configuration.memory())
-            .map(m -> m.contextWindowSize())
+            .map(MemoryConfiguration::contextWindowSize)
             .orElse(DEFAULT_CONTEXT_WINDOW_SIZE);
     var windowed = MessageWindowFilter.apply(allMessages(), windowSize);
     return new ConversationSnapshot(windowed, currentContext.toolDefinitions());
@@ -236,7 +236,6 @@ public final class AgentConversation {
     int maxModelCalls =
         Optional.ofNullable(limits)
             .map(LimitsConfiguration::maxModelCalls)
-            .filter(Objects::nonNull)
             .orElse(DEFAULT_MAX_MODEL_CALLS);
     int current = currentContext.metrics().modelCalls();
     if (current >= maxModelCalls) {

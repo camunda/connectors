@@ -26,9 +26,6 @@ public record ConversationTurn(
     @Nullable AssistantMessage assistantMessage,
     AgentMetrics metrics) {
 
-  /** Metadata key used to store iterationKey on persisted messages. */
-  public static final String METADATA_ITERATION_KEY = "iterationKey";
-
   public ConversationTurn {
     Objects.requireNonNull(inputMessages, "inputMessages must not be null");
     Objects.requireNonNull(metrics, "metrics must not be null");
