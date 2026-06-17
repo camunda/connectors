@@ -103,6 +103,7 @@ public final class AgentConversation {
         systemMessage, previousTurns, currentTurn, updatedCtx, configuration);
   }
 
+  /** Returns the composed system message for this invocation, or {@code null} when it was blank. */
   public @Nullable SystemMessage systemMessage() {
     return systemMessage;
   }
@@ -117,14 +118,21 @@ public final class AgentConversation {
     return currentTurn;
   }
 
+  /**
+   * Returns the durable agent context this conversation was built from. Its metrics are the
+   * cumulative baseline; the current turn's delta is added by {@link #toAgentContext()} and {@link
+   * #totalMetrics()}.
+   */
   public AgentContext currentContext() {
     return currentContext;
   }
 
+  /** Returns the static per-invocation configuration. */
   public AgentConfiguration configuration() {
     return configuration;
   }
 
+  /** Returns the current turn's metrics, or empty metrics while the turn is still pending. */
   public AgentMetrics currentTurnMetrics() {
     if (currentTurn.assistantMessage() == null) {
       return AgentMetrics.empty();
@@ -184,6 +192,7 @@ public final class AgentConversation {
     return List.copyOf(all);
   }
 
+  /** Returns cumulative metrics: the base context metrics plus the current turn's delta. */
   public AgentMetrics totalMetrics() {
     // it's currently the only total projection, as the TurnReconstructor is always assigning empty
     // metrics per turn
