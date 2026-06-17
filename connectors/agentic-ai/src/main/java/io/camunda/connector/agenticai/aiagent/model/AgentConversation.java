@@ -28,14 +28,14 @@ import org.jspecify.annotations.Nullable;
  */
 public final class AgentConversation {
 
-  private final SystemMessage systemMessage;
+  private final @Nullable SystemMessage systemMessage;
   private final List<ConversationTurn> previousTurns;
   private final ConversationTurn currentTurn;
   private final AgentContext currentContext;
   private final AgentConfiguration configuration;
 
   private AgentConversation(
-      SystemMessage systemMessage,
+      @Nullable SystemMessage systemMessage,
       List<ConversationTurn> previousTurns,
       ConversationTurn currentTurn,
       AgentContext currentContext,
@@ -51,7 +51,8 @@ public final class AgentConversation {
    * Rehydrates a conversation from reconstructed history and the composed current-turn input.
    *
    * @param history turn list reconstructed from the flat stored message list
-   * @param systemMessage composed system message for this invocation (never null)
+   * @param systemMessage composed system message for this invocation, or {@code null} when the
+   *     composed system prompt is blank
    * @param inputMessages messages to place into the pending current turn
    * @param agentContext durable agent context restored from the process variable
    * @param configuration static per-invocation configuration
@@ -59,7 +60,7 @@ public final class AgentConversation {
    */
   public static AgentConversation rehydrate(
       TurnReconstructor.Result history,
-      SystemMessage systemMessage,
+      @Nullable SystemMessage systemMessage,
       List<Message> inputMessages,
       AgentContext agentContext,
       AgentConfiguration configuration) {
@@ -104,7 +105,7 @@ public final class AgentConversation {
 
   // --- query methods ---
 
-  public SystemMessage systemMessage() {
+  public @Nullable SystemMessage systemMessage() {
     return systemMessage;
   }
 
@@ -140,12 +141,15 @@ public final class AgentConversation {
   }
 
   /**
-   * Returns the flat list of all messages: system message, all completed turn messages (input +
-   * assistant), and the pending current turn's input messages when not yet ingested.
+   * Returns the flat list of all messages: the system message (when present), all completed turn
+   * messages (input + assistant), and the pending current turn's input messages when not yet
+   * ingested.
    */
   public List<Message> allMessages() {
     var messages = new ArrayList<Message>();
-    messages.add(systemMessage);
+    if (systemMessage != null) {
+      messages.add(systemMessage);
+    }
     for (var turn : allTurns()) {
       messages.addAll(turn.inputMessages());
       messages.add(turn.assistantMessage());
