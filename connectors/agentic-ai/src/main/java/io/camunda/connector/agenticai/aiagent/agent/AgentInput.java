@@ -9,18 +9,21 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
 
-/** Decision produced by AgentInputComposer: whether and how to proceed with the next LLM call. */
-public sealed interface AgentInput permits AgentInput.NoOp, AgentInput.Cancel, AgentInput.Proceed {
+/**
+ * Decision produced by ConversationTurnComposer: whether and how to proceed with the next LLM call.
+ */
+public sealed interface AgentInput
+    permits AgentInput.None, AgentInput.Cancellation, AgentInput.NextTurn {
 
   /** No messages ready yet — wait for more tool results before proceeding. */
-  record NoOp() implements AgentInput {}
+  record None() implements AgentInput {}
 
   /** Conversation cannot continue — e.g., no user message content available. */
-  record Cancel(String errorCode, String message) implements AgentInput {}
+  record Cancellation(String errorCode, String message) implements AgentInput {}
 
   /** Messages assembled and ready to be applied to the conversation. */
-  record Proceed(List<Message> messages) implements AgentInput {
-    public Proceed {
+  record NextTurn(List<Message> messages) implements AgentInput {
+    public NextTurn {
       messages = List.copyOf(messages);
     }
   }
