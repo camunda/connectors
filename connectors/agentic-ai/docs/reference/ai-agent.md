@@ -187,11 +187,11 @@ The loop operates as a distributed state machine between the connector runtime a
    - If gateway tools (MCP) → state = `TOOL_DISCOVERY`, returns discovery tool calls
 
 4. **LLM interaction** (when state = `READY`, handled by `BaseAgentRequestHandler`):
-   - Load conversation from memory store into runtime memory (via `ConversationSession`)
-   - Validate limits (max model calls)
-   - Add system prompt, user prompt / tool call results to memory
-   - Call LLM via `AiFrameworkAdapter` with runtime memory
-   - Store updated conversation back to memory store (via `ConversationSession`)
+   - Load the stored flat message list (via `ConversationSession`) and reconstruct it into turns (`TurnReconstructor.reconstruct`)
+   - Compose the next turn input (`ConversationTurnComposer.compose`) → `AgentInput` (`None` / `Cancellation` / `NextTurn`)
+   - On `NextTurn`: compose the system message, `AgentConversation.rehydrate` into a pending turn, check the model-call limit
+   - Call LLM via `AiFrameworkAdapter` with a windowed `ConversationSnapshot`; `ingest` the assistant response into the turn
+   - Store the updated conversation back to the memory store (via `ConversationSession`) and reduce it back to `AgentContext`
    - Transform tool calls and create response
 
 5. **Job completion** (`AiAgentSubProcessConnectorResponse`):
@@ -337,8 +337,8 @@ Arguments are **flattened to the top level** so BPMN expressions can access them
 Memory is managed through a layered architecture:
 
 ```
-RuntimeMemory (in-process, transient)
-    ▲ loadMessages           │ storeMessages
+AgentConversation (immutable turn aggregate, transient)
+    ▲ reconstruct            │ allMessages / window
     │                        ▼
 ConversationSession (per-invocation, AutoCloseable)
     ▲ createSession          │ persist
@@ -351,16 +351,53 @@ ConversationStore (registered backend)
     └── Custom implementations
 ```
 
-### RuntimeMemory
+### AgentConversation, ConversationSnapshot & MessageWindowFilter
 
-`RuntimeMemory` is the in-process working memory for a single agent execution:
-- `DefaultRuntimeMemory`: Simple list of messages
-- `MessageWindowRuntimeMemory`: Wraps a delegate with a sliding window filter:
-  - Keeps at most `maxMessages` (default: 20) messages
-  - System message is never evicted
-  - When evicting an `AssistantMessage` with tool calls, also evicts the follow-up `ToolCallResultMessage` entries
-  - `allMessages()` returns the full history (for persistence)
-  - `filteredMessages()` returns the windowed view (for LLM API calls)
+The in-process working representation of a conversation is the immutable `AgentConversation`
+aggregate (see [ADR 007](../adr/007-agent-conversation-turn-aggregate.md)). It is built once per
+invocation and transformed through copy-on-write methods.
+
+`AgentConversation` (package `...aiagent.model`):
+- Holds an optional `SystemMessage` (`null` when the composed system prompt is blank), a list of
+  previous `ConversationTurn`s, the pending current turn, the durable base `AgentContext`, and the
+  static `AgentConfiguration`.
+- `rehydrate(history, systemMessage, inputMessages, agentContext, configuration)`: builds from the
+  reconstructed history plus the composed system message and the current-turn input as a *pending*
+  turn (`assistantMessage == null`).
+- `ingest(assistantMessage, tokenUsage)`: completes the pending turn, recording per-turn metrics
+  (1 model call, the token usage, and the tool-call count).
+- `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
+- `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a
+  read-only `ConversationSnapshot`.
+- `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
+  `AgentContext.metrics` by the current turn's delta.
+- `totalMetrics()`: returns the durable `baseAgentContext().metrics()` — **not** a sum over the
+  reconstructed turns, which always carry `AgentMetrics.empty()`. The model-call limit check
+  (`BaseAgentRequestHandler.throwIfLimitsReached`) relies on this cumulative counter.
+
+`ConversationTurn` (record, `...aiagent.model`) is one LLM call:
+`(int iterationKey, List<Message> inputMessages, @Nullable AssistantMessage assistantMessage,
+AgentMetrics metrics)`. `iterationKey` is 1-based across the agent lifetime; the turn is pending
+while `assistantMessage == null`.
+
+`TurnReconstructor.reconstruct(messages)` (`...aiagent.model`) rebuilds the turn list and the
+optional system message from the persisted flat message list: the leading `SystemMessage` (if any)
+is split off, and the remaining body is grouped by `AssistantMessage` boundaries. All reconstructed
+turns carry `AgentMetrics.empty()` — per-invocation metrics are computed live from the current
+turn, not read from history. This provides backward compatibility with existing conversations
+without a data migration.
+
+`ConversationSnapshot` (record, `...aiagent.memory`) is the transient, windowed, read-only view sent
+to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`.
+
+`MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
+static window filter:
+  - Keeps at most `maxMessages` (default: 20, from `AgentConfiguration.contextWindowSize()`) messages
+  - Tool-call-document user messages are excluded from the count
+  - The system message is never evicted
+  - When evicting an `AssistantMessage` with tool calls, also evicts the follow-up
+    `ToolCallResultMessage` entries (some providers error on orphaned tool results)
+  - Also evicts follow-up tool-call-document user messages attached to evicted results
 
 ### ConversationStore Implementations
 
@@ -374,7 +411,7 @@ ConversationStore (registered backend)
 **CamundaDocumentConversationStore** (`type = "camunda-document"`):
 - Stores messages as a JSON document in Camunda Document Storage
 - `AgentContext.conversation` only contains a `CamundaDocumentConversationContext` with a document reference and `previousDocuments` list
-- On load: fetches document content, deserializes messages into `RuntimeMemory`
+- On load: fetches document content, deserializes the stored flat message list
 - On store: creates a **new document** each time (immutable documents), adds the previous reference to `previousDocuments`
 - Supports configurable TTL and custom properties
 - Supports transparent migration from `InProcessConversationContext`: if the context is in-process, it reads messages directly (no document to load)
@@ -431,21 +468,25 @@ If job completion fails (e.g., the job was superseded), Zeebe retries with the *
 
 ```java
 try (var session = store.createSession(executionContext, agentContext)) {
-    var loadResult = session.loadMessages(agentContext);          // load history
-    runtimeMemory.addMessages(loadResult.messages());
-    // [add messages, call LLM, etc.]
-    var cursor = session.storeMessages(agentContext, request);    // persist
-    agentContext = agentContext.withConversation(cursor);          // assemble
+    var loaded = session.loadMessages(agentContext).messages();   // load flat history
+    var history = TurnReconstructor.reconstruct(loaded);          // rebuild turns
+    // [compose input → rehydrate → call LLM → ingest]
+    var cursor = session.storeMessages(                           // persist
+        conversation.toAgentContext(),
+        ConversationStoreRequest.of(conversation.allMessages()));
+    conversation = conversation.withStoredConversation(cursor);   // assemble
 }
 ```
 
 1. `ConversationStore.createSession()` creates and returns a session (the caller owns its lifecycle)
-2. `session.loadMessages(agentContext)` returns a `ConversationLoadResult` containing the stored message history
-3. Agent logic adds messages to `RuntimeMemory`, calls LLM, gets response
-4. `session.storeMessages(agentContext, request)` persists and returns only the `ConversationContext` (storage cursor)
-5. The caller assembles the updated `AgentContext` via `agentContext.withConversation(cursor)`
+2. `session.loadMessages(agentContext)` returns a `ConversationLoadResult` containing the stored flat
+   message history, which `TurnReconstructor.reconstruct` rebuilds into an `AgentConversation` history
+3. Agent logic composes the turn input, rehydrates the conversation, calls the LLM, and `ingest`s the response
+4. `session.storeMessages(...)` persists the full message list (`conversation.allMessages()`) and returns
+   only the `ConversationContext` (storage cursor)
+5. The caller folds the cursor back in via `conversation.withStoredConversation(cursor)`
 6. `session.close()` handles resource cleanup (e.g., closing AWS clients)
-7. Job completion sends the updated `AgentContext` back to Zeebe
+7. Job completion sends the updated `AgentContext` (`conversation.toAgentContext()`) back to Zeebe
 
 **Critical insight**: The conversation is stored **before** job completion. This is safe because all stores follow the write-ahead with pointer-based visibility contract — see [Storage Contract](#storage-contract) above.
 
@@ -601,7 +642,7 @@ jobClient.newCompleteCommand(job)
 
 3. **`completionConditionFulfilled`**: Directly controls whether the AHSP terminates. When `true`, the AHSP completes and output mappings propagate results to the parent process.
 
-4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Currently determined via a mutable flag on `JobWorkerAgentExecutionContext`, set as a side effect in `handleAddedUserMessages()`. **Future improvement**: move detection into `buildResponse()` by inspecting `executionContext.initialToolCallResults()` directly for interrupted results, eliminating the mutable state.
+4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Determined in `JobWorkerAgentRequestHandler.buildResponse()` from `conversation.currentTurn().hasInterruptedToolCallResults()`, which inspects the current turn's input messages for any `ToolCallResult` carrying the `PROPERTY_INTERRUPTED` flag.
 
 5. **Async execution**: The complete command is sent asynchronously via `CommandWrapper` with up to 3 retries. This is important because:
    - The job may have been superseded (NOT_FOUND)
@@ -662,8 +703,8 @@ t2      Tool B completes                Job #1 still processing...
         → Creates Job #2                (Job #1 is now STALE)
 
 t3                                      Job #1: Determines B is missing
-                                        → No user messages added
-                                        → Handler returns null agentResponse (no-op)
+                                        → compose returns AgentInput.None
+                                        → handleNoOp (no agentResponse)
                                         → No LLM call made
                                         → Job #1 completion may get NOT_FOUND
                                         → (or succeeds as no-op if Job #2 not created yet)
@@ -677,41 +718,50 @@ t4                                      Job #2 picked up
 
 **The critical mechanism: `createToolCallResultMessage`**
 
-In `AgentMessagesHandlerImpl`, when the last message in memory is an `AssistantMessage` with tool calls:
+In `ConversationTurnComposerImpl.compose`, when the last reconstructed turn ended with an
+`AssistantMessage` that has tool calls (`history.turns().getLast().hasToolCalls()`):
 
 ```java
-if (lastChatMessage instanceof AssistantMessage assistantMessage
-    && assistantMessage.hasToolCalls()) {
-    ToolCallResultMessage toolCallResultMessage =
-        createToolCallResultMessage(
-            agentContext, assistantMessage.toolCalls(),
-            actualToolCallResults, interruptMissingToolCalls);
+final var toolCallResultMessage =
+    createToolCallResultMessage(
+        agentContext,
+        toolCalls,
+        invocationInput.toolCallResults(),
+        interruptMissingToolCalls);
 
-    if (toolCallResultMessage != null) {
-        messages.add(toolCallResultMessage);
-    }
-    // If null → not all results present → no messages added
+// if empty, we wait on further tool call results to be added
+if (toolCallResultMessage.isEmpty()) {
+    return new AgentInput.None();
 }
 ```
 
-The method checks each tool call from the last assistant message against the available results:
+The method checks each tool call from the last assistant message against the available results
+(`Optional<ToolCallResultMessage>`):
 - If all present: creates a `ToolCallResultMessage` with results ordered to match the original tool call order
-- If missing and NOT interrupting: returns `null` → no messages added → handler returns null response → no-op
+- If missing and NOT interrupting: returns `Optional.empty()` → `compose` returns `AgentInput.None` → handler completes as a no-op
 - If missing and interrupting (due to event): creates cancelled results for missing tools
 
 ### No-Op Detection in BaseAgentRequestHandler
 
-`BaseAgentRequestHandler` checks whether any user messages were added after the message assembly step via the abstract `modelCallPrerequisitesFulfilled` method:
+`BaseAgentRequestHandler.converse` switches on the `AgentInput` returned by
+`ConversationTurnComposer.compose`:
 
 ```java
-// BaseAgentRequestHandler.handleRequest()
-var addedUserMessages = messagesHandler.addUserMessages(...);
-if (!modelCallPrerequisitesFulfilled(addedUserMessages)) {
-    return buildConnectorResponse(executionContext, null);
-}
+return switch (input) {
+    case AgentInput.None ignored ->
+        handleNoOp(executionContext);                              // wait for more results
+    case AgentInput.Cancellation(var errorCode, var message) ->
+        handleInputCancel(executionContext, errorCode, message);   // cannot proceed
+    case AgentInput.NextTurn(var newMessages) ->
+        proceed(...);                                              // call the LLM
+};
 ```
 
-This is the key gate: if no user messages were added (because tool results were incomplete), the handler returns a null response. The job worker handler (`modelCallPrerequisitesFulfilled` returns `false`) completes the job as a no-op and waits for the next job (which will have more results). The outbound connector handler throws a `ConnectorException` since it cannot proceed without user content.
+This is the key gate: when tool results were incomplete the composer returns `AgentInput.None`, and
+`handleNoOp` completes the job as a no-op (the job worker waits for the next job, which will have
+more results). When no user content is available at all, the composer returns `AgentInput.Cancellation`
+with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`; the job worker's `handleInputCancel` completes without a
+response, while the outbound connector's `handleInputCancel` throws a `ConnectorException`.
 
 ---
 
@@ -738,7 +788,7 @@ This is the key gate: if no user messages were added (because tool results were 
 
 **Problem**: If tools A and B complete almost simultaneously, Job #1 (with only A's result) and Job #2 (with both results) may both attempt LLM calls.
 
-**Mitigation**: This CANNOT happen due to the missing-results check. Job #1 will see that B's result is missing, return `null` for `addedUserMessages`, and `modelCallPrerequisitesFulfilled` returns `false`. Only Job #2 (with complete results) will call the LLM.
+**Mitigation**: This CANNOT happen due to the missing-results check. Job #1 will see that B's result is missing, so `ConversationTurnComposer.compose` returns `AgentInput.None` and the handler completes as a no-op. Only Job #2 (with complete results) will call the LLM.
 
 ### Challenge 4: Variable Scoping and Merging
 
@@ -777,20 +827,19 @@ Event handling is **exclusive to the Sub-process flavor**. In the AHSP, non-inte
 
 ### Event Result Identification
 
-In `AgentMessagesHandlerImpl.addUserMessages()`:
+The raw engine tool call results are pre-partitioned in `AgentInvocationInput.from`:
 
 ```java
 // Partition tool call results: those WITH an id are tool results,
 // those WITHOUT are event results
-final var partitionedByToolCallId = toolCallResults.stream()
-    .collect(Collectors.partitioningBy(result -> result.id() != null));
-final List<ToolCallResult> actualToolCallResults = partitionedByToolCallId.get(true);
-final List<Message> eventMessages = partitionedByToolCallId.get(false).stream()
-    .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
-    .toList();
+var partitioned =
+    engineToolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
+return new AgentInvocationInput(userPrompt, partitioned.get(true), partitioned.get(false));
 ```
 
-Events produce `ToolCallResult` entries with `id = null`, which are separated from actual tool results.
+Events produce `ToolCallResult` entries with `id = null`. `ConversationTurnComposerImpl.compose`
+reads them as `invocationInput.eventMessages()` (separate from `invocationInput.toolCallResults()`)
+and renders each via `createEventMessage`.
 
 ### Two Behaviors
 
@@ -805,7 +854,7 @@ Events produce `ToolCallResult` entries with `id = null`, which are separated fr
   - The `cancelRemainingInstances` flag is set to `true` on the completion command
   - Active tool instances are terminated by Zeebe
 - Example message sequence: `[Tool A cancelled, Tool B result, Event message]`
-- The `PROPERTY_INTERRUPTED` flag on cancelled results triggers `cancelRemainingInstances` in the `BaseAgentRequestHandler`
+- The `PROPERTY_INTERRUPTED` flag on cancelled results triggers `cancelRemainingInstances` in `JobWorkerAgentRequestHandler.buildResponse()` (via `ConversationTurn.hasInterruptedToolCallResults()`)
 
 ### Event Payload
 
@@ -825,14 +874,13 @@ Events create their payload in `toolCallResult`:
 
 ```java
 public interface AiFrameworkAdapter<R extends AiFrameworkChatResponse<?>> {
-    R executeChatRequest(
-        AgentExecutionContext executionContext,
-        AgentContext agentContext,
-        RuntimeMemory runtimeMemory);
+    R executeChatRequest(AgentExecutionContext executionContext, ConversationSnapshot snapshot);
 }
 ```
 
-The adapter receives a `RuntimeMemory` instance (which provides the context window via `filteredMessages()`) and returns a response. `BaseAgentRequestHandler` manages the runtime memory lifecycle and passes it to the adapter.
+The adapter receives a read-only `ConversationSnapshot` (the windowed message list plus the tool
+definitions) and returns a response. `BaseAgentRequestHandler` builds the snapshot via
+`conversation.window(configuration.contextWindowSize())` and passes it to the adapter.
 
 The agent core is framework-agnostic. `AiFrameworkAdapter` abstracts:
 - Converting internal message models to framework-specific formats
@@ -884,7 +932,7 @@ All converter beans are `@ConditionalOnMissingBean`, activated when `camunda.con
 
 ```java
 public interface SystemPromptContributor {
-    String contributeSystemPrompt(AgentExecutionContext executionContext, AgentContext agentContext);
+    String contribute(AgentContext agentContext, AgentConfiguration configuration);
     default int getOrder() { return 0; }  // lower values sort earlier
 }
 ```
@@ -893,8 +941,8 @@ Spring auto-wires all `SystemPromptContributor` beans into the composer.
 
 ### SystemPromptComposerImpl
 
-`composeSystemPrompt(executionContext, agentContext, baseSystemPrompt)`:
-1. Starts with the base system prompt from `SystemPromptConfiguration.prompt()`
+`compose(agentContext, configuration)`:
+1. Starts with the base system prompt from `SystemPromptConfiguration.prompt()` (via `AgentConfiguration.systemPrompt()`)
 2. Iterates contributors sorted by `getOrder()` ascending
 3. Non-blank contributions are collected and all parts joined with `"\n\n"`
 
@@ -908,7 +956,7 @@ The architecture supports adding more contributors by creating a Spring bean imp
 
 ### Usage Site
 
-`AgentMessagesHandlerImpl.addSystemMessage()` calls `systemPromptComposer.composeSystemPrompt(...)` and adds the result as a `SystemMessage` to `RuntimeMemory`.
+`BaseAgentRequestHandler.createSystemMessage()` calls `systemPromptComposer.compose(agentContext, configuration)`. When the composed prompt is blank it returns `null` (no system message is added or persisted); otherwise it wraps the prompt in a `SystemMessage` that `AgentConversation.rehydrate` places at the head of the conversation.
 
 ---
 
@@ -951,8 +999,8 @@ On tool call iteration (tool calls present):
 | Constant                                                | Value                                          | Where Thrown                                                                   |
 |---------------------------------------------------------|------------------------------------------------|--------------------------------------------------------------------------------|
 | `ERROR_CODE_NO_USER_MESSAGE_CONTENT`                    | `NO_USER_MESSAGE_CONTENT`                      | `OutboundConnectorAgentRequestHandler` — user messages list empty              |
-| `ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`        | `TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`           | `AgentMessagesHandlerImpl` — tool results arrive but no prior conversation     |
-| `ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED`     | `MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED`        | `AgentLimitsValidatorImpl` — model calls >= maxModelCalls                      |
+| `ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`        | `TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`           | `ConversationTurnComposerImpl.compose` — tool results arrive but no prior conversation |
+| `ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED`     | `MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED`        | `BaseAgentRequestHandler.throwIfLimitsReached` — model calls >= maxModelCalls   |
 | `ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT`          | `FAILED_TO_PARSE_RESPONSE_CONTENT`             | `AgentResponseHandlerImpl` — JSON parse failure (explicit JSON format only)    |
 | `ERROR_CODE_FAILED_MODEL_CALL`                          | `FAILED_MODEL_CALL`                            | `Langchain4JAiFrameworkAdapter` — any exception from `ChatModel.chat()`        |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | `AgentToolsResolverImpl` — existing tools removed after migration              |
@@ -1059,10 +1107,13 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AiAgentJobWorker.execute()` wraps into `AiAgentSubProcessConnectorResponse` → handled by `SpringConnectorJobHandler`
 
 ### Core Agent Logic
-- `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → memory → messages → LLM → response → complete
+- `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → load + reconstruct → compose → rehydrate → LLM → ingest → persist → complete
 - `AgentInitializerImpl.initializeAgent()` → State machine / initialization
-- `AgentMessagesHandlerImpl.addUserMessages()` → Message assembly (tool results, events, user prompt)
-- `AgentMessagesHandlerImpl.createToolCallResultMessage()` → Tool result matching & missing detection
+- `TurnReconstructor.reconstruct()` → Rebuilds turns + system message from the stored flat message list
+- `ConversationTurnComposerImpl.compose()` → Turn input assembly (tool results, events, user prompt) → `AgentInput`
+- `ConversationTurnComposerImpl.createToolCallResultMessage()` → Tool result matching & missing detection
+- `AgentConversation.rehydrate()` / `ingest()` / `window()` / `toAgentContext()` → Immutable turn aggregate lifecycle
+- `BaseAgentRequestHandler.throwIfLimitsReached()` → Model-call limit check (reads `totalMetrics().modelCalls()`)
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting
 
 ### Job Completion
@@ -1073,7 +1124,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `ConversationStoreRegistryImpl.getConversationStore()` → Store resolution
 - `InProcessConversationSession.loadMessages()` / `storeMessages()` → In-process persistence
 - `CamundaDocumentConversationSession.loadMessages()` / `storeMessages()` → Document persistence
-- `MessageWindowRuntimeMemory.filteredMessages()` → Context window sliding (used by BaseAgentRequestHandler)
+- `MessageWindowFilter.apply()` → Context window sliding (called by `AgentConversation.window()`)
 
 ### Tool Resolution
 - `AgentToolsResolverImpl.loadAdHocToolsSchema()` → Tool schema loading
@@ -1083,7 +1134,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AdHocToolSchemaGeneratorImpl` → Parameter → JSON Schema conversion
 
 ### System Prompt
-- `SystemPromptComposerImpl.composeSystemPrompt()` → Aggregates base prompt + contributions
+- `SystemPromptComposerImpl.compose()` → Aggregates base prompt + contributions
 - `A2aSystemPromptContributor` → A2A protocol instructions (order 100)
 
 ### Framework (LangChain4J)
@@ -1132,7 +1183,7 @@ classDiagram
     class AgentInitializer {
         <<interface>>
     }
-    class AgentMessagesHandler {
+    class ConversationTurnComposer {
         <<interface>>
     }
     class AgentResponseHandler {
@@ -1140,11 +1191,12 @@ classDiagram
     }
 
     BaseAgentRequestHandler --> AgentInitializer
-    BaseAgentRequestHandler --> AgentMessagesHandler
+    BaseAgentRequestHandler --> ConversationTurnComposer
     BaseAgentRequestHandler --> AiFrameworkAdapter
     BaseAgentRequestHandler --> AgentResponseHandler
     BaseAgentRequestHandler --> ConversationStoreRegistry
-    BaseAgentRequestHandler --> GatewayToolHandlerRegistry
+    BaseAgentRequestHandler --> SystemPromptComposer
+    BaseAgentRequestHandler ..> AgentConversation : builds
 
     %% --- Gateway tool SPI ---
     class GatewayToolCallTransformer {
@@ -1183,10 +1235,6 @@ classDiagram
     class ConversationSession {
         <<interface>>
     }
-    class RuntimeMemory {
-        <<interface>>
-    }
-    class MessageWindowRuntimeMemory
     class InProcessConversationStore
     class CamundaDocumentConversationStore
 
@@ -1194,9 +1242,19 @@ classDiagram
     InProcessConversationStore ..|> ConversationStore
     CamundaDocumentConversationStore ..|> ConversationStore
     ConversationStore ..> ConversationSession : creates
-    ConversationSession --> RuntimeMemory
-    MessageWindowRuntimeMemory ..|> RuntimeMemory
-    MessageWindowRuntimeMemory --> RuntimeMemory : wraps
+
+    %% --- Turn aggregate ---
+    class AgentConversation
+    class ConversationTurn
+    class TurnReconstructor
+    class ConversationSnapshot
+    class MessageWindowFilter
+
+    AgentConversation o-- ConversationTurn : turns *
+    TurnReconstructor ..> ConversationTurn : reconstructs
+    AgentConversation ..> ConversationSnapshot : window()
+    AgentConversation ..> MessageWindowFilter : uses
+    AiFrameworkAdapter ..> ConversationSnapshot : consumes
 
     %% --- System prompt composition ---
     class SystemPromptComposer {
@@ -1206,7 +1264,7 @@ classDiagram
         <<interface>>
     }
 
-    AgentMessagesHandler --> SystemPromptComposer
+    ConversationTurnComposer --> GatewayToolHandlerRegistry
     SystemPromptComposer o-- SystemPromptContributor : aggregates *
 
     %% --- Framework abstraction ---
@@ -1369,7 +1427,7 @@ embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifact
 extracts those documents into a synthetic follow-up `UserMessage` with native `DocumentContent`
 blocks so LLMs can interpret them; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md).
 
-`ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentMessagesHandlerImpl` after
+`ToolCallResultDocumentExtractor` is the entrypoint, called from `ConversationTurnComposerImpl` after
 the `ToolCallResultMessage` is built. For each result it asks the registry which handler manages
 the tool name (`GatewayToolHandlerRegistry.handlerForToolDefinition`) and either:
 

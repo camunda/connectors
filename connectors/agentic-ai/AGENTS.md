@@ -60,19 +60,25 @@ If not all expected results are present, the worker completes as a no-op and wai
 ```
 agent/
 ├── AgentInitializerImpl        # State machine: INITIALIZING → TOOL_DISCOVERY → READY
-├── BaseAgentRequestHandler     # Core orchestrator: init → memory → messages → LLM → response → complete
+├── BaseAgentRequestHandler     # Core orchestrator: init → compose input → rehydrate → check limits → LLM → response → complete
 ├── JobWorkerAgentRequestHandler    # Job worker completion logic
 ├── OutboundConnectorAgentRequestHandler  # Connector completion logic
-├── AgentMessagesHandlerImpl    # Message assembly (prompts, tool results, events)
+├── ConversationTurnComposerImpl # Turn input assembly → AgentInput (None/Cancellation/NextTurn)
 ├── AgentResponseHandlerImpl    # Response formatting (text/JSON/full message)
-├── AgentToolsResolverImpl      # Tool definition loading & migration updates
-└── AgentLimitsValidatorImpl    # Safety limits (max model calls)
+└── AgentToolsResolverImpl      # Tool definition loading & migration updates
 
 framework/
-├── AiFrameworkAdapter          # Abstract LLM interface (RuntimeMemory → response)
+├── AiFrameworkAdapter          # Abstract LLM interface (ConversationSnapshot → response)
 └── langchain4j/                # LangChain4J implementation
 
+model/
+├── AgentConversation           # Immutable turn aggregate (rehydrate → ingest → toAgentContext); owns limit metrics
+├── ConversationTurn            # One LLM call: input messages, assistant response, per-turn metrics
+├── TurnReconstructor           # Rebuilds turns from the stored flat message list (backward compat)
+└── AgentConfiguration          # Static per-invocation config (limits, memory, events, …)
+
 memory/
+├── ConversationSnapshot        # Transient, windowed, read-only LLM view (messages + tool definitions)
 ├── conversation/
 │   ├── ConversationStore       # Pluggable storage: createSession() factory pattern
 │   ├── ConversationSession     # Per-invocation: loadMessages/storeMessages (AutoCloseable)
@@ -80,8 +86,7 @@ memory/
 │   ├── inprocess/              # In-process store (messages in agentContext variable)
 │   └── document/               # Camunda Document Storage backend
 └── runtime/
-    ├── RuntimeMemory           # Transient working memory for single execution
-    └── MessageWindowRuntimeMemory  # Sliding window filter (keeps last N messages)
+    └── MessageWindowFilter     # Pure static sliding-window filter (keeps last N messages)
 
 tool/
 ├── GatewayToolHandler          # Interface for gateway tools (MCP, A2A)
@@ -168,7 +173,7 @@ Migration detection: `AgentMetadata.processDefinitionKey` vs current job's key.
 | Camunda Document | `camunda-document` | JSON document in document storage                | Conversation stored externally; only a reference in `agentContext`                                             |
 | Custom           | `custom`           | User-provided implementation                     | Implement `ConversationStore`, `ConversationSession`, `ConversationContext`; register custom `ConversationContext` subtypes with the runtime `ObjectMapper` |
 
-`MessageWindowRuntimeMemory` limits messages sent to LLM (default: 20). Full history is always persisted.
+`MessageWindowFilter` limits messages sent to LLM (default: 20) via the `ConversationSnapshot`. Full history is always persisted.
 For eviction rules and architecture details, see [ai-agent.md §6](docs/reference/ai-agent.md#6-conversation-memory).
 
 ## Building & Testing
