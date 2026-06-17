@@ -57,14 +57,18 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SlowTest
+@ExtendWith(MockitoExtension.class)
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
 public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTest {
 
@@ -76,32 +80,18 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
   @MockitoBean private McpClientRegistry mcpClientRegistry;
   @MockitoBean private McpRemoteClientRegistry remoteMcpClientRegistry;
 
-  @MockitoBean
-  @Qualifier("aMcpClient")
-  private McpSyncClient aMcpClient;
+  @Mock private McpSyncClient aMcpClient;
+  @Mock private McpSyncClient aHttpRemoteMcpClient;
+  @Mock private McpSyncClient aSseRemoteMcpClient;
+  @Mock private McpSyncClient filesystemMcpClient;
 
-  @MockitoBean
-  @Qualifier("aHttpRemoteMcpClient")
-  private McpSyncClient aHttpRemoteMcpClient;
+  @Captor private ArgumentCaptor<McpSchema.CallToolRequest> aMcpClientToolExecutionRequestCaptor;
 
-  @MockitoBean
-  @Qualifier("aSseRemoteMcpClient")
-  private McpSyncClient aSseRemoteMcpClient;
+  @Captor
+  private ArgumentCaptor<McpSchema.CallToolRequest> aHttpRemoteMcpClientToolExecutionRequestCaptor;
 
-  @MockitoBean
-  @Qualifier("filesystemMcpClient")
-  private McpSyncClient filesystemMcpClient;
-
-  private final ArgumentCaptor<McpSchema.CallToolRequest> aMcpClientToolExecutionRequestCaptor =
-      ArgumentCaptor.forClass(McpSchema.CallToolRequest.class);
-
-  private final ArgumentCaptor<McpSchema.CallToolRequest>
-      aHttpRemoteMcpClientToolExecutionRequestCaptor =
-          ArgumentCaptor.forClass(McpSchema.CallToolRequest.class);
-
-  private final ArgumentCaptor<McpSchema.CallToolRequest>
-      aSseRemoteMcpClientToolExecutionRequestCaptor =
-          ArgumentCaptor.forClass(McpSchema.CallToolRequest.class);
+  @Captor
+  private ArgumentCaptor<McpSchema.CallToolRequest> aSseRemoteMcpClientToolExecutionRequestCaptor;
 
   private final Map<String, McpRemoteClientTransportConfiguration> requestedRemoteMcpClients =
       new LinkedHashMap<>();
