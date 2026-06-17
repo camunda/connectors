@@ -1,27 +1,23 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Webhook Message Start Event Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1-hybrid",
+  "name" : "Webhook Receive Task Connector",
+  "id" : "io.camunda.connectors.webhook.WebhookConnectorReceive.v1",
   "description" : "Configure webhook to receive callbacks",
   "keywords" : [ "receive webhook", "HTTP trigger", "event received", "inbound event", "webhook trigger", "HTTP callback", "listen for event" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 15,
+  "version" : 14,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:StartEvent" ],
+  "appliesTo" : [ "bpmn:ReceiveTask" ],
   "elementType" : {
-    "value" : "bpmn:StartEvent",
-    "eventDefinition" : "bpmn:MessageEventDefinition"
+    "value" : "bpmn:ReceiveTask"
   },
   "engines" : {
     "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "connectorType",
-    "label" : "Connector type"
-  }, {
     "id" : "endpoint",
     "label" : "Webhook configuration"
   }, {
@@ -52,14 +48,12 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
     "value" : "io.camunda:webhook:1",
-    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "inbound.method",
     "label" : "Webhook method",
@@ -417,24 +411,6 @@
       "value" : "true"
     } ]
   }, {
-    "id" : "correlationRequired",
-    "label" : "Subprocess correlation required",
-    "description" : "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
-    "value" : "notRequired",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "correlationRequired",
-      "type" : "zeebe:property"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Correlation not required",
-      "value" : "notRequired"
-    }, {
-      "name" : "Correlation required",
-      "value" : "required"
-    } ]
-  }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",
@@ -446,11 +422,6 @@
     "binding" : {
       "name" : "correlationKey",
       "type" : "bpmn:Message#zeebe:subscription#property"
-    },
-    "condition" : {
-      "property" : "correlationRequired",
-      "equals" : "required",
-      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -465,11 +436,6 @@
     "binding" : {
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "correlationRequired",
-      "equals" : "required",
-      "type" : "simple"
     },
     "type" : "String"
   }, {
