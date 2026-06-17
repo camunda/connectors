@@ -15,11 +15,9 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCal
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -235,8 +233,6 @@ class JobWorkerAgentRequestHandlerTest {
 
     // snapshot is captured before the assistant message is ingested
     assertThat(snapshotCaptor.getValue().messages()).containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
-
-    verify(agentExecutionContext, never()).setCancelRemainingInstances(anyBoolean());
   }
 
   @Test
@@ -294,8 +290,6 @@ class JobWorkerAgentRequestHandlerTest {
                 agentResponse.toolCalls().get(1),
                 AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE,
                 ""));
-
-    verify(agentExecutionContext, never()).setCancelRemainingInstances(anyBoolean());
   }
 
   @Test
@@ -312,8 +306,6 @@ class JobWorkerAgentRequestHandlerTest {
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-
-    when(agentExecutionContext.cancelRemainingInstances()).thenReturn(true);
 
     final var assistantMessage = AssistantMessage.builder().build();
     mockFrameworkExecution(assistantMessage);
@@ -344,8 +336,6 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.responseText()).isNull();
     assertThat(agentResponse.toolCalls()).isEmpty();
     assertThat(response.elementActivations()).isEmpty();
-
-    verify(agentExecutionContext).setCancelRemainingInstances(true);
   }
 
   @Test

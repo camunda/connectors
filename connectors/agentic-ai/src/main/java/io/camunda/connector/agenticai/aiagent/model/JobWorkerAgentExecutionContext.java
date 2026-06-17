@@ -22,7 +22,6 @@ import java.util.List;
 public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   private final JobContext jobContext;
   private final JobWorkerAgentRequest request;
-  private boolean cancelRemainingInstances;
 
   public JobWorkerAgentExecutionContext(
       final JobContext jobContext, final JobWorkerAgentRequest request) {
@@ -83,13 +82,5 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   @Override
   public JobWorkerResponseConfiguration response() {
     return request.data().response();
-  }
-
-  public boolean cancelRemainingInstances() {
-    return cancelRemainingInstances;
-  }
-
-  public void setCancelRemainingInstances(boolean cancelRemainingInstances) {
-    this.cancelRemainingInstances = cancelRemainingInstances;
   }
 }
