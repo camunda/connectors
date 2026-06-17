@@ -25,7 +25,7 @@ class SystemPromptComposerImplTest {
   private static AgentConversation conversationWithSystemPrompt(SystemPromptConfiguration config) {
     var ctx = AgentContext.builder().state(AgentState.READY).build();
     var agentConfig = new AgentConfiguration(null, config, null, null, null, null);
-    var input = new AgentInvocationInput(null, List.of());
+    var input = AgentInvocationInput.from(null, List.of());
     return AgentConversation.rehydrate(List.of(), ctx, input, agentConfig);
   }
 

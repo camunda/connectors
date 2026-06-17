@@ -100,7 +100,7 @@ public abstract class BaseAgentRequestHandler<
     try (var session = store.createSession(executionContext, agentContext)) {
       final var configuration = AgentConfiguration.from(executionContext);
       final var invocationInput =
-          new AgentInvocationInput(
+          AgentInvocationInput.from(
               executionContext.userPrompt(),
               engineToolCallResults != null ? engineToolCallResults : List.of());
 

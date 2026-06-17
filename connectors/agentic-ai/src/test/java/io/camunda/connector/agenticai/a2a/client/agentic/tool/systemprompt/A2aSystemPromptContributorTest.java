@@ -30,7 +30,7 @@ class A2aSystemPromptContributorTest {
   private static AgentConversation conversationWithProperties(Map<String, Object> properties) {
     var ctx = AgentContext.builder().state(AgentState.READY).properties(properties).build();
     var config = new AgentConfiguration(null, null, null, null, null, null);
-    var input = new AgentInvocationInput(null, List.of());
+    var input = AgentInvocationInput.from(null, List.of());
     return AgentConversation.rehydrate(List.of(), ctx, input, config);
   }
 
