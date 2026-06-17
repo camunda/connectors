@@ -12,6 +12,7 @@
 
 # Connectors: experience team owns all by default; core overrides for http/graphql/webhook
 /connectors/ @camunda/connectors-experience
+/connectors/pom.xml @camunda/connectors-core @camunda/connectors-experience
 /connectors/http/ @camunda/connectors-core
 /connectors/webhook/ @camunda/connectors-core
 /connectors/soap/ @camunda/connectors-core
