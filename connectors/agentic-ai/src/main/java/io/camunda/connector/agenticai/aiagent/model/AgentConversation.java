@@ -37,29 +37,25 @@ public final class AgentConversation {
   private static final String ERROR_MAX_MODEL_CALLS = "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED";
 
   private final @Nullable SystemMessage systemMessage;
-  private final List<ConversationTurn> turns;
-  private final @Nullable List<Message> pendingInputMessages;
+  private final List<ConversationTurn> previousTurns;
+  private final @Nullable ConversationTurn currentTurn;
   private final AgentContext currentContext;
   private final AgentInvocationInput invocationInput;
   private final AgentConfiguration configuration;
-  private final AgentMetrics metricsDelta;
 
   private AgentConversation(
       @Nullable SystemMessage systemMessage,
-      List<ConversationTurn> turns,
-      @Nullable List<Message> pendingInputMessages,
+      List<ConversationTurn> previousTurns,
+      @Nullable ConversationTurn currentTurn,
       AgentContext currentContext,
       AgentInvocationInput invocationInput,
-      AgentConfiguration configuration,
-      AgentMetrics metricsDelta) {
+      AgentConfiguration configuration) {
     this.systemMessage = systemMessage;
-    this.turns = List.copyOf(turns);
-    this.pendingInputMessages =
-        pendingInputMessages == null ? null : List.copyOf(pendingInputMessages);
+    this.previousTurns = List.copyOf(previousTurns);
+    this.currentTurn = currentTurn;
     this.currentContext = currentContext;
     this.invocationInput = invocationInput;
     this.configuration = configuration;
-    this.metricsDelta = metricsDelta;
   }
 
   /**
@@ -83,8 +79,7 @@ public final class AgentConversation {
         null,
         agentContext,
         invocationInput,
-        configuration,
-        AgentMetrics.empty());
+        configuration);
   }
 
   /**
@@ -100,41 +95,30 @@ public final class AgentConversation {
                 .content(MessageUtil.singleTextContent(composedPrompt))
                 .build();
     return new AgentConversation(
-        newSysMsg,
-        turns,
-        pendingInputMessages,
-            currentContext,
-        invocationInput,
-        configuration,
-        metricsDelta);
+        newSysMsg, previousTurns, currentTurn, currentContext, invocationInput, configuration);
   }
 
   /**
-   * Returns a new instance with the given messages set as the pending input for the next LLM call.
+   * Returns a new instance with a pending turn holding the given input messages. The turn is
+   * completed by {@link #ingest}.
    */
   public AgentConversation addNextTurn(List<Message> inputMessages) {
+    int nextKey = previousTurns.size() + 1;
+    var pending = new ConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
     return new AgentConversation(
-        systemMessage,
-        turns,
-        inputMessages,
-            currentContext,
-        invocationInput,
-        configuration,
-        metricsDelta);
+        systemMessage, previousTurns, pending, currentContext, invocationInput, configuration);
   }
 
   /**
-   * Completes the current pending turn by recording the assistant response and token usage. Clears
-   * {@code pendingInputMessages} and appends a new {@link ConversationTurn}.
+   * Completes the pending turn by recording the assistant response and token usage.
    *
    * @throws IllegalStateException if called before {@link #addNextTurn}
    */
   public AgentConversation ingest(
       AssistantMessage assistantMessage, AgentMetrics.TokenUsage tokenUsage) {
-    if (pendingInputMessages == null) {
-      throw new IllegalStateException("ingest() called before applyInput()");
+    if (currentTurn == null || currentTurn.assistantMessage() != null) {
+      throw new IllegalStateException("ingest() called before addNextTurn()");
     }
-    int nextKey = turns.size() + 1;
     int toolCallCount =
         assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size();
     var turnMetrics =
@@ -143,17 +127,14 @@ public final class AgentConversation {
             .tokenUsage(tokenUsage)
             .toolCalls(toolCallCount)
             .build();
-    var newTurn =
-        new ConversationTurn(nextKey, pendingInputMessages, assistantMessage, turnMetrics);
-    var newTurns = new ArrayList<>(turns);
-    newTurns.add(newTurn);
-    var newDelta =
-        metricsDelta
-            .incrementModelCalls(1)
-            .incrementTokenUsage(tokenUsage)
-            .incrementToolCalls(toolCallCount);
+    var completedTurn = currentTurn.withAssistantMessage(assistantMessage, turnMetrics);
     return new AgentConversation(
-        systemMessage, newTurns, null, currentContext, invocationInput, configuration, newDelta);
+        systemMessage,
+        previousTurns,
+        completedTurn,
+        currentContext,
+        invocationInput,
+        configuration);
   }
 
   /**
@@ -163,13 +144,7 @@ public final class AgentConversation {
   public AgentConversation withStoredConversation(ConversationContext ref) {
     var updatedCtx = currentContext.withConversation(ref);
     return new AgentConversation(
-        systemMessage,
-        turns,
-        pendingInputMessages,
-        updatedCtx,
-        invocationInput,
-        configuration,
-        metricsDelta);
+        systemMessage, previousTurns, currentTurn, updatedCtx, invocationInput, configuration);
   }
 
   // --- query methods ---
@@ -178,12 +153,15 @@ public final class AgentConversation {
     return Optional.ofNullable(systemMessage);
   }
 
+  /** Returns all completed turns: previous turns followed by the current turn (if complete). */
   public List<ConversationTurn> turns() {
-    return turns;
+    return allTurns();
   }
 
   public @Nullable List<Message> pendingInputMessages() {
-    return pendingInputMessages;
+    return currentTurn != null && currentTurn.assistantMessage() == null
+        ? currentTurn.inputMessages()
+        : null;
   }
 
   public AgentContext baseAgentContext() {
@@ -199,7 +177,14 @@ public final class AgentConversation {
   }
 
   public AgentMetrics metricsDelta() {
-    return metricsDelta;
+    if (currentTurn == null || currentTurn.assistantMessage() == null) {
+      return AgentMetrics.empty();
+    }
+    AgentMetrics lastTurnMetrics =
+        previousTurns.isEmpty() ? null : previousTurns.getLast().metrics();
+    return lastTurnMetrics == null
+        ? currentTurn.metrics()
+        : currentTurn.metrics().minus(lastTurnMetrics);
   }
 
   /** Returns the agent instance key from metadata, or {@code null} if metadata is absent. */
@@ -210,24 +195,25 @@ public final class AgentConversation {
 
   /** Returns {@code true} if the last turn issued tool calls and results are not yet received. */
   public boolean expectingToolCallResults() {
-    return !turns.isEmpty() && turns.getLast().hasToolCalls();
+    var all = allTurns();
+    return !all.isEmpty() && all.getLast().hasToolCalls();
   }
 
   /**
-   * Returns the flat list of all messages: system message (if present), all turn messages (input +
-   * assistant), and any pending input messages.
+   * Returns the flat list of all messages: system message (if present), all completed turn messages
+   * (input + assistant), and any pending input messages when the current turn is not yet ingested.
    */
   public List<Message> allMessages() {
     var messages = new ArrayList<Message>();
     if (systemMessage != null) {
       messages.add(systemMessage);
     }
-    for (var turn : turns) {
+    for (var turn : allTurns()) {
       messages.addAll(turn.inputMessages());
       messages.add(turn.assistantMessage());
     }
-    if (pendingInputMessages != null) {
-      messages.addAll(pendingInputMessages);
+    if (currentTurn != null && currentTurn.assistantMessage() == null) {
+      messages.addAll(currentTurn.inputMessages());
     }
     return List.copyOf(messages);
   }
@@ -269,7 +255,7 @@ public final class AgentConversation {
    * this invocation applied on top of the base context metrics.
    */
   public AgentContext toAgentContext() {
-    var delta = metricsDelta;
+    var delta = metricsDelta();
     var total =
         currentContext
             .metrics()
@@ -279,8 +265,18 @@ public final class AgentConversation {
     return currentContext.withMetrics(total);
   }
 
-  /** Returns the last turn, or empty if no turns have been completed. */
+  /** Returns the last completed turn, or empty if no turns have been completed. */
   public Optional<ConversationTurn> lastTurn() {
-    return turns.isEmpty() ? Optional.empty() : Optional.of(turns.getLast());
+    var all = allTurns();
+    return all.isEmpty() ? Optional.empty() : Optional.of(all.getLast());
+  }
+
+  private List<ConversationTurn> allTurns() {
+    if (currentTurn == null || currentTurn.assistantMessage() == null) {
+      return previousTurns;
+    }
+    var all = new ArrayList<>(previousTurns);
+    all.add(currentTurn);
+    return List.copyOf(all);
   }
 }

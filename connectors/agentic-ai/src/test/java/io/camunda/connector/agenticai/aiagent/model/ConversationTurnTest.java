@@ -32,4 +32,10 @@ class ConversationTurnTest {
             1, List.of(userMessage("hi")), assistantMessage("done"), AgentMetrics.empty());
     assertThat(turn.hasToolCalls()).isFalse();
   }
+
+  @Test
+  void hasToolCalls_returnsFalseWhenPending() {
+    var turn = new ConversationTurn(1, List.of(userMessage("hi")), null, AgentMetrics.empty());
+    assertThat(turn.hasToolCalls()).isFalse();
+  }
 }

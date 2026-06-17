@@ -10,15 +10,20 @@ import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /**
- * One completed LLM invocation: the messages that drove it, the response, and per-turn metrics.
- * iterationKey is 1-based and counts LLM calls across the entire agent lifecycle.
+ * One LLM invocation: the messages that drove it, the response, and per-turn metrics. iterationKey
+ * is 1-based and counts LLM calls across the entire agent lifecycle.
+ *
+ * <p>A turn is <em>pending</em> when {@code assistantMessage} is {@code null} — created by {@link
+ * AgentConversation#addNextTurn} before the LLM call — and <em>complete</em> after {@link
+ * AgentConversation#ingest}.
  */
 public record ConversationTurn(
     int iterationKey,
     List<Message> inputMessages,
-    AssistantMessage assistantMessage,
+    @Nullable AssistantMessage assistantMessage,
     AgentMetrics metrics) {
 
   /** Metadata key used to store iterationKey on persisted messages. */
@@ -26,12 +31,16 @@ public record ConversationTurn(
 
   public ConversationTurn {
     Objects.requireNonNull(inputMessages, "inputMessages must not be null");
-    Objects.requireNonNull(assistantMessage, "assistantMessage must not be null");
     Objects.requireNonNull(metrics, "metrics must not be null");
     inputMessages = List.copyOf(inputMessages);
   }
 
+  public ConversationTurn withAssistantMessage(
+      AssistantMessage assistantMessage, AgentMetrics metrics) {
+    return new ConversationTurn(iterationKey, inputMessages, assistantMessage, metrics);
+  }
+
   public boolean hasToolCalls() {
-    return assistantMessage.hasToolCalls();
+    return assistantMessage != null && assistantMessage.hasToolCalls();
   }
 }
