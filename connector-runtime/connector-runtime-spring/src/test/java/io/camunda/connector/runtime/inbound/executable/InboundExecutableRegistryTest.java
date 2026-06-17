@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.inbound.executable;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -586,8 +586,7 @@ public class InboundExecutableRegistryTest {
   }
 
   @Test
-  public void activityLog_deactivation_shouldContainBothActivationAndDeactivationEntries()
-      throws Exception {
+  public void activityLog_permanentDeactivation_logsShouldBePurged() throws Exception {
     // given
     var elementId = "elementId";
     var element =
@@ -610,17 +609,83 @@ public class InboundExecutableRegistryTest {
             .getFirst()
             .executableId();
 
-    // when - send empty process state to trigger deactivation of all connectors in this process
+    // when - send empty process state to trigger permanent deactivation
     registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of()));
 
-    // then
-    var logs = activityLogRegistry.getLogs(executableId);
-    assertThat(logs).hasSize(2);
-    assertThat(logs)
-        .extracting(Activity::message)
-        .anySatisfy(msg -> assertThat(msg).contains("Activated"))
-        .anySatisfy(msg -> assertThat(msg).contains("Deactivated"));
-    assertThat(logs).extracting(Activity::tag).containsOnly(ActivityLogTag.LIFECYCLE);
+    // then - logs are removed to prevent memory leak
+    assertThat(activityLogRegistry.getLogs(executableId)).isEmpty();
+  }
+
+  @Test
+  public void activityLog_deactivation_deactivationLifecycleEntryIsEmitted() throws Exception {
+    // given - use a spy so we can verify log() is called even though the entry is removed afterward
+    var spyRegistry = spy(activityLogRegistry);
+    var localBatchProcessor =
+        new BatchExecutableProcessor(
+            factory, contextFactory, mock(ConnectorsInboundMetrics.class), null, spyRegistry);
+    var localRegistry =
+        new InboundExecutableRegistryImpl(factory, localBatchProcessor, spyRegistry);
+
+    var elementId = "elementId";
+    var element =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
+    var executable = mock(InboundConnectorExecutable.class);
+    var context = mock(InboundConnectorManagementContext.class);
+    when(context.getDefinition())
+        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null));
+    when(context.connectorElements()).thenReturn(List.of(element));
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+    when(factory.getInstance(any())).thenReturn(executable);
+
+    localRegistry.handleEvent(
+        new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+
+    // when
+    localRegistry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of()));
+
+    // then - the deactivation lifecycle entry was logged before being removed
+    verify(spyRegistry)
+        .log(
+            argThat(
+                entry ->
+                    ActivityLogTag.LIFECYCLE.equals(entry.activity().tag())
+                        && entry.activity().message().contains("Deactivated")));
+  }
+
+  @Test
+  public void activityLog_afterRestart_priorLogsShouldSurvive() throws Exception {
+    // given
+    var elementId = "elementId";
+    var element =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
+    var executable = mock(InboundConnectorExecutable.class);
+    var context = mock(InboundConnectorManagementContext.class);
+    when(context.getDefinition())
+        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null));
+    when(context.connectorElements()).thenReturn(List.of(element));
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+    when(factory.getInstance(any())).thenReturn(executable);
+
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
+    var executableId = registry.query(f -> f.elementId(elementId)).getFirst().executableId();
+    assertThat(activityLogRegistry.getLogs(executableId)).hasSize(1); // initial activation log
+
+    // capture logs before reset to verify they survive the restart
+    var logsBeforeReset = List.copyOf(activityLogRegistry.getLogs(executableId));
+
+    // when - restart (RESTART action, not permanent DEACTIVATE)
+    registry.reset(executableId);
+
+    // then - all logs from before the restart are still present alongside the new activation log
+    var logsAfterReset = activityLogRegistry.getLogs(executableId);
+    assertThat(logsAfterReset).containsAll(logsBeforeReset);
+    assertThat(logsAfterReset).hasSizeGreaterThan(logsBeforeReset.size());
   }
 
   @Test
