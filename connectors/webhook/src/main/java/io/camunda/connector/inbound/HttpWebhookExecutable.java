@@ -128,19 +128,18 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     }
 
     var mappedRequest = mapRequest(payload);
-    // The response is produced after correlation by respond(...), which can resolve it from the
-    // element that actually matched, so it is not provided here.
-    return new WebhookProcessingResultImpl(mappedRequest, null, null);
+    // The response is resolved per request from the element that actually matched (element-scoped),
+    // via the function below. The runtime evaluates it after correlation, so webhook elements
+    // deduplicated into one executable each produce their own response.
+    return new WebhookProcessingResultImpl(
+        mappedRequest, HttpWebhookExecutable::resolveResponse, null);
   }
 
-  @Override
   @SuppressWarnings("deprecation") // intentionally honors the legacy responseBodyExpression
-  public WebhookHttpResponse respond(WebhookResultContext result) {
+  private static WebhookHttpResponse resolveResponse(WebhookResultContext result) {
     if (result.correlation() == null) {
       return null;
     }
-    // Resolve the response from the element that actually matched this request (element-scoped),
-    // so webhook elements deduplicated into one executable each produce their own response.
     var expressions =
         result.correlation().bindProperties(DynamicWebhookPropertiesWrapper.class).inbound();
     if (expressions == null) {

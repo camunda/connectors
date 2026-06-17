@@ -42,13 +42,37 @@ class HttpWebhookExecutableTest {
     testObject = new HttpWebhookExecutable();
   }
 
+  private WebhookResult triggerSimpleWebhook() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of("type", "NONE"))))
+            .build();
+    testObject.activate(ctx);
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
+    Mockito.when(payload.rawBody()).thenReturn("{}".getBytes(StandardCharsets.UTF_8));
+    return testObject.triggerWebhook(payload);
+  }
+
   @Test
-  void respond_resolvesResponseExpressionFromActivatedElement() {
-    // given an activated element whose element-scoped binding yields a response expression
+  void response_resolvesResponseExpressionFromActivatedElement() {
+    // the response function (applied by the runtime after correlation) resolves from the element
+    // that actually matched, via its element-scoped properties
+    var result = triggerSimpleWebhook();
     var wrapper =
         new DynamicWebhookPropertiesWrapper(
             new DynamicWebhookProperties(
-                ctx -> WebhookHttpResponse.ok("response-from-element"), null));
+                c -> WebhookHttpResponse.ok("response-from-element"), null));
     var activatedElement = Mockito.mock(ProcessElement.class);
     Mockito.when(activatedElement.bindProperties(DynamicWebhookPropertiesWrapper.class))
         .thenReturn(wrapper);
@@ -58,20 +82,19 @@ class HttpWebhookExecutableTest {
         new WebhookResultContext(
             new MappedHttpRequest(Map.of(), Map.of(), Map.of()), Map.of(), success);
 
-    // when
-    var response = testObject.respond(resultContext);
+    var response = result.response().apply(resultContext);
 
-    // then
     assertNotNull(response);
     assertEquals("response-from-element", response.body());
   }
 
   @Test
-  void respond_returnsNullWhenNoCorrelation() {
+  void response_returnsNullWhenNoCorrelation() {
+    var result = triggerSimpleWebhook();
     var resultContext =
         new WebhookResultContext(
             new MappedHttpRequest(Map.of(), Map.of(), Map.of()), Map.of(), null);
-    assertNull(testObject.respond(resultContext));
+    assertNull(result.response().apply(resultContext));
   }
 
   @Test
@@ -95,8 +118,6 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
-
-    assertNull(result.response());
     assertThat((Map) result.request().body()).containsEntry("key", "value");
   }
 
@@ -127,10 +148,6 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    // The response expression is no longer resolved by the executable; it is resolved per activated
-    // element by the runtime (see InboundWebhookRestController). The executable only maps the
-    // request here, so it carries no response function.
-    assertNull(result.response());
     assertThat((Map) result.request().body()).containsEntry("key", "value");
   }
 
@@ -160,8 +177,6 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
-
-    assertNull(result.response());
     assertThat((List<String>) result.request().body()).contains("test1", "test2");
   }
 
@@ -192,8 +207,6 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
-
-    assertNull(result.response());
     assertThat((List<Map>) result.request().body())
         .contains(Map.of("key", "value"), Map.of("key", "value"));
   }
@@ -632,8 +645,6 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
-
-    assertNull(result.response());
     // XML is stored as string
     assertThat(result.request().body()).isInstanceOf(String.class);
     assertThat((String) result.request().body()).contains("<id>123</id>");
@@ -660,8 +671,6 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
-
-    assertNull(result.response());
     assertThat(result.request().body()).isInstanceOf(String.class);
   }
 }

@@ -34,11 +34,14 @@ Introduce **element-scoped properties** as a first-class concept, alongside the 
   `ProcessElement#bindProperties(Class)`. The runtime attaches a binder (carrying the
   secret-replacement + FEEL pipeline) to the activated element of a successful correlation, so the
   SDK declares the contract while the runtime owns the implementation.
-- The webhook connector applies this through a new lifecycle method
-  `WebhookConnectorExecutable#respond(WebhookResultContext)`, invoked by the runtime after
-  correlation. It resolves the response from the element that actually matched the request. The
-  webhook controller becomes generic: trigger → correlate → respond. `WebhookResult#response()` is
-  deprecated (it is created before the activated element is known) and kept only as a fallback.
+- The webhook connector applies this through its existing `WebhookResult#response()` function,
+  which the runtime evaluates after correlation. Because the `WebhookResultContext` carries the
+  correlation result, the function resolves the response from the element that actually matched
+  (via `Success#bindProperties`). The response logic stays in the connector module (using its own
+  element-scoped class), so the runtime controller stays connector-agnostic and there is a single
+  response mechanism — no separate `respond(...)` method and no runtime-side duplicate of the
+  response model. (`response()` remains the one webhook response API; connectors whose response is
+  fixed at trigger time, such as Slack, use it the same way.)
 
 ## Consequences
 
@@ -46,8 +49,9 @@ Introduce **element-scoped properties** as a first-class concept, alongside the 
 - Per-element correctness: deduplicated elements share one executable yet each resolves its own
   element-scoped values. No null-by-design field on the bound model.
 - One element template and one source class per scope; class membership defines dedup scope.
-- The runtime is connector-agnostic again — response construction returns to the connector via
-  `respond(...)`, and the runtime no longer carries a webhook-specific binding type.
+- The runtime is connector-agnostic — response construction stays in the connector's `response()`
+  function, and the runtime no longer carries a webhook-specific binding type. A single response
+  mechanism, with no `respond(...)` method to keep in sync.
 - A reusable concept: any inbound connector with per-element runtime values can use it.
 
 ### Negative
@@ -60,5 +64,3 @@ Introduce **element-scoped properties** as a first-class concept, alongside the 
   `elementInputDataClass` (a `@TemplateProperty`-aware "walker") is deferred to a follow-up, because
   it introduces a dependency from the runtime onto the element-template-generator and rewires the
   core dedup path — better reviewed in isolation.
-- `WebhookResult#response()` is deprecated but not removed; the fallback remains until in-repo and
-  external implementers migrate to `respond(...)`.

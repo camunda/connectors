@@ -33,14 +33,15 @@ public interface WebhookResult {
   MappedHttpRequest request();
 
   /**
-   * Returns a function that can be used to generate a response to the webhook request.
+   * A function that produces the HTTP response to the webhook request, applied by the runtime after
+   * correlation. The {@link WebhookResultContext} exposes the processed request and the correlation
+   * result, so the function may resolve the response from the activated element (for example, an
+   * element-scoped webhook response expression — see the webhook connector) or return a fixed
+   * response computed at trigger time (see the Slack connector).
    *
-   * @deprecated superseded by {@link WebhookConnectorExecutable#respond(WebhookResultContext)},
-   *     which is invoked after correlation and can therefore resolve the response from the
-   *     activated element. This function is created during {@code triggerWebhook}, before the
-   *     activated element is known.
+   * <p>Note: the function is evaluated past the transaction boundary (the process instance has
+   * already been created or the message published), so failures cannot undo the correlation.
    */
-  @Deprecated
   default Function<WebhookResultContext, WebhookHttpResponse> response() {
     return null;
   }

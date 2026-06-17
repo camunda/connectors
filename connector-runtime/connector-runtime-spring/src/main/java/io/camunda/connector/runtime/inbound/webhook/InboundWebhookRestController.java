@@ -209,7 +209,7 @@ public class InboundWebhookRestController {
         // correlate
         var correlationResult =
             connector.context().correlate(CorrelationRequest.builder().variables(ctxData).build());
-        response = buildResponse(webhookResult, documents, correlationResult, connectorHook);
+        response = buildResponse(webhookResult, documents, correlationResult);
       }
     } catch (Exception e) {
       connector
@@ -263,19 +263,15 @@ public class InboundWebhookRestController {
   }
 
   private ResponseEntity<?> buildResponse(
-      WebhookResult webhookResult,
-      List<Document> documents,
-      CorrelationResult correlationResult,
-      WebhookConnectorExecutable connectorHook) {
+      WebhookResult webhookResult, List<Document> documents, CorrelationResult correlationResult) {
     ResponseEntity<?> response;
     if (correlationResult instanceof CorrelationResult.Success success) {
-      response = buildSuccessfulResponse(webhookResult, documents, success, connectorHook);
+      response = buildSuccessfulResponse(webhookResult, documents, success);
     } else {
       if (correlationResult instanceof CorrelationResult.Failure failure) {
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream ignored -> response = buildErrorResponse(failure);
-          case Ignore ignored ->
-              response = buildSuccessfulResponse(webhookResult, documents, null, connectorHook);
+          case Ignore ignored -> response = buildSuccessfulResponse(webhookResult, documents, null);
         }
       } else {
         throw new IllegalStateException("Illegal correlation result : " + correlationResult);
@@ -312,26 +308,24 @@ public class InboundWebhookRestController {
     return response;
   }
 
-  @SuppressWarnings("deprecation") // WebhookResult#response() fallback is deprecated but supported
   private ResponseEntity<?> buildSuccessfulResponse(
       WebhookResult webhookResult,
       List<Document> documents,
-      CorrelationResult.Success correlationResult,
-      WebhookConnectorExecutable connectorHook) {
-    var processVariablesContext =
-        toWebhookResultContext(webhookResult, documents, correlationResult);
-    // The response is produced by the connector's respond(...) hook, which runs after correlation
-    // (past the transaction boundary) and can resolve the response from the element that actually
-    // matched — so webhook elements deduplicated into a single executable each produce their own
-    // response.
-    WebhookHttpResponse httpResponseData = connectorHook.respond(processVariablesContext);
-    if (httpResponseData == null && webhookResult.response() != null) {
-      // Backwards compatibility for executables that still set the response via WebhookResult.
-      httpResponseData = webhookResult.response().apply(processVariablesContext);
+      CorrelationResult.Success correlationResult) {
+    ResponseEntity<?> response;
+    if (webhookResult.response() != null) {
+      var processVariablesContext =
+          toWebhookResultContext(webhookResult, documents, correlationResult);
+      var httpResponseData = webhookResult.response().apply(processVariablesContext);
+      if (httpResponseData != null) {
+        response = toResponseEntity(httpResponseData);
+      } else {
+        response = ResponseEntity.ok().build();
+      }
+    } else {
+      response = ResponseEntity.ok().build();
     }
-    return httpResponseData != null
-        ? toResponseEntity(httpResponseData)
-        : ResponseEntity.ok().build();
+    return response;
   }
 
   protected ResponseEntity<?> buildErrorResponse(Exception e) {
