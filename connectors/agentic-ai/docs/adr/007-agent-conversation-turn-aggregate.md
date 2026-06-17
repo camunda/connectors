@@ -79,19 +79,20 @@ ConversationTurn(int iterationKey, List<Message> inputMessages,
                  @Nullable AssistantMessage assistantMessage, AgentMetrics metrics)
 ```
 
-A turn is *pending* (`assistantMessage == null`) when created by `addNextTurn`, and *complete* after
+A turn is *pending* (`assistantMessage == null`) when created by `rehydrate`, and *complete* after
 `ingest`. `iterationKey` is 1-based and counts LLM calls across the agent's lifetime.
 
 **`AgentConversation` as an immutable aggregate**: copy-on-write state transitions:
 
 | Method | Description |
 |--------|-------------|
-| `rehydrate(messages, agentContext, invocationInput, config)` | Build from stored flat message list + this turn's engine input |
-| `updateSystemMessage(prompt)` | Set / replace the system message |
-| `addNextTurn(messages)` | Begin a pending turn from composed input |
+| `rehydrate(history, systemMessage, inputMessages, agentContext, config)` | Build from reconstructed history + the composed system message and current-turn input as a pending turn |
 | `ingest(assistantMessage, tokenUsage)` | Complete the pending turn with the LLM response |
 | `withStoredConversation(ref)` | Update the persistence cursor after storing messages |
 | `toAgentContext()` | Reduce back to the serialized `AgentContext` with updated metrics |
+
+The composed system message is passed in by the handler and may be `null` when the composed system
+prompt is blank (in which case no system message is sent to the LLM or persisted).
 
 **`TurnReconstructor`**: rebuilds the `ConversationTurn` list from the persisted flat message
 list. Groups messages by scanning for `AssistantMessage` boundaries; assigns `iterationKey` by
@@ -125,16 +126,21 @@ Replaces the stateful `MessageWindowRuntimeMemory` decorator.
 **`BaseAgentRequestHandler` as a thin orchestrator**: the `converse` path reduces to:
 
 ```
-rehydrate → checkLimits → updateSystemMessage → compose input
+load + reconstruct history → compose input
   → None:         handleNoOp
   → Cancellation: handleInputCancel
-  → NextTurn:     addNextTurn → [LLM call] → ingest → persist → toAgentContext → buildResponse
+  → NextTurn:     createSystemMessage → rehydrate → checkLimits
+                  → [LLM call] → ingest → persist → toAgentContext → buildResponse
 ```
+
+The model-call limit is checked in `throwIfLimitsReached`, which reads the cumulative
+`modelCalls` from `AgentConversation.totalMetrics()` (backed by the durable `AgentContext.metrics`,
+not the reconstructed per-turn metrics — see below).
 
 **Deleted components**: `AgentLimitsValidator`, `AgentLimitsValidatorImpl`,
 `AgentMessagesHandler`, `RuntimeMemory`, `DefaultRuntimeMemory`, `MessageWindowRuntimeMemory`.
-Their responsibilities now live in `AgentConversation.checkLimits`,
-`ConversationTurnComposerImpl`, and `MessageWindowFilter`.
+Their responsibilities now live in `BaseAgentRequestHandler.throwIfLimitsReached` (reading
+`AgentConversation.totalMetrics()`), `ConversationTurnComposerImpl`, and `MessageWindowFilter`.
 
 ### Serialization contract
 
@@ -154,8 +160,12 @@ Their responsibilities now live in `AgentConversation.checkLimits`,
 
 **Negative:**
 - Per-turn historical metrics are not persisted in the message list: reconstructed previous turns
-  always carry `AgentMetrics.empty()`. This is inert today (nothing queries historical per-turn
-  cost), but would need to be addressed if per-turn cost reporting is required in the future.
+  always carry `AgentMetrics.empty()`. Cumulative metrics (model calls, tokens, tool calls) are
+  therefore read from the durable `AgentContext.metrics` — `totalMetrics()` returns
+  `baseAgentContext().metrics()` and `toAgentContext()` increments it by the current turn's delta.
+  The model-call limit check must use this cumulative counter, **not** a sum over reconstructed
+  turns (which is always zero). Per-turn historical cost reporting would need the metrics to be
+  persisted alongside messages (see Future improvements).
 - Two "conversation" vocabularies coexist: `ConversationStore` / `ConversationSession` /
   `ConversationContext` (message persistence layer) vs. `AgentConversation` / `ConversationTurn`
   (turn aggregate layer). The distinction must be kept clear in code reviews and documentation.
@@ -165,10 +175,8 @@ Their responsibilities now live in `AgentConversation.checkLimits`,
 - If per-turn historical metrics become a requirement, store them alongside messages (e.g. as a
   message metadata field or a parallel structure), and update `TurnReconstructor` to read them.
 - The `AgentConversation` / `ConversationTurn` model is currently only held in memory. Serializing
-  it into `AgentContext` would allow richer recovery on rehydration; a first implementation should
+  it into in the `ConversationStore` lifecycle would allow richer recovery on rehydration; a first implementation should
   include a one-time fallback path that reconstructs from the old flat message list when the new
   structure is absent, so existing conversations migrate transparently.
 - Add a `schemaVersion` field to the `AgentContext` serialized format. This gives future migrations
   an explicit discriminator instead of relying on field presence heuristics.
-- Consider whether `AgentConversation` should own the `ConversationSession` lifecycle (currently
-  the handler opens the session before rehydrating and closes it in the finally block).
