@@ -12,11 +12,17 @@ import static io.camunda.connector.inbound.utils.HttpWebhookUtil.FORM_DATA_CONTE
 import static io.camunda.connector.inbound.utils.HttpWebhookUtil.HEADER_CONTENT_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.*;
+import io.camunda.connector.inbound.model.DynamicWebhookProperties;
+import io.camunda.connector.inbound.model.DynamicWebhookProperties.DynamicWebhookPropertiesWrapper;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
@@ -34,6 +40,38 @@ class HttpWebhookExecutableTest {
   @BeforeEach
   void beforeEach() {
     testObject = new HttpWebhookExecutable();
+  }
+
+  @Test
+  void respond_resolvesResponseExpressionFromActivatedElement() {
+    // given an activated element whose element-scoped binding yields a response expression
+    var wrapper =
+        new DynamicWebhookPropertiesWrapper(
+            new DynamicWebhookProperties(
+                ctx -> WebhookHttpResponse.ok("response-from-element"), null));
+    var activatedElement = Mockito.mock(ProcessElement.class);
+    Mockito.when(activatedElement.bindProperties(DynamicWebhookPropertiesWrapper.class))
+        .thenReturn(wrapper);
+    var success =
+        new CorrelationResult.Success.ProcessInstanceCreated(activatedElement, 1L, "<default>");
+    var resultContext =
+        new WebhookResultContext(
+            new MappedHttpRequest(Map.of(), Map.of(), Map.of()), Map.of(), success);
+
+    // when
+    var response = testObject.respond(resultContext);
+
+    // then
+    assertNotNull(response);
+    assertEquals("response-from-element", response.body());
+  }
+
+  @Test
+  void respond_returnsNullWhenNoCorrelation() {
+    var resultContext =
+        new WebhookResultContext(
+            new MappedHttpRequest(Map.of(), Map.of(), Map.of()), Map.of(), null);
+    assertNull(testObject.respond(resultContext));
   }
 
   @Test

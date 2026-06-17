@@ -128,6 +128,33 @@ public class InboundConnectorElementTest {
   }
 
   @Test
+  void deduplicationId_excludesWebhookResponseExpression() {
+    // given two webhook elements that are identical except for their (element-scoped) response
+    // expression — issue #6684: they must deduplicate into a single executable.
+    var elementA =
+        new InboundConnectorElement(
+            Map.of(
+                "inbound.type", "io.camunda:webhook:1",
+                "deduplicationMode", "AUTO",
+                "inbound.context", "myPath",
+                "inbound.responseExpression", "={body: \"A\"}"),
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "elementA", "<default>"));
+    var elementB =
+        new InboundConnectorElement(
+            Map.of(
+                "inbound.type", "io.camunda:webhook:1",
+                "deduplicationMode", "AUTO",
+                "inbound.context", "myPath",
+                "inbound.responseExpression", "={body: \"B\"}"),
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "elementB", "<default>"));
+
+    // then they share a deduplication id despite the differing response expressions
+    assertThat(elementA.deduplicationId(List.of())).isEqualTo(elementB.deduplicationId(List.of()));
+  }
+
+  @Test
   void deduplicationId_autoMode_customPropertyScope() {
     // given
     var testObj =
