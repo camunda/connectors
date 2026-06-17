@@ -158,24 +158,20 @@ public abstract class BaseAgentRequestHandler<
 
     LOGGER.debug("Request processing completed with agent response, completing job");
 
-    final var metricsDelta = conversation.metricsDelta();
-    final var nextStatus = nextAgentInstanceState(metricsDelta.toolCalls());
-
-    AgentJobCompletionListener metricsListener = null;
+    final var messageStorageCompletionListener =
+        createStoreCompletionListener(executionContext, store, agentResponse);
     if (shouldUpdateAgentInstanceBeforeJobCompletion(conversation)) {
-      notifyMetrics(executionContext, agentResponse.context(), metricsDelta, nextStatus, true);
-    } else {
-      metricsListener =
-          createMetricsCompletionListener(
-              executionContext, agentResponse.context(), metricsDelta, nextStatus);
+      notifyMetrics(executionContext, conversation, agentResponse, true);
+      return buildConnectorResponse(
+          executionContext, agentResponse, messageStorageCompletionListener);
     }
 
     return buildConnectorResponse(
         executionContext,
         agentResponse,
         AgentJobCompletionListener.compose(
-            metricsListener,
-            createStoreCompletionListener(executionContext, store, agentResponse)));
+            messageStorageCompletionListener,
+            createMetricsCompletionListener(executionContext, conversation, agentResponse)));
   }
 
   private void notifyThinking(C executionContext, AgentConversation conversation) {
@@ -268,22 +264,35 @@ public abstract class BaseAgentRequestHandler<
 
   private void notifyMetrics(
       C executionContext,
-      AgentContext agentContext,
+      AgentConversation conversation,
+      AgentResponse response,
+      boolean rethrowOnFailure) {
+    final var metricsDelta = conversation.metricsDelta();
+    final var nextState = nextAgentInstanceState(metricsDelta.toolCalls());
+    final var agentContext = response.context();
+
+    notifyMetrics(executionContext, agentContext, metricsDelta, nextState, rethrowOnFailure);
+  }
+
+  private void notifyMetrics(
+      C executionContext,
+      AgentContext context,
       AgentMetrics metricsDelta,
-      @Nullable AgentInstanceUpdateStatus nextStatus,
+      AgentInstanceUpdateStatus nextState,
       boolean rethrowOnFailure) {
     try {
+
       LOGGER.debug(
           "Updating agent instance metrics: status={}, modelCalls=+{}, inputTokens=+{}, outputTokens=+{}, toolCalls=+{}",
-          nextStatus,
+          nextState,
           metricsDelta.modelCalls(),
           metricsDelta.tokenUsage().inputTokenCount(),
           metricsDelta.tokenUsage().outputTokenCount(),
           metricsDelta.toolCalls());
       agentInstanceClient.update(
           executionContext,
-          agentContext,
-          AgentInstanceUpdateRequest.builder().status(nextStatus).delta(metricsDelta).build());
+          context,
+          AgentInstanceUpdateRequest.builder().status(nextState).delta(metricsDelta).build());
     } catch (Exception e) {
       LOGGER.error("Failed to update agent instance metrics; metrics may be inaccurate", e);
       if (rethrowOnFailure) {
@@ -293,25 +302,26 @@ public abstract class BaseAgentRequestHandler<
   }
 
   private AgentJobCompletionListener createMetricsCompletionListener(
-      C executionContext,
-      AgentContext agentContext,
-      AgentMetrics metricsDelta,
-      AgentInstanceUpdateStatus nextStatus) {
+      C executionContext, AgentConversation conversation, AgentResponse response) {
     return new AgentJobCompletionListener() {
       @Override
       public void onJobCompleted() {
-        notifyMetrics(executionContext, agentContext, metricsDelta, nextStatus, false);
+        notifyMetrics(executionContext, conversation, response, false);
       }
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
-        final var strippedDelta = metricsDelta.withToolCalls(0);
+        final var strippedDelta = conversation.metricsDelta().withToolCalls(0);
         if (failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored) {
           // Superseded job: report model/token cost but don't overwrite the current status
-          notifyMetrics(executionContext, agentContext, strippedDelta, null, false);
+          notifyMetrics(executionContext, response.context(), strippedDelta, null, false);
         } else {
           notifyMetrics(
-              executionContext, agentContext, strippedDelta, AgentInstanceUpdateStatus.IDLE, false);
+              executionContext,
+              response.context(),
+              strippedDelta,
+              AgentInstanceUpdateStatus.IDLE,
+              false);
         }
       }
     };
