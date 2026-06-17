@@ -66,9 +66,9 @@ class AgentConversationTest {
   }
 
   @Test
-  void applyInput_returnsNewInstance_withPendingMessages() {
+  void addNextTurn_returnsNewInstance_withPendingMessages() {
     var conv = AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG);
-    var withInput = conv.applyInput(List.of(userMessage("hello")));
+    var withInput = conv.addNextTurn(List.of(userMessage("hello")));
     assertThat(withInput).isNotSameAs(conv);
     assertThat(withInput.pendingInputMessages()).containsExactly(userMessage("hello"));
   }
@@ -77,7 +77,7 @@ class AgentConversationTest {
   void ingest_completesNewTurn_andClearsPending() {
     var conv =
         AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG)
-            .applyInput(List.of(userMessage("hi")));
+            .addNextTurn(List.of(userMessage("hi")));
     var tokenUsage = new TokenUsage(10, 5);
     var response = assistantMessage("hello");
     var ingested = conv.ingest(response, tokenUsage);
@@ -138,7 +138,7 @@ class AgentConversationTest {
   void toAgentContext_updatesMetricsDeltaFromIngestedTurns() {
     var conv =
         AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG)
-            .applyInput(List.of(userMessage("hi")))
+            .addNextTurn(List.of(userMessage("hi")))
             .ingest(assistantMessage("hello"), new TokenUsage(10, 5));
     var ctx = conv.toAgentContext();
     assertThat(ctx.metrics().modelCalls()).isEqualTo(1);
