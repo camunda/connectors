@@ -24,7 +24,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.model.message.MessageUtil;
+import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -106,20 +110,11 @@ public abstract class BaseAgentRequestHandler<
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
       final var loadedMessages = session.loadMessages(agentContext).messages();
-      var conversation =
-          AgentConversation.rehydrate(loadedMessages, agentContext, invocationInput, configuration);
+      final var history = TurnReconstructor.reconstruct(loadedMessages);
 
-      LOGGER.trace("Validating configured limits for agent execution");
-      final var limitsResult = conversation.checkLimits(configuration.limits());
-      if (limitsResult.hasViolations()) {
-        final var violation = limitsResult.violations().getFirst();
-        throw new ConnectorException(violation.errorCode(), violation.message());
-      }
-
-      LOGGER.trace("Composing system message (if necessary)");
-      conversation = conversation.updateSystemMessage(systemPromptComposer.compose(conversation));
-
-      final var input = agentInputComposer.compose(conversation);
+      LOGGER.trace("Composing turn input from history and invocation state");
+      final var input =
+          agentInputComposer.compose(history, invocationInput, agentContext, configuration);
       return switch (input) {
         case AgentInput.None ignored -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
@@ -129,17 +124,39 @@ public abstract class BaseAgentRequestHandler<
           LOGGER.debug("Conversation cannot continue ({}): {}", errorCode, message);
           yield handleInputCancel(executionContext, errorCode, message);
         }
-        case AgentInput.NextTurn(var messages) ->
-            proceed(executionContext, conversation.addNextTurn(messages), session, store);
+        case AgentInput.NextTurn(var newMessages) ->
+            proceed(
+                executionContext,
+                history,
+                newMessages,
+                agentContext,
+                configuration,
+                session,
+                store);
       };
     }
   }
 
   private R proceed(
       final C executionContext,
-      AgentConversation conversation,
+      final TurnReconstructor.Result history,
+      final List<Message> inputMessages,
+      final AgentContext agentContext,
+      final AgentConfiguration configuration,
       final ConversationSession session,
       final ConversationStore store) {
+    var systemMessage = createSystemMessage(agentContext, configuration);
+    AgentConversation conversation =
+        AgentConversation.rehydrate(
+            history, systemMessage, inputMessages, agentContext, configuration);
+
+    LOGGER.trace("Validating configured limits for agent execution");
+    final var limitsResult = conversation.checkLimits(configuration.limits());
+    if (limitsResult.hasViolations()) {
+      final var violation = limitsResult.violations().getFirst();
+      throw new ConnectorException(violation.errorCode(), violation.message());
+    }
+
     onInputApplied(executionContext, conversation);
 
     notifyThinking(executionContext, conversation);
@@ -172,6 +189,13 @@ public abstract class BaseAgentRequestHandler<
         AgentJobCompletionListener.compose(
             messageStorageCompletionListener,
             createMetricsCompletionListener(executionContext, conversation, agentResponse)));
+  }
+
+  private SystemMessage createSystemMessage(
+      AgentContext agentContext, AgentConfiguration configuration) {
+    LOGGER.trace("Composing system message");
+    var composedPrompt = systemPromptComposer.compose(agentContext, configuration);
+    return SystemMessage.builder().content(MessageUtil.singleTextContent(composedPrompt)).build();
   }
 
   private void notifyThinking(C executionContext, AgentConversation conversation) {

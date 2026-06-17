@@ -6,7 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.systemprompt;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -41,13 +42,11 @@ public class SystemPromptComposerImpl implements SystemPromptComposer {
   }
 
   @Override
-  public String compose(AgentConversation conversation) {
+  public String compose(AgentContext agentContext, AgentConfiguration configuration) {
     ArrayList<String> composed = new ArrayList<>();
 
     String basePrompt =
-        Optional.ofNullable(conversation.configuration().systemPrompt())
-            .map(sp -> sp.prompt())
-            .orElse(null);
+        Optional.ofNullable(configuration.systemPrompt()).map(sp -> sp.prompt()).orElse(null);
     if (StringUtils.isNotBlank(basePrompt)) {
       composed.add(basePrompt);
       LOGGER.trace("Added base system prompt");
@@ -55,7 +54,7 @@ public class SystemPromptComposerImpl implements SystemPromptComposer {
 
     contributors.forEach(
         contributor -> {
-          String contribution = contributor.contribute(conversation);
+          String contribution = contributor.contribute(agentContext, configuration);
           if (StringUtils.isNotBlank(contribution)) {
             composed.add(contribution);
             LOGGER.debug(

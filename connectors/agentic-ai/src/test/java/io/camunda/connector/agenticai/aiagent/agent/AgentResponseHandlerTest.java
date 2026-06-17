@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,10 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
-import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
@@ -94,9 +95,9 @@ class AgentResponseHandlerTest {
   private AgentConversation conversationWith(
       ResponseConfiguration responseConfig, AssistantMessage assistantMessage) {
     var config = new AgentConfiguration(null, null, null, null, null, responseConfig);
-    var input = AgentInvocationInput.from(null, List.of());
-    return AgentConversation.rehydrate(List.of(), BASE_AGENT_CONTEXT, input, config)
-        .addNextTurn(List.of())
+    var history = TurnReconstructor.reconstruct(List.of());
+    return AgentConversation.rehydrate(
+            history, systemMessage("system"), List.of(), BASE_AGENT_CONTEXT, config)
         .ingest(assistantMessage, AgentMetrics.TokenUsage.empty());
   }
 

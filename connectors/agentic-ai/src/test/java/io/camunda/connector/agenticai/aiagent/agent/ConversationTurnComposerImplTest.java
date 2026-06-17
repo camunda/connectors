@@ -17,9 +17,9 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
@@ -36,6 +36,10 @@ class ConversationTurnComposerImplTest {
 
   private ConversationTurnComposerImpl composer;
 
+  private static final AgentContext CTX = AgentContext.builder().state(AgentState.READY).build();
+  private static final AgentConfiguration CONFIG =
+      new AgentConfiguration(null, null, null, null, null, null);
+
   @BeforeEach
   void setUp() {
     GatewayToolHandlerRegistry gatewayToolHandlers = mock(GatewayToolHandlerRegistry.class);
@@ -46,17 +50,11 @@ class ConversationTurnComposerImplTest {
     composer = new ConversationTurnComposerImpl(gatewayToolHandlers);
   }
 
-  private static AgentConversation emptyConversation(AgentInvocationInput input) {
-    var ctx = AgentContext.builder().state(AgentState.READY).build();
-    var config = new AgentConfiguration(null, null, null, null, null, null);
-    return AgentConversation.rehydrate(List.of(), ctx, input, config);
-  }
-
   @Test
   void firstTurn_withUserPrompt_returnsNextTurn() {
     var input = AgentInvocationInput.from(new UserPromptConfiguration("Hello?", null), List.of());
-    var conv = emptyConversation(input);
-    var result = composer.compose(conv);
+    var history = TurnReconstructor.reconstruct(List.of());
+    var result = composer.compose(history, input, CTX, CONFIG);
     assertThat(result).isInstanceOf(AgentInput.NextTurn.class);
     var nextTurn = (AgentInput.NextTurn) result;
     assertThat(nextTurn.messages()).hasSize(1);
@@ -66,8 +64,8 @@ class ConversationTurnComposerImplTest {
   @Test
   void firstTurn_emptyPrompt_returnsCancellation() {
     var input = AgentInvocationInput.from(new UserPromptConfiguration("", null), List.of());
-    var conv = emptyConversation(input);
-    var result = composer.compose(conv);
+    var history = TurnReconstructor.reconstruct(List.of());
+    var result = composer.compose(history, input, CTX, CONFIG);
     assertThat(result).isInstanceOf(AgentInput.Cancellation.class);
     assertThat(((AgentInput.Cancellation) result).errorCode())
         .isEqualTo(AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT);
@@ -76,38 +74,34 @@ class ConversationTurnComposerImplTest {
   @Test
   void firstTurn_nullPrompt_returnsCancellation() {
     var input = AgentInvocationInput.from(null, List.of());
-    var conv = emptyConversation(input);
-    var result = composer.compose(conv);
+    var history = TurnReconstructor.reconstruct(List.of());
+    var result = composer.compose(history, input, CTX, CONFIG);
     assertThat(result).isInstanceOf(AgentInput.Cancellation.class);
   }
 
   @Test
   void toolResultTurn_allResultsPresent_returnsNextTurn() {
-    var ctx = AgentContext.builder().state(AgentState.READY).build();
-    var config = new AgentConfiguration(null, null, null, null, null, null);
     var input = AgentInvocationInput.from(null, TOOL_CALL_RESULTS);
-    List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
-    var conv = AgentConversation.rehydrate(history, ctx, input, config);
-    var result = composer.compose(conv);
+    List<Message> storedMessages =
+        List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
+    var history = TurnReconstructor.reconstruct(storedMessages);
+    var result = composer.compose(history, input, CTX, CONFIG);
     assertThat(result).isInstanceOf(AgentInput.NextTurn.class);
   }
 
   @Test
   void toolResultTurn_missingResults_returnsNone() {
-    var ctx = AgentContext.builder().state(AgentState.READY).build();
-    var config = new AgentConfiguration(null, null, null, null, null, null);
-    // only partial results (fewer than expected tool calls)
     List<ToolCallResult> partialResults = List.of(TOOL_CALL_RESULTS.getFirst());
     var input = AgentInvocationInput.from(null, partialResults);
-    List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
-    var conv = AgentConversation.rehydrate(history, ctx, input, config);
-    var result = composer.compose(conv);
+    List<Message> storedMessages =
+        List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
+    var history = TurnReconstructor.reconstruct(storedMessages);
+    var result = composer.compose(history, input, CTX, CONFIG);
     assertThat(result).isInstanceOf(AgentInput.None.class);
   }
 
   @Test
   void interruptToolCalls_withPartialResultsAndEvent_cancelsMissingAndProceeds() {
-    var ctx = AgentContext.builder().state(AgentState.READY).build();
     var config =
         new AgentConfiguration(
             null,
@@ -116,21 +110,20 @@ class ConversationTurnComposerImplTest {
             null,
             new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
             null);
-    // One real result (abcdef) + one event with null id — second tool call (fedcba) is missing
     var input =
         AgentInvocationInput.from(
             null,
             List.of(
                 TOOL_CALL_RESULTS.getFirst(),
                 ToolCallResult.builder().content("An event occurred").build()));
-    List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
-    var conv = AgentConversation.rehydrate(history, ctx, input, config);
+    List<Message> storedMessages =
+        List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
+    var history = TurnReconstructor.reconstruct(storedMessages);
 
-    var result = composer.compose(conv);
+    var result = composer.compose(history, input, CTX, config);
 
     assertThat(result).isInstanceOf(AgentInput.NextTurn.class);
     var nextTurn = (AgentInput.NextTurn) result;
-    // ToolCallResultMessage (with cancelled stub) + event UserMessage
     assertThat(nextTurn.messages()).hasSizeGreaterThanOrEqualTo(2);
     assertThat(nextTurn.messages().getFirst()).isInstanceOf(ToolCallResultMessage.class);
     var toolResults = ((ToolCallResultMessage) nextTurn.messages().getFirst()).results();
@@ -141,7 +134,6 @@ class ConversationTurnComposerImplTest {
 
   @Test
   void interruptToolCalls_withNoEvents_stillWaitsForMissingResults() {
-    var ctx = AgentContext.builder().state(AgentState.READY).build();
     var config =
         new AgentConfiguration(
             null,
@@ -150,12 +142,12 @@ class ConversationTurnComposerImplTest {
             null,
             new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
             null);
-    // Partial results only — no event messages
     var input = AgentInvocationInput.from(null, List.of(TOOL_CALL_RESULTS.getFirst()));
-    List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
-    var conv = AgentConversation.rehydrate(history, ctx, input, config);
+    List<Message> storedMessages =
+        List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
+    var history = TurnReconstructor.reconstruct(storedMessages);
 
-    var result = composer.compose(conv);
+    var result = composer.compose(history, input, CTX, config);
 
     assertThat(result).isInstanceOf(AgentInput.None.class);
   }

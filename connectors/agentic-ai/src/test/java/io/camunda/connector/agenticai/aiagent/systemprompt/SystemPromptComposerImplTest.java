@@ -10,8 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
-import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import java.util.List;
@@ -22,30 +20,29 @@ import org.junit.jupiter.params.provider.NullSource;
 
 class SystemPromptComposerImplTest {
 
-  private static AgentConversation conversationWithSystemPrompt(SystemPromptConfiguration config) {
-    var ctx = AgentContext.builder().state(AgentState.READY).build();
-    var agentConfig = new AgentConfiguration(null, config, null, null, null, null);
-    var input = AgentInvocationInput.from(null, List.of());
-    return AgentConversation.rehydrate(List.of(), ctx, input, agentConfig);
+  private static final AgentContext CTX = AgentContext.builder().state(AgentState.READY).build();
+
+  private static AgentConfiguration configWithSystemPrompt(SystemPromptConfiguration config) {
+    return new AgentConfiguration(null, config, null, null, null, null);
   }
 
   @Test
   void shouldComposeWithBasePromptOnly() {
     SystemPromptComposer composer = new SystemPromptComposerImpl(List.of());
-    var conversation = conversationWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
+    var config = configWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
 
-    String result = composer.compose(conversation);
+    String result = composer.compose(CTX, config);
 
     assertThat(result).isEqualTo("Base prompt");
   }
 
   @Test
   void shouldComposeWithSingleContributor() {
-    SystemPromptContributor contributor = conv -> "Additional instructions";
+    SystemPromptContributor contributor = (ctx, cfg) -> "Additional instructions";
     SystemPromptComposer composer = new SystemPromptComposerImpl(List.of(contributor));
-    var conversation = conversationWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
+    var config = configWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
 
-    String result = composer.compose(conversation);
+    String result = composer.compose(CTX, config);
 
     assertThat(result).isEqualTo("Base prompt\n\nAdditional instructions");
   }
@@ -55,7 +52,7 @@ class SystemPromptComposerImplTest {
     SystemPromptContributor contributor1 =
         new SystemPromptContributor() {
           @Override
-          public String contribute(AgentConversation conv) {
+          public String contribute(AgentContext ctx, AgentConfiguration cfg) {
             return "First contribution";
           }
 
@@ -68,7 +65,7 @@ class SystemPromptComposerImplTest {
     SystemPromptContributor contributor2 =
         new SystemPromptContributor() {
           @Override
-          public String contribute(AgentConversation conv) {
+          public String contribute(AgentContext ctx, AgentConfiguration cfg) {
             return "Second contribution";
           }
 
@@ -81,9 +78,9 @@ class SystemPromptComposerImplTest {
     // Add in reverse order to test sorting
     SystemPromptComposer composer =
         new SystemPromptComposerImpl(List.of(contributor2, contributor1));
-    var conversation = conversationWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
+    var config = configWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
 
-    String result = composer.compose(conversation);
+    String result = composer.compose(CTX, config);
 
     assertThat(result).isEqualTo("Base prompt\n\nFirst contribution\n\nSecond contribution");
   }
@@ -92,37 +89,37 @@ class SystemPromptComposerImplTest {
   @NullSource
   @EmptySource
   void shouldSkipNullOrEmptyContributions(String contribution) {
-    SystemPromptContributor contributor1 = conv -> "Valid contribution";
-    SystemPromptContributor contributor2 = conv -> contribution;
-    SystemPromptContributor contributor3 = conv -> "Another valid";
+    SystemPromptContributor contributor1 = (ctx, cfg) -> "Valid contribution";
+    SystemPromptContributor contributor2 = (ctx, cfg) -> contribution;
+    SystemPromptContributor contributor3 = (ctx, cfg) -> "Another valid";
 
     SystemPromptComposer composer =
         new SystemPromptComposerImpl(List.of(contributor1, contributor2, contributor3));
-    var conversation = conversationWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
+    var config = configWithSystemPrompt(new SystemPromptConfiguration("Base prompt"));
 
-    String result = composer.compose(conversation);
+    String result = composer.compose(CTX, config);
 
     assertThat(result).isEqualTo("Base prompt\n\nValid contribution\n\nAnother valid");
   }
 
   @Test
   void shouldHandleEmptyBasePrompt() {
-    SystemPromptContributor contributor = conv -> "Contribution";
+    SystemPromptContributor contributor = (ctx, cfg) -> "Contribution";
     SystemPromptComposer composer = new SystemPromptComposerImpl(List.of(contributor));
-    var conversation = conversationWithSystemPrompt(new SystemPromptConfiguration(""));
+    var config = configWithSystemPrompt(new SystemPromptConfiguration(""));
 
-    String result = composer.compose(conversation);
+    String result = composer.compose(CTX, config);
 
     assertThat(result).isEqualTo("Contribution");
   }
 
   @Test
   void shouldHandleNullSystemPromptConfiguration() {
-    SystemPromptContributor contributor = conv -> "Contribution";
+    SystemPromptContributor contributor = (ctx, cfg) -> "Contribution";
     SystemPromptComposer composer = new SystemPromptComposerImpl(List.of(contributor));
-    var conversation = conversationWithSystemPrompt(null);
+    var config = configWithSystemPrompt(null);
 
-    String result = composer.compose(conversation);
+    String result = composer.compose(CTX, config);
 
     assertThat(result).isEqualTo("Contribution");
   }

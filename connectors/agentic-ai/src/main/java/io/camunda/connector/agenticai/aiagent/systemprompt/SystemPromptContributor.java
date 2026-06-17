@@ -6,7 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.systemprompt;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 
 /**
  * Contributes additional instructions to the AI agent's system prompt. Implementations can provide
@@ -21,10 +22,11 @@ public interface SystemPromptContributor {
   /**
    * Returns the additional system prompt content to be appended.
    *
-   * @param conversation The current agent conversation
+   * @param agentContext the current durable agent context
+   * @param configuration the current agent configuration
    * @return The system prompt contribution, or null/empty if no contribution needed
    */
-  String contribute(AgentConversation conversation);
+  String contribute(AgentContext agentContext, AgentConfiguration configuration);
 
   /**
    * Determines the order in which this contributor's content is appended. Lower values are appended

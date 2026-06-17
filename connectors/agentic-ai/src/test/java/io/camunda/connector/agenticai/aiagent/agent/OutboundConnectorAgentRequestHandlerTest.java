@@ -255,7 +255,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.compose(any(AgentConversation.class)))
+    when(agentInputComposer.compose(any(), any(), any(), any()))
         .thenReturn(
             new AgentInput.Cancellation(
                 "NO_USER_MESSAGE_CONTENT",
@@ -373,13 +373,11 @@ class OutboundConnectorAgentRequestHandlerTest {
   }
 
   private void mockSystemPrompt() {
-    lenient()
-        .when(systemPromptComposer.compose(any(AgentConversation.class)))
-        .thenReturn(SYSTEM_PROMPT);
+    lenient().when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
   }
 
   private void mockProceed(Message... inputMessages) {
-    when(agentInputComposer.compose(any(AgentConversation.class)))
+    when(agentInputComposer.compose(any(), any(), any(), any()))
         .thenReturn(new AgentInput.NextTurn(List.of(inputMessages)));
   }
 
