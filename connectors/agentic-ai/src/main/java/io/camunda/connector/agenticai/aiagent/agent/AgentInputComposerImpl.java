@@ -65,15 +65,9 @@ public class AgentInputComposerImpl implements AgentInputComposer {
   public AgentInput compose(AgentConversation conversation) {
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(conversation);
 
-    final var engineToolCallResults = conversation.invocationInput().engineToolCallResults();
-
-    // partitioned into 2 buckets - true -> with tool call ID, false -> without (from an event)
-    final var partitionedByToolCallId =
-        engineToolCallResults.stream()
-            .collect(Collectors.partitioningBy(result -> result.id() != null));
-    final List<ToolCallResult> actualToolCallResults = partitionedByToolCallId.get(true);
+    final var invocationInput = conversation.invocationInput();
     final List<Message> eventMessages =
-        partitionedByToolCallId.get(false).stream()
+        invocationInput.eventMessages().stream()
             .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
             .toList();
 
@@ -85,24 +79,28 @@ public class AgentInputComposerImpl implements AgentInputComposer {
 
       final var toolCalls = conversation.lastTurn().orElseThrow().assistantMessage().toolCalls();
 
-      ToolCallResultMessage toolCallResultMessage =
+      final var toolCallResultMessage =
           createToolCallResultMessage(
-              conversation, toolCalls, actualToolCallResults, interruptMissingToolCalls);
+              conversation,
+              toolCalls,
+              invocationInput.toolCallResults(),
+              interruptMissingToolCalls);
 
       // either we have all results or we interrupted the missing tool calls
       // if message is null, we wait on further tool call results to be added
-      if (toolCallResultMessage == null) {
+      if (toolCallResultMessage.isEmpty()) {
         return new AgentInput.NoOp();
       }
 
-      messages.add(toolCallResultMessage);
-      var documentMessage = createDocumentMessageForToolResults(toolCallResultMessage.results());
+      final var toolCallResult = toolCallResultMessage.get();
+      messages.add(toolCallResult);
+      var documentMessage = createDocumentMessageForToolResults(toolCallResult.results());
       if (documentMessage != null) {
         messages.add(documentMessage);
       }
       messages.addAll(eventMessages);
     } else {
-      messages.add(createUserPromptMessage(conversation.invocationInput().userPrompt()));
+      messages.add(createUserPromptMessage(invocationInput.userPrompt()));
       messages.addAll(eventMessages);
     }
 
@@ -144,7 +142,7 @@ public class AgentInputComposerImpl implements AgentInputComposer {
     return UserMessage.builder().content(content).metadata(defaultMessageMetadata()).build();
   }
 
-  private ToolCallResultMessage createToolCallResultMessage(
+  private Optional<ToolCallResultMessage> createToolCallResultMessage(
       AgentConversation conversation,
       List<ToolCall> toolCalls,
       List<ToolCallResult> toolCallResults,
@@ -181,13 +179,14 @@ public class AgentInputComposerImpl implements AgentInputComposer {
             "Not adding tool call result message as tool call IDs {} were missing in tool call results.",
             missingToolCalls.stream().map(ToolCall::id).toList());
       }
-      return null;
+      return Optional.empty();
     }
 
-    return ToolCallResultMessage.builder()
-        .results(orderedToolCallResults)
-        .metadata(defaultMessageMetadata())
-        .build();
+    return Optional.of(
+        ToolCallResultMessage.builder()
+            .results(orderedToolCallResults)
+            .metadata(defaultMessageMetadata())
+            .build());
   }
 
   private UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {

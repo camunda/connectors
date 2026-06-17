@@ -23,7 +23,8 @@ class AgentConversationTest {
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(null, null, null, null, null, null);
 
-  private static final AgentInvocationInput EMPTY_INPUT = new AgentInvocationInput(null, List.of());
+  private static final AgentInvocationInput EMPTY_INPUT =
+      AgentInvocationInput.from(null, List.of());
 
   @Test
   void rehydrate_emptyHistory_producesZeroTurns() {

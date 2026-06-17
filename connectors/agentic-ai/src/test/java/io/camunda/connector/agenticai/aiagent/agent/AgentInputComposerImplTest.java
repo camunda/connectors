@@ -52,7 +52,7 @@ class AgentInputComposerImplTest {
 
   @Test
   void firstTurn_withUserPrompt_returnsProceed() {
-    var input = new AgentInvocationInput(new UserPromptConfiguration("Hello?", null), List.of());
+    var input = AgentInvocationInput.from(new UserPromptConfiguration("Hello?", null), List.of());
     var conv = emptyConversation(input);
     var result = composer.compose(conv);
     assertThat(result).isInstanceOf(AgentInput.Proceed.class);
@@ -63,7 +63,7 @@ class AgentInputComposerImplTest {
 
   @Test
   void firstTurn_emptyPrompt_returnsCancel() {
-    var input = new AgentInvocationInput(new UserPromptConfiguration("", null), List.of());
+    var input = AgentInvocationInput.from(new UserPromptConfiguration("", null), List.of());
     var conv = emptyConversation(input);
     var result = composer.compose(conv);
     assertThat(result).isInstanceOf(AgentInput.Cancel.class);
@@ -73,7 +73,7 @@ class AgentInputComposerImplTest {
 
   @Test
   void firstTurn_nullPrompt_returnsCancel() {
-    var input = new AgentInvocationInput(null, List.of());
+    var input = AgentInvocationInput.from(null, List.of());
     var conv = emptyConversation(input);
     var result = composer.compose(conv);
     assertThat(result).isInstanceOf(AgentInput.Cancel.class);
@@ -83,7 +83,7 @@ class AgentInputComposerImplTest {
   void toolResultTurn_allResultsPresent_returnsProceed() {
     var ctx = AgentContext.builder().state(AgentState.READY).build();
     var config = new AgentConfiguration(null, null, null, null, null, null);
-    var input = new AgentInvocationInput(null, TOOL_CALL_RESULTS);
+    var input = AgentInvocationInput.from(null, TOOL_CALL_RESULTS);
     List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var conv = AgentConversation.rehydrate(history, ctx, input, config);
     var result = composer.compose(conv);
@@ -96,7 +96,7 @@ class AgentInputComposerImplTest {
     var config = new AgentConfiguration(null, null, null, null, null, null);
     // only partial results (fewer than expected tool calls)
     List<ToolCallResult> partialResults = List.of(TOOL_CALL_RESULTS.getFirst());
-    var input = new AgentInvocationInput(null, partialResults);
+    var input = AgentInvocationInput.from(null, partialResults);
     List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var conv = AgentConversation.rehydrate(history, ctx, input, config);
     var result = composer.compose(conv);
