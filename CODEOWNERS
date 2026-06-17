@@ -20,14 +20,14 @@
 /connectors/soap/ @camunda/connectors-core
 
 # Custom rule for AI & IDP collaborators
-/connectors/agentic-ai @camunda/connectors-agentic-ai @camunda/connectors
+/connectors/agentic-ai @camunda/connectors-agentic-ai
 /connectors/idp-extraction @camunda/connectors-idp @camunda/connectors
-/connectors/embeddings-vector-database @camunda/connectors-agentic-ai @camunda/connectors
-/connectors-e2e-test/connectors-e2e-test-agentic-ai @camunda/connectors-agentic-ai @camunda/connectors
-/connectors/aws/aws-bedrock-codeinterpreter @camunda/connectors-agentic-ai @camunda/connectors
-/connectors/aws/aws-bedrock-knowledgebase @camunda/connectors-agentic-ai @camunda/connectors
-/connectors/aws/aws-bedrock-agentcore-runtime @camunda/connectors-agentic-ai @camunda/connectors
-/connectors/aws/aws-bedrock-agentcore-long-term-memory @camunda/connectors-agentic-ai @camunda/connectors
+/connectors/embeddings-vector-database @camunda/connectors-agentic-ai
+/connectors-e2e-test/connectors-e2e-test-agentic-ai @camunda/connectors-agentic-ai
+/connectors/aws/aws-bedrock-codeinterpreter @camunda/connectors-agentic-ai
+/connectors/aws/aws-bedrock-knowledgebase @camunda/connectors-agentic-ai
+/connectors/aws/aws-bedrock-agentcore-runtime @camunda/connectors-agentic-ai
+/connectors/aws/aws-bedrock-agentcore-long-term-memory @camunda/connectors-agentic-ai
 
 # These files are excluded so that Renovate can automatically merge dependency upgrades
 renovate.json
