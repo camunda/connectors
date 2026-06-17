@@ -70,10 +70,11 @@ public class JobWorkerAgentRequestHandler
   @Override
   protected void onInputApplied(
       JobWorkerAgentExecutionContext executionContext, AgentConversation conversation) {
-    final var pendingInputMessages = conversation.pendingInputMessages();
-    if (pendingInputMessages == null) {
-      return;
-    }
+    final var pendingInputMessages =
+        conversation
+            .currentTurn()
+            .map(ConversationTurn::inputMessages)
+            .orElseThrow(() -> new IllegalStateException("Current turn should not be null"));
 
     final boolean hasInterruptedToolCalls =
         pendingInputMessages.stream()
