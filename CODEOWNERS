@@ -9,6 +9,8 @@
 /parent/ @camunda/connectors-core
 /secret-providers/ @camunda/connectors-core
 /element-template-generator/ @camunda/connectors-core
+/connector-templates.json @camunda/connectors-core
+/ignore-templates.json @camunda/connectors-core
 
 # Connectors: experience team owns all by default; core overrides for http/graphql/webhook
 /connectors/ @camunda/connectors-experience
