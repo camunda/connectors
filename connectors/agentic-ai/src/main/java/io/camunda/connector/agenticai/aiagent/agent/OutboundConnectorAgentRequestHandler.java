@@ -52,6 +52,7 @@ public class OutboundConnectorAgentRequestHandler
   @Override
   public AiAgentTaskConnectorResponse buildConnectorResponse(
       OutboundConnectorAgentExecutionContext executionContext,
+      AgentConversation conversation,
       AgentResponse agentResponse,
       AgentJobCompletionListener completionListener) {
     return new AiAgentTaskConnectorResponse(agentResponse, completionListener);

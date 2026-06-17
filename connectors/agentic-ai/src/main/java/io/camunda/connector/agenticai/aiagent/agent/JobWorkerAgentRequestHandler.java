@@ -18,8 +18,6 @@ import io.camunda.connector.agenticai.aiagent.model.ConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
-import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -64,35 +62,13 @@ public class JobWorkerAgentRequestHandler
         errorCode,
         message,
         executionContext.jobContext().getJobKey());
-    return buildConnectorResponse(executionContext, null, null);
-  }
-
-  @Override
-  protected void onInputApplied(
-      JobWorkerAgentExecutionContext executionContext, AgentConversation conversation) {
-    final var pendingInputMessages = conversation.currentTurn().inputMessages();
-
-    final boolean hasInterruptedToolCalls =
-        pendingInputMessages.stream()
-            .filter(ToolCallResultMessage.class::isInstance)
-            .map(ToolCallResultMessage.class::cast)
-            .flatMap(msg -> msg.results().stream())
-            .anyMatch(
-                result ->
-                    Boolean.TRUE.equals(
-                        result
-                            .properties()
-                            .getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
-
-    // cancel remaining instances if any tool call was interrupted
-    if (hasInterruptedToolCalls) {
-      executionContext.setCancelRemainingInstances(true);
-    }
+    return buildConnectorResponse(executionContext, null, null, null);
   }
 
   @Override
   public AiAgentSubProcessConnectorResponse buildConnectorResponse(
       JobWorkerAgentExecutionContext executionContext,
+      AgentConversation conversation,
       AgentResponse agentResponse,
       AgentJobCompletionListener completionListener) {
     if (agentResponse == null) {
@@ -114,16 +90,19 @@ public class JobWorkerAgentRequestHandler
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
-      return buildResponse(executionContext, agentResponse, completionListener);
+      return buildResponse(executionContext, conversation, agentResponse, completionListener);
     }
   }
 
   private AiAgentSubProcessConnectorResponse buildResponse(
       JobWorkerAgentExecutionContext executionContext,
+      AgentConversation conversation,
       AgentResponse agentResponse,
       AgentJobCompletionListener completionListener) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
-    boolean cancelRemainingInstances = executionContext.cancelRemainingInstances();
+    // cancel remaining instances if any tool call in this turn's input was interrupted
+    boolean cancelRemainingInstances =
+        conversation != null && conversation.currentTurn().hasInterruptedToolCallResults();
 
     LOGGER.debug(
         "completionConditionFulfilled: {}, cancelRemainingInstances: {}",

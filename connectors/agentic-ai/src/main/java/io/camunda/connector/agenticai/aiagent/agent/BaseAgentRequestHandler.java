@@ -153,7 +153,6 @@ public abstract class BaseAgentRequestHandler<
             history, systemMessage, inputMessages, agentContext, configuration);
 
     throwIfLimitsReached(conversation, configuration);
-    onInputApplied(executionContext, conversation);
     notifyThinking(executionContext, conversation);
 
     LOGGER.debug("Executing chat request with AI framework");
@@ -179,11 +178,12 @@ public abstract class BaseAgentRequestHandler<
     if (shouldUpdateAgentInstanceBeforeJobCompletion(storedConversation)) {
       notifyMetrics(executionContext, storedConversation, agentResponse, true);
       return buildConnectorResponse(
-          executionContext, agentResponse, messageStorageCompletionListener);
+          executionContext, storedConversation, agentResponse, messageStorageCompletionListener);
     }
 
     return buildConnectorResponse(
         executionContext,
+        storedConversation,
         agentResponse,
         AgentJobCompletionListener.compose(
             messageStorageCompletionListener,
@@ -236,7 +236,7 @@ public abstract class BaseAgentRequestHandler<
             .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
             .build();
     var listener = createToolDiscoveryCompletionListener(executionContext, agentContext);
-    return buildConnectorResponse(executionContext, response, listener);
+    return buildConnectorResponse(executionContext, null, response, listener);
   }
 
   private AgentJobCompletionListener createToolDiscoveryCompletionListener(
@@ -266,7 +266,7 @@ public abstract class BaseAgentRequestHandler<
 
   /** Called when no agent response should be produced this turn. Default: no-op response. */
   protected R handleNoOp(C executionContext) {
-    return buildConnectorResponse(executionContext, null, null);
+    return buildConnectorResponse(executionContext, null, null, null);
   }
 
   /**
@@ -274,15 +274,6 @@ public abstract class BaseAgentRequestHandler<
    * Subclasses decide whether to throw or return an error/no-op response.
    */
   protected abstract R handleInputCancel(C executionContext, String errorCode, String message);
-
-  /**
-   * Hook invoked after the composed input has been applied to the conversation, before the LLM
-   * call. Subclasses may use this to react to the applied input (e.g. cancelling remaining tool
-   * instances on interruption).
-   */
-  protected void onInputApplied(C executionContext, AgentConversation conversation) {
-    // no-op by default
-  }
 
   /**
    * Returns {@code true} when the agent-instance PATCH must be sent synchronously before the job
@@ -295,10 +286,14 @@ public abstract class BaseAgentRequestHandler<
       AgentConversation conversation);
 
   /**
-   * Builds the connector response from the agent response. Agent response and listener may be null.
+   * Builds the connector response from the agent response. Conversation, agent response, and
+   * listener may be null (e.g. on no-op, cancellation, or tool-discovery paths). The conversation
+   * is provided on the proceed path so subclasses can derive response details (e.g. whether to
+   * cancel remaining tool instances) from the turn input.
    */
   protected abstract R buildConnectorResponse(
       final C executionContext,
+      @Nullable final AgentConversation conversation,
       @Nullable final AgentResponse agentResponse,
       @Nullable final AgentJobCompletionListener completionListener);
 

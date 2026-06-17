@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -39,5 +41,17 @@ public record ConversationTurn(
 
   public boolean hasToolCalls() {
     return assistantMessage != null && assistantMessage.hasToolCalls();
+  }
+
+  /** Returns {@code true} if any tool call result in this turn's input was interrupted. */
+  public boolean hasInterruptedToolCallResults() {
+    return inputMessages.stream()
+        .filter(ToolCallResultMessage.class::isInstance)
+        .map(ToolCallResultMessage.class::cast)
+        .flatMap(msg -> msg.results().stream())
+        .anyMatch(
+            result ->
+                Boolean.TRUE.equals(
+                    result.properties().getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
   }
 }
