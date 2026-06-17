@@ -220,7 +220,7 @@ public abstract class BaseAgentRequestHandler<
     LOGGER.debug("Notifying agent instance: status=THINKING before LLM call");
     agentInstanceClient.update(
         executionContext,
-        conversation.baseAgentContext(),
+        conversation.currentContext(),
         AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
   }
 
@@ -304,7 +304,7 @@ public abstract class BaseAgentRequestHandler<
       AgentConversation conversation,
       AgentResponse response,
       boolean rethrowOnFailure) {
-    final var metricsDelta = conversation.metricsDelta();
+    final var metricsDelta = conversation.currentTurnMetrics();
     final var nextState = nextAgentInstanceState(metricsDelta.toolCalls());
     final var agentContext = response.context();
 
@@ -348,7 +348,7 @@ public abstract class BaseAgentRequestHandler<
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
-        final var strippedDelta = conversation.metricsDelta().withToolCalls(0);
+        final var strippedDelta = conversation.currentTurnMetrics().withToolCalls(0);
         if (failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored) {
           // Superseded job: report model/token cost but don't overwrite the current status
           notifyMetrics(executionContext, response.context(), strippedDelta, null, false);

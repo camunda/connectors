@@ -97,75 +97,17 @@ class AgentMetricsTest {
   }
 
   @Test
-  void subtractAgentMetrics() {
-    final var a = new AgentMetrics(5, new TokenUsage(100, 200), 3);
-    final var b = new AgentMetrics(2, new TokenUsage(30, 70), 1);
+  void addAgentMetrics() {
+    final var a = new AgentMetrics(2, new TokenUsage(30, 70), 1);
+    final var b = new AgentMetrics(3, new TokenUsage(100, 200), 2);
 
-    final var delta = a.subtract(b);
+    final var sum = a.add(b);
 
-    assertThat(delta.modelCalls()).isEqualTo(3);
-    assertThat(delta.tokenUsage()).isEqualTo(new TokenUsage(70, 130));
-    assertThat(delta.toolCalls()).isEqualTo(2);
-  }
-
-  @Test
-  void subtractAgentMetricsWithZeroYieldsOriginal() {
-    final var metrics = new AgentMetrics(2, new TokenUsage(10, 20), 1);
-    assertThat(metrics.subtract(AgentMetrics.empty())).isEqualTo(metrics);
-  }
-
-  @ParameterizedTest
-  @MethodSource("negativeDeltaAgentMetrics")
-  void subtractThrowsWhenResultIsNegative(
-      AgentMetrics minuend, AgentMetrics subtrahend, String message) {
-    assertThatThrownBy(() -> minuend.subtract(subtrahend))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessage(message);
-  }
-
-  static Stream<Arguments> negativeDeltaAgentMetrics() {
-    return Stream.of(
-        arguments(
-            new AgentMetrics(1, TokenUsage.empty(), 0),
-            new AgentMetrics(2, TokenUsage.empty(), 0),
-            "modelCalls value is negative after subtraction. Actual value: -1"),
-        arguments(
-            new AgentMetrics(0, TokenUsage.empty(), 1),
-            new AgentMetrics(0, TokenUsage.empty(), 2),
-            "toolCalls value is negative after subtraction. Actual value: -1"));
-  }
-
-  @Test
-  void tokenUsageSubtractTokenUsage() {
-    final var a = new TokenUsage(50, 80);
-    final var b = new TokenUsage(20, 30);
-
-    final var delta = a.minus(b);
-
-    assertThat(delta.inputTokenCount()).isEqualTo(30);
-    assertThat(delta.outputTokenCount()).isEqualTo(50);
-    assertThat(delta.totalTokenCount()).isEqualTo(80);
-  }
-
-  @ParameterizedTest
-  @MethodSource("negativeDeltaTokenUsage")
-  void tokenUsageSubtractThrowsWhenResultIsNegative(
-      TokenUsage minuend, TokenUsage subtrahend, String message) {
-    assertThatThrownBy(() -> minuend.minus(subtrahend))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessage(message);
-  }
-
-  static Stream<Arguments> negativeDeltaTokenUsage() {
-    return Stream.of(
-        arguments(
-            new TokenUsage(10, 0),
-            new TokenUsage(20, 0),
-            "inputTokenCount value is negative after subtraction. Actual value: -10"),
-        arguments(
-            new TokenUsage(0, 10),
-            new TokenUsage(0, 20),
-            "outputTokenCount value is negative after subtraction. Actual value: -10"));
+    assertThat(sum.modelCalls()).isEqualTo(5);
+    assertThat(sum.tokenUsage()).isEqualTo(new TokenUsage(130, 270));
+    assertThat(sum.toolCalls()).isEqualTo(3);
+    // operands are left untouched
+    assertThat(a).isEqualTo(new AgentMetrics(2, new TokenUsage(30, 70), 1));
   }
 
   @ParameterizedTest

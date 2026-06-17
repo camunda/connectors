@@ -103,8 +103,6 @@ public final class AgentConversation {
         systemMessage, previousTurns, currentTurn, updatedCtx, configuration);
   }
 
-  // --- query methods ---
-
   public @Nullable SystemMessage systemMessage() {
     return systemMessage;
   }
@@ -119,7 +117,7 @@ public final class AgentConversation {
     return currentTurn;
   }
 
-  public AgentContext baseAgentContext() {
+  public AgentContext currentContext() {
     return currentContext;
   }
 
@@ -127,7 +125,7 @@ public final class AgentConversation {
     return configuration;
   }
 
-  public AgentMetrics metricsDelta() {
+  public AgentMetrics currentTurnMetrics() {
     if (currentTurn.assistantMessage() == null) {
       return AgentMetrics.empty();
     }
@@ -168,14 +166,7 @@ public final class AgentConversation {
    * this invocation applied on top of the base context metrics.
    */
   public AgentContext toAgentContext() {
-    var delta = metricsDelta();
-    var total =
-        currentContext
-            .metrics()
-            .incrementModelCalls(delta.modelCalls())
-            .incrementTokenUsage(delta.tokenUsage())
-            .incrementToolCalls(delta.toolCalls());
-    return currentContext.withMetrics(total);
+    return currentContext.withMetrics(totalMetrics());
   }
 
   /** Returns the last completed turn, or empty if no turns have been completed yet. */
@@ -196,6 +187,6 @@ public final class AgentConversation {
   public AgentMetrics totalMetrics() {
     // it's currently the only total projection, as the TurnReconstructor is always assigning empty
     // metrics per turn
-    return baseAgentContext().metrics();
+    return currentContext().metrics().add(currentTurnMetrics());
   }
 }

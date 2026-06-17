@@ -110,7 +110,7 @@ class AgentConversationTest {
   }
 
   @Test
-  void toAgentContext_updatesMetricsDeltaFromIngestedTurns() {
+  void toAgentContext_updatesCurrentTurnMetricsFromIngestedTurns() {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("hello"), new TokenUsage(10, 5));
