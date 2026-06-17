@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
  * is 1-based and counts LLM calls across the entire agent lifecycle.
  *
  * <p>A turn is <em>pending</em> when {@code assistantMessage} is {@code null} — created by {@link
- * AgentConversation#addNextTurn} before the LLM call — and <em>complete</em> after {@link
+ * AgentConversation#rehydrate} before the LLM call — and <em>complete</em> after {@link
  * AgentConversation#ingest}.
  */
 public record ConversationTurn(
@@ -29,6 +29,9 @@ public record ConversationTurn(
     AgentMetrics metrics) {
 
   public ConversationTurn {
+    if (iterationKey < 1) {
+      throw new IllegalArgumentException("iterationKey should be greater than 1");
+    }
     Objects.requireNonNull(inputMessages, "inputMessages must not be null");
     Objects.requireNonNull(metrics, "metrics must not be null");
     inputMessages = List.copyOf(inputMessages);
