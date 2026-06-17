@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.reset;
@@ -154,7 +155,7 @@ class JobWorkerAgentRequestHandlerTest {
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            eq(discoveryAgentContext),
+            isNull(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY)));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -394,7 +395,7 @@ class JobWorkerAgentRequestHandlerTest {
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
     verifyNoMoreInteractions(agentInstanceClient);
 
@@ -403,7 +404,7 @@ class JobWorkerAgentRequestHandlerTest {
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
@@ -432,12 +433,12 @@ class JobWorkerAgentRequestHandlerTest {
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
@@ -480,7 +481,7 @@ class JobWorkerAgentRequestHandlerTest {
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
@@ -519,7 +520,7 @@ class JobWorkerAgentRequestHandlerTest {
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))

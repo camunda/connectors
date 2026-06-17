@@ -30,10 +30,8 @@ import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
@@ -194,31 +192,11 @@ class CamundaAgentInstanceClientTest {
   class Update {
 
     @Test
-    void shouldSilentlySkipWhenMetadataIsNull() {
-      // given
-      final var agentContext = AgentContext.builder().state(AgentState.READY).build();
-
-      // when
-      client.update(
-          TestAgentExecutionContext.withLimits(),
-          agentContext,
-          AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
-
-      // then
-      verifyNoInteractions(camundaClient);
-    }
-
-    @Test
     void shouldSilentlySkipWhenAgentInstanceKeyIsNull() {
-      // given
-      final var metadata = new AgentMetadata(1L, 2L, null);
-      final var agentContext =
-          AgentContext.builder().state(AgentState.READY).metadata(metadata).build();
-
       // when
       client.update(
           TestAgentExecutionContext.withLimits(),
-          agentContext,
+          null,
           AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
 
       // then
@@ -227,13 +205,10 @@ class CamundaAgentInstanceClientTest {
 
     @Test
     void shouldBuildCommandWithStatusOnly() {
-      // given
-      final var agentContext = agentContextWithInstanceKey();
-
       // when
       client.update(
           TestAgentExecutionContext.withLimits(),
-          agentContext,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
 
       // then
@@ -248,7 +223,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldBuildCommandWithStatusAndDeltaSkippingZeroFields() {
       // given
-      final var agentContext = agentContextWithInstanceKey();
+      final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
       final var delta = new AgentMetrics(1, new TokenUsage(10, 20), 0);
       final var request =
           AgentInstanceUpdateRequest.builder()
@@ -257,7 +232,7 @@ class CamundaAgentInstanceClientTest {
               .build();
 
       // when
-      client.update(TestAgentExecutionContext.withLimits(), agentContext, request);
+      client.update(TestAgentExecutionContext.withLimits(), agentInstanceKey, request);
 
       // then: status + non-zero delta fields set; toolCalls skipped (0)
       verify(updateCommandStep2).status(AgentInstanceUpdateStatus.IDLE);
@@ -271,7 +246,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldBuildCommandWithAllDeltaFields() {
       // given
-      final var agentContext = agentContextWithInstanceKey();
+      final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
       final var delta = new AgentMetrics(2, new TokenUsage(50, 100), 3);
       final var request =
           AgentInstanceUpdateRequest.builder()
@@ -280,7 +255,7 @@ class CamundaAgentInstanceClientTest {
               .build();
 
       // when
-      client.update(TestAgentExecutionContext.withLimits(), agentContext, request);
+      client.update(TestAgentExecutionContext.withLimits(), agentInstanceKey, request);
 
       // then
       verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_CALLING);
@@ -295,7 +270,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldThrowConnectorExceptionImmediatelyFor404PermanentError() {
       // given
-      final var agentContext = agentContextWithInstanceKey();
+      final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
       when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
       // when / then
@@ -303,7 +278,7 @@ class CamundaAgentInstanceClientTest {
               () ->
                   client.update(
                       TestAgentExecutionContext.withLimits(),
-                      agentContext,
+                      agentInstanceKey,
                       AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)))
           .isInstanceOfSatisfying(
               ConnectorException.class,
@@ -317,7 +292,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldThrowConnectorExceptionWithAttemptCountWhenAllRetriesExhausted() {
       // given
-      final var agentContext = agentContextWithInstanceKey();
+      final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
       when(updateCommandStep2.execute())
           .thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
@@ -326,7 +301,7 @@ class CamundaAgentInstanceClientTest {
               () ->
                   client.update(
                       TestAgentExecutionContext.withLimits(),
-                      agentContext,
+                      agentInstanceKey,
                       AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)))
           .isInstanceOfSatisfying(
               ConnectorException.class,
@@ -343,11 +318,6 @@ class CamundaAgentInstanceClientTest {
               Duration.ofSeconds(4),
               Duration.ofSeconds(8));
       verify(camundaClient, times(5)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
-    }
-
-    private static AgentContext agentContextWithInstanceKey() {
-      final var metadata = new AgentMetadata(1L, 2L, AGENT_INSTANCE_KEY);
-      return AgentContext.builder().state(AgentState.READY).metadata(metadata).build();
     }
   }
 

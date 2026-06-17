@@ -11,13 +11,13 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.error.ConnectorException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,16 +76,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   @Override
   public void update(
       AgentExecutionContext executionContext,
-      AgentContext agentContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
       AgentInstanceUpdateRequest request) {
-    final var metadata = agentContext.metadata();
-    if (metadata == null || metadata.agentInstanceKey() == null) {
-      LOGGER.debug("Skipping agent instance update: no agent instance key in context");
+    if (agentInstanceKey == null) {
+      LOGGER.debug("Skipping agent instance update: no agent instance key");
       return;
     }
     CamundaApiRetry.execute(
         () -> {
-          executeUpdate(executionContext, metadata.agentInstanceKey(), request);
+          executeUpdate(executionContext, agentInstanceKey.value(), request);
           return null;
         },
         AgentInstanceErrorClassifier.FOR_UPDATE,

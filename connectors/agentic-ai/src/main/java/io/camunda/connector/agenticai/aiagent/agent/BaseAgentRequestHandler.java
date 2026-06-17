@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
@@ -220,7 +221,7 @@ public abstract class BaseAgentRequestHandler<
     LOGGER.debug("Notifying agent instance: status=THINKING before LLM call");
     agentInstanceClient.update(
         executionContext,
-        conversation.currentContext(),
+        conversation.agentInstanceKey(),
         AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
   }
 
@@ -249,7 +250,7 @@ public abstract class BaseAgentRequestHandler<
         try {
           agentInstanceClient.update(
               executionContext,
-              agentContext,
+              AgentInstanceKey.from(agentContext.metadata()),
               AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY));
         } catch (Exception e) {
           LOGGER.error(
@@ -328,7 +329,7 @@ public abstract class BaseAgentRequestHandler<
           metricsDelta.toolCalls());
       agentInstanceClient.update(
           executionContext,
-          context,
+          AgentInstanceKey.from(context.metadata()),
           AgentInstanceUpdateRequest.builder().status(nextState).delta(metricsDelta).build());
     } catch (Exception e) {
       LOGGER.error("Failed to update agent instance metrics; metrics may be inaccurate", e);

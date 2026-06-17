@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.reset;
@@ -134,7 +135,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            eq(discoveryAgentContext),
+            isNull(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.TOOL_DISCOVERY)));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -320,12 +321,12 @@ class OutboundConnectorAgentRequestHandlerTest {
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
@@ -356,12 +357,12 @@ class OutboundConnectorAgentRequestHandlerTest {
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
@@ -393,7 +394,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
-            any(AgentContext.class),
+            any(),
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)

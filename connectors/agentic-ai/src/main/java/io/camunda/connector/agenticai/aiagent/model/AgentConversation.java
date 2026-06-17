@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
@@ -118,13 +119,9 @@ public final class AgentConversation {
     return currentTurn;
   }
 
-  /**
-   * Returns the durable agent context this conversation was built from. Its metrics are the
-   * cumulative baseline; the current turn's delta is added by {@link #toAgentContext()} and {@link
-   * #totalMetrics()}.
-   */
-  public AgentContext currentContext() {
-    return currentContext;
+  /** Returns the agent instance key of that conversation, or null if it is not existing (yet). */
+  public AgentInstanceKey agentInstanceKey() {
+    return AgentInstanceKey.from(currentContext.metadata());
   }
 
   /** Returns the static per-invocation configuration. */
@@ -196,6 +193,6 @@ public final class AgentConversation {
   public AgentMetrics totalMetrics() {
     // it's currently the only total projection, as the TurnReconstructor is always assigning empty
     // metrics per turn
-    return currentContext().metrics().add(currentTurnMetrics());
+    return currentContext.metrics().add(currentTurnMetrics());
   }
 }
