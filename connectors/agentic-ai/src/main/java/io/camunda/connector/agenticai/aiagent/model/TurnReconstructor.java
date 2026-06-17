@@ -42,16 +42,15 @@ public final class TurnReconstructor {
 
     var turns = new ArrayList<ConversationTurn>();
     var currentInput = new ArrayList<Message>();
-    int positionIndex = 0; // for soft-migration key reconstruction
+    int positionIndex = 0;
 
     while (iter.hasNext()) {
       var message = iter.next();
       if (message instanceof AssistantMessage assistant) {
         positionIndex++;
-        int iterationKey = resolveIterationKey(currentInput, positionIndex);
         turns.add(
             new ConversationTurn(
-                iterationKey, List.copyOf(currentInput), assistant, AgentMetrics.empty()));
+                positionIndex, List.copyOf(currentInput), assistant, AgentMetrics.empty()));
         currentInput.clear();
       } else {
         currentInput.add(message);
@@ -60,15 +59,5 @@ public final class TurnReconstructor {
     // trailing non-assistant messages (pending input) are intentionally ignored
 
     return new Result(systemMessage, List.copyOf(turns));
-  }
-
-  private static int resolveIterationKey(List<Message> inputMessages, int fallback) {
-    return inputMessages.stream()
-        .findFirst()
-        .map(Message::metadata)
-        .map(m -> m == null ? null : m.get(ConversationTurn.METADATA_ITERATION_KEY))
-        .filter(v -> v instanceof Number)
-        .map(v -> ((Number) v).intValue())
-        .orElse(fallback);
   }
 }

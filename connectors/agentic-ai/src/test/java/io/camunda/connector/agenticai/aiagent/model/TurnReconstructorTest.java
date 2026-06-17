@@ -7,12 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
-import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.model.message.*;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class TurnReconstructorTest {
@@ -64,19 +62,7 @@ class TurnReconstructorTest {
   }
 
   @Test
-  void usesIterationKeyFromMetadata_whenPresent() {
-    var u =
-        UserMessage.builder()
-            .content(singleTextContent("hi"))
-            .metadata(Map.of(ConversationTurn.METADATA_ITERATION_KEY, 5))
-            .build();
-    var a = assistantMessage("hello");
-    var result = TurnReconstructor.reconstruct(List.of(u, a));
-    assertThat(result.turns().getFirst().iterationKey()).isEqualTo(5);
-  }
-
-  @Test
-  void reconstructsIterationKey_whenMetadataMissing() {
+  void reconstructsIterationKey_fromPosition() {
     var u1 = userMessage("turn1");
     var a1 = assistantMessage("r1");
     var u2 = userMessage("turn2");

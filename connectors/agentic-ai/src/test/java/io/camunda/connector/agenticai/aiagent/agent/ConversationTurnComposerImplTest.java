@@ -20,9 +20,12 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
@@ -32,11 +35,10 @@ import org.junit.jupiter.api.Test;
 class ConversationTurnComposerImplTest {
 
   private ConversationTurnComposerImpl composer;
-  private GatewayToolHandlerRegistry gatewayToolHandlers;
 
   @BeforeEach
   void setUp() {
-    gatewayToolHandlers = mock(GatewayToolHandlerRegistry.class);
+    GatewayToolHandlerRegistry gatewayToolHandlers = mock(GatewayToolHandlerRegistry.class);
     when(gatewayToolHandlers.transformToolCallResults(any(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
     when(gatewayToolHandlers.handlerForToolDefinition(any()))
@@ -100,6 +102,61 @@ class ConversationTurnComposerImplTest {
     List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var conv = AgentConversation.rehydrate(history, ctx, input, config);
     var result = composer.compose(conv);
+    assertThat(result).isInstanceOf(AgentInput.None.class);
+  }
+
+  @Test
+  void interruptToolCalls_withPartialResultsAndEvent_cancelsMissingAndProceeds() {
+    var ctx = AgentContext.builder().state(AgentState.READY).build();
+    var config =
+        new AgentConfiguration(
+            null,
+            null,
+            null,
+            null,
+            new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
+            null);
+    // One real result (abcdef) + one event with null id — second tool call (fedcba) is missing
+    var input =
+        AgentInvocationInput.from(
+            null,
+            List.of(
+                TOOL_CALL_RESULTS.getFirst(),
+                ToolCallResult.builder().content("An event occurred").build()));
+    List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
+    var conv = AgentConversation.rehydrate(history, ctx, input, config);
+
+    var result = composer.compose(conv);
+
+    assertThat(result).isInstanceOf(AgentInput.NextTurn.class);
+    var nextTurn = (AgentInput.NextTurn) result;
+    // ToolCallResultMessage (with cancelled stub) + event UserMessage
+    assertThat(nextTurn.messages()).hasSizeGreaterThanOrEqualTo(2);
+    assertThat(nextTurn.messages().getFirst()).isInstanceOf(ToolCallResultMessage.class);
+    var toolResults = ((ToolCallResultMessage) nextTurn.messages().getFirst()).results();
+    assertThat(toolResults).hasSize(2);
+    assertThat(toolResults.get(1).content()).isEqualTo(ToolCallResult.CONTENT_CANCELLED);
+    assertThat(nextTurn.messages().getLast()).isInstanceOf(UserMessage.class);
+  }
+
+  @Test
+  void interruptToolCalls_withNoEvents_stillWaitsForMissingResults() {
+    var ctx = AgentContext.builder().state(AgentState.READY).build();
+    var config =
+        new AgentConfiguration(
+            null,
+            null,
+            null,
+            null,
+            new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
+            null);
+    // Partial results only — no event messages
+    var input = AgentInvocationInput.from(null, List.of(TOOL_CALL_RESULTS.getFirst()));
+    List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
+    var conv = AgentConversation.rehydrate(history, ctx, input, config);
+
+    var result = composer.compose(conv);
+
     assertThat(result).isInstanceOf(AgentInput.None.class);
   }
 }
