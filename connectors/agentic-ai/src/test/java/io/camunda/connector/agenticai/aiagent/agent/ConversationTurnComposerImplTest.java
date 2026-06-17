@@ -11,10 +11,12 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CA
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
@@ -37,6 +39,12 @@ class ConversationTurnComposerImplTest {
   private ConversationTurnComposerImpl composer;
 
   private static final AgentContext CTX = AgentContext.builder().state(AgentState.READY).build();
+  // a context with a previous conversation cursor — the realistic state when tool results arrive
+  private static final AgentContext CTX_WITH_CONVERSATION =
+      AgentContext.builder()
+          .state(AgentState.READY)
+          .conversation(InProcessConversationContext.builder("conv").build())
+          .build();
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(null, null, null, null, null, null);
 
@@ -80,12 +88,26 @@ class ConversationTurnComposerImplTest {
   }
 
   @Test
+  void toolResultsOnEmptyContext_throwsConnectorException() {
+    // tool call results arriving with no previous conversation is a modeling error, not a no-op
+    var input = AgentInvocationInput.from(null, TOOL_CALL_RESULTS);
+    var history = TurnReconstructor.reconstruct(List.of());
+
+    assertThatThrownBy(() -> composer.compose(history, input, CTX, CONFIG))
+        .isInstanceOfSatisfying(
+            io.camunda.connector.api.error.ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT));
+  }
+
+  @Test
   void toolResultTurn_allResultsPresent_returnsNextTurn() {
     var input = AgentInvocationInput.from(null, TOOL_CALL_RESULTS);
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
-    var result = composer.compose(history, input, CTX, CONFIG);
+    var result = composer.compose(history, input, CTX_WITH_CONVERSATION, CONFIG);
     assertThat(result).isInstanceOf(AgentInput.NextTurn.class);
   }
 
@@ -96,7 +118,7 @@ class ConversationTurnComposerImplTest {
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
-    var result = composer.compose(history, input, CTX, CONFIG);
+    var result = composer.compose(history, input, CTX_WITH_CONVERSATION, CONFIG);
     assertThat(result).isInstanceOf(AgentInput.None.class);
   }
 
@@ -120,7 +142,7 @@ class ConversationTurnComposerImplTest {
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
 
-    var result = composer.compose(history, input, CTX, config);
+    var result = composer.compose(history, input, CTX_WITH_CONVERSATION, config);
 
     assertThat(result).isInstanceOf(AgentInput.NextTurn.class);
     var nextTurn = (AgentInput.NextTurn) result;
@@ -147,7 +169,7 @@ class ConversationTurnComposerImplTest {
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
 
-    var result = composer.compose(history, input, CTX, config);
+    var result = composer.compose(history, input, CTX_WITH_CONVERSATION, config);
 
     assertThat(result).isInstanceOf(AgentInput.None.class);
   }
