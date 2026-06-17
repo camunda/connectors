@@ -97,11 +97,11 @@ class AgentMetricsTest {
   }
 
   @Test
-  void minusAgentMetrics() {
+  void subtractAgentMetrics() {
     final var a = new AgentMetrics(5, new TokenUsage(100, 200), 3);
     final var b = new AgentMetrics(2, new TokenUsage(30, 70), 1);
 
-    final var delta = a.minus(b);
+    final var delta = a.subtract(b);
 
     assertThat(delta.modelCalls()).isEqualTo(3);
     assertThat(delta.tokenUsage()).isEqualTo(new TokenUsage(70, 130));
@@ -109,16 +109,16 @@ class AgentMetricsTest {
   }
 
   @Test
-  void minusAgentMetricsWithZeroYieldsOriginal() {
+  void subtractAgentMetricsWithZeroYieldsOriginal() {
     final var metrics = new AgentMetrics(2, new TokenUsage(10, 20), 1);
-    assertThat(metrics.minus(AgentMetrics.empty())).isEqualTo(metrics);
+    assertThat(metrics.subtract(AgentMetrics.empty())).isEqualTo(metrics);
   }
 
   @ParameterizedTest
   @MethodSource("negativeDeltaAgentMetrics")
-  void minusThrowsWhenResultIsNegative(
+  void subtractThrowsWhenResultIsNegative(
       AgentMetrics minuend, AgentMetrics subtrahend, String message) {
-    assertThatThrownBy(() -> minuend.minus(subtrahend))
+    assertThatThrownBy(() -> minuend.subtract(subtrahend))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage(message);
   }
@@ -136,7 +136,7 @@ class AgentMetricsTest {
   }
 
   @Test
-  void tokenUsageMinusTokenUsage() {
+  void tokenUsageSubtractTokenUsage() {
     final var a = new TokenUsage(50, 80);
     final var b = new TokenUsage(20, 30);
 
@@ -149,7 +149,7 @@ class AgentMetricsTest {
 
   @ParameterizedTest
   @MethodSource("negativeDeltaTokenUsage")
-  void tokenUsageMinusThrowsWhenResultIsNegative(
+  void tokenUsageSubtractThrowsWhenResultIsNegative(
       TokenUsage minuend, TokenUsage subtrahend, String message) {
     assertThatThrownBy(() -> minuend.minus(subtrahend))
         .isInstanceOf(IllegalStateException.class)

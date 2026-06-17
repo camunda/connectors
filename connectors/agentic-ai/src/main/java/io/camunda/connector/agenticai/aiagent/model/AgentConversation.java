@@ -6,13 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import io.camunda.connector.agenticai.aiagent.agent.ValidationResult;
-import io.camunda.connector.agenticai.aiagent.agent.ValidationResult.Violation;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
-import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
@@ -31,10 +27,6 @@ import org.jspecify.annotations.Nullable;
  * and completed by {@link #ingest}.
  */
 public final class AgentConversation {
-
-  private static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
-  private static final int DEFAULT_MAX_MODEL_CALLS = 10;
-  private static final String ERROR_MAX_MODEL_CALLS = "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED";
 
   private final SystemMessage systemMessage;
   private final List<ConversationTurn> previousTurns;
@@ -168,31 +160,9 @@ public final class AgentConversation {
    * Applies the context window filter and returns a {@link ConversationSnapshot} ready to send to
    * the LLM.
    */
-  public ConversationSnapshot window() {
-    int windowSize =
-        Optional.ofNullable(configuration.memory())
-            .map(MemoryConfiguration::contextWindowSize)
-            .orElse(DEFAULT_CONTEXT_WINDOW_SIZE);
-    var windowed = MessageWindowFilter.apply(allMessages(), windowSize);
+  public ConversationSnapshot window(int size) {
+    var windowed = MessageWindowFilter.apply(allMessages(), size);
     return new ConversationSnapshot(windowed, currentContext.toolDefinitions());
-  }
-
-  /** Validates the agent has not exceeded configured model call limits. */
-  public ValidationResult checkLimits(LimitsConfiguration limits) {
-    int maxModelCalls =
-        Optional.ofNullable(limits)
-            .map(LimitsConfiguration::maxModelCalls)
-            .orElse(DEFAULT_MAX_MODEL_CALLS);
-    int current = currentContext.metrics().modelCalls();
-    if (current >= maxModelCalls) {
-      return ValidationResult.of(
-          List.of(
-              new Violation(
-                  ERROR_MAX_MODEL_CALLS,
-                  "Maximum number of model calls reached (modelCalls: %d, limit: %d)"
-                      .formatted(current, maxModelCalls))));
-    }
-    return ValidationResult.valid();
   }
 
   /**
@@ -223,5 +193,11 @@ public final class AgentConversation {
     var all = new ArrayList<>(previousTurns);
     all.add(currentTurn);
     return List.copyOf(all);
+  }
+
+  public AgentMetrics totalMetrics() {
+    return allTurns().stream()
+        .map(ConversationTurn::metrics)
+        .reduce(AgentMetrics.empty(), AgentMetrics::sum);
   }
 }
