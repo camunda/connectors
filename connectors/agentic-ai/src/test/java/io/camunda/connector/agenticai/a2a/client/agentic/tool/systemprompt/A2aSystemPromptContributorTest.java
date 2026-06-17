@@ -12,8 +12,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
-import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import java.io.FileNotFoundException;
 import java.util.List;
@@ -27,20 +25,19 @@ import org.springframework.core.io.ClassPathResource;
 
 class A2aSystemPromptContributorTest {
 
-  private static AgentConversation conversationWithProperties(Map<String, Object> properties) {
-    var ctx = AgentContext.builder().state(AgentState.READY).properties(properties).build();
-    var config = new AgentConfiguration(null, null, null, null, null, null);
-    var input = AgentInvocationInput.from(null, List.of());
-    return AgentConversation.rehydrate(List.of(), ctx, input, config);
+  private static AgentContext contextWithProperties(Map<String, Object> properties) {
+    return AgentContext.builder().state(AgentState.READY).properties(properties).build();
   }
+
+  private static final AgentConfiguration EMPTY_CONFIG =
+      new AgentConfiguration(null, null, null, null, null, null);
 
   @Test
   void shouldContributeWhenA2aToolsPresent() {
     A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
-    var conversation =
-        conversationWithProperties(Map.of(PROPERTY_A2A_CLIENTS, List.of("RemoteAgent")));
+    var agentContext = contextWithProperties(Map.of(PROPERTY_A2A_CLIENTS, List.of("RemoteAgent")));
 
-    String result = contributor.contribute(conversation);
+    String result = contributor.contribute(agentContext, EMPTY_CONFIG);
 
     assertThat(result).isNotNull();
     assertThat(result).contains("A2A Remote Agent Interaction Guide");
@@ -50,9 +47,9 @@ class A2aSystemPromptContributorTest {
   @MethodSource("noA2aToolsPropertiesProvider")
   void shouldNotContributeWhenNoA2aTools(Map<String, Object> properties) {
     A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
-    var conversation = conversationWithProperties(properties);
+    var agentContext = contextWithProperties(properties);
 
-    String result = contributor.contribute(conversation);
+    String result = contributor.contribute(agentContext, EMPTY_CONFIG);
 
     assertThat(result).isNull();
   }

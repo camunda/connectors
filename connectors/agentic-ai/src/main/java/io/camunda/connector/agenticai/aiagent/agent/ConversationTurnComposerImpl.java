@@ -10,7 +10,10 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
+import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -62,10 +65,13 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
   }
 
   @Override
-  public AgentInput compose(AgentConversation conversation) {
-    boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(conversation);
+  public AgentInput compose(
+      TurnReconstructor.Result history,
+      AgentInvocationInput invocationInput,
+      AgentContext agentContext,
+      AgentConfiguration configuration) {
+    boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
 
-    final var invocationInput = conversation.invocationInput();
     final List<Message> eventMessages =
         invocationInput.eventMessages().stream()
             .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
@@ -73,15 +79,18 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
 
     List<Message> messages = new ArrayList<>();
 
-    if (conversation.expectingToolCallResults()) {
+    boolean expectingToolCallResults =
+        !history.turns().isEmpty() && history.turns().getLast().hasToolCalls();
+
+    if (expectingToolCallResults) {
       boolean interruptMissingToolCalls =
           interruptToolCallsOnEventResults && !eventMessages.isEmpty();
 
-      final var toolCalls = conversation.lastTurn().orElseThrow().assistantMessage().toolCalls();
+      final var toolCalls = history.turns().getLast().assistantMessage().toolCalls();
 
       final var toolCallResultMessage =
           createToolCallResultMessage(
-              conversation,
+              agentContext,
               toolCalls,
               invocationInput.toolCallResults(),
               interruptMissingToolCalls);
@@ -143,13 +152,12 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
   }
 
   private Optional<ToolCallResultMessage> createToolCallResultMessage(
-      AgentConversation conversation,
+      AgentContext agentContext,
       List<ToolCall> toolCalls,
       List<ToolCallResult> toolCallResults,
       boolean interruptMissingToolCalls) {
     final var transformedToolCallResults =
-        gatewayToolHandlers.transformToolCallResults(
-            conversation.baseAgentContext(), toolCallResults);
+        gatewayToolHandlers.transformToolCallResults(agentContext, toolCallResults);
     final var toolCallResultsById =
         transformedToolCallResults.stream()
             .collect(Collectors.toMap(ToolCallResult::id, Function.identity()));
@@ -263,9 +271,9 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
     };
   }
 
-  private boolean interruptToolCallsOnEventResults(AgentConversation conversation) {
+  private boolean interruptToolCallsOnEventResults(AgentConfiguration configuration) {
     final var behavior =
-        Optional.ofNullable(conversation.configuration().events())
+        Optional.ofNullable(configuration.events())
             .map(EventHandlingConfiguration::behavior)
             .orElse(null);
 

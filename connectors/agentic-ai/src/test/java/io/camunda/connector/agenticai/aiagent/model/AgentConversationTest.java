@@ -23,74 +23,60 @@ class AgentConversationTest {
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(null, null, null, null, null, null);
 
-  private static final AgentInvocationInput EMPTY_INPUT =
-      AgentInvocationInput.from(null, List.of());
+  private static AgentConversation rehydrate(
+      List<Message> storedMessages, List<Message> inputMessages) {
+    var history = TurnReconstructor.reconstruct(storedMessages);
+    return AgentConversation.rehydrate(
+        history, systemMessage("sys"), inputMessages, BASE_CONTEXT, CONFIG);
+  }
 
   @Test
   void rehydrate_emptyHistory_producesZeroTurns() {
-    var conv = AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG);
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
     assertThat(conv.turns()).isEmpty();
-    assertThat(conv.systemMessage()).isEmpty();
+    assertThat(conv.systemMessage()).isEqualTo(systemMessage("sys"));
   }
 
   @Test
   void rehydrate_reconstructsTurnsFromHistory() {
-    var messages =
+    var storedMessages =
         List.<Message>of(
             userMessage("hi"),
             assistantMessage("thinking", TOOL_CALLS),
             toolCallResultMessage(TOOL_CALL_RESULTS),
             assistantMessage("done"));
-    var conv = AgentConversation.rehydrate(messages, BASE_CONTEXT, EMPTY_INPUT, CONFIG);
+    var conv = rehydrate(storedMessages, List.of(userMessage("next")));
     assertThat(conv.turns()).hasSize(2);
     assertThat(conv.turns().get(0).iterationKey()).isEqualTo(1);
     assertThat(conv.turns().get(1).iterationKey()).isEqualTo(2);
   }
 
   @Test
-  void updateSystemMessage_returnsNewInstance_withSystemMessage() {
-    var conv = AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG);
-    var updated = conv.updateSystemMessage("You are helpful.");
-    assertThat(updated).isNotSameAs(conv);
-    assertThat(updated.systemMessage()).isPresent();
-    assertThat(conv.systemMessage()).isEmpty();
+  void rehydrate_createsPendingTurn_withInputMessages() {
+    var inputMessages = List.<Message>of(userMessage("hello"));
+    var conv = rehydrate(List.of(), inputMessages);
+    assertThat(conv.currentTurn().inputMessages()).containsExactly(userMessage("hello"));
+    assertThat(conv.currentTurn().assistantMessage()).isNull();
   }
 
   @Test
-  void updateSystemMessage_blank_removesSystemMessage() {
-    var conv =
-        AgentConversation.rehydrate(
-            List.of(systemMessage("old")), BASE_CONTEXT, EMPTY_INPUT, CONFIG);
-    var updated = conv.updateSystemMessage("");
-    assertThat(updated.systemMessage()).isEmpty();
-  }
-
-  @Test
-  void addNextTurn_returnsNewInstance_withPendingMessages() {
-    var conv = AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG);
-    var withInput = conv.addNextTurn(List.of(userMessage("hello")));
-    assertThat(withInput).isNotSameAs(conv);
-    assertThat(withInput.currentTurn().get().inputMessages()).containsExactly(userMessage("hello"));
-  }
-
-  @Test
-  void ingest_completesNewTurn_andClearsPending() {
-    var conv =
-        AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG)
-            .addNextTurn(List.of(userMessage("hi")));
+  void ingest_completesCurrentTurn() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
     var tokenUsage = new TokenUsage(10, 5);
     var response = assistantMessage("hello");
     var ingested = conv.ingest(response, tokenUsage);
     assertThat(ingested.turns()).hasSize(1);
     assertThat(ingested.turns().getFirst().iterationKey()).isEqualTo(1);
     assertThat(ingested.turns().getFirst().assistantMessage()).isEqualTo(response);
-    assertThat(ingested.currentTurn().get().assistantMessage()).isEqualTo(response);
+    assertThat(ingested.currentTurn().assistantMessage()).isEqualTo(response);
   }
 
   @Test
-  void ingest_throwsWhenNoPendingInput() {
-    var conv = AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG);
-    assertThatThrownBy(() -> conv.ingest(assistantMessage("hi"), TokenUsage.empty()))
+  void ingest_throwsWhenAlreadyIngested() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("hello"), TokenUsage.empty());
+    assertThatThrownBy(() -> conv.ingest(assistantMessage("again"), TokenUsage.empty()))
         .isInstanceOf(IllegalStateException.class);
   }
 
@@ -98,20 +84,16 @@ class AgentConversationTest {
   void allMessages_includesSystemMessageAndTurnMessages() {
     var u = userMessage("hi");
     var a = assistantMessage("hello");
-    var conv =
-        AgentConversation.rehydrate(
-            List.of(systemMessage("sys"), u, a), BASE_CONTEXT, EMPTY_INPUT, CONFIG);
-    assertThat(conv.allMessages()).containsExactly(systemMessage("sys"), u, a);
+    var storedMessages = List.<Message>of(u, a);
+    var conv = rehydrate(storedMessages, List.of(userMessage("next")));
+    // systemMessage("sys") + stored turn messages + pending input
+    assertThat(conv.allMessages()).contains(systemMessage("sys"), u, a);
   }
 
   @Test
   void window_returnsConversationSnapshot_withToolDefinitions() {
-    var conv =
-        AgentConversation.rehydrate(
-            List.of(userMessage("hi"), assistantMessage("hello")),
-            BASE_CONTEXT,
-            EMPTY_INPUT,
-            CONFIG);
+    var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
+    var conv = rehydrate(storedMessages, List.of(userMessage("next")));
     var snapshot = conv.window();
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
@@ -119,7 +101,7 @@ class AgentConversationTest {
 
   @Test
   void checkLimits_valid_whenUnderLimit() {
-    var conv = AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG);
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
     var result = conv.checkLimits(new LimitsConfiguration(10));
     assertThat(result.hasViolations()).isFalse();
   }
@@ -127,7 +109,10 @@ class AgentConversationTest {
   @Test
   void checkLimits_violation_whenAtLimit() {
     var metricsCtx = BASE_CONTEXT.withMetrics(AgentMetrics.builder().modelCalls(10).build());
-    var conv = AgentConversation.rehydrate(List.of(), metricsCtx, EMPTY_INPUT, CONFIG);
+    var history = TurnReconstructor.reconstruct(List.of());
+    var conv =
+        AgentConversation.rehydrate(
+            history, systemMessage("sys"), List.of(userMessage("hi")), metricsCtx, CONFIG);
     var result = conv.checkLimits(new LimitsConfiguration(10));
     assertThat(result.hasViolations()).isTrue();
     assertThat(result.violations().getFirst().errorCode())
@@ -137,23 +122,9 @@ class AgentConversationTest {
   @Test
   void toAgentContext_updatesMetricsDeltaFromIngestedTurns() {
     var conv =
-        AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG)
-            .addNextTurn(List.of(userMessage("hi")))
+        rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("hello"), new TokenUsage(10, 5));
     var ctx = conv.toAgentContext();
     assertThat(ctx.metrics().modelCalls()).isEqualTo(1);
-  }
-
-  @Test
-  void expectingToolCallResults_trueWhenLastTurnHasToolCalls() {
-    var messages = List.<Message>of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
-    var conv = AgentConversation.rehydrate(messages, BASE_CONTEXT, EMPTY_INPUT, CONFIG);
-    assertThat(conv.expectingToolCallResults()).isTrue();
-  }
-
-  @Test
-  void expectingToolCallResults_falseWhenNoTurns() {
-    var conv = AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG);
-    assertThat(conv.expectingToolCallResults()).isFalse();
   }
 }
