@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.aiagent.model;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 /**
  * Reconstructs {@link ConversationTurn} list and optional system message from a flat message list.
@@ -27,37 +27,38 @@ public final class TurnReconstructor {
       return new Result(Optional.empty(), List.of());
     }
 
-    var iter = messages.listIterator();
-    Optional<SystemMessage> systemMessage = Optional.empty();
+    Optional<SystemMessage> systemMessage =
+        messages.getFirst() instanceof SystemMessage sm ? Optional.of(sm) : Optional.empty();
+    var body = messages.subList(systemMessage.isPresent() ? 1 : 0, messages.size());
 
-    // extract leading system message
-    if (iter.hasNext()) {
-      var first = iter.next();
-      if (first instanceof SystemMessage sm) {
-        systemMessage = Optional.of(sm);
-      } else {
-        iter.previous(); // put back
-      }
+    if (!body.isEmpty() && !(body.getLast() instanceof AssistantMessage)) {
+      throw new IllegalStateException(
+          "Stored conversation ends with a non-assistant message at index "
+              + (messages.size() - 1)
+              + ": "
+              + body.getLast().getClass().getSimpleName());
     }
 
-    var turns = new ArrayList<ConversationTurn>();
-    var currentInput = new ArrayList<Message>();
-    int positionIndex = 0;
+    var assistantIndices =
+        IntStream.range(0, body.size())
+            .filter(i -> body.get(i) instanceof AssistantMessage)
+            .boxed()
+            .toList();
 
-    while (iter.hasNext()) {
-      var message = iter.next();
-      if (message instanceof AssistantMessage assistant) {
-        positionIndex++;
-        turns.add(
-            new ConversationTurn(
-                positionIndex, List.copyOf(currentInput), assistant, AgentMetrics.empty()));
-        currentInput.clear();
-      } else {
-        currentInput.add(message);
-      }
-    }
-    // trailing non-assistant messages (pending input) are intentionally ignored
+    var turns =
+        IntStream.range(0, assistantIndices.size())
+            .mapToObj(
+                n -> {
+                  int end = assistantIndices.get(n);
+                  int start = n == 0 ? 0 : assistantIndices.get(n - 1) + 1;
+                  return new ConversationTurn(
+                      n + 1,
+                      List.copyOf(body.subList(start, end)),
+                      (AssistantMessage) body.get(end),
+                      AgentMetrics.empty());
+                })
+            .toList();
 
-    return new Result(systemMessage, List.copyOf(turns));
+    return new Result(systemMessage, turns);
   }
 }
