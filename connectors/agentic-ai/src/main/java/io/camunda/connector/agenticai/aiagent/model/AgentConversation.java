@@ -120,7 +120,7 @@ public final class AgentConversation {
   }
 
   /** Returns the agent instance key of that conversation, or null if it is not existing (yet). */
-  public AgentInstanceKey agentInstanceKey() {
+  public @Nullable AgentInstanceKey agentInstanceKey() {
     return AgentInstanceKey.from(currentContext.metadata());
   }
 
