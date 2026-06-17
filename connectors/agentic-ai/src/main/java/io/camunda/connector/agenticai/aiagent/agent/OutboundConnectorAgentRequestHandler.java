@@ -23,7 +23,7 @@ public class OutboundConnectorAgentRequestHandler
   public OutboundConnectorAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
-      AgentInputComposer agentInputComposer,
+      ConversationTurnComposer agentInputComposer,
       AiFrameworkAdapter<?> framework,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,

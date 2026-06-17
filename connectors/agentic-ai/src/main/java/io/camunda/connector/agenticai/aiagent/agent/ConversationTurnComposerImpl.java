@@ -36,9 +36,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AgentInputComposerImpl implements AgentInputComposer {
+public class ConversationTurnComposerImpl implements ConversationTurnComposer {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AgentInputComposerImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConversationTurnComposerImpl.class);
 
   private static final String EVENT_CONTENT_EMPTY =
       "An event was triggered but no content was returned.";
@@ -56,7 +56,7 @@ public class AgentInputComposerImpl implements AgentInputComposer {
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
 
-  public AgentInputComposerImpl(GatewayToolHandlerRegistry gatewayToolHandlers) {
+  public ConversationTurnComposerImpl(GatewayToolHandlerRegistry gatewayToolHandlers) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
   }
@@ -89,7 +89,7 @@ public class AgentInputComposerImpl implements AgentInputComposer {
       // either we have all results or we interrupted the missing tool calls
       // if message is null, we wait on further tool call results to be added
       if (toolCallResultMessage.isEmpty()) {
-        return new AgentInput.NoOp();
+        return new AgentInput.None();
       }
 
       final var toolCallResult = toolCallResultMessage.get();
@@ -108,12 +108,12 @@ public class AgentInputComposerImpl implements AgentInputComposer {
 
     if (messages.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
-      return new AgentInput.Cancel(
+      return new AgentInput.Cancellation(
           ERROR_CODE_NO_USER_MESSAGE_CONTENT,
           "No user message content available to start the conversation.");
     }
 
-    return new AgentInput.Proceed(messages);
+    return new AgentInput.NextTurn(messages);
   }
 
   private UserMessage createUserPromptMessage(UserPromptConfiguration userPrompt) {

@@ -80,7 +80,7 @@ class JobWorkerAgentRequestHandlerTest {
 
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
-  @Mock private AgentInputComposer agentInputComposer;
+  @Mock private ConversationTurnComposer agentInputComposer;
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
@@ -355,7 +355,7 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(AgentConversation.class)))
-        .thenReturn(new AgentInput.NoOp());
+        .thenReturn(new AgentInput.None());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response.variables()).isEmpty();
@@ -373,7 +373,7 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(AgentConversation.class)))
-        .thenReturn(new AgentInput.Cancel("NO_USER_MESSAGE_CONTENT", "nothing to add"));
+        .thenReturn(new AgentInput.Cancellation("NO_USER_MESSAGE_CONTENT", "nothing to add"));
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response.variables()).isEmpty();
@@ -543,7 +543,7 @@ class JobWorkerAgentRequestHandlerTest {
 
   private void mockProceed(Message... inputMessages) {
     when(agentInputComposer.compose(any(AgentConversation.class)))
-        .thenReturn(new AgentInput.Proceed(List.of(inputMessages)));
+        .thenReturn(new AgentInput.NextTurn(List.of(inputMessages)));
   }
 
   private void mockResponseHandler() {

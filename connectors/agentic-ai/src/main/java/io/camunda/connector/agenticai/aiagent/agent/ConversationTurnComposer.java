@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 
-/** Composes the next agent input decision from the current conversation state. */
-public interface AgentInputComposer {
+/** Composes the next conversation turn from the current conversation state. */
+public interface ConversationTurnComposer {
   AgentInput compose(AgentConversation conversation);
 }

@@ -44,7 +44,7 @@ public abstract class BaseAgentRequestHandler<
 
   private final AgentInitializer agentInitializer;
   private final ConversationStoreRegistry conversationStoreRegistry;
-  private final AgentInputComposer agentInputComposer;
+  private final ConversationTurnComposer agentInputComposer;
   private final AiFrameworkAdapter<?> framework;
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
@@ -53,7 +53,7 @@ public abstract class BaseAgentRequestHandler<
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
-      AgentInputComposer agentInputComposer,
+      ConversationTurnComposer agentInputComposer,
       AiFrameworkAdapter<?> framework,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
@@ -121,15 +121,15 @@ public abstract class BaseAgentRequestHandler<
 
       final var input = agentInputComposer.compose(conversation);
       return switch (input) {
-        case AgentInput.NoOp ignored -> {
+        case AgentInput.None ignored -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
           yield handleNoOp(executionContext);
         }
-        case AgentInput.Cancel(var errorCode, var message) -> {
+        case AgentInput.Cancellation(var errorCode, var message) -> {
           LOGGER.debug("Conversation cannot continue ({}): {}", errorCode, message);
           yield handleInputCancel(executionContext, errorCode, message);
         }
-        case AgentInput.Proceed(var messages) ->
+        case AgentInput.NextTurn(var messages) ->
             proceed(executionContext, conversation.applyInput(messages), session, store);
       };
     }
@@ -230,8 +230,8 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * Called when {@link AgentInputComposer} returns {@link AgentInput.Cancel}. Subclasses decide
-   * whether to throw or return an error/no-op response.
+   * Called when {@link ConversationTurnComposer} returns {@link AgentInput.Cancellation}.
+   * Subclasses decide whether to throw or return an error/no-op response.
    */
   protected abstract R handleInputCancel(C executionContext, String errorCode, String message);
 

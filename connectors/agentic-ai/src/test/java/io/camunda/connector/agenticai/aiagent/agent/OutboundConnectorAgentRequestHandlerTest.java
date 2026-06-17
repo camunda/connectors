@@ -73,7 +73,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
-  @Mock private AgentInputComposer agentInputComposer;
+  @Mock private ConversationTurnComposer agentInputComposer;
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
@@ -257,7 +257,7 @@ class OutboundConnectorAgentRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(AgentConversation.class)))
         .thenReturn(
-            new AgentInput.Cancel(
+            new AgentInput.Cancellation(
                 "NO_USER_MESSAGE_CONTENT",
                 "No user message content available to start the conversation."));
 
@@ -380,7 +380,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   private void mockProceed(Message... inputMessages) {
     when(agentInputComposer.compose(any(AgentConversation.class)))
-        .thenReturn(new AgentInput.Proceed(List.of(inputMessages)));
+        .thenReturn(new AgentInput.NextTurn(List.of(inputMessages)));
   }
 
   private void mockResponseHandler() {

@@ -29,9 +29,9 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class AgentInputComposerImplTest {
+class ConversationTurnComposerImplTest {
 
-  private AgentInputComposerImpl composer;
+  private ConversationTurnComposerImpl composer;
   private GatewayToolHandlerRegistry gatewayToolHandlers;
 
   @BeforeEach
@@ -41,7 +41,7 @@ class AgentInputComposerImplTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(gatewayToolHandlers.handlerForToolDefinition(any()))
         .thenReturn(java.util.Optional.empty());
-    composer = new AgentInputComposerImpl(gatewayToolHandlers);
+    composer = new ConversationTurnComposerImpl(gatewayToolHandlers);
   }
 
   private static AgentConversation emptyConversation(AgentInvocationInput input) {
@@ -51,47 +51,47 @@ class AgentInputComposerImplTest {
   }
 
   @Test
-  void firstTurn_withUserPrompt_returnsProceed() {
+  void firstTurn_withUserPrompt_returnsNextTurn() {
     var input = AgentInvocationInput.from(new UserPromptConfiguration("Hello?", null), List.of());
     var conv = emptyConversation(input);
     var result = composer.compose(conv);
-    assertThat(result).isInstanceOf(AgentInput.Proceed.class);
-    var proceed = (AgentInput.Proceed) result;
-    assertThat(proceed.messages()).hasSize(1);
-    assertThat(proceed.messages().getFirst()).isInstanceOf(UserMessage.class);
+    assertThat(result).isInstanceOf(AgentInput.NextTurn.class);
+    var nextTurn = (AgentInput.NextTurn) result;
+    assertThat(nextTurn.messages()).hasSize(1);
+    assertThat(nextTurn.messages().getFirst()).isInstanceOf(UserMessage.class);
   }
 
   @Test
-  void firstTurn_emptyPrompt_returnsCancel() {
+  void firstTurn_emptyPrompt_returnsCancellation() {
     var input = AgentInvocationInput.from(new UserPromptConfiguration("", null), List.of());
     var conv = emptyConversation(input);
     var result = composer.compose(conv);
-    assertThat(result).isInstanceOf(AgentInput.Cancel.class);
-    assertThat(((AgentInput.Cancel) result).errorCode())
+    assertThat(result).isInstanceOf(AgentInput.Cancellation.class);
+    assertThat(((AgentInput.Cancellation) result).errorCode())
         .isEqualTo(AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT);
   }
 
   @Test
-  void firstTurn_nullPrompt_returnsCancel() {
+  void firstTurn_nullPrompt_returnsCancellation() {
     var input = AgentInvocationInput.from(null, List.of());
     var conv = emptyConversation(input);
     var result = composer.compose(conv);
-    assertThat(result).isInstanceOf(AgentInput.Cancel.class);
+    assertThat(result).isInstanceOf(AgentInput.Cancellation.class);
   }
 
   @Test
-  void toolResultTurn_allResultsPresent_returnsProceed() {
+  void toolResultTurn_allResultsPresent_returnsNextTurn() {
     var ctx = AgentContext.builder().state(AgentState.READY).build();
     var config = new AgentConfiguration(null, null, null, null, null, null);
     var input = AgentInvocationInput.from(null, TOOL_CALL_RESULTS);
     List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var conv = AgentConversation.rehydrate(history, ctx, input, config);
     var result = composer.compose(conv);
-    assertThat(result).isInstanceOf(AgentInput.Proceed.class);
+    assertThat(result).isInstanceOf(AgentInput.NextTurn.class);
   }
 
   @Test
-  void toolResultTurn_missingResults_returnsNoOp() {
+  void toolResultTurn_missingResults_returnsNone() {
     var ctx = AgentContext.builder().state(AgentState.READY).build();
     var config = new AgentConfiguration(null, null, null, null, null, null);
     // only partial results (fewer than expected tool calls)
@@ -100,6 +100,6 @@ class AgentInputComposerImplTest {
     List<Message> history = List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var conv = AgentConversation.rehydrate(history, ctx, input, config);
     var result = composer.compose(conv);
-    assertThat(result).isInstanceOf(AgentInput.NoOp.class);
+    assertThat(result).isInstanceOf(AgentInput.None.class);
   }
 }
