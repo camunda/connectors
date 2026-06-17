@@ -29,7 +29,9 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.Document;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -152,6 +154,97 @@ class ConversationTurnComposerImplTest {
     assertThat(toolResults).hasSize(2);
     assertThat(toolResults.get(1).content()).isEqualTo(ToolCallResult.CONTENT_CANCELLED);
     assertThat(nextTurn.messages().getLast()).isInstanceOf(UserMessage.class);
+  }
+
+  @Test
+  void firstTurn_withUserPromptDocuments_addsDocumentContent() {
+    var document = mock(Document.class);
+    var input =
+        AgentInvocationInput.from(
+            new UserPromptConfiguration("Tell me a story", List.of(document)), List.of());
+    var history = TurnReconstructor.reconstruct(List.of());
+
+    var result = composer.compose(history, input, CTX, CONFIG);
+
+    assertThat(result).isInstanceOf(AgentInput.NextTurn.class);
+    var userMessage = (UserMessage) ((AgentInput.NextTurn) result).messages().getFirst();
+    assertThat(userMessage.content()).contains(DocumentContent.documentContent(document));
+  }
+
+  @Test
+  void toolResultTurn_reordersResultsToMatchToolCallOrder() {
+    // results supplied in reverse order (getDateTime, getWeather)
+    var input =
+        AgentInvocationInput.from(
+            null, List.of(TOOL_CALL_RESULTS.get(1), TOOL_CALL_RESULTS.get(0)));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(history, input, CTX_WITH_CONVERSATION, CONFIG);
+
+    var message = (ToolCallResultMessage) ((AgentInput.NextTurn) result).messages().getFirst();
+    // ordered to match the tool calls (getWeather=abcdef, getDateTime=fedcba), not input order
+    assertThat(message.results())
+        .extracting(ToolCallResult::id)
+        .containsExactly("abcdef", "fedcba");
+  }
+
+  @Test
+  void waitForToolResults_allResultsPresentWithEvent_appendsEventAsUserMessage() {
+    var config =
+        new AgentConfiguration(
+            null,
+            null,
+            null,
+            null,
+            new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
+            null);
+    var input =
+        AgentInvocationInput.from(
+            null,
+            List.of(
+                TOOL_CALL_RESULTS.get(0),
+                TOOL_CALL_RESULTS.get(1),
+                ToolCallResult.builder().content("An event occurred").build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(history, input, CTX_WITH_CONVERSATION, config);
+
+    assertThat(result).isInstanceOf(AgentInput.NextTurn.class);
+    var messages = ((AgentInput.NextTurn) result).messages();
+    assertThat(messages.getFirst()).isInstanceOf(ToolCallResultMessage.class);
+    assertThat(((ToolCallResultMessage) messages.getFirst()).results()).hasSize(2);
+    // the event is appended as a trailing user message once all tool results are present
+    assertThat(messages.getLast()).isInstanceOf(UserMessage.class);
+  }
+
+  @Test
+  void waitForToolResults_missingResultWithEvent_returnsNone() {
+    // in WAIT mode an event must not force proceeding while tool results are still missing
+    var config =
+        new AgentConfiguration(
+            null,
+            null,
+            null,
+            null,
+            new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
+            null);
+    var input =
+        AgentInvocationInput.from(
+            null,
+            List.of(
+                TOOL_CALL_RESULTS.getFirst(),
+                ToolCallResult.builder().content("An event occurred").build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(history, input, CTX_WITH_CONVERSATION, config);
+
+    assertThat(result).isInstanceOf(AgentInput.None.class);
   }
 
   @Test
