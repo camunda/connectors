@@ -96,7 +96,7 @@ class AgentResponseHandlerTest {
     var config = new AgentConfiguration(null, null, null, null, null, responseConfig);
     var input = AgentInvocationInput.from(null, List.of());
     return AgentConversation.rehydrate(List.of(), BASE_AGENT_CONTEXT, input, config)
-        .applyInput(List.of())
+        .addNextTurn(List.of())
         .ingest(assistantMessage, AgentMetrics.TokenUsage.empty());
   }
 

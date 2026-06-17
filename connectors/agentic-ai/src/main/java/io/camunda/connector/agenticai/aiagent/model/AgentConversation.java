@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
  * Immutable domain aggregate representing the agent's full conversation across all turns.
  *
  * <p>Built once per invocation via {@link #rehydrate}, then mutated through copy-on-write methods:
- * {@link #updateSystemMessage}, {@link #applyInput}, {@link #ingest}, {@link
+ * {@link #updateSystemMessage}, {@link #addNextTurn}, {@link #ingest}, {@link
  * #withStoredConversation}.
  */
 public final class AgentConversation {
@@ -39,7 +39,7 @@ public final class AgentConversation {
   private final @Nullable SystemMessage systemMessage;
   private final List<ConversationTurn> turns;
   private final @Nullable List<Message> pendingInputMessages;
-  private final AgentContext baseAgentContext;
+  private final AgentContext currentContext;
   private final AgentInvocationInput invocationInput;
   private final AgentConfiguration configuration;
   private final AgentMetrics metricsDelta;
@@ -48,7 +48,7 @@ public final class AgentConversation {
       @Nullable SystemMessage systemMessage,
       List<ConversationTurn> turns,
       @Nullable List<Message> pendingInputMessages,
-      AgentContext baseAgentContext,
+      AgentContext currentContext,
       AgentInvocationInput invocationInput,
       AgentConfiguration configuration,
       AgentMetrics metricsDelta) {
@@ -56,7 +56,7 @@ public final class AgentConversation {
     this.turns = List.copyOf(turns);
     this.pendingInputMessages =
         pendingInputMessages == null ? null : List.copyOf(pendingInputMessages);
-    this.baseAgentContext = baseAgentContext;
+    this.currentContext = currentContext;
     this.invocationInput = invocationInput;
     this.configuration = configuration;
     this.metricsDelta = metricsDelta;
@@ -103,7 +103,7 @@ public final class AgentConversation {
         newSysMsg,
         turns,
         pendingInputMessages,
-        baseAgentContext,
+            currentContext,
         invocationInput,
         configuration,
         metricsDelta);
@@ -112,12 +112,12 @@ public final class AgentConversation {
   /**
    * Returns a new instance with the given messages set as the pending input for the next LLM call.
    */
-  public AgentConversation applyInput(List<Message> inputMessages) {
+  public AgentConversation addNextTurn(List<Message> inputMessages) {
     return new AgentConversation(
         systemMessage,
         turns,
         inputMessages,
-        baseAgentContext,
+            currentContext,
         invocationInput,
         configuration,
         metricsDelta);
@@ -127,7 +127,7 @@ public final class AgentConversation {
    * Completes the current pending turn by recording the assistant response and token usage. Clears
    * {@code pendingInputMessages} and appends a new {@link ConversationTurn}.
    *
-   * @throws IllegalStateException if called before {@link #applyInput}
+   * @throws IllegalStateException if called before {@link #addNextTurn}
    */
   public AgentConversation ingest(
       AssistantMessage assistantMessage, AgentMetrics.TokenUsage tokenUsage) {
@@ -153,7 +153,7 @@ public final class AgentConversation {
             .incrementTokenUsage(tokenUsage)
             .incrementToolCalls(toolCallCount);
     return new AgentConversation(
-        systemMessage, newTurns, null, baseAgentContext, invocationInput, configuration, newDelta);
+        systemMessage, newTurns, null, currentContext, invocationInput, configuration, newDelta);
   }
 
   /**
@@ -161,7 +161,7 @@ public final class AgentConversation {
    * conversation.
    */
   public AgentConversation withStoredConversation(ConversationContext ref) {
-    var updatedCtx = baseAgentContext.withConversation(ref);
+    var updatedCtx = currentContext.withConversation(ref);
     return new AgentConversation(
         systemMessage,
         turns,
@@ -187,7 +187,7 @@ public final class AgentConversation {
   }
 
   public AgentContext baseAgentContext() {
-    return baseAgentContext;
+    return currentContext;
   }
 
   public AgentInvocationInput invocationInput() {
@@ -204,7 +204,7 @@ public final class AgentConversation {
 
   /** Returns the agent instance key from metadata, or {@code null} if metadata is absent. */
   public @Nullable Long agentInstanceKey() {
-    var metadata = baseAgentContext.metadata();
+    var metadata = currentContext.metadata();
     return metadata != null ? metadata.agentInstanceKey() : null;
   }
 
@@ -242,7 +242,7 @@ public final class AgentConversation {
             .map(m -> m.contextWindowSize())
             .orElse(DEFAULT_CONTEXT_WINDOW_SIZE);
     var windowed = MessageWindowFilter.apply(allMessages(), windowSize);
-    return new ConversationSnapshot(windowed, baseAgentContext.toolDefinitions());
+    return new ConversationSnapshot(windowed, currentContext.toolDefinitions());
   }
 
   /** Validates the agent has not exceeded configured model call limits. */
@@ -252,7 +252,7 @@ public final class AgentConversation {
             .map(LimitsConfiguration::maxModelCalls)
             .filter(Objects::nonNull)
             .orElse(DEFAULT_MAX_MODEL_CALLS);
-    int current = baseAgentContext.metrics().modelCalls();
+    int current = currentContext.metrics().modelCalls();
     if (current >= maxModelCalls) {
       return ValidationResult.of(
           List.of(
@@ -271,12 +271,12 @@ public final class AgentConversation {
   public AgentContext toAgentContext() {
     var delta = metricsDelta;
     var total =
-        baseAgentContext
+        currentContext
             .metrics()
             .incrementModelCalls(delta.modelCalls())
             .incrementTokenUsage(delta.tokenUsage())
             .incrementToolCalls(delta.toolCalls());
-    return baseAgentContext.withMetrics(total);
+    return currentContext.withMetrics(total);
   }
 
   /** Returns the last turn, or empty if no turns have been completed. */

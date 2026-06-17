@@ -130,7 +130,7 @@ public abstract class BaseAgentRequestHandler<
           yield handleInputCancel(executionContext, errorCode, message);
         }
         case AgentInput.NextTurn(var messages) ->
-            proceed(executionContext, conversation.applyInput(messages), session, store);
+            proceed(executionContext, conversation.addNextTurn(messages), session, store);
       };
     }
   }
