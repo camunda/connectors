@@ -316,7 +316,7 @@ public abstract class BaseAgentRequestHandler<
       C executionContext,
       AgentContext context,
       AgentMetrics metricsDelta,
-      AgentInstanceUpdateStatus nextState,
+      @Nullable AgentInstanceUpdateStatus nextState,
       boolean rethrowOnFailure) {
     try {
 
@@ -327,10 +327,14 @@ public abstract class BaseAgentRequestHandler<
           metricsDelta.tokenUsage().inputTokenCount(),
           metricsDelta.tokenUsage().outputTokenCount(),
           metricsDelta.toolCalls());
+      var updateRequestBuilder = AgentInstanceUpdateRequest.builder().delta(metricsDelta);
+      if (nextState != null) {
+        updateRequestBuilder.status(nextState);
+      }
       agentInstanceClient.update(
           executionContext,
           AgentInstanceKey.from(context.metadata()),
-          AgentInstanceUpdateRequest.builder().status(nextState).delta(metricsDelta).build());
+          updateRequestBuilder.build());
     } catch (Exception e) {
       LOGGER.error("Failed to update agent instance metrics; metrics may be inaccurate", e);
       if (rethrowOnFailure) {
