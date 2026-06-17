@@ -673,7 +673,11 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
 
     registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
-    var executableId = registry.query(f -> f.elementId(elementId)).getFirst().executableId();
+    var executableId =
+        registry
+            .query(new ActiveExecutableQuery(null, elementId, null, null))
+            .getFirst()
+            .executableId();
     assertThat(activityLogRegistry.getLogs(executableId)).hasSize(1); // initial activation log
 
     // capture logs before reset to verify they survive the restart
