@@ -52,6 +52,27 @@ public interface WebhookConnectorExecutable
   WebhookResult triggerWebhook(WebhookProcessingPayload payload) throws Exception;
 
   /**
+   * Builds the HTTP response returned to the caller after the webhook has been triggered and
+   * correlated. Invoked by the runtime once correlation has completed; the {@link
+   * WebhookResultContext} carries the processed request data, any connector data, and the {@link
+   * io.camunda.connector.api.inbound.CorrelationResult.Success correlation result}. The activated
+   * element is available via the correlation result, so element-scoped properties can be resolved
+   * with {@link io.camunda.connector.api.inbound.CorrelationResult.Success#bindProperties(Class)}.
+   *
+   * <p><b>Warning:</b> this runs after correlation has taken effect (past the transaction boundary)
+   * — the process instance has been created or the message published. A failure here cannot undo
+   * that, so exceptions must be handled carefully and must not report the event as unprocessed.
+   *
+   * <p>Returning {@code null} produces an empty {@code 200 OK}. The default returns {@code null}.
+   *
+   * @param result the correlation result together with the processed request data
+   * @return the HTTP response to return to the caller, or {@code null} for an empty 200
+   */
+  default WebhookHttpResponse respond(WebhookResultContext result) {
+    return null;
+  }
+
+  /**
    * @see InboundConnectorExecutable#activate(InboundConnectorContext)
    */
   @Override

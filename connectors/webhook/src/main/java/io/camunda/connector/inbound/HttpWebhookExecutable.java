@@ -17,6 +17,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
@@ -127,9 +128,32 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     }
 
     var mappedRequest = mapRequest(payload);
-    // The response is resolved by the runtime per activated element after correlation
-    // (see InboundWebhookRestController), so the executable does not provide a response here.
+    // The response is produced after correlation by respond(...), which can resolve it from the
+    // element that actually matched, so it is not provided here.
     return new WebhookProcessingResultImpl(mappedRequest, null, null);
+  }
+
+  @Override
+  @SuppressWarnings("deprecation") // intentionally honors the legacy responseBodyExpression
+  public WebhookHttpResponse respond(WebhookResultContext result) {
+    if (result.correlation() == null) {
+      return null;
+    }
+    // Resolve the response from the element that actually matched this request (element-scoped),
+    // so webhook elements deduplicated into one executable each produce their own response.
+    var expressions =
+        result.correlation().bindProperties(DynamicWebhookPropertiesWrapper.class).inbound();
+    if (expressions == null) {
+      return null;
+    }
+    if (expressions.responseExpression() != null) {
+      return expressions.responseExpression().apply(result);
+    }
+    if (expressions.responseBodyExpression() != null) {
+      // Backwards compatibility: wrap the legacy body-only expression into a full response.
+      return WebhookHttpResponse.ok(expressions.responseBodyExpression().apply(result));
+    }
+    return null;
   }
 
   private void validateHttpMethod(WebhookProcessingPayload payload) {

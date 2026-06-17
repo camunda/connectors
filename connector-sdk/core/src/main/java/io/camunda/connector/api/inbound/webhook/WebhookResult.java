@@ -32,7 +32,15 @@ public interface WebhookResult {
    */
   MappedHttpRequest request();
 
-  /** Returns a function that can be used to generate a response to the webhook request. */
+  /**
+   * Returns a function that can be used to generate a response to the webhook request.
+   *
+   * @deprecated superseded by {@link WebhookConnectorExecutable#respond(WebhookResultContext)},
+   *     which is invoked after correlation and can therefore resolve the response from the
+   *     activated element. This function is created during {@code triggerWebhook}, before the
+   *     activated element is known.
+   */
+  @Deprecated
   default Function<WebhookResultContext, WebhookHttpResponse> response() {
     return null;
   }
