@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.model.message.*;
 import java.util.List;
@@ -70,6 +71,16 @@ class TurnReconstructorTest {
     assertTurn(result.turns().get(1), 2, false, tcr);
     assertTurn(result.turns().get(2), 3, false, u2);
     assertThat(result.turns().get(2).assistantMessage()).isEqualTo(a3);
+  }
+
+  @Test
+  void trailingNonAssistantMessage_throwsIllegalStateException() {
+    var u1 = userMessage("hi");
+    var a1 = assistantMessage("hello");
+    var u2 = userMessage("trailing input not yet answered");
+    assertThatThrownBy(() -> TurnReconstructor.reconstruct(List.of(u1, a1, u2)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("UserMessage");
   }
 
   @Test
