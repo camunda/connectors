@@ -20,13 +20,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -49,13 +51,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
 
-@WireMockTest
 @Import(CamundaDocumentTestConfiguration.class)
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
+
+  // Programmatic registration (not @WireMockTest) so we can set a verbose notifier that logs the
+  // request journal. We use ConsoleNotifier (stdout) because wiremock-standalone's Slf4jNotifier
+  // is bound to its shaded SLF4J and never reaches our logback.
+  @RegisterExtension
+  static WireMockExtension wireMockExtension =
+      WireMockExtension.newInstance()
+          .options(options().dynamicPort().notifier(new ConsoleNotifier(true)))
+          .configureStaticDsl(true)
+          .build();
 
   @Autowired private CamundaProcessTestContext processTestContext;
 
@@ -89,8 +101,8 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   }
 
   @BeforeEach
-  void setupWireMock(WireMockRuntimeInfo wm) {
-    wireMock = wm;
+  void setupWireMock() {
+    wireMock = wireMockExtension.getRuntimeInfo();
     // WireMock returns the content type for the YAML file as application/json, so
     // we need to override the stub manually
     WireMock.resetAllScenarios();
