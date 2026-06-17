@@ -90,6 +90,17 @@ class AgentConversationTest {
   }
 
   @Test
+  void allMessages_omitsSystemMessage_whenNull() {
+    var history = TurnReconstructor.reconstruct(List.of());
+    var conv =
+        AgentConversation.rehydrate(
+            history, null, List.of(userMessage("hi")), BASE_CONTEXT, CONFIG);
+    assertThat(conv.systemMessage()).isNull();
+    assertThat(conv.allMessages()).noneMatch(SystemMessage.class::isInstance);
+    assertThat(conv.allMessages()).containsExactly(userMessage("hi"));
+  }
+
+  @Test
   void window_returnsConversationSnapshot_withToolDefinitions() {
     var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
     var conv = rehydrate(storedMessages, List.of(userMessage("next")));

@@ -528,6 +528,29 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   @Test
+  void blankSystemPrompt_omitsSystemMessageFromConversation() {
+    // a blank composed system prompt must not be sent to the LLM nor persisted as a message
+    when(systemPromptComposer.compose(any(), any())).thenReturn("   ");
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = assistantMessage("hi");
+    mockFrameworkExecution(assistantMessage);
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c -> assertThat(c.messages()).containsExactly(USER_MESSAGE, assistantMessage));
+    // no system message is sent to the LLM either
+    assertThat(snapshotCaptor.getValue().messages()).containsExactly(USER_MESSAGE);
+  }
+
+  @Test
   void throwsWhenModelCallLimitReachedAfterRehydration() {
     // a multi-turn conversation rehydrated from history: reconstructed turns carry empty metrics,
     // so the limit must be enforced against the durable cumulative counter on the agent context.

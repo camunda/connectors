@@ -36,6 +36,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -205,10 +206,13 @@ public abstract class BaseAgentRequestHandler<
     return currentModelCalls >= maxModelCalls;
   }
 
-  private SystemMessage createSystemMessage(
+  private @Nullable SystemMessage createSystemMessage(
       AgentContext agentContext, AgentConfiguration configuration) {
     LOGGER.trace("Composing system message");
     var composedPrompt = systemPromptComposer.compose(agentContext, configuration);
+    if (StringUtils.isBlank(composedPrompt)) {
+      return null;
+    }
     return SystemMessage.builder().content(MessageUtil.singleTextContent(composedPrompt)).build();
   }
 
