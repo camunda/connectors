@@ -30,7 +30,7 @@ public record ConversationTurn(
 
   public ConversationTurn {
     if (iterationKey < 1) {
-      throw new IllegalArgumentException("iterationKey should be greater than 1");
+      throw new IllegalArgumentException("iterationKey should be greater than 0");
     }
     Objects.requireNonNull(inputMessages, "inputMessages must not be null");
     Objects.requireNonNull(metrics, "metrics must not be null");
