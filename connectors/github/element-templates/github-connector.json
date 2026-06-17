@@ -589,7 +589,7 @@
     {
       "group": "authentication",
       "type": "Hidden",
-      "value": "= if authType = \"github_app\" then {\"camunda.function.type\":\"createGithubAppInstallationToken\",\"params\":[githubAppPrivateKey,githubAppAppId,githubAppInstallationId]} else pat",
+      "value": "= if authentication.authType = \"github_app\" then {\"camunda.function.type\":\"createGithubAppInstallationToken\",\"params\":[authentication.githubAppPrivateKey,authentication.githubAppAppId,authentication.githubAppInstallationId]} else authentication.pat",
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.token"
