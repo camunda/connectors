@@ -57,6 +57,22 @@ class MessageWindowFilterTest {
   }
 
   @Test
+  void doesNotCountDocumentMessagesTowardWindowLimit() {
+    var u1 = userMessage("1");
+    var a1 = assistantMessage("a1");
+    var docMsg =
+        UserMessage.builder()
+            .content(singleTextContent("doc"))
+            .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
+            .build();
+    var a2 = assistantMessage("a2");
+    // 3 non-document messages (u1, a1, a2) within window=3; the document message must not be
+    // counted, so nothing is evicted and the document message is retained
+    var result = MessageWindowFilter.apply(List.of(u1, a1, docMsg, a2), 3);
+    assertThat(result).containsExactly(u1, a1, docMsg, a2);
+  }
+
+  @Test
   void evictsDocumentMessages_whenToolCallResultEvicted() {
     var u1 = userMessage("hi");
     var a1 = assistantMessage("thinking", TOOL_CALLS);
