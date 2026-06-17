@@ -186,4 +186,82 @@ class InboundExecutableQueryServiceTest {
         .as("lastUpdatedAt should be stable across queries for Cancelled")
         .isEqualTo(health2.getLastUpdatedAt());
   }
+
+  @Test
+  void aggregateHealth_withDownExecutable_returnsDownWithPerExecutableDetails() {
+    var id = ExecutableId.fromDeduplicationId("test-down");
+    var error = new Health.Error("SOME_ERROR", "something failed");
+    stateStore.put(
+        id,
+        new RegisteredExecutable.FailedToActivate(
+            testValidDetails("test-down"), "activation failed", id, Health.down(error)));
+
+    var result = queryService.aggregateHealth();
+
+    assertThat(result.getStatus()).isEqualTo(Health.Status.DOWN);
+    assertThat(result.getError().code()).isEqualTo("CONNECTORS_DOWN");
+    assertThat(result.getDetails()).containsKey("test-down");
+    var executableHealth = (Health) result.getDetails().get("test-down");
+    assertThat(executableHealth.getStatus()).isEqualTo(Health.Status.DOWN);
+    assertThat(executableHealth.getError()).isEqualTo(error);
+  }
+
+  @Test
+  void aggregateHealth_downExecutableDetails_containEnrichmentKeys() {
+    var id = ExecutableId.fromDeduplicationId("test-down");
+    stateStore.put(
+        id,
+        new RegisteredExecutable.FailedToActivate(
+            testValidDetails("test-down"),
+            "activation failed",
+            id,
+            Health.down(new Health.Error("ERROR", "failed"))));
+
+    var result = queryService.aggregateHealth();
+
+    var executableHealth = (Health) result.getDetails().get("test-down");
+    assertThat(executableHealth.getDetails())
+        .containsEntry("processId", "processId")
+        .containsEntry("tenantId", "tenant")
+        .containsEntry("type", "test-type");
+  }
+
+  @Test
+  void aggregateHealth_connectorProvidedDetailsNotOverwrittenByEnrichment() {
+    var id = ExecutableId.fromDeduplicationId("test-down");
+    var connectorHealth =
+        Health.down(
+            new Health.Error("ERROR", "failed"),
+            Map.of("type", "connector-provided-type", "customKey", "customValue"));
+    stateStore.put(
+        id,
+        new RegisteredExecutable.FailedToActivate(
+            testValidDetails("test-down"), "activation failed", id, connectorHealth));
+
+    var result = queryService.aggregateHealth();
+
+    var executableHealth = (Health) result.getDetails().get("test-down");
+    assertThat(executableHealth.getDetails())
+        .containsEntry("type", "connector-provided-type")
+        .containsEntry("customKey", "customValue");
+  }
+
+  @Test
+  void aggregateHealth_enrichedHealth_preservesLastUpdatedAt() throws InterruptedException {
+    var id = ExecutableId.fromDeduplicationId("test-down");
+    var originalHealth = Health.down(new Health.Error("ERROR", "failed"));
+    var originalTimestamp = originalHealth.getLastUpdatedAt();
+    stateStore.put(
+        id,
+        new RegisteredExecutable.FailedToActivate(
+            testValidDetails("test-down"), "activation failed", id, originalHealth));
+
+    Thread.sleep(5);
+    var result = queryService.aggregateHealth();
+
+    var executableHealth = (Health) result.getDetails().get("test-down");
+    assertThat(executableHealth.getLastUpdatedAt())
+        .as("lastUpdatedAt should be preserved after enrichment, not reset to query time")
+        .isEqualTo(originalTimestamp);
+  }
 }

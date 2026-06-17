@@ -228,27 +228,19 @@ public class InboundExecutableQueryService {
     Map<String, Object> details = new LinkedHashMap<>();
     if (health.getDetails() != null) details.putAll(health.getDetails());
     if (!def.elements().isEmpty()) {
-      details.put("processId", def.elements().getFirst().bpmnProcessId());
+      details.putIfAbsent("processId", def.elements().getFirst().bpmnProcessId());
     }
-    details.put("tenantId", def.tenantId());
-    details.put("type", def.type());
-    return withDetails(health, details);
+    details.putIfAbsent("tenantId", def.tenantId());
+    details.putIfAbsent("type", def.type());
+    return health.withDetails(details);
   }
 
   private Health enrich(Health health, InboundConnectorDetails data) {
     Map<String, Object> details = new LinkedHashMap<>();
     if (health.getDetails() != null) details.putAll(health.getDetails());
-    details.put("processId", data.processDefinitionId());
-    details.put("tenantId", data.tenantId());
-    details.put("type", data.type());
-    return withDetails(health, details);
-  }
-
-  private static Health withDetails(Health health, Map<String, Object> details) {
-    return switch (health.getStatus()) {
-      case UP -> Health.up(details);
-      case DOWN -> Health.down(health.getError(), details);
-      case UNKNOWN -> Health.unknown(details);
-    };
+    details.putIfAbsent("processId", data.processDefinitionId());
+    details.putIfAbsent("tenantId", data.tenantId());
+    details.putIfAbsent("type", data.type());
+    return health.withDetails(details);
   }
 }
