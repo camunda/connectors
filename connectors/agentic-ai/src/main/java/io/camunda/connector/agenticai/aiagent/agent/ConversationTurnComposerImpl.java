@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT;
 import static io.camunda.connector.agenticai.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
@@ -25,6 +26,7 @@ import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -70,6 +72,13 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
       AgentInvocationInput invocationInput,
       AgentContext agentContext,
       AgentConfiguration configuration) {
+    // tool call results arriving without a previous conversation is most likely a modeling error
+    if (agentContext.conversation() == null && !invocationInput.toolCallResults().isEmpty()) {
+      throw new ConnectorException(
+          ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT,
+          "Agent received tool call results, but the agent context was empty (no previous conversation). Is the context configured correctly?");
+    }
+
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
 
     final List<Message> eventMessages =
