@@ -19,6 +19,11 @@ public record AgentMetrics(
     @RecordBuilder.Initializer(source = TokenUsage.class, value = "empty") TokenUsage tokenUsage,
     int toolCalls)
     implements AgentMetricsBuilder.With {
+
+  public static AgentMetrics sum(AgentMetrics left, AgentMetrics right) {
+    return left.add(right);
+  }
+
   public AgentMetrics {
     if (modelCalls < 0) {
       throw new IllegalArgumentException("Model calls must be non-negative");
@@ -41,7 +46,15 @@ public record AgentMetrics(
     return withToolCalls(toolCalls + additionalToolCalls);
   }
 
-  public AgentMetrics minus(AgentMetrics other) {
+  public AgentMetrics add(AgentMetrics other) {
+    return builder()
+        .modelCalls(requirePositive(modelCalls + other.modelCalls(), "modelCalls"))
+        .tokenUsage(tokenUsage.add(other.tokenUsage()))
+        .toolCalls(requirePositive(toolCalls + other.toolCalls(), "toolCalls"))
+        .build();
+  }
+
+  public AgentMetrics subtract(AgentMetrics other) {
     return builder()
         .modelCalls(requirePositive(modelCalls - other.modelCalls(), "modelCalls"))
         .tokenUsage(tokenUsage.minus(other.tokenUsage()))

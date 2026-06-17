@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.model.message.*;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -94,29 +93,9 @@ class AgentConversationTest {
   void window_returnsConversationSnapshot_withToolDefinitions() {
     var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
     var conv = rehydrate(storedMessages, List.of(userMessage("next")));
-    var snapshot = conv.window();
+    var snapshot = conv.window(20);
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
-  }
-
-  @Test
-  void checkLimits_valid_whenUnderLimit() {
-    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
-    var result = conv.checkLimits(new LimitsConfiguration(10));
-    assertThat(result.hasViolations()).isFalse();
-  }
-
-  @Test
-  void checkLimits_violation_whenAtLimit() {
-    var metricsCtx = BASE_CONTEXT.withMetrics(AgentMetrics.builder().modelCalls(10).build());
-    var history = TurnReconstructor.reconstruct(List.of());
-    var conv =
-        AgentConversation.rehydrate(
-            history, systemMessage("sys"), List.of(userMessage("hi")), metricsCtx, CONFIG);
-    var result = conv.checkLimits(new LimitsConfiguration(10));
-    assertThat(result.hasViolations()).isTrue();
-    assertThat(result.violations().getFirst().errorCode())
-        .isEqualTo("MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED");
   }
 
   @Test

@@ -25,6 +25,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.MessageUtil;
@@ -36,6 +38,8 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
+import java.util.Optional;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +49,10 @@ public abstract class BaseAgentRequestHandler<
     implements AgentRequestHandler<C, R> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseAgentRequestHandler.class);
+
+  private static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
+  private static final int DEFAULT_MAX_MODEL_CALLS = 10;
+  private static final String ERROR_MAX_MODEL_CALLS = "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED";
 
   private final AgentInitializer agentInitializer;
   private final ConversationStoreRegistry conversationStoreRegistry;
@@ -146,39 +154,36 @@ public abstract class BaseAgentRequestHandler<
       final ConversationSession session,
       final ConversationStore store) {
     var systemMessage = createSystemMessage(agentContext, configuration);
-    AgentConversation conversation =
+    final var conversation =
         AgentConversation.rehydrate(
             history, systemMessage, inputMessages, agentContext, configuration);
 
-    LOGGER.trace("Validating configured limits for agent execution");
-    final var limitsResult = conversation.checkLimits(configuration.limits());
-    if (limitsResult.hasViolations()) {
-      final var violation = limitsResult.violations().getFirst();
-      throw new ConnectorException(violation.errorCode(), violation.message());
-    }
-
+    throwIfLimitsReached(conversation, configuration);
     onInputApplied(executionContext, conversation);
-
     notifyThinking(executionContext, conversation);
 
     LOGGER.debug("Executing chat request with AI framework");
-    final var chatResponse = framework.executeChatRequest(executionContext, conversation.window());
-    conversation = conversation.ingest(chatResponse.assistantMessage(), chatResponse.tokenUsage());
+    final var chatResponse =
+        framework.executeChatRequest(
+            executionContext, conversation.window(windowSize(configuration)));
+    final var updatedConversation =
+        conversation.ingest(chatResponse.assistantMessage(), chatResponse.tokenUsage());
 
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =
         session.storeMessages(
-            conversation.toAgentContext(), ConversationStoreRequest.of(conversation.allMessages()));
-    conversation = conversation.withStoredConversation(storedRef);
+            updatedConversation.toAgentContext(),
+            ConversationStoreRequest.of(updatedConversation.allMessages()));
 
-    final var agentResponse = responseHandler.createResponse(conversation);
+    final var storedConversation = updatedConversation.withStoredConversation(storedRef);
+    final var agentResponse = responseHandler.createResponse(storedConversation);
 
     LOGGER.debug("Request processing completed with agent response, completing job");
 
     final var messageStorageCompletionListener =
         createStoreCompletionListener(executionContext, store, agentResponse);
-    if (shouldUpdateAgentInstanceBeforeJobCompletion(conversation)) {
-      notifyMetrics(executionContext, conversation, agentResponse, true);
+    if (shouldUpdateAgentInstanceBeforeJobCompletion(storedConversation)) {
+      notifyMetrics(executionContext, storedConversation, agentResponse, true);
       return buildConnectorResponse(
           executionContext, agentResponse, messageStorageCompletionListener);
     }
@@ -188,7 +193,35 @@ public abstract class BaseAgentRequestHandler<
         agentResponse,
         AgentJobCompletionListener.compose(
             messageStorageCompletionListener,
-            createMetricsCompletionListener(executionContext, conversation, agentResponse)));
+            createMetricsCompletionListener(executionContext, storedConversation, agentResponse)));
+  }
+
+  private static @NonNull Integer windowSize(AgentConfiguration configuration) {
+    return Optional.ofNullable(configuration.memory())
+        .map(MemoryConfiguration::contextWindowSize)
+        .orElse(DEFAULT_CONTEXT_WINDOW_SIZE);
+  }
+
+  private void throwIfLimitsReached(
+      AgentConversation conversation, AgentConfiguration configuration) {
+    if (isModelCallLimitExceeded(conversation, modelCallLimit(configuration))) {
+      throw new ConnectorException(
+          ERROR_MAX_MODEL_CALLS,
+          "Maximum number of model calls reached (modelCalls: %d, limit: %d)"
+              .formatted(conversation.totalMetrics().modelCalls(), modelCallLimit(configuration)));
+    }
+  }
+
+  private int modelCallLimit(AgentConfiguration configuration) {
+    return Optional.ofNullable(configuration.limits())
+        .map(LimitsConfiguration::maxModelCalls)
+        .orElse(DEFAULT_MAX_MODEL_CALLS);
+  }
+
+  private boolean isModelCallLimitExceeded(AgentConversation conversation, int maxModelCalls) {
+    LOGGER.trace("Validating configured limits for agent execution");
+    var currentModelCalls = conversation.totalMetrics().modelCalls();
+    return currentModelCalls >= maxModelCalls;
   }
 
   private SystemMessage createSystemMessage(
