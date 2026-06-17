@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.MapUtils;
+import org.awaitility.Awaitility;
 
 public final class TestUtil {
 
@@ -63,7 +64,14 @@ public final class TestUtil {
   }
 
   public static void waitForElementActivation(ZeebeTest zeebeTest, String elementId) {
-    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent()).hasActiveElement(elementId, 1);
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(20, TimeUnit.SECONDS)
+        .untilAsserted(
+            () ->
+                CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+                    .hasActiveElement(elementId, 1));
   }
 
   /**
