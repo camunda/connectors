@@ -196,8 +196,8 @@ public final class AgentConversation {
   }
 
   public AgentMetrics totalMetrics() {
-    return allTurns().stream()
-        .map(ConversationTurn::metrics)
-        .reduce(AgentMetrics.empty(), AgentMetrics::sum);
+    // it's currently the only total projection, as the TurnReconstructor is always assigning empty
+    // metrics per turn
+    return baseAgentContext().metrics();
   }
 }

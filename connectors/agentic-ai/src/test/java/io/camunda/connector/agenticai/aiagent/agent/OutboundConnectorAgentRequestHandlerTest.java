@@ -42,6 +42,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -271,6 +272,34 @@ class OutboundConnectorAgentRequestHandlerTest {
             });
 
     verifyNoInteractions(framework, agentInstanceClient);
+  }
+
+  @Test
+  void throwsWhenModelCallLimitReachedAfterRehydration() {
+    // a conversation rehydrated from history: reconstructed turns carry empty metrics, so the
+    // limit must be enforced against the durable cumulative counter on the agent context.
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentExecutionContext.limits()).thenReturn(new LimitsConfiguration(2));
+
+    final var contextAtLimit =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .toolDefinitions(TOOL_DEFINITIONS)
+            .metrics(new AgentMetrics(2, TokenUsage.empty(), 0))
+            .build();
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(contextAtLimit, List.of()));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
+
+    // limit is checked before the LLM call — no chat request is issued
+    verifyNoInteractions(framework);
   }
 
   @Test

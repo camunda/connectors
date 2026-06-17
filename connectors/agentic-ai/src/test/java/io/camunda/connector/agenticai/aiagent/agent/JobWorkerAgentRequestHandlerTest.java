@@ -14,6 +14,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemM
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCallResultMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -46,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -53,6 +55,7 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Map;
@@ -522,6 +525,34 @@ class JobWorkerAgentRequestHandlerTest {
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void throwsWhenModelCallLimitReachedAfterRehydration() {
+    // a multi-turn conversation rehydrated from history: reconstructed turns carry empty metrics,
+    // so the limit must be enforced against the durable cumulative counter on the agent context.
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentExecutionContext.limits()).thenReturn(new LimitsConfiguration(2));
+
+    final var contextAtLimit =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .toolDefinitions(TOOL_DEFINITIONS)
+            .metrics(new AgentMetrics(2, TokenUsage.empty(), 0))
+            .build();
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(contextAtLimit, List.of()));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
+
+    // limit is checked before the LLM call — no chat request is issued
+    verifyNoInteractions(framework);
   }
 
   private void mockSystemPrompt() {
