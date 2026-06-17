@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.model.message.MessageUtil;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -249,7 +250,7 @@ public final class AgentConversation {
     int maxModelCalls =
         Optional.ofNullable(limits)
             .map(LimitsConfiguration::maxModelCalls)
-            .filter(v -> v != null)
+            .filter(Objects::nonNull)
             .orElse(DEFAULT_MAX_MODEL_CALLS);
     int current = baseAgentContext.metrics().modelCalls();
     if (current >= maxModelCalls) {
