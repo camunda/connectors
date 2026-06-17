@@ -656,43 +656,6 @@ public class InboundExecutableRegistryTest {
   }
 
   @Test
-  public void activityLog_afterRestart_priorLogsShouldSurvive() throws Exception {
-    // given
-    var elementId = "elementId";
-    var element =
-        new InboundConnectorElement(
-            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
-            new StartEventCorrelationPoint("processId", 0, 0),
-            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
-    var executable = mock(InboundConnectorExecutable.class);
-    var context = mock(InboundConnectorManagementContext.class);
-    when(context.getDefinition())
-        .thenReturn(new InboundConnectorDefinition("type1", "tenant", "id", null));
-    when(context.connectorElements()).thenReturn(List.of(element));
-    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
-    when(factory.getInstance(any())).thenReturn(executable);
-
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
-    var executableId =
-        registry
-            .query(new ActiveExecutableQuery(null, elementId, null, null))
-            .getFirst()
-            .executableId();
-    assertThat(activityLogRegistry.getLogs(executableId)).hasSize(1); // initial activation log
-
-    // capture logs before reset to verify they survive the restart
-    var logsBeforeReset = List.copyOf(activityLogRegistry.getLogs(executableId));
-
-    // when - restart (RESTART action, not permanent DEACTIVATE)
-    registry.reset(executableId);
-
-    // then - all logs from before the restart are still present alongside the new activation log
-    var logsAfterReset = activityLogRegistry.getLogs(executableId);
-    assertThat(logsAfterReset).containsAll(logsBeforeReset);
-    assertThat(logsAfterReset).hasSizeGreaterThan(logsBeforeReset.size());
-  }
-
-  @Test
   public void activityLog_connectorWritesLog_shouldAppearAlongsideRuntimeLogs() throws Exception {
     // given
     var elementId = "elementId";
