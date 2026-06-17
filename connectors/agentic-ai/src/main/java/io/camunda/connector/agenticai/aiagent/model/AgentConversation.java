@@ -158,10 +158,8 @@ public final class AgentConversation {
     return allTurns();
   }
 
-  public @Nullable List<Message> pendingInputMessages() {
-    return currentTurn != null && currentTurn.assistantMessage() == null
-        ? currentTurn.inputMessages()
-        : null;
+  public Optional<ConversationTurn> currentTurn() {
+    return Optional.ofNullable(currentTurn);
   }
 
   public AgentContext baseAgentContext() {
@@ -180,11 +178,7 @@ public final class AgentConversation {
     if (currentTurn == null || currentTurn.assistantMessage() == null) {
       return AgentMetrics.empty();
     }
-    AgentMetrics lastTurnMetrics =
-        previousTurns.isEmpty() ? AgentMetrics.empty() : previousTurns.getLast().metrics();
-    return lastTurnMetrics == null
-        ? currentTurn.metrics()
-        : currentTurn.metrics().minus(lastTurnMetrics);
+    return currentTurn.metrics();
   }
 
   /** Returns the agent instance key from metadata, or {@code null} if metadata is absent. */

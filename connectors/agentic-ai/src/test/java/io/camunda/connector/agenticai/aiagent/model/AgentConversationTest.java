@@ -70,7 +70,7 @@ class AgentConversationTest {
     var conv = AgentConversation.rehydrate(List.of(), BASE_CONTEXT, EMPTY_INPUT, CONFIG);
     var withInput = conv.addNextTurn(List.of(userMessage("hello")));
     assertThat(withInput).isNotSameAs(conv);
-    assertThat(withInput.pendingInputMessages()).containsExactly(userMessage("hello"));
+    assertThat(withInput.currentTurn().get().inputMessages()).containsExactly(userMessage("hello"));
   }
 
   @Test
@@ -84,7 +84,7 @@ class AgentConversationTest {
     assertThat(ingested.turns()).hasSize(1);
     assertThat(ingested.turns().getFirst().iterationKey()).isEqualTo(1);
     assertThat(ingested.turns().getFirst().assistantMessage()).isEqualTo(response);
-    assertThat(ingested.pendingInputMessages()).isNull();
+    assertThat(ingested.currentTurn().get().assistantMessage()).isEqualTo(response);
   }
 
   @Test
