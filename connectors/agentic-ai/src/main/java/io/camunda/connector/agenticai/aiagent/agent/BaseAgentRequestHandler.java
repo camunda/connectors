@@ -25,8 +25,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.MessageUtil;
@@ -38,8 +36,6 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
-import java.util.Optional;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,8 +46,6 @@ public abstract class BaseAgentRequestHandler<
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseAgentRequestHandler.class);
 
-  private static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
-  private static final int DEFAULT_MAX_MODEL_CALLS = 10;
   private static final String ERROR_MAX_MODEL_CALLS = "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED";
 
   private final AgentInitializer agentInitializer;
@@ -165,7 +159,7 @@ public abstract class BaseAgentRequestHandler<
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =
         framework.executeChatRequest(
-            executionContext, conversation.window(windowSize(configuration)));
+            executionContext, conversation.window(configuration.contextWindowSize()));
     final var updatedConversation =
         conversation.ingest(chatResponse.assistantMessage(), chatResponse.tokenUsage());
 
@@ -196,26 +190,15 @@ public abstract class BaseAgentRequestHandler<
             createMetricsCompletionListener(executionContext, storedConversation, agentResponse)));
   }
 
-  private static @NonNull Integer windowSize(AgentConfiguration configuration) {
-    return Optional.ofNullable(configuration.memory())
-        .map(MemoryConfiguration::contextWindowSize)
-        .orElse(DEFAULT_CONTEXT_WINDOW_SIZE);
-  }
-
   private void throwIfLimitsReached(
       AgentConversation conversation, AgentConfiguration configuration) {
-    if (isModelCallLimitExceeded(conversation, modelCallLimit(configuration))) {
+    var limit = configuration.maxModelCalls();
+    if (isModelCallLimitExceeded(conversation, limit)) {
       throw new ConnectorException(
           ERROR_MAX_MODEL_CALLS,
           "Maximum number of model calls reached (modelCalls: %d, limit: %d)"
-              .formatted(conversation.totalMetrics().modelCalls(), modelCallLimit(configuration)));
+              .formatted(conversation.totalMetrics().modelCalls(), limit));
     }
-  }
-
-  private int modelCallLimit(AgentConfiguration configuration) {
-    return Optional.ofNullable(configuration.limits())
-        .map(LimitsConfiguration::maxModelCalls)
-        .orElse(DEFAULT_MAX_MODEL_CALLS);
   }
 
   private boolean isModelCallLimitExceeded(AgentConversation conversation, int maxModelCalls) {

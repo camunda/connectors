@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import java.util.Optional;
 import org.springframework.lang.Nullable;
 
 /**
@@ -34,5 +35,13 @@ public record AgentConfiguration(
         executionContext.limits(),
         executionContext.events(),
         executionContext.response());
+  }
+
+  public int contextWindowSize() {
+    return Optional.ofNullable(memory).map(MemoryConfiguration::contextWindowSize).orElse(20);
+  }
+
+  public int maxModelCalls() {
+    return Optional.ofNullable(limits).map(LimitsConfiguration::maxModelCalls).orElse(10);
   }
 }
