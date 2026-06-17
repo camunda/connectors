@@ -106,4 +106,34 @@ class AgentConversationTest {
     var ctx = conv.toAgentContext();
     assertThat(ctx.metrics().modelCalls()).isEqualTo(1);
   }
+
+  @Test
+  void totalMetrics_readsDurableContextMetrics_notReconstructedTurns() {
+    // reconstructed history turns always carry AgentMetrics.empty(); the cumulative model-call
+    // count lives on the durable AgentContext and must be what totalMetrics() reports so the
+    // model-call limit is enforced across rehydrations.
+    var contextWithHistory =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .metrics(new AgentMetrics(9, new TokenUsage(100, 200), 4))
+            .build();
+    var storedMessages =
+        List.<Message>of(
+            userMessage("hi"),
+            assistantMessage("first"),
+            userMessage("again"),
+            assistantMessage("second"));
+    var history = TurnReconstructor.reconstruct(storedMessages);
+    var conv =
+        AgentConversation.rehydrate(
+            history,
+            systemMessage("sys"),
+            List.of(userMessage("next")),
+            contextWithHistory,
+            CONFIG);
+
+    assertThat(conv.turns()).hasSize(2);
+    assertThat(conv.turns()).allSatisfy(t -> assertThat(t.metrics().modelCalls()).isZero());
+    assertThat(conv.totalMetrics().modelCalls()).isEqualTo(9);
+  }
 }

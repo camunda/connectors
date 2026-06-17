@@ -46,8 +46,6 @@ public abstract class BaseAgentRequestHandler<
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseAgentRequestHandler.class);
 
-  private static final String ERROR_MAX_MODEL_CALLS = "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED";
-
   private final AgentInitializer agentInitializer;
   private final ConversationStoreRegistry conversationStoreRegistry;
   private final ConversationTurnComposer agentInputComposer;
@@ -195,7 +193,7 @@ public abstract class BaseAgentRequestHandler<
     var limit = configuration.maxModelCalls();
     if (isModelCallLimitExceeded(conversation, limit)) {
       throw new ConnectorException(
-          ERROR_MAX_MODEL_CALLS,
+          AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED,
           "Maximum number of model calls reached (modelCalls: %d, limit: %d)"
               .formatted(conversation.totalMetrics().modelCalls(), limit));
     }
