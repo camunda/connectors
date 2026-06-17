@@ -134,12 +134,6 @@ public final class AgentConversation {
     return currentTurn.metrics();
   }
 
-  /** Returns the agent instance key from metadata, or {@code null} if metadata is absent. */
-  public @Nullable Long agentInstanceKey() {
-    var metadata = currentContext.metadata();
-    return metadata != null ? metadata.agentInstanceKey() : null;
-  }
-
   /**
    * Returns the flat list of all messages: the system message (when present), all completed turn
    * messages (input + assistant), and the pending current turn's input messages when not yet

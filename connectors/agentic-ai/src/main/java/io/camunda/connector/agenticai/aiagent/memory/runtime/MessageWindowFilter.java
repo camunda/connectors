@@ -20,6 +20,11 @@ public final class MessageWindowFilter {
   private MessageWindowFilter() {}
 
   public static List<Message> apply(List<Message> messages, int maxMessages) {
+    if (maxMessages < 0) {
+      throw new IllegalArgumentException(
+          "maxMessages must not be negative (was %d)".formatted(maxMessages));
+    }
+
     final var filtered = new ArrayList<>(messages);
     int effectiveCount = (int) filtered.stream().filter(m -> !isToolCallDocumentMessage(m)).count();
 
