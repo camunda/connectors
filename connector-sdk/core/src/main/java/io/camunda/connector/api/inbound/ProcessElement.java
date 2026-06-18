@@ -46,9 +46,7 @@ public interface ProcessElement {
    * response expression) from the specific activated element even when several elements were
    * deduplicated into a single connector executable.
    */
-  default Map<String, String> properties() {
-    return Map.of();
-  }
+  Map<String, String> properties();
 
   /**
    * Binds this element's raw properties to a typed object using the runtime's secret-replacement
