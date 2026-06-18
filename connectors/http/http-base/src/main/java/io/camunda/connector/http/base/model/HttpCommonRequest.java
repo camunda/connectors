@@ -40,6 +40,8 @@ public class HttpCommonRequest {
 
   @Valid private Authentication authentication;
 
+  @Valid private ClientTls clientTls;
+
   @TemplateProperty(
       group = "timeout",
       label = "Connection timeout in seconds",
@@ -157,6 +159,14 @@ public class HttpCommonRequest {
 
   public void setAuthentication(final Authentication authentication) {
     this.authentication = authentication;
+  }
+
+  public ClientTls getClientTls() {
+    return clientTls;
+  }
+
+  public void setClientTls(final ClientTls clientTls) {
+    this.clientTls = clientTls;
   }
 
   public Integer getConnectionTimeoutInSeconds() {

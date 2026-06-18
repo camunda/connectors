@@ -66,12 +66,16 @@ public class CustomApacheHttpClient implements HttpClient {
               + "Please ensure the URL includes a valid scheme.");
     }
 
+    var sslContext =
+        request.hasClientTls() ? ClientTlsFactory.create(request.getClientTls()) : null;
+
     try (var client =
         new ProxyAwareHttpClient(
             new ProxyAwareHttpClient.TimeoutConfiguration(
                 request.getConnectionTimeoutInSeconds(), request.getReadTimeoutInSeconds()),
             new ProxyAwareHttpClient.ProxyContext(scheme, host),
-            request.isFollowRedirects())) {
+            request.isFollowRedirects(),
+            sslContext)) {
 
       var apacheResponseHandler =
           new CustomResponseHandler<>(responseMapper, request.isFollowRedirects());

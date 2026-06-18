@@ -129,6 +129,7 @@ limitations under the License.</license.inlineheader>
     <version.httpcore5>5.4.2</version.httpcore5>
     <version.httpclient5>5.6.1</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
+    <version.ayza>10.0.5</version.ayza>
     <version.pdfbox>3.0.7</version.pdfbox>
     <version.collections4>4.5.0</version.collections4>
 
@@ -661,6 +662,18 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.httpcomponents.client5</groupId>
         <artifactId>httpclient5</artifactId>
         <version>${version.httpclient5}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.github.hakky54</groupId>
+        <artifactId>ayza</artifactId>
+        <version>${version.ayza}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.github.hakky54</groupId>
+        <artifactId>ayza-for-pem</artifactId>
+        <version>${version.ayza}</version>
       </dependency>
 
       <dependency>

@@ -18,12 +18,15 @@ package io.camunda.connector.http.client.client.apache.proxy;
 
 import java.io.Closeable;
 import java.io.IOException;
+import javax.net.ssl.SSLContext;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.DefaultRedirectStrategy;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
@@ -43,6 +46,7 @@ public class ProxyAwareHttpClient implements Closeable {
   private final ProxyContext proxyContext;
   private final CloseableHttpClient client;
   private final boolean followRedirects;
+  private final SSLContext sslContext;
 
   public record TimeoutConfiguration(int connectionTimeoutInSeconds, int readTimeoutInSeconds) {}
 
@@ -52,9 +56,18 @@ public class ProxyAwareHttpClient implements Closeable {
       TimeoutConfiguration timeoutConfiguration,
       ProxyContext proxyContext,
       boolean followRedirects) {
+    this(timeoutConfiguration, proxyContext, followRedirects, null);
+  }
+
+  public ProxyAwareHttpClient(
+      TimeoutConfiguration timeoutConfiguration,
+      ProxyContext proxyContext,
+      boolean followRedirects,
+      SSLContext sslContext) {
     this.timeoutConfiguration = timeoutConfiguration;
     this.proxyContext = proxyContext;
     this.followRedirects = followRedirects;
+    this.sslContext = sslContext;
     this.client = createClient();
   }
 
@@ -109,14 +122,15 @@ public class ProxyAwareHttpClient implements Closeable {
   }
 
   private PoolingHttpClientConnectionManager createConnectionManager() {
-    PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-    connectionManager.setMaxTotal(Integer.MAX_VALUE);
-    connectionManager.setDefaultMaxPerRoute(Integer.MAX_VALUE);
-
-    // Socket config
-    connectionManager.setDefaultSocketConfig(SocketConfig.custom().setSoKeepAlive(true).build());
-
-    return connectionManager;
+    var builder =
+        PoolingHttpClientConnectionManagerBuilder.create()
+            .setMaxConnTotal(Integer.MAX_VALUE)
+            .setMaxConnPerRoute(Integer.MAX_VALUE)
+            .setDefaultSocketConfig(SocketConfig.custom().setSoKeepAlive(true).build());
+    if (sslContext != null) {
+      builder.setTlsSocketStrategy(new DefaultClientTlsStrategy(sslContext));
+    }
+    return builder.build();
   }
 
   private RequestConfig getRequestTimeoutConfig(TimeoutConfiguration timeoutConfiguration) {

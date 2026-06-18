@@ -15,6 +15,7 @@ import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import java.util.Optional;
 
 public class HttpService {
 
@@ -47,6 +48,15 @@ public class HttpService {
     httpClientRequest.setSkipEncoding(request.getSkipEncoding());
     httpClientRequest.setIgnoreNullValues(request.isIgnoreNullValues());
     httpClientRequest.setFollowRedirects(request.isFollowRedirects());
+    Optional.ofNullable(request.getClientTls())
+        .map(
+            tls ->
+                new io.camunda.connector.http.client.model.ClientTls(
+                    tls.clientCertificate(),
+                    tls.clientPrivateKey(),
+                    tls.privateKeyPassword(),
+                    tls.trustedCertificate()))
+        .ifPresent(httpClientRequest::setClientTls);
     return httpClientRequest;
   }
 }
