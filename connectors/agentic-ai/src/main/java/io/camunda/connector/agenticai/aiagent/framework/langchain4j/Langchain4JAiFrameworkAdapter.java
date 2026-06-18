@@ -67,9 +67,18 @@ public class Langchain4JAiFrameworkAdapter
       final ChatResponse chatResponse = doChat(chatModel, chatRequestBuilder);
       final AssistantMessage assistantMessage =
           chatMessageConverter.toAssistantMessage(chatResponse);
-      final var tokenUsage = tokenUsage(chatResponse.tokenUsage());
-      return new Langchain4JAiFrameworkChatResponse(assistantMessage, tokenUsage, chatResponse);
+
+      final var metrics = buildMetrics(chatResponse, assistantMessage);
+      return new Langchain4JAiFrameworkChatResponse(assistantMessage, metrics, chatResponse);
     }
+  }
+
+  private AgentMetrics buildMetrics(ChatResponse chatResponse, AssistantMessage assistantMessage) {
+    return AgentMetrics.builder()
+        .modelCalls(1)
+        .tokenUsage(tokenUsage(chatResponse.tokenUsage()))
+        .toolCalls(assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size())
+        .build();
   }
 
   private void configureResponseFormat(
@@ -85,16 +94,20 @@ public class Langchain4JAiFrameworkAdapter
     // lead to exceptions
     if (responseConfiguration != null
         && responseConfiguration.format() != null
-        && responseConfiguration.format() instanceof JsonResponseFormatConfiguration jsonFormat) {
+        && responseConfiguration.format()
+            instanceof
+            JsonResponseFormatConfiguration(
+                java.util.Map<String, Object> schema,
+                String schemaName)) {
       final var builder = ResponseFormat.builder().type(ResponseFormatType.JSON);
-      if (jsonFormat.schema() != null) {
+      if (schema != null) {
         final var jsonSchema =
             JsonSchema.builder()
                 .name(
-                    Optional.ofNullable(jsonFormat.schemaName())
+                    Optional.ofNullable(schemaName)
                         .filter(StringUtils::isNotBlank)
                         .orElse("Response"))
-                .rootElement(jsonSchemaConverter.mapToSchema(jsonFormat.schema()))
+                .rootElement(jsonSchemaConverter.mapToSchema(schema))
                 .build();
         builder.jsonSchema(jsonSchema);
       }

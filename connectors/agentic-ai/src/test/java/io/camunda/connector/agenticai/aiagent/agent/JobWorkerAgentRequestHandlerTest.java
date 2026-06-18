@@ -62,6 +62,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,6 +84,7 @@ class JobWorkerAgentRequestHandlerTest {
   private static final String SYSTEM_PROMPT = "You are a helpful assistant. Be nice.";
   private static final Message SYSTEM_MESSAGE = systemMessage(SYSTEM_PROMPT);
   private static final Message USER_MESSAGE = userMessage("Write a haiku about the sea");
+  private static final Duration EXECUTION_TIME = Duration.ofMillis(123);
 
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
@@ -358,8 +360,6 @@ class JobWorkerAgentRequestHandlerTest {
 
   @Test
   void silentlyCompletesJobWhenInputComposerReturnsNoOp() {
-    mockSystemPrompt();
-
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(), any(), any(), any()))
@@ -376,8 +376,6 @@ class JobWorkerAgentRequestHandlerTest {
 
   @Test
   void silentlyCompletesJobWhenInputComposerReturnsNoInput() {
-    mockSystemPrompt();
-
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(), any(), any(), any()))
@@ -412,6 +410,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(agentExecutionContext),
             any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completes — deferred metrics PATCH fires now
@@ -423,7 +422,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2, EXECUTION_TIME))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -457,8 +456,9 @@ class JobWorkerAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0, EXECUTION_TIME))
                     .build()));
+    verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completes — no deferred PATCH (was already sent synchronously)
@@ -486,6 +486,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(agentExecutionContext),
             any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completion fails (execution error)
@@ -500,7 +501,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0, EXECUTION_TIME))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -525,6 +526,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(agentExecutionContext),
             any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job superseded (NOT_FOUND) — deferred listener fires, strips toolCalls, no status
@@ -538,7 +540,7 @@ class JobWorkerAgentRequestHandlerTest {
             any(),
             eq(
                 AgentInstanceUpdateRequest.builder()
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0, EXECUTION_TIME))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -604,7 +606,7 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   private void mockSystemPrompt() {
-    lenient().when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
+    when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
   }
 
   private void mockProceed(Message... inputMessages) {
@@ -644,15 +646,34 @@ class JobWorkerAgentRequestHandlerTest {
         .orElse(null);
   }
 
+  private void verifyHistoryItemsCreated() {
+    verify(agentInstanceClient)
+        .createHistoryItemsBeforeChat(eq(agentExecutionContext), any(), any());
+    verify(agentInstanceClient)
+        .createHistoryItemsAfterChat(eq(agentExecutionContext), any(), any());
+  }
+
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
+    final var metrics =
+        new AgentMetrics(
+            1,
+            new TokenUsage(10, 20),
+            assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size(),
+            EXECUTION_TIME);
     doReturn(
             new TestFrameworkChatResponse(
-                assistantMessage, new TokenUsage(10, 20), Map.of("message", assistantMessage)))
+                assistantMessage, metrics, Map.of("message", assistantMessage)))
         .when(framework)
-        .executeChatRequest(eq(agentExecutionContext), snapshotCaptor.capture());
+        .executeMeasuringTime(eq(agentExecutionContext), snapshotCaptor.capture());
   }
 
   private record TestFrameworkChatResponse(
-      AssistantMessage assistantMessage, TokenUsage tokenUsage, Map<String, Object> rawChatResponse)
-      implements AiFrameworkChatResponse<Map<String, Object>> {}
+      AssistantMessage assistantMessage, AgentMetrics metrics, Map<String, Object> rawChatResponse)
+      implements AiFrameworkChatResponse<Map<String, Object>> {
+    @Override
+    public TestFrameworkChatResponse withExecutionTimeMetrics(Duration executionTime) {
+      return new TestFrameworkChatResponse(
+          assistantMessage, metrics.withExecutionTime(executionTime), rawChatResponse);
+    }
+  }
 }
