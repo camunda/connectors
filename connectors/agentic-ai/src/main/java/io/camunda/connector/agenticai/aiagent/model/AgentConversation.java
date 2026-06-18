@@ -114,7 +114,7 @@ public final class AgentConversation {
 
   /** Returns all completed turns: previous turns followed by the current turn (if complete). */
   public List<ConversationTurn> turns() {
-    return allTurns();
+    return allCompletedTurns();
   }
 
   /** Returns the current turn. Always non-null; pending until {@link #ingest} completes it. */
@@ -150,7 +150,7 @@ public final class AgentConversation {
     if (systemMessage != null) {
       messages.add(systemMessage);
     }
-    for (var turn : allTurns()) {
+    for (var turn : allCompletedTurns()) {
       messages.addAll(turn.inputMessages());
       messages.add(turn.assistantMessage());
     }
@@ -179,11 +179,11 @@ public final class AgentConversation {
 
   /** Returns the last completed turn, or empty if no turns have been completed yet. */
   public Optional<ConversationTurn> lastTurn() {
-    var all = allTurns();
+    var all = allCompletedTurns();
     return all.isEmpty() ? Optional.empty() : Optional.of(all.getLast());
   }
 
-  private List<ConversationTurn> allTurns() {
+  private List<ConversationTurn> allCompletedTurns() {
     if (currentTurn.assistantMessage() == null) {
       return previousTurns;
     }

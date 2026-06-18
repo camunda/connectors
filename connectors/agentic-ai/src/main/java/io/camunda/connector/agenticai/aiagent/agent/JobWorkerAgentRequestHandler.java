@@ -14,7 +14,6 @@ import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.aiagent.model.ConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
@@ -51,13 +50,11 @@ public class JobWorkerAgentRequestHandler
 
   @Override
   protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentConversation conversation) {
-    // When the last turn requested tool calls, the subprocess stays open (tool elements are
+    // When the current turn requested tool calls, the subprocess stays open (tool elements are
     // activated) and survives job completion, so the agent-instance update can be deferred to the
     // completion listener. Otherwise (final turn, no tool calls) the subprocess completes and the
     // update must be sent synchronously before the job completion command.
-    boolean lastTurnRequestedToolCalls =
-        conversation.lastTurn().map(ConversationTurn::hasToolCalls).orElse(false);
-    return !lastTurnRequestedToolCalls;
+    return !conversation.currentTurn().hasToolCalls();
   }
 
   @Override
