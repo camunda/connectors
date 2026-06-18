@@ -20,6 +20,20 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
-/** An HTTP response where the body is represented as a stream. */
+/**
+ * An HTTP response where the body is represented as a stream.
+ *
+ * <p>Lifecycle depends on the method that produced it:
+ *
+ * <ul>
+ *   <li>From {@link io.camunda.connector.http.client.client.HttpClient#execute} (handler path) —
+ *       the body is only valid INSIDE the {@link
+ *       io.camunda.connector.http.client.mapper.ResponseMapper}; the underlying response is
+ *       auto-closed by Apache HC after the mapper returns.
+ *   <li>From {@link io.camunda.connector.http.client.client.HttpClient#executeStreaming}
+ *       (open-response path) — the body owns the response, connection, and Apache client. The
+ *       caller MUST close the body stream exactly once; that cascades through the resources.
+ * </ul>
+ */
 public record StreamingHttpResponse(
     int status, String reason, Map<String, List<String>> headers, InputStream body) {}

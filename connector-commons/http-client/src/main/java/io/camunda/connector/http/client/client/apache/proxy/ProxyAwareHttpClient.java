@@ -25,6 +25,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.SocketConfig;
@@ -68,6 +69,18 @@ public class ProxyAwareHttpClient implements Closeable {
   public <T> T execute(ClassicHttpRequest request, HttpClientResponseHandler<T> responseHandler)
       throws IOException {
     return client.execute(request, responseHandler);
+  }
+
+  /**
+   * Executes the request and returns the response WITHOUT closing it. The caller MUST close the
+   * returned response (and this client) to release the connection back to the pool. Use this when
+   * the response body is handed to a downstream consumer (e.g. the runtime's {@code
+   * DocumentReturnProcessor}) and lifetime is managed via a {@code Closeable} chain on the body
+   * stream — otherwise prefer the handler-based {@link #execute(ClassicHttpRequest,
+   * HttpClientResponseHandler)}.
+   */
+  public ClassicHttpResponse executeOpen(ClassicHttpRequest request) throws IOException {
+    return client.executeOpen(null, request, null);
   }
 
   private CloseableHttpClient createClient() {
