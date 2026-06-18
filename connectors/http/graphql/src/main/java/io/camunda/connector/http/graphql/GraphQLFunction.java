@@ -26,10 +26,10 @@ import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "GraphQL",
-    inputVariables = {"graphql", "authentication"},
+    inputVariables = {"graphql", "authentication", "documentReturnFormat"},
     type = "io.camunda:connector-graphql:1")
 @ElementTemplate(
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.GraphQL.v1",
     name = "GraphQL Outbound Connector",
     description = "Execute GraphQL query",
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
       "API call"
     },
     inputDataClass = GraphQLRequest.class,
-    version = 9,
+    version = 10,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),
@@ -79,7 +79,8 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     var graphQLRequest = context.bindVariables(GraphQLRequest.class);
     HttpCommonRequest commonRequest = graphQLRequestMapper.toHttpCommonRequest(graphQLRequest);
     LOGGER.debug("Executing graphql connector with request {}", commonRequest);
-    var rawResult = httpService.executeConnectorRequest(commonRequest, context);
+    var responseChoice = context.readDocumentReturnFormat().map(f -> f.choice()).orElse(null);
+    var rawResult = httpService.executeConnectorRequest(commonRequest, context, responseChoice);
     if (!(rawResult instanceof HttpCommonResult result)) {
       return rawResult;
     }

@@ -19,6 +19,7 @@ package io.camunda.connector.http.client.client;
 import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMapper;
 import io.camunda.connector.http.client.mapper.ResponseMappers;
+import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 
 public interface HttpClient {
@@ -35,4 +36,14 @@ public interface HttpClient {
    * @see ResponseMappers for common body mappers
    */
   <T> HttpResponse<T> execute(HttpClientRequest request, ResponseMapper<T> responseMapper);
+
+  /**
+   * Executes the request and returns a snapshot of the response with the body stream still live.
+   * The caller MUST close {@link StreamingHttpResponse#body()} to release the response, return the
+   * connection to the pool, and dispose the underlying client.
+   *
+   * <p>Use this when the body is handed to a downstream consumer that owns the stream's lifetime
+   * (e.g. the runtime's document return processor).
+   */
+  StreamingHttpResponse executeStreaming(HttpClientRequest request);
 }

@@ -38,6 +38,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
       "readTimeoutInSeconds",
       "body",
       "storeResponse",
+      "documentReturnFormat",
       "groupSetCookieHeaders",
       "ignoreNullValues",
       "followRedirects"
@@ -64,7 +65,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     },
     inputDataClass = HttpJsonRequest.class,
     outputDataClass = HttpCommonResult.class,
-    version = 14,
+    version = 15,
     defaultResultExpression =
         "{\n"
             + "  myResponseBody: response.body\n"
@@ -96,6 +97,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(final OutboundConnectorContext context) {
     final var request = context.bindVariables(HttpJsonRequest.class);
-    return httpService.executeConnectorRequest(request, context);
+    var responseChoice = context.readDocumentReturnFormat().map(f -> f.choice()).orElse(null);
+    return httpService.executeConnectorRequest(request, context, responseChoice);
   }
 }
