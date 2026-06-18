@@ -97,7 +97,7 @@ class AgentResponseHandlerTest {
     var config = new AgentConfiguration(null, null, null, null, null, responseConfig);
     var history = TurnReconstructor.reconstruct(List.of());
     return AgentConversation.rehydrate(
-            history, systemMessage("system"), List.of(), BASE_AGENT_CONTEXT, config)
+            config, BASE_AGENT_CONTEXT, history, systemMessage("system"), List.of())
         .ingest(assistantMessage, AgentMetrics.TokenUsage.empty());
   }
 

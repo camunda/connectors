@@ -27,6 +27,9 @@ public record AgentConfiguration(
     @Nullable EventHandlingConfiguration events,
     @Nullable ResponseConfiguration response) {
 
+  public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
+  public static final int DEFAULT_MAX_MODEL_CALLS = 10;
+
   public static AgentConfiguration from(AgentExecutionContext executionContext) {
     return new AgentConfiguration(
         executionContext.provider(),
@@ -38,10 +41,14 @@ public record AgentConfiguration(
   }
 
   public int contextWindowSize() {
-    return Optional.ofNullable(memory).map(MemoryConfiguration::contextWindowSize).orElse(20);
+    return Optional.ofNullable(memory)
+        .map(MemoryConfiguration::contextWindowSize)
+        .orElse(DEFAULT_CONTEXT_WINDOW_SIZE);
   }
 
   public int maxModelCalls() {
-    return Optional.ofNullable(limits).map(LimitsConfiguration::maxModelCalls).orElse(10);
+    return Optional.ofNullable(limits)
+        .map(LimitsConfiguration::maxModelCalls)
+        .orElse(DEFAULT_MAX_MODEL_CALLS);
   }
 }

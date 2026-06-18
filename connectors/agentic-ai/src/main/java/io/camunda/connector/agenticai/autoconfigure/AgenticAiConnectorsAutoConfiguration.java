@@ -245,7 +245,7 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ConversationTurnComposer aiConversationTurnComposer(
+  public ConversationTurnComposer aiAgentConversationTurnComposer(
       GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new ConversationTurnComposerImpl(gatewayToolHandlers);
   }

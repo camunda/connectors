@@ -12,17 +12,16 @@ import java.util.List;
 /**
  * Decision produced by ConversationTurnComposer: whether and how to proceed with the next LLM call.
  */
-public sealed interface AgentInput
-    permits AgentInput.None, AgentInput.Cancellation, AgentInput.NextTurn {
+public sealed interface CompositionResult {
 
   /** No messages ready yet — wait for more tool results before proceeding. */
-  record None() implements AgentInput {}
+  record Deferred() implements CompositionResult {}
 
   /** Conversation cannot continue — e.g., no user message content available. */
-  record Cancellation(String errorCode, String message) implements AgentInput {}
+  record Cancellation(String errorCode, String message) implements CompositionResult {}
 
   /** Messages assembled and ready to be applied to the conversation. */
-  record NextTurn(List<Message> messages) implements AgentInput {
+  record NextTurn(List<Message> messages) implements CompositionResult {
     public NextTurn {
       messages = List.copyOf(messages);
     }

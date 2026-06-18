@@ -13,8 +13,8 @@ import static io.camunda.connector.agenticai.model.message.content.TextContent.t
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
-import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.AgentInput;
+import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -31,6 +31,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,13 +68,13 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
   }
 
   @Override
-  public AgentInput compose(
-      TurnReconstructor.Result history,
-      AgentInvocationInput invocationInput,
+  public CompositionResult compose(
+      AgentConfiguration configuration,
       AgentContext agentContext,
-      AgentConfiguration configuration) {
+      PreviousConversation previousConversation,
+      AgentInput agentInput) {
     // tool call results arriving without a previous conversation is most likely a modeling error
-    if (agentContext.conversation() == null && !invocationInput.toolCallResults().isEmpty()) {
+    if (agentContext.conversation() == null && !agentInput.toolCallResults().isEmpty()) {
       throw new ConnectorException(
           ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT,
           "Agent received tool call results, but the agent context was empty (no previous conversation). Is the context configured correctly?");
@@ -82,32 +83,30 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
 
     final List<Message> eventMessages =
-        invocationInput.eventMessages().stream()
+        agentInput.eventMessages().stream()
             .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
             .toList();
 
     List<Message> messages = new ArrayList<>();
 
     boolean expectingToolCallResults =
-        !history.turns().isEmpty() && history.turns().getLast().hasToolCalls();
+        !previousConversation.turns().isEmpty()
+            && previousConversation.turns().getLast().hasToolCalls();
 
     if (expectingToolCallResults) {
       boolean interruptMissingToolCalls =
           interruptToolCallsOnEventResults && !eventMessages.isEmpty();
 
-      final var toolCalls = history.turns().getLast().assistantMessage().toolCalls();
+      final var toolCalls = previousConversation.turns().getLast().toolCalls();
 
       final var toolCallResultMessage =
           createToolCallResultMessage(
-              agentContext,
-              toolCalls,
-              invocationInput.toolCallResults(),
-              interruptMissingToolCalls);
+              agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
 
       // either we have all results or we interrupted the missing tool calls
       // if message is null, we wait on further tool call results to be added
       if (toolCallResultMessage.isEmpty()) {
-        return new AgentInput.None();
+        return new CompositionResult.Deferred();
       }
 
       final var toolCallResult = toolCallResultMessage.get();
@@ -118,7 +117,7 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
       }
       messages.addAll(eventMessages);
     } else {
-      messages.add(createUserPromptMessage(invocationInput.userPrompt()));
+      messages.add(createUserPromptMessage(agentInput.userPrompt()));
       messages.addAll(eventMessages);
     }
 
@@ -126,12 +125,12 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
 
     if (messages.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
-      return new AgentInput.Cancellation(
+      return new CompositionResult.Cancellation(
           ERROR_CODE_NO_USER_MESSAGE_CONTENT,
           "No user message content available to start the conversation.");
     }
 
-    return new AgentInput.NextTurn(messages);
+    return new CompositionResult.NextTurn(messages);
   }
 
   private UserMessage createUserPromptMessage(UserPromptConfiguration userPrompt) {
@@ -216,7 +215,7 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
     content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
     content.addAll(createDocumentPairs(toolCallDocuments));
 
-    final var metadata = new java.util.HashMap<String, Object>(defaultMessageMetadata());
+    final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
     metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
 
     return UserMessage.builder().content(content).metadata(metadata).build();

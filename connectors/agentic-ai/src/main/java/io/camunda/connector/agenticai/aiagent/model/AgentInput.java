@@ -18,13 +18,13 @@ import org.jspecify.annotations.Nullable;
  * results with a non-null ID; {@link #eventMessages} holds results with a null ID (from
  * non-interrupting events).
  */
-public final class AgentInvocationInput {
+public final class AgentInput {
 
   private final @Nullable UserPromptConfiguration userPrompt;
   private final List<ToolCallResult> toolCallResults;
   private final List<ToolCallResult> eventMessages;
 
-  private AgentInvocationInput(
+  private AgentInput(
       @Nullable UserPromptConfiguration userPrompt,
       List<ToolCallResult> toolCallResults,
       List<ToolCallResult> eventMessages) {
@@ -33,12 +33,12 @@ public final class AgentInvocationInput {
     this.eventMessages = List.copyOf(eventMessages);
   }
 
-  public static AgentInvocationInput from(
+  public static AgentInput from(
       @Nullable UserPromptConfiguration userPrompt, List<ToolCallResult> engineToolCallResults) {
     Objects.requireNonNull(engineToolCallResults, "engineToolCallResults must not be null");
     var partitioned =
         engineToolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
-    return new AgentInvocationInput(userPrompt, partitioned.get(true), partitioned.get(false));
+    return new AgentInput(userPrompt, partitioned.get(true), partitioned.get(false));
   }
 
   public @Nullable UserPromptConfiguration userPrompt() {

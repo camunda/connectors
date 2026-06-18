@@ -14,17 +14,16 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 
 /**
- * Reconstructs {@link ConversationTurn} list and optional system message from a flat message list.
+ * Reconstructs a {@link PreviousConversation} (optional system message + completed turns) from a
+ * flat message list.
  */
 public final class TurnReconstructor {
 
   private TurnReconstructor() {}
 
-  public record Result(Optional<SystemMessage> systemMessage, List<ConversationTurn> turns) {}
-
-  public static Result reconstruct(List<Message> messages) {
+  public static PreviousConversation reconstruct(List<Message> messages) {
     if (messages.isEmpty()) {
-      return new Result(Optional.empty(), List.of());
+      return new PreviousConversation(Optional.empty(), List.of());
     }
 
     Optional<SystemMessage> systemMessage =
@@ -59,6 +58,6 @@ public final class TurnReconstructor {
                 })
             .toList();
 
-    return new Result(systemMessage, turns);
+    return new PreviousConversation(systemMessage, turns);
   }
 }

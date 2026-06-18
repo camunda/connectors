@@ -259,7 +259,7 @@ class OutboundConnectorAgentRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(), any(), any(), any()))
         .thenReturn(
-            new AgentInput.Cancellation(
+            new CompositionResult.Cancellation(
                 "NO_USER_MESSAGE_CONTENT",
                 "No user message content available to start the conversation."));
 
@@ -408,7 +408,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   private void mockProceed(Message... inputMessages) {
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(new AgentInput.NextTurn(List.of(inputMessages)));
+        .thenReturn(new CompositionResult.NextTurn(List.of(inputMessages)));
   }
 
   private void mockResponseHandler() {

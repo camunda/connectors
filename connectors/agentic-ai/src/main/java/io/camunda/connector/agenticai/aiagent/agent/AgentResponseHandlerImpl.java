@@ -48,7 +48,14 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
   @Override
   public AgentResponse createResponse(AgentConversation conversation) {
     final var agentContext = conversation.toAgentContext();
-    final var assistantMessage = conversation.lastTurn().orElseThrow().assistantMessage();
+    final var assistantMessage =
+        conversation
+            .lastTurn()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Cannot create an agent response: the conversation has no completed turn"))
+            .assistantMessage();
     final var rawToolCalls = Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of());
     final var toolCalls =
         gatewayToolHandlers.transformToolCalls(agentContext, rawToolCalls).stream()

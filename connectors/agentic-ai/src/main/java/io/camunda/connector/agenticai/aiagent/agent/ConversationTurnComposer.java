@@ -8,14 +8,14 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
-import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.AgentInput;
+import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 
 /** Composes the next conversation turn input from raw history and the current invocation state. */
 public interface ConversationTurnComposer {
-  AgentInput compose(
-      TurnReconstructor.Result history,
-      AgentInvocationInput invocationInput,
+  CompositionResult compose(
+      AgentConfiguration configuration,
       AgentContext agentContext,
-      AgentConfiguration configuration);
+      PreviousConversation previousConversation,
+      AgentInput agentInput);
 }

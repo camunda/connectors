@@ -29,46 +29,49 @@ import org.jspecify.annotations.Nullable;
  */
 public final class AgentConversation {
 
+  private final AgentConfiguration configuration;
+  private final AgentContext currentContext;
   private final @Nullable SystemMessage systemMessage;
   private final List<ConversationTurn> previousTurns;
   private final ConversationTurn currentTurn;
-  private final AgentContext currentContext;
-  private final AgentConfiguration configuration;
+  private final @Nullable AgentInstanceKey agentInstanceKey;
 
   private AgentConversation(
+      AgentConfiguration configuration,
+      AgentContext currentContext,
       @Nullable SystemMessage systemMessage,
       List<ConversationTurn> previousTurns,
-      ConversationTurn currentTurn,
-      AgentContext currentContext,
-      AgentConfiguration configuration) {
+      ConversationTurn currentTurn) {
+    this.configuration = configuration;
+    this.currentContext = currentContext;
     this.systemMessage = systemMessage;
     this.previousTurns = List.copyOf(previousTurns);
     this.currentTurn = currentTurn;
-    this.currentContext = currentContext;
-    this.configuration = configuration;
+    this.agentInstanceKey = AgentInstanceKey.from(currentContext.metadata());
   }
 
   /**
-   * Rehydrates a conversation from reconstructed history and the composed current-turn input.
+   * Rehydrates a conversation from the reconstructed previous conversation and the composed
+   * current-turn input.
    *
-   * @param history turn list reconstructed from the flat stored message list
+   * @param configuration static per-invocation configuration
+   * @param agentContext durable agent context restored from the process variable
+   * @param previousConversation turns reconstructed from the flat stored message list
    * @param systemMessage composed system message for this invocation, or {@code null} when the
    *     composed system prompt is blank
    * @param inputMessages messages to place into the pending current turn
-   * @param agentContext durable agent context restored from the process variable
-   * @param configuration static per-invocation configuration
    * @return a rehydrated {@code AgentConversation} with a pending current turn
    */
   public static AgentConversation rehydrate(
-      TurnReconstructor.Result history,
-      @Nullable SystemMessage systemMessage,
-      List<Message> inputMessages,
+      AgentConfiguration configuration,
       AgentContext agentContext,
-      AgentConfiguration configuration) {
-    int nextKey = history.turns().size() + 1;
+      PreviousConversation previousConversation,
+      @Nullable SystemMessage systemMessage,
+      List<Message> inputMessages) {
+    int nextKey = previousConversation.turns().size() + 1;
     var currentTurn = new ConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
     return new AgentConversation(
-        systemMessage, history.turns(), currentTurn, agentContext, configuration);
+        configuration, agentContext, systemMessage, previousConversation.turns(), currentTurn);
   }
 
   /**
@@ -91,7 +94,7 @@ public final class AgentConversation {
             .build();
     var completedTurn = currentTurn.withAssistantMessage(assistantMessage, turnMetrics);
     return new AgentConversation(
-        systemMessage, previousTurns, completedTurn, currentContext, configuration);
+        configuration, currentContext, systemMessage, previousTurns, completedTurn);
   }
 
   /**
@@ -101,7 +104,7 @@ public final class AgentConversation {
   public AgentConversation withStoredConversation(ConversationContext ref) {
     var updatedCtx = currentContext.withConversation(ref);
     return new AgentConversation(
-        systemMessage, previousTurns, currentTurn, updatedCtx, configuration);
+        configuration, updatedCtx, systemMessage, previousTurns, currentTurn);
   }
 
   /** Returns the composed system message for this invocation, or {@code null} when it was blank. */
@@ -121,7 +124,7 @@ public final class AgentConversation {
 
   /** Returns the agent instance key of that conversation, or null if it is not existing (yet). */
   public @Nullable AgentInstanceKey agentInstanceKey() {
-    return AgentInstanceKey.from(currentContext.metadata());
+    return agentInstanceKey;
   }
 
   /** Returns the static per-invocation configuration. */

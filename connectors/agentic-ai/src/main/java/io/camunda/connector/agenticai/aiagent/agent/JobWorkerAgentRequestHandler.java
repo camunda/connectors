@@ -51,7 +51,13 @@ public class JobWorkerAgentRequestHandler
 
   @Override
   protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentConversation conversation) {
-    return !conversation.lastTurn().map(ConversationTurn::hasToolCalls).orElse(false);
+    // When the last turn requested tool calls, the subprocess stays open (tool elements are
+    // activated) and survives job completion, so the agent-instance update can be deferred to the
+    // completion listener. Otherwise (final turn, no tool calls) the subprocess completes and the
+    // update must be sent synchronously before the job completion command.
+    boolean lastTurnRequestedToolCalls =
+        conversation.lastTurn().map(ConversationTurn::hasToolCalls).orElse(false);
+    return !lastTurnRequestedToolCalls;
   }
 
   @Override

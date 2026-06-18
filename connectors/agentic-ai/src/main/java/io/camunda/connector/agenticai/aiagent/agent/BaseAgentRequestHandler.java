@@ -22,9 +22,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentInvocationInput;
+import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -76,12 +77,6 @@ public abstract class BaseAgentRequestHandler<
   @Override
   public R handleRequest(final C executionContext) {
     return switch (agentInitializer.initializeAgent(executionContext)) {
-      case ReadyToConverse(var agentContext, var engineToolCallResults) -> {
-        LOGGER.debug(
-            "Handling agent request with {} tool call results",
-            engineToolCallResults != null ? engineToolCallResults.size() : 0);
-        yield converse(executionContext, agentContext, engineToolCallResults);
-      }
       case DiscoverTools(var agentContext, var toolDiscoveryToolCalls) -> {
         LOGGER.debug(
             "AI Agent initialization dispatching {} gateway tool discovery calls. Completing job without further processing.",
@@ -93,43 +88,48 @@ public abstract class BaseAgentRequestHandler<
             "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
         yield handleNoOp(executionContext);
       }
+      case ReadyToConverse(var agentContext, var toolCallResults) -> {
+        LOGGER.debug(
+            "Handling agent request with {} tool call results",
+            toolCallResults != null ? toolCallResults.size() : 0);
+        yield converse(executionContext, agentContext, toolCallResults);
+      }
     };
   }
 
   private R converse(
       final C executionContext,
       final AgentContext agentContext,
-      final List<ToolCallResult> engineToolCallResults) {
+      final List<ToolCallResult> toolCallResults) {
     final var store =
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
 
     try (var session = store.createSession(executionContext, agentContext)) {
       final var configuration = AgentConfiguration.from(executionContext);
-      final var invocationInput =
-          AgentInvocationInput.from(
-              executionContext.userPrompt(),
-              engineToolCallResults != null ? engineToolCallResults : List.of());
+      final var agentInput =
+          AgentInput.from(
+              executionContext.userPrompt(), toolCallResults != null ? toolCallResults : List.of());
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
       final var loadedMessages = session.loadMessages(agentContext).messages();
-      final var history = TurnReconstructor.reconstruct(loadedMessages);
+      final var previousConversation = TurnReconstructor.reconstruct(loadedMessages);
 
       LOGGER.trace("Composing turn input from history and invocation state");
-      final var input =
-          agentInputComposer.compose(history, invocationInput, agentContext, configuration);
-      return switch (input) {
-        case AgentInput.None ignored -> {
+      final var compositionResult =
+          agentInputComposer.compose(configuration, agentContext, previousConversation, agentInput);
+      return switch (compositionResult) {
+        case CompositionResult.Deferred ignored -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
           yield handleNoOp(executionContext);
         }
-        case AgentInput.Cancellation(var errorCode, var message) -> {
+        case CompositionResult.Cancellation(var errorCode, var message) -> {
           LOGGER.debug("Conversation cannot continue ({}): {}", errorCode, message);
           yield handleInputCancel(executionContext, errorCode, message);
         }
-        case AgentInput.NextTurn(var newMessages) ->
+        case CompositionResult.NextTurn(var newMessages) ->
             proceed(
                 executionContext,
-                history,
+                previousConversation,
                 newMessages,
                 agentContext,
                 configuration,
@@ -141,7 +141,7 @@ public abstract class BaseAgentRequestHandler<
 
   private R proceed(
       final C executionContext,
-      final TurnReconstructor.Result history,
+      final PreviousConversation previousConversation,
       final List<Message> inputMessages,
       final AgentContext agentContext,
       final AgentConfiguration configuration,
@@ -150,7 +150,7 @@ public abstract class BaseAgentRequestHandler<
     var systemMessage = createSystemMessage(agentContext, configuration);
     final var conversation =
         AgentConversation.rehydrate(
-            history, systemMessage, inputMessages, agentContext, configuration);
+            configuration, agentContext, previousConversation, systemMessage, inputMessages);
 
     throwIfLimitsReached(conversation, configuration);
     notifyThinking(executionContext, conversation);
@@ -273,7 +273,7 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * Called when {@link ConversationTurnComposer} returns {@link AgentInput.Cancellation}.
+   * Called when {@link ConversationTurnComposer} returns {@link CompositionResult.Cancellation}.
    * Subclasses decide whether to throw or return an error/no-op response.
    */
   protected abstract R handleInputCancel(C executionContext, String errorCode, String message);

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 import java.util.Objects;
@@ -44,6 +45,17 @@ public record ConversationTurn(
 
   public boolean hasToolCalls() {
     return assistantMessage != null && assistantMessage.hasToolCalls();
+  }
+
+  /**
+   * Returns the tool calls of this turn's assistant message, or an empty list when the turn is
+   * still pending or the assistant message carries no tool calls.
+   */
+  public List<ToolCall> toolCalls() {
+    if (assistantMessage == null || assistantMessage.toolCalls() == null) {
+      return List.of();
+    }
+    return assistantMessage.toolCalls();
   }
 
   /** Returns {@code true} if any tool call result in this turn's input was interrupted. */

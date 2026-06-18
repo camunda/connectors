@@ -26,7 +26,7 @@ class AgentConversationTest {
       List<Message> storedMessages, List<Message> inputMessages) {
     var history = TurnReconstructor.reconstruct(storedMessages);
     return AgentConversation.rehydrate(
-        history, systemMessage("sys"), inputMessages, BASE_CONTEXT, CONFIG);
+        CONFIG, BASE_CONTEXT, history, systemMessage("sys"), inputMessages);
   }
 
   @Test
@@ -94,7 +94,7 @@ class AgentConversationTest {
     var history = TurnReconstructor.reconstruct(List.of());
     var conv =
         AgentConversation.rehydrate(
-            history, null, List.of(userMessage("hi")), BASE_CONTEXT, CONFIG);
+            CONFIG, BASE_CONTEXT, history, null, List.of(userMessage("hi")));
     assertThat(conv.systemMessage()).isNull();
     assertThat(conv.allMessages()).noneMatch(SystemMessage.class::isInstance);
     assertThat(conv.allMessages()).containsExactly(userMessage("hi"));
@@ -137,11 +137,11 @@ class AgentConversationTest {
     var history = TurnReconstructor.reconstruct(storedMessages);
     var conv =
         AgentConversation.rehydrate(
+            CONFIG,
+            contextWithHistory,
             history,
             systemMessage("sys"),
-            List.of(userMessage("next")),
-            contextWithHistory,
-            CONFIG);
+            List.of(userMessage("next")));
 
     assertThat(conv.turns()).hasSize(2);
     assertThat(conv.turns()).allSatisfy(t -> assertThat(t.metrics().modelCalls()).isZero());
