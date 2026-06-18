@@ -62,6 +62,28 @@ class ClientTlsFactoryTest {
         .hasMessageContaining("mTLS");
   }
 
+  @Test
+  void treatsBlankPrivateKeyPasswordAsAbsent() throws Exception {
+    // The key fixture is unencrypted; a blank password (empty form field) must not be applied.
+    var tls =
+        new ClientTls(readPem("client.crt"), readPem("client.key"), "", readPem("server.crt"));
+
+    assertThat(ClientTlsFactory.create(tls)).isNotNull();
+  }
+
+  @Test
+  void failsFastOnPartialIdentity() throws Exception {
+    var certWithoutKey = new ClientTls(readPem("client.crt"), null, null, null);
+    var keyWithoutCert = new ClientTls(null, readPem("client.key"), null, null);
+
+    assertThatThrownBy(() -> ClientTlsFactory.create(certWithoutKey))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("client certificate and a private key");
+    assertThatThrownBy(() -> ClientTlsFactory.create(keyWithoutCert))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("client certificate and a private key");
+  }
+
   private static String readPem(String name) throws Exception {
     return Files.readString(
         Path.of(ClientTlsFactoryTest.class.getResource("/mtls/" + name).toURI()),

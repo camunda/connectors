@@ -34,7 +34,8 @@ package io.camunda.connector.http.client.model;
  *
  * <ul>
  *   <li><b>Identity only</b> — present a client certificate; validate the server against the JVM's
- *       default CA bundle. The typical "API requires mTLS but has a normal public certificate" case.
+ *       default CA bundle. The typical "API requires mTLS but has a normal public certificate"
+ *       case.
  *   <li><b>Trust only</b> — present no client certificate; trust a private/self-signed server CA.
  *       This is plain TLS against a custom CA rather than mTLS, but the same field handles it.
  *   <li><b>Both</b> — full mTLS against a private-CA server: present a client certificate and pin
@@ -74,8 +75,13 @@ public record ClientTls(
     return isNotBlank(trustedCertificate);
   }
 
+  /**
+   * Whether any TLS material was supplied. Intentionally broader than {@link #hasIdentity()}: a
+   * partially-configured identity (certificate without key, or vice versa) still counts as
+   * configured so it reaches validation and fails fast instead of being silently ignored.
+   */
   public boolean isConfigured() {
-    return hasIdentity() || hasTrust();
+    return isNotBlank(clientCertificate) || isNotBlank(clientPrivateKey) || hasTrust();
   }
 
   private static boolean isNotBlank(String s) {

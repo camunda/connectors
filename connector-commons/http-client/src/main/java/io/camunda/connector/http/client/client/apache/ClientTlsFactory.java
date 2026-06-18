@@ -32,11 +32,18 @@ public final class ClientTlsFactory {
   private ClientTlsFactory() {}
 
   public static SSLContext create(ClientTls tls) {
+    // Fail fast on a half-configured identity rather than silently dropping the client certificate.
+    if (isNotBlank(tls.clientCertificate()) != isNotBlank(tls.clientPrivateKey())) {
+      throw new ConnectorInputException(
+          "mTLS client authentication requires both a client certificate and a private key; "
+              + "only one was provided.");
+    }
     try {
       var builder = SSLFactory.builder();
       if (tls.hasIdentity()) {
+        // Treat a blank password (e.g. an empty form field) as no password.
         var password =
-            tls.privateKeyPassword() == null ? null : tls.privateKeyPassword().toCharArray();
+            isNotBlank(tls.privateKeyPassword()) ? tls.privateKeyPassword().toCharArray() : null;
         builder.withIdentityMaterial(
             PemUtils.parseIdentityMaterial(
                 tls.clientCertificate(), tls.clientPrivateKey(), password));
@@ -49,8 +56,14 @@ public final class ClientTlsFactory {
       }
       return builder.build().getSslContext();
     } catch (Exception e) {
+      // Keep the detail (which may derive from the key material) out of the incident; it stays on
+      // the cause for the pod logs.
       throw new ConnectorInputException(
-          "Failed to build SSL context for mTLS: " + e.getMessage(), e);
+          "Failed to build SSL context for mTLS from the provided certificate material", e);
     }
+  }
+
+  private static boolean isNotBlank(String s) {
+    return s != null && !s.isBlank();
   }
 }
