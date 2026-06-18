@@ -223,7 +223,7 @@ jobs:
       # Restore the first-party SNAPSHOTs built by the matching build job; the test run resolves
       # connectors + e2e base from here and does not rebuild them.
       - name: Download first-party artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: m2-firstparty-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
           path: ~/.m2/repository/io/camunda/connector
