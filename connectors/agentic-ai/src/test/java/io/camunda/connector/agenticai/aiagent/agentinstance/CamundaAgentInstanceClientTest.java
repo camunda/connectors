@@ -28,17 +28,14 @@ import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
@@ -363,40 +360,21 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Override
-    public ProviderConfiguration provider() {
-      return new OpenAiProviderConfiguration(
-          new OpenAiProviderConfiguration.OpenAiConnection(
-              null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null)));
-    }
-
-    @Override
-    public PromptConfiguration.SystemPromptConfiguration systemPrompt() {
-      return new PromptConfiguration.SystemPromptConfiguration("system prompt");
-    }
-
-    @Override
     public PromptConfiguration.UserPromptConfiguration userPrompt() {
       return null;
     }
 
     @Override
-    public MemoryConfiguration memory() {
-      return null;
-    }
-
-    @Override
-    public LimitsConfiguration limits() {
-      return limitsConfiguration;
-    }
-
-    @Override
-    public EventHandlingConfiguration events() {
-      return null;
-    }
-
-    @Override
-    public ResponseConfiguration response() {
-      return null;
+    public AgentConfiguration configuration() {
+      return new AgentConfiguration(
+          new OpenAiProviderConfiguration(
+              new OpenAiProviderConfiguration.OpenAiConnection(
+                  null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
+          new PromptConfiguration.SystemPromptConfiguration("system prompt"),
+          null,
+          limitsConfiguration,
+          null,
+          null);
     }
   }
 }

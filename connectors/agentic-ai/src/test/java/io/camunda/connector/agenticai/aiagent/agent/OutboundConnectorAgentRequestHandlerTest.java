@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -91,6 +92,10 @@ class OutboundConnectorAgentRequestHandlerTest {
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+    // configuration() returns a record that cannot be deep-stubbed; provide an explicit default
+    lenient()
+        .when(agentExecutionContext.configuration())
+        .thenReturn(new AgentConfiguration(null, null, null, null, null, null));
   }
 
   @Test
@@ -278,7 +283,9 @@ class OutboundConnectorAgentRequestHandlerTest {
     // limit must be enforced against the durable cumulative counter on the agent context.
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
-    when(agentExecutionContext.limits()).thenReturn(new LimitsConfiguration(2));
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(null, null, null, new LimitsConfiguration(2), null, null));
 
     final var contextAtLimit =
         AgentContext.builder()

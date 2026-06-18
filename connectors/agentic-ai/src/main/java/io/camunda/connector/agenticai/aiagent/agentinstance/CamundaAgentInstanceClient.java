@@ -49,21 +49,22 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
 
   private AgentInstanceKey executeCreate(AgentExecutionContext agentExecutionContext) {
     final long elementInstanceKey = agentExecutionContext.jobContext().getElementInstanceKey();
+    final var configuration = agentExecutionContext.configuration();
     LOGGER.debug(
         "Creating agent instance for element instance {}: model={}, provider={}",
         elementInstanceKey,
-        agentExecutionContext.provider().model(),
-        agentExecutionContext.provider().providerType());
+        configuration.provider().model(),
+        configuration.provider().providerType());
 
     var command =
         camundaClient
             .newCreateAgentInstanceCommand()
             .elementInstanceKey(elementInstanceKey)
-            .model(agentExecutionContext.provider().model())
-            .provider(agentExecutionContext.provider().providerType())
-            .systemPrompt(agentExecutionContext.systemPrompt().prompt());
+            .model(configuration.provider().model())
+            .provider(configuration.provider().providerType())
+            .systemPrompt(configuration.systemPrompt().prompt());
 
-    final var limits = agentExecutionContext.limits();
+    final var limits = configuration.limits();
     if (limits != null && limits.maxModelCalls() != null) {
       command = command.maxModelCalls(limits.maxModelCalls());
     }

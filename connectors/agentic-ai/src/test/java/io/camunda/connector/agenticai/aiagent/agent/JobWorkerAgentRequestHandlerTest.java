@@ -41,6 +41,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -101,12 +102,11 @@ class JobWorkerAgentRequestHandlerTest {
     doReturn(conversationStore)
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
-    // deep stubs would otherwise mock the sealed ProviderConfiguration / return 0-valued
-    // configuration; AgentConfiguration.from() reads these eagerly
-    lenient().doReturn(null).when(agentExecutionContext).provider();
-    lenient().doReturn(null).when(agentExecutionContext).limits();
-    lenient().doReturn(null).when(agentExecutionContext).memory();
-    lenient().doReturn(null).when(agentExecutionContext).events();
+    // configuration() returns a record that cannot be deep-stubbed; provide an explicit default
+    lenient()
+        .doReturn(new AgentConfiguration(null, null, null, null, null, null))
+        .when(agentExecutionContext)
+        .configuration();
   }
 
   @Test
@@ -558,7 +558,9 @@ class JobWorkerAgentRequestHandlerTest {
     // so the limit must be enforced against the durable cumulative counter on the agent context.
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
-    when(agentExecutionContext.limits()).thenReturn(new LimitsConfiguration(2));
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(null, null, null, new LimitsConfiguration(2), null, null));
 
     final var contextAtLimit =
         AgentContext.builder()

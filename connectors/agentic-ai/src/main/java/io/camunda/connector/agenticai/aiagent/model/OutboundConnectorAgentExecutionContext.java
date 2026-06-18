@@ -8,15 +8,9 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.Collections;
@@ -29,6 +23,7 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
   private final OutboundConnectorAgentRequest request;
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private List<AdHocToolElement> toolElements;
+  private AgentConfiguration configuration;
 
   public OutboundConnectorAgentExecutionContext(
       JobContext jobContext,
@@ -81,16 +76,6 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
   }
 
   @Override
-  public ProviderConfiguration provider() {
-    return request.provider();
-  }
-
-  @Override
-  public SystemPromptConfiguration systemPrompt() {
-    return request.data().systemPrompt();
-  }
-
-  @Override
   public UserPromptConfiguration userPrompt() {
     return request.data().userPrompt();
   }
@@ -100,22 +85,18 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
   }
 
   @Override
-  public MemoryConfiguration memory() {
-    return request.data().memory();
-  }
-
-  @Override
-  public LimitsConfiguration limits() {
-    return request.data().limits();
-  }
-
-  @Override
-  public EventHandlingConfiguration events() {
-    return null;
-  }
-
-  @Override
-  public ResponseConfiguration response() {
-    return request.data().response();
+  public AgentConfiguration configuration() {
+    if (configuration == null) {
+      configuration =
+          new AgentConfiguration(
+              request.provider(),
+              request.data().systemPrompt(),
+              request.data().memory(),
+              request.data().limits(),
+              // the outbound connector flavor does not support event handling
+              null,
+              request.data().response());
+    }
+    return configuration;
   }
 }

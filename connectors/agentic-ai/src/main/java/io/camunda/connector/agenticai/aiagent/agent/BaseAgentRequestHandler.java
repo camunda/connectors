@@ -105,7 +105,7 @@ public abstract class BaseAgentRequestHandler<
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
 
     try (var session = store.createSession(executionContext, agentContext)) {
-      final var configuration = AgentConfiguration.from(executionContext);
+      final var configuration = executionContext.configuration();
       final var agentInput =
           AgentInput.from(
               executionContext.userPrompt(), toolCallResults != null ? toolCallResults : List.of());

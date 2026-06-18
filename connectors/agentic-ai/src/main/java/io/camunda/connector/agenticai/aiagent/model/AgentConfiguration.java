@@ -30,16 +30,6 @@ public record AgentConfiguration(
   public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
   public static final int DEFAULT_MAX_MODEL_CALLS = 10;
 
-  public static AgentConfiguration from(AgentExecutionContext executionContext) {
-    return new AgentConfiguration(
-        executionContext.provider(),
-        executionContext.systemPrompt(),
-        executionContext.memory(),
-        executionContext.limits(),
-        executionContext.events(),
-        executionContext.response());
-  }
-
   public int contextWindowSize() {
     return Optional.ofNullable(memory)
         .map(MemoryConfiguration::contextWindowSize)

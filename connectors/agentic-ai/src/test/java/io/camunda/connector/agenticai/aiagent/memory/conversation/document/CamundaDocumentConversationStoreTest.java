@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
@@ -84,14 +85,19 @@ class CamundaDocumentConversationStoreTest {
 
   @BeforeEach
   void setUp() {
-    when(executionContext.memory())
+    when(executionContext.configuration())
         .thenReturn(
-            new MemoryConfiguration(
-                new CamundaDocumentMemoryStorageConfiguration(
-                    Duration.ofHours(1), Map.of("customKey", "customValue")),
-                20));
+            configWithMemory(
+                new MemoryConfiguration(
+                    new CamundaDocumentMemoryStorageConfiguration(
+                        Duration.ofHours(1), Map.of("customKey", "customValue")),
+                    20)));
 
     store = new CamundaDocumentConversationStore(documentFactory, documentStore, objectMapper);
+  }
+
+  private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {
+    return new AgentConfiguration(null, null, memory, null, null, null);
   }
 
   @Test
@@ -104,7 +110,8 @@ class CamundaDocumentConversationStoreTest {
   @Test
   void throwsExceptionForMissingConfiguration() {
     final var agentContext = AgentContext.empty();
-    when(executionContext.memory()).thenReturn(new MemoryConfiguration(null, 20));
+    when(executionContext.configuration())
+        .thenReturn(configWithMemory(new MemoryConfiguration(null, 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
@@ -115,10 +122,11 @@ class CamundaDocumentConversationStoreTest {
   @Test
   void throwsExceptionForUnsupportedConfiguration() {
     final var agentContext = AgentContext.empty();
-    when(executionContext.memory())
+    when(executionContext.configuration())
         .thenReturn(
-            new MemoryConfiguration(
-                new MemoryStorageConfiguration.InProcessMemoryStorageConfiguration(), 20));
+            configWithMemory(
+                new MemoryConfiguration(
+                    new MemoryStorageConfiguration.InProcessMemoryStorageConfiguration(), 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)

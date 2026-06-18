@@ -30,6 +30,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
@@ -292,7 +293,8 @@ class Langchain4JAiFrameworkAdapterTest {
   private AgentExecutionContext createExecutionContext(
       ResponseConfiguration responseConfiguration) {
     final var executionContext = mock(AgentExecutionContext.class);
-    when(executionContext.response()).thenReturn(responseConfiguration);
+    when(executionContext.configuration())
+        .thenReturn(new AgentConfiguration(null, null, null, null, null, responseConfiguration));
 
     return executionContext;
   }

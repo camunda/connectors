@@ -58,11 +58,12 @@ public class Langchain4JAiFrameworkAdapter
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(snapshot.toolDefinitions());
 
+    final var configuration = executionContext.configuration();
     final var chatRequestBuilder =
         ChatRequest.builder().messages(messages).toolSpecifications(toolSpecifications);
-    configureResponseFormat(chatRequestBuilder, executionContext.response());
+    configureResponseFormat(chatRequestBuilder, configuration.response());
 
-    try (final var chatModel = chatModelFactory.createChatModel(executionContext.provider())) {
+    try (final var chatModel = chatModelFactory.createChatModel(configuration.provider())) {
       final ChatResponse chatResponse = doChat(chatModel, chatRequestBuilder);
       final AssistantMessage assistantMessage =
           chatMessageConverter.toAssistantMessage(chatResponse);
