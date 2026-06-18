@@ -21,7 +21,7 @@ jobs:
       branches: ${{ steps.set-branches.outputs.branches }}
       modules: ${{ steps.set-modules.outputs.modules }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Fetch stable branches
         id: set-branches
@@ -64,7 +64,7 @@ jobs:
       matrix:
         branch: ${{ fromJson(needs.setup.outputs.branches) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ matrix.branch }}
 
@@ -162,7 +162,7 @@ jobs:
           - module: connectors-e2e-test-agentic-ai
             runner: gcp-core-8-default
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ matrix.branch }}
 
