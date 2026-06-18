@@ -51,6 +51,8 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
@@ -81,6 +83,24 @@ public class HttpTests {
   @RegisterExtension
   static WireMockExtension wm =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
+
+  // HTTPS server that requires a client certificate, to exercise the mTLS feature end-to-end.
+  @RegisterExtension
+  static WireMockExtension wmMtls =
+      WireMockExtension.newInstance()
+          .options(
+              wireMockConfig()
+                  .httpDisabled(true)
+                  .dynamicHttpsPort()
+                  .keystorePath(mtlsResourcePath("server-keystore.p12"))
+                  .keystorePassword("password")
+                  .keyManagerPassword("password")
+                  .keystoreType("PKCS12")
+                  .needClientAuth(true)
+                  .trustStorePath(mtlsResourcePath("server-truststore.p12"))
+                  .trustStorePassword("password")
+                  .trustStoreType("PKCS12"))
+          .build();
 
   @TempDir File tempDir;
   @Autowired CamundaClient camundaClient;
@@ -191,6 +211,47 @@ public class HttpTests {
             .property("method", "post")
             .property("authentication.type", BearerAuthentication.TYPE)
             .property("authentication.token", "123")
+            .property("resultExpression", "={orderStatus: response.body.order.status}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
+
+    var bpmnTest =
+        ZeebeTest.with(camundaClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
+  }
+
+  @Test
+  void mtlsClientCertificate() throws Exception {
+    // The server requires a client certificate; the connector must present one and trust the
+    // server's self-signed certificate.
+    wmMtls.stubFor(
+        post(urlPathMatching("/mock"))
+            .willReturn(
+                ResponseDefinitionBuilder.okForJson(
+                    Map.of("order", Map.of("status", "processing")))));
+
+    var mockUrl = "https://localhost:" + wmMtls.getHttpsPort() + "/mock";
+
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("restTask").endEvent().done();
+
+    var elementTemplate =
+        ElementTemplate.from(
+                "../../connectors/http/rest/element-templates/http-json-connector.json")
+            .property("url", mockUrl)
+            .property("method", "post")
+            .property("clientTls.clientCertificate", mtlsResource("client.crt"))
+            .property("clientTls.clientPrivateKey", mtlsResource("client.key"))
+            .property("clientTls.trustedCertificate", mtlsResource("server.crt"))
+            .property("body", "={\"order\": {\"status\": \"processing\"}}")
             .property("resultExpression", "={orderStatus: response.body.order.status}")
             .writeTo(new File(tempDir, "template.json"));
 
@@ -662,5 +723,17 @@ public class HttpTests {
             .waitForProcessCompletion();
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("result", "success");
+  }
+
+  private static String mtlsResource(String name) throws Exception {
+    return Files.readString(Path.of(mtlsResourcePath(name)), StandardCharsets.UTF_8);
+  }
+
+  private static String mtlsResourcePath(String name) {
+    try {
+      return Path.of(HttpTests.class.getResource("/mtls/" + name).toURI()).toString();
+    } catch (Exception e) {
+      throw new IllegalStateException("Missing test resource /mtls/" + name, e);
+    }
   }
 }
