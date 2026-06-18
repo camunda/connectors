@@ -20,13 +20,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -37,26 +39,39 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaProcessTestContext;
-import io.camunda.process.test.api.assertions.JobSelectors;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
 
-@WireMockTest
 @Import(CamundaDocumentTestConfiguration.class)
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
+  // Programmatic registration (not @WireMockTest) so we can set a verbose notifier that logs the
+  // request journal. We use ConsoleNotifier (stdout) because wiremock-standalone's Slf4jNotifier
+  // is bound to its shaded SLF4J and never reaches our logback.
+  @RegisterExtension
+  static WireMockExtension wireMockExtension =
+      WireMockExtension.newInstance()
+          .options(options().dynamicPort().notifier(new ConsoleNotifier(true)))
+          .configureStaticDsl(true)
+          .build();
+
   @Autowired private CamundaProcessTestContext processTestContext;
+
+  protected final LinkedList<Map<String, Object>> userFeedback = new LinkedList<>();
 
   protected final AtomicInteger userFeedbackJobWorkerCounter = new AtomicInteger(0);
 
@@ -68,15 +83,30 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   }
 
   @BeforeEach
+  void mockUserFeedbackJobWorker() {
+    processTestContext
+        .mockJobWorker("user_feedback")
+        .withHandler(
+            (client, job) -> {
+              var nextFeedback =
+                  userFeedback.isEmpty() ? Collections.emptyMap() : userFeedback.poll();
+              userFeedbackJobWorkerCounter.incrementAndGet();
+              client.newCompleteCommand(job.getKey()).variables(nextFeedback).execute();
+            });
+  }
+
+  @BeforeEach
   void clearDocumentStore() {
     InMemoryDocumentStore.INSTANCE.clear();
   }
 
   @BeforeEach
-  void setupWireMock(WireMockRuntimeInfo wm) {
-    wireMock = wm;
+  void setupWireMock() {
+    wireMock = wireMockExtension.getRuntimeInfo();
     // WireMock returns the content type for the YAML file as application/json, so
     // we need to override the stub manually
+    WireMock.resetAllScenarios();
+    WireMock.reset();
     stubFor(
         get(urlPathEqualTo("/test.yaml"))
             .atPriority(1)
@@ -125,7 +155,16 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
         updatedElementTemplate.writeTo(new File(tempDir, "template.json"));
     final var updatedModel = modelWithModifications(process.getFile(), updatedElementTemplateFile);
 
-    return createProcessInstance(updatedModel, variables);
+    return createProcessInstance(customizeModel(updatedModel), variables);
+  }
+
+  /**
+   * Hook to mutate the built process model just before deployment. Default is a no-op; overridden
+   * by tests that need a per-test model tweak (e.g. a unique inbound webhook context to avoid
+   * cross-test "context already in use" collisions in the shared per-class runtime).
+   */
+  protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
+    return model;
   }
 
   protected ElementTemplate elementTemplateWithModifications(
@@ -151,22 +190,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
     if (feedback.length == 0) {
       return;
     }
-    final var builder =
-        processTestContext
-            .when(
-                () -> {
-                  final ProcessInstanceEvent pi = currentProcess;
-                  if (pi == null) throw new AssertionError("process not yet created");
-                  CamundaAssert.assertThat(pi).hasActiveElements("User_Feedback");
-                })
-            .as("user-feedback");
-    for (final Map<String, Object> f : feedback) {
-      builder.then(
-          () -> {
-            userFeedbackJobWorkerCounter.incrementAndGet();
-            processTestContext.completeJob(JobSelectors.byElementId("User_Feedback"), f);
-          });
-    }
+    userFeedback.addAll(List.of(feedback));
   }
 
   protected Map<String, Object> userSatisfiedFeedback() {

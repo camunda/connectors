@@ -17,17 +17,21 @@
 package io.camunda.connector.e2e;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.DeploymentEvent;
+import io.camunda.client.api.response.PartitionBrokerHealth;
+import io.camunda.client.api.response.PartitionInfo;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 import org.springframework.util.CollectionUtils;
@@ -47,9 +51,17 @@ public class ZeebeTest {
   }
 
   public ZeebeTest awaitCompleteTopology() {
-    return awaitCompleteTopology(1, 1, 1, Duration.ofSeconds(10));
+    return awaitCompleteTopology(1, 1, 1, Duration.ofSeconds(30));
   }
 
+  /**
+   * Waits until the topology is complete <em>and healthy</em>: the expected number of brokers and
+   * partitions are present, and every reported partition is {@link PartitionBrokerHealth#HEALTHY}
+   * with a healthy leader. The plain count check is not enough — under CPU contention the broker
+   * reports the right topology counts while a partition is still installing services (health {@code
+   * UNHEALTHY}, e.g. "Services not installed" / "Snapshot not taken yet"), so deploying against it
+   * races a partition that cannot yet serve and leads to flaky assertion timeouts.
+   */
   public ZeebeTest awaitCompleteTopology(
       final int clusterSize,
       final int partitionCount,
@@ -66,6 +78,36 @@ public class ZeebeTest {
               assertEquals(clusterSize, topology.getBrokers().size());
               assertEquals(partitionCount, topology.getPartitionsCount());
               assertEquals(replicationFactor, topology.getReplicationFactor());
+
+              // Every partition reported by any broker must be healthy.
+              final List<String> unhealthy =
+                  topology.getBrokers().stream()
+                      .flatMap(
+                          broker ->
+                              broker.getPartitions().stream()
+                                  .filter(p -> p.getHealth() != PartitionBrokerHealth.HEALTHY)
+                                  .map(
+                                      p ->
+                                          "broker "
+                                              + broker.getMemberId()
+                                              + " partition "
+                                              + p.getPartitionId()
+                                              + " = "
+                                              + p.getHealth()))
+                      .collect(Collectors.toList());
+              assertTrue(unhealthy.isEmpty(), () -> "partitions not healthy yet: " + unhealthy);
+
+              // Each partition must have a healthy leader so the broker can serve requests.
+              for (int partitionId = 1; partitionId <= partitionCount; partitionId++) {
+                final int pid = partitionId;
+                final boolean hasHealthyLeader =
+                    topology.getBrokers().stream()
+                        .flatMap(broker -> broker.getPartitions().stream())
+                        .filter(p -> p.getPartitionId() == pid)
+                        .filter(PartitionInfo::isLeader)
+                        .anyMatch(p -> p.getHealth() == PartitionBrokerHealth.HEALTHY);
+                assertTrue(hasHealthyLeader, "no healthy leader for partition " + pid + " yet");
+              }
             });
     return this;
   }
@@ -102,19 +144,27 @@ public class ZeebeTest {
   }
 
   public ZeebeTest waitForProcessCompletion() {
+    return waitForProcessCompletion(Duration.ofSeconds(20));
+  }
+
+  public ZeebeTest waitForProcessCompletion(Duration timeout) {
     Awaitility.with()
         .pollInSameThread()
         .await()
-        .atMost(20, TimeUnit.SECONDS)
+        .atMost(timeout)
         .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).isCompleted());
     return this;
   }
 
   public ZeebeTest waitForActiveIncidents() {
+    return waitForActiveIncidents(Duration.ofSeconds(20));
+  }
+
+  public ZeebeTest waitForActiveIncidents(Duration timeout) {
     Awaitility.with()
         .pollInSameThread()
         .await()
-        .atMost(20, TimeUnit.SECONDS)
+        .atMost(timeout)
         .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).hasActiveIncidents());
     return this;
   }

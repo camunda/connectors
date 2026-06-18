@@ -133,7 +133,7 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
     final var zeebeTest =
         setupBasicTestWithoutFeedbackLoop(
             process, elementTemplateModifier, extraProcessVariables, responseText);
-    zeebeTest.waitForProcessCompletion();
+    awaitProcessCompletion(zeebeTest);
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
@@ -215,9 +215,9 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
     enqueueUserFeedback(userFollowUpFeedback(followUpPrompt), userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(
-                testProcess, elementTemplateModifier, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+        awaitProcessCompletion(
+            createProcessInstance(
+                testProcess, elementTemplateModifier, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);

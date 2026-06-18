@@ -89,8 +89,8 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
     enqueueUserFeedback(userFollowUpFeedback("What is the content type?"), userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+        awaitProcessCompletion(
+            createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -158,8 +158,8 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+        awaitProcessCompletion(
+            createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);

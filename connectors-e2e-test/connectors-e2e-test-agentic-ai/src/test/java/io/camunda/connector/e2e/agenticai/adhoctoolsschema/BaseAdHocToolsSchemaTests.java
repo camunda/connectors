@@ -49,8 +49,8 @@ abstract class BaseAdHocToolsSchemaTests extends BaseAgenticAiTest {
             .apply(elementTemplate, SCHEMA_RESOLVER_ELEMENT_ID, new File(tempDir, "updated.bpmn"));
 
     final var zeebeTest =
-        createProcessInstance(updatedModel, Map.of("action", "resolveSchema"))
-            .waitForProcessCompletion();
+        awaitProcessCompletion(
+            createProcessInstance(updatedModel, Map.of("action", "resolveSchema")));
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableNames(RESOLVED_SCHEMA_VARIABLE);

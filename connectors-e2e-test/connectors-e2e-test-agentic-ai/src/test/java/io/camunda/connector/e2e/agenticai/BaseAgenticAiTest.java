@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.search.response.Incident;
+import io.camunda.connector.e2e.ClusterStateDumpExtension;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -35,6 +36,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -51,6 +53,7 @@ import org.springframework.core.io.ResourceLoader;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@ExtendWith(ClusterStateDumpExtension.class)
 public abstract class BaseAgenticAiTest {
   @Autowired protected CamundaClient camundaClient;
   @Autowired @ConnectorsObjectMapper protected ObjectMapper objectMapper;
@@ -96,6 +99,22 @@ public abstract class BaseAgenticAiTest {
             });
 
     return zeebeTest;
+  }
+
+  protected ZeebeTest awaitActiveIncidents(ZeebeTest zeebeTest) {
+    return awaitActiveIncidents(zeebeTest, Duration.ofSeconds(30));
+  }
+
+  protected ZeebeTest awaitActiveIncidents(ZeebeTest zeebeTest, Duration timeout) {
+    return zeebeTest.waitForActiveIncidents(timeout);
+  }
+
+  protected ZeebeTest awaitProcessCompletion(ZeebeTest zeebeTest) {
+    return awaitProcessCompletion(zeebeTest, Duration.ofSeconds(30));
+  }
+
+  protected ZeebeTest awaitProcessCompletion(ZeebeTest zeebeTest, Duration timeout) {
+    return zeebeTest.waitForProcessCompletion(timeout);
   }
 
   protected void assertIncident(ZeebeTest zeebeTest, ThrowingConsumer<Incident> assertion) {

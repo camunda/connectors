@@ -9,19 +9,22 @@ on:
 
 jobs:
 
-  get-branches:
+  setup:
     runs-on: ubuntu-latest
     # Only run if scheduled/manual OR if the 'e2e-tests' label exists on a non-fork PR
     if: |
-      github.event_name != 'pull_request' || 
-      (github.event.pull_request.head.repo.fork == false && 
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.fork == false &&
        (github.event.action == 'labeled' && github.event.label.name == 'e2e-tests') ||
        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'e2e-tests')))
     outputs:
-      branches: ${{ steps.set-matrix.outputs.branches }}
+      branches: ${{ steps.set-branches.outputs.branches }}
+      modules: ${{ steps.set-modules.outputs.modules }}
     steps:
+      - uses: actions/checkout@v6
+
       - name: Fetch stable branches
-        id: set-matrix
+        id: set-branches
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             # For PR, only test the PR's head ref
@@ -36,14 +39,30 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  run-e2e-tests:
-    name: (${{ matrix.branch }}) Nightly E2E test run
-    needs: get-branches
+      # Discover the e2e-test modules to run, one matrix entry per module. Leaf poms with `jar`
+      # packaging are test modules; aggregators (`pom` packaging) and `*-base` shared libraries are
+      # excluded. Paths are emitted relative to connectors-e2e-test/pom.xml so they can be passed
+      # directly to `-pl ... -f connectors-e2e-test/pom.xml`. New modules are picked up automatically.
+      - name: Discover e2e-test modules
+        id: set-modules
+        run: |
+          modules=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' | while read -r p; do
+            d=$(dirname "$p"); base=$(basename "$d")
+            pkg=$(grep -m1 -oP '(?<=<packaging>)[^<]+' "$p" || echo jar)
+            [ "$pkg" = "pom" ] && continue
+            case "$base" in *-base) continue;; esac
+            echo "${d#connectors-e2e-test/}"
+          done | jq -R -s -c 'split("\n") | map(select(length>0))')
+          echo "modules=$modules" >> $GITHUB_OUTPUT
+
+  build:
+    name: (${{ matrix.branch }}) Build
+    needs: setup
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        branch: ${{ fromJson(needs.get-branches.outputs.branches) }}
+        branch: ${{ fromJson(needs.setup.outputs.branches) }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -89,22 +108,26 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
+      # Non-PR (nightly/manual): build + unit-test + format-check all connector modules
+      # without the connectors-e2e-test subtree
+      - name: Build connectors with tests (non-PR)
+        if: github.event_name != 'pull_request'
+        run: |
+          E2E_EXCLUDES=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' -printf '!%h\n' | paste -sd, -)
+          ./mvnw --batch-mode -U clean install -PcheckFormat -pl "$E2E_EXCLUDES"
 
-      - name: Install element templates CLI
-        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+      # PR: build all connector modules without running tests (e2e is the only thing tested).
+      - name: Build connectors without tests (PR)
+        if: github.event_name == 'pull_request'
+        run: ./mvnw --batch-mode -U clean install -DskipTests
 
-      - name: Build Connectors
-        run: ./mvnw --batch-mode -U clean test -PcheckFormat
-
-      - name: Publish Test Report
-        if: always()
-        uses: scacap/action-surefire-report@v1
+      # Install the e2e-test base libraries so the test matrix can resolve them from ~/.m2 without
+      - name: Build e2e-test base libraries
+        run: |
+          ./mvnw --batch-mode install -DskipTests -f connectors-e2e-test/pom.xml \
+            -pl connectors-e2e-test-base,connectors-e2e-test-aws/connectors-e2e-test-aws-base
 
       - name: Sanitize branch name for artifact
-        if: always()
         id: sanitize
         run: |
           SANITIZED="${BRANCH//\//-}"
@@ -112,12 +135,120 @@ jobs:
         env:
           BRANCH: ${{ matrix.branch }}
 
+      # Hand the built artifacts (connectors + e2e base) to the test matrix.
+      - name: Upload first-party artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: m2-firstparty-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ~/.m2/repository/io/camunda/connector
+          retention-days: 1
+          include-hidden-files: true
+          overwrite: true
+
+  # Test phase (matrix: branch x module): each e2e-test module runs in its own job, in isolation, so
+  # Defaults to ubuntu-latest; resource-heavy modules override the runner via matrix.include.
+  run-e2e-tests:
+    name: ${{ matrix.module }} E2E tests
+    needs: [ setup, build ]
+    runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ${{ fromJson(needs.setup.outputs.branches) }}
+        module: ${{ fromJson(needs.setup.outputs.modules) }}
+        include:
+          # Override the runner for resource-heavy modules; all others use ubuntu-latest.
+          # To add more, append entries here.
+          - module: connectors-e2e-test-agentic-ai
+            runner: gcp-core-8-default
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ matrix.branch }}
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+
+      - name: Restore cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install element templates CLI
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+
+      - name: Sanitize branch name for artifact
+        id: sanitize
+        run: |
+          echo "branch=${BRANCH//\//-}" >> $GITHUB_OUTPUT
+          echo "module=${MODULE//\//-}" >> $GITHUB_OUTPUT
+        env:
+          BRANCH: ${{ matrix.branch }}
+          MODULE: ${{ matrix.module }}
+
+      # Restore the first-party SNAPSHOTs built by the matching build job; the test run resolves
+      # connectors + e2e base from here and does not rebuild them.
+      - name: Download first-party artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: m2-firstparty-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ~/.m2/repository/io/camunda/connector
+
+      # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
+      # artifact, so nothing upstream is rebuilt.
+      - name: Test e2e module
+        run: ./mvnw --batch-mode test -pl "${{ matrix.module }}" -f connectors-e2e-test/pom.xml
+
+      - name: Publish Test Report
+        if: always()
+        uses: scacap/action-surefire-report@v1
+        with:
+          check_name: Tests (${{ matrix.branch }} / ${{ matrix.module }})
+
       - name: Upload detailed surefire reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: surefire-reports-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: '**/target/surefire-reports/*.xml'
+          name: surefire-reports-${{ steps.sanitize.outputs.branch }}-${{ steps.sanitize.outputs.module }}-${{ github.run_id }}-${{ github.run_attempt }}
+          # *-output.txt holds the redirected test stdout (parent pom sets redirectTestOutputToFile=true);
+          # the XML <system-out> is empty, so upload the txt files to retain test logs from CI runs.
+          path: |
+            **/target/surefire-reports/*.xml
+            **/target/surefire-reports/*-output.txt
 
       - name: Send Slack notification on failure
         if: failure() && (matrix.branch == 'main' || startsWith(matrix.branch, 'stable/'))
@@ -128,5 +259,5 @@ jobs:
           payload: |
             {
               "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
-              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} E2E test run failed on branch `${{ matrix.branch}}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} E2E test run failed on branch `${{ matrix.branch }}` for module `${{ matrix.module }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
