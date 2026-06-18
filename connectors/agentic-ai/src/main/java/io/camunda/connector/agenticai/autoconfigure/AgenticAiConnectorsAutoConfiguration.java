@@ -178,9 +178,14 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceClient agentInstanceClient(
-      CamundaClient camundaClient, AgenticAiConnectorsConfigurationProperties configuration) {
+      CamundaClient camundaClient,
+      AgenticAiConnectorsConfigurationProperties configuration,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new CamundaAgentInstanceClient(
-        camundaClient, configuration.aiagent().agentInstance().retries(), Sleeper.threadSleep());
+        camundaClient,
+        configuration.aiagent().agentInstance().retries(),
+        Sleeper.threadSleep(),
+        objectMapper);
   }
 
   @Bean

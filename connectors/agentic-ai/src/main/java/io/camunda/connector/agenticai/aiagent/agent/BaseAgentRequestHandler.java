@@ -145,12 +145,19 @@ public abstract class BaseAgentRequestHandler<
     throwIfLimitsReached(conversation, agentConfiguration);
     notifyThinking(executionContext, conversation);
 
+    final var agentInstanceKey = conversation.agentInstanceKey();
+    agentInstanceClient.createHistoryItemsBeforeChat(
+        executionContext, agentInstanceKey, conversation.currentTurn());
+
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =
-        framework.executeChatRequest(
+        framework.executeMeasuringTime(
             executionContext, conversation.window(agentConfiguration.contextWindowSize()));
     final var updatedConversation =
-        conversation.ingest(chatResponse.assistantMessage(), chatResponse.tokenUsage());
+        conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
+
+    agentInstanceClient.createHistoryItemsAfterChat(
+        executionContext, agentInstanceKey, updatedConversation.currentTurn());
 
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =

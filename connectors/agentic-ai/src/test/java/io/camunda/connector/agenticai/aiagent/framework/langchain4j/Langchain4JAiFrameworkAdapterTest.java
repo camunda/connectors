@@ -250,7 +250,7 @@ class Langchain4JAiFrameworkAdapterTest {
   void returnsTokenUsageFromResponse() {
     final var adapterResponse = adapter.executeChatRequest(createExecutionContext(), SNAPSHOT);
 
-    assertThat(adapterResponse.tokenUsage())
+    assertThat(adapterResponse.metrics().tokenUsage())
         .usingRecursiveComparison()
         .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
   }
@@ -261,7 +261,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
     final var adapterResponse = adapter.executeChatRequest(createExecutionContext(), SNAPSHOT);
 
-    assertThat(adapterResponse.tokenUsage())
+    assertThat(adapterResponse.metrics().tokenUsage())
         .usingRecursiveComparison()
         .isEqualTo(AgentMetrics.TokenUsage.empty());
   }

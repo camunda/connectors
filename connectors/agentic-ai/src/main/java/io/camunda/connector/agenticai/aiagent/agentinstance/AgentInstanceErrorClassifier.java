@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.connector.agenticai.util.retry.ErrorClassifier;
-import io.camunda.connector.agenticai.util.retry.ErrorClassifier.Decision;
 import java.io.IOException;
 
 public final class AgentInstanceErrorClassifier implements ErrorClassifier {
@@ -17,9 +16,20 @@ public final class AgentInstanceErrorClassifier implements ErrorClassifier {
   public static final AgentInstanceErrorClassifier FOR_CREATE =
       new AgentInstanceErrorClassifier(true);
 
-  /** For update: 404 is permanent (the instance must exist; 404 = not found = bug). */
+  /**
+   * For update: 404 is retryable. A just-created agent instance may not yet be visible to follow-up
+   * API calls due to eventual consistency, so a transient 404 should be retried rather than failing
+   * the job.
+   */
   public static final AgentInstanceErrorClassifier FOR_UPDATE =
-      new AgentInstanceErrorClassifier(false);
+      new AgentInstanceErrorClassifier(true);
+
+  /**
+   * For history item creation: 404 is retryable for the same eventual-consistency reason as {@link
+   * #FOR_UPDATE}.
+   */
+  public static final AgentInstanceErrorClassifier FOR_HISTORY_ITEM =
+      new AgentInstanceErrorClassifier(true);
 
   private final boolean notFoundIsRetryable;
 

@@ -79,19 +79,10 @@ public final class AgentConversation {
    *
    * @throws IllegalStateException if the current turn is already complete
    */
-  public AgentConversation ingest(
-      AssistantMessage assistantMessage, AgentMetrics.TokenUsage tokenUsage) {
+  public AgentConversation ingest(AssistantMessage assistantMessage, AgentMetrics turnMetrics) {
     if (currentTurn.assistantMessage() != null) {
       throw new IllegalStateException("ingest() called on an already-completed turn");
     }
-    int toolCallCount =
-        assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size();
-    var turnMetrics =
-        AgentMetrics.builder()
-            .modelCalls(1)
-            .tokenUsage(tokenUsage)
-            .toolCalls(toolCallCount)
-            .build();
     var completedTurn = currentTurn.withAssistantMessage(assistantMessage, turnMetrics);
     return new AgentConversation(
         configuration, currentContext, systemMessage, previousTurns, completedTurn);
