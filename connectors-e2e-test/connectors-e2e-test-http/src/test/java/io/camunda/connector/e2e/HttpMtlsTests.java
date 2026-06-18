@@ -118,6 +118,39 @@ public class HttpMtlsTests {
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
 
+  @Test
+  void mtlsWithoutClientCertificateRaisesIncident() throws Exception {
+    wmMtls.stubFor(
+        post(urlPathMatching("/mock"))
+            .willReturn(
+                ResponseDefinitionBuilder.okForJson(
+                    Map.of("order", Map.of("status", "processing")))));
+
+    var mockUrl = "https://localhost:" + wmMtls.getHttpsPort() + "/mock";
+
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("restTask").endEvent().done();
+
+    // Trust the server but present no client identity: the server requires a client certificate,
+    // so the TLS handshake is rejected and the connector fails with an incident.
+    var elementTemplate =
+        ElementTemplate.from(
+                "../../connectors/http/rest/element-templates/http-json-connector.json")
+            .property("url", mockUrl)
+            .property("method", "post")
+            .property("clientTls.trustedCertificate", mtlsResource("server.crt"))
+            .property("body", "={\"order\": {\"status\": \"processing\"}}")
+            .property("resultExpression", "={orderStatus: response.body.order.status}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
+
+    ZeebeTest.with(camundaClient).deploy(updatedModel).createInstance().waitForActiveIncidents();
+  }
+
   private static String mtlsResource(String name) throws Exception {
     return Files.readString(Path.of(mtlsResourcePath(name)), StandardCharsets.UTF_8);
   }
