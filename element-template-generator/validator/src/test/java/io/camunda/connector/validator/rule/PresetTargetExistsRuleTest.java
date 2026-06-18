@@ -138,6 +138,23 @@ class PresetTargetExistsRuleTest {
   }
 
   @Test
+  void nonStringPresetValue_oneFinding() throws Exception {
+    JsonNode template =
+        read(
+            """
+        {
+          "properties": [ { "id": "freeText" } ],
+          "presets": [ { "id": "p", "properties": { "freeText": 42 } } ]
+        }
+        """);
+    List<Finding> findings = rule.apply(FILE, template);
+    assertThat(findings).hasSize(1);
+    Finding f = findings.get(0);
+    assertThat(f.jsonPointer()).isEqualTo("/presets/0/properties/freeText");
+    assertThat(f.message()).contains("must be a string");
+  }
+
+  @Test
   void duplicateIdsWithDifferentChoices_unionAccepted() throws Exception {
     JsonNode template =
         read(
