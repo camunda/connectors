@@ -34,6 +34,7 @@ import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -138,7 +139,9 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
     executable.deactivate();
 
     // Then - the same listener instance that was added must be removed to avoid retention
-    verify(recoverable).addRecoveryListener(any(RecoveryListener.class));
-    verify(recoverable).removeRecoveryListener(any(RecoveryListener.class));
+    ArgumentCaptor<RecoveryListener> listenerCaptor =
+        ArgumentCaptor.forClass(RecoveryListener.class);
+    verify(recoverable).addRecoveryListener(listenerCaptor.capture());
+    verify(recoverable).removeRecoveryListener(listenerCaptor.getValue());
   }
 }

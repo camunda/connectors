@@ -125,6 +125,7 @@ public class RabbitMqExecutable implements InboundConnectorExecutable<InboundCon
     } catch (Exception e) {
       LOGGER.warn("Failed to cancel consumer", e);
     } finally {
+      recoveryListener = null;
       if (connection != null) {
         connection.close(CLOSE_TIMEOUT_MILLIS);
       }
