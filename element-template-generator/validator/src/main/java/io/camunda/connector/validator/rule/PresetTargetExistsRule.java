@@ -72,6 +72,16 @@ public class PresetTargetExistsRule implements Rule {
           continue;
         }
         if (!value.isTextual()) {
+          findings.add(
+              Finding.error(
+                  file,
+                  entryPointer,
+                  id(),
+                  "Preset value for property \""
+                      + key
+                      + "\" must be a string (got "
+                      + value.getNodeType().toString().toLowerCase()
+                      + ")."));
           continue;
         }
         Set<String> choices = propertyChoices.get(key);
