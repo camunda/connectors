@@ -15,7 +15,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -130,7 +129,7 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
     return new CompositionResult.NextTurn(messages);
   }
 
-  private UserMessage createUserPromptMessage(UserPromptConfiguration userPrompt) {
+  private UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {
     if (userPrompt == null) {
       return null;
     }

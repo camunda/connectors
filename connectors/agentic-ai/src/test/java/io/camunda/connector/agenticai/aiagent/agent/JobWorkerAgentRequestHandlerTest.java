@@ -107,6 +107,9 @@ class JobWorkerAgentRequestHandlerTest {
         .doReturn(new AgentConfiguration(null, null, null, null, null, null))
         .when(agentExecutionContext)
         .configuration();
+    // avoid deep-stubbing a mock UserPromptConfiguration (these tests drive the turn via the
+    // composer mock and don't rely on the user prompt)
+    lenient().doReturn(null).when(agentExecutionContext).userPrompt();
   }
 
   @Test

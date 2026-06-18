@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -20,12 +21,23 @@ import org.jspecify.annotations.Nullable;
  */
 public final class AgentInput {
 
-  private final @Nullable UserPromptConfiguration userPrompt;
+  private final @Nullable UserPrompt userPrompt;
   private final List<ToolCallResult> toolCallResults;
   private final List<ToolCallResult> eventMessages;
 
+  /**
+   * Domain representation of the per-invocation user prompt, derived from the request-level {@link
+   * UserPromptConfiguration} so the conversation turn composition does not depend on the request
+   * DTO.
+   */
+  public record UserPrompt(@Nullable String prompt, List<Document> documents) {
+    public UserPrompt {
+      documents = documents == null ? List.of() : List.copyOf(documents);
+    }
+  }
+
   private AgentInput(
-      @Nullable UserPromptConfiguration userPrompt,
+      @Nullable UserPrompt userPrompt,
       List<ToolCallResult> toolCallResults,
       List<ToolCallResult> eventMessages) {
     this.userPrompt = userPrompt;
@@ -38,10 +50,14 @@ public final class AgentInput {
     Objects.requireNonNull(engineToolCallResults, "engineToolCallResults must not be null");
     var partitioned =
         engineToolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
-    return new AgentInput(userPrompt, partitioned.get(true), partitioned.get(false));
+    return new AgentInput(toUserPrompt(userPrompt), partitioned.get(true), partitioned.get(false));
   }
 
-  public @Nullable UserPromptConfiguration userPrompt() {
+  private static @Nullable UserPrompt toUserPrompt(@Nullable UserPromptConfiguration userPrompt) {
+    return userPrompt == null ? null : new UserPrompt(userPrompt.prompt(), userPrompt.documents());
+  }
+
+  public @Nullable UserPrompt userPrompt() {
     return userPrompt;
   }
 
