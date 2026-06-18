@@ -44,9 +44,11 @@ public class OutboundConnectorAgentRequestHandler
   }
 
   @Override
-  protected AiAgentTaskConnectorResponse handleInputCancel(
-      OutboundConnectorAgentExecutionContext executionContext, String errorCode, String message) {
-    throw new ConnectorException(errorCode, message);
+  protected AiAgentTaskConnectorResponse handleNoInput(
+      OutboundConnectorAgentExecutionContext executionContext) {
+    throw new ConnectorException(
+        AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT,
+        "No user message content available to start the conversation.");
   }
 
   @Override

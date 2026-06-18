@@ -63,7 +63,7 @@ agent/
 ├── BaseAgentRequestHandler     # Core orchestrator: init → compose input → rehydrate → check limits → LLM → response → complete
 ├── JobWorkerAgentRequestHandler    # Job worker completion logic
 ├── OutboundConnectorAgentRequestHandler  # Connector completion logic
-├── ConversationTurnComposerImpl # Turn input assembly → AgentInput (None/Cancellation/NextTurn)
+├── ConversationTurnComposerImpl # Turn input assembly → CompositionResult (Deferred/NoInput/NextTurn)
 ├── AgentResponseHandlerImpl    # Response formatting (text/JSON/full message)
 └── AgentToolsResolverImpl      # Tool definition loading & migration updates
 

@@ -90,21 +90,19 @@ class ConversationTurnComposerImplTest {
   }
 
   @Test
-  void firstTurn_emptyPrompt_returnsCancellation() {
+  void firstTurn_emptyPrompt_returnsNoInput() {
     var input = AgentInput.from(new UserPromptConfiguration("", null), List.of());
     var history = TurnReconstructor.reconstruct(List.of());
     var result = composer.compose(CONFIG, CTX, history, input);
-    assertThat(result).isInstanceOf(CompositionResult.Cancellation.class);
-    assertThat(((CompositionResult.Cancellation) result).errorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT);
+    assertThat(result).isInstanceOf(CompositionResult.NoInput.class);
   }
 
   @Test
-  void firstTurn_nullPrompt_returnsCancellation() {
+  void firstTurn_nullPrompt_returnsNoInput() {
     var input = AgentInput.from(null, List.of());
     var history = TurnReconstructor.reconstruct(List.of());
     var result = composer.compose(CONFIG, CTX, history, input);
-    assertThat(result).isInstanceOf(CompositionResult.Cancellation.class);
+    assertThat(result).isInstanceOf(CompositionResult.NoInput.class);
   }
 
   @Test

@@ -122,9 +122,9 @@ public abstract class BaseAgentRequestHandler<
           LOGGER.debug("No input ready to add, completing job without agent response");
           yield handleNoOp(executionContext);
         }
-        case CompositionResult.Cancellation(var errorCode, var message) -> {
-          LOGGER.debug("Conversation cannot continue ({}): {}", errorCode, message);
-          yield handleInputCancel(executionContext, errorCode, message);
+        case CompositionResult.NoInput ignored -> {
+          LOGGER.debug("No input could be composed for this turn");
+          yield handleNoInput(executionContext);
         }
         case CompositionResult.NextTurn(var newMessages) ->
             proceed(
@@ -273,10 +273,12 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * Called when {@link ConversationTurnComposer} returns {@link CompositionResult.Cancellation}.
-   * Subclasses decide whether to throw or return an error/no-op response.
+   * Called when {@link ConversationTurnComposer} returns {@link CompositionResult.NoInput} — no
+   * input (user prompt, documents or events) could be composed for this turn. Subclasses decide
+   * whether this is a hard error (throw) or a benign wait (no-op response), and own the error
+   * code/message and logging.
    */
-  protected abstract R handleInputCancel(C executionContext, String errorCode, String message);
+  protected abstract R handleNoInput(C executionContext);
 
   /**
    * Returns {@code true} when the agent-instance PATCH must be sent synchronously before the job

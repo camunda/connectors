@@ -252,16 +252,13 @@ class OutboundConnectorAgentRequestHandlerTest {
   }
 
   @Test
-  void throwsExceptionWhenInputComposerReturnsCancel() {
+  void throwsExceptionWhenInputComposerReturnsNoInput() {
     mockSystemPrompt();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(
-            new CompositionResult.Cancellation(
-                "NO_USER_MESSAGE_CONTENT",
-                "No user message content available to start the conversation."));
+        .thenReturn(new CompositionResult.NoInput());
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
         .isInstanceOfSatisfying(

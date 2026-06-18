@@ -361,14 +361,13 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   @Test
-  void silentlyCompletesJobWhenInputComposerReturnsCancel() {
+  void silentlyCompletesJobWhenInputComposerReturnsNoInput() {
     mockSystemPrompt();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(
-            new CompositionResult.Cancellation("NO_USER_MESSAGE_CONTENT", "nothing to add"));
+        .thenReturn(new CompositionResult.NoInput());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response.variables()).isEmpty();

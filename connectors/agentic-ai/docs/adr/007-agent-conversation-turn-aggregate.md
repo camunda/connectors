@@ -102,19 +102,21 @@ from historical turns.
 
 This provides backward compatibility with all existing conversations without a data migration.
 
-**`AgentInput` sealed interface**: the decision produced by `ConversationTurnComposer`:
+**`CompositionResult` sealed interface**: the decision produced by `ConversationTurnComposer`:
 
 ```
-AgentInput.None          // wait for more tool results
-AgentInput.Cancellation  // conversation cannot continue (e.g. no user prompt)
-AgentInput.NextTurn      // messages ready; proceed to LLM
+CompositionResult.Deferred  // wait for more tool results
+CompositionResult.NoInput   // nothing to add (no user prompt, documents or events)
+CompositionResult.NextTurn  // messages ready; proceed to LLM
 ```
 
-Replaces the boolean `modelCallPrerequisitesFulfilled` + raw `List<Message>` pair.
+Replaces the boolean `modelCallPrerequisitesFulfilled` + raw `List<Message>` pair. `NoInput` carries
+no error semantics; each handler decides whether it is a hard error or a benign wait.
 
 **`ConversationTurnComposer` / `ConversationTurnComposerImpl`**: replaces `AgentMessagesHandler`.
-Takes `AgentConversation`, returns `AgentInput`. Owns message assembly (user prompt, tool results,
-event messages, document extraction) and the proceed/wait/cancel routing decision.
+Takes the configuration, agent context, reconstructed `PreviousConversation` and per-invocation
+`AgentInput`, and returns a `CompositionResult`. Owns message assembly (user prompt, tool results,
+event messages, document extraction) and the proceed/wait/no-input routing decision.
 
 **`ConversationSnapshot`**: the transient, windowed, read-only view sent to the LLM. Built by
 `AgentConversation` via `MessageWindowFilter.apply(allMessages(), windowSize)`.
@@ -127,9 +129,9 @@ Replaces the stateful `MessageWindowRuntimeMemory` decorator.
 
 ```
 load + reconstruct history → compose input
-  → None:         handleNoOp
-  → Cancellation: handleInputCancel
-  → NextTurn:     createSystemMessage → rehydrate → checkLimits
+  → Deferred:  handleNoOp
+  → NoInput:   handleNoInput
+  → NextTurn:  createSystemMessage → rehydrate → checkLimits
                   → [LLM call] → ingest → persist → toAgentContext → buildResponse
 ```
 

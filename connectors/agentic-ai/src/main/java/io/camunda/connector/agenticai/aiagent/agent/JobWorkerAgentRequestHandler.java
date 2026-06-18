@@ -58,12 +58,10 @@ public class JobWorkerAgentRequestHandler
   }
 
   @Override
-  protected AiAgentSubProcessConnectorResponse handleInputCancel(
-      JobWorkerAgentExecutionContext executionContext, String errorCode, String message) {
+  protected AiAgentSubProcessConnectorResponse handleNoInput(
+      JobWorkerAgentExecutionContext executionContext) {
     LOGGER.warn(
-        "Agent cannot proceed ({}): {}. Completing job {} without response.",
-        errorCode,
-        message,
+        "No input to process; completing job {} without response.",
         executionContext.jobContext().getJobKey());
     return buildConnectorResponse(executionContext, null, null, null);
   }

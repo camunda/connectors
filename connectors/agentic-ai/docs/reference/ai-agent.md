@@ -738,30 +738,31 @@ if (toolCallResultMessage.isEmpty()) {
 The method checks each tool call from the last assistant message against the available results
 (`Optional<ToolCallResultMessage>`):
 - If all present: creates a `ToolCallResultMessage` with results ordered to match the original tool call order
-- If missing and NOT interrupting: returns `Optional.empty()` → `compose` returns `AgentInput.None` → handler completes as a no-op
+- If missing and NOT interrupting: returns `Optional.empty()` → `compose` returns `CompositionResult.Deferred` → handler completes as a no-op
 - If missing and interrupting (due to event): creates cancelled results for missing tools
 
 ### No-Op Detection in BaseAgentRequestHandler
 
-`BaseAgentRequestHandler.converse` switches on the `AgentInput` returned by
+`BaseAgentRequestHandler.converse` switches on the `CompositionResult` returned by
 `ConversationTurnComposer.compose`:
 
 ```java
-return switch (input) {
-    case AgentInput.None ignored ->
-        handleNoOp(executionContext);                              // wait for more results
-    case AgentInput.Cancellation(var errorCode, var message) ->
-        handleInputCancel(executionContext, errorCode, message);   // cannot proceed
-    case AgentInput.NextTurn(var newMessages) ->
-        proceed(...);                                              // call the LLM
+return switch (compositionResult) {
+    case CompositionResult.Deferred ignored ->
+        handleNoOp(executionContext);          // wait for more tool results
+    case CompositionResult.NoInput ignored ->
+        handleNoInput(executionContext);       // nothing to add; handler decides
+    case CompositionResult.NextTurn(var newMessages) ->
+        proceed(...);                          // call the LLM
 };
 ```
 
-This is the key gate: when tool results were incomplete the composer returns `AgentInput.None`, and
-`handleNoOp` completes the job as a no-op (the job worker waits for the next job, which will have
-more results). When no user content is available at all, the composer returns `AgentInput.Cancellation`
-with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`; the job worker's `handleInputCancel` completes without a
-response, while the outbound connector's `handleInputCancel` throws a `ConnectorException`.
+This is the key gate: when tool results were incomplete the composer returns `CompositionResult.Deferred`,
+and `handleNoOp` completes the job as a no-op (the job worker waits for the next job, which will have
+more results). When no input (user prompt, documents or events) is available at all, the composer returns
+`CompositionResult.NoInput`. This variant carries no error semantics — each handler decides: the job
+worker's `handleNoInput` completes without a response, while the outbound connector's `handleNoInput`
+throws a `ConnectorException` with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`.
 
 ---
 

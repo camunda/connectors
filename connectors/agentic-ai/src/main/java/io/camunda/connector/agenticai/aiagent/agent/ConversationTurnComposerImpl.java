@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT;
 import static io.camunda.connector.agenticai.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
@@ -125,9 +124,7 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
 
     if (messages.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
-      return new CompositionResult.Cancellation(
-          ERROR_CODE_NO_USER_MESSAGE_CONTENT,
-          "No user message content available to start the conversation.");
+      return new CompositionResult.NoInput();
     }
 
     return new CompositionResult.NextTurn(messages);

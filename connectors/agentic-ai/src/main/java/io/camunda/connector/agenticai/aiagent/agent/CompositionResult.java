@@ -17,8 +17,11 @@ public sealed interface CompositionResult {
   /** No messages ready yet — wait for more tool results before proceeding. */
   record Deferred() implements CompositionResult {}
 
-  /** Conversation cannot continue — e.g., no user message content available. */
-  record Cancellation(String errorCode, String message) implements CompositionResult {}
+  /**
+   * No input could be composed for this turn (no user prompt, documents or events to add). Carries
+   * no error semantics — each handler decides whether this is a hard error or a benign wait.
+   */
+  record NoInput() implements CompositionResult {}
 
   /** Messages assembled and ready to be applied to the conversation. */
   record NextTurn(List<Message> messages) implements CompositionResult {
