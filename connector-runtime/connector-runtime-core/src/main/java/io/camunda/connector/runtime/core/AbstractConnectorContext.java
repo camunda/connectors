@@ -20,6 +20,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import org.jspecify.annotations.Nullable;
 
 public abstract class AbstractConnectorContext {
@@ -30,10 +31,20 @@ public abstract class AbstractConnectorContext {
 
   protected final ValidationProvider validationProvider;
 
+  private final SecretResolverMode secretResolverMode;
+
   protected AbstractConnectorContext(
       final SecretProvider secretProvider,
-      SecretFilter secretFilter,
+      final SecretFilter secretFilter,
       final ValidationProvider validationProvider) {
+    this(secretProvider, secretFilter, validationProvider, SecretResolverMode.ALL);
+  }
+
+  protected AbstractConnectorContext(
+      final SecretProvider secretProvider,
+      final SecretFilter secretFilter,
+      final ValidationProvider validationProvider,
+      final SecretResolverMode secretResolverMode) {
     if (secretFilter == null) {
       throw new IllegalArgumentException(
           "Secret filter required in Connector context but was null");
@@ -48,11 +59,13 @@ public abstract class AbstractConnectorContext {
       throw new RuntimeException("Validation provider required in Connector context but was null");
     }
     this.validationProvider = validationProvider;
+    this.secretResolverMode =
+        secretResolverMode != null ? secretResolverMode : SecretResolverMode.ALL;
   }
 
   public SecretHandler getSecretHandler() {
     if (secretHandler == null) {
-      secretHandler = new SecretHandler(secretProvider, secretFilter);
+      secretHandler = new SecretHandler(secretProvider, secretFilter, secretResolverMode);
     }
     return secretHandler;
   }

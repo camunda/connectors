@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound.secret;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.ElementTemplateDetails;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -107,7 +108,10 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
 
   private List<String> extractSecrets(List<ZeebeInput> inputs) {
     return inputs.stream()
-        .flatMap(input -> SecretUtil.retrieveSecretKeysInInput(input.getSource()).stream())
+        .flatMap(
+            input ->
+                SecretUtil.retrieveSecretKeysInInput(input.getSource(), SecretResolverMode.ALL)
+                    .stream())
         .map(String::trim)
         .distinct()
         .toList();

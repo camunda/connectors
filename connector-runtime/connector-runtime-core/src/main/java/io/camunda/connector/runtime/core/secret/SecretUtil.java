@@ -37,13 +37,17 @@ public class SecretUtil {
   private static final Pattern SECRET_PATTERN_PARENTHESES =
       Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
 
+  private SecretUtil() {}
+
   public static String replaceSecrets(
-      String input, SecretContext context, SecretReplacer secretReplacer) {
+      String input, SecretContext context, SecretReplacer secretReplacer, SecretResolverMode mode) {
     if (input == null) {
       throw new IllegalStateException("input cant be null.");
     }
     input = replaceSecretsWithParentheses(input, context, secretReplacer);
-    input = replaceSecretsWithoutParentheses(input, context, secretReplacer);
+    if (mode == SecretResolverMode.ALL) {
+      input = replaceSecretsWithoutParentheses(input, context, secretReplacer);
+    }
     return input;
   }
 
@@ -103,14 +107,19 @@ public class SecretUtil {
     return output.toString();
   }
 
-  public static List<String> retrieveSecretKeysInInput(String input) {
-    return Objects.isNull(input)
-        ? List.of()
-        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
-            .map(pattern -> pattern.matcher(input))
-            .flatMap(Matcher::results)
-            .map(matchResult -> matchResult.group("secret"))
-            .distinct()
-            .toList();
+  public static List<String> retrieveSecretKeysInInput(String input, SecretResolverMode mode) {
+    if (Objects.isNull(input)) {
+      return List.of();
+    }
+    var patterns =
+        mode == SecretResolverMode.ALL
+            ? Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
+            : Stream.of(SECRET_PATTERN_PARENTHESES);
+    return patterns
+        .map(pattern -> pattern.matcher(input))
+        .flatMap(Matcher::results)
+        .map(matchResult -> matchResult.group("secret"))
+        .distinct()
+        .toList();
   }
 }

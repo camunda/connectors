@@ -34,6 +34,7 @@ import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -57,6 +58,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   private final MetricsRecorder metricsRecorder;
   private final SecretFilterFactory secretFilterFactory;
   private final MeterRegistry meterRegistry;
+  private final SecretResolverMode secretResolverMode;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
@@ -68,7 +70,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
       ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder,
       SecretFilterFactory secretFilterFactory,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      SecretResolverMode secretResolverMode) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.jobCallbackCommandWrapperFactory = jobCallbackCommandWrapperFactory;
@@ -79,6 +82,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     this.metricsRecorder = metricsRecorder;
     this.secretFilterFactory = secretFilterFactory;
     this.meterRegistry = meterRegistry;
+    this.secretResolverMode = secretResolverMode;
   }
 
   @Override
@@ -125,7 +129,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
                 documentFactory,
                 objectMapper,
                 connectorFunction,
-                secretFilterFactory);
+                secretFilterFactory,
+                secretResolverMode);
     jobWorkerManager.createJobWorker(
         client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this);
   }

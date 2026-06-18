@@ -27,6 +27,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.time.Duration;
 import java.util.*;
@@ -38,9 +39,11 @@ public class OutboundConnectorExceptionHandler {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(OutboundConnectorExceptionHandler.class);
   private final SecretProvider secretProvider;
+  private final SecretResolverMode mode;
 
-  public OutboundConnectorExceptionHandler(SecretProvider secretProvider) {
+  public OutboundConnectorExceptionHandler(SecretProvider secretProvider, SecretResolverMode mode) {
     this.secretProvider = secretProvider;
+    this.mode = mode;
   }
 
   private static Map<String, Object> exceptionToMap(Exception wrappedException) {
@@ -72,7 +75,7 @@ public class OutboundConnectorExceptionHandler {
     List<String> secrets;
     try {
       var allowedKeys =
-          SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
+          SecretUtil.retrieveSecretKeysInInput(job.getVariables(), mode).stream()
               .filter(secretFilter::isAllowed)
               .toList();
       secrets =
@@ -173,7 +176,7 @@ public class OutboundConnectorExceptionHandler {
   public ConnectorResult.ErrorResult handleFinalResultException(
       Exception ex, ActivatedJob job, SecretFilter secretFilter) {
     var allowedKeys =
-        SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
+        SecretUtil.retrieveSecretKeysInInput(job.getVariables(), mode).stream()
             .filter(secretFilter::isAllowed)
             .toList();
     List<String> secrets =

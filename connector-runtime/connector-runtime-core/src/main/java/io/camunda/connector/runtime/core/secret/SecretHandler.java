@@ -31,8 +31,14 @@ public class SecretHandler {
 
   protected SecretReplacer secretReplacer;
 
-  public SecretHandler(final SecretProvider secretProvider, SecretFilter secretFilter) {
+  protected final SecretResolverMode mode;
+
+  public SecretHandler(
+      final SecretProvider secretProvider,
+      final SecretFilter secretFilter,
+      final SecretResolverMode mode) {
     this.secretProvider = secretProvider;
+    this.mode = mode;
     secretReplacer =
         (name, context) -> {
           if (secretFilter.isAllowed(name)) {
@@ -48,6 +54,6 @@ public class SecretHandler {
   }
 
   public String replaceSecrets(String input, SecretContext context) {
-    return SecretUtil.replaceSecrets(input, context, secretReplacer);
+    return SecretUtil.replaceSecrets(input, context, secretReplacer, mode);
   }
 }

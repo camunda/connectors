@@ -63,6 +63,7 @@ import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
 import java.time.Duration;
@@ -95,6 +96,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private final DocumentFactory documentFactory;
   private final ObjectMapper objectMapper;
   private final SecretFilterFactory secretFilterFactory;
+  private final SecretResolverMode secretResolverMode;
 
   public SpringConnectorJobHandler(
       MetricsRecorder outboundMetrics,
@@ -104,7 +106,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      SecretResolverMode secretResolverMode) {
     this(
         new ConnectorOutboundMetrics(outboundMetrics, null),
         jobCallbackCommandWrapperFactory,
@@ -113,7 +116,8 @@ public class SpringConnectorJobHandler implements JobHandler {
         documentFactory,
         objectMapper,
         connectorFunction,
-        secretFilterFactory);
+        secretFilterFactory,
+        secretResolverMode);
   }
 
   public SpringConnectorJobHandler(
@@ -124,15 +128,17 @@ public class SpringConnectorJobHandler implements JobHandler {
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      SecretResolverMode secretResolverMode) {
     this.call = connectorFunction;
     this.secretProvider = secretProviderAggregator;
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
     this.secretFilterFactory = secretFilterFactory;
+    this.secretResolverMode = secretResolverMode;
     this.outboundConnectorExceptionHandler =
-        new OutboundConnectorExceptionHandler(getSecretProvider());
+        new OutboundConnectorExceptionHandler(getSecretProvider(), secretResolverMode);
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
     this.jobCallbackCommandWrapperFactory = jobCallbackCommandWrapperFactory;
     this.connectorsOutboundMetrics = outboundMetrics;
@@ -190,7 +196,8 @@ public class SpringConnectorJobHandler implements JobHandler {
             validationProvider,
             documentFactory,
             objectMapper,
-            secretFilter);
+            secretFilter,
+            secretResolverMode);
     ConnectorResult result = getConnectorResult(job, context, secretFilter);
     processFinalResult(client, job, context, result, counterMetricsContext, secretFilter);
   }

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime;
 
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -26,6 +27,7 @@ public record ConnectorProperties(
     Polling polling,
     Webhook webhook,
     SecretProvider secretProvider,
+    Secrets secrets,
     VirtualThreads virtualThreads,
     Inbound inbound,
     OAuth oauth,
@@ -55,6 +57,13 @@ public record ConnectorProperties(
       boolean enabled, String prefix, boolean tenantAware, boolean processDefinitionAware) {}
 
   public record ConsoleSecretProvider(boolean enabled, String endpoint, String audience) {}
+
+  /** Configuration for secret resolution behaviour. */
+  public record Secrets(SecretResolverMode resolverMode) {
+    public Secrets() {
+      this(SecretResolverMode.ALL);
+    }
+  }
 
   /** Configuration for inbound connector processing. */
   public record Inbound(ProcessDefinitionCache processDefinitionCache) {}
