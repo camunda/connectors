@@ -14,7 +14,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
     name = "Box",
-    inputVariables = {"authentication", "operation"},
+    inputVariables = {"authentication", "operation", "documentReturnFormat"},
     type = "io.camunda:box:1")
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -33,7 +33,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "document management"
     },
     inputDataClass = BoxRequest.class,
-    version = 3,
+    version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
@@ -46,6 +46,7 @@ public class BoxFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context) {
     var request = context.bindVariables(BoxRequest.class);
-    return BoxOperations.execute(request, context);
+    boolean useDocumentReturnFlow = context.readDocumentReturnFormat().isPresent();
+    return BoxOperations.execute(request, context, useDocumentReturnFlow);
   }
 }

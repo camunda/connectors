@@ -6,12 +6,19 @@
  */
 package io.camunda.connector.google.gcs.model.request;
 
+import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(id = "downloadObject", label = "Download object")
+@DocumentReturnFormat(
+    group = "operation",
+    tooltip =
+        "How the downloaded payload should be returned. Document reference uploads the payload to"
+            + " the document store; as text decodes it as a String; as JSON parses it into a"
+            + " structure you can access via dot notation.")
 public record DownloadObject(
     @TemplateProperty(
             label = "GCP project",
@@ -40,16 +47,5 @@ public record DownloadObject(
             binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
         @NotBlank
         String fileName,
-    @TemplateProperty(
-            label = "Return document as reference",
-            id = "downloadOperationAsFile",
-            group = "operation",
-            tooltip =
-                "If checked, a Camunda document is created and its reference is returned\n"
-                    + "If not checked, no document is created and the content is passed as is",
-            type = TemplateProperty.PropertyType.Boolean,
-            defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-            defaultValue = "true",
-            binding = @TemplateProperty.PropertyBinding(name = "operation.asDocument"))
-        boolean asDocument)
+    @TemplateProperty(ignore = true) @Deprecated boolean asDocument)
     implements ObjectStorageOperation {}

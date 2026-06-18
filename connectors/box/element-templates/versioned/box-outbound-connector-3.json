@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Box Outbound Connector",
-  "id" : "io.camunda.connectors.box-hybrid",
+  "name" : "Box Outbound Connector",
+  "id" : "io.camunda.connectors.box",
   "description" : "Interact with the Box Document API",
   "keywords" : [ "create folder", "delete folder", "upload file", "download file", "move file", "delete file", "search files", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/box/",
-  "version" : 4,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -40,14 +37,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:box:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
@@ -572,55 +567,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "documentReturnFormat",
-    "label" : "Response format",
-    "value" : "DOCUMENT",
-    "group" : "operation",
-    "binding" : {
-      "name" : "documentReturnFormat.choice",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "operation.type",
-      "equals" : "downloadFile",
-      "type" : "simple"
-    },
-    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Document reference",
-      "value" : "DOCUMENT"
-    }, {
-      "name" : "as text",
-      "value" : "TEXT"
-    }, {
-      "name" : "as JSON",
-      "value" : "JSON"
-    } ]
-  }, {
-    "id" : "documentReturnFormatEncoding",
-    "label" : "Encoding",
-    "description" : "Character set used to decode the response. Default UTF-8.",
-    "value" : "UTF-8",
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "documentReturnFormat.encoding",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "documentReturnFormat",
-        "equals" : "TEXT",
-        "type" : "simple"
-      }, {
-        "property" : "operation.type",
-        "equals" : "downloadFile",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
     "id" : "operation.moveFilePath",
     "label" : "File path",
     "optional" : false,
@@ -781,7 +727,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

@@ -6,9 +6,18 @@
  */
 package io.camunda.connector.gdrive.model.request;
 
+import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
+@DocumentReturnFormat(
+    group = "operationDetails",
+    tooltip =
+        "How the downloaded payload should be returned. Document reference uploads the payload to"
+            + " the document store; as text decodes it as a String; as JSON parses it into a"
+            + " structure you can access via dot notation.",
+    condition =
+        @TemplateProperty.PropertyCondition(property = "resource.type", equals = "download"))
 public record DownloadData(
     @TemplateProperty(
             group = "operationDetails",

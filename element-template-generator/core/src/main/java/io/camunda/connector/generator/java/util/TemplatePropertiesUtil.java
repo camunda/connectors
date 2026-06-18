@@ -183,6 +183,17 @@ public class TemplatePropertiesUtil {
         properties.add(buildProperty(field, field.getName(), field.getType(), context));
       }
     }
+
+    // TYPE-level @DocumentReturnFormat on the input class / sealed sub-type → adds the
+    // documentReturnFormat dropdown + encoding sub-field bound to the root variable path.
+    // Appended after the field loop so the dropdown renders below the connector-specific fields
+    // (file ID, key, bucket, etc.) instead of above them.
+    var typeDocumentReturnFormatAnnotation = type.getAnnotation(DocumentReturnFormat.class);
+    if (typeDocumentReturnFormatAnnotation != null) {
+      properties.addAll(
+          DocumentReturnFormatHandler.handleDocumentReturnFormat(
+              typeDocumentReturnFormatAnnotation));
+    }
     return properties.stream().filter(Objects::nonNull).toList();
   }
 
@@ -335,6 +346,20 @@ public class TemplatePropertiesUtil {
   private static void addPathPrefixToBuilder(
       PropertyBuilder builder, String path, TemplateGenerationContext context) {
     var originalId = builder.getId();
+    boolean isRootBoundDocReturn =
+        DocumentReturnFormatHandler.DROPDOWN_ID.equals(originalId)
+            || DocumentReturnFormatHandler.ENCODING_ID.equals(originalId);
+
+    if (isRootBoundDocReturn) {
+      // The DocumentReturnFormat dropdown + encoding always bind to a canonical root-level path
+      // ("documentReturnFormat.choice" / ".encoding") so the runtime can read them without
+      // per-connector configuration. Skip the id and binding rewrite. Discriminator references
+      // in this builder's condition are already path-prefixed by handleSealedType's dependant
+      // pass (see DiscriminatorPropertyBuilder branch below) — re-prefixing here would double-
+      // apply the path.
+      return;
+    }
+
     builder.id(path + "." + originalId);
     var binding = builder.getBinding();
 

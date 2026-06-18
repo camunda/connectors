@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.*;
 import io.camunda.client.api.response.ActivatedJob;
@@ -26,6 +27,8 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.document.DocumentReturnChoice;
+import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -34,6 +37,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import java.util.Objects;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,6 +115,40 @@ public class JobHandlerContext extends AbstractConnectorContext
     } catch (JsonProcessingException e) {
       throw new ConnectorInputException(e.getOriginalMessage(), e);
     }
+  }
+
+  @Override
+  public Optional<DocumentReturnFormat> readDocumentReturnFormat() {
+    JsonNode root;
+    try {
+      root = objectMapper.readTree(getJsonReplacedWithSecrets());
+    } catch (Exception e) {
+      log.warn("Failed to parse job variables while reading documentReturnFormat", e);
+      return Optional.empty();
+    }
+    JsonNode node = root.get("documentReturnFormat");
+    if (node == null || node.isNull() || node.isMissingNode()) {
+      return Optional.empty();
+    }
+    JsonNode choiceNode = node.get("choice");
+    if (choiceNode == null || choiceNode.isNull()) {
+      return Optional.empty();
+    }
+    String choiceText = choiceNode.asText();
+    if (choiceText == null || choiceText.isBlank()) {
+      return Optional.empty();
+    }
+    DocumentReturnChoice choice;
+    try {
+      choice = DocumentReturnChoice.valueOf(choiceText);
+    } catch (IllegalArgumentException e) {
+      throw new ConnectorInputException(
+          "documentReturnFormat.choice must be one of DOCUMENT, TEXT, JSON. Got: " + choiceText);
+    }
+    JsonNode encodingNode = node.get("encoding");
+    String encoding =
+        (encodingNode == null || encodingNode.isNull()) ? null : encodingNode.asText(null);
+    return Optional.of(new DocumentReturnFormat(choice, encoding));
   }
 
   @Override
