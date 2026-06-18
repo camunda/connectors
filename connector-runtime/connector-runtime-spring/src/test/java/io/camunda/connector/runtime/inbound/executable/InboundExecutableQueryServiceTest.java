@@ -200,8 +200,8 @@ class InboundExecutableQueryServiceTest {
 
     assertThat(result.getStatus()).isEqualTo(Health.Status.DOWN);
     assertThat(result.getError().code()).isEqualTo("CONNECTORS_DOWN");
-    assertThat(result.getDetails()).containsKey("test-down");
-    var executableHealth = (Health) result.getDetails().get("test-down");
+    assertThat(result.getDetails()).containsKey(id.getId());
+    var executableHealth = (Health) result.getDetails().get(id.getId());
     assertThat(executableHealth.getStatus()).isEqualTo(Health.Status.DOWN);
     assertThat(executableHealth.getError()).isEqualTo(error);
   }
@@ -219,7 +219,7 @@ class InboundExecutableQueryServiceTest {
 
     var result = queryService.aggregateHealth();
 
-    var executableHealth = (Health) result.getDetails().get("test-down");
+    var executableHealth = (Health) result.getDetails().get(id.getId());
     assertThat(executableHealth.getDetails())
         .containsEntry("processId", "processId")
         .containsEntry("tenantId", "tenant")
@@ -240,7 +240,7 @@ class InboundExecutableQueryServiceTest {
 
     var result = queryService.aggregateHealth();
 
-    var executableHealth = (Health) result.getDetails().get("test-down");
+    var executableHealth = (Health) result.getDetails().get(id.getId());
     assertThat(executableHealth.getDetails())
         .containsEntry("type", "connector-provided-type")
         .containsEntry("customKey", "customValue");
@@ -259,7 +259,7 @@ class InboundExecutableQueryServiceTest {
     Thread.sleep(5);
     var result = queryService.aggregateHealth();
 
-    var executableHealth = (Health) result.getDetails().get("test-down");
+    var executableHealth = (Health) result.getDetails().get(id.getId());
     assertThat(executableHealth.getLastUpdatedAt())
         .as("lastUpdatedAt should be preserved after enrichment, not reset to query time")
         .isEqualTo(originalTimestamp);
