@@ -23,8 +23,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import io.camunda.connector.runtime.core.secret.SecretReplacer;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -54,12 +56,36 @@ public class SecretUtilTests {
   })
   void testSecretPattern(String input, String secret, Boolean shouldDetect) {
     var secretReplacer = mock(SecretReplacer.class);
-    SecretUtil.replaceSecrets(input, null, secretReplacer);
+    SecretUtil.replaceSecrets(input, null, secretReplacer, SecretResolverMode.ALL);
     if (shouldDetect) {
       verify(secretReplacer).replaceSecrets(eq(secret), any());
     } else {
       verifyNoInteractions(secretReplacer);
     }
+  }
+
+  @Test
+  void bracesOnly_secretsDotKeyNotReplaced() {
+    var secretReplacer = mock(SecretReplacer.class);
+    SecretUtil.replaceSecrets(
+        "secrets.MY_SECRET", null, secretReplacer, SecretResolverMode.BRACES_ONLY);
+    verifyNoInteractions(secretReplacer);
+  }
+
+  @Test
+  void bracesOnly_bracesPatternStillReplaced() {
+    var secretReplacer = mock(SecretReplacer.class);
+    SecretUtil.replaceSecrets(
+        "{{secrets.MY_SECRET}}", null, secretReplacer, SecretResolverMode.BRACES_ONLY);
+    verify(secretReplacer).replaceSecrets(eq("MY_SECRET"), any());
+  }
+
+  @Test
+  void bracesOnly_retrieveSecretKeysExcludesUnbracedKeys() {
+    var keys =
+        SecretUtil.retrieveSecretKeysInInput(
+            "secrets.A and {{secrets.B}}", SecretResolverMode.BRACES_ONLY);
+    assertThat(keys).containsExactly("B");
   }
 
   Map<String, String> secrets =
@@ -79,7 +105,7 @@ public class SecretUtilTests {
       delimiter = '|') // delimiter is needed to escape the comma in the json
   void testSecretReplacementWithJsonInput(String input, String output) {
     SecretReplacer secretReplacer = (name, context) -> secrets.get(name);
-    var result = SecretUtil.replaceSecrets(input, null, secretReplacer);
+    var result = SecretUtil.replaceSecrets(input, null, secretReplacer, SecretResolverMode.ALL);
     assertThat(result).isEqualTo(output);
   }
 }

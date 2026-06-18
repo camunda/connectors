@@ -33,6 +33,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
 import java.time.Duration;
 import java.util.Arrays;
@@ -52,6 +53,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   private final ObjectMapper objectMapper;
   private final DocumentFactory documentFactory;
   private final MetricsRecorder metricsRecorder;
+  private final SecretResolverMode secretResolverMode;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
@@ -61,7 +63,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
+      MetricsRecorder metricsRecorder,
+      SecretResolverMode secretResolverMode) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.jobCallbackCommandWrapperFactory = jobCallbackCommandWrapperFactory;
@@ -70,6 +73,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
+    this.secretResolverMode = secretResolverMode;
   }
 
   @Override
@@ -115,7 +119,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
                 validationProvider,
                 documentFactory,
                 objectMapper,
-                connectorFunction);
+                connectorFunction,
+                secretResolverMode);
     jobWorkerManager.createJobWorker(
         client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this);
   }

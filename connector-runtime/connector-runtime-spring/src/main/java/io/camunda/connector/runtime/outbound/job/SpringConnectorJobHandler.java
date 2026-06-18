@@ -58,6 +58,7 @@ import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
@@ -88,6 +89,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private final ValidationProvider validationProvider;
   private final DocumentFactory documentFactory;
   private final ObjectMapper objectMapper;
+  private final SecretResolverMode secretResolverMode;
 
   public SpringConnectorJobHandler(
       MetricsRecorder outboundMetrics,
@@ -96,14 +98,16 @@ public class SpringConnectorJobHandler implements JobHandler {
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      OutboundConnectorFunction connectorFunction) {
+      OutboundConnectorFunction connectorFunction,
+      SecretResolverMode secretResolverMode) {
     this.call = connectorFunction;
     this.secretProvider = secretProviderAggregator;
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
+    this.secretResolverMode = secretResolverMode;
     this.outboundConnectorExceptionHandler =
-        new OutboundConnectorExceptionHandler(getSecretProvider());
+        new OutboundConnectorExceptionHandler(getSecretProvider(), secretResolverMode);
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
     this.jobCallbackCommandWrapperFactory = jobCallbackCommandWrapperFactory;
     this.connectorsOutboundMetrics = outboundMetrics;
@@ -152,7 +156,12 @@ public class SpringConnectorJobHandler implements JobHandler {
         job.getTenantId());
     var context =
         new JobHandlerContext(
-            job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
+            job,
+            getSecretProvider(),
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            secretResolverMode);
     ConnectorResult result = getConnectorResult(job, context);
     processFinalResult(client, job, context, result, counterMetricsContext);
   }

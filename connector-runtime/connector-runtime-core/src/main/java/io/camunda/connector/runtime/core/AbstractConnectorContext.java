@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 
 public abstract class AbstractConnectorContext {
 
@@ -27,8 +28,17 @@ public abstract class AbstractConnectorContext {
 
   protected final ValidationProvider validationProvider;
 
+  private final SecretResolverMode secretResolverMode;
+
   protected AbstractConnectorContext(
       final SecretProvider secretProvider, final ValidationProvider validationProvider) {
+    this(secretProvider, validationProvider, SecretResolverMode.ALL);
+  }
+
+  protected AbstractConnectorContext(
+      final SecretProvider secretProvider,
+      final ValidationProvider validationProvider,
+      final SecretResolverMode secretResolverMode) {
     if (secretProvider == null) {
       throw new RuntimeException("Secret provider required in Connector context but was null");
     }
@@ -38,11 +48,13 @@ public abstract class AbstractConnectorContext {
       throw new RuntimeException("Validation provider required in Connector context but was null");
     }
     this.validationProvider = validationProvider;
+    this.secretResolverMode =
+        secretResolverMode != null ? secretResolverMode : SecretResolverMode.ALL;
   }
 
   public SecretHandler getSecretHandler() {
     if (secretHandler == null) {
-      secretHandler = new SecretHandler(secretProvider);
+      secretHandler = new SecretHandler(secretProvider, secretResolverMode);
     }
     return secretHandler;
   }
