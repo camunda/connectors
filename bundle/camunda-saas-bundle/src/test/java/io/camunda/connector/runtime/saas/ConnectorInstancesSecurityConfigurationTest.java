@@ -58,7 +58,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @DirtiesContext
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
-public class InboundInstancesSecurityConfigurationTest {
+public class ConnectorInstancesSecurityConfigurationTest {
 
   private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
 
@@ -88,5 +88,15 @@ public class InboundInstancesSecurityConfigurationTest {
   @Test
   public void inboundInstancesEndpoint_withAuth_returns200() throws Exception {
     mvc.perform(get("/inbound-instances").with(jwt())).andExpect(status().isOk());
+  }
+
+  @Test
+  public void outboundEndpoint_noAuth_returns401() throws Exception {
+    mvc.perform(get("/outbound")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  public void outboundEndpoint_withAuth_returns200() throws Exception {
+    mvc.perform(get("/outbound").with(jwt())).andExpect(status().isOk());
   }
 }
