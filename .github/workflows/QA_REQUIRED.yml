@@ -201,7 +201,6 @@ jobs:
     runs-on: gcp-core-2-default
     permissions:
       contents: read
-      pull-requests: write
     if: |
       github.event.pull_request.state != 'closed' &&
       github.event.label.name == 'qa:required'
@@ -226,6 +225,15 @@ jobs:
             secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_HARBOR_USR;
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_HARBOR_PSW;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+
+      - name: Generate a GitHub token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ steps.secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Restore cache
         uses: actions/cache@v5
@@ -330,7 +338,7 @@ jobs:
 
       - name: Comment image tags on PR
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
