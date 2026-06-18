@@ -107,6 +107,22 @@ public class CustomApacheHttpClientMtlsTest {
         .isInstanceOf(ConnectorException.class);
   }
 
+  @Test
+  void shouldRaiseTlsError_whenServerCertificateNotTrusted() {
+    HttpClientRequest request = new HttpClientRequest();
+    request.setMethod(HttpMethod.GET);
+    request.setUrl(server.baseUrl() + "/secure");
+    // Present a client identity but no trusted certificate: the self-signed server is not in the
+    // JVM default trust store, so the handshake fails on path validation. The incident must say so.
+    request.setClientTls(new ClientTls(clientCertPem, clientKeyPem, null, null));
+
+    assertThatThrownBy(() -> httpClient.execute(request, ResponseMappers.asString()))
+        .isInstanceOf(ConnectorException.class)
+        .hasFieldOrPropertyWithValue("errorCode", "SSL_HANDSHAKE_FAILED")
+        .hasMessageContaining("TLS handshake failed")
+        .hasMessageContaining("certification path");
+  }
+
   private static String readResource(String name) throws Exception {
     return Files.readString(Paths.get(resourcePath(name)), StandardCharsets.UTF_8);
   }
