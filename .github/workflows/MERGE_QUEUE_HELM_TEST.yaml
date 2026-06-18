@@ -21,7 +21,7 @@ jobs:
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Import Secrets
         id: secrets
@@ -198,7 +198,7 @@ jobs:
     permissions: { }
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
@@ -386,7 +386,7 @@ jobs:
     timeout-minutes: 20
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Check for agentic-ai changes
         id: changes
