@@ -371,9 +371,10 @@ invocation and transformed through copy-on-write methods.
   read-only `ConversationSnapshot`.
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
   `AgentContext.metrics` by the current turn's delta.
-- `totalMetrics()`: returns the durable `baseAgentContext().metrics()` — **not** a sum over the
-  reconstructed turns, which always carry `AgentMetrics.empty()`. The model-call limit check
-  (`BaseAgentRequestHandler.throwIfLimitsReached`) relies on this cumulative counter.
+- `totalMetrics()`: returns the durable `AgentContext.metrics()` plus the current turn's delta —
+  **not** a sum over the reconstructed turns, which always carry `AgentMetrics.empty()`. The
+  model-call limit check (`BaseAgentRequestHandler.throwIfLimitsReached`) relies on this cumulative
+  counter.
 
 `ConversationTurn` (record, `...aiagent.model`) is one LLM call:
 `(int iterationKey, List<Message> inputMessages, @Nullable AssistantMessage assistantMessage,

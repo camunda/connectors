@@ -163,8 +163,9 @@ Their responsibilities now live in `BaseAgentRequestHandler.throwIfLimitsReached
 **Negative:**
 - Per-turn historical metrics are not persisted in the message list: reconstructed previous turns
   always carry `AgentMetrics.empty()`. Cumulative metrics (model calls, tokens, tool calls) are
-  therefore read from the durable `AgentContext.metrics` — `totalMetrics()` returns
-  `baseAgentContext().metrics()` and `toAgentContext()` increments it by the current turn's delta.
+  therefore read from the durable `AgentContext.metrics` — `totalMetrics()` returns that durable
+  base plus the current turn's delta, and `toAgentContext()` persists it via
+  `withMetrics(totalMetrics())`.
   The model-call limit check must use this cumulative counter, **not** a sum over reconstructed
   turns (which is always zero). Per-turn historical cost reporting would need the metrics to be
   persisted alongside messages (see Future improvements).

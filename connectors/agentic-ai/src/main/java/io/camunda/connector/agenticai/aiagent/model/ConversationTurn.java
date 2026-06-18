@@ -66,7 +66,10 @@ public record ConversationTurn(
         .flatMap(msg -> msg.results().stream())
         .anyMatch(
             result ->
-                Boolean.TRUE.equals(
-                    result.properties().getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
+                result.properties() != null
+                    && Boolean.TRUE.equals(
+                        result
+                            .properties()
+                            .getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
   }
 }
