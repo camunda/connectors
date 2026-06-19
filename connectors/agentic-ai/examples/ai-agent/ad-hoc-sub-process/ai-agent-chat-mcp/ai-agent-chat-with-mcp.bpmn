@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18jxukq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.44.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18jxukq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.48.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
   <bpmn:process id="ai-agent-chat-with-mcp" name="AI Agent Chat With MCP" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1">
       <bpmn:extensionElements>
@@ -155,9 +155,10 @@ else
         <bpmn:extensionElements>
           <zeebe:taskDefinition type="io.camunda.agenticai:mcpremoteclient:1" retries="3" />
           <zeebe:ioMapping>
-            <zeebe:input source="http" target="data.transport.type" />
-            <zeebe:input source="https://mcp.deepwiki.com/mcp" target="data.transport.http.url" />
-            <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
+            <zeebe:input source="sse" target="data.transport.type" />
+            <zeebe:input source="http://abc.local/sse" target="data.transport.sse.url" />
+            <zeebe:input source="=PT30S" target="data.transport.sse.timeout" />
+            <zeebe:input source="noAuth" target="data.transport.sse.authentication.type" />
             <zeebe:input source="=false" target="data.options.clientCache" />
             <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
             <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
@@ -310,20 +311,16 @@ else
       <bpmndi:BPMNShape id="Activity_0ke4gic_di" bpmnElement="Activity_0mdux6v">
         <dc:Bounds x="505" y="530" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_0x0a1hy" bpmnElement="SuperfluxProduct">
-        <dc:Bounds x="480" y="673" width="100" height="80" />
-        <bpmndi:BPMNLabel />
+      <bpmndi:BPMNShape id="BPMNShape_0nv9xyn" bpmnElement="Deepwiki">
+        <dc:Bounds x="720" y="220" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_11biggn" bpmnElement="Time">
         <dc:Bounds x="420" y="220" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_09n08ly_di" bpmnElement="Fetch_URL">
-        <dc:Bounds x="570" y="220" width="100" height="80" />
+      <bpmndi:BPMNShape id="BPMNShape_0x0a1hy" bpmnElement="SuperfluxProduct">
+        <dc:Bounds x="480" y="673" width="100" height="80" />
         <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_0nv9xyn" bpmnElement="Deepwiki">
-        <dc:Bounds x="720" y="220" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0ixs5a4_di" bpmnElement="Event_Sub_Process" isExpanded="true">
         <dc:Bounds x="445" y="790" width="350" height="130" />
@@ -339,6 +336,10 @@ else
         <di:waypoint x="508" y="850" />
         <di:waypoint x="670" y="850" />
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Activity_09n08ly_di" bpmnElement="Fetch_URL">
+        <dc:Bounds x="570" y="220" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_085l1z3_di" bpmnElement="Flow_085l1z3">
         <di:waypoint x="483" y="430" />
         <di:waypoint x="530" y="430" />
