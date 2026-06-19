@@ -33,6 +33,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Canc
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -50,8 +51,14 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final InboundExecutableStateTransitionService stateTransitionService;
   private final InboundExecutableQueryService queryService;
   private final BatchExecutableProcessor batchExecutableProcessor;
+  private final ActivityLogRegistry activityLogRegistry;
 
   private final BlockingQueue<InboundExecutableEvent> eventQueue = new LinkedBlockingQueue<>();
+  // Per-(tenantId,bpmnProcessId) lock objects to serialize state transitions within this registry
+  // instance.
+  // Intentionally never evicted to avoid handing out different locks for the same key under race;
+  // size grows with distinct (tenantId,bpmnProcessId) pairs observed during runtime.
+  private final ConcurrentHashMap<String, Object> processLocks = new ConcurrentHashMap<>();
 
   public InboundExecutableRegistryImpl(
       InboundConnectorFactory connectorFactory,
@@ -71,6 +78,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     this.queryService =
         new InboundExecutableQueryService(stateStore, connectorFactory, activityLogRegistry);
     this.batchExecutableProcessor = batchExecutableProcessor;
+    this.activityLogRegistry = activityLogRegistry;
   }
 
   // Constructor for testing with injected dependencies
@@ -78,11 +86,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
       InboundExecutableStateStore stateStore,
       InboundExecutableStateTransitionService stateTransitionService,
       InboundExecutableQueryService queryService,
-      BatchExecutableProcessor batchExecutableProcessor) {
+      BatchExecutableProcessor batchExecutableProcessor,
+      ActivityLogRegistry activityLogRegistry) {
     this.stateStore = stateStore;
     this.stateTransitionService = stateTransitionService;
     this.queryService = queryService;
     this.batchExecutableProcessor = batchExecutableProcessor;
+    this.activityLogRegistry = activityLogRegistry;
   }
 
   @Override
@@ -119,7 +129,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
     var processLockKey = processLockKey(event.tenantId(), event.bpmnProcessId());
 
-    synchronized (processLockKey.intern()) {
+    synchronized (processLocks.computeIfAbsent(processLockKey, k -> new Object())) {
       try {
         List<InboundConnectorElement> allElements =
             event.elementsByProcessDefinitionKey().values().stream().flatMap(List::stream).toList();
@@ -143,8 +153,10 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     // Process actions in order: deactivate first, then updates, then activate
     // This ensures we free resources before allocating new ones
 
-    // 1. Deactivate executables no longer needed
-    deactivateExecutables(plan.getExecutableIds(ActionType.DEACTIVATE));
+    // 1. Deactivate executables no longer needed and purge their logs
+    var toDeactivatePermanently = plan.getExecutableIds(ActionType.DEACTIVATE);
+    deactivateExecutables(toDeactivatePermanently);
+    toDeactivatePermanently.forEach(activityLogRegistry::remove);
 
     // 2. Restart executables (deactivate + activate)
     var toRestart = plan.getExecutableIds(ActionType.RESTART);
@@ -315,7 +327,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     // could run during restart, leaving the newly-activated executable invisible to the state
     // machine (zombie connector).
     var processLockKey = extractProcessLockKey(validateResettable(id));
-    synchronized (processLockKey.intern()) {
+    synchronized (processLocks.computeIfAbsent(processLockKey, k -> new Object())) {
       // Re-validate inside the lock; state may have changed since the peek
       var current = validateResettable(id);
 

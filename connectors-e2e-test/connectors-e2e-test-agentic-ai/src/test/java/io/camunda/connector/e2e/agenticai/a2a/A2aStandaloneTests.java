@@ -63,7 +63,8 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(
     properties = {
       "camunda.connector.polling.enabled=true",
-      "camunda.connector.webhook.enabled=true"
+      "camunda.connector.webhook.enabled=true",
+      "camunda.connector.polling.interval=2000"
     })
 @Import(InboundConnectorTestConfiguration.class)
 @WireMockTest
@@ -104,7 +105,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
     awaitInboundConnectorReady(zeebeTest, POLLING_ELEMENT_ID);
 
-    zeebeTest.waitForProcessCompletion();
+    awaitProcessCompletion(zeebeTest);
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableSatisfies(
@@ -143,7 +144,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-completed.json").get()),
         300);
 
-    zeebeTest.waitForProcessCompletion();
+    awaitProcessCompletion(zeebeTest);
 
     assertVariablesWithWebhook(zeebeTest);
   }
@@ -192,7 +193,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
         Map.of("X-A2A-Notification-Token", token),
         500);
 
-    zeebeTest.waitForProcessCompletion();
+    awaitProcessCompletion(zeebeTest);
 
     assertVariablesWithWebhook(zeebeTest);
 
@@ -246,7 +247,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
         authHeaders,
         500);
 
-    zeebeTest.waitForProcessCompletion();
+    awaitProcessCompletion(zeebeTest);
 
     assertVariablesWithWebhook(zeebeTest);
   }
@@ -296,7 +297,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
             "X-HMAC-Signature", "1fe75a1c849df2aacb18952f187938b64edff510f341c9ab55df03783aee85a0"),
         500);
 
-    zeebeTest.waitForProcessCompletion();
+    awaitProcessCompletion(zeebeTest);
 
     assertVariablesWithWebhook(zeebeTest);
   }

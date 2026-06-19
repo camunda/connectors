@@ -20,6 +20,9 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.IntermediateCatchEvent;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -88,5 +91,23 @@ public final class TestUtil {
     waitForElementActivation(zeebeTest, elementId);
     importSchedulers.scheduleLatestVersionImport();
     testHelper.awaitActiveInboundExecutable(elementId);
+  }
+
+  /**
+   * Sets the {@code inbound.context} (webhook path) of the given intermediate catch event so each
+   * test can register a distinct webhook context. Without unique contexts, consecutive A2A tests
+   * sharing {@code test-webhook-id} collide in the connector runtime's webhook registry ("Context:
+   * ... already in use"), leaving the executable DOWN. No-op if the element or property is absent.
+   */
+  public static void setWebhookContext(BpmnModelInstance model, String elementId, String context) {
+    IntermediateCatchEvent catchEvent = model.getModelElementById(elementId);
+    if (catchEvent == null) {
+      return;
+    }
+    ZeebeProperties properties = catchEvent.getSingleExtensionElement(ZeebeProperties.class);
+    properties.getProperties().stream()
+        .filter(property -> "inbound.context".equals(property.getName()))
+        .findFirst()
+        .ifPresent(property -> property.setValue(context));
   }
 }

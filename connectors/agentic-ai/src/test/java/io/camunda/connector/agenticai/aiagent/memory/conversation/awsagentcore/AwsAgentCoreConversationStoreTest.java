@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
@@ -88,12 +89,18 @@ class AwsAgentCoreConversationStoreTest {
     config =
         new AwsAgentCoreMemoryStorageConfiguration(
             "us-east-1", null, authentication, MEMORY_ID, ACTOR_ID);
-    lenient().when(executionContext.memory()).thenReturn(new MemoryConfiguration(config, 20));
+    lenient()
+        .when(executionContext.configuration())
+        .thenReturn(configWithMemory(new MemoryConfiguration(config, 20)));
     lenient().when(clientFactory.createClient(config)).thenReturn(bedrockClient);
 
     var conversationMapper = new AwsAgentCoreConversationMapper(TestObjectMapperSupplier.INSTANCE);
 
     store = new AwsAgentCoreConversationStore(clientFactory, conversationMapper);
+  }
+
+  private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {
+    return new AgentConfiguration(null, null, null, memory, null, null, null);
   }
 
   @Test
@@ -104,7 +111,8 @@ class AwsAgentCoreConversationStoreTest {
   @Test
   void throwsExceptionForMissingConfiguration() {
     final var agentContext = AgentContext.empty();
-    when(executionContext.memory()).thenReturn(new MemoryConfiguration(null, 20));
+    when(executionContext.configuration())
+        .thenReturn(configWithMemory(new MemoryConfiguration(null, 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
@@ -115,8 +123,10 @@ class AwsAgentCoreConversationStoreTest {
   @Test
   void throwsExceptionForUnsupportedConfiguration() {
     final var agentContext = AgentContext.empty();
-    when(executionContext.memory())
-        .thenReturn(new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 20));
+    when(executionContext.configuration())
+        .thenReturn(
+            configWithMemory(
+                new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
@@ -779,7 +789,8 @@ class AwsAgentCoreConversationStoreTest {
     var changedConfig =
         new AwsAgentCoreMemoryStorageConfiguration(
             "us-east-1", null, config.authentication(), "different-memory-id", ACTOR_ID);
-    when(executionContext.memory()).thenReturn(new MemoryConfiguration(changedConfig, 20));
+    when(executionContext.configuration())
+        .thenReturn(configWithMemory(new MemoryConfiguration(changedConfig, 20)));
     when(clientFactory.createClient(changedConfig)).thenReturn(bedrockClient);
 
     var changedStore =
@@ -813,7 +824,8 @@ class AwsAgentCoreConversationStoreTest {
     var changedConfig =
         new AwsAgentCoreMemoryStorageConfiguration(
             "us-east-1", null, config.authentication(), MEMORY_ID, "different-actor-id");
-    when(executionContext.memory()).thenReturn(new MemoryConfiguration(changedConfig, 20));
+    when(executionContext.configuration())
+        .thenReturn(configWithMemory(new MemoryConfiguration(changedConfig, 20)));
     when(clientFactory.createClient(changedConfig)).thenReturn(bedrockClient);
 
     var changedStore =
@@ -896,7 +908,7 @@ class AwsAgentCoreConversationStoreTest {
 
   private void mockListEventsResponse(List<Event> events) {
     // Create an SdkIterable for the events
-    final SdkIterable<Event> eventsIterable = () -> events.iterator();
+    final SdkIterable<Event> eventsIterable = events::iterator;
 
     when(listEventsIterable.events()).thenReturn(eventsIterable);
     when(bedrockClient.listEventsPaginator(any(ListEventsRequest.class)))

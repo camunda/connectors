@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
@@ -36,8 +37,10 @@ class OutboundConnectorAgentExecutionContextTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private JobContext jobContext;
 
+  @Mock private OutboundConnectorAgentRequest agentRequest;
+
   @Mock(answer = RETURNS_DEEP_STUBS)
-  private OutboundConnectorAgentRequest agentRequest;
+  private OutboundConnectorAgentRequestData agentRequestData;
 
   @Mock private ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
 
@@ -45,6 +48,7 @@ class OutboundConnectorAgentExecutionContextTest {
 
   @BeforeEach
   void setUp() {
+    when(agentRequest.data()).thenReturn(agentRequestData);
     executionContext =
         new OutboundConnectorAgentExecutionContext(jobContext, agentRequest, toolElementsResolver);
   }
@@ -53,7 +57,7 @@ class OutboundConnectorAgentExecutionContextTest {
   @MethodSource("missingToolCallResults")
   void returnsEmptyInitialToolCallResultsWhenToolCallResultsAreMissing(
       ToolsConfiguration toolsConfiguration) {
-    when(agentRequest.data().tools()).thenReturn(toolsConfiguration);
+    when(agentRequestData.tools()).thenReturn(toolsConfiguration);
 
     assertThat(executionContext.initialToolCallResults()).isEmpty();
   }
@@ -62,14 +66,14 @@ class OutboundConnectorAgentExecutionContextTest {
   @MethodSource("missingToolElementId")
   void returnsEmptyToolElementsWhenToolElementIdIsNotConfigured(
       ToolsConfiguration toolsConfiguration) {
-    when(agentRequest.data().tools()).thenReturn(toolsConfiguration);
+    when(agentRequestData.tools()).thenReturn(toolsConfiguration);
 
     assertThat(executionContext.toolElements()).isEmpty();
   }
 
   @Test
   void loadsToolElementsFromProcessDefinition() {
-    when(agentRequest.data().tools())
+    when(agentRequestData.tools())
         .thenReturn(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
     when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
 
@@ -81,7 +85,7 @@ class OutboundConnectorAgentExecutionContextTest {
 
   @Test
   void doesNotLoadToolElementsMultipleTimes() {
-    when(agentRequest.data().tools())
+    when(agentRequestData.tools())
         .thenReturn(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
     when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
 

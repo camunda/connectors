@@ -61,14 +61,14 @@ public class AiAgentJobWorkerElementTemplateRegressionTests extends BaseAiAgentJ
 
     final var processResource = resourceLoader.getResource("classpath:regression/" + processFile);
     final var zeebeTest =
-        createProcessInstance(
+        awaitProcessCompletion(
+            createProcessInstance(
                 processResource,
                 Map.of(
                     "userPrompt",
                     initialUserPrompt,
                     "providerEndpoint",
-                    wireMock.getHttpBaseUrl() + "/v1"))
-            .waitForProcessCompletion();
+                    wireMock.getHttpBaseUrl() + "/v1")));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
