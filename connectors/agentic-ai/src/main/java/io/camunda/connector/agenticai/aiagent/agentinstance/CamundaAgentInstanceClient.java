@@ -23,9 +23,9 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.ConversationTurn;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -177,7 +177,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   public void createHistoryItemsBeforeChat(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      ConversationTurn turn) {
+      AgentConversationTurn turn) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance history items (before chat): no agent instance key");
       return;
@@ -200,7 +200,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   public void createHistoryItemsAfterChat(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      ConversationTurn turn) {
+      AgentConversationTurn turn) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance history item (after chat): no agent instance key");
       return;

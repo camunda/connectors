@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.ConversationTurn;
 import io.camunda.connector.api.error.ConnectorException;
 import org.jspecify.annotations.Nullable;
 
@@ -46,7 +46,7 @@ public interface AgentInstanceClient {
   void createHistoryItemsBeforeChat(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      ConversationTurn turn);
+      AgentConversationTurn turn);
 
   /**
    * Appends the assistant history item including turn metrics for the given completed turn, after
@@ -58,5 +58,5 @@ public interface AgentInstanceClient {
   void createHistoryItemsAfterChat(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      ConversationTurn turn);
+      AgentConversationTurn turn);
 }

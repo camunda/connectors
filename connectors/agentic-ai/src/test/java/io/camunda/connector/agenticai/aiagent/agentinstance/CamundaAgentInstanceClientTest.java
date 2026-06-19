@@ -38,6 +38,7 @@ import io.camunda.client.impl.command.CreateAgentHistoryItemCommandImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
@@ -381,7 +382,7 @@ class CamundaAgentInstanceClientTest {
 
       // given
       final var turn =
-          new ConversationTurn(
+          new AgentConversationTurn(
               3,
               List.of(
                   UserMessage.builder()
@@ -418,7 +419,7 @@ class CamundaAgentInstanceClientTest {
 
       // given: a single tool-call-result message carrying two results
       final var turn =
-          new ConversationTurn(
+          new AgentConversationTurn(
               1,
               List.of(
                   ToolCallResultMessage.builder()
@@ -459,7 +460,7 @@ class CamundaAgentInstanceClientTest {
 
       // given
       final var turn =
-          new ConversationTurn(
+          new AgentConversationTurn(
               1,
               List.of(
                   UserMessage.builder()
@@ -494,7 +495,7 @@ class CamundaAgentInstanceClientTest {
                       ToolCall.builder().id("tc-1").name("getWeather").arguments(Map.of()).build()))
               .build();
       final var turn =
-          new ConversationTurn(
+          new AgentConversationTurn(
               2,
               List.of(),
               assistantMessage,
@@ -541,7 +542,7 @@ class CamundaAgentInstanceClientTest {
                       ToolCall.builder().id("tc-1").name("getWeather").arguments(Map.of()).build()))
               .build();
       final var turn =
-          new ConversationTurn(
+          new AgentConversationTurn(
               1, List.of(), assistantMessage, new AgentMetrics(1, TokenUsage.empty(), 1));
 
       // when
@@ -571,7 +572,7 @@ class CamundaAgentInstanceClientTest {
       when(document.metadata()).thenReturn(null);
 
       final var turn =
-          new ConversationTurn(
+          new AgentConversationTurn(
               1,
               List.of(
                   UserMessage.builder()
@@ -601,7 +602,7 @@ class CamundaAgentInstanceClientTest {
       when(historyCommand.execute())
           .thenThrow(new ClientHttpException(500, "Internal Server Error"));
       final var turn =
-          new ConversationTurn(
+          new AgentConversationTurn(
               1,
               List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
               null,
@@ -626,7 +627,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldSkipBeforeChatWhenAgentInstanceKeyNull() {
       final var turn =
-          new ConversationTurn(
+          new AgentConversationTurn(
               1,
               List.of(UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build()),
               null,
@@ -641,7 +642,7 @@ class CamundaAgentInstanceClientTest {
     @Test
     void shouldSkipAfterChatWhenAgentInstanceKeyNull() {
       final var turn =
-          new ConversationTurn(
+          new AgentConversationTurn(
               1,
               List.of(),
               AssistantMessage.builder().content(MessageUtil.singleTextContent("done")).build(),
