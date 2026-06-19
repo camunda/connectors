@@ -20,6 +20,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -30,23 +32,20 @@ import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.ConversationTurn;
+import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
-// Future REST assertion imports (uncomment together with assertAgentInstanceState):
-// import static org.assertj.core.api.Assertions.assertThat;
-// import static org.awaitility.Awaitility.await;
-// import io.camunda.client.api.search.enums.AgentInstanceStatus;
-// import io.camunda.process.test.api.CamundaProcessTestContext;
-// import java.time.Duration;
 @SlowTest
 class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
-
-  // Kept for future REST-based assertions (see assertAgentInstanceState below)
-  // @Autowired private CamundaProcessTestContext processTestContext;
 
   @MockitoSpyBean private AgentInstanceClient agentInstanceClient;
 
@@ -92,27 +91,39 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
             createProcessInstance(
                 Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
 
+    final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
         zeebeTest,
-        agentResponse ->
-            JobWorkerAgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasAgentInstanceKey()
-                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1)));
+        agentResponse -> {
+          JobWorkerAgentResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasAgentInstanceKey()
+              .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1));
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
 
-    // Turn 1: THINKING is synchronous; TOOL_CALLING is deferred (AHSP stays open after
-    // completionConditionFulfilled=false → element instance survives job completion).
-    // Turn 2: both THINKING and IDLE are synchronous (AHSP closes after
-    // completionConditionFulfilled=true
-    // → element instance completes at job completion → immediate PATCH required).
+    // Turn 1: THINKING is synchronous; history items (before/after chat) are synchronous;
+    // TOOL_CALLING is deferred (AHSP stays open after completionConditionFulfilled=false → element
+    // instance survives job completion) and fires before turn 2 begins.
+    // Turn 2: THINKING + history + IDLE are synchronous (AHSP closes after
+    // completionConditionFulfilled=true → element instance completes at job completion).
+    final var beforeChatTurns = ArgumentCaptor.forClass(ConversationTurn.class);
+    final var afterChatTurns = ArgumentCaptor.forClass(ConversationTurn.class);
     var inOrder = inOrder(agentInstanceClient);
     inOrder.verify(agentInstanceClient).create(any());
+    // turn 1: user prompt → assistant tool call
     inOrder
         .verify(agentInstanceClient)
         .update(
             any(),
             any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    inOrder
+        .verify(agentInstanceClient)
+        .createHistoryItemsBeforeChat(any(), any(), beforeChatTurns.capture());
+    inOrder
+        .verify(agentInstanceClient)
+        .createHistoryItemsAfterChat(any(), any(), afterChatTurns.capture());
     inOrder
         .verify(agentInstanceClient)
         .update(
@@ -123,12 +134,19 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
                     .delta(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 1))
                     .build()));
+    // turn 2: tool result → assistant final answer
     inOrder
         .verify(agentInstanceClient)
         .update(
             any(),
             any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+    inOrder
+        .verify(agentInstanceClient)
+        .createHistoryItemsBeforeChat(any(), any(), beforeChatTurns.capture());
+    inOrder
+        .verify(agentInstanceClient)
+        .createHistoryItemsAfterChat(any(), any(), afterChatTurns.capture());
     inOrder
         .verify(agentInstanceClient)
         .update(
@@ -141,11 +159,11 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
 
-    // Future: verify accumulated state via the agent instance REST search endpoint.
-    // The search endpoint is updated by the RDBMS exporter; the embedded test engine only
-    // populates primary storage (get by key) which is not updated by exporters.
-    //
-    // assertAgentInstanceState(agentInstanceKey, "IDLE", 2, 1, 25L, 45L);
+    assertUserPromptThenToolResultTurns(beforeChatTurns, afterChatTurns);
+
+    // Verify on the engine that the agent instance the connector created actually landed on the
+    // broker and is queryable from secondary storage.
+    assertAgentInstanceCreatedOnEngine(agentInstanceKey.get(), "test-model");
   }
 
   /**
@@ -204,16 +222,47 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
                 Map.of("userPrompt", "Calculate the superflux product of 5 and 3, twice")));
 
     // modelCalls=3, inputTokens=10+10+15=35, outputTokens=20+20+25=65, toolCalls=2
+    final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
         zeebeTest,
-        agentResponse ->
-            JobWorkerAgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasAgentInstanceKey()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2)));
+        agentResponse -> {
+          JobWorkerAgentResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasAgentInstanceKey()
+              .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2));
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
 
+    final var beforeChatTurns = ArgumentCaptor.forClass(ConversationTurn.class);
+    final var afterChatTurns = ArgumentCaptor.forClass(ConversationTurn.class);
     var inOrder = inOrder(agentInstanceClient);
     inOrder.verify(agentInstanceClient).create(any());
+    // turn 1 + turn 2: tool-call rounds (TOOL_CALLING deferred to job completion on the AHSP)
+    for (int i = 0; i < 2; i++) {
+      inOrder
+          .verify(agentInstanceClient)
+          .update(
+              any(),
+              any(),
+              eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+      inOrder
+          .verify(agentInstanceClient)
+          .createHistoryItemsBeforeChat(any(), any(), beforeChatTurns.capture());
+      inOrder
+          .verify(agentInstanceClient)
+          .createHistoryItemsAfterChat(any(), any(), afterChatTurns.capture());
+      inOrder
+          .verify(agentInstanceClient)
+          .update(
+              any(),
+              any(),
+              eq(
+                  AgentInstanceUpdateRequest.builder()
+                      .status(AgentInstanceUpdateStatus.TOOL_CALLING)
+                      .delta(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 1))
+                      .build()));
+    }
+    // turn 3: final answer
     inOrder
         .verify(agentInstanceClient)
         .update(
@@ -222,36 +271,10 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
     inOrder
         .verify(agentInstanceClient)
-        .update(
-            any(),
-            any(),
-            eq(
-                AgentInstanceUpdateRequest.builder()
-                    .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 1))
-                    .build()));
+        .createHistoryItemsBeforeChat(any(), any(), beforeChatTurns.capture());
     inOrder
         .verify(agentInstanceClient)
-        .update(
-            any(),
-            any(),
-            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
-    inOrder
-        .verify(agentInstanceClient)
-        .update(
-            any(),
-            any(),
-            eq(
-                AgentInstanceUpdateRequest.builder()
-                    .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 1))
-                    .build()));
-    inOrder
-        .verify(agentInstanceClient)
-        .update(
-            any(),
-            any(),
-            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+        .createHistoryItemsAfterChat(any(), any(), afterChatTurns.capture());
     inOrder
         .verify(agentInstanceClient)
         .update(
@@ -263,51 +286,92 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
                     .delta(new AgentMetrics(1, new AgentMetrics.TokenUsage(15, 25), 0))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
+
+    // turn 1 input is the user prompt (USER); turns 2 and 3 inputs are tool results (TOOL_RESULT);
+    // assistant items: turns 1 and 2 carry a tool call, turn 3 is the final answer.
+    final var beforeTurns = beforeChatTurns.getAllValues();
+    final var afterTurns = afterChatTurns.getAllValues();
+    assertThat(beforeTurns).hasSize(3);
+    assertThat(beforeTurns.get(0).inputMessages()).singleElement().isInstanceOf(UserMessage.class);
+    assertThat(beforeTurns.get(1).inputMessages())
+        .anyMatch(ToolCallResultMessage.class::isInstance);
+    assertThat(beforeTurns.get(2).inputMessages())
+        .anyMatch(ToolCallResultMessage.class::isInstance);
+    assertThat(afterTurns.get(0).assistantMessage().toolCalls()).hasSize(1);
+    assertThat(afterTurns.get(1).assistantMessage().toolCalls()).hasSize(1);
+    assertThat(afterTurns.get(2).assistantMessage().toolCalls()).isEmpty();
+    assertThat(afterTurns).extracting(ConversationTurn::iterationKey).containsExactly(1, 2, 3);
+
+    assertAgentInstanceCreatedOnEngine(agentInstanceKey.get(), "test-model");
   }
 
-  // Kept for future — asserts agent instance state via the REST search endpoint.
+  /**
+   * Asserts a single user-prompt turn (USER input → assistant tool call) followed by a tool-result
+   * turn (TOOL_RESULT input → assistant final answer), captured from the history-item calls.
+   */
+  private void assertUserPromptThenToolResultTurns(
+      ArgumentCaptor<ConversationTurn> beforeChatTurns,
+      ArgumentCaptor<ConversationTurn> afterChatTurns) {
+    final var beforeTurns = beforeChatTurns.getAllValues();
+    final var afterTurns = afterChatTurns.getAllValues();
+    assertThat(beforeTurns).hasSize(2);
+    assertThat(afterTurns).hasSize(2);
+
+    // turn 1: user prompt → assistant with one tool call + per-turn metrics (incl. duration)
+    assertThat(beforeTurns.get(0).iterationKey()).isEqualTo(1);
+    assertThat(beforeTurns.get(0).inputMessages()).singleElement().isInstanceOf(UserMessage.class);
+    assertThat(afterTurns.get(0).assistantMessage().toolCalls()).hasSize(1);
+    assertThat(afterTurns.get(0).metrics().executionTime()).isNotNull();
+
+    // turn 2: tool result → assistant final answer (no tool calls)
+    assertThat(beforeTurns.get(1).iterationKey()).isEqualTo(2);
+    assertThat(beforeTurns.get(1).inputMessages())
+        .anyMatch(ToolCallResultMessage.class::isInstance);
+    assertThat(afterTurns.get(1).assistantMessage().toolCalls()).isEmpty();
+  }
+
+  /**
+   * Verifies on the engine that the agent instance the connector created is retrievable by key from
+   * secondary storage (RDBMS, eventually consistent), carrying the create-time definition. This
+   * proves the {@code create} command genuinely landed on the broker and was indexed.
+   *
+   * <p>Scope note: accumulated metrics / final status are intentionally NOT asserted here. The
+   * RDBMS exporter <em>does</em> handle agent-instance updates ({@code AgentInstanceExportHandler}
+   * exports CREATED/UPDATED/COMPLETED), but in this embedded process-test the read-back metrics did
+   * not converge to the final totals within a 60s poll (stayed at create/partial state). The
+   * per-turn metric deltas and status transitions are meanwhile verified via the {@code
+   * agentInstanceClient} spy and the agent response's {@code hasMetrics(...)}; asserting the
+   * accumulated state via the GET API is a follow-up (see below).
+   */
+  private void assertAgentInstanceCreatedOnEngine(long agentInstanceKey, String expectedModel) {
+    await()
+        .alias("agent instance via REST get-by-key")
+        .atMost(Duration.ofSeconds(30))
+        .untilAsserted(
+            () -> {
+              final var agentInstance =
+                  camundaClient.newAgentInstanceGetRequest(agentInstanceKey).execute();
+              assertThat(agentInstance.getAgentInstanceKey()).isEqualTo(agentInstanceKey);
+              assertThat(agentInstance.getDefinition().getModel()).isEqualTo(expectedModel);
+              assertThat(agentInstance.getStatus()).isNotNull();
+            });
+  }
+
+  // TODO provision: assert the conversation history once the read API is available.
+  // The spec defines POST /v2/agent-instances/{key}/history/search (operationId
+  // searchAgentInstanceHistory), but it is not yet implemented in the gateway controller, exposed
+  // on the Java client, nor backed by an RDBMS handler for AGENT_HISTORY. Once available, assert
+  // the
+  // ordered USER / ASSISTANT / TOOL_RESULT items (content, iteration, assistant tool calls +
+  // metrics) here, mirroring assertAgentInstanceCreatedOnEngine (Awaitility + eventual
+  // consistency).
   //
-  // private void assertAgentInstanceState(
-  //     long agentInstanceKey,
-  //     String expectedStatus,
-  //     int expectedModelCalls,
-  //     int expectedToolCalls,
-  //     long expectedInputTokens,
-  //     long expectedOutputTokens) {
-  //
-  //   await()
-  //       .alias("agent instance state via REST search")
-  //       .atMost(Duration.ofSeconds(15))
-  //       .untilAsserted(
-  //           () ->
-  //               assertThat(
-  //                       camundaClient
-  //                           .newAgentInstanceSearchRequest()
-  //                           .filter(f -> f.agentInstanceKey(agentInstanceKey))
-  //                           .execute()
-  //                           .items())
-  //                   .hasSize(1)
-  //                   .first()
-  //                   .satisfies(
-  //                       agentInstance -> {
-  //                         assertThat(agentInstance.getStatus())
-  //                             .extracting(AgentInstanceStatus::name)
-  //                             .isEqualTo(expectedStatus);
-  //                         assertThat(agentInstance.getMetrics())
-  //                             .isNotNull()
-  //                             .satisfies(
-  //                                 metrics -> {
-  //                                   assertThat(metrics.getModelCalls())
-  //                                       .isEqualTo(expectedModelCalls);
-  //                                   assertThat(metrics.getToolCalls())
-  //                                       .isEqualTo(expectedToolCalls);
-  //                                   assertThat(metrics.getInputTokens())
-  //                                       .isEqualTo(expectedInputTokens);
-  //                                   assertThat(metrics.getOutputTokens())
-  //                                       .isEqualTo(expectedOutputTokens);
-  //                                 });
-  //                       }));
-  // }
+  // TODO follow-up: assert the accumulated metrics + terminal status via
+  // newAgentInstanceGetRequest.
+  // The exporter handles UPDATED, but the read-back metrics did not converge to the final totals
+  // within a 60s poll in this embedded test — investigate the visibility lag (exporter flush /
+  // consistency, delta-vs-accumulated in the UPDATED record), then pin: metrics == accumulated
+  // {modelCalls, toolCalls, inputTokens, outputTokens}; status IDLE/COMPLETED.
 
   // turn 1: tool call to SuperfluxProduct (inputTokens=10, outputTokens=20)
   private static String toolCallResponseBody(String toolCallId) {
