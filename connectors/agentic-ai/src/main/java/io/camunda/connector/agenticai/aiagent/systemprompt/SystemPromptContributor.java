@@ -22,8 +22,8 @@ public interface SystemPromptContributor {
   /**
    * Returns the additional system prompt content to be appended.
    *
+   * @param executionContext the current agent execution context
    * @param agentContext the current durable agent context
-   * @param configuration the current agent configuration
    * @return The system prompt contribution, or null/empty if no contribution needed
    */
   String contribute(AgentExecutionContext executionContext, AgentContext agentContext);
