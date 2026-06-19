@@ -58,23 +58,21 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      # Non-PR (nightly/manual): build + unit-test + format-check all connector modules
-      # without the connectors-e2e-test subtree
-      - name: Build connectors with tests (non-PR)
+      # Build + install the entire reactor (incl. the connectors-e2e-test subtree, so the e2e parent
+      # POM and all first-party e2e artifacts land in ~/.m2 for the test matrix). Tests are skipped
+      # here; connector tests run in the next step, e2e tests run isolated in the matrix.
+      - name: Build connectors
+        run: ./mvnw --batch-mode -U clean install -PcheckFormat -DskipTests
+
+      # Non-PR (nightly/manual): run unit/integration tests for the connector modules. The whole
+      # connectors-e2e-test subtree is excluded by enumerating every e2e pom path: excluding only the
+      # aggregator (-pl '!connectors-e2e-test') would NOT exclude its nested children, so they would
+      # otherwise run their e2e tests here instead of isolated in the matrix.
+      - name: Run unit/integration tests (non-PR)
         if: github.event_name != 'pull_request'
         run: |
           E2E_EXCLUDES=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' -printf '!%h\n' | paste -sd, -)
-          ./mvnw --batch-mode -U clean install -PcheckFormat -pl "$E2E_EXCLUDES"
-
-      # PR: build all connector modules without running tests (e2e is the only thing tested).
-      - name: Build connectors without tests (PR)
-        if: github.event_name == 'pull_request'
-        run: ./mvnw --batch-mode -U clean install -DskipTests
-
-      # Build the full e2e-test subtree (skip running tests) so that the parent POM and all
-      # first-party e2e artifacts are installed to ~/.m2 and included in the uploaded artifact.
-      - name: Build e2e-test modules
-        run: ./mvnw --batch-mode install -DskipTests -f connectors-e2e-test/pom.xml
+          ./mvnw --batch-mode verify -pl "$E2E_EXCLUDES"
 
       # Discover the e2e-test modules to run from this branch's checkout so the test matrix is
       # branch-accurate. Leaf poms with `jar` packaging are test modules; aggregators (`pom`
