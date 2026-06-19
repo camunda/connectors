@@ -90,11 +90,11 @@ jobs:
             case "$base" in *-base) continue;; esac
             echo "${d#connectors-e2e-test/}"
           done | jq -R -s -c 'split("\n") | map(select(length>0))')
-          echo "modules=$modules" >> $GITHUB_OUTPUT
+          echo "modules=$modules" >> "$GITHUB_OUTPUT"
 
       - name: Sanitize branch name for artifact
         id: sanitize
-        run: echo "branch=${BRANCH//\//-}" >> $GITHUB_OUTPUT
+        run: echo "branch=${BRANCH//\//-}" >> "$GITHUB_OUTPUT"
         env:
           BRANCH: ${{ inputs.branch }}
 
@@ -170,13 +170,13 @@ jobs:
           node-version: '24'
 
       - name: Install element templates CLI
-        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+        run: npm install --global "element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)"
 
       - name: Sanitize names for artifact
         id: sanitize
         run: |
-          echo "branch=${BRANCH//\//-}" >> $GITHUB_OUTPUT
-          echo "module=${MODULE//\//-}" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH//\//-}" >> "$GITHUB_OUTPUT"
+          echo "module=${MODULE//\//-}" >> "$GITHUB_OUTPUT"
         env:
           BRANCH: ${{ inputs.branch }}
           MODULE: ${{ matrix.module }}
@@ -228,13 +228,15 @@ jobs:
           BRANCH: ${{ inputs.branch }}
         run: |
           prefix="(${BRANCH}) / "
-          list=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs" \
+          # $p is a jq variable passed via --arg, not a shell variable
+          # shellcheck disable=SC2016
+          failed_modules=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs" \
             --paginate \
             --jq --arg p "$prefix" \
             '[.jobs[] | select(.conclusion == "failure") | select(.name | startswith($p)) | .name | ltrimstr($p) | select(test("^connectors-"))] | map("• " + .) | join("\\n")' \
           )
-          [ -z "$list" ] && list="(see run for details)"
-          echo "list=$list" >> $GITHUB_OUTPUT
+          [ -z "$failed_modules" ] && failed_modules="(see run for details)"
+          echo "failed_modules=$failed_modules" >> "$GITHUB_OUTPUT"
 
       - name: Post failure summary to Slack
         uses: slackapi/slack-github-action@v3.0.3
@@ -244,5 +246,5 @@ jobs:
           payload: |
             {
               "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
-              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} E2E tests failed on `${{ inputs.branch }}`\n${{ steps.modules.outputs.list }}\nCheck: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} E2E tests failed on `${{ inputs.branch }}`\n${{ steps.modules.outputs.failed_modules }}\nCheck: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
