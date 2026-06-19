@@ -7,22 +7,17 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT;
-import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
 import static io.camunda.connector.agenticai.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInput;
+import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
@@ -33,7 +28,6 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,9 +39,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
+public class AgentConversationTurnInputComposerImpl implements AgentConversationTurnInputComposer {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AgentMessagesHandlerImpl.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(AgentConversationTurnInputComposerImpl.class);
 
   private static final String EVENT_CONTENT_EMPTY =
       "An event was triggered but no content was returned.";
@@ -63,97 +58,79 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       "Documents extracted from event data (<doc /> tag + content pair):";
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
-  private final SystemPromptComposer systemPromptComposer;
   private final ToolCallResultDocumentExtractor documentExtractor;
 
-  public AgentMessagesHandlerImpl(
-      GatewayToolHandlerRegistry gatewayToolHandlers,
-      SystemPromptComposer systemPromptComposer,
-      ToolCallResultDocumentExtractor documentExtractor) {
+  public AgentConversationTurnInputComposerImpl(GatewayToolHandlerRegistry gatewayToolHandlers) {
     this.gatewayToolHandlers = gatewayToolHandlers;
-    this.systemPromptComposer = systemPromptComposer;
-    this.documentExtractor = documentExtractor;
+    this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
   }
 
   @Override
-  public void addSystemMessage(
-      AgentExecutionContext executionContext,
+  public CompositionResult compose(
+      AgentConfiguration configuration,
       AgentContext agentContext,
-      RuntimeMemory memory,
-      SystemPromptConfiguration systemPrompt) {
-    final var composedSystemPrompt =
-        systemPromptComposer.composeSystemPrompt(executionContext, agentContext, systemPrompt);
-
-    if (StringUtils.isNotBlank(composedSystemPrompt)) {
-      // memory will take care of replacing any existing system message if already present
-      memory.addMessage(
-          SystemMessage.builder().content(singleTextContent(composedSystemPrompt)).build());
-    }
-  }
-
-  @Override
-  public List<Message> addUserMessages(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      RuntimeMemory memory,
-      UserPromptConfiguration userPrompt,
-      List<ToolCallResult> toolCallResults) {
-    boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(executionContext);
-
-    // partitioned into 2 buckets - true -> with tool call ID, false -> without (from an event)
-    final var partitionedByToolCallId =
-        toolCallResults.stream().collect(Collectors.partitioningBy(result -> result.id() != null));
-    final List<ToolCallResult> actualToolCallResults = partitionedByToolCallId.get(true);
-    final List<Message> eventMessages =
-        partitionedByToolCallId.get(false).stream()
-            .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
-            .toList();
-
-    // throw an error when receiving tool call results on an empty context as
-    // most likely this is a modeling error
-    if (agentContext.conversation() == null && !actualToolCallResults.isEmpty()) {
+      PreviousConversation previousConversation,
+      AgentInput agentInput) {
+    // tool call results arriving without a previous conversation is most likely a modeling error
+    if (agentContext.conversation() == null && !agentInput.toolCallResults().isEmpty()) {
       throw new ConnectorException(
           ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT,
           "Agent received tool call results, but the agent context was empty (no previous conversation). Is the context configured correctly?");
     }
 
-    final var lastChatMessage = memory.lastMessage().orElse(null);
+    boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
+
+    final List<Message> eventMessages =
+        agentInput.eventMessages().stream()
+            .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
+            .toList();
 
     List<Message> messages = new ArrayList<>();
-    if (lastChatMessage instanceof AssistantMessage assistantMessage
-        && assistantMessage.hasToolCalls()) {
+
+    boolean expectingToolCallResults =
+        !previousConversation.turns().isEmpty()
+            && previousConversation.turns().getLast().hasToolCalls();
+
+    if (expectingToolCallResults) {
       boolean interruptMissingToolCalls =
           interruptToolCallsOnEventResults && !eventMessages.isEmpty();
 
-      ToolCallResultMessage toolCallResultMessage =
+      final var toolCalls = previousConversation.turns().getLast().toolCalls();
+
+      final var toolCallResultMessage =
           createToolCallResultMessage(
-              agentContext,
-              assistantMessage.toolCalls(),
-              actualToolCallResults,
-              interruptMissingToolCalls);
+              agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
 
       // either we have all results or we interrupted the missing tool calls
       // if message is null, we wait on further tool call results to be added
-      if (toolCallResultMessage != null) {
-        messages.add(toolCallResultMessage);
-        var documentMessage = createDocumentMessageForToolResults(toolCallResultMessage.results());
-        if (documentMessage != null) {
-          messages.add(documentMessage);
-        }
-        messages.addAll(eventMessages);
+      if (toolCallResultMessage.isEmpty()) {
+        return new CompositionResult.Deferred();
       }
+
+      final var toolCallResult = toolCallResultMessage.get();
+      messages.add(toolCallResult);
+      var documentMessage = createDocumentMessageForToolResults(toolCallResult.results());
+      if (documentMessage != null) {
+        messages.add(documentMessage);
+      }
+      messages.addAll(eventMessages);
     } else {
-      messages.add(createUserPromptMessage(userPrompt));
+      messages.add(createUserPromptMessage(agentInput.userPrompt()));
       messages.addAll(eventMessages);
     }
 
     messages = messages.stream().filter(Objects::nonNull).toList();
-    messages.forEach(memory::addMessage);
 
-    return messages;
+    if (messages.isEmpty()) {
+      LOGGER.debug("Not proceeding as no user content was found to add.");
+      return new CompositionResult.NoInput();
+    }
+
+    return new CompositionResult.NextTurn(messages);
   }
 
-  private UserMessage createUserPromptMessage(UserPromptConfiguration userPrompt) {
+  private UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {
+
     final var content = new ArrayList<Content>();
 
     // add user prompt text
@@ -163,9 +140,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     }
 
     // add documents
-    Optional.ofNullable(userPrompt.documents()).orElseGet(Collections::emptyList).stream()
-        .map(DocumentContent::documentContent)
-        .forEach(content::add);
+    userPrompt.documents().stream().map(DocumentContent::documentContent).forEach(content::add);
 
     if (content.isEmpty()) {
       LOGGER.debug("Not adding user message as no user content was found to add.");
@@ -175,7 +150,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     return UserMessage.builder().content(content).metadata(defaultMessageMetadata()).build();
   }
 
-  private ToolCallResultMessage createToolCallResultMessage(
+  private Optional<ToolCallResultMessage> createToolCallResultMessage(
       AgentContext agentContext,
       List<ToolCall> toolCalls,
       List<ToolCallResult> toolCallResults,
@@ -211,13 +186,14 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
             "Not adding tool call result message as tool call IDs {} were missing in tool call results.",
             missingToolCalls.stream().map(ToolCall::id).toList());
       }
-      return null;
+      return Optional.empty();
     }
 
-    return ToolCallResultMessage.builder()
-        .results(orderedToolCallResults)
-        .metadata(defaultMessageMetadata())
-        .build();
+    return Optional.of(
+        ToolCallResultMessage.builder()
+            .results(orderedToolCallResults)
+            .metadata(defaultMessageMetadata())
+            .build());
   }
 
   private UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
@@ -230,7 +206,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
     content.addAll(createDocumentPairs(toolCallDocuments));
 
-    final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
+    final var metadata = new HashMap<>(defaultMessageMetadata());
     metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
 
     return UserMessage.builder().content(content).metadata(metadata).build();
@@ -294,9 +270,9 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     };
   }
 
-  private boolean interruptToolCallsOnEventResults(AgentExecutionContext executionContext) {
+  private boolean interruptToolCallsOnEventResults(AgentConfiguration configuration) {
     final var behavior =
-        Optional.ofNullable(executionContext.events())
+        Optional.ofNullable(configuration.events())
             .map(EventHandlingConfiguration::behavior)
             .orElse(null);
 

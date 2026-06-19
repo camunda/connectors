@@ -6,20 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
-
 import io.camunda.connector.agenticai.aiagent.AiAgentTaskConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
-import java.util.List;
-import org.springframework.util.CollectionUtils;
 
 public class OutboundConnectorAgentRequestHandler
     extends BaseAgentRequestHandler<
@@ -28,45 +23,38 @@ public class OutboundConnectorAgentRequestHandler
   public OutboundConnectorAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
-      AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
-      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentConversationTurnInputComposer agentInputComposer,
       AiFrameworkAdapter<?> framework,
+      SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
     super(
         agentInitializer,
         conversationStoreRegistry,
-        limitsValidator,
-        messagesHandler,
-        gatewayToolHandlers,
+        agentInputComposer,
         framework,
+        systemPromptComposer,
         responseHandler,
         agentInstanceClient);
   }
 
   @Override
-  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentResponse agentResponse) {
+  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentConversation conversation) {
     return true;
   }
 
   @Override
-  protected boolean modelCallPrerequisitesFulfilled(
-      OutboundConnectorAgentExecutionContext executionContext,
-      AgentContext agentContext,
-      List<Message> addedUserMessages) {
-    if (CollectionUtils.isEmpty(addedUserMessages)) {
-      throw new ConnectorException(
-          ERROR_CODE_NO_USER_MESSAGE_CONTENT,
-          "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
-    }
-
-    return true;
+  protected AiAgentTaskConnectorResponse handleNoInput(
+      OutboundConnectorAgentExecutionContext executionContext) {
+    throw new ConnectorException(
+        AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT,
+        "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
   }
 
   @Override
   public AiAgentTaskConnectorResponse buildConnectorResponse(
       OutboundConnectorAgentExecutionContext executionContext,
+      AgentConversation conversation,
       AgentResponse agentResponse,
       AgentJobCompletionListener completionListener) {
     return new AiAgentTaskConnectorResponse(agentResponse, completionListener);
