@@ -20,10 +20,11 @@ jobs:
     outputs:
       branches: ${{ steps.set-branches.outputs.branches }}
     steps:
-      - name: Fetch branches
+      - name: Fetch stable branches
         id: set-branches
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PR, only test the PR's head ref
             echo "branches=[\"${{ github.head_ref }}\"]" >> $GITHUB_OUTPUT
           else
             # For scheduled/manual runs, test main and all stable branches
@@ -42,7 +43,7 @@ jobs:
       fail-fast: false
       matrix:
         branch: ${{ fromJson(needs.setup.outputs.branches) }}
-    uses: ./.github/workflows/NIGHTLY_E2E_BRANCH.yml
+    uses: ./.github/workflows/E2E_BRANCH_RUN.yml
     with:
       branch: ${{ matrix.branch }}
     secrets: inherit
