@@ -40,6 +40,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementConte
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.connector.test.MapSecretProvider;
@@ -253,7 +254,7 @@ public class InboundConnectorContextBuilder {
         SecretProvider secretProvider,
         ValidationProvider validationProvider,
         CorrelationResult result) {
-      super(secretProvider, validationProvider);
+      super(secretProvider, SecretFilter.allowAll(), validationProvider);
       this.result = result;
       this.activationTimestamp = System.currentTimeMillis();
       try {

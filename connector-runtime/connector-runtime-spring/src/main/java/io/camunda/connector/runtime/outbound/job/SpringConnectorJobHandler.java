@@ -58,6 +58,9 @@ import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
@@ -90,6 +93,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private final ValidationProvider validationProvider;
   private final DocumentFactory documentFactory;
   private final ObjectMapper objectMapper;
+  private final SecretFilterFactory secretFilterFactory;
 
   public SpringConnectorJobHandler(
       MetricsRecorder outboundMetrics,
@@ -98,12 +102,14 @@ public class SpringConnectorJobHandler implements JobHandler {
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      OutboundConnectorFunction connectorFunction) {
+      OutboundConnectorFunction connectorFunction,
+      SecretFilterFactory secretFilterFactory) {
     this.call = connectorFunction;
     this.secretProvider = secretProviderAggregator;
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
+    this.secretFilterFactory = secretFilterFactory;
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
@@ -152,14 +158,23 @@ public class SpringConnectorJobHandler implements JobHandler {
         job.getKey(),
         job.getType(),
         job.getTenantId());
+    var secretFilter =
+        secretFilterFactory.create(
+            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
     var context =
         new JobHandlerContext(
-            job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
-    ConnectorResult result = getConnectorResult(job, context);
-    processFinalResult(client, job, context, result, counterMetricsContext);
+            job,
+            getSecretProvider(),
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            secretFilter);
+    ConnectorResult result = getConnectorResult(job, context, secretFilter);
+    processFinalResult(client, job, context, result, counterMetricsContext, secretFilter);
   }
 
-  private ConnectorResult getConnectorResult(ActivatedJob job, OutboundConnectorContext context) {
+  private ConnectorResult getConnectorResult(
+      ActivatedJob job, OutboundConnectorContext context, SecretFilter secretFilter) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
@@ -183,7 +198,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       return new ConnectorResult.SuccessResult(connectorResponse, responseVariables);
     } catch (Exception e) {
       return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-          e, job, retryBackoff);
+          e, job, retryBackoff, secretFilter);
     }
   }
 
@@ -202,7 +217,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       OutboundConnectorContext context,
       ConnectorResult finalResult,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      SecretFilter secretFilter) {
     try {
       Optional<ConnectorError> optionalConnectorError =
           connectorResultHandler.examineErrorExpression(
@@ -219,7 +235,8 @@ public class SpringConnectorJobHandler implements JobHandler {
           failJob(
               client,
               job,
-              this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job),
+              this.outboundConnectorExceptionHandler.handleFinalResultException(
+                  ex, job, secretFilter),
               counterMetricsContext);
       notifyFailureOnCommandOutcome(
           failJobRequest,

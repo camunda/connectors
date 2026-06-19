@@ -33,6 +33,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -59,8 +60,9 @@ public class JobHandlerContext extends AbstractConnectorContext
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
       final DocumentFactory documentFactory,
-      final ObjectMapper objectMapper) {
-    super(secretProvider, validationProvider);
+      final ObjectMapper objectMapper,
+      final SecretFilter secretFilter) {
+    super(secretProvider, secretFilter, validationProvider);
     this.documentFactory = documentFactory;
     this.job = job;
     this.objectMapper = objectMapper;

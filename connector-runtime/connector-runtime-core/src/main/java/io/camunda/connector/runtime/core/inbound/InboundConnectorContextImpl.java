@@ -50,6 +50,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +88,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ObjectMapper objectMapper,
       ActivityLogWriter activityLogWriter,
       CamundaClient camundaClient) {
-    super(secretProvider, validationProvider);
+    super(secretProvider, SecretFilter.allowAll(), validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
