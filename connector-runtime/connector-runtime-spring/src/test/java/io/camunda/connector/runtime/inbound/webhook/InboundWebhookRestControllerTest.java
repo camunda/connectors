@@ -121,8 +121,8 @@ class InboundWebhookRestControllerTest {
     return registry.getLogs(executableId).stream().reduce((first, second) -> second).orElseThrow();
   }
 
-  private static RegisteredExecutable.Activated buildConnector(ActivityLogRegistry activityLogRegistry)
-      throws Exception {
+  private static RegisteredExecutable.Activated buildConnector(
+      ActivityLogRegistry activityLogRegistry) throws Exception {
     var executable = mock(WebhookConnectorExecutable.class);
     var webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
