@@ -121,11 +121,10 @@ jobs:
         if: github.event_name == 'pull_request'
         run: ./mvnw --batch-mode -U clean install -DskipTests
 
-      # Install the e2e-test base libraries so the test matrix can resolve them from ~/.m2 without
-      - name: Build e2e-test base libraries
-        run: |
-          ./mvnw --batch-mode install -DskipTests -f connectors-e2e-test/pom.xml \
-            -pl connectors-e2e-test-base,connectors-e2e-test-aws/connectors-e2e-test-aws-base
+      # Build the full e2e-test subtree (skip running tests) so that the parent POM and all
+      # first-party e2e artifacts are installed to ~/.m2 and included in the uploaded artifact.
+      - name: Build e2e-test modules
+        run: ./mvnw --batch-mode install -DskipTests -f connectors-e2e-test/pom.xml
 
       - name: Sanitize branch name for artifact
         id: sanitize
