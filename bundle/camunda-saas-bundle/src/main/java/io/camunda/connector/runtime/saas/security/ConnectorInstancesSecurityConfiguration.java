@@ -37,7 +37,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @EnableWebSecurity
 @Configuration
-public class InboundInstancesSecurityConfiguration {
+public class ConnectorInstancesSecurityConfiguration {
 
   @Value("${camunda.connector.auth.console.audience:}")
   private String consoleAudience;
@@ -79,21 +79,21 @@ public class InboundInstancesSecurityConfiguration {
 
   @Bean
   @Order(2)
-  public SecurityFilterChain inboundInstancesFilterChain(HttpSecurity http) throws Exception {
+  public SecurityFilterChain connectorInstancesFilterChain(HttpSecurity http) throws Exception {
     http.cors(Customizer.withDefaults())
-        .csrf(csrf -> csrf.ignoringRequestMatchers("/inbound-instances/**"))
+        .csrf(csrf -> csrf.ignoringRequestMatchers("/inbound-instances/**", "/outbound/**"))
         .securityMatchers(
             requestMatcherConfigurer ->
-                requestMatcherConfigurer.requestMatchers("/inbound-instances/**"))
+                requestMatcherConfigurer.requestMatchers("/inbound-instances/**", "/outbound/**"))
         .authorizeHttpRequests(
-            auth -> auth.requestMatchers("/inbound-instances/**").authenticated())
+            auth -> auth.requestMatchers("/inbound-instances/**", "/outbound/**").authenticated())
         .oauth2ResourceServer(
-            oauth2 -> oauth2.jwt(jwt -> jwt.decoder(inboundInstancesJwtDecoder())));
+            oauth2 -> oauth2.jwt(jwt -> jwt.decoder(connectorInstancesJwtDecoder())));
     return http.build();
   }
 
   @Bean
-  JwtDecoder inboundInstancesJwtDecoder() {
+  JwtDecoder connectorInstancesJwtDecoder() {
     NimbusJwtDecoder jwtDecoder = JwtDecoders.fromOidcIssuerLocation(issuer);
 
     OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(consoleAudience);
