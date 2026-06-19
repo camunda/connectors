@@ -137,7 +137,7 @@ public abstract class BaseAgentRequestHandler<
       final ConversationSession session,
       final ConversationStore store) {
     var agentConfiguration = executionContext.configuration();
-    var systemMessage = createSystemMessage(agentContext, agentConfiguration);
+    var systemMessage = createSystemMessage(executionContext, agentContext);
     final var conversation =
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
@@ -198,9 +198,9 @@ public abstract class BaseAgentRequestHandler<
   }
 
   private @Nullable SystemMessage createSystemMessage(
-      AgentContext agentContext, AgentConfiguration configuration) {
+      AgentExecutionContext executionContext, AgentContext agentContext) {
     LOGGER.trace("Composing system message");
-    var composedPrompt = systemPromptComposer.compose(agentContext, configuration);
+    var composedPrompt = systemPromptComposer.compose(executionContext, agentContext);
     if (StringUtils.isBlank(composedPrompt)) {
       return null;
     }

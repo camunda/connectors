@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.PROP
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import java.io.FileNotFoundException;
@@ -29,15 +28,12 @@ class A2aSystemPromptContributorTest {
     return AgentContext.builder().state(AgentState.READY).properties(properties).build();
   }
 
-  private static final AgentConfiguration EMPTY_CONFIG =
-      new AgentConfiguration(null, null, null, null, null, null, null);
-
   @Test
   void shouldContributeWhenA2aToolsPresent() {
     A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
     var agentContext = contextWithProperties(Map.of(PROPERTY_A2A_CLIENTS, List.of("RemoteAgent")));
 
-    String result = contributor.contribute(agentContext, EMPTY_CONFIG);
+    String result = contributor.contribute(null, agentContext);
 
     assertThat(result).isNotNull();
     assertThat(result).contains("A2A Remote Agent Interaction Guide");
@@ -49,7 +45,7 @@ class A2aSystemPromptContributorTest {
     A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
     var agentContext = contextWithProperties(properties);
 
-    String result = contributor.contribute(agentContext, EMPTY_CONFIG);
+    String result = contributor.contribute(null, agentContext);
 
     assertThat(result).isNull();
   }
