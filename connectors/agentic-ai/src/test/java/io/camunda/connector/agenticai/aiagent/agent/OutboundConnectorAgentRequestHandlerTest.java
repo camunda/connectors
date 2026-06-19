@@ -271,7 +271,8 @@ class OutboundConnectorAgentRequestHandlerTest {
             e -> {
               assertThat(e.getErrorCode()).isEqualTo("NO_USER_MESSAGE_CONTENT");
               assertThat(e.getMessage())
-                  .isEqualTo("No user message content available to start the conversation.");
+                  .isEqualTo(
+                      "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
             });
 
     verifyNoInteractions(framework, agentInstanceClient);

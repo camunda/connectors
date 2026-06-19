@@ -48,7 +48,7 @@ public class OutboundConnectorAgentRequestHandler
       OutboundConnectorAgentExecutionContext executionContext) {
     throw new ConnectorException(
         AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT,
-        "No user message content available to start the conversation.");
+        "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
   }
 
   @Override
