@@ -60,9 +60,9 @@ requiring a data migration for existing conversations?
    parameter. Same behavior, no new concepts.
 3. **Immutable turn aggregate**: promote `AgentConversation` to own the turn lifecycle:
    `ConversationTurn` as a named concept, `TurnReconstructor` for backward-compatible rehydration
-   from the flat stored list, `ConversationTurnComposer` returning a sealed `AgentInput` decision,
-   `ConversationSnapshot` as the read-only windowed LLM view. Delete `RuntimeMemory` and the
-   standalone validator/handler beans.
+   from the flat stored list, `ConversationTurnComposer` returning a sealed `CompositionResult`
+   decision, `ConversationSnapshot` as the read-only windowed LLM view. Delete `RuntimeMemory` and
+   the standalone validator/handler beans.
 
 ## Decision Outcome
 
@@ -86,7 +86,7 @@ A turn is *pending* (`assistantMessage == null`) when created by `rehydrate`, an
 
 | Method | Description |
 |--------|-------------|
-| `rehydrate(history, systemMessage, inputMessages, agentContext, config)` | Build from reconstructed history + the composed system message and current-turn input as a pending turn |
+| `rehydrate(configuration, agentContext, previousConversation, systemMessage, inputMessages)` | Build from the reconstructed `PreviousConversation` + the composed system message and current-turn input as a pending turn |
 | `ingest(assistantMessage, tokenUsage)` | Complete the pending turn with the LLM response |
 | `withStoredConversation(ref)` | Update the persistence cursor after storing messages |
 | `toAgentContext()` | Reduce back to the serialized `AgentContext` with updated metrics |
@@ -94,11 +94,27 @@ A turn is *pending* (`assistantMessage == null`) when created by `rehydrate`, an
 The composed system message is passed in by the handler and may be `null` when the composed system
 prompt is blank (in which case no system message is sent to the LLM or persisted).
 
-**`TurnReconstructor`**: rebuilds the `ConversationTurn` list from the persisted flat message
-list. Groups messages by scanning for `AssistantMessage` boundaries; assigns `iterationKey` by
-position (1-based count of completed assistant messages). All reconstructed turns carry
-`AgentMetrics.empty()`: per-invocation metrics are computed live from the current turn, not read
-from historical turns.
+**`PreviousConversation` record**: the reconstructed view of the conversation prior to the current
+invocation — an optional leading system message and the list of completed turns:
+
+```
+PreviousConversation(Optional<SystemMessage> systemMessage, List<ConversationTurn> turns)
+```
+
+It decouples consumers (`ConversationTurnComposer`, `AgentConversation.rehydrate`) from the
+reconstruction mechanism, so they depend on the domain shape rather than on `TurnReconstructor`.
+
+**`TurnReconstructor`**: rebuilds a `PreviousConversation` from the persisted flat message list. It
+splits off a leading `SystemMessage` (if present) and rebuilds the `ConversationTurn` list by
+scanning for `AssistantMessage` boundaries; assigns `iterationKey` by position (1-based count of
+completed assistant messages). All reconstructed turns carry `AgentMetrics.empty()`: per-invocation
+metrics are computed live from the current turn, not read from historical turns.
+
+The system message is **always recomposed per invocation** by the handler (see
+`createSystemMessage`) and passed into `rehydrate`; the reconstructed `PreviousConversation.systemMessage()`
+is not reused on the conversation path. It is reconstructed only so the `PreviousConversation` is a
+faithful view of the stored list; consumers that need the historical system message may read it, but
+the turn aggregate does not.
 
 This provides backward compatibility with all existing conversations without a data migration.
 
@@ -128,7 +144,7 @@ Replaces the stateful `MessageWindowRuntimeMemory` decorator.
 **`BaseAgentRequestHandler` as a thin orchestrator**: the `converse` path reduces to:
 
 ```
-load + reconstruct history → compose input
+load + reconstruct PreviousConversation → compose input
   → Deferred:  handleNoOp
   → NoInput:   handleNoInput
   → NextTurn:  createSystemMessage → rehydrate → checkLimits
@@ -157,7 +173,7 @@ Their responsibilities now live in `BaseAgentRequestHandler.throwIfLimitsReached
   `ConversationTurnComposerImpl` each have focused unit tests.
 - The proceed / wait / cancel outcome is a typed sealed interface; the `switch` in the handler is
   exhaustive with no `default`.
-- Per-turn metrics are stored directly on the turn; the agent instance update sends `currentTurn.metrics()` as-is, eliminating the captured-at-entry `initialMetrics` local.
+- Per-turn metrics are stored directly on the turn; the agent instance update sends `conversation.currentTurnMetrics()` (the completed turn's metrics, or empty while pending) as-is, eliminating the captured-at-entry `initialMetrics` local.
 - No data migration; existing conversations rehydrate transparently.
 
 **Negative:**
