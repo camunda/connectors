@@ -79,6 +79,11 @@ public class CorrelateMessageCommandDummy
   }
 
   @Override
+  public CorrelateMessageCommandStep3 businessId(String businessId) {
+    return this;
+  }
+
+  @Override
   public FinalCommandStep<CorrelateMessageResponse> requestTimeout(Duration requestTimeout) {
     return this;
   }
