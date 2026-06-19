@@ -326,7 +326,11 @@ public abstract class BaseAgentRequestHandler<
           metricsDelta.tokenUsage().inputTokenCount(),
           metricsDelta.tokenUsage().outputTokenCount(),
           metricsDelta.toolCalls());
-      var updateRequestBuilder = AgentInstanceUpdateRequest.builder().delta(metricsDelta);
+      // The agent-instance metrics update is counters-only (model/tool calls, tokens). The per-turn
+      // execution duration is a conversation-history concern and is not transmitted here, so it is
+      // stripped from the delta.
+      var updateRequestBuilder =
+          AgentInstanceUpdateRequest.builder().delta(metricsDelta.withExecutionTime(null));
       if (nextState != null) {
         updateRequestBuilder.status(nextState);
       }

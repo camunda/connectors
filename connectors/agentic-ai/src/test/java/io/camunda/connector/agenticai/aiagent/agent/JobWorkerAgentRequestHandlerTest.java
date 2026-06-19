@@ -422,7 +422,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2, EXECUTION_TIME))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -456,7 +456,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0, EXECUTION_TIME))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
     verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
@@ -501,7 +501,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0, EXECUTION_TIME))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -540,7 +540,7 @@ class JobWorkerAgentRequestHandlerTest {
             any(),
             eq(
                 AgentInstanceUpdateRequest.builder()
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0, EXECUTION_TIME))
+                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
