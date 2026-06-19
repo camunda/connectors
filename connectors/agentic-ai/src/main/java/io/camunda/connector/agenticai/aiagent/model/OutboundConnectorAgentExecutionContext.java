@@ -16,14 +16,18 @@ import io.camunda.connector.api.outbound.JobContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 public class OutboundConnectorAgentExecutionContext implements AgentExecutionContext {
 
   private final JobContext jobContext;
   private final OutboundConnectorAgentRequest request;
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
-  private List<AdHocToolElement> toolElements;
-  private AgentConfiguration configuration;
+  private final AgentConfiguration configuration;
+
+  @Nullable private List<AdHocToolElement> toolElements;
 
   public OutboundConnectorAgentExecutionContext(
       JobContext jobContext,
@@ -32,6 +36,16 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
     this.jobContext = jobContext;
     this.request = request;
     this.toolElementsResolver = toolElementsResolver;
+    this.configuration =
+        new AgentConfiguration(
+            request.provider(),
+            request.data().systemPrompt(),
+            request.data().userPrompt(),
+            request.data().memory(),
+            request.data().limits(),
+            // the outbound connector flavor does not support event handling
+            null,
+            request.data().response());
   }
 
   @Override
@@ -80,23 +94,12 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
     return request.data().userPrompt();
   }
 
-  public ToolsConfiguration tools() {
+  public @Nullable ToolsConfiguration tools() {
     return request.data().tools();
   }
 
   @Override
   public AgentConfiguration configuration() {
-    if (configuration == null) {
-      configuration =
-          new AgentConfiguration(
-              request.provider(),
-              request.data().systemPrompt(),
-              request.data().memory(),
-              request.data().limits(),
-              // the outbound connector flavor does not support event handling
-              null,
-              request.data().response());
-    }
     return configuration;
   }
 }

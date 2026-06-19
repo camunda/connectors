@@ -30,7 +30,7 @@ class A2aSystemPromptContributorTest {
   }
 
   private static final AgentConfiguration EMPTY_CONFIG =
-      new AgentConfiguration(null, null, null, null, null, null);
+      new AgentConfiguration(null, null, null, null, null, null, null);
 
   @Test
   void shouldContributeWhenA2aToolsPresent() {

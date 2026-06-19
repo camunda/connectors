@@ -267,13 +267,13 @@ class Langchain4JAiFrameworkAdapterTest {
   }
 
   @Test
-  void closesChatModelAfterSuccessfulCall() throws Exception {
+  void closesChatModelAfterSuccessfulCall() {
     adapter.executeChatRequest(createExecutionContext(), SNAPSHOT);
     verify(chatModel).close();
   }
 
   @Test
-  void closesChatModelEvenWhenChatCallThrows() throws Exception {
+  void closesChatModelEvenWhenChatCallThrows() {
     reset(chatModel, chatResponse, chatMessageConverter);
     when(chatMessageConverter.map(INPUT_MESSAGES)).thenReturn(L4J_MESSAGES);
     doThrow(new RuntimeException("model unavailable")).when(chatModel).chat(any(ChatRequest.class));
@@ -294,7 +294,8 @@ class Langchain4JAiFrameworkAdapterTest {
       ResponseConfiguration responseConfiguration) {
     final var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.configuration())
-        .thenReturn(new AgentConfiguration(null, null, null, null, null, responseConfiguration));
+        .thenReturn(
+            new AgentConfiguration(null, null, null, null, null, null, responseConfiguration));
 
     return executionContext;
   }

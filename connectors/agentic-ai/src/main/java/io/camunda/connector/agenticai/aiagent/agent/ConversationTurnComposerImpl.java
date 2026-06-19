@@ -28,7 +28,6 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -130,9 +129,6 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
   }
 
   private UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {
-    if (userPrompt == null) {
-      return null;
-    }
 
     final var content = new ArrayList<Content>();
 
@@ -143,9 +139,7 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
     }
 
     // add documents
-    Optional.ofNullable(userPrompt.documents()).orElseGet(Collections::emptyList).stream()
-        .map(DocumentContent::documentContent)
-        .forEach(content::add);
+    userPrompt.documents().stream().map(DocumentContent::documentContent).forEach(content::add);
 
     if (content.isEmpty()) {
       LOGGER.debug("Not adding user message as no user content was found to add.");
@@ -211,7 +205,7 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
     content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
     content.addAll(createDocumentPairs(toolCallDocuments));
 
-    final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
+    final var metadata = new HashMap<>(defaultMessageMetadata());
     metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
 
     return UserMessage.builder().content(content).metadata(metadata).build();

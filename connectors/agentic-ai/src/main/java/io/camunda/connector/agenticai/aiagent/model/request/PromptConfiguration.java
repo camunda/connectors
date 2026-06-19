@@ -12,10 +12,13 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 public interface PromptConfiguration {
   String prompt();
 
+  @NullMarked
   record SystemPromptConfiguration(
       @FEEL
           @TemplateProperty(
@@ -45,6 +48,7 @@ Wrap minimal, inspectable reasoning in *exactly* this XML template:
 Reveal **no** additional private reasoning outside these tags.\"""";
   }
 
+  @NullMarked
   record UserPromptConfiguration(
       @NotBlank
           @FEEL
@@ -66,6 +70,6 @@ Reveal **no** additional private reasoning outside these tags.\"""";
                       + "for details and supported file types.",
               feel = FeelMode.required,
               optional = true)
-          List<Document> documents)
+          @Nullable List<Document> documents)
       implements PromptConfiguration {}
 }

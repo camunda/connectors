@@ -17,7 +17,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -45,6 +44,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -73,6 +73,8 @@ class OutboundConnectorAgentRequestHandlerTest {
   private static final String SYSTEM_PROMPT = "You are a helpful assistant. Be nice.";
   private static final Message SYSTEM_MESSAGE = systemMessage(SYSTEM_PROMPT);
   private static final Message USER_MESSAGE = userMessage("Write a haiku about the sea");
+  private static final UserPromptConfiguration USER_PROMPT =
+      new UserPromptConfiguration("Write a haiku about the sea", List.of());
 
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
@@ -92,10 +94,6 @@ class OutboundConnectorAgentRequestHandlerTest {
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
-    // configuration() returns a record that cannot be deep-stubbed; provide an explicit default
-    lenient()
-        .when(agentExecutionContext.configuration())
-        .thenReturn(new AgentConfiguration(null, null, null, null, null, null));
   }
 
   @Test
@@ -113,7 +111,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response.agentResponse().context()).isEqualTo(discoveryAgentContext);
     assertThat(response.agentResponse().toolCalls())
-        .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.get(0)));
+        .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.getFirst()));
 
     verifyNoInteractions(agentInputComposer, framework, responseHandler);
   }
@@ -182,6 +180,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   @Test
   void orchestratesRequestExecutionWithoutToolCalls() {
+    mockConfiguration();
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
 
@@ -220,6 +219,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   @Test
   void orchestratesRequestExecutionWithToolCalls() {
+    mockConfiguration();
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
 
@@ -258,7 +258,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   @Test
   void throwsExceptionWhenInputComposerReturnsNoInput() {
-    mockSystemPrompt();
+    mockConfiguration();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
@@ -285,7 +285,8 @@ class OutboundConnectorAgentRequestHandlerTest {
     mockProceed(USER_MESSAGE);
     when(agentExecutionContext.configuration())
         .thenReturn(
-            new AgentConfiguration(null, null, null, new LimitsConfiguration(2), null, null));
+            new AgentConfiguration(
+                null, null, USER_PROMPT, null, new LimitsConfiguration(2), null, null));
 
     final var contextAtLimit =
         AgentContext.builder()
@@ -310,6 +311,7 @@ class OutboundConnectorAgentRequestHandlerTest {
   @Test
   void shouldEmitThinkingPatchThenMetricsPatchDuringHandleRequest() {
     // given
+    mockConfiguration();
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -346,6 +348,7 @@ class OutboundConnectorAgentRequestHandlerTest {
   @Test
   void shouldEmitThinkingPatchThenToolCallingMetricsPatchDuringHandleRequest() {
     // given
+    mockConfiguration();
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -383,6 +386,7 @@ class OutboundConnectorAgentRequestHandlerTest {
   void shouldNotCountToolCallResultsInDeltaWhenLlmRespondsWithoutToolCalls() {
     // given: tool call results arrive as input, but the LLM responds with plain text (no new tool
     // calls)
+    mockConfiguration();
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -406,8 +410,13 @@ class OutboundConnectorAgentRequestHandlerTest {
                     .build()));
   }
 
+  private void mockConfiguration() {
+    when(agentExecutionContext.configuration())
+        .thenReturn(new AgentConfiguration(null, null, USER_PROMPT, null, null, null, null));
+  }
+
   private void mockSystemPrompt() {
-    lenient().when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
+    when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
   }
 
   private void mockProceed(Message... inputMessages) {

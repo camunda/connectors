@@ -31,10 +31,10 @@ public final class AgentConversation {
 
   private final AgentConfiguration configuration;
   private final AgentContext currentContext;
+  private final @Nullable AgentInstanceKey agentInstanceKey;
   private final @Nullable SystemMessage systemMessage;
   private final List<ConversationTurn> previousTurns;
   private final ConversationTurn currentTurn;
-  private final @Nullable AgentInstanceKey agentInstanceKey;
 
   private AgentConversation(
       AgentConfiguration configuration,

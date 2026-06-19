@@ -372,6 +372,7 @@ class CamundaAgentInstanceClientTest {
                   null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
           new PromptConfiguration.SystemPromptConfiguration("system prompt"),
           null,
+          null,
           limitsConfiguration,
           null,
           null);

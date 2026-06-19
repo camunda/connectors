@@ -50,6 +50,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -104,7 +107,15 @@ class JobWorkerAgentRequestHandlerTest {
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
     // configuration() returns a record that cannot be deep-stubbed; provide an explicit default
     lenient()
-        .doReturn(new AgentConfiguration(null, null, null, null, null, null))
+        .doReturn(
+            new AgentConfiguration(
+                new OpenAiProviderConfiguration(null),
+                new PromptConfiguration.SystemPromptConfiguration(null),
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                null,
+                null,
+                null))
         .when(agentExecutionContext)
         .configuration();
     // avoid deep-stubbing a mock UserPromptConfiguration (these tests drive the turn via the
@@ -131,7 +142,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.responseValue()).isNotNull();
     assertThat(response.responseValue().context()).isEqualTo(discoveryAgentContext);
     assertThat(response.responseValue().toolCalls())
-        .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.get(0)));
+        .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.getFirst()));
 
     verifyNoInteractions(agentInputComposer, framework, responseHandler);
   }
@@ -563,7 +574,14 @@ class JobWorkerAgentRequestHandlerTest {
     mockProceed(USER_MESSAGE);
     when(agentExecutionContext.configuration())
         .thenReturn(
-            new AgentConfiguration(null, null, null, new LimitsConfiguration(2), null, null));
+            new AgentConfiguration(
+                null,
+                null,
+                new UserPromptConfiguration("user input", List.of()),
+                null,
+                new LimitsConfiguration(2),
+                null,
+                null));
 
     final var contextAtLimit =
         AgentContext.builder()

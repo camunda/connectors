@@ -13,16 +13,27 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   private final JobContext jobContext;
   private final JobWorkerAgentRequest request;
-  private AgentConfiguration configuration;
+  private final AgentConfiguration configuration;
 
   public JobWorkerAgentExecutionContext(
       final JobContext jobContext, final JobWorkerAgentRequest request) {
     this.jobContext = jobContext;
     this.request = request;
+    this.configuration =
+        new AgentConfiguration(
+            request.provider(),
+            request.data().systemPrompt(),
+            request.data().userPrompt(),
+            request.data().memory(),
+            request.data().limits(),
+            request.data().events(),
+            request.data().response());
   }
 
   @Override
@@ -52,16 +63,6 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
 
   @Override
   public AgentConfiguration configuration() {
-    if (configuration == null) {
-      configuration =
-          new AgentConfiguration(
-              request.provider(),
-              request.data().systemPrompt(),
-              request.data().memory(),
-              request.data().limits(),
-              request.data().events(),
-              request.data().response());
-    }
     return configuration;
   }
 

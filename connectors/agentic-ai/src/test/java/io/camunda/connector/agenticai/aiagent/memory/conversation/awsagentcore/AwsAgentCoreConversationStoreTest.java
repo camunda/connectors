@@ -100,7 +100,7 @@ class AwsAgentCoreConversationStoreTest {
   }
 
   private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {
-    return new AgentConfiguration(null, null, memory, null, null, null);
+    return new AgentConfiguration(null, null, null, memory, null, null, null);
   }
 
   @Test
@@ -908,7 +908,7 @@ class AwsAgentCoreConversationStoreTest {
 
   private void mockListEventsResponse(List<Event> events) {
     // Create an SdkIterable for the events
-    final SdkIterable<Event> eventsIterable = () -> events.iterator();
+    final SdkIterable<Event> eventsIterable = events::iterator;
 
     when(listEventsIterable.events()).thenReturn(eventsIterable);
     when(bedrockClient.listEventsPaginator(any(ListEventsRequest.class)))

@@ -10,18 +10,22 @@ import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfigu
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import java.util.Optional;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Static per-invocation configuration. Built once from AgentExecutionContext at the start of each
  * handler invocation; does not change mid-conversation.
  */
+@NullMarked
 public record AgentConfiguration(
     ProviderConfiguration provider,
-    @Nullable SystemPromptConfiguration systemPrompt,
+    SystemPromptConfiguration systemPrompt,
+    UserPromptConfiguration userPrompt,
     @Nullable MemoryConfiguration memory,
     @Nullable LimitsConfiguration limits,
     @Nullable EventHandlingConfiguration events,

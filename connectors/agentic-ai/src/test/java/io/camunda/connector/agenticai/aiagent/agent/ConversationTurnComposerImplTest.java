@@ -58,7 +58,7 @@ class ConversationTurnComposerImplTest {
           .conversation(InProcessConversationContext.builder("conv").build())
           .build();
   private static final AgentConfiguration CONFIG =
-      new AgentConfiguration(null, null, null, null, null, null);
+      new AgentConfiguration(null, null, null, null, null, null, null);
 
   @BeforeEach
   void setUp() {
@@ -80,7 +80,7 @@ class ConversationTurnComposerImplTest {
 
   @Test
   void firstTurn_withUserPrompt_returnsNextTurn() {
-    var input = AgentInput.from(new UserPromptConfiguration("Hello?", null), List.of());
+    var input = AgentInput.from(new UserPromptConfiguration("Hello?", List.of()), List.of());
     var history = TurnReconstructor.reconstruct(List.of());
     var result = composer.compose(CONFIG, CTX, history, input);
     assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
@@ -91,15 +91,7 @@ class ConversationTurnComposerImplTest {
 
   @Test
   void firstTurn_emptyPrompt_returnsNoInput() {
-    var input = AgentInput.from(new UserPromptConfiguration("", null), List.of());
-    var history = TurnReconstructor.reconstruct(List.of());
-    var result = composer.compose(CONFIG, CTX, history, input);
-    assertThat(result).isInstanceOf(CompositionResult.NoInput.class);
-  }
-
-  @Test
-  void firstTurn_nullPrompt_returnsNoInput() {
-    var input = AgentInput.from(null, List.of());
+    var input = AgentInput.from(new UserPromptConfiguration("", List.of()), List.of());
     var history = TurnReconstructor.reconstruct(List.of());
     var result = composer.compose(CONFIG, CTX, history, input);
     assertThat(result).isInstanceOf(CompositionResult.NoInput.class);
@@ -108,7 +100,8 @@ class ConversationTurnComposerImplTest {
   @Test
   void toolResultsOnEmptyContext_throwsConnectorException() {
     // tool call results arriving with no previous conversation is a modeling error, not a no-op
-    var input = AgentInput.from(null, TOOL_CALL_RESULTS);
+    var input =
+        AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
     var history = TurnReconstructor.reconstruct(List.of());
 
     assertThatThrownBy(() -> composer.compose(CONFIG, CTX, history, input))
@@ -121,7 +114,8 @@ class ConversationTurnComposerImplTest {
 
   @Test
   void toolResultTurn_allResultsPresent_returnsNextTurn() {
-    var input = AgentInput.from(null, TOOL_CALL_RESULTS);
+    var input =
+        AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
@@ -132,7 +126,8 @@ class ConversationTurnComposerImplTest {
   @Test
   void toolResultTurn_missingResults_returnsNone() {
     List<ToolCallResult> partialResults = List.of(TOOL_CALL_RESULTS.getFirst());
-    var input = AgentInput.from(null, partialResults);
+    var input =
+        AgentInput.from(new UserPromptConfiguration("user input", List.of()), partialResults);
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
@@ -148,11 +143,12 @@ class ConversationTurnComposerImplTest {
             null,
             null,
             null,
+            null,
             new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
             null);
     var input =
         AgentInput.from(
-            null,
+            new UserPromptConfiguration("user input", List.of()),
             List.of(
                 TOOL_CALL_RESULTS.getFirst(),
                 ToolCallResult.builder().content("An event occurred").build()));
@@ -190,7 +186,10 @@ class ConversationTurnComposerImplTest {
   @Test
   void toolResultTurn_reordersResultsToMatchToolCallOrder() {
     // results supplied in reverse order (getDateTime, getWeather)
-    var input = AgentInput.from(null, List.of(TOOL_CALL_RESULTS.get(1), TOOL_CALL_RESULTS.get(0)));
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.get(1), TOOL_CALL_RESULTS.get(0)));
     var history =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
@@ -213,11 +212,12 @@ class ConversationTurnComposerImplTest {
             null,
             null,
             null,
+            null,
             new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
             null);
     var input =
         AgentInput.from(
-            null,
+            new UserPromptConfiguration("user input", List.of()),
             List.of(
                 TOOL_CALL_RESULTS.get(0),
                 TOOL_CALL_RESULTS.get(1),
@@ -245,11 +245,12 @@ class ConversationTurnComposerImplTest {
             null,
             null,
             null,
+            null,
             new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
             null);
     var input =
         AgentInput.from(
-            null,
+            new UserPromptConfiguration("user input", List.of()),
             List.of(
                 TOOL_CALL_RESULTS.getFirst(),
                 ToolCallResult.builder().content("An event occurred").build()));
@@ -270,9 +271,13 @@ class ConversationTurnComposerImplTest {
             null,
             null,
             null,
+            null,
             new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
             null);
-    var input = AgentInput.from(null, List.of(TOOL_CALL_RESULTS.getFirst()));
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.getFirst()));
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
@@ -286,7 +291,7 @@ class ConversationTurnComposerImplTest {
   void continuingConversation_lastTurnHadNoToolCalls_addsUserPromptTurn() {
     // a non-empty history whose last assistant message has no tool calls: a new user prompt starts
     // the next turn rather than waiting for tool results
-    var input = AgentInput.from(new UserPromptConfiguration("And now?", null), List.of());
+    var input = AgentInput.from(new UserPromptConfiguration("And now?", List.of()), List.of());
     var history =
         TurnReconstructor.reconstruct(
             List.of(
@@ -315,7 +320,8 @@ class ConversationTurnComposerImplTest {
     when(gatewayToolHandlers.transformToolCallResults(CTX_WITH_CONVERSATION, TOOL_CALL_RESULTS))
         .thenReturn(transformedResults);
 
-    var input = AgentInput.from(null, TOOL_CALL_RESULTS);
+    var input =
+        AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
     var history =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
@@ -332,7 +338,7 @@ class ConversationTurnComposerImplTest {
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
         AgentInput.from(
-            null,
+            new UserPromptConfiguration("user input", List.of()),
             List.of(
                 ToolCallResult.builder()
                     .id("abcdef")
@@ -376,13 +382,14 @@ class ConversationTurnComposerImplTest {
             null,
             null,
             null,
+            null,
             new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
             null);
     var toolDoc = createDocument("weather data", "text/plain", "weather.txt");
     var eventDoc = createDocument("event data", "application/pdf", "event.pdf");
     var input =
         AgentInput.from(
-            null,
+            new UserPromptConfiguration("user input", List.of()),
             List.of(
                 ToolCallResult.builder()
                     .id("abcdef")

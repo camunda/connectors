@@ -89,9 +89,7 @@ public abstract class BaseAgentRequestHandler<
         yield handleNoOp(executionContext);
       }
       case ReadyToConverse(var agentContext, var toolCallResults) -> {
-        LOGGER.debug(
-            "Handling agent request with {} tool call results",
-            toolCallResults != null ? toolCallResults.size() : 0);
+        LOGGER.debug("Handling agent request with {} tool call results", toolCallResults.size());
         yield converse(executionContext, agentContext, toolCallResults);
       }
     };
@@ -106,9 +104,7 @@ public abstract class BaseAgentRequestHandler<
 
     try (var session = store.createSession(executionContext, agentContext)) {
       final var configuration = executionContext.configuration();
-      final var agentInput =
-          AgentInput.from(
-              executionContext.userPrompt(), toolCallResults != null ? toolCallResults : List.of());
+      final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
       final var loadedMessages = session.loadMessages(agentContext).messages();
@@ -128,37 +124,31 @@ public abstract class BaseAgentRequestHandler<
         }
         case CompositionResult.NextTurn(var newMessages) ->
             proceed(
-                executionContext,
-                previousConversation,
-                newMessages,
-                agentContext,
-                configuration,
-                session,
-                store);
+                executionContext, agentContext, previousConversation, newMessages, session, store);
       };
     }
   }
 
   private R proceed(
       final C executionContext,
+      final AgentContext agentContext,
       final PreviousConversation previousConversation,
       final List<Message> inputMessages,
-      final AgentContext agentContext,
-      final AgentConfiguration configuration,
       final ConversationSession session,
       final ConversationStore store) {
-    var systemMessage = createSystemMessage(agentContext, configuration);
+    var agentConfiguration = executionContext.configuration();
+    var systemMessage = createSystemMessage(agentContext, agentConfiguration);
     final var conversation =
         AgentConversation.rehydrate(
-            configuration, agentContext, previousConversation, systemMessage, inputMessages);
+            agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
 
-    throwIfLimitsReached(conversation, configuration);
+    throwIfLimitsReached(conversation, agentConfiguration);
     notifyThinking(executionContext, conversation);
 
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =
         framework.executeChatRequest(
-            executionContext, conversation.window(configuration.contextWindowSize()));
+            executionContext, conversation.window(agentConfiguration.contextWindowSize()));
     final var updatedConversation =
         conversation.ingest(chatResponse.assistantMessage(), chatResponse.tokenUsage());
 

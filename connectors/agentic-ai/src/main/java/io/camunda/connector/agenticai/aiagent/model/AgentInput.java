@@ -12,16 +12,17 @@ import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.jspecify.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
 
 /**
  * Per-invocation input: pre-partitioned from the raw engine data. {@link #toolCallResults} holds
  * results with a non-null ID; {@link #eventMessages} holds results with a null ID (from
  * non-interrupting events).
  */
+@NullMarked
 public final class AgentInput {
 
-  private final @Nullable UserPrompt userPrompt;
+  private final UserPrompt userPrompt;
   private final List<ToolCallResult> toolCallResults;
   private final List<ToolCallResult> eventMessages;
 
@@ -30,14 +31,14 @@ public final class AgentInput {
    * UserPromptConfiguration} so the conversation turn composition does not depend on the request
    * DTO.
    */
-  public record UserPrompt(@Nullable String prompt, List<Document> documents) {
+  public record UserPrompt(String prompt, List<Document> documents) {
     public UserPrompt {
-      documents = documents == null ? List.of() : List.copyOf(documents);
+      documents = List.copyOf(documents);
     }
   }
 
   private AgentInput(
-      @Nullable UserPrompt userPrompt,
+      UserPrompt userPrompt,
       List<ToolCallResult> toolCallResults,
       List<ToolCallResult> eventMessages) {
     this.userPrompt = userPrompt;
@@ -46,18 +47,19 @@ public final class AgentInput {
   }
 
   public static AgentInput from(
-      @Nullable UserPromptConfiguration userPrompt, List<ToolCallResult> engineToolCallResults) {
-    Objects.requireNonNull(engineToolCallResults, "engineToolCallResults must not be null");
+      UserPromptConfiguration userPrompt, List<ToolCallResult> toolCallResults) {
+    Objects.requireNonNull(toolCallResults, "toolCallResults must not be null");
     var partitioned =
-        engineToolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
-    return new AgentInput(toUserPrompt(userPrompt), partitioned.get(true), partitioned.get(false));
+        toolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
+    return new AgentInput(
+        new UserPrompt(
+            userPrompt.prompt(),
+            userPrompt.documents() == null ? List.of() : userPrompt.documents()),
+        partitioned.get(true),
+        partitioned.get(false));
   }
 
-  private static @Nullable UserPrompt toUserPrompt(@Nullable UserPromptConfiguration userPrompt) {
-    return userPrompt == null ? null : new UserPrompt(userPrompt.prompt(), userPrompt.documents());
-  }
-
-  public @Nullable UserPrompt userPrompt() {
+  public UserPrompt userPrompt() {
     return userPrompt;
   }
 

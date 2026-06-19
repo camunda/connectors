@@ -23,7 +23,7 @@ class SystemPromptComposerImplTest {
   private static final AgentContext CTX = AgentContext.builder().state(AgentState.READY).build();
 
   private static AgentConfiguration configWithSystemPrompt(SystemPromptConfiguration config) {
-    return new AgentConfiguration(null, config, null, null, null, null);
+    return new AgentConfiguration(null, config, null, null, null, null, null);
   }
 
   @Test
