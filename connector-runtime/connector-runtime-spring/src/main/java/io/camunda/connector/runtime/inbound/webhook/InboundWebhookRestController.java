@@ -76,6 +76,8 @@ public class InboundWebhookRestController {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundWebhookRestController.class);
   private static final int MAX_BODY_LOG_LENGTH = 1_000;
+  private static final Set<String> REDACTED_HEADERS =
+      Set.of("authorization", "proxy-authorization", "cookie", "x-api-key");
 
   private final WebhookConnectorRegistry webhookConnectorRegistry;
 
@@ -417,7 +419,13 @@ public class InboundWebhookRestController {
 
     if (payload.headers() != null && !payload.headers().isEmpty()) {
       sb.append("\n\nHeaders:");
-      payload.headers().forEach((k, v) -> sb.append("\n  ").append(k).append(": ").append(v));
+      payload
+          .headers()
+          .forEach(
+              (k, v) -> {
+                var value = REDACTED_HEADERS.contains(k.toLowerCase()) ? "[redacted]" : v;
+                sb.append("\n  ").append(k).append(": ").append(value);
+              });
     }
 
     if (payload.params() != null && !payload.params().isEmpty()) {
