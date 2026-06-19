@@ -219,29 +219,30 @@ jobs:
     if: always() && needs.test.result == 'failure' && (inputs.branch == 'main' || startsWith(inputs.branch, 'stable/'))
     runs-on: ubuntu-latest
     steps:
-      - name: Post failure summary to Slack
+      # Reusable workflow sub-jobs appear as "{calling_job} / {sub_job}" in the API.
+      # The calling job for this branch is "($BRANCH)", so filter by that prefix.
+      - name: Fetch failed modules
+        id: modules
         env:
           GH_TOKEN: ${{ github.token }}
-          SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL: ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}
-          MEDIC: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }}
           BRANCH: ${{ inputs.branch }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          # Reusable workflow sub-jobs appear as "{calling_job} / {sub_job}" in the API.
-          # The calling job for this branch is "($BRANCH)", so filter by that prefix.
           prefix="(${BRANCH}) / "
-          modules=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs" \
+          list=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs" \
             --paginate \
             --jq --arg p "$prefix" \
-            '[.jobs[] | select(.conclusion == "failure") | select(.name | startswith($p)) | .name | ltrimstr($p) | select(test("^connectors-"))] | map("• " + .) | join("\n")' \
+            '[.jobs[] | select(.conclusion == "failure") | select(.name | startswith($p)) | .name | ltrimstr($p) | select(test("^connectors-"))] | map("• " + .) | join("\\n")' \
           )
-          [ -z "$modules" ] && modules="(see run for details)"
-          jq -n \
-            --arg channel "$SLACK_CHANNEL" \
-            --arg text ":alarm: ${MEDIC} E2E tests failed on \`${BRANCH}\`\n${modules}\nCheck: ${RUN_URL}" \
-            '{channel: $channel, text: $text}' \
-          | curl -sf -o /dev/null -X POST "https://slack.com/api/chat.postMessage" \
-              -H "Authorization: Bearer ${SLACK_TOKEN}" \
-              -H "Content-Type: application/json; charset=utf-8" \
-              -d @-
+          [ -z "$list" ] && list="(see run for details)"
+          echo "list=$list" >> $GITHUB_OUTPUT
+
+      - name: Post failure summary to Slack
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
+              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} E2E tests failed on `${{ inputs.branch }}`\n${{ steps.modules.outputs.list }}\nCheck: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
