@@ -78,6 +78,8 @@ public class InboundWebhookRestController {
   private static final int MAX_BODY_LOG_LENGTH = 1_000;
   private static final Set<String> REDACTED_HEADERS =
       Set.of("authorization", "proxy-authorization", "cookie", "x-api-key");
+  private static final Set<String> REDACTED_QUERY_PARAMS =
+      Set.of("token", "access_token", "signature", "api_key", "apikey");
 
   private final WebhookConnectorRegistry webhookConnectorRegistry;
 
@@ -430,17 +432,25 @@ public class InboundWebhookRestController {
 
     if (payload.params() != null && !payload.params().isEmpty()) {
       sb.append("\n\nQuery params:");
-      payload.params().forEach((k, v) -> sb.append("\n  ").append(k).append("=").append(v));
+      payload
+          .params()
+          .forEach(
+              (k, v) -> {
+                var value = REDACTED_QUERY_PARAMS.contains(k.toLowerCase()) ? "[redacted]" : v;
+                sb.append("\n  ").append(k).append("=").append(value);
+              });
     }
 
     sb.append("\n\nBody: ");
     byte[] rawBody = payload.rawBody();
-    if (rawBody != null && rawBody.length > 0) {
-      String body = new String(rawBody, StandardCharsets.UTF_8);
-      if (body.length() > MAX_BODY_LOG_LENGTH) {
-        sb.append(body, 0, MAX_BODY_LOG_LENGTH).append("... (truncated)");
-      } else {
-        sb.append(body);
+    if (payload.parts() != null && !payload.parts().isEmpty()) {
+      sb.append("(omitted for multipart request)");
+    } else if (rawBody != null && rawBody.length > 0) {
+      int previewLength = Math.min(rawBody.length, MAX_BODY_LOG_LENGTH);
+      String bodyPreview = new String(rawBody, 0, previewLength, StandardCharsets.UTF_8);
+      sb.append(bodyPreview);
+      if (rawBody.length > MAX_BODY_LOG_LENGTH) {
+        sb.append("... (truncated)");
       }
     } else {
       sb.append("(empty)");
