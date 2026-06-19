@@ -56,6 +56,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +75,7 @@ import org.springframework.web.util.HtmlUtils;
 public class InboundWebhookRestController {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundWebhookRestController.class);
+  private static final int MAX_BODY_LOG_LENGTH = 1_000;
 
   private final WebhookConnectorRegistry webhookConnectorRegistry;
 
@@ -191,7 +193,7 @@ public class InboundWebhookRestController {
                     activity
                         .withSeverity(Severity.INFO)
                         .withTag(payload.method())
-                        .withMessage("URL: " + payload.requestURL()));
+                        .withMessage(buildRequestLogMessage(payload)));
 
         var webhookResult = connectorHook.triggerWebhook(payload);
         // create documents if the connector is activable
@@ -407,6 +409,52 @@ public class InboundWebhookRestController {
               documents);
     }
     return ctx;
+  }
+
+  private static String buildRequestLogMessage(WebhookProcessingPayload payload) {
+    var sb = new StringBuilder();
+    sb.append(payload.method()).append(" ").append(payload.requestURL());
+
+    if (payload.headers() != null && !payload.headers().isEmpty()) {
+      sb.append("\n\nHeaders:");
+      payload.headers().forEach((k, v) -> sb.append("\n  ").append(k).append(": ").append(v));
+    }
+
+    if (payload.params() != null && !payload.params().isEmpty()) {
+      sb.append("\n\nQuery params:");
+      payload.params().forEach((k, v) -> sb.append("\n  ").append(k).append("=").append(v));
+    }
+
+    sb.append("\n\nBody: ");
+    byte[] rawBody = payload.rawBody();
+    if (rawBody != null && rawBody.length > 0) {
+      String body = new String(rawBody, StandardCharsets.UTF_8);
+      if (body.length() > MAX_BODY_LOG_LENGTH) {
+        sb.append(body, 0, MAX_BODY_LOG_LENGTH).append("... (truncated)");
+      } else {
+        sb.append(body);
+      }
+    } else {
+      sb.append("(empty)");
+    }
+
+    if (payload.parts() != null && !payload.parts().isEmpty()) {
+      sb.append("\n\nParts (").append(payload.parts().size()).append("):");
+      payload
+          .parts()
+          .forEach(
+              part -> {
+                sb.append("\n  - name=").append(part.name());
+                if (part.submittedFileName() != null) {
+                  sb.append(", fileName=").append(part.submittedFileName());
+                }
+                if (part.contentType() != null) {
+                  sb.append(", contentType=").append(part.contentType());
+                }
+              });
+    }
+
+    return sb.toString();
   }
 
   private ResponseEntity<?> handleWebhookConnectorException(WebhookConnectorException e) {
