@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
@@ -47,16 +48,21 @@ public class AiAgentJobWorker implements AgentConnectorFunction {
   public static final String TOOL_CALL_VARIABLE = "toolCall";
 
   private final JobWorkerAgentRequestHandler agentRequestHandler;
+  private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
 
-  public AiAgentJobWorker(JobWorkerAgentRequestHandler agentRequestHandler) {
+  public AiAgentJobWorker(
+      JobWorkerAgentRequestHandler agentRequestHandler,
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
     this.agentRequestHandler = agentRequestHandler;
+    this.toolElementsResolver = toolElementsResolver;
   }
 
   @Override
   public AiAgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(JobWorkerAgentRequest.class);
-    var executionContext = new JobWorkerAgentExecutionContext(context.getJobContext(), request);
+    var executionContext =
+        new JobWorkerAgentExecutionContext(context.getJobContext(), request, toolElementsResolver);
     return agentRequestHandler.handleRequest(executionContext);
   }
 }
