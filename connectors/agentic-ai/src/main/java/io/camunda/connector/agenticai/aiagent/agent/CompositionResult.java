@@ -10,7 +10,8 @@ import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
 
 /**
- * Decision produced by ConversationTurnComposer: whether and how to proceed with the next LLM call.
+ * Decision produced by AgentConversationTurnInputComposer: whether and how to proceed with the next
+ * LLM call.
  */
 public sealed interface CompositionResult {
 

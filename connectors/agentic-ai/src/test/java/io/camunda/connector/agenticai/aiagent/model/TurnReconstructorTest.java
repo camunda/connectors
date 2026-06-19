@@ -95,7 +95,7 @@ class TurnReconstructorTest {
   }
 
   private static void assertTurn(
-      ConversationTurn turn,
+      AgentConversationTurn turn,
       int expectedKey,
       boolean expectedHasToolCalls,
       Message... expectedInput) {

@@ -39,9 +39,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConversationTurnComposerImpl implements ConversationTurnComposer {
+public class AgentConversationTurnInputComposerImpl implements AgentConversationTurnInputComposer {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConversationTurnComposerImpl.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(AgentConversationTurnInputComposerImpl.class);
 
   private static final String EVENT_CONTENT_EMPTY =
       "An event was triggered but no content was returned.";
@@ -59,7 +60,7 @@ public class ConversationTurnComposerImpl implements ConversationTurnComposer {
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
 
-  public ConversationTurnComposerImpl(GatewayToolHandlerRegistry gatewayToolHandlers) {
+  public AgentConversationTurnInputComposerImpl(GatewayToolHandlerRegistry gatewayToolHandlers) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
   }

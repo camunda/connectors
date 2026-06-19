@@ -51,7 +51,7 @@ public abstract class BaseAgentRequestHandler<
 
   private final AgentInitializer agentInitializer;
   private final ConversationStoreRegistry conversationStoreRegistry;
-  private final ConversationTurnComposer agentInputComposer;
+  private final AgentConversationTurnInputComposer agentInputComposer;
   private final AiFrameworkAdapter<?> framework;
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
@@ -60,7 +60,7 @@ public abstract class BaseAgentRequestHandler<
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
-      ConversationTurnComposer agentInputComposer,
+      AgentConversationTurnInputComposer agentInputComposer,
       AiFrameworkAdapter<?> framework,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
@@ -263,10 +263,10 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * Called when {@link ConversationTurnComposer} returns {@link CompositionResult.NoInput} — no
-   * input (user prompt, documents or events) could be composed for this turn. Subclasses decide
-   * whether this is a hard error (throw) or a benign wait (no-op response), and own the error
-   * code/message and logging.
+   * Called when {@link AgentConversationTurnInputComposer} returns {@link
+   * CompositionResult.NoInput} — no input (user prompt, documents or events) could be composed for
+   * this turn. Subclasses decide whether this is a hard error (throw) or a benign wait (no-op
+   * response), and own the error code/message and logging.
    */
   protected abstract R handleNoInput(C executionContext);
 

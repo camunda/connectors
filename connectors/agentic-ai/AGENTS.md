@@ -63,7 +63,7 @@ agent/
 ├── BaseAgentRequestHandler     # Core orchestrator: init → compose input → rehydrate → check limits → LLM → response → complete
 ├── JobWorkerAgentRequestHandler    # Job worker completion logic
 ├── OutboundConnectorAgentRequestHandler  # Connector completion logic
-├── ConversationTurnComposerImpl # Turn input assembly → CompositionResult (Deferred/NoInput/NextTurn)
+├── AgentConversationTurnInputComposerImpl # Turn input assembly → CompositionResult (Deferred/NoInput/NextTurn)
 ├── AgentResponseHandlerImpl    # Response formatting (text/JSON/full message)
 └── AgentToolsResolverImpl      # Tool definition loading & migration updates
 
@@ -73,7 +73,7 @@ framework/
 
 model/
 ├── AgentConversation           # Immutable turn aggregate (rehydrate → ingest → toAgentContext); owns limit metrics
-├── ConversationTurn            # One LLM call: input messages, assistant response, per-turn metrics
+├── AgentConversationTurn            # One LLM call: input messages, assistant response, per-turn metrics
 ├── TurnReconstructor           # Rebuilds turns from the stored flat message list (backward compat)
 └── AgentConfiguration          # Static per-invocation config (limits, memory, events, …)
 

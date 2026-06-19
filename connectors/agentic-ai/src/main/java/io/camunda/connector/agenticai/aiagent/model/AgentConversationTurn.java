@@ -23,13 +23,13 @@ import org.jspecify.annotations.Nullable;
  * AgentConversation#rehydrate} before the LLM call — and <em>complete</em> after {@link
  * AgentConversation#ingest}.
  */
-public record ConversationTurn(
+public record AgentConversationTurn(
     int iterationKey,
     List<Message> inputMessages,
     @Nullable AssistantMessage assistantMessage,
     AgentMetrics metrics) {
 
-  public ConversationTurn {
+  public AgentConversationTurn {
     if (iterationKey < 1) {
       throw new IllegalArgumentException("iterationKey should be greater than 0");
     }
@@ -38,9 +38,9 @@ public record ConversationTurn(
     inputMessages = List.copyOf(inputMessages);
   }
 
-  public ConversationTurn withAssistantMessage(
+  public AgentConversationTurn withAssistantMessage(
       AssistantMessage assistantMessage, AgentMetrics metrics) {
-    return new ConversationTurn(iterationKey, inputMessages, assistantMessage, metrics);
+    return new AgentConversationTurn(iterationKey, inputMessages, assistantMessage, metrics);
   }
 
   public boolean hasToolCalls() {

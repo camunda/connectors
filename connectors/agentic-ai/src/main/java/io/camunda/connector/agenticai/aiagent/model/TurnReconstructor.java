@@ -50,7 +50,7 @@ public final class TurnReconstructor {
                 n -> {
                   int end = assistantIndices.get(n);
                   int start = n == 0 ? 0 : assistantIndices.get(n - 1) + 1;
-                  return new ConversationTurn(
+                  return new AgentConversationTurn(
                       n + 1,
                       List.copyOf(body.subList(start, end)),
                       (AssistantMessage) body.get(end),

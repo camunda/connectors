@@ -12,7 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 
 /** Composes the next conversation turn input from raw history and the current invocation state. */
-public interface ConversationTurnComposer {
+public interface AgentConversationTurnInputComposer {
   CompositionResult compose(
       AgentConfiguration configuration,
       AgentContext agentContext,

@@ -86,7 +86,7 @@ class JobWorkerAgentRequestHandlerTest {
 
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
-  @Mock private ConversationTurnComposer agentInputComposer;
+  @Mock private AgentConversationTurnInputComposer agentInputComposer;
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;

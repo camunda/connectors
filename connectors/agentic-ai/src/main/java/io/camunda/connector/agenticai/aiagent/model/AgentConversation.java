@@ -33,15 +33,15 @@ public final class AgentConversation {
   private final AgentContext currentContext;
   private final @Nullable AgentInstanceKey agentInstanceKey;
   private final @Nullable SystemMessage systemMessage;
-  private final List<ConversationTurn> previousTurns;
-  private final ConversationTurn currentTurn;
+  private final List<AgentConversationTurn> previousTurns;
+  private final AgentConversationTurn currentTurn;
 
   private AgentConversation(
       AgentConfiguration configuration,
       AgentContext currentContext,
       @Nullable SystemMessage systemMessage,
-      List<ConversationTurn> previousTurns,
-      ConversationTurn currentTurn) {
+      List<AgentConversationTurn> previousTurns,
+      AgentConversationTurn currentTurn) {
     this.configuration = configuration;
     this.currentContext = currentContext;
     this.systemMessage = systemMessage;
@@ -69,7 +69,7 @@ public final class AgentConversation {
       @Nullable SystemMessage systemMessage,
       List<Message> inputMessages) {
     int nextKey = previousConversation.turns().size() + 1;
-    var currentTurn = new ConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
+    var currentTurn = new AgentConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
     return new AgentConversation(
         configuration, agentContext, systemMessage, previousConversation.turns(), currentTurn);
   }
@@ -113,12 +113,12 @@ public final class AgentConversation {
   }
 
   /** Returns all completed turns: previous turns followed by the current turn (if complete). */
-  public List<ConversationTurn> turns() {
+  public List<AgentConversationTurn> turns() {
     return allCompletedTurns();
   }
 
   /** Returns the current turn. Always non-null; pending until {@link #ingest} completes it. */
-  public ConversationTurn currentTurn() {
+  public AgentConversationTurn currentTurn() {
     return currentTurn;
   }
 
@@ -178,12 +178,12 @@ public final class AgentConversation {
   }
 
   /** Returns the last completed turn, or empty if no turns have been completed yet. */
-  public Optional<ConversationTurn> lastTurn() {
+  public Optional<AgentConversationTurn> lastTurn() {
     var all = allCompletedTurns();
     return all.isEmpty() ? Optional.empty() : Optional.of(all.getLast());
   }
 
-  private List<ConversationTurn> allCompletedTurns() {
+  private List<AgentConversationTurn> allCompletedTurns() {
     if (currentTurn.assistantMessage() == null) {
       return previousTurns;
     }

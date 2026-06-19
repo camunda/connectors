@@ -42,9 +42,9 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class ConversationTurnComposerImplTest {
+class AgentConversationTurnInputComposerImplTest {
 
-  private ConversationTurnComposerImpl composer;
+  private AgentConversationTurnInputComposerImpl composer;
   private GatewayToolHandlerRegistry gatewayToolHandlers;
 
   private final DocumentFactoryImpl documentFactory =
@@ -67,7 +67,7 @@ class ConversationTurnComposerImplTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(gatewayToolHandlers.handlerForToolDefinition(any()))
         .thenReturn(java.util.Optional.empty());
-    composer = new ConversationTurnComposerImpl(gatewayToolHandlers);
+    composer = new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
   }
 
   private Document createDocument(String content, String contentType, String fileName) {
@@ -368,7 +368,8 @@ class ConversationTurnComposerImplTest {
               assertThat(documentMessage.content())
                   .first()
                   .isEqualTo(
-                      textContent(ConversationTurnComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
+                      textContent(
+                          AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
               assertThat(documentMessage.content())
                   .contains(DocumentContent.documentContent(weatherDoc));
             });
@@ -419,7 +420,8 @@ class ConversationTurnComposerImplTest {
               assertThat(toolCallDocuments.content())
                   .first()
                   .isEqualTo(
-                      textContent(ConversationTurnComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
+                      textContent(
+                          AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
               assertThat(toolCallDocuments.content())
                   .contains(DocumentContent.documentContent(toolDoc));
             });
@@ -428,7 +430,8 @@ class ConversationTurnComposerImplTest {
             UserMessage.class,
             eventMessage -> {
               assertThat(eventMessage.content())
-                  .contains(textContent(ConversationTurnComposerImpl.EVENT_DOCUMENTS_PREAMBLE))
+                  .contains(
+                      textContent(AgentConversationTurnInputComposerImpl.EVENT_DOCUMENTS_PREAMBLE))
                   .contains(DocumentContent.documentContent(eventDoc));
               assertThat(eventMessage.metadata())
                   .doesNotContainKey(UserMessage.METADATA_TOOL_CALL_DOCUMENTS);

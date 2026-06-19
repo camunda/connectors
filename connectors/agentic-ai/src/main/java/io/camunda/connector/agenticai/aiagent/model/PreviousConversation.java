@@ -17,7 +17,7 @@ import java.util.Optional;
  * domain shape rather than the reconstruction mechanism.
  */
 public record PreviousConversation(
-    Optional<SystemMessage> systemMessage, List<ConversationTurn> turns) {
+    Optional<SystemMessage> systemMessage, List<AgentConversationTurn> turns) {
 
   public PreviousConversation {
     turns = List.copyOf(turns);

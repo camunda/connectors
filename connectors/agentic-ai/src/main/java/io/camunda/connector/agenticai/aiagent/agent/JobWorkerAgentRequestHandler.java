@@ -33,7 +33,7 @@ public class JobWorkerAgentRequestHandler
   public JobWorkerAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
-      ConversationTurnComposer agentInputComposer,
+      AgentConversationTurnInputComposer agentInputComposer,
       AiFrameworkAdapter<?> framework,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,

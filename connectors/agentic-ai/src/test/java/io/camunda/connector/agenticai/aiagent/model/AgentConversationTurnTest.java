@@ -12,12 +12,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class ConversationTurnTest {
+class AgentConversationTurnTest {
 
   @Test
   void hasToolCalls_returnsTrueWhenAssistantMessageHasToolCalls() {
     var turn =
-        new ConversationTurn(
+        new AgentConversationTurn(
             1,
             List.of(userMessage("hi")),
             assistantMessage("thinking", TOOL_CALLS),
@@ -28,14 +28,14 @@ class ConversationTurnTest {
   @Test
   void hasToolCalls_returnsFalseWhenNoToolCalls() {
     var turn =
-        new ConversationTurn(
+        new AgentConversationTurn(
             1, List.of(userMessage("hi")), assistantMessage("done"), AgentMetrics.empty());
     assertThat(turn.hasToolCalls()).isFalse();
   }
 
   @Test
   void hasToolCalls_returnsFalseWhenPending() {
-    var turn = new ConversationTurn(1, List.of(userMessage("hi")), null, AgentMetrics.empty());
+    var turn = new AgentConversationTurn(1, List.of(userMessage("hi")), null, AgentMetrics.empty());
     assertThat(turn.hasToolCalls()).isFalse();
   }
 }
