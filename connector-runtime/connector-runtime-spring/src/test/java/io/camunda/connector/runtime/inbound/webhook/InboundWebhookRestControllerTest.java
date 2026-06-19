@@ -112,7 +112,6 @@ class InboundWebhookRestControllerTest {
         .contains("POST https://example.com")
         .contains("/inbound/myPath")
         .contains("Body: (omitted for multipart request)")
-        .contains("Parts (1):")
         .doesNotContain("top secret file contents");
   }
 

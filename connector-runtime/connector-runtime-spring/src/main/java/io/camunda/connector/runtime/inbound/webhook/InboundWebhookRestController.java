@@ -164,6 +164,8 @@ public class InboundWebhookRestController {
               var lowercaseHeaders =
                   headers.entrySet().stream()
                       .collect(toMap(e -> e.getKey().toLowerCase(), Map.Entry::getValue));
+              Optional.ofNullable(httpServletRequest.getContentType())
+                  .ifPresent(contentType -> lowercaseHeaders.putIfAbsent("content-type", contentType));
               WebhookProcessingPayload payload =
                   new HttpServletRequestWebhookProcessingPayload(
                       httpServletRequest,
@@ -418,6 +420,7 @@ public class InboundWebhookRestController {
   private static String buildRequestLogMessage(WebhookProcessingPayload payload) {
     var sb = new StringBuilder();
     sb.append(payload.method()).append(" ").append(payload.requestURL());
+    var isMultipartRequest = isMultipartRequest(payload);
 
     if (payload.headers() != null && !payload.headers().isEmpty()) {
       sb.append("\n\nHeaders:");
@@ -443,7 +446,7 @@ public class InboundWebhookRestController {
 
     sb.append("\n\nBody: ");
     byte[] rawBody = payload.rawBody();
-    if (payload.parts() != null && !payload.parts().isEmpty()) {
+    if (isMultipartRequest) {
       sb.append("(omitted for multipart request)");
     } else if (rawBody != null && rawBody.length > 0) {
       int previewLength = Math.min(rawBody.length, MAX_BODY_LOG_LENGTH);
@@ -473,6 +476,15 @@ public class InboundWebhookRestController {
     }
 
     return sb.toString();
+  }
+
+  private static boolean isMultipartRequest(WebhookProcessingPayload payload) {
+    return (payload.parts() != null && !payload.parts().isEmpty())
+        || Optional.ofNullable(payload.headers())
+            .map(headers -> headers.get("content-type"))
+            .map(contentType -> contentType.toLowerCase(Locale.ROOT))
+            .filter(contentType -> contentType.startsWith("multipart/form-data"))
+            .isPresent();
   }
 
   private ResponseEntity<?> handleWebhookConnectorException(WebhookConnectorException e) {
