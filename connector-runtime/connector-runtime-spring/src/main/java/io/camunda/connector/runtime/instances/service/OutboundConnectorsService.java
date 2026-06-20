@@ -95,11 +95,11 @@ public class OutboundConnectorsService {
    * Resolves the broker-side remote streams to use for broker connectivity state computation.
    *
    * <ul>
-   *   <li>If broker monitoring addresses are configured, query brokers directly.
-   *   <li>Otherwise, fall back to the gateway's own {@code remote} data (non-empty only when the
-   *       gateway is embedded in a broker).
+   *   <li>If the broker monitoring client is configured, query brokers directly.
+   *   <li>If the broker query fails, or no broker client is configured, fall back to the gateway's
+   *       own {@code remote} data (non-empty only when the gateway is embedded in a broker).
    *   <li>Returns {@link Optional#empty()} when broker state cannot be determined (standalone
-   *       gateway with no broker addresses configured, or gateway unreachable).
+   *       gateway with broker monitoring unavailable or unreachable, or gateway unreachable).
    * </ul>
    */
   private Optional<List<RemoteJobStream>> resolveBrokerStreams(GatewayResult gateway) {
@@ -111,7 +111,7 @@ public class OutboundConnectorsService {
         return Optional.of(brokerJobStreamClient.fetchRemoteStreams());
       } catch (Exception e) {
         LOG.warn("Failed to fetch remote streams from brokers: {}", e.getMessage());
-        return Optional.empty();
+        // Fall through to gateway remote fallback below.
       }
     }
     // Fallback: use gateway's remote field (populated only for embedded gateways).

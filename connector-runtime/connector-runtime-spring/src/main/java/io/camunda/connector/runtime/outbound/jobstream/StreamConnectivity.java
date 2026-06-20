@@ -31,9 +31,9 @@ import java.util.Set;
  *   <li>Gateway state comes from the {@code client} streams of the gateway's {@code
  *       /actuator/jobstreams} endpoint.
  *   <li>Broker state comes from the {@code remote} streams queried directly from each broker (when
- *       broker addresses are configured), or falls back to the gateway's own {@code remote} data
- *       (only non-empty when the gateway is embedded in a broker). When neither source is
- *       available, broker state is {@link BrokerConnectivityState#UNKNOWN}.
+ *       broker monitoring is configured and reachable), or falls back to the gateway's own {@code
+ *       remote} data (only non-empty when the gateway is embedded in a broker). When neither source
+ *       is available, broker state is {@link BrokerConnectivityState#UNKNOWN}.
  * </ul>
  *
  * @param gatewayState whether the connector is registered as a client stream on the gateway
@@ -58,9 +58,9 @@ public record StreamConnectivity(
    * @param jobType the job type to compute state for
    * @param allClientStreams all client streams from the gateway's response
    * @param allRemoteStreams broker-side remote streams; {@link Optional#empty()} when broker state
-   *     cannot be determined (standalone gateway with no broker addresses configured), which yields
-   *     {@link BrokerConnectivityState#UNKNOWN}; a present {@link Optional} with an empty list
-   *     yields {@link BrokerConnectivityState#NONE}
+   *     cannot be determined (broker monitoring not configured or unavailable, and no embedded
+   *     gateway remote data), which yields {@link BrokerConnectivityState#UNKNOWN}; a present
+   *     {@link Optional} with an empty list yields {@link BrokerConnectivityState#NONE}
    */
   public static StreamConnectivity compute(
       String jobType,

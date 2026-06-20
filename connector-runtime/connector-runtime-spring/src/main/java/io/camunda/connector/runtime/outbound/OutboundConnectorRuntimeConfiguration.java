@@ -99,8 +99,8 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   /**
-   * Creates a {@link BrokerJobStreamClient} when broker monitoring is explicitly enabled via {@code
-   * camunda.connector.broker.monitoring.enabled=true} (match if missing).
+   * Creates a {@link BrokerJobStreamClient} when broker monitoring is enabled (on by default; set
+   * {@code camunda.connector.broker.monitoring.enabled=false} to disable).
    *
    * <p>Two sub-modes, controlled by {@code camunda.connector.broker.monitoring.addresses}:
    *
@@ -108,9 +108,10 @@ public class OutboundConnectorRuntimeConfiguration {
    *   <li><b>Explicit addresses</b> (recommended for Docker/NAT'd envs): set {@code
    *       camunda.connector.broker.monitoring.addresses} to a comma-separated list of base URLs
    *       (e.g. {@code http://localhost:9600,http://localhost:9601}). No topology request is made.
-   *   <li><b>Topology discovery</b> (default fallback): when {@code addresses} is not set, broker
-   *       hosts are discovered via the Camunda topology API. The monitoring port defaults to {@code
-   *       9600} and can be overridden via {@code camunda.connector.broker.monitoring.port}.
+   *   <li><b>Topology discovery</b> (default fallback): when {@code addresses} is blank or resolves
+   *       to an empty list, broker hosts are discovered via the Camunda topology API. The
+   *       monitoring port defaults to {@code 9600} and can be overridden via {@code
+   *       camunda.connector.broker.monitoring.port}.
    * </ul>
    */
   @Bean
@@ -130,7 +131,9 @@ public class OutboundConnectorRuntimeConfiguration {
               .filter(s -> !s.isBlank())
               .map(URI::create)
               .toList();
-      return new BrokerJobStreamClient(uris, mapper);
+      if (!uris.isEmpty()) {
+        return new BrokerJobStreamClient(uris, mapper);
+      }
     }
     return new BrokerJobStreamClient(camundaClient, monitoringPort, mapper);
   }
