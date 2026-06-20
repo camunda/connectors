@@ -37,9 +37,13 @@ import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorsRestController;
+import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
 import io.camunda.connector.runtime.outbound.jobstream.GatewayJobStreamClient;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
+import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -85,7 +89,8 @@ public class OutboundConnectorRuntimeConfiguration {
   @Bean
   @ConditionalOnProperty(
       name = "camunda.connector.gateway.monitoring.enabled",
-      havingValue = "true")
+      havingValue = "true",
+      matchIfMissing = true)
   public GatewayJobStreamClient gatewayJobStreamClient(
       CamundaClient camundaClient,
       @ConnectorsObjectMapper ObjectMapper mapper,
@@ -93,12 +98,53 @@ public class OutboundConnectorRuntimeConfiguration {
     return new GatewayJobStreamClient(camundaClient, monitoringPort, mapper);
   }
 
+  /**
+   * Creates a {@link BrokerJobStreamClient} when broker monitoring is enabled (on by default; set
+   * {@code camunda.connector.broker.monitoring.enabled=false} to disable).
+   *
+   * <p>Two sub-modes, controlled by {@code camunda.connector.broker.monitoring.addresses}:
+   *
+   * <ul>
+   *   <li><b>Explicit addresses</b> (recommended for Docker/NAT'd envs): set {@code
+   *       camunda.connector.broker.monitoring.addresses} to a comma-separated list of base URLs
+   *       (e.g. {@code http://localhost:9600,http://localhost:9601}). No topology request is made.
+   *   <li><b>Topology discovery</b> (default fallback): when {@code addresses} is blank or resolves
+   *       to an empty list, broker hosts are discovered via the Camunda topology API. The
+   *       monitoring port defaults to {@code 9600} and can be overridden via {@code
+   *       camunda.connector.broker.monitoring.port}.
+   * </ul>
+   */
+  @Bean
+  @ConditionalOnProperty(
+      name = "camunda.connector.broker.monitoring.enabled",
+      havingValue = "true",
+      matchIfMissing = true)
+  public BrokerJobStreamClient brokerJobStreamClient(
+      CamundaClient camundaClient,
+      @ConnectorsObjectMapper ObjectMapper mapper,
+      @Value("${camunda.connector.broker.monitoring.port:9600}") int monitoringPort,
+      @Value("${camunda.connector.broker.monitoring.addresses:#{null}}") String addresses) {
+    if (StringUtils.isNotBlank(addresses)) {
+      List<URI> uris =
+          Arrays.stream(addresses.split(","))
+              .map(String::trim)
+              .filter(s -> !s.isBlank())
+              .map(URI::create)
+              .toList();
+      if (!uris.isEmpty()) {
+        return new BrokerJobStreamClient(uris, mapper);
+      }
+    }
+    return new BrokerJobStreamClient(camundaClient, monitoringPort, mapper);
+  }
+
   @Bean
   public OutboundConnectorsService outboundConnectorsService(
       OutboundConnectorFactory outboundConnectorConfigurationRegistry,
-      @Autowired(required = false) GatewayJobStreamClient gatewayJobStreamClient) {
+      @Autowired(required = false) GatewayJobStreamClient gatewayJobStreamClient,
+      @Autowired(required = false) BrokerJobStreamClient brokerJobStreamClient) {
     return new OutboundConnectorsService(
-        outboundConnectorConfigurationRegistry, gatewayJobStreamClient);
+        outboundConnectorConfigurationRegistry, gatewayJobStreamClient, brokerJobStreamClient);
   }
 
   @Bean

@@ -18,11 +18,23 @@ package io.camunda.connector.runtime.outbound.jobstream;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
  * Captures the connectivity state of a single connector job type as observed from both the gateway
  * (client streams) and the brokers (remote streams).
+ *
+ * <p>Gateway state and broker state are derived from separate sources:
+ *
+ * <ul>
+ *   <li>Gateway state comes from the {@code client} streams of the gateway's {@code
+ *       /actuator/jobstreams} endpoint.
+ *   <li>Broker state comes from the {@code remote} streams queried directly from each broker (when
+ *       broker monitoring is configured and reachable), or falls back to the gateway's own {@code
+ *       remote} data (only non-empty when the gateway is embedded in a broker). When neither source
+ *       is available, broker state is {@link BrokerConnectivityState#UNKNOWN}.
+ * </ul>
  *
  * @param gatewayState whether the connector is registered as a client stream on the gateway
  * @param brokerState whether the gateway stream is propagated to all brokers; {@code null} when
@@ -41,11 +53,22 @@ public record StreamConnectivity(
   }
 
   /**
-   * Computes the connectivity state for a given job type from a live gateway job streams snapshot.
+   * Computes the connectivity state for a given job type from separate gateway and broker data.
+   *
+   * @param jobType the job type to compute state for
+   * @param allClientStreams all client streams from the gateway's response
+   * @param allRemoteStreams broker-side remote streams; {@link Optional#empty()} when broker state
+   *     cannot be determined (broker monitoring not configured or unavailable, and no embedded
+   *     gateway remote data), which yields {@link BrokerConnectivityState#UNKNOWN}; a present
+   *     {@link Optional} with an empty list yields {@link BrokerConnectivityState#NONE}
    */
-  public static StreamConnectivity compute(String jobType, JobStreamsResponse jobStreams) {
+  public static StreamConnectivity compute(
+      String jobType,
+      List<ClientJobStream> allClientStreams,
+      Optional<List<RemoteJobStream>> allRemoteStreams) {
+
     List<ClientJobStream> clientStreams =
-        jobStreams.client().stream().filter(s -> jobType.equals(s.jobType())).toList();
+        allClientStreams.stream().filter(s -> jobType.equals(s.jobType())).toList();
 
     if (clientStreams.isEmpty()) {
       return unavailable(GatewayConnectivityState.NOT_CONNECTED);
@@ -58,8 +81,9 @@ public record StreamConnectivity(
             .distinct()
             .toList();
 
-    List<RemoteJobStream> remoteStreams =
-        jobStreams.remote().stream().filter(s -> jobType.equals(s.jobType())).toList();
+    Optional<List<RemoteJobStream>> remoteStreams =
+        allRemoteStreams.map(
+            streams -> streams.stream().filter(s -> jobType.equals(s.jobType())).toList());
 
     BrokerConnectivityState brokerState = computeBrokerState(Set.copyOf(streamIds), remoteStreams);
 
@@ -68,19 +92,26 @@ public record StreamConnectivity(
   }
 
   private static BrokerConnectivityState computeBrokerState(
-      Set<String> clientStreamIds, List<RemoteJobStream> remoteStreams) {
-    if (remoteStreams.isEmpty()) {
-      return BrokerConnectivityState.NONE;
-    }
-    boolean allConnected =
-        remoteStreams.stream()
-            .allMatch(
-                remote ->
-                    remote.consumers() != null
-                        && remote.consumers().stream()
-                            .anyMatch(consumer -> clientStreamIds.contains(consumer.get("id"))));
-    return allConnected
-        ? BrokerConnectivityState.ALL_CONNECTED
-        : BrokerConnectivityState.PARTIALLY_CONNECTED;
+      Set<String> clientStreamIds, Optional<List<RemoteJobStream>> remoteStreams) {
+    return remoteStreams
+        .map(
+            streams -> {
+              if (streams.isEmpty()) {
+                return BrokerConnectivityState.NONE;
+              }
+              boolean allConnected =
+                  streams.stream()
+                      .allMatch(
+                          remote ->
+                              remote.consumers() != null
+                                  && remote.consumers().stream()
+                                      .anyMatch(
+                                          consumer ->
+                                              clientStreamIds.contains(consumer.get("id"))));
+              return allConnected
+                  ? BrokerConnectivityState.ALL_CONNECTED
+                  : BrokerConnectivityState.PARTIALLY_CONNECTED;
+            })
+        .orElse(BrokerConnectivityState.UNKNOWN);
   }
 }
