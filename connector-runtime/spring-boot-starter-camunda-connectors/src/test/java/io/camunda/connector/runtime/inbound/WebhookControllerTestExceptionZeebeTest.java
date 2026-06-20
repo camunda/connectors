@@ -60,6 +60,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
+      "camunda.connector.gateway.monitoring.enabled=false",
     })
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
