@@ -22,7 +22,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -140,8 +139,7 @@ class InboundWebhookRestControllerTest {
             correlationHandler,
             e -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
-            activityLogRegistry,
-            mock(CamundaClient.class));
+            activityLogRegistry);
 
     return new RegisteredExecutable.Activated(
         executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId()));

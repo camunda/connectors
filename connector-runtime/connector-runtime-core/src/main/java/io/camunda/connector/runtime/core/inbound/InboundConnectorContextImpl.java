@@ -95,12 +95,14 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.cancellationCallback = cancellationCallback;
     this.activityLogWriter = activityLogWriter;
     this.activationTimestamp = System.currentTimeMillis();
-    this.camundaClient = Objects.requireNonNull(camundaClient, "camundaClient must not be null");
+    this.camundaClient = camundaClient;
     this.evaluator =
-        FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
-            .tenantId(connectorDetails.tenantId())
-            .objectMapper(objectMapper)
-            .build();
+        camundaClient != null
+            ? FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
+                .tenantId(connectorDetails.tenantId())
+                .objectMapper(objectMapper)
+                .build()
+            : FeelExpressionEvaluatorBuilder.local().build();
   }
 
   public InboundConnectorContextImpl(
@@ -122,6 +124,26 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         objectMapper,
         logs,
         camundaClient);
+  }
+
+  public InboundConnectorContextImpl(
+      SecretProvider secretProvider,
+      ValidationProvider validationProvider,
+      ValidInboundConnectorDetails connectorDetails,
+      InboundCorrelationHandler correlationHandler,
+      Consumer<Throwable> cancellationCallback,
+      ObjectMapper objectMapper,
+      ActivityLogWriter logs) {
+    this(
+        secretProvider,
+        validationProvider,
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
+        connectorDetails,
+        correlationHandler,
+        cancellationCallback,
+        objectMapper,
+        logs,
+        null);
   }
 
   @Override
