@@ -165,7 +165,8 @@ public class InboundWebhookRestController {
                   headers.entrySet().stream()
                       .collect(toMap(e -> e.getKey().toLowerCase(), Map.Entry::getValue));
               Optional.ofNullable(httpServletRequest.getContentType())
-                  .ifPresent(contentType -> lowercaseHeaders.putIfAbsent("content-type", contentType));
+                  .ifPresent(
+                      contentType -> lowercaseHeaders.putIfAbsent("content-type", contentType));
               WebhookProcessingPayload payload =
                   new HttpServletRequestWebhookProcessingPayload(
                       httpServletRequest,
