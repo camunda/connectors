@@ -35,18 +35,17 @@ public class GatewayJobStreamClient {
 
   private static final String JOB_STREAMS_PATH = "/actuator/jobstreams";
 
-  private final URI monitoringBaseUri;
+  private final CamundaClient camundaClient;
+  private final int monitoringPort;
   private final ObjectMapper objectMapper;
   private final HttpClient httpClient;
 
   public GatewayJobStreamClient(
       CamundaClient camundaClient, int monitoringPort, ObjectMapper objectMapper) {
+    this.camundaClient = camundaClient;
+    this.monitoringPort = monitoringPort;
     this.objectMapper = objectMapper;
     this.httpClient = HttpClient.newHttpClient();
-
-    URI restAddress = camundaClient.getConfiguration().getRestAddress();
-    this.monitoringBaseUri =
-        URI.create(restAddress.getScheme() + "://" + restAddress.getHost() + ":" + monitoringPort);
   }
 
   /**
@@ -57,6 +56,9 @@ public class GatewayJobStreamClient {
    * @throws Exception if the request fails for any other reason (network error, parse error, etc.)
    */
   public JobStreamsResponse fetchJobStreams() throws Exception {
+    URI restAddress = camundaClient.getConfiguration().getRestAddress();
+    URI monitoringBaseUri =
+        URI.create(restAddress.getScheme() + "://" + restAddress.getHost() + ":" + monitoringPort);
     URI uri = monitoringBaseUri.resolve(JOB_STREAMS_PATH);
     HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
