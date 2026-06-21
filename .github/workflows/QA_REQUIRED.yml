@@ -208,7 +208,7 @@ jobs:
         (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'qa:required'))
       )
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # build the PR's actual code, not the synthetic merge ref
           ref: ${{ github.event.pull_request.head.sha }}
