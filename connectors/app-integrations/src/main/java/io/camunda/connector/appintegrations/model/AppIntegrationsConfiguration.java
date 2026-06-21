@@ -6,7 +6,9 @@
  */
 package io.camunda.connector.appintegrations.model;
 
+import io.camunda.connector.appintegrations.model.auth.AppIntegrationsAuthentication;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 
 public record AppIntegrationsConfiguration(
@@ -18,11 +20,4 @@ public record AppIntegrationsConfiguration(
             tooltip =
                 "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.")
         String baseUrl,
-    @NotEmpty
-        @TemplateProperty(
-            group = "configuration",
-            label = "Token",
-            description = "Bearer token for authentication.",
-            tooltip =
-                "Tip: store the token as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_TOKEN</code>.")
-        String token) {}
+    @Valid AppIntegrationsAuthentication authentication) {}

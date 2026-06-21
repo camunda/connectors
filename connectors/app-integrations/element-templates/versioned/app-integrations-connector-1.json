@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid App Integrations Connector",
-  "id" : "io.camunda.connectors.AppIntegrations.v1-hybrid",
+  "name" : "App Integrations Connector",
+  "id" : "io.camunda.connector.AppIntegrations.v1",
   "description" : "Send notifications and manage channels via Microsoft Teams",
   "keywords" : [ "teams", "microsoft teams", "send message", "notification", "channel", "adaptive card" ],
   "version" : 1,
@@ -17,9 +17,6 @@
     "camunda" : "^8.8"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "operation",
     "label" : "Operation"
   }, {
@@ -51,14 +48,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:app-integrations",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "operation",
     "label" : "Operation",
@@ -847,7 +842,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.AppIntegrations.v1",
+    "value" : "io.camunda.connector.AppIntegrations.v1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",
