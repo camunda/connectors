@@ -43,7 +43,7 @@ public interface AgentInstanceClient {
    * @throws ConnectorException with code AGENT_INSTANCE_HISTORY_ITEM_FAILED when retries are
    *     exhausted or a non-retryable error occurs
    */
-  void createHistoryItemsBeforeChat(
+  void createHistoryForInputMessages(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn);
@@ -55,7 +55,7 @@ public interface AgentInstanceClient {
    * @throws ConnectorException with code AGENT_INSTANCE_HISTORY_ITEM_FAILED when retries are
    *     exhausted or a non-retryable error occurs
    */
-  void createHistoryItemsAfterChat(
+  void createHistoryForAssistantMessage(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn);

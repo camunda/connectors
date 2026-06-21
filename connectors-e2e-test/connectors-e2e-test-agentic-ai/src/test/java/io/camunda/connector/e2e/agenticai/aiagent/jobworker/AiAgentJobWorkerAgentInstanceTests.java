@@ -224,7 +224,7 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
   private static String toolCallResponseBody(String toolCallId) {
     return """
         {
-          "id": "%s",
+          "id": "chatcmpl-turn2",
           "object": "chat.completion",
           "model": "gpt-4o",
           "choices": [{
@@ -233,7 +233,7 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
               "role": "assistant",
               "content": null,
               "tool_calls": [{
-                "id": "call-001",
+                "id": "%s",
                 "type": "function",
                 "function": {
                   "name": "SuperfluxProduct",

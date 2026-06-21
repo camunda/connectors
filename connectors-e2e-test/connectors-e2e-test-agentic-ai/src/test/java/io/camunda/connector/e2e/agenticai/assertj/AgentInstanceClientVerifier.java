@@ -118,8 +118,8 @@ public class AgentInstanceClientVerifier {
             any(),
             any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
-    inOrder.verify(client).createHistoryItemsBeforeChat(any(), any(), beforeChatTurns.capture());
-    inOrder.verify(client).createHistoryItemsAfterChat(any(), any(), afterChatTurns.capture());
+    inOrder.verify(client).createHistoryForInputMessages(any(), any(), beforeChatTurns.capture());
+    inOrder.verify(client).createHistoryForAssistantMessage(any(), any(), afterChatTurns.capture());
     inOrder
         .verify(client)
         .update(

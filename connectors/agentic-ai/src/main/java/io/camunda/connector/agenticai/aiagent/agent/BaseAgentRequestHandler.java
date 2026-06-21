@@ -146,7 +146,7 @@ public abstract class BaseAgentRequestHandler<
     notifyThinking(executionContext, conversation);
 
     final var agentInstanceKey = conversation.agentInstanceKey();
-    agentInstanceClient.createHistoryItemsBeforeChat(
+    agentInstanceClient.createHistoryForInputMessages(
         executionContext, agentInstanceKey, conversation.currentTurn());
 
     LOGGER.debug("Executing chat request with AI framework");
@@ -156,7 +156,7 @@ public abstract class BaseAgentRequestHandler<
     final var updatedConversation =
         conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
 
-    agentInstanceClient.createHistoryItemsAfterChat(
+    agentInstanceClient.createHistoryForAssistantMessage(
         executionContext, agentInstanceKey, updatedConversation.currentTurn());
 
     LOGGER.debug("Storing conversation messages to session");
