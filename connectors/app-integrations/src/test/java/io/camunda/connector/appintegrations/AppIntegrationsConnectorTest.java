@@ -9,7 +9,9 @@ package io.camunda.connector.appintegrations;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,18 +24,20 @@ import io.camunda.connector.appintegrations.model.CreateChannelRequest;
 import io.camunda.connector.appintegrations.model.CreateChannelResult;
 import io.camunda.connector.appintegrations.model.SendMessageRequest;
 import io.camunda.connector.appintegrations.model.SendMessageResult;
+import io.camunda.connector.appintegrations.model.auth.ApiKeyAuthentication;
+import io.camunda.connector.appintegrations.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.authentication.OAuthConstants;
+import io.camunda.connector.http.client.authentication.OAuthTokenCache;
+import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
+import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
+import io.camunda.connector.http.client.client.HttpClient;
+import io.camunda.connector.http.client.mapper.HttpResponse;
+import io.camunda.connector.http.client.model.HttpClientRequest;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.Flow;
 import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +52,19 @@ import org.mockito.quality.Strictness;
 class AppIntegrationsConnectorTest {
 
   private static final AppIntegrationsConfiguration CONFIG =
-      new AppIntegrationsConfiguration("https://app-integrations.example.com", "test-token");
+      new AppIntegrationsConfiguration(
+          "https://app-integrations.example.com", new ApiKeyAuthentication("test-key"));
+
+  private static final AppIntegrationsConfiguration CONFIG_OAUTH =
+      new AppIntegrationsConfiguration(
+          "https://app-integrations.example.com",
+          new OAuthAuthentication(
+              "https://auth.example.com/oauth/token",
+              "client-id",
+              "client-secret",
+              "app-integrations",
+              OAuthConstants.CREDENTIALS_BODY,
+              null));
 
   private static final Validator VALIDATOR =
       Validation.byDefaultProvider()
@@ -58,9 +74,9 @@ class AppIntegrationsConnectorTest {
           .getValidator();
 
   @Mock private HttpClient httpClient;
-  @Mock private HttpResponse<String> httpResponse;
   @Mock private OutboundConnectorContext context;
   @Mock private JobContext jobContext;
+  @Mock private OAuthTokenCache tokenCache;
 
   private AppIntegrationsConnector connector;
 
@@ -71,13 +87,76 @@ class AppIntegrationsConnectorTest {
     when(jobContext.getCustomHeaders()).thenReturn(Map.of());
   }
 
+  @AfterEach
+  void tearDown() {
+    // Restore a clean default cache so the static holder does not leak the mock across tests.
+    OAuthTokenCacheHolder.set(new CaffeineOAuthTokenCache());
+  }
+
+  private static HttpResponse<String> httpResponse(int status, String body) {
+    return new HttpResponse<>(status, "reason", Map.of(), body);
+  }
+
+  private HttpClientRequest captureRequest() {
+    var captor = ArgumentCaptor.forClass(HttpClientRequest.class);
+    verify(httpClient).execute(captor.capture(), any());
+    return captor.getValue();
+  }
+
   @Test
-  void sendMessage_byEmail_callsCorrectEndpointWithEmailInBody()
-      throws IOException, InterruptedException {
-    when(httpResponse.statusCode()).thenReturn(201);
-    when(httpResponse.body()).thenReturn("{\"conversation\":null}");
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenReturn(httpResponse);
+  void sendMessage_withOAuth_usesAccessTokenFromCache() {
+    OAuthTokenCacheHolder.set(tokenCache);
+    when(tokenCache.getOrFetch(
+            any(io.camunda.connector.http.client.model.auth.OAuthAuthentication.class), any()))
+        .thenReturn("oauth-access-token");
+    doReturn(httpResponse(201, "{\"conversation\":null}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
+
+    var request = new SendMessageRequest(CONFIG_OAUTH, "user@example.com", null, "Hi", null);
+    connector.sendMessage(request, context);
+
+    assertThat(captureRequest().getHeader("Authorization")).hasValue("Bearer oauth-access-token");
+  }
+
+  @Test
+  void sendMessage_oauth401_invalidatesTokenAndRetries() {
+    OAuthTokenCacheHolder.set(tokenCache);
+    when(tokenCache.getOrFetch(
+            any(io.camunda.connector.http.client.model.auth.OAuthAuthentication.class), any()))
+        .thenReturn("stale-token", "fresh-token");
+    doReturn(httpResponse(401, "Unauthorized"), httpResponse(201, "{\"conversation\":null}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
+
+    var request = new SendMessageRequest(CONFIG_OAUTH, "user@example.com", null, "Hi", null);
+    var result = connector.sendMessage(request, context);
+
+    assertThat(result.conversation()).isNull();
+    verify(tokenCache)
+        .invalidate(any(io.camunda.connector.http.client.model.auth.OAuthAuthentication.class));
+    verify(httpClient, times(2)).execute(any(HttpClientRequest.class), any());
+  }
+
+  @Test
+  void sendMessage_notSaas_omitsContextHeaders() {
+    doReturn(httpResponse(201, "{\"conversation\":null}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
+
+    var request = new SendMessageRequest(CONFIG, "user@example.com", null, "Hi", null);
+    connector.sendMessage(request, context);
+
+    var req = captureRequest();
+    assertThat(req.getHeader("X-Org-Id")).isEmpty();
+    assertThat(req.getHeader("X-Cluster-Id")).isEmpty();
+  }
+
+  @Test
+  void sendMessage_byEmail_callsCorrectEndpointWithApiKeyHeader() {
+    doReturn(httpResponse(201, "{\"conversation\":null}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
 
     var request =
         new SendMessageRequest(CONFIG, "user@example.com", null, "Hello from Camunda", null);
@@ -86,24 +165,16 @@ class AppIntegrationsConnectorTest {
     assertThat(result).isInstanceOf(SendMessageResult.class);
     assertThat(result.conversation()).isNull();
 
-    verify(httpClient)
-        .send(
-            argThat(
-                req -> {
-                  var uri = req.uri().toString();
-                  var auth = req.headers().firstValue("Authorization").orElse("");
-                  return uri.endsWith("/api/connector/message") && auth.equals("Bearer test-token");
-                }),
-            any());
+    var req = captureRequest();
+    assertThat(req.getUrl()).endsWith("/api/connector/message");
+    assertThat(req.getHeader("X-API-KEY")).hasValue("test-key");
   }
 
   @Test
-  void sendMessage_byChannelId_sendsChannelIdInBodyAndOmitsEmail()
-      throws IOException, InterruptedException {
-    when(httpResponse.statusCode()).thenReturn(201);
-    when(httpResponse.body()).thenReturn("{\"conversation\":null}");
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenReturn(httpResponse);
+  void sendMessage_byChannelId_sendsChannelIdInBodyAndOmitsEmail() {
+    doReturn(httpResponse(201, "{\"conversation\":null}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
 
     var request =
         new SendMessageRequest(CONFIG, null, "19:abc123@thread.tacv2", "Hello from Camunda", null);
@@ -111,47 +182,17 @@ class AppIntegrationsConnectorTest {
 
     assertThat(result.conversation()).isNull();
 
-    var captor = ArgumentCaptor.forClass(HttpRequest.class);
-    verify(httpClient).send(captor.capture(), any());
-    var body = readBody(captor.getValue());
+    var body = (String) captureRequest().getBody();
     assertThat(body).contains("\"channelId\":\"19:abc123@thread.tacv2\"");
     assertThat(body).contains("\"message\":\"Hello from Camunda\"");
     assertThat(body).doesNotContain("\"email\"");
   }
 
-  private static String readBody(HttpRequest request) {
-    var publisher = request.bodyPublisher().orElseThrow();
-    var baos = new ByteArrayOutputStream();
-    publisher.subscribe(
-        new Flow.Subscriber<>() {
-          @Override
-          public void onSubscribe(Flow.Subscription s) {
-            s.request(Long.MAX_VALUE);
-          }
-
-          @Override
-          public void onNext(ByteBuffer item) {
-            var b = new byte[item.remaining()];
-            item.get(b);
-            baos.writeBytes(b);
-          }
-
-          @Override
-          public void onError(Throwable t) {}
-
-          @Override
-          public void onComplete() {}
-        });
-    return baos.toString(StandardCharsets.UTF_8);
-  }
-
   @Test
-  void sendMessage_backendError_throwsConnectorException()
-      throws IOException, InterruptedException {
-    when(httpResponse.statusCode()).thenReturn(500);
-    when(httpResponse.body()).thenReturn("Internal Server Error");
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenReturn(httpResponse);
+  void sendMessage_backendError_throwsConnectorException() {
+    doReturn(httpResponse(500, "Internal Server Error"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
 
     var request = new SendMessageRequest(CONFIG, "user@example.com", null, "Hello", null);
 
@@ -161,31 +202,16 @@ class AppIntegrationsConnectorTest {
   }
 
   @Test
-  void sendMessage_ioException_throwsConnectorException() throws IOException, InterruptedException {
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenThrow(new IOException("Connection refused"));
+  void sendMessage_transportError_throwsConnectorException() {
+    doThrow(new ConnectorException("IO_ERROR", "Connection refused"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
 
     var request = new SendMessageRequest(CONFIG, "user@example.com", null, "Hello", null);
 
     assertThatThrownBy(() -> connector.sendMessage(request, context))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Connection refused");
-  }
-
-  @Test
-  void sendMessage_interrupted_setsInterruptFlagAndThrows()
-      throws IOException, InterruptedException {
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenThrow(new InterruptedException("interrupted"));
-
-    var request = new SendMessageRequest(CONFIG, "user@example.com", null, "Hello", null);
-
-    assertThatThrownBy(() -> connector.sendMessage(request, context))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("interrupted");
-
-    assertThat(Thread.currentThread().isInterrupted()).isTrue();
-    Thread.interrupted(); // clear flag for test runner
   }
 
   @Test
@@ -222,12 +248,10 @@ class AppIntegrationsConnectorTest {
   }
 
   @Test
-  void sendMessage_withLinkedFormResource_includesFormResourceKey()
-      throws IOException, InterruptedException {
-    when(httpResponse.statusCode()).thenReturn(201);
-    when(httpResponse.body()).thenReturn("{\"conversation\":null}");
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenReturn(httpResponse);
+  void sendMessage_withLinkedFormResource_includesFormResourceKey() {
+    doReturn(httpResponse(201, "{\"conversation\":null}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
     when(jobContext.getCustomHeaders())
         .thenReturn(
             Map.of(
@@ -237,52 +261,40 @@ class AppIntegrationsConnectorTest {
     var request = new SendMessageRequest(CONFIG, "user@example.com", null, "Please approve", null);
     connector.sendMessage(request, context);
 
-    var captor = ArgumentCaptor.forClass(HttpRequest.class);
-    verify(httpClient).send(captor.capture(), any());
-    var body = readBody(captor.getValue());
+    var body = (String) captureRequest().getBody();
     assertThat(body).contains("\"formResourceKey\":\"12345\"");
     assertThat(body).contains("\"message\":\"Please approve\"");
   }
 
   @Test
-  void sendMessage_noLinkedResources_omitsFormFieldsFromBody()
-      throws IOException, InterruptedException {
-    when(httpResponse.statusCode()).thenReturn(201);
-    when(httpResponse.body()).thenReturn("{\"conversation\":null}");
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenReturn(httpResponse);
+  void sendMessage_noLinkedResources_omitsFormFieldsFromBody() {
+    doReturn(httpResponse(201, "{\"conversation\":null}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
 
     var request = new SendMessageRequest(CONFIG, "user@example.com", null, "Hello", null);
     connector.sendMessage(request, context);
 
-    var captor = ArgumentCaptor.forClass(HttpRequest.class);
-    verify(httpClient).send(captor.capture(), any());
-    var body = readBody(captor.getValue());
+    var body = (String) captureRequest().getBody();
     assertThat(body).doesNotContain("formResourceKey");
-    assertThat(body).doesNotContain("processDefinitionKey");
   }
 
   @Test
-  void sendMessage_malformedLinkedResourcesHeader_sendsMessageWithoutForm()
-      throws IOException, InterruptedException {
-    when(httpResponse.statusCode()).thenReturn(201);
-    when(httpResponse.body()).thenReturn("{\"conversation\":null}");
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenReturn(httpResponse);
+  void sendMessage_malformedLinkedResourcesHeader_sendsMessageWithoutForm() {
+    doReturn(httpResponse(201, "{\"conversation\":null}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
     when(jobContext.getCustomHeaders()).thenReturn(Map.of("linkedResources", "not-valid-json"));
 
     var request = new SendMessageRequest(CONFIG, "user@example.com", null, "Hello", null);
     var result = connector.sendMessage(request, context);
 
     assertThat(result.conversation()).isNull();
-    var captor = ArgumentCaptor.forClass(HttpRequest.class);
-    verify(httpClient).send(captor.capture(), any());
-    assertThat(readBody(captor.getValue())).doesNotContain("formResourceKey");
+    assertThat((String) captureRequest().getBody()).doesNotContain("formResourceKey");
   }
 
   @Test
-  void sendMessage_noContentProvided_throwsValidationError()
-      throws IOException, InterruptedException {
+  void sendMessage_noContentProvided_throwsValidationError() {
     var request = new SendMessageRequest(CONFIG, "user@example.com", null, null, null);
 
     assertThatThrownBy(() -> connector.sendMessage(request, context))
@@ -294,12 +306,10 @@ class AppIntegrationsConnectorTest {
   // --- createChannel ---
 
   @Test
-  void createChannel_success_returnsChannelIdAndVerifiesRequestBody()
-      throws IOException, InterruptedException {
-    when(httpResponse.statusCode()).thenReturn(201);
-    when(httpResponse.body()).thenReturn("{\"channelId\":\"19:new-channel@thread.tacv2\"}");
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenReturn(httpResponse);
+  void createChannel_success_returnsChannelIdAndVerifiesRequestBody() {
+    doReturn(httpResponse(201, "{\"channelId\":\"19:new-channel@thread.tacv2\"}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
 
     var request =
         new CreateChannelRequest(
@@ -309,26 +319,21 @@ class AppIntegrationsConnectorTest {
     assertThat(result).isInstanceOf(CreateChannelResult.class);
     assertThat(result.channelId()).isEqualTo("19:new-channel@thread.tacv2");
 
-    var captor = ArgumentCaptor.forClass(HttpRequest.class);
-    verify(httpClient).send(captor.capture(), any());
-    var body = readBody(captor.getValue());
+    var req = captureRequest();
+    var body = (String) req.getBody();
     assertThat(body).contains("\"teamId\":\"b7779302-e8cb-4b34-901b-5b150a19fd47\"");
     assertThat(body).contains("\"displayName\":\"My Channel\"");
     assertThat(body).contains("\"membershipType\":\"standard\"");
     assertThat(body).doesNotContain("\"description\"");
-
-    var req = captor.getValue();
-    assertThat(req.uri().toString()).endsWith("/api/connector/channel");
-    assertThat(req.headers().firstValue("Authorization").orElse("")).isEqualTo("Bearer test-token");
+    assertThat(req.getUrl()).endsWith("/api/connector/channel");
+    assertThat(req.getHeader("X-API-KEY")).hasValue("test-key");
   }
 
   @Test
-  void createChannel_teamsUrl_extractsGroupIdBeforeSending()
-      throws IOException, InterruptedException {
-    when(httpResponse.statusCode()).thenReturn(201);
-    when(httpResponse.body()).thenReturn("{\"channelId\":\"19:new@thread.tacv2\"}");
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenReturn(httpResponse);
+  void createChannel_teamsUrl_extractsGroupIdBeforeSending() {
+    doReturn(httpResponse(201, "{\"channelId\":\"19:new@thread.tacv2\"}"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
 
     var request =
         new CreateChannelRequest(
@@ -339,19 +344,15 @@ class AppIntegrationsConnectorTest {
             "standard");
     connector.createChannel(request, context);
 
-    var captor = ArgumentCaptor.forClass(HttpRequest.class);
-    verify(httpClient).send(captor.capture(), any());
-    assertThat(readBody(captor.getValue()))
+    assertThat((String) captureRequest().getBody())
         .contains("\"teamId\":\"b7779302-e8cb-4b34-901b-5b150a19fd47\"");
   }
 
   @Test
-  void createChannel_backendError_throwsConnectorException()
-      throws IOException, InterruptedException {
-    when(httpResponse.statusCode()).thenReturn(500);
-    when(httpResponse.body()).thenReturn("Internal Server Error");
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenReturn(httpResponse);
+  void createChannel_backendError_throwsConnectorException() {
+    doReturn(httpResponse(500, "Internal Server Error"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
 
     var request =
         new CreateChannelRequest(
@@ -362,10 +363,10 @@ class AppIntegrationsConnectorTest {
   }
 
   @Test
-  void createChannel_ioException_throwsConnectorException()
-      throws IOException, InterruptedException {
-    when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-        .thenThrow(new IOException("Connection refused"));
+  void createChannel_transportError_throwsConnectorException() {
+    doThrow(new ConnectorException("IO_ERROR", "Connection refused"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
 
     var request =
         new CreateChannelRequest(

@@ -36,6 +36,10 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>element-template-generator-annotations</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>http-client</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.hibernate.validator</groupId>
       <artifactId>hibernate-validator</artifactId>
       <scope>test</scope>
@@ -54,7 +58,7 @@ except in compliance with the proprietary license.</license.inlineheader>
               <connectorClass>io.camunda.connector.appintegrations.AppIntegrationsConnector</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connector.AppIntegrations.v1</templateId>
+                  <templateId>io.camunda.connectors.AppIntegrations.v1</templateId>
                   <templateFileName>app-integrations-connector.json</templateFileName>
                 </file>
               </files>
@@ -62,6 +66,9 @@ except in compliance with the proprietary license.</license.inlineheader>
             </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
+          <includeDependencies>
+            <includeDependency>io.camunda.connector:http-client</includeDependency>
+          </includeDependencies>
         </configuration>
       </plugin>
     </plugins>
