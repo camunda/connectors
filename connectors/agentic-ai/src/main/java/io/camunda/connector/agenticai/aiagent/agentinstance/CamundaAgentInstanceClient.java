@@ -174,7 +174,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   @Override
-  public void createHistoryItemsBeforeChat(
+  public void createHistoryForInputMessages(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn) {
@@ -197,7 +197,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   }
 
   @Override
-  public void createHistoryItemsAfterChat(
+  public void createHistoryForAssistantMessage(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn) {

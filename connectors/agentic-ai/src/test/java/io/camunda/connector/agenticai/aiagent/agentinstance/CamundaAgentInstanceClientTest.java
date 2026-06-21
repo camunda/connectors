@@ -392,7 +392,7 @@ class CamundaAgentInstanceClientTest {
               AgentMetrics.empty());
 
       // when
-      client.createHistoryItemsBeforeChat(
+      client.createHistoryForInputMessages(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
       // then
@@ -436,7 +436,7 @@ class CamundaAgentInstanceClientTest {
               AgentMetrics.empty());
 
       // when
-      client.createHistoryItemsBeforeChat(
+      client.createHistoryForInputMessages(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
       // then: one TOOL_RESULT item with one content block per result; no tool calls linked
@@ -470,7 +470,7 @@ class CamundaAgentInstanceClientTest {
               AgentMetrics.empty());
 
       // when
-      client.createHistoryItemsBeforeChat(
+      client.createHistoryForInputMessages(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
       // then
@@ -502,7 +502,7 @@ class CamundaAgentInstanceClientTest {
               new AgentMetrics(1, new TokenUsage(11, 22), 1, Duration.ofMillis(345)));
 
       // when
-      client.createHistoryItemsAfterChat(
+      client.createHistoryForAssistantMessage(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
       // then
@@ -546,7 +546,7 @@ class CamundaAgentInstanceClientTest {
               1, List.of(), assistantMessage, new AgentMetrics(1, TokenUsage.empty(), 1));
 
       // when
-      client.createHistoryItemsAfterChat(
+      client.createHistoryForAssistantMessage(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
       // then: content is never empty (API rejects empty content)
@@ -582,7 +582,7 @@ class CamundaAgentInstanceClientTest {
               AgentMetrics.empty());
 
       // when
-      client.createHistoryItemsBeforeChat(
+      client.createHistoryForInputMessages(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
       // then: document reference is built via the client library without throwing
@@ -611,7 +611,7 @@ class CamundaAgentInstanceClientTest {
       // when / then
       assertThatThrownBy(
               () ->
-                  client.createHistoryItemsBeforeChat(
+                  client.createHistoryForInputMessages(
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn))
@@ -633,7 +633,7 @@ class CamundaAgentInstanceClientTest {
               null,
               AgentMetrics.empty());
 
-      client.createHistoryItemsBeforeChat(TestAgentExecutionContext.withLimits(), null, turn);
+      client.createHistoryForInputMessages(TestAgentExecutionContext.withLimits(), null, turn);
 
       verifyNoInteractions(historyCommand);
       verify(camundaClient, never()).newCreateAgentHistoryItemCommand(anyLong());
@@ -648,7 +648,7 @@ class CamundaAgentInstanceClientTest {
               AssistantMessage.builder().content(MessageUtil.singleTextContent("done")).build(),
               new AgentMetrics(1, TokenUsage.empty(), 0));
 
-      client.createHistoryItemsAfterChat(TestAgentExecutionContext.withLimits(), null, turn);
+      client.createHistoryForAssistantMessage(TestAgentExecutionContext.withLimits(), null, turn);
 
       verifyNoInteractions(historyCommand);
       verify(camundaClient, never()).newCreateAgentHistoryItemCommand(anyLong());

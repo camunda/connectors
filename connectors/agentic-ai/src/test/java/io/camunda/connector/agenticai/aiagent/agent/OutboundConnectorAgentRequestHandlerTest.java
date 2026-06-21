@@ -463,9 +463,9 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   private void verifyHistoryItemsCreated() {
     verify(agentInstanceClient)
-        .createHistoryItemsBeforeChat(eq(agentExecutionContext), any(), any());
+        .createHistoryForInputMessages(eq(agentExecutionContext), any(), any());
     verify(agentInstanceClient)
-        .createHistoryItemsAfterChat(eq(agentExecutionContext), any(), any());
+        .createHistoryForAssistantMessage(eq(agentExecutionContext), any(), any());
   }
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
