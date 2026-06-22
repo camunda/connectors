@@ -32,6 +32,8 @@ import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.dsl.CredentialProperty;
+import io.camunda.connector.generator.dsl.CredentialSchema;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
@@ -1717,5 +1719,215 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Override
     public void deactivate() {}
+  }
+
+  @Nested
+  class Credentials {
+
+    // --- Test 1: JDBC-like whole-object chooser, no deconstruction ---
+
+    @io.camunda.connector.generator.java.annotation.CredentialSchema(
+        id = "jdbc-credentials",
+        version = 1,
+        label = "JDBC Credentials")
+    record JdbcCredentials(String url, String username, String password) {}
+
+    record JdbcRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Credential,
+                group = "connection",
+                binding = @TemplateProperty.PropertyBinding(name = "connection"))
+            JdbcCredentials connection) {}
+
+    @OutboundConnector(name = "JDBC", type = "test:jdbc")
+    @ElementTemplate(
+        id = "test-jdbc",
+        name = "JDBC",
+        version = 1,
+        inputDataClass = JdbcRequest.class,
+        credentialSchemas = {JdbcCredentials.class})
+    static class JdbcConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void jdbc_chooserProperty_isCredentialPropertyWithSchemaRefAndBinding() {
+      var template = generator.generate(JdbcConnector.class).getFirst();
+      var chooser = getPropertyById("connection", template);
+
+      assertThat(chooser).isInstanceOf(CredentialProperty.class);
+      assertThat(chooser.getType()).isEqualTo("Credential");
+      assertThat(((CredentialProperty) chooser).getSchemaRef()).isEqualTo("jdbc-credentials");
+      assertThat(((CredentialProperty) chooser).getVersion()).isEqualTo(1);
+      assertThat(chooser.getBinding()).isEqualTo(new ZeebeInput("connection"));
+      // chooser is not recursed into: the credential field's url/username/password are NOT
+      // emitted as top-level properties
+      assertThat(template.properties()).noneMatch(p -> "url".equals(p.getId()));
+    }
+
+    @Test
+    void jdbc_credentialSchema_isEmbeddedWithProperties() {
+      var template = generator.generate(JdbcConnector.class).getFirst();
+
+      assertThat(template.credentialSchemas()).hasSize(1);
+      var schema = template.credentialSchemas().getFirst();
+      assertThat(schema.id()).isEqualTo("jdbc-credentials");
+      assertThat(schema.version()).isEqualTo(1);
+      assertThat(schema.label()).isEqualTo("JDBC Credentials");
+      assertThat(schema.properties().stream().map(Property::getId))
+          .containsExactlyInAnyOrder("url", "username", "password");
+    }
+
+    // --- Test 2: AWS-like chooser + sibling whole-object hidden derefs ---
+
+    @io.camunda.connector.generator.java.annotation.CredentialSchema(
+        id = "aws-authentication",
+        version = 1,
+        label = "AWS Authentication")
+    record AwsAuthentication(String accessKey, String secretKey) {}
+
+    @io.camunda.connector.generator.java.annotation.CredentialSchema(
+        id = "aws-configuration",
+        version = 1,
+        label = "AWS Configuration")
+    record AwsConfiguration(String region) {}
+
+    record AwsRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Credential,
+                group = "authentication",
+                binding = @TemplateProperty.PropertyBinding(name = "credential"))
+            AwsAuthentication credential,
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Hidden,
+                defaultValue = "=credential.authentication")
+            AwsAuthentication authentication,
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Hidden,
+                defaultValue = "=credential.configuration")
+            AwsConfiguration configuration) {}
+
+    @OutboundConnector(name = "AWS", type = "test:aws")
+    @ElementTemplate(
+        id = "test-aws",
+        name = "AWS",
+        version = 1,
+        inputDataClass = AwsRequest.class,
+        credentialSchemas = {AwsAuthentication.class, AwsConfiguration.class})
+    static class AwsConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void aws_chooserAndTwoSchemasEmitted() {
+      var template = generator.generate(AwsConnector.class).getFirst();
+
+      var chooser = getPropertyById("credential", template);
+      assertThat(chooser).isInstanceOf(CredentialProperty.class);
+      assertThat(((CredentialProperty) chooser).getSchemaRef()).isEqualTo("aws-authentication");
+      assertThat(chooser.getBinding()).isEqualTo(new ZeebeInput("credential"));
+
+      assertThat(template.credentialSchemas().stream().map(CredentialSchema::id))
+          .containsExactlyInAnyOrder("aws-authentication", "aws-configuration");
+    }
+
+    @Test
+    void aws_hiddenDerefs_haveCorrectValueAndBinding() {
+      var template = generator.generate(AwsConnector.class).getFirst();
+
+      var authentication = getPropertyById("authentication", template);
+      assertThat(authentication).isInstanceOf(HiddenProperty.class);
+      assertThat(authentication.getValue()).isEqualTo("=credential.authentication");
+      assertThat(authentication.getBinding()).isEqualTo(new ZeebeInput("authentication"));
+
+      var configuration = getPropertyById("configuration", template);
+      assertThat(configuration).isInstanceOf(HiddenProperty.class);
+      assertThat(configuration.getValue()).isEqualTo("=credential.configuration");
+      assertThat(configuration.getBinding()).isEqualTo(new ZeebeInput("configuration"));
+    }
+
+    // --- Test 3: Kafka-like flat composite schema with nested hidden deref ---
+
+    @io.camunda.connector.generator.java.annotation.CredentialSchema(
+        id = "kafka-credential",
+        version = 1,
+        label = "Kafka Credential")
+    record KafkaCredential(String authentication, String bootstrapServers) {}
+
+    record KafkaTopic(
+        String topicName,
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Hidden,
+                defaultValue = "=credential.bootstrapServers")
+            String bootstrapServers) {}
+
+    record KafkaRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Credential,
+                binding = @TemplateProperty.PropertyBinding(name = "credential"))
+            KafkaCredential credential,
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Hidden,
+                defaultValue = "=credential.authentication")
+            String authentication,
+        KafkaTopic topic) {}
+
+    @OutboundConnector(name = "Kafka", type = "test:kafka")
+    @ElementTemplate(
+        id = "test-kafka",
+        name = "Kafka",
+        version = 1,
+        inputDataClass = KafkaRequest.class,
+        credentialSchemas = {KafkaCredential.class})
+    static class KafkaConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void kafka_chooserAndFlatSchemaEmitted() {
+      var template = generator.generate(KafkaConnector.class).getFirst();
+
+      var chooser = getPropertyById("credential", template);
+      assertThat(chooser).isInstanceOf(CredentialProperty.class);
+      assertThat(((CredentialProperty) chooser).getSchemaRef()).isEqualTo("kafka-credential");
+      assertThat(chooser.getBinding()).isEqualTo(new ZeebeInput("credential"));
+
+      assertThat(template.credentialSchemas()).hasSize(1);
+      var schema = template.credentialSchemas().getFirst();
+      assertThat(schema.id()).isEqualTo("kafka-credential");
+      assertThat(schema.properties().stream().map(Property::getId))
+          .containsExactlyInAnyOrder("authentication", "bootstrapServers");
+    }
+
+    @Test
+    void kafka_nestedHiddenDeref_targetsNestedPath() {
+      var template = generator.generate(KafkaConnector.class).getFirst();
+
+      // top-level hidden deref of the authentication part
+      var authentication = getPropertyById("authentication", template);
+      assertThat(authentication).isInstanceOf(HiddenProperty.class);
+      assertThat(authentication.getValue()).isEqualTo("=credential.authentication");
+      assertThat(authentication.getBinding()).isEqualTo(new ZeebeInput("authentication"));
+
+      // nested hidden deref: prefix makes the target topic.bootstrapServers, source unchanged
+      var bootstrapServers = getPropertyById("topic.bootstrapServers", template);
+      assertThat(bootstrapServers).isInstanceOf(HiddenProperty.class);
+      assertThat(bootstrapServers.getValue()).isEqualTo("=credential.bootstrapServers");
+      assertThat(bootstrapServers.getBinding()).isEqualTo(new ZeebeInput("topic.bootstrapServers"));
+
+      // sibling topicName stays an inline per-task field
+      var topicName = getPropertyById("topic.topicName", template);
+      assertThat(topicName).isInstanceOf(StringProperty.class);
+      assertThat(topicName.getBinding()).isEqualTo(new ZeebeInput("topic.topicName"));
+    }
   }
 }
