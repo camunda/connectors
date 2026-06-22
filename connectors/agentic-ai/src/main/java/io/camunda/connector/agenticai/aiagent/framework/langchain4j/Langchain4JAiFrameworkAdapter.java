@@ -94,20 +94,16 @@ public class Langchain4JAiFrameworkAdapter
     // lead to exceptions
     if (responseConfiguration != null
         && responseConfiguration.format() != null
-        && responseConfiguration.format()
-            instanceof
-            JsonResponseFormatConfiguration(
-                java.util.Map<String, Object> schema,
-                String schemaName)) {
+        && responseConfiguration.format() instanceof JsonResponseFormatConfiguration jsonFormat) {
       final var builder = ResponseFormat.builder().type(ResponseFormatType.JSON);
-      if (schema != null) {
+      if (jsonFormat.schema() != null) {
         final var jsonSchema =
             JsonSchema.builder()
                 .name(
-                    Optional.ofNullable(schemaName)
+                    Optional.ofNullable(jsonFormat.schemaName())
                         .filter(StringUtils::isNotBlank)
                         .orElse("Response"))
-                .rootElement(jsonSchemaConverter.mapToSchema(schema))
+                .rootElement(jsonSchemaConverter.mapToSchema(jsonFormat.schema()))
                 .build();
         builder.jsonSchema(jsonSchema);
       }

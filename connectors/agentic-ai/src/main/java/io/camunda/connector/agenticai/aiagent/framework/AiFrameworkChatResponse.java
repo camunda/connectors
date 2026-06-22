@@ -25,4 +25,6 @@ public interface AiFrameworkChatResponse<T> {
    * Used by {@link AiFrameworkAdapter#executeMeasuringTime} once the request has been timed.
    */
   AiFrameworkChatResponse<T> withExecutionTimeMetrics(Duration executionTime);
+
+  T rawChatResponse();
 }
