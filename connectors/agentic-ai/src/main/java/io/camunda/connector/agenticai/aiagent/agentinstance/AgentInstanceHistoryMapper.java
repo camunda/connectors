@@ -36,7 +36,6 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
@@ -49,8 +48,6 @@ import org.jspecify.annotations.Nullable;
  * CamundaAgentInstanceClient}.
  */
 public class AgentInstanceHistoryMapper {
-
-  private static final String NO_CONTENT_PLACEHOLDER = "No content";
 
   private final ObjectMapper objectMapper;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -76,9 +73,7 @@ public class AgentInstanceHistoryMapper {
       case UserMessage userMessage ->
           List.of(
               new InputHistoryItem(
-                  AgentHistoryRole.USER,
-                  ensureNonEmpty(contentBlocks(userMessage.content())),
-                  null));
+                  AgentHistoryRole.USER, contentBlocks(userMessage.content()), null));
       case ToolCallResultMessage toolCallResultMessage ->
           toolCallResultMessage.results().stream().map(this::toolResultHistoryItem).toList();
       default ->
@@ -93,22 +88,17 @@ public class AgentInstanceHistoryMapper {
     // them); default to empty strings, which the client model accepts
     return new InputHistoryItem(
         AgentHistoryRole.TOOL_RESULT,
-        ensureNonEmpty(List.of(toolResultBlock(result.content()))),
+        toolResultContent(result.content()),
         List.of(
             new AgentHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
                 .toolName(StringUtils.defaultString(result.name()))
-                .elementId(
-                    StringUtils.defaultString(elementIdFor(result.elementId(), result.name())))
+                .elementId(elementIdFor(result.elementId(), result.name()))
                 .arguments(Map.of())));
   }
 
   public List<AgentHistoryContent> assistantContent(AssistantMessage assistantMessage) {
-    // Tool-only turns yield an assistant message with empty content; the API rejects empty content,
-    // so fall back to a placeholder block. Follow-up: confirm with engine team whether empty
-    // content
-    // is acceptable for tool-only assistant items.
-    return ensureNonEmpty(contentBlocks(assistantMessage.content()));
+    return contentBlocks(assistantMessage.content());
   }
 
   public @Nullable List<AgentHistoryToolCall> assistantToolCalls(
@@ -134,12 +124,13 @@ public class AgentInstanceHistoryMapper {
    * elementId} carried on the model (tool call results); otherwise derives it from the (namespaced)
    * tool name via the gateway handlers, falling back to the name itself for ad-hoc tools.
    */
-  private @Nullable String elementIdFor(@Nullable String elementId, @Nullable String toolName) {
+  private String elementIdFor(@Nullable String elementId, @Nullable String toolName) {
     if (elementId != null) {
       return elementId;
     }
     if (toolName == null) {
-      return null;
+      throw new IllegalArgumentException(
+          "Cannot resolve element id for a tool call history entry: both elementId and toolName are null");
     }
     return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);
   }
@@ -172,15 +163,14 @@ public class AgentInstanceHistoryMapper {
     };
   }
 
-  private AgentHistoryContent toolResultBlock(@Nullable Object resultContent) {
+  private List<AgentHistoryContent> toolResultContent(@Nullable Object resultContent) {
     if (resultContent == null) {
-      return AgentHistoryContent.text(ToolCallResult.CONTENT_NO_RESULT);
+      return List.of();
     }
     if (resultContent instanceof String s) {
-      return AgentHistoryContent.text(
-          StringUtils.isBlank(s) ? ToolCallResult.CONTENT_NO_RESULT : s);
+      return StringUtils.isBlank(s) ? List.of() : List.of(AgentHistoryContent.text(s));
     }
-    return objectOrText(resultContent);
+    return List.of(objectOrText(resultContent));
   }
 
   @SuppressWarnings("unchecked")
@@ -213,23 +203,21 @@ public class AgentInstanceHistoryMapper {
       // External document references are not yet representable as a document content block on the
       // engine; fall back to an object reference block (follow-up: team decision).
       case ExternalDocumentReference ref -> externalDocumentReferenceContent(ref);
-      case null, default -> AgentHistoryContent.text("[document]");
+      case null, default ->
+          throw new IllegalArgumentException(
+              "Unsupported document reference type for history item: "
+                  + (document.reference() == null
+                      ? "null"
+                      : document.reference().getClass().getSimpleName()));
     };
   }
 
   private AgentHistoryContent externalDocumentReferenceContent(ExternalDocumentReference ref) {
-    // Build the map null-safely: AgentHistoryContent.object rejects a null map, and Map.of rejects
-    // null values.
-    final Map<String, Object> reference = new LinkedHashMap<>();
-    if (ref.url() != null) {
-      reference.put("url", ref.url());
+    if (ref.url() == null || ref.name() == null) {
+      throw new IllegalArgumentException(
+          "External document reference requires both url and name for a history item");
     }
-    if (ref.name() != null) {
-      reference.put("name", ref.name());
-    }
-    return reference.isEmpty()
-        ? AgentHistoryContent.text("[document]")
-        : AgentHistoryContent.object(reference);
+    return AgentHistoryContent.object(Map.of("url", ref.url(), "name", ref.name()));
   }
 
   private DocumentReferenceResponseImpl toDocumentReferenceResponse(
@@ -272,12 +260,5 @@ public class AgentInstanceHistoryMapper {
       protocolMetadata.customProperties(metadata.getCustomProperties());
     }
     return protocolMetadata;
-  }
-
-  private List<AgentHistoryContent> ensureNonEmpty(List<AgentHistoryContent> content) {
-    if (content.isEmpty()) {
-      content.add(AgentHistoryContent.text(NO_CONTENT_PLACEHOLDER));
-    }
-    return content;
   }
 }

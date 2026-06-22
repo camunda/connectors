@@ -188,13 +188,19 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       throw new IllegalArgumentException(
           "Cannot create assistant history item for a turn without an assistant message");
     }
+    final var content = historyMapper.assistantContent(assistantMessage);
+    final var toolCalls = historyMapper.assistantToolCalls(assistantMessage);
+    if (content.isEmpty() && (toolCalls == null || toolCalls.isEmpty())) {
+      throw new IllegalArgumentException(
+          "Cannot create assistant history item with neither content nor tool calls");
+    }
     createHistoryItem(
         executionContext,
         agentInstanceKey.value(),
         AgentHistoryRole.ASSISTANT,
-        historyMapper.assistantContent(assistantMessage),
+        content,
         turn.iterationKey(),
-        historyMapper.assistantToolCalls(assistantMessage),
+        toolCalls,
         historyMapper.historyMetrics(turn.metrics()));
   }
 

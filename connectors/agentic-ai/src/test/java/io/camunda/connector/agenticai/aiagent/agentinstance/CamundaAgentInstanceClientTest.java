@@ -57,6 +57,8 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.runtime.test.outbound.TestJobContext;
@@ -453,19 +455,20 @@ class CamundaAgentInstanceClientTest {
       client.createHistoryForInputMessages(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
-      // then: one TOOL_RESULT item per result, each with its own single content block and a
-      // single-entry toolCalls array correlating it to the originating tool call
+      // then: one TOOL_RESULT item per result, each with a single-entry toolCalls array correlating
+      // it to the originating tool call. The first result carries its content block; the second has
+      // no content, yielding an empty (now valid) content list rather than a placeholder block.
       verify(historyCommand, times(2)).role(AgentHistoryRole.TOOL_RESULT);
       verify(historyCommand, times(2)).iteration(1);
       verify(historyCommand, times(2)).execute();
 
       verify(historyCommand, times(2)).content(contentCaptor.capture());
       final var contents = contentCaptor.getAllValues();
-      assertThat(contents).hasSize(2).allSatisfy(c -> assertThat(c).hasSize(1));
+      assertThat(contents).hasSize(2);
+      assertThat(contents.get(0)).singleElement();
       assertThat(((AgentHistoryContent.TextContent) contents.get(0).get(0)).getText())
           .isEqualTo("sunny");
-      assertThat(((AgentHistoryContent.TextContent) contents.get(1).get(0)).getText())
-          .isEqualTo(ToolCallResult.CONTENT_NO_RESULT);
+      assertThat(contents.get(1)).isEmpty();
 
       final ArgumentCaptor<List<AgentHistoryToolCall>> toolCallsCaptor =
           ArgumentCaptor.forClass(List.class);
@@ -492,21 +495,27 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void shouldDefaultNullToolResultIdNameAndElementIdToEmptyStrings() {
+    void shouldDefaultNullToolResultIdAndNameToEmptyStrings() {
       givenHistoryCommand();
 
-      // a partial/malformed tool result missing its name must not fail the turn
+      // a partial tool result missing its id/name must not fail the turn as long as the required
+      // elementId is present
       final var turn =
           new AgentConversationTurn(
               1,
               List.of(
                   ToolCallResultMessage.builder()
-                      .results(List.of(ToolCallResult.builder().content("partial").build()))
+                      .results(
+                          List.of(
+                              ToolCallResult.builder()
+                                  .elementId("getTime")
+                                  .content("partial")
+                                  .build()))
                       .build()),
               null,
               AgentMetrics.empty());
 
-      // when / then: no NPE, empty-string identifiers
+      // when / then: no NPE, empty-string identifiers, elementId preserved
       client.createHistoryForInputMessages(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
@@ -519,8 +528,33 @@ class CamundaAgentInstanceClientTest {
               tc -> {
                 assertThat(tc.getToolCallId()).isEmpty();
                 assertThat(tc.getToolName()).isEmpty();
-                assertThat(tc.getElementId()).isEmpty();
+                assertThat(tc.getElementId()).isEqualTo("getTime");
               });
+    }
+
+    @Test
+    void shouldThrowWhenToolResultElementIdCannotBeResolved() {
+      // a tool result with neither an elementId nor a name leaves the required elementId
+      // unresolvable
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(
+                  ToolCallResultMessage.builder()
+                      .results(List.of(ToolCallResult.builder().content("partial").build()))
+                      .build()),
+              null,
+              AgentMetrics.empty());
+
+      // when / then
+      assertThatThrownBy(
+              () ->
+                  client.createHistoryForInputMessages(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      turn))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Cannot resolve element id");
     }
 
     @Test
@@ -644,7 +678,7 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void shouldFallBackToPlaceholderWhenAssistantContentEmpty() {
+    void shouldCreateToolOnlyAssistantItemWithEmptyContent() {
       givenHistoryCommand();
 
       // given: a tool-only assistant message (no text content)
@@ -662,13 +696,9 @@ class CamundaAgentInstanceClientTest {
       client.createHistoryForAssistantMessage(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
-      // then: content is never empty (API rejects empty content)
+      // then: empty content is valid since the tool call carries the turn's intent
       verify(historyCommand).content(contentCaptor.capture());
-      assertThat(contentCaptor.getValue())
-          .singleElement()
-          .isInstanceOfSatisfying(
-              AgentHistoryContent.TextContent.class,
-              text -> assertThat(text.getText()).isEqualTo("No content"));
+      assertThat(contentCaptor.getValue()).isEmpty();
     }
 
     @Test
@@ -705,6 +735,82 @@ class CamundaAgentInstanceClientTest {
           .isInstanceOfSatisfying(
               AgentHistoryContent.DocumentContent.class,
               doc -> assertThat(doc.getDocumentReference().getDocumentId()).isEqualTo("doc-1"));
+    }
+
+    @Test
+    void shouldThrowWhenDocumentReferenceTypeUnsupported() {
+      // given: a document carrying an unsupported reference type
+      final var document = mock(Document.class);
+      when(document.reference()).thenReturn(mock(InlineDocumentReference.class));
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(
+                  UserMessage.builder()
+                      .content(List.of(DocumentContent.documentContent(document)))
+                      .build()),
+              null,
+              AgentMetrics.empty());
+
+      // when / then
+      assertThatThrownBy(
+              () ->
+                  client.createHistoryForInputMessages(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      turn))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Unsupported document reference type");
+    }
+
+    @Test
+    void shouldThrowWhenExternalDocumentReferenceMissingName() {
+      // given: an external document reference with a url but no name
+      final var ref = mock(ExternalDocumentReference.class);
+      when(ref.url()).thenReturn("https://example.com/doc");
+      when(ref.name()).thenReturn(null);
+      final var document = mock(Document.class);
+      when(document.reference()).thenReturn(ref);
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(
+                  UserMessage.builder()
+                      .content(List.of(DocumentContent.documentContent(document)))
+                      .build()),
+              null,
+              AgentMetrics.empty());
+
+      // when / then
+      assertThatThrownBy(
+              () ->
+                  client.createHistoryForInputMessages(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      turn))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("External document reference requires both url and name");
+    }
+
+    @Test
+    void shouldThrowWhenAssistantMessageHasNeitherContentNorToolCalls() {
+      // given: an assistant message with no content and no tool calls
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder().build(),
+              new AgentMetrics(1, TokenUsage.empty(), 0));
+
+      // when / then
+      assertThatThrownBy(
+              () ->
+                  client.createHistoryForAssistantMessage(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      turn))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("neither content nor tool calls");
     }
 
     @Test
