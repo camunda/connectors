@@ -317,7 +317,7 @@ class AppIntegrationsConnectorTest {
     var request =
         new CreateChannelRequest(
             CONFIG, "b7779302-e8cb-4b34-901b-5b150a19fd47", "My Channel", null, "standard");
-    var result = connector.createChannel(request, context);
+    var result = connector.createChannel(request);
 
     assertThat(result).isInstanceOf(CreateChannelResult.class);
     assertThat(result.channelId()).isEqualTo("19:new-channel@thread.tacv2");
@@ -345,7 +345,7 @@ class AppIntegrationsConnectorTest {
             "My Channel",
             null,
             "standard");
-    connector.createChannel(request, context);
+    connector.createChannel(request);
 
     assertThat((String) captureRequest().getBody())
         .contains("\"teamId\":\"b7779302-e8cb-4b34-901b-5b150a19fd47\"");
@@ -360,7 +360,7 @@ class AppIntegrationsConnectorTest {
     var request =
         new CreateChannelRequest(
             CONFIG, "b7779302-e8cb-4b34-901b-5b150a19fd47", "My Channel", null, "standard");
-    assertThatThrownBy(() -> connector.createChannel(request, context))
+    assertThatThrownBy(() -> connector.createChannel(request))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("500");
   }
@@ -374,7 +374,7 @@ class AppIntegrationsConnectorTest {
     var request =
         new CreateChannelRequest(
             CONFIG, "b7779302-e8cb-4b34-901b-5b150a19fd47", "My Channel", null, "standard");
-    assertThatThrownBy(() -> connector.createChannel(request, context))
+    assertThatThrownBy(() -> connector.createChannel(request))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Connection refused");
   }
