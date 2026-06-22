@@ -51,6 +51,9 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.Duration;
@@ -85,6 +88,9 @@ class OutboundConnectorAgentRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
+  @Mock private InternalToolRegistry internalToolRegistry;
+  @Mock private InternalToolExecutor internalToolExecutor;
+  @Mock private SandboxSessionFactory sandboxSessionFactory;
   @Mock private OutboundConnectorAgentExecutionContext agentExecutionContext;
 
   @Captor private ArgumentCaptor<ConversationSnapshot> snapshotCaptor;
@@ -289,7 +295,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                null, null, USER_PROMPT, null, new LimitsConfiguration(2), null, null, null));
+                null, null, USER_PROMPT, null, new LimitsConfiguration(2, null), null, null, null));
 
     final var contextAtLimit =
         AgentContext.builder()

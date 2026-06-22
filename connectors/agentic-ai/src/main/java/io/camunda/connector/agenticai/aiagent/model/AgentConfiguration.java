@@ -48,6 +48,15 @@ public record AgentConfiguration(
         .orElse(DEFAULT_MAX_MODEL_CALLS);
   }
 
+  public static final int DEFAULT_MAX_INTERNAL_TOOL_ITERATIONS = 10;
+
+  public int maxInternalToolIterations() {
+    return Optional.ofNullable(limits)
+        .map(LimitsConfiguration::maxInternalToolIterations)
+        .filter(v -> v != null)
+        .orElse(DEFAULT_MAX_INTERNAL_TOOL_ITERATIONS);
+  }
+
   /**
    * Returns the sandbox configuration wrapped in an Optional for convenient presence checks.
    * Returns {@link Optional#empty()} when sandbox is {@code null} or {@link

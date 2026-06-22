@@ -877,7 +877,7 @@ class CamundaAgentInstanceClientTest {
     }
 
     public static TestAgentExecutionContext withLimits() {
-      return new TestAgentExecutionContext(new LimitsConfiguration(10));
+      return new TestAgentExecutionContext(new LimitsConfiguration(10, null));
     }
 
     private final TestJobContext jobContext;

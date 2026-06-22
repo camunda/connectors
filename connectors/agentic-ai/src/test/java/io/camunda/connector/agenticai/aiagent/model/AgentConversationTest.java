@@ -147,4 +147,77 @@ class AgentConversationTest {
     assertThat(conv.turns()).allSatisfy(t -> assertThat(t.metrics().modelCalls()).isZero());
     assertThat(conv.totalMetrics().modelCalls()).isEqualTo(9);
   }
+
+  @Test
+  void nextTurn_movesCurrentTurnToPrevious_andCreatesPendingTurn() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("thinking"), new AgentMetrics(1, new TokenUsage(5, 10), 0));
+    var toolResultMsg = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var next = conv.nextTurn(List.of(toolResultMsg));
+    assertThat(next.turns()).hasSize(1);
+    assertThat(next.currentTurn().assistantMessage()).isNull();
+    assertThat(next.currentTurn().inputMessages()).containsExactly(toolResultMsg);
+    assertThat(next.currentTurn().iterationKey()).isEqualTo(2);
+  }
+
+  @Test
+  void nextTurn_throwsWhenCurrentTurnNotComplete() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+    assertThatThrownBy(() -> conv.nextTurn(List.of(userMessage("result"))))
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void invocationMetrics_sumsAllCompletedTurns() {
+    var conv1 =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("thinking"), new AgentMetrics(1, new TokenUsage(5, 10), 0));
+    var toolResultMsg = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var conv2 =
+        conv1
+            .nextTurn(List.of(toolResultMsg))
+            .ingest(assistantMessage("done"), new AgentMetrics(1, new TokenUsage(3, 7), 0));
+
+    assertThat(conv2.invocationMetrics().modelCalls()).isEqualTo(2);
+    assertThat(conv2.invocationMetrics().tokenUsage().inputTokenCount()).isEqualTo(8);
+    assertThat(conv2.invocationMetrics().tokenUsage().outputTokenCount()).isEqualTo(17);
+  }
+
+  @Test
+  void invocationMetrics_singleTurn_equalsCurrentTurnMetrics() {
+    var turnMetrics = new AgentMetrics(1, new TokenUsage(10, 5), 0);
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("hello"), turnMetrics);
+    assertThat(conv.invocationMetrics()).isEqualTo(conv.currentTurnMetrics());
+  }
+
+  @Test
+  void totalMetrics_multiTurn_includesAllInvocationMetrics() {
+    var contextWithHistory =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .metrics(new AgentMetrics(9, new TokenUsage(100, 200), 4))
+            .build();
+    var history = TurnReconstructor.reconstruct(List.of());
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG, contextWithHistory, history, null, List.of(userMessage("hi")));
+    conv = conv.ingest(assistantMessage("thinking"), new AgentMetrics(1, new TokenUsage(5, 10), 0));
+    conv = conv.nextTurn(List.of(toolCallResultMessage(TOOL_CALL_RESULTS)));
+    conv = conv.ingest(assistantMessage("done"), new AgentMetrics(1, new TokenUsage(3, 7), 0));
+
+    // totalMetrics = contextMetrics(9) + invocationMetrics(2) = 11 model calls
+    assertThat(conv.totalMetrics().modelCalls()).isEqualTo(11);
+  }
+
+  @Test
+  void withContextProperty_storesPropertyInContext() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+    var updated = conv.withContextProperty("myKey", "myValue");
+    assertThat(updated.toAgentContext().properties()).containsEntry("myKey", "myValue");
+    // original unchanged
+    assertThat(conv.toAgentContext().properties()).doesNotContainKey("myKey");
+  }
 }

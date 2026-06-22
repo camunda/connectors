@@ -61,6 +61,8 @@ import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactoryImpl;
 import io.camunda.connector.agenticai.sandbox.internaltool.BashToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.FsReadToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.FsWriteToolHandler;
@@ -221,6 +223,13 @@ public class AgenticAiConnectorsAutoConfiguration {
     return new SandboxProviderRegistry(factories);
   }
 
+  @Bean
+  @ConditionalOnMissingBean
+  public SandboxSessionFactory sandboxSessionFactory(
+      SandboxProviderRegistry sandboxProviderRegistry) {
+    return new SandboxSessionFactoryImpl(sandboxProviderRegistry);
+  }
+
   // ---------------------------------------------------------------------------
 
   @Bean
@@ -327,8 +336,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AgentResponseHandler aiAgentResponseHandler(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      InternalToolRegistry internalToolRegistry) {
+    return new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers, internalToolRegistry);
   }
 
   @Bean
@@ -343,7 +353,10 @@ public class AgenticAiConnectorsAutoConfiguration {
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry,
+      InternalToolExecutor internalToolExecutor,
+      SandboxSessionFactory sandboxSessionFactory) {
     return new OutboundConnectorAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -351,7 +364,10 @@ public class AgenticAiConnectorsAutoConfiguration {
         aiFrameworkAdapter,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        internalToolRegistry,
+        internalToolExecutor,
+        sandboxSessionFactory);
   }
 
   @Bean
@@ -377,7 +393,10 @@ public class AgenticAiConnectorsAutoConfiguration {
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry,
+      InternalToolExecutor internalToolExecutor,
+      SandboxSessionFactory sandboxSessionFactory) {
     return new JobWorkerAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -385,7 +404,10 @@ public class AgenticAiConnectorsAutoConfiguration {
         aiFrameworkAdapter,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        internalToolRegistry,
+        internalToolExecutor,
+        sandboxSessionFactory);
   }
 
   @Bean

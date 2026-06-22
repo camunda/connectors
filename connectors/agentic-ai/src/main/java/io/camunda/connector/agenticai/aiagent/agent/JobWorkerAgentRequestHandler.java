@@ -17,6 +17,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,7 +40,10 @@ public class JobWorkerAgentRequestHandler
       AiFrameworkAdapter<?> framework,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry,
+      InternalToolExecutor internalToolExecutor,
+      SandboxSessionFactory sandboxSessionFactory) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -45,7 +51,10 @@ public class JobWorkerAgentRequestHandler
         framework,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        internalToolRegistry,
+        internalToolExecutor,
+        sandboxSessionFactory);
   }
 
   @Override

@@ -1606,6 +1606,19 @@
       "value" : "INTERRUPT_TOOL_CALLS"
     } ]
   }, {
+    "id" : "data.limits.maxInternalToolIterations",
+    "label" : "Maximum internal tool iterations",
+    "description" : "Maximum number of in-process (sandbox) tool execution iterations per invocation.",
+    "optional" : true,
+    "value" : 10,
+    "feel" : "static",
+    "group" : "limits",
+    "binding" : {
+      "name" : "data.limits.maxInternalToolIterations",
+      "type" : "zeebe:input"
+    },
+    "type" : "Number"
+  }, {
     "id" : "data.sandbox.type",
     "label" : "Sandbox",
     "description" : "Optional sandbox for in-process tools (bash, file I/O). When disabled, the agent behaves exactly as without a sandbox.",

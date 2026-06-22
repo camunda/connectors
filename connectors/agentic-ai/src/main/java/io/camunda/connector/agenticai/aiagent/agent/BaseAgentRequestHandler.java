@@ -31,9 +31,15 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.MessageUtil;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
+import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactoryImpl;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.spi.SandboxSession;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
@@ -56,6 +62,9 @@ public abstract class BaseAgentRequestHandler<
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
+  private final InternalToolRegistry internalToolRegistry;
+  private final InternalToolExecutor internalToolExecutor;
+  private final SandboxSessionFactory sandboxSessionFactory;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -64,7 +73,10 @@ public abstract class BaseAgentRequestHandler<
       AiFrameworkAdapter<?> framework,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry,
+      InternalToolExecutor internalToolExecutor,
+      SandboxSessionFactory sandboxSessionFactory) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -72,6 +84,9 @@ public abstract class BaseAgentRequestHandler<
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
+    this.internalToolRegistry = internalToolRegistry;
+    this.internalToolExecutor = internalToolExecutor;
+    this.sandboxSessionFactory = sandboxSessionFactory;
   }
 
   @Override
@@ -138,34 +153,102 @@ public abstract class BaseAgentRequestHandler<
       final ConversationStore store) {
     var agentConfiguration = executionContext.configuration();
     var systemMessage = createSystemMessage(executionContext, agentContext);
-    final var conversation =
+    var conversation =
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
 
-    throwIfLimitsReached(conversation, agentConfiguration);
-    notifyThinking(executionContext, conversation);
+    SandboxSession sandboxSession = null;
+    int internalIterations = 0;
+    try {
+      while (true) {
+        throwIfLimitsReached(conversation, agentConfiguration);
+        notifyThinking(executionContext, conversation);
 
-    final var agentInstanceKey = conversation.agentInstanceKey();
-    agentInstanceClient.createHistoryForInputMessages(
-        executionContext, agentInstanceKey, conversation.currentTurn());
+        final var agentInstanceKey = conversation.agentInstanceKey();
+        agentInstanceClient.createHistoryForInputMessages(
+            executionContext, agentInstanceKey, conversation.currentTurn());
 
-    LOGGER.debug("Executing chat request with AI framework");
-    final var chatResponse =
-        framework.executeMeasuringTime(
-            executionContext, conversation.window(agentConfiguration.contextWindowSize()));
-    final var updatedConversation =
-        conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
+        LOGGER.debug("Executing chat request with AI framework");
+        final var chatResponse =
+            framework.executeMeasuringTime(
+                executionContext, conversation.window(agentConfiguration.contextWindowSize()));
+        conversation = conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
 
-    agentInstanceClient.createHistoryForAssistantMessage(
-        executionContext, agentInstanceKey, updatedConversation.currentTurn());
+        agentInstanceClient.createHistoryForAssistantMessage(
+            executionContext, agentInstanceKey, conversation.currentTurn());
+
+        final var toolCalls =
+            java.util.Optional.ofNullable(chatResponse.assistantMessage().toolCalls())
+                .orElse(List.of());
+        final var internalCalls =
+            toolCalls.stream().filter(internalToolRegistry::isInternalToolCall).toList();
+
+        if (internalCalls.isEmpty()) {
+          // Final answer OR pure external tool calls — exit the sub-loop
+          break;
+        }
+
+        // There are internal calls: execute them in-process
+        if (internalIterations >= agentConfiguration.maxInternalToolIterations()) {
+          throw new ConnectorException(
+              AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_INTERNAL_TOOL_ITERATIONS_REACHED,
+              "Maximum number of internal tool iterations reached (iterations: %d, limit: %d)"
+                  .formatted(internalIterations, agentConfiguration.maxInternalToolIterations()));
+        }
+        internalIterations++;
+
+        if (sandboxSession == null) {
+          sandboxSession =
+              sandboxSessionFactory
+                  .openSession(executionContext, conversation.toAgentContext())
+                  .orElseThrow(
+                      () ->
+                          new ConnectorException(
+                              AgentErrorCodes
+                                  .ERROR_CODE_MAXIMUM_NUMBER_OF_INTERNAL_TOOL_ITERATIONS_REACHED,
+                              "Internal tool calls requested but no sandbox session could be opened"));
+        }
+
+        LOGGER.debug("Executing {} internal tool call(s) in-process", internalCalls.size());
+        final var results = internalToolExecutor.execute(internalCalls, sandboxSession);
+        conversation =
+            conversation.nextTurn(
+                List.of(ToolCallResultMessage.builder().results(results).build()));
+
+        // Check for external calls too — if any external calls are present, break after recording
+        final var externalCalls =
+            toolCalls.stream().filter(tc -> !internalToolRegistry.isInternalToolCall(tc)).toList();
+        if (!externalCalls.isEmpty()) {
+          // Mixed turn: internal done + recorded; let AHSP dispatch the externals
+          break;
+        }
+        // Pure internal — loop again (re-prompt LLM)
+      }
+    } finally {
+      if (sandboxSession != null) {
+        try {
+          var handle = sandboxSession.handle();
+          conversation =
+              conversation.withContextProperty(
+                  SandboxSessionFactoryImpl.SANDBOX_HANDLE_KEY, handle);
+        } catch (Exception e) {
+          LOGGER.error(
+              "Failed to retrieve sandbox session handle; handle will not be persisted", e);
+        }
+        try {
+          sandboxSession.close();
+        } catch (Exception e) {
+          LOGGER.warn("Error closing sandbox session", e);
+        }
+      }
+    }
 
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =
         session.storeMessages(
-            updatedConversation.toAgentContext(),
-            ConversationStoreRequest.of(updatedConversation.allMessages()));
+            conversation.toAgentContext(), ConversationStoreRequest.of(conversation.allMessages()));
 
-    final var storedConversation = updatedConversation.withStoredConversation(storedRef);
+    final var storedConversation = conversation.withStoredConversation(storedRef);
     final var agentResponse = responseHandler.createResponse(storedConversation);
 
     LOGGER.debug("Request processing completed with agent response, completing job");
@@ -304,7 +387,14 @@ public abstract class BaseAgentRequestHandler<
       AgentConversation conversation,
       AgentResponse response,
       boolean rethrowOnFailure) {
-    final var metricsDelta = conversation.currentTurnMetrics();
+    final var invocationMetrics = conversation.invocationMetrics();
+    final var toolCallsDelta = response.toolCalls().size();
+    final var metricsDelta =
+        AgentMetrics.builder()
+            .modelCalls(invocationMetrics.modelCalls())
+            .tokenUsage(invocationMetrics.tokenUsage())
+            .toolCalls(toolCallsDelta)
+            .build();
     final var nextState = nextAgentInstanceState(metricsDelta.toolCalls());
     final var agentContext = response.context();
 
@@ -356,7 +446,13 @@ public abstract class BaseAgentRequestHandler<
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
-        final var strippedDelta = conversation.currentTurnMetrics().withToolCalls(0);
+        final var invocationMetrics = conversation.invocationMetrics();
+        final var strippedDelta =
+            AgentMetrics.builder()
+                .modelCalls(invocationMetrics.modelCalls())
+                .tokenUsage(invocationMetrics.tokenUsage())
+                .toolCalls(0)
+                .build();
         if (failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored) {
           // Superseded job: report model/token cost but don't overwrite the current status
           notifyMetrics(executionContext, response.context(), strippedDelta, null, false);

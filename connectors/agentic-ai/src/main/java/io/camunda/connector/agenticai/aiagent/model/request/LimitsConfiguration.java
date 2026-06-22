@@ -20,4 +20,15 @@ public record LimitsConfiguration(
             defaultValue = "10",
             defaultValueType = TemplateProperty.DefaultValueType.Number)
         @Min(1)
-        Integer maxModelCalls) {}
+        Integer maxModelCalls,
+    @TemplateProperty(
+            group = "limits",
+            label = "Maximum internal tool iterations",
+            description =
+                "Maximum number of in-process (sandbox) tool execution iterations per invocation.",
+            type = TemplateProperty.PropertyType.Number,
+            defaultValue = "10",
+            defaultValueType = TemplateProperty.DefaultValueType.Number,
+            optional = true)
+        @Min(1)
+        Integer maxInternalToolIterations) {}
