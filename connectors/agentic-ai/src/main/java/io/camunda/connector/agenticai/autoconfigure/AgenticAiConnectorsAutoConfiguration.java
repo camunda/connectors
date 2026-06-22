@@ -64,6 +64,7 @@ import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryCo
 import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
 import io.camunda.connector.agenticai.sandbox.SandboxSessionFactoryImpl;
 import io.camunda.connector.agenticai.sandbox.internaltool.BashToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.ExportDocumentToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.FsReadToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.FsWriteToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
@@ -183,8 +184,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   // ---------------------------------------------------------------------------
 
   /**
-   * Stateless internal-tool handlers for the three core PoC tools. T7 (load_skill) and T10
-   * (export_document) require per-invocation collaborators and will extend registration separately.
+   * Stateless internal-tool handlers for the three core PoC tools. T7 (load_skill) requires
+   * per-invocation collaborators and will extend registration separately.
    */
   @Bean
   @ConditionalOnMissingBean
@@ -202,6 +203,14 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public FsWriteToolHandler sandboxFsWriteToolHandler() {
     return new FsWriteToolHandler();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ExportDocumentToolHandler sandboxExportDocumentToolHandler(
+      DocumentFactory documentFactory) {
+    return new ExportDocumentToolHandler(
+        documentFactory, ExportDocumentToolHandler.DEFAULT_MAX_DOCUMENT_BYTES);
   }
 
   @Bean
