@@ -73,6 +73,7 @@ import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
 import io.camunda.connector.agenticai.sandbox.internaltool.LoadSkillToolHandler;
 import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderFactory;
 import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderRegistry;
+import io.camunda.connector.agenticai.sandbox.provider.daytona.DaytonaSandboxProviderFactory;
 import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.agenticai.sandbox.skill.SkillsSystemPromptContributor;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
@@ -245,6 +246,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   public InternalToolExecutor sandboxInternalToolExecutor(
       InternalToolRegistry internalToolRegistry) {
     return new InternalToolExecutor(internalToolRegistry);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public DaytonaSandboxProviderFactory daytonaSandboxProviderFactory() {
+    return new DaytonaSandboxProviderFactory();
   }
 
   @Bean

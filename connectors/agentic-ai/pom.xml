@@ -22,6 +22,7 @@
     <version.groovy>5.0.6</version.groovy>
     <version.gmavenplus-plugin>5.0.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
+    <version.daytona-sdk>0.189.0</version.daytona-sdk>
   </properties>
 
   <licenses>
@@ -293,6 +294,13 @@
     <dependency>
       <groupId>org.camunda.feel</groupId>
       <artifactId>feel-engine</artifactId>
+    </dependency>
+
+    <!-- Daytona sandbox SDK -->
+    <dependency>
+      <groupId>io.daytona</groupId>
+      <artifactId>sdk</artifactId>
+      <version>${version.daytona-sdk}</version>
     </dependency>
 
     <!-- Test dependencies -->
