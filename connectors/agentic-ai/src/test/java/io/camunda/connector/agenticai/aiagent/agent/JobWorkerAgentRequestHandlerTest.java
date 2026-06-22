@@ -44,6 +44,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -98,6 +99,7 @@ class JobWorkerAgentRequestHandlerTest {
   private JobWorkerAgentExecutionContext agentExecutionContext;
 
   @Captor private ArgumentCaptor<ConversationSnapshot> snapshotCaptor;
+  @Captor private ArgumentCaptor<AgentConversationTurn> turnCaptor;
 
   @InjectMocks private JobWorkerAgentRequestHandler requestHandler;
 
@@ -648,9 +650,12 @@ class JobWorkerAgentRequestHandlerTest {
 
   private void verifyHistoryItemsCreated() {
     verify(agentInstanceClient)
-        .createHistoryForInputMessages(eq(agentExecutionContext), any(), any());
+        .createHistoryForInputMessages(eq(agentExecutionContext), any(), turnCaptor.capture());
+    assertThat(turnCaptor.getValue().inputMessages()).isNotEmpty();
+
     verify(agentInstanceClient)
-        .createHistoryForAssistantMessage(eq(agentExecutionContext), any(), any());
+        .createHistoryForAssistantMessage(eq(agentExecutionContext), any(), turnCaptor.capture());
+    assertThat(turnCaptor.getValue().assistantMessage()).isNotNull();
   }
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
