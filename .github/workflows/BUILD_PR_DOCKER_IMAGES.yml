@@ -4,9 +4,11 @@ on:
   pull_request:
     types: [ labeled, synchronize ]
 
-# One run per PR; a new push (or re-label) cancels the in-flight build
+# One run per PR + trigger; a new push (or re-add of the label) cancels the in-flight
+# build, but unrelated labeled events (e.g. deploy-preview) get their own group and
+# don't cancel a running image build.
 concurrency:
-  group: build-pr-docker-images-${{ github.event.pull_request.number }}
+  group: build-pr-docker-images-${{ github.event.pull_request.number }}-${{ github.event.label.name || github.event.action }}
   cancel-in-progress: true
 
 jobs:
@@ -16,14 +18,16 @@ jobs:
     runs-on: gcp-core-2-default
     permissions:
       contents: read
-    # Run when the docker-images-required label is added, or on any push to a PR that already has it
+    # Run when the docker-images-required label is added, or on any push to a PR that already has it.
+    # Skip fork PRs: pull_request runs from forks don't get repository secrets (Vault/registry creds).
     if: |
-      github.event.pull_request.state != 'closed' && (
+      github.event.pull_request.state != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository && (
         github.event.label.name == 'docker-images-required' ||
         (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'docker-images-required'))
       )
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # build the PR's actual code, not the synthetic merge ref
           ref: ${{ github.event.pull_request.head.sha }}
