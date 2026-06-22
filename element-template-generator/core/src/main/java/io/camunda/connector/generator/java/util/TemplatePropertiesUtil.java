@@ -463,6 +463,7 @@ public class TemplatePropertiesUtil {
           case Hidden -> HiddenProperty.builder();
           case String -> StringProperty.builder();
           case Text -> TextProperty.builder();
+          case Credential -> createCredentialPropertyBuilder(parameterType);
           case Unknown -> throw new IllegalStateException("Unknown property type");
         };
     if (Object.class.equals(parameterType)
@@ -472,6 +473,23 @@ public class TemplatePropertiesUtil {
       builder.feel(FeelMode.required);
     }
     return builder;
+  }
+
+  private static PropertyBuilder createCredentialPropertyBuilder(Class<?> parameterType) {
+    var schemaAnnotation =
+        parameterType.getAnnotation(
+            io.camunda.connector.generator.java.annotation.CredentialSchema.class);
+    if (schemaAnnotation == null) {
+      throw new IllegalStateException(
+          "A property of type Credential must reference a type annotated with @CredentialSchema, "
+              + "but "
+              + parameterType.getName()
+              + " is not annotated with @CredentialSchema");
+    }
+    return CredentialProperty.builder()
+        .schemaRef(schemaAnnotation.id())
+        .version(schemaAnnotation.version())
+        .feel(FeelMode.disabled);
   }
 
   public static boolean isOutbound(TemplateGenerationContext context) {

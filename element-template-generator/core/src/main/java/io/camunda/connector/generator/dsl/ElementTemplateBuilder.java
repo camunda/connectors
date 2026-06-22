@@ -35,6 +35,7 @@ public class ElementTemplateBuilder {
   protected final List<Property> properties = new ArrayList<>();
   protected final List<Step> steps = new ArrayList<>();
   protected final List<Preset> presets = new ArrayList<>();
+  protected final List<CredentialSchema> credentialSchemas = new ArrayList<>();
   private final Mode mode;
   protected String id;
   protected String name;
@@ -212,6 +213,11 @@ public class ElementTemplateBuilder {
     return this;
   }
 
+  public ElementTemplateBuilder credentialSchemas(Collection<CredentialSchema> credentialSchemas) {
+    this.credentialSchemas.addAll(credentialSchemas);
+    return this;
+  }
+
   public ElementTemplate build() {
     if (!isTypeAssigned()) {
       throw new IllegalStateException("type is not assigned");
@@ -231,7 +237,8 @@ public class ElementTemplateBuilder {
         properties,
         icon,
         steps.isEmpty() ? null : steps,
-        presets.isEmpty() ? null : presets);
+        presets.isEmpty() ? null : presets,
+        credentialSchemas);
   }
 
   private enum Mode {

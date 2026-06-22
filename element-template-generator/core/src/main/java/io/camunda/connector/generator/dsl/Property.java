@@ -24,6 +24,7 @@ import java.util.Objects;
 @JsonInclude(Include.NON_NULL)
 public abstract sealed class Property
     permits BooleanProperty,
+        CredentialProperty,
         DropdownProperty,
         HiddenProperty,
         NumberProperty,

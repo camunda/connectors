@@ -133,6 +133,7 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
 
     switch (builder) {
       case DropdownProperty.DropdownPropertyBuilder ignored -> {}
+      case CredentialProperty.CredentialPropertyBuilder ignored -> {}
       case NumberProperty.NumberPropertyBuilder ignored -> manageFeelMode(annotation, builder);
       case BooleanProperty.BooleanPropertyBuilder ignored -> manageFeelMode(annotation, builder);
       default -> {
