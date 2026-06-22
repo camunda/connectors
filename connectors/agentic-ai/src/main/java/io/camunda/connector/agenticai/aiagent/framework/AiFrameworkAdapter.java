@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.framework;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import java.time.Duration;
-import java.time.Instant;
 
 public interface AiFrameworkAdapter<R extends AiFrameworkChatResponse<?>> {
 
@@ -20,9 +19,11 @@ public interface AiFrameworkAdapter<R extends AiFrameworkChatResponse<?>> {
   @SuppressWarnings("unchecked")
   default R executeMeasuringTime(
       AgentExecutionContext executionContext, ConversationSnapshot snapshot) {
-    final var startTime = Instant.now();
+    // monotonic clock: wall-clock (Instant.now) can jump backwards/forwards on NTP or VM clock
+    // adjustments, yielding negative or skewed durations
+    final var startNanos = System.nanoTime();
     final var response = executeChatRequest(executionContext, snapshot);
-    final var executionTime = Duration.between(startTime, Instant.now());
+    final var executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
 
     return (R) response.withExecutionTimeMetrics(executionTime);
   }
