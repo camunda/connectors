@@ -98,7 +98,7 @@ class AgentResponseHandlerTest {
     var history = TurnReconstructor.reconstruct(List.of());
     return AgentConversation.rehydrate(
             config, BASE_AGENT_CONTEXT, history, systemMessage("system"), List.of())
-        .ingest(assistantMessage, AgentMetrics.TokenUsage.empty());
+        .ingest(assistantMessage, new AgentMetrics(1, AgentMetrics.TokenUsage.empty(), 0));
   }
 
   @Nested
@@ -263,9 +263,9 @@ class AgentResponseHandlerTest {
           .hasMessageStartingWith("Failed to parse response content as JSON")
           .isInstanceOfSatisfying(
               ConnectorException.class,
-              e -> {
-                assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT);
-              });
+              e ->
+                  assertThat(e.getErrorCode())
+                      .isEqualTo(ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT));
     }
 
     @Test

@@ -63,7 +63,7 @@ class AgentConversationTest {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
     var tokenUsage = new TokenUsage(10, 5);
     var response = assistantMessage("hello");
-    var ingested = conv.ingest(response, tokenUsage);
+    var ingested = conv.ingest(response, new AgentMetrics(1, tokenUsage, 0));
     assertThat(ingested.turns()).hasSize(1);
     assertThat(ingested.turns().getFirst().iterationKey()).isEqualTo(1);
     assertThat(ingested.turns().getFirst().assistantMessage()).isEqualTo(response);
@@ -74,8 +74,8 @@ class AgentConversationTest {
   void ingest_throwsWhenAlreadyIngested() {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
-            .ingest(assistantMessage("hello"), TokenUsage.empty());
-    assertThatThrownBy(() -> conv.ingest(assistantMessage("again"), TokenUsage.empty()))
+            .ingest(assistantMessage("hello"), AgentMetrics.empty());
+    assertThatThrownBy(() -> conv.ingest(assistantMessage("again"), AgentMetrics.empty()))
         .isInstanceOf(IllegalStateException.class);
   }
 
@@ -113,7 +113,7 @@ class AgentConversationTest {
   void toAgentContext_updatesCurrentTurnMetricsFromIngestedTurns() {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
-            .ingest(assistantMessage("hello"), new TokenUsage(10, 5));
+            .ingest(assistantMessage("hello"), new AgentMetrics(1, new TokenUsage(10, 5), 0));
     var ctx = conv.toAgentContext();
     assertThat(ctx.metrics().modelCalls()).isEqualTo(1);
   }

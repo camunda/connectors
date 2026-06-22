@@ -68,6 +68,11 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   }
 
   @Override
+  public String resolveElementId(String toolName) {
+    return McpToolCallIdentifier.fromToolCallName(toolName).elementId();
+  }
+
+  @Override
   public GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
     final var mcpGatewayToolDefinitions = extractMcpGatewayToolDefinitions(gatewayToolDefinitions);
@@ -212,7 +217,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
                 final var toolCallIdentifier = McpToolCallIdentifier.fromToolCallName(toolCallName);
                 return new ToolCall(
                     toolCall.id(),
-                    toolCallIdentifier.elementName(),
+                    toolCallIdentifier.elementId(),
                     mcpClientOperationAsMap(
                         McpClientOperationDefinitions.callTool(
                             toolCallIdentifier.mcpToolName(), toolCall.arguments())));

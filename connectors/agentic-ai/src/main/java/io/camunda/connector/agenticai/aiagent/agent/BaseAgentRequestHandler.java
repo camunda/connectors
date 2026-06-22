@@ -145,12 +145,19 @@ public abstract class BaseAgentRequestHandler<
     throwIfLimitsReached(conversation, agentConfiguration);
     notifyThinking(executionContext, conversation);
 
+    final var agentInstanceKey = conversation.agentInstanceKey();
+    agentInstanceClient.createHistoryForInputMessages(
+        executionContext, agentInstanceKey, conversation.currentTurn());
+
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =
-        framework.executeChatRequest(
+        framework.executeMeasuringTime(
             executionContext, conversation.window(agentConfiguration.contextWindowSize()));
     final var updatedConversation =
-        conversation.ingest(chatResponse.assistantMessage(), chatResponse.tokenUsage());
+        conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
+
+    agentInstanceClient.createHistoryForAssistantMessage(
+        executionContext, agentInstanceKey, updatedConversation.currentTurn());
 
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =
@@ -319,7 +326,11 @@ public abstract class BaseAgentRequestHandler<
           metricsDelta.tokenUsage().inputTokenCount(),
           metricsDelta.tokenUsage().outputTokenCount(),
           metricsDelta.toolCalls());
-      var updateRequestBuilder = AgentInstanceUpdateRequest.builder().delta(metricsDelta);
+      // The agent-instance metrics update is counters-only (model/tool calls, tokens). The per-turn
+      // execution duration is a conversation-history concern and is not transmitted here, so it is
+      // stripped from the delta.
+      var updateRequestBuilder =
+          AgentInstanceUpdateRequest.builder().delta(metricsDelta.withExecutionTime(null));
       if (nextState != null) {
         updateRequestBuilder.status(nextState);
       }
