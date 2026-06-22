@@ -1,0 +1,16 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.sandbox.spi;
+
+import java.io.Serializable;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Opaque handle that identifies a sandbox session; stored in agentContext.properties between turns.
+ */
+public record SandboxHandle(String providerId, String sessionId, @Nullable String snapshotRef)
+    implements Serializable {}
