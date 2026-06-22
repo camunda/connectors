@@ -58,6 +58,10 @@
     "tooltip" : "Configure how event sub-process results are handled. Results are added as user messages to the running agent.",
     "openByDefault" : false
   }, {
+    "id" : "sandbox",
+    "label" : "Sandbox",
+    "openByDefault" : false
+  }, {
     "id" : "response",
     "label" : "Response",
     "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/#response\">documentation</a> for details.",
@@ -1606,6 +1610,108 @@
       "name" : "Cancel tool calls",
       "value" : "INTERRUPT_TOOL_CALLS"
     } ]
+  }, {
+    "id" : "data.sandbox.type",
+    "label" : "Sandbox",
+    "description" : "Optional sandbox for in-process tools (bash, file I/O). When disabled, the agent behaves exactly as without a sandbox.",
+    "value" : "disabled",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Disabled",
+      "value" : "disabled"
+    }, {
+      "name" : "Daytona",
+      "value" : "daytona"
+    } ]
+  }, {
+    "id" : "data.sandbox.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sandbox.apiUrl",
+    "label" : "API URL",
+    "description" : "Base URL for self-hosted Daytona deployments.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.apiUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sandbox.snapshot",
+    "label" : "Snapshot",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.snapshot",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sandbox.autoStopMinutes",
+    "label" : "Auto-stop (minutes)",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.autoStopMinutes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "Number"
+  }, {
+    "id" : "data.sandbox.autoArchiveMinutes",
+    "label" : "Auto-archive (minutes)",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.autoArchiveMinutes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "Number"
   }, {
     "id" : "data.response.format.type",
     "label" : "Response format",

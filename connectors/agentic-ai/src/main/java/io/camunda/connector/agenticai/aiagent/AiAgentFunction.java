@@ -75,6 +75,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           tooltip = "Configuration of the Agent's short-term/conversational memory.",
           openByDefault = false),
       @PropertyGroup(id = "limits", label = "Limits", openByDefault = false),
+      @PropertyGroup(id = "sandbox", label = "Sandbox", openByDefault = false),
       @PropertyGroup(
           id = "response",
           label = "Response",

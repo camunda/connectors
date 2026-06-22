@@ -928,6 +928,7 @@ class CamundaAgentInstanceClientTest {
           null,
           limitsConfiguration,
           null,
+          null,
           null);
     }
   }

@@ -19,6 +19,9 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -32,14 +35,17 @@ public class AgentInitializerImpl implements AgentInitializer {
   private final AgentToolsResolver toolsResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AgentInstanceClient agentInstanceClient;
+  private final InternalToolRegistry internalToolRegistry;
 
   public AgentInitializerImpl(
       AgentToolsResolver toolsResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry) {
     this.toolsResolver = toolsResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.agentInstanceClient = agentInstanceClient;
+    this.internalToolRegistry = internalToolRegistry;
   }
 
   @Override
@@ -98,7 +104,15 @@ public class AgentInitializerImpl implements AgentInitializer {
       List<ToolCallResult> initialToolCallResults) {
     // add ad-hoc tool definitions to agent context
     final var adHocToolsSchema = toolsResolver.loadAdHocToolsSchema(executionContext, agentContext);
-    agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());
+
+    // Append internal tool definitions (bash/fs_read/fs_write) when a sandbox is configured.
+    // Internal tools are NOT added without a sandbox — behaviour is byte-for-byte unchanged.
+    final var toolDefinitions =
+        executionContext.configuration().sandboxConfiguration().isPresent()
+            ? appendInternalTools(adHocToolsSchema.toolDefinitions())
+            : adHocToolsSchema.toolDefinitions();
+
+    agentContext = agentContext.withToolDefinitions(toolDefinitions);
 
     if (CollectionUtils.isEmpty(adHocToolsSchema.gatewayToolDefinitions())) {
       return new ReadyToConverse(agentContext.withState(AgentState.READY), initialToolCallResults);
@@ -107,6 +121,13 @@ public class AgentInitializerImpl implements AgentInitializer {
     // handle gateway tool definitions (e.g. MCP)
     return dispatchGatewayToolDiscovery(
         agentContext, initialToolCallResults, adHocToolsSchema.gatewayToolDefinitions());
+  }
+
+  /** Returns a new list containing the ad-hoc tools followed by all internal tool definitions. */
+  private List<ToolDefinition> appendInternalTools(List<ToolDefinition> adHocTools) {
+    final var combined = new ArrayList<>(adHocTools);
+    combined.addAll(internalToolRegistry.toolDefinitions());
+    return List.copyOf(combined);
   }
 
   private AgentInitializationResult dispatchGatewayToolDiscovery(

@@ -26,10 +26,12 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -37,11 +39,14 @@ import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolNames;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -73,10 +78,21 @@ class AgentInitializerTest {
   @Mock private AgentToolsResolver toolsResolver;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @Mock private AgentInstanceClient agentInstanceClient;
+  @Mock private InternalToolRegistry internalToolRegistry;
   @Mock private JobContext jobContext;
   @InjectMocks private AgentInitializerImpl agentInitializer;
 
   @Mock private AgentExecutionContext executionContext;
+  @Mock private AgentConfiguration agentConfiguration;
+
+  @BeforeEach
+  void setUpConfiguration() {
+    // Default: no sandbox configured. Tests that want a sandbox must override this.
+    lenient().when(executionContext.configuration()).thenReturn(agentConfiguration);
+    lenient().when(agentConfiguration.sandboxConfiguration()).thenReturn(Optional.empty());
+    // Default: internalToolRegistry returns empty definitions list.
+    lenient().when(internalToolRegistry.toolDefinitions()).thenReturn(List.of());
+  }
 
   @Nested
   class WithAlreadyInitializedState {
@@ -619,6 +635,95 @@ class AgentInitializerTest {
               e ->
                   assertThat(((ConnectorException) e).getErrorCode())
                       .isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sandbox / internal-tool registration acceptance criteria (T4)
+  // ---------------------------------------------------------------------------
+
+  @Nested
+  class SandboxToolRegistration {
+
+    private static final AgentContext AGENT_CONTEXT =
+        AgentContext.empty()
+            .withProperty("hello", "world")
+            .withMetadata(new AgentMetadata(123456789L, 987654321L, 99999L));
+
+    private static final ToolDefinition ADHOC_TOOL =
+        ToolDefinition.builder().name("myAdHocTool").description("An ad-hoc tool").build();
+
+    private static final ToolDefinition BASH_DEF =
+        ToolDefinition.builder().name(InternalToolNames.BASH).description("Run bash").build();
+
+    private static final ToolDefinition FS_READ_DEF =
+        ToolDefinition.builder().name(InternalToolNames.FS_READ).description("Read file").build();
+
+    private static final ToolDefinition FS_WRITE_DEF =
+        ToolDefinition.builder().name(InternalToolNames.FS_WRITE).description("Write file").build();
+
+    @BeforeEach
+    void setUp() {
+      when(executionContext.initialAgentContext()).thenReturn(AGENT_CONTEXT);
+    }
+
+    /**
+     * AC: No sandbox config → internal tools are NOT added; tool definitions equal the ad-hoc tools
+     * exactly (byte-for-byte unchanged).
+     */
+    @Test
+    void withoutSandbox_toolDefinitionsEqualAdHocToolsOnly() {
+      // No sandbox configured — default stub from outer @BeforeEach returns Optional.empty()
+      when(toolsResolver.loadAdHocToolsSchema(any(), any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(ADHOC_TOOL), null));
+
+      final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result.agentContext().toolDefinitions())
+          .containsExactly(ADHOC_TOOL)
+          .doesNotContain(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF);
+    }
+
+    /**
+     * AC: Sandbox present → bash/fs_read/fs_write definitions appear in agent context tool
+     * definitions, appended after the ad-hoc tools.
+     */
+    @Test
+    void withSandbox_internalToolDefinitionsAreAppendedAfterAdHocTools() {
+      when(agentConfiguration.sandboxConfiguration())
+          .thenReturn(Optional.of(new DaytonaSandboxConfiguration("key", null, null, null, null)));
+      when(internalToolRegistry.toolDefinitions())
+          .thenReturn(List.of(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF));
+      when(toolsResolver.loadAdHocToolsSchema(any(), any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(ADHOC_TOOL), null));
+
+      final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result.agentContext().toolDefinitions())
+          .extracting(ToolDefinition::name)
+          .containsExactly(
+              "myAdHocTool",
+              InternalToolNames.BASH,
+              InternalToolNames.FS_READ,
+              InternalToolNames.FS_WRITE);
+    }
+
+    /** AC: Sandbox present, no ad-hoc tools → only internal tools appear. */
+    @Test
+    void withSandboxAndNoAdHocTools_onlyInternalToolDefinitionsRegistered() {
+      when(agentConfiguration.sandboxConfiguration())
+          .thenReturn(Optional.of(new DaytonaSandboxConfiguration("key", null, null, null, null)));
+      when(internalToolRegistry.toolDefinitions())
+          .thenReturn(List.of(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF));
+      when(toolsResolver.loadAdHocToolsSchema(any(), any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
+      final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result.agentContext().toolDefinitions())
+          .extracting(ToolDefinition::name)
+          .containsExactlyInAnyOrder(
+              InternalToolNames.BASH, InternalToolNames.FS_READ, InternalToolNames.FS_WRITE);
     }
   }
 

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,6 +50,9 @@ class OutboundConnectorAgentExecutionContextTest {
   @BeforeEach
   void setUp() {
     when(agentRequest.data()).thenReturn(agentRequestData);
+    // doReturn avoids invoking the deep stub, which would try (and fail) to mock the sealed
+    // SandboxConfiguration return type.
+    doReturn(null).when(agentRequestData).sandbox();
     executionContext =
         new OutboundConnectorAgentExecutionContext(jobContext, agentRequest, toolElementsResolver);
   }

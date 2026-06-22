@@ -94,7 +94,7 @@ class AgentResponseHandlerTest {
    */
   private AgentConversation conversationWith(
       ResponseConfiguration responseConfig, AssistantMessage assistantMessage) {
-    var config = new AgentConfiguration(null, null, null, null, null, null, responseConfig);
+    var config = new AgentConfiguration(null, null, null, null, null, null, responseConfig, null);
     var history = TurnReconstructor.reconstruct(List.of());
     return AgentConversation.rehydrate(
             config, BASE_AGENT_CONTEXT, history, systemMessage("system"), List.of())

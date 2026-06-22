@@ -27,7 +27,8 @@ class SystemPromptComposerImplTest {
 
   private static AgentExecutionContext executionContextWithSystemPrompt(
       SystemPromptConfiguration systemPrompt) {
-    var configuration = new AgentConfiguration(null, systemPrompt, null, null, null, null, null);
+    var configuration =
+        new AgentConfiguration(null, systemPrompt, null, null, null, null, null, null);
     var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.configuration()).thenReturn(configuration);
     return executionContext;

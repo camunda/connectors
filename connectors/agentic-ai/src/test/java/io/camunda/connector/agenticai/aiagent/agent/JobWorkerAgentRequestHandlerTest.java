@@ -119,6 +119,7 @@ class JobWorkerAgentRequestHandlerTest {
                 null,
                 null,
                 null,
+                null,
                 null))
         .when(agentExecutionContext)
         .configuration();
@@ -584,6 +585,7 @@ class JobWorkerAgentRequestHandlerTest {
                 new UserPromptConfiguration("user input", List.of()),
                 null,
                 new LimitsConfiguration(2),
+                null,
                 null,
                 null));
 

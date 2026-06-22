@@ -49,5 +49,6 @@ public record OutboundConnectorAgentRequest(
       @Valid @Nullable ToolsConfiguration tools,
       @Valid @Nullable MemoryConfiguration memory,
       @Valid @Nullable LimitsConfiguration limits,
-      @Valid @Nullable OutboundConnectorResponseConfiguration response) {}
+      @Valid @Nullable OutboundConnectorResponseConfiguration response,
+      @Valid @Nullable SandboxConfiguration sandbox) {}
 }

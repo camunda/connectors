@@ -61,6 +61,14 @@ import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
+import io.camunda.connector.agenticai.sandbox.internaltool.BashToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.FsReadToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.FsWriteToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderFactory;
+import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderRegistry;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
@@ -168,12 +176,61 @@ public class AgenticAiConnectorsAutoConfiguration {
     return new GatewayToolHandlerRegistryImpl(gatewayToolHandlers);
   }
 
+  // ---------------------------------------------------------------------------
+  // Sandbox infrastructure beans
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Stateless internal-tool handlers for the three core PoC tools. T7 (load_skill) and T10
+   * (export_document) require per-invocation collaborators and will extend registration separately.
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  public BashToolHandler sandboxBashToolHandler() {
+    return new BashToolHandler();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public FsReadToolHandler sandboxFsReadToolHandler() {
+    return new FsReadToolHandler();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public FsWriteToolHandler sandboxFsWriteToolHandler() {
+    return new FsWriteToolHandler();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public InternalToolRegistry sandboxInternalToolRegistry(List<InternalToolHandler> handlers) {
+    return new InternalToolRegistry(handlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public InternalToolExecutor sandboxInternalToolExecutor(
+      InternalToolRegistry internalToolRegistry) {
+    return new InternalToolExecutor(internalToolRegistry);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public SandboxProviderRegistry sandboxProviderRegistry(List<SandboxProviderFactory> factories) {
+    return new SandboxProviderRegistry(factories);
+  }
+
+  // ---------------------------------------------------------------------------
+
   @Bean
   @ConditionalOnMissingBean
   public AgentToolsResolver aiAgentToolsResolver(
       AdHocToolsSchemaResolver toolsSchemaResolver,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      InternalToolRegistry internalToolRegistry) {
+    return new AgentToolsResolverImpl(
+        toolsSchemaResolver, gatewayToolHandlers, internalToolRegistry);
   }
 
   @Bean
@@ -202,8 +259,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AgentInitializer aiAgentInitializer(
       AgentToolsResolver toolsResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AgentInstanceClient agentInstanceClient) {
-    return new AgentInitializerImpl(toolsResolver, gatewayToolHandlers, agentInstanceClient);
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry) {
+    return new AgentInitializerImpl(
+        toolsResolver, gatewayToolHandlers, agentInstanceClient, internalToolRegistry);
   }
 
   @Bean

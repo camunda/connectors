@@ -481,29 +481,36 @@ already exists — almost no new infrastructure:
 
 ## 9. Configuration shape
 
+`SandboxConfiguration` is a sealed, discriminated interface modeled identically to
+`ProviderConfiguration` and `MemoryStorageConfiguration` — `@JsonTypeInfo(use = Id.NAME, property =
+"type")` + `@JsonSubTypes` + `@TemplateDiscriminatorProperty`. It is surfaced in the element
+templates as a **Sandbox** group (discriminator bound to the `type` property) with `disabled` as the
+default value.
+
+Two subtypes are implemented for the PoC:
+
 ```java
-// sealed, discriminated like Authentication / memory backends
-public sealed interface SandboxConfiguration {
-  record None(...) implements SandboxConfiguration {}                 // default -> tools off
-  // primary PoC provider (locked):
-  record DaytonaSandbox(String apiKey, @Nullable String apiUrl,      // apiUrl for self-hosted
-                        @Nullable String snapshot,                    // optional preloaded image
-                        @Nullable Integer autoStopMinutes,            // 0 = never; default 15
-                        @Nullable Integer autoArchiveMinutes)
-      implements SandboxConfiguration {}
-  // future providers (SPI already admits them):
-  record AgentCoreSandbox(AwsAuthentication auth, String region,
-                          String codeInterpreterIdentifier, Duration sessionTimeout)
-      implements SandboxConfiguration {}
-  record VercelSandbox(String token, ...) implements SandboxConfiguration {}
-  record E2bSandbox(String apiKey, String template, Duration timeout) implements SandboxConfiguration {}
-  record DockerSandbox(String image, ...) implements SandboxConfiguration {}  // local testing
-}
+// default — tools off, behaves as if no sandbox is configured
+@TemplateSubType(id = "disabled", label = "Disabled")
+record DisabledSandboxConfiguration() implements SandboxConfiguration {}
+
+// primary PoC provider (locked):
+@TemplateSubType(id = "daytona", label = "Daytona")
+record DaytonaSandboxConfiguration(
+    String apiKey,                          // @NotBlank, redacted in toString
+    @Nullable String apiUrl,                // self-hosted base URL
+    @Nullable String snapshot,              // optional pre-loaded workspace image
+    @Nullable Integer autoStopMinutes,      // 0 = never; provider default 15
+    @Nullable Integer autoArchiveMinutes)   // provider default if null
+    implements SandboxConfiguration {}
 ```
 
-Added to `AgentConfiguration` as `@Nullable SandboxConfiguration sandbox` + a
-`skills` list (**deployed-resource references** — by resource id/name, resolved to the latest version
-at agent start unless a key is pinned). Absent sandbox config ⇒ `Optional.empty()` ⇒ no internal tools.
+Future providers (AgentCore, Vercel, E2B, DockerSandbox for local testing) drop in behind the same
+SPI. Added to `AgentConfiguration` as `@Nullable SandboxConfiguration sandbox`;
+`sandboxConfiguration()` returns `Optional.empty()` for both `null` and `DisabledSandboxConfiguration`,
+and a present Optional only for an active provider — so the existing `isPresent()` guard in the
+initializer requires no change. A `skills` list (deployed-resource references) will be added as a
+parallel field in a follow-up task.
 
 ---
 
@@ -545,7 +552,9 @@ at agent start unless a key is pinned). Absent sandbox config ⇒ `Optional.empt
   processes) — the `exportWorkspace/importWorkspace` SPI seam is in place for it.
 - Additional provider adapters beyond Daytona (AgentCore, Vercel, E2B).
 - Full sandbox reaper/GC (rely on provider TTL/auto-archive for now).
-- Element-template / Modeler UX polish for the new config.
+- Advanced Modeler UX polish (rich tooltips, conditional visibility refinements) — the `Sandbox`
+  group is present and functional in the templates (discriminator `type`, subtypes `disabled` /
+  `daytona`); further UX tweaks are a minor follow-up.
 
 ---
 

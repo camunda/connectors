@@ -58,7 +58,7 @@ class AgentConversationTurnInputComposerImplTest {
           .conversation(InProcessConversationContext.builder("conv").build())
           .build();
   private static final AgentConfiguration CONFIG =
-      new AgentConfiguration(null, null, null, null, null, null, null);
+      new AgentConfiguration(null, null, null, null, null, null, null, null);
 
   @BeforeEach
   void setUp() {
@@ -145,6 +145,7 @@ class AgentConversationTurnInputComposerImplTest {
             null,
             null,
             new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
+            null,
             null);
     var input =
         AgentInput.from(
@@ -214,6 +215,7 @@ class AgentConversationTurnInputComposerImplTest {
             null,
             null,
             new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
+            null,
             null);
     var input =
         AgentInput.from(
@@ -247,6 +249,7 @@ class AgentConversationTurnInputComposerImplTest {
             null,
             null,
             new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
+            null,
             null);
     var input =
         AgentInput.from(
@@ -273,6 +276,7 @@ class AgentConversationTurnInputComposerImplTest {
             null,
             null,
             new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
+            null,
             null);
     var input =
         AgentInput.from(
@@ -385,6 +389,7 @@ class AgentConversationTurnInputComposerImplTest {
             null,
             null,
             new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
+            null,
             null);
     var toolDoc = createDocument("weather data", "text/plain", "weather.txt");
     var eventDoc = createDocument("event data", "application/pdf", "event.pdf");
