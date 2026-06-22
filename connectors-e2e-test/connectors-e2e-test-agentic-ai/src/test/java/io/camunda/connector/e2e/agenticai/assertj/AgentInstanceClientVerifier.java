@@ -47,25 +47,8 @@ import org.mockito.InOrder;
  * {@code assertThat(...)}); it asserts on calls, not on a value. Each chat turn follows the same
  * shape: {@code THINKING} (status only) → {@code createHistoryItemsBeforeChat} → {@code
  * createHistoryItemsAfterChat} → a final {@code update} carrying the end status and the per-turn
- * metrics delta.
- *
- * <p>For every chat turn the verifier additionally enforces the before/after-chat invariants: the
- * before-chat snapshot carries the input messages only (no assistant message yet), while the
- * after-chat snapshot carries the assistant response and per-turn execution time; both share the
- * sequential 1-based iteration key. The per-turn {@link ChatTurnAssert} callback then asserts the
- * actual message content.
- *
- * <pre>
- * AgentInstanceClientVerifier.verify(agentInstanceClient)
- *     .createdInstance()
- *     .toolCallTurn(
- *         new AgentMetrics(1, new TokenUsage(10, 20), 1),
- *         turn -> turn.fromUserPrompt("Calculate ...").callingTool("SuperfluxProduct"))
- *     .finalAnswerTurn(
- *         new AgentMetrics(1, new TokenUsage(15, 25), 0),
- *         turn -> turn.fromToolResults().answering("Done."))
- *     .noMoreInteractions();
- * </pre>
+ * metrics delta. The before-chat snapshot carries input messages only; the after-chat snapshot adds
+ * the assistant response; both share the sequential 1-based iteration key.
  */
 public class AgentInstanceClientVerifier {
 

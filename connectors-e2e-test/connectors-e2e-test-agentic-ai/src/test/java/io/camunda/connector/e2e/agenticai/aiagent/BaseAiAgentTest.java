@@ -225,17 +225,10 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   }
 
   /**
-   * Verifies on the engine that the agent instance the connector created is retrievable by key from
-   * secondary storage (RDBMS, eventually consistent), carrying the create-time definition. This
-   * proves the {@code create} command genuinely landed on the broker and was indexed.
-   *
-   * <p>Scope note: accumulated metrics / final status are intentionally NOT asserted here. The
-   * RDBMS exporter <em>does</em> handle agent-instance updates ({@code AgentInstanceExportHandler}
-   * exports CREATED/UPDATED/COMPLETED), but in this embedded process-test the read-back metrics did
-   * not converge to the final totals within a 60s poll (stayed at create/partial state). The
-   * per-turn metric deltas and status transitions are meanwhile verified via the {@code
-   * agentInstanceClient} spy and the agent response's {@code hasMetrics(...)}; asserting the
-   * accumulated state via the GET API is a follow-up.
+   * Verifies on the engine that the agent instance is retrievable by key from secondary storage
+   * (RDBMS, eventually consistent) with its create-time definition, proving the {@code create}
+   * command landed on the broker and was indexed. Accumulated metrics / final status are verified
+   * via the {@code agentInstanceClient} spy, not here.
    */
   protected void assertAgentInstanceCreatedOnEngine(long agentInstanceKey, String expectedModel) {
     await()

@@ -16,14 +16,11 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.outboundconnector;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-
-import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceClientVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -56,26 +53,10 @@ class AiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
    */
   @Test
   void shouldUpdateAgentInstanceStatusAndMetricsForToolCallAndFinalAnswerTurns() throws Exception {
-    stubFor(
-        post(urlPathEqualTo("/v1/chat/completions"))
-            .inScenario("agent-turns")
-            .whenScenarioStateIs(Scenario.STARTED)
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(toolCallResponseBody("call-001")))
-            .willSetStateTo("turn-2"));
-
-    stubFor(
-        post(urlPathEqualTo("/v1/chat/completions"))
-            .inScenario("agent-turns")
-            .whenScenarioStateIs("turn-2")
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(finalAnswerResponseBody())));
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            null, 10, 20, ToolCall.of("call-001", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}")),
+        Turn.text("The superflux calculation of 5 and 3 is complete.", 15, 25));
 
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -135,37 +116,12 @@ class AiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
    */
   @Test
   void shouldUpdateAgentInstanceStatusAndMetricsAcrossMultipleToolCallRounds() throws Exception {
-    stubFor(
-        post(urlPathEqualTo("/v1/chat/completions"))
-            .inScenario("multi-tool-turns")
-            .whenScenarioStateIs(Scenario.STARTED)
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(toolCallResponseBody("call-001")))
-            .willSetStateTo("turn-2"));
-
-    stubFor(
-        post(urlPathEqualTo("/v1/chat/completions"))
-            .inScenario("multi-tool-turns")
-            .whenScenarioStateIs("turn-2")
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(toolCallResponseBody("call-002")))
-            .willSetStateTo("turn-3"));
-
-    stubFor(
-        post(urlPathEqualTo("/v1/chat/completions"))
-            .inScenario("multi-tool-turns")
-            .whenScenarioStateIs("turn-3")
-            .willReturn(
-                aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(finalAnswerResponseBody())));
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            null, 10, 20, ToolCall.of("call-001", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}")),
+        Turn.toolCalls(
+            null, 10, 20, ToolCall.of("call-002", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}")),
+        Turn.text("The superflux calculation of 5 and 3 is complete.", 15, 25));
 
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -211,92 +167,5 @@ class AiAgentConnectorAgentInstanceTests extends BaseAiAgentConnectorTest {
         .noMoreInteractions();
 
     assertAgentInstanceCreatedOnEngine(agentInstanceKey.get(), "gpt-4o");
-  }
-
-  // TODO follow-up: assert the accumulated metrics + terminal status via
-  // newAgentInstanceGetRequest.
-  // The exporter handles UPDATED, but the read-back metrics did not converge to the final totals
-  // within a 60s poll in this embedded test — investigate the visibility lag (exporter flush /
-  // consistency, delta-vs-accumulated in the UPDATED record), then pin: metrics == accumulated
-  // {modelCalls, toolCalls, inputTokens, outputTokens}; status IDLE/COMPLETED.
-
-  // TODO provision: assert the conversation history once the read API is available.
-  // The spec defines POST /v2/agent-instances/{key}/history/search (operationId
-  // searchAgentInstanceHistory), but it is not yet implemented in the gateway controller, exposed
-  // on the Java client, nor backed by an RDBMS handler for AGENT_HISTORY. Once available, assert
-  // the
-  // ordered USER / ASSISTANT / TOOL_RESULT items (content, iteration, assistant tool calls +
-  // metrics) here, mirroring assertAgentInstanceCreatedOnEngine (Awaitility + eventual
-  // consistency).
-  //
-  // private void assertAgentInstanceHistory(long agentInstanceKey) {
-  //   await()
-  //       .atMost(Duration.ofSeconds(15))
-  //       .untilAsserted(
-  //           () ->
-  //               assertThat(
-  //                       camundaClient
-  //                           .newAgentInstanceHistorySearchRequest(agentInstanceKey)
-  //                           .execute()
-  //                           .items())
-  //                   .extracting(item -> item.getRole().name())
-  //                   .containsExactly("USER", "ASSISTANT", "TOOL_RESULT", "ASSISTANT"));
-  // }
-
-  // turn 1: tool call to SuperfluxProduct (inputTokens=10, outputTokens=20)
-  private static String toolCallResponseBody(String toolCallId) {
-    return """
-        {
-          "id": "chatcmpl-turn2",
-          "object": "chat.completion",
-          "model": "gpt-4o",
-          "choices": [{
-            "index": 0,
-            "message": {
-              "role": "assistant",
-              "content": null,
-              "tool_calls": [{
-                "id": "%s",
-                "type": "function",
-                "function": {
-                  "name": "SuperfluxProduct",
-                  "arguments": "{\\"a\\": 5, \\"b\\": 3}"
-                }
-              }]
-            },
-            "finish_reason": "tool_calls"
-          }],
-          "usage": {
-            "prompt_tokens": 10,
-            "completion_tokens": 20,
-            "total_tokens": 30
-          }
-        }
-        """
-        .formatted(toolCallId);
-  }
-
-  // turn 2: final answer, no tool calls (inputTokens=15, outputTokens=25)
-  private static String finalAnswerResponseBody() {
-    return """
-        {
-          "id": "chatcmpl-turn2",
-          "object": "chat.completion",
-          "model": "gpt-4o",
-          "choices": [{
-            "index": 0,
-            "message": {
-              "role": "assistant",
-              "content": "The superflux calculation of 5 and 3 is complete."
-            },
-            "finish_reason": "stop"
-          }],
-          "usage": {
-            "prompt_tokens": 15,
-            "completion_tokens": 25,
-            "total_tokens": 40
-          }
-        }
-        """;
   }
 }
