@@ -13,6 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(
     id = "deleteObject",
+    label = "Delete object",
     description = "Delete an object from an S3 bucket",
     keywords = {"delete", "remove object", "remove s3 file"})
 public record DeleteObject(

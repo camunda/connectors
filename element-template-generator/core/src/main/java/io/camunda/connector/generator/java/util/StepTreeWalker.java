@@ -174,40 +174,42 @@ public final class StepTreeWalker {
             : TemplatePropertiesUtil.transformIdIntoLabel(node.getSimpleName());
     String description = (st != null && !st.description().isBlank()) ? st.description() : null;
 
-    if (node.isSealed()) { // group branch: recurse into it
-      String innerDiscriminator = requireDiscriminatorName(node);
-      String innerKey = prefixed(propertyPathPrefix, innerDiscriminator);
-      if (assignment.containsKey(innerKey)) {
+    if (node.isSealed()) { // group branch: recurse via the permits chain (path prefix unchanged)
+      return buildSealedGroup(
+          node, presetIdPrefix, assignment, propertyPathPrefix, presets, name, description);
+    }
+
+    // Non-sealed: a record may either be a true leaf (has keywords) or an intermediate group
+    // that exposes a nested sealed @TemplateDiscriminatorProperty via a record component
+    // (e.g., Email's `Smtp.smtpAction → SmtpAction`). In the latter case, recurse via that
+    // field and update the property path prefix per @NestedProperties(addNestedPath).
+    NestedDiscriminatorField nested = findSingleNestedDiscriminatorField(node, propertyPathPrefix);
+    boolean hasKeywords = st != null && st.keywords().length > 0;
+    if (nested != null) {
+      if (hasKeywords) {
         throw new IllegalStateException(
-            "Sealed type "
+            "Type "
                 + node.getCanonicalName()
-                + " declares @TemplateDiscriminatorProperty(name = \""
-                + innerDiscriminator
-                + "\"), which collides with an outer discriminator at the same property path \""
-                + innerKey
-                + "\". Inner sealed groups must declare a distinct discriminator name.");
+                + " declares @TemplateSubType(keywords = {...}) and also exposes a nested "
+                + "@TemplateDiscriminatorProperty via field \""
+                + nested.fieldName()
+                + "\" (type "
+                + nested.sealedType().getCanonicalName()
+                + "). A node must be either a leaf (with keywords) or an intermediate group that "
+                + "groups further operations — not both.");
       }
-      List<Step> children = new ArrayList<>();
-      for (Class<?> child : nonIgnoredSubtypes(node)) {
-        String childId = requireSubTypeId(child);
-        String childPresetId = presetIdPrefix + "_" + innerDiscriminator + "_" + childId;
-        Map<String, String> childAssignment = new LinkedHashMap<>(assignment);
-        childAssignment.put(innerKey, childId);
-        Step built = buildStep(child, childPresetId, childAssignment, propertyPathPrefix, presets);
-        if (built != null) {
-          children.add(built);
-        }
-      }
-      if (children.isEmpty()) {
-        // Every permitted subtype was @TemplateSubType(ignore = true) — skip this branch entirely
-        return null;
-      }
-      return new GroupStep(name, description, children);
+      return buildSealedGroup(
+          nested.sealedType(),
+          presetIdPrefix,
+          assignment,
+          nested.childPathPrefix(),
+          presets,
+          name,
+          description);
     }
 
     // leaf branch
-    String[] keywords = (st != null) ? st.keywords() : new String[0];
-    if (keywords.length == 0) {
+    if (!hasKeywords) {
       throw new IllegalStateException(
           "Leaf "
               + node.getCanonicalName()
@@ -215,8 +217,103 @@ public final class StepTreeWalker {
               + "that participates in operation metadata must declare at least one keyword.");
     }
     presets.add(new Preset(presetIdPrefix, assignment));
-    return new LeafStep(name, description, Arrays.asList(keywords), presetIdPrefix);
+    return new LeafStep(name, description, Arrays.asList(st.keywords()), presetIdPrefix);
   }
+
+  /**
+   * Build a group step from a sealed type by walking its {@code permits} chain. Used by both
+   * sealed-typed nodes (entered directly via permits) and non-sealed nodes that expose a nested
+   * sealed discriminator via a record component.
+   */
+  private static Step buildSealedGroup(
+      Class<?> sealedNode,
+      String presetIdPrefix,
+      Map<String, String> assignment,
+      String propertyPathPrefix,
+      List<Preset> presets,
+      String name,
+      String description) {
+    String innerDiscriminator = requireDiscriminatorName(sealedNode);
+    String innerKey = prefixed(propertyPathPrefix, innerDiscriminator);
+    if (assignment.containsKey(innerKey)) {
+      throw new IllegalStateException(
+          "Sealed type "
+              + sealedNode.getCanonicalName()
+              + " declares @TemplateDiscriminatorProperty(name = \""
+              + innerDiscriminator
+              + "\"), which collides with an outer discriminator at the same property path \""
+              + innerKey
+              + "\". Inner sealed groups must declare a distinct discriminator name.");
+    }
+    List<Step> children = new ArrayList<>();
+    for (Class<?> child : nonIgnoredSubtypes(sealedNode)) {
+      String childId = requireSubTypeId(child);
+      String childPresetId = presetIdPrefix + "_" + innerDiscriminator + "_" + childId;
+      Map<String, String> childAssignment = new LinkedHashMap<>(assignment);
+      childAssignment.put(innerKey, childId);
+      Step built = buildStep(child, childPresetId, childAssignment, propertyPathPrefix, presets);
+      if (built != null) {
+        children.add(built);
+      }
+    }
+    if (children.isEmpty()) {
+      // Every permitted subtype was @TemplateSubType(ignore = true) — skip this branch entirely
+      return null;
+    }
+    return new GroupStep(name, description, children);
+  }
+
+  /**
+   * Find the single record component on {@code node} whose type is a sealed {@link
+   * TemplateDiscriminatorProperty}-annotated hierarchy. Returns {@code null} if there is none (so
+   * the caller can treat the node as a leaf). Throws if multiple such fields exist — an
+   * intermediate group node must have exactly one nested discriminator to be unambiguous.
+   */
+  private static NestedDiscriminatorField findSingleNestedDiscriminatorField(
+      Class<?> node, String currentPropertyPathPrefix) {
+    List<NestedDiscriminatorField> found = new ArrayList<>();
+    for (Field f : getAllFields(node)) {
+      NestedProperties np = f.getAnnotation(NestedProperties.class);
+      boolean addPath = np == null || np.addNestedPath();
+      String childPrefix =
+          addPath
+              ? (currentPropertyPathPrefix.isEmpty()
+                  ? f.getName()
+                  : currentPropertyPathPrefix + "." + f.getName())
+              : currentPropertyPathPrefix;
+      for (Class<?> ft : extractCandidateTypes(f)) {
+        if (ft.isSealed() && ft.isAnnotationPresent(TemplateDiscriminatorProperty.class)) {
+          found.add(new NestedDiscriminatorField(f.getName(), ft, childPrefix));
+        }
+      }
+    }
+    if (found.isEmpty()) {
+      return null;
+    }
+    if (found.size() > 1) {
+      StringBuilder fields = new StringBuilder();
+      for (int i = 0; i < found.size(); i++) {
+        if (i > 0) {
+          fields.append(", ");
+        }
+        fields
+            .append(found.get(i).fieldName())
+            .append(" -> ")
+            .append(found.get(i).sealedType().getSimpleName());
+      }
+      throw new IllegalStateException(
+          "Type "
+              + node.getCanonicalName()
+              + " exposes more than one nested @TemplateDiscriminatorProperty field ("
+              + fields
+              + "). An intermediate operation node must have exactly one nested discriminator-bearing"
+              + " field so the operation hierarchy is unambiguous.");
+    }
+    return found.get(0);
+  }
+
+  private record NestedDiscriminatorField(
+      String fieldName, Class<?> sealedType, String childPathPrefix) {}
 
   private static boolean hasAnyLeafKeywords(Class<?> root) {
     Deque<Class<?>> queue = new ArrayDeque<>();

@@ -182,6 +182,137 @@ class StepTreeWalkerTest {
       keywords = {"visible"})
   record AllIgnoredLeaf() implements AllIgnoredOuter {}
 
+  // ---------- Nested discriminator reached via a record-component field ----------
+  // The outer hierarchy (NestedFieldOuter) is permits-based, but each outer leaf carries a
+  // record component whose type is itself a sealed @TemplateDiscriminatorProperty hierarchy.
+  // This mirrors Email's `Smtp.smtpAction → SmtpAction` shape — an intermediate record that
+  // is not a leaf but groups further operations through a field hop.
+
+  @TemplateDiscriminatorProperty(name = "outer", group = "operation")
+  sealed interface NestedFieldOuter permits NestedFieldA, NestedFieldB {}
+
+  @TemplateSubType(id = "branchA", label = "Branch A")
+  record NestedFieldA(NestedFieldAOps ops) implements NestedFieldOuter {}
+
+  @TemplateDiscriminatorProperty(name = "opType", group = "operation")
+  sealed interface NestedFieldAOps permits NestedFieldACreate, NestedFieldARead {}
+
+  @TemplateSubType(
+      id = "create",
+      keywords = {"create A"})
+  record NestedFieldACreate() implements NestedFieldAOps {}
+
+  @TemplateSubType(
+      id = "read",
+      keywords = {"read A"})
+  record NestedFieldARead() implements NestedFieldAOps {}
+
+  @TemplateSubType(
+      id = "branchB",
+      keywords = {"branch B"})
+  record NestedFieldB() implements NestedFieldOuter {}
+
+  // ---------- Same shape, but the field-hop is suppressed via @NestedProperties(addNestedPath =
+  // false) ----------
+
+  // NestedFieldFlatSibling carries direct keywords so the outer is picked as the operation root
+  // by findOperationRoot (which only follows permits when detecting leaf keywords).
+
+  @TemplateDiscriminatorProperty(name = "outerFlat", group = "operation")
+  sealed interface NestedFieldFlatOuter permits NestedFieldFlatA, NestedFieldFlatSibling {}
+
+  @TemplateSubType(id = "branchA", label = "Branch A")
+  record NestedFieldFlatA(@NestedProperties(addNestedPath = false) NestedFieldFlatAOps ops)
+      implements NestedFieldFlatOuter {}
+
+  @TemplateSubType(
+      id = "sibling",
+      keywords = {"sibling"})
+  record NestedFieldFlatSibling() implements NestedFieldFlatOuter {}
+
+  @TemplateDiscriminatorProperty(name = "opTypeFlat", group = "operation")
+  sealed interface NestedFieldFlatAOps permits NestedFieldFlatACreate {}
+
+  @TemplateSubType(
+      id = "create",
+      keywords = {"create A"})
+  record NestedFieldFlatACreate() implements NestedFieldFlatAOps {}
+
+  // ---------- Ambiguity: a leaf record has multiple discriminator-bearing fields ----------
+  // AmbiSibling has direct keywords so AmbiOuter is picked as the operation root.
+
+  @TemplateDiscriminatorProperty(name = "ambiOuter", group = "operation")
+  sealed interface AmbiOuter permits AmbiNode, AmbiSibling {}
+
+  @TemplateSubType(id = "node", label = "Node")
+  record AmbiNode(AmbiOpsX opsX, AmbiOpsY opsY) implements AmbiOuter {}
+
+  @TemplateSubType(
+      id = "sibling",
+      keywords = {"sibling"})
+  record AmbiSibling() implements AmbiOuter {}
+
+  @TemplateDiscriminatorProperty(name = "x", group = "operation")
+  sealed interface AmbiOpsX permits AmbiX {}
+
+  @TemplateSubType(
+      id = "x",
+      keywords = {"x"})
+  record AmbiX() implements AmbiOpsX {}
+
+  @TemplateDiscriminatorProperty(name = "y", group = "operation")
+  sealed interface AmbiOpsY permits AmbiY {}
+
+  @TemplateSubType(
+      id = "y",
+      keywords = {"y"})
+  record AmbiY() implements AmbiOpsY {}
+
+  // ---------- Conflict: a node declares both keywords and a nested discriminator field ----------
+
+  @TemplateDiscriminatorProperty(name = "conflictOuter", group = "operation")
+  sealed interface ConflictOuter permits ConflictNode {}
+
+  @TemplateSubType(
+      id = "node",
+      label = "Node",
+      keywords = {"node"})
+  record ConflictNode(ConflictOps ops) implements ConflictOuter {}
+
+  @TemplateDiscriminatorProperty(name = "conflictInner", group = "operation")
+  sealed interface ConflictOps permits ConflictLeaf {}
+
+  @TemplateSubType(
+      id = "leaf",
+      keywords = {"leaf"})
+  record ConflictLeaf() implements ConflictOps {}
+
+  // ---------- Discriminator name collision: nested-via-field reuses outer's discriminator name
+  // ----------
+
+  // FieldCollisionSibling has direct keywords so FieldCollisionOuter is picked as the operation
+  // root.
+
+  @TemplateDiscriminatorProperty(name = "sameName", group = "operation")
+  sealed interface FieldCollisionOuter permits FieldCollisionNode, FieldCollisionSibling {}
+
+  @TemplateSubType(id = "node", label = "Node")
+  record FieldCollisionNode(@NestedProperties(addNestedPath = false) FieldCollisionOps ops)
+      implements FieldCollisionOuter {}
+
+  @TemplateSubType(
+      id = "sibling",
+      keywords = {"sibling"})
+  record FieldCollisionSibling() implements FieldCollisionOuter {}
+
+  @TemplateDiscriminatorProperty(name = "sameName", group = "operation")
+  sealed interface FieldCollisionOps permits FieldCollisionLeaf {}
+
+  @TemplateSubType(
+      id = "leaf",
+      keywords = {"leaf"})
+  record FieldCollisionLeaf() implements FieldCollisionOps {}
+
   // ---------- Discriminator name collision: inner reuses outer's discriminator name ----------
 
   @TemplateDiscriminatorProperty(name = "duplicateName", group = "operation")
@@ -392,6 +523,86 @@ class StepTreeWalkerTest {
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("CollisionInnerSealed")
           .hasMessageContaining("duplicateName")
+          .hasMessageContaining("collides");
+    }
+  }
+
+  @Nested
+  class NestedDiscriminatorViaField {
+
+    @Test
+    void treatsIntermediateRecordAsGroupAndPrefixesPresetKeyWithFieldName() {
+      // NestedFieldA is a record (not sealed). It holds an `ops` field whose type is
+      // NestedFieldAOps (sealed @TemplateDiscriminatorProperty). The walker must treat
+      // NestedFieldA as a group and update the preset key path with the field name.
+      StepTreeResult result = StepTreeWalker.walk(NestedFieldOuter.class);
+
+      assertThat(result.steps()).hasSize(2);
+      assertThat(result.steps().get(0)).isInstanceOf(GroupStep.class);
+      GroupStep branchA = (GroupStep) result.steps().get(0);
+      assertThat(branchA.name()).isEqualTo("Branch A");
+      assertThat(branchA.steps()).hasSize(2);
+      assertThat(branchA.steps()).allMatch(LeafStep.class::isInstance);
+
+      LeafStep createStep = (LeafStep) branchA.steps().get(0);
+      assertThat(createStep.presetId()).isEqualTo("outer_branchA_opType_create");
+
+      // Sibling branchB has direct keywords — it's a true leaf even though its sibling is a group.
+      assertThat(result.steps().get(1)).isInstanceOf(LeafStep.class);
+
+      // The preset for the nested-via-field leaf carries the `ops.` path prefix because the
+      // field has no @NestedProperties annotation (default addNestedPath = true).
+      assertThat(result.presets())
+          .extracting(Preset::properties)
+          .anySatisfy(
+              p -> {
+                assertThat(p).containsEntry("outer", "branchA");
+                assertThat(p).containsEntry("ops.opType", "create");
+              });
+    }
+
+    @Test
+    void honoursAddNestedPathFalseWhenRecursingThroughField() {
+      // The field carries @NestedProperties(addNestedPath = false) — the discriminator key for
+      // the nested hierarchy must NOT be prefixed with the field name.
+      StepTreeResult result = StepTreeWalker.walk(NestedFieldFlatOuter.class);
+
+      Preset flatPreset =
+          result.presets().stream()
+              .filter(p -> p.id().equals("outerFlat_branchA_opTypeFlat_create"))
+              .findFirst()
+              .orElseThrow();
+      assertThat(flatPreset.properties())
+          .containsEntry("opTypeFlat", "create")
+          .doesNotContainKey("ops.opTypeFlat");
+    }
+
+    @Test
+    void throwsOnAmbiguousMultipleNestedDiscriminatorFields() {
+      assertThatThrownBy(() -> StepTreeWalker.walk(AmbiOuter.class))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("AmbiNode")
+          .hasMessageContaining("more than one")
+          .hasMessageContaining("opsX")
+          .hasMessageContaining("opsY");
+    }
+
+    @Test
+    void throwsWhenNodeHasBothKeywordsAndNestedDiscriminatorField() {
+      assertThatThrownBy(() -> StepTreeWalker.walk(ConflictOuter.class))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("ConflictNode")
+          .hasMessageContaining("keywords")
+          .hasMessageContaining("ops");
+    }
+
+    @Test
+    void throwsWhenNestedFieldDiscriminatorNameCollidesWithOuter() {
+      // The nested discriminator (sameName) collides with the outer's name at the same path.
+      // The collision check in buildSealedGroup must fire for field-reached groups too.
+      assertThatThrownBy(() -> StepTreeWalker.walk(FieldCollisionOuter.class))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("sameName")
           .hasMessageContaining("collides");
     }
   }

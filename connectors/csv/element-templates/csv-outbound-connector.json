@@ -2,6 +2,7 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "CSV Connector",
   "id" : "io.camunda.connectors.csv",
+  "description" : "Read or write CSV documents — parse a CSV into structured records or render rows back into CSV.",
   "keywords" : [ "read CSV", "write CSV", "parse CSV", "export CSV", "import CSV", "tabular data", "data export", "spreadsheet" ],
   "version" : 2,
   "category" : {

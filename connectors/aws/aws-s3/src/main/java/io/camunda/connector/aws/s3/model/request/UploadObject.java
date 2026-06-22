@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(
     id = "uploadObject",
+    label = "Upload object",
     description = "Upload an object to an S3 bucket",
     keywords = {"upload", "put object", "store file"})
 public record UploadObject(

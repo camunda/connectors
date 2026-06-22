@@ -13,6 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(
     id = "downloadObject",
+    label = "Download object",
     description = "Download an object from an S3 bucket",
     keywords = {"download", "get object", "fetch s3 object"})
 public record DownloadObject(

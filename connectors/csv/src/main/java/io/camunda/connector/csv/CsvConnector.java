@@ -35,6 +35,8 @@ import java.util.function.Function;
 @ElementTemplate(
     name = "CSV Connector",
     id = "io.camunda.connectors.csv",
+    description =
+        "Read or write CSV documents — parse a CSV into structured records or render rows back into CSV.",
     version = 2,
     engineVersion = "^8.8",
     keywords = {
