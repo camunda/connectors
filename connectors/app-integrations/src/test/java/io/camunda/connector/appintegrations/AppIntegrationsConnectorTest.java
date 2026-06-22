@@ -104,11 +104,7 @@ class AppIntegrationsConnectorTest {
   }
 
   @Test
-  void sendMessage_withOAuth_usesAccessTokenFromCache() {
-    OAuthTokenCacheHolder.set(tokenCache);
-    when(tokenCache.getOrFetch(
-            any(io.camunda.connector.http.client.model.auth.OAuthAuthentication.class), any()))
-        .thenReturn("oauth-access-token");
+  void sendMessage_withOAuth_delegatesOAuthToHttpClient() {
     doReturn(httpResponse(201, "{\"conversation\":null}"))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
@@ -116,15 +112,22 @@ class AppIntegrationsConnectorTest {
     var request = new SendMessageRequest(CONFIG_OAUTH, "user@example.com", null, "Hi", null);
     connector.sendMessage(request, context);
 
-    assertThat(captureRequest().getHeader("Authorization")).hasValue("Bearer oauth-access-token");
+    // OAuth is delegated to the SDK HttpClient: the request carries the SDK OAuthAuthentication
+    // (which execute() resolves into a Bearer token), not a hand-set Authorization header.
+    var sent = captureRequest();
+    assertThat(sent.getHeader("Authorization")).isEmpty();
+    assertThat(sent.getAuthentication())
+        .isInstanceOf(io.camunda.connector.http.client.model.auth.OAuthAuthentication.class);
+    var oauth =
+        (io.camunda.connector.http.client.model.auth.OAuthAuthentication) sent.getAuthentication();
+    assertThat(oauth.clientId()).isEqualTo("client-id");
+    assertThat(oauth.oauthTokenEndpoint()).isEqualTo("https://auth.example.com/oauth/token");
+    assertThat(oauth.audience()).isEqualTo("app-integrations");
   }
 
   @Test
   void sendMessage_oauth401_invalidatesTokenAndRetries() {
     OAuthTokenCacheHolder.set(tokenCache);
-    when(tokenCache.getOrFetch(
-            any(io.camunda.connector.http.client.model.auth.OAuthAuthentication.class), any()))
-        .thenReturn("stale-token", "fresh-token");
     doReturn(httpResponse(401, "Unauthorized"), httpResponse(201, "{\"conversation\":null}"))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
