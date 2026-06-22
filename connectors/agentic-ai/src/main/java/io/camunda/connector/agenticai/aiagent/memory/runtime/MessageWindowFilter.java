@@ -14,64 +14,17 @@ import io.camunda.connector.agenticai.model.message.UserMessage;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Exposes a filtered view of the last-n messages in the conversation. Oldest messages are removed
- * first, while making sure to also remove orphaned tool call results.
- */
-public class MessageWindowRuntimeMemory implements RuntimeMemory {
+/** Static window-filtering utility. Extracted from {@code MessageWindowRuntimeMemory}. */
+public final class MessageWindowFilter {
 
-  private final RuntimeMemory delegate;
-  private final int maxMessages;
-  private List<Message> filteredMessages;
+  private MessageWindowFilter() {}
 
-  public MessageWindowRuntimeMemory(int maxMessages) {
-    this(new DefaultRuntimeMemory(), maxMessages);
-  }
-
-  public MessageWindowRuntimeMemory(RuntimeMemory delegate, int maxMessages) {
+  public static List<Message> apply(List<Message> messages, int maxMessages) {
     if (maxMessages < 0) {
       throw new IllegalArgumentException(
-          "maxMessages must be greater than zero (was %d)".formatted(maxMessages));
+          "maxMessages must not be negative (was %d)".formatted(maxMessages));
     }
 
-    this.delegate = delegate;
-    this.maxMessages = maxMessages;
-  }
-
-  @Override
-  public void addMessage(Message message) {
-    delegate.addMessage(message);
-    filteredMessages = null;
-  }
-
-  @Override
-  public void addMessages(List<Message> messages) {
-    delegate.addMessages(messages);
-    filteredMessages = null;
-  }
-
-  @Override
-  public List<Message> allMessages() {
-    return delegate.allMessages();
-  }
-
-  @Override
-  public List<Message> filteredMessages() {
-    if (filteredMessages == null) {
-      filteredMessages = filteredMessages(delegate.allMessages(), maxMessages);
-    }
-
-    return filteredMessages;
-  }
-
-  @Override
-  public void clear() {
-    delegate.clear();
-    filteredMessages = null;
-  }
-
-  // original implementation see Langchain4j
-  private static List<Message> filteredMessages(List<Message> messages, int maxMessages) {
     final var filtered = new ArrayList<>(messages);
     int effectiveCount = (int) filtered.stream().filter(m -> !isToolCallDocumentMessage(m)).count();
 

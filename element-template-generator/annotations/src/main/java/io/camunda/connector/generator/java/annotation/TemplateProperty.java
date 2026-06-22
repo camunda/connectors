@@ -119,6 +119,12 @@ public @interface TemplateProperty {
   /** Placeholder text shown in the property input field when it is empty (String and Text only) */
   String placeholder() default "";
 
+  /**
+   * Language hint for the property editor (e.g., "json" to enable a JSON visual editor). Currently,
+   * only "json" is supported.
+   */
+  String language() default "";
+
   enum PropertyType {
     Boolean,
     Number,

@@ -22,8 +22,13 @@ public class OAuthConstants {
   public static final String CLIENT_SECRET = "client_secret";
   public static final String AUDIENCE = "audience";
   public static final String SCOPE = "scope";
+  public static final String REFRESH_TOKEN = "refresh_token";
   public static final String ACCESS_TOKEN = "access_token";
   public static final String EXPIRES_IN = "expires_in";
   public static final String BASIC_AUTH_HEADER = "basicAuthHeader";
   public static final String CREDENTIALS_BODY = "credentialsBody";
+  public static final String ERROR = "error";
+  public static final String ERROR_DESCRIPTION = "error_description";
+  public static final String INVALID_GRANT = "invalid_grant";
+  public static final String INTERACTION_REQUIRED = "interaction_required";
 }

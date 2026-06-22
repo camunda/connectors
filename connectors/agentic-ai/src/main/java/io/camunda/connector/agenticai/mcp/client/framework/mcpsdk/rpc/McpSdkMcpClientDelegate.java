@@ -41,7 +41,7 @@ public class McpSdkMcpClientDelegate implements McpClientDelegate {
 
   @Override
   public McpClientListToolsResult listTools(AllowDenyList filter) {
-    return new ListToolsRequest(clientId, objectMapper).execute(delegate, filter);
+    return new ListToolsRequest(clientId).execute(delegate, filter);
   }
 
   @Override

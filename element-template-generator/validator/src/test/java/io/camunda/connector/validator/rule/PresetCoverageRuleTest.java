@@ -233,6 +233,37 @@ class PresetCoverageRuleTest {
     assertThat(findings.get(0).message()).contains("search space").contains("too large");
   }
 
+  @Test
+  void searchSpaceExceedsCap_singleFinding() throws Exception {
+    // Build 6 op-keys with 9 choices each → (1+9)^6 = 1,000,000 candidate assignments,
+    // well above the 100,000 cap.
+    StringBuilder properties = new StringBuilder();
+    StringBuilder presetProps = new StringBuilder();
+    for (int k = 0; k < 6; k++) {
+      if (k > 0) {
+        properties.append(",");
+        presetProps.append(",");
+      }
+      properties.append("{\"id\":\"k").append(k).append("\",\"choices\":[");
+      for (int c = 0; c < 9; c++) {
+        if (c > 0) properties.append(",");
+        properties.append("{\"value\":\"v").append(c).append("\"}");
+      }
+      properties.append("]}");
+      presetProps.append("\"k").append(k).append("\":\"v0\"");
+    }
+    String json =
+        "{\"properties\":["
+            + properties
+            + "],\"presets\":[{\"id\":\"p\",\"properties\":{"
+            + presetProps
+            + "}}],\"steps\":[]}";
+    List<Finding> findings = rule.apply(FILE, read(json));
+    assertThat(findings).hasSize(1);
+    assertThat(findings.get(0).jsonPointer()).isEqualTo("/presets");
+    assertThat(findings.get(0).message()).contains("search space").contains("too large");
+  }
+
   private static JsonNode read(String json) throws Exception {
     return MAPPER.readTree(json);
   }

@@ -44,7 +44,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(
     classes = TestConnectorRuntimeApplication.class,
-    properties = "camunda.connector.hostname=localhost")
+    properties = {
+      "camunda.connector.hostname=localhost",
+      "camunda.connector.gateway.monitoring.enabled=false"
+    })
 @AutoConfigureMockMvc
 class OutboundConnectorsRestControllerTest {
 

@@ -247,8 +247,9 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
     enqueueUserFeedback(userFollowUpFeedback("Ok thanks, anything else?"), userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+        awaitProcessCompletion(
+            createProcessInstance(
+                testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
@@ -335,8 +336,9 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+        awaitProcessCompletion(
+            createProcessInstance(
+                testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
@@ -386,7 +388,7 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
   protected McpSchema.CallToolResult mcpCallToolResultWithImage(
       String base64Data, String mimeType) {
     return McpSchema.CallToolResult.builder()
-        .addContent(new McpSchema.ImageContent(null, base64Data, mimeType))
+        .addContent(McpSchema.ImageContent.builder(base64Data, mimeType).build())
         .build();
   }
 }

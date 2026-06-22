@@ -235,7 +235,7 @@ public class AiAgentJobWorkerResponseHandlingTests extends BaseAiAgentJobWorkerT
               elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
               Map.of(),
               HAIKU_TEXT);
-      zeebeTest.waitForActiveIncidents();
+      awaitActiveIncidents(zeebeTest);
 
       assertIncident(
           zeebeTest,

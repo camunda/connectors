@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.systemprompt;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -42,14 +41,10 @@ public class SystemPromptComposerImpl implements SystemPromptComposer {
   }
 
   @Override
-  public String composeSystemPrompt(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      SystemPromptConfiguration baseSystemPrompt) {
-
+  public String compose(AgentExecutionContext executionContext, AgentContext agentContext) {
     ArrayList<String> composed = new ArrayList<>();
 
-    String basePrompt = baseSystemPrompt.prompt();
+    String basePrompt = executionContext.configuration().systemPrompt().prompt();
     if (StringUtils.isNotBlank(basePrompt)) {
       composed.add(basePrompt);
       LOGGER.trace("Added base system prompt");
@@ -57,7 +52,7 @@ public class SystemPromptComposerImpl implements SystemPromptComposer {
 
     contributors.forEach(
         contributor -> {
-          String contribution = contributor.contributeSystemPrompt(executionContext, agentContext);
+          String contribution = contributor.contribute(executionContext, agentContext);
           if (StringUtils.isNotBlank(contribution)) {
             composed.add(contribution);
             LOGGER.debug(

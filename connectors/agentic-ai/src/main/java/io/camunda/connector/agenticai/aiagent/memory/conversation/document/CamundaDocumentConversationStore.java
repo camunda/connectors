@@ -52,7 +52,7 @@ public class CamundaDocumentConversationStore implements ConversationStore {
   public ConversationSession createSession(
       AgentExecutionContext executionContext, AgentContext agentContext) {
     final var config =
-        Optional.ofNullable(executionContext.memory())
+        Optional.ofNullable(executionContext.configuration().memory())
             .map(MemoryConfiguration::storage)
             .orElse(null);
 

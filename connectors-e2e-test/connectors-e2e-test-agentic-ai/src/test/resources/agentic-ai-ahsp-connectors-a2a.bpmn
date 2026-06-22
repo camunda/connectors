@@ -160,8 +160,8 @@
             <zeebe:property name="data.connection.agentCardLocation" value="/agents/agent-card.json" />
             <zeebe:property name="data.clientResponse" value="=internal_clientResponse" />
             <zeebe:property name="data.historyLength" value="3" />
-            <zeebe:property name="data.processPollingInterval" value="PT5S" />
-            <zeebe:property name="data.taskPollingInterval" value="PT5S" />
+            <zeebe:property name="data.processPollingInterval" value="PT2S" />
+            <zeebe:property name="data.taskPollingInterval" value="PT2S" />
             <zeebe:property name="activationCondition" value="=if result.kind = &#34;task&#34; then&#10;  is defined(result.status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], result.status.state))&#10;else&#10;  true" />
             <zeebe:property name="correlationKeyExpression" value="=pollingData.id" />
             <zeebe:property name="deduplicationModeManualFlag" value="false" />
@@ -183,8 +183,8 @@
             <zeebe:property name="data.connection.url" value="=a2aServerUrl" />
             <zeebe:property name="data.clientResponse" value="=internal_clientResponse" />
             <zeebe:property name="data.historyLength" value="3" />
-            <zeebe:property name="data.processPollingInterval" value="PT5S" />
-            <zeebe:property name="data.taskPollingInterval" value="PT5S" />
+            <zeebe:property name="data.processPollingInterval" value="PT2S" />
+            <zeebe:property name="data.taskPollingInterval" value="PT2S" />
             <zeebe:property name="activationCondition" value="=if result.kind = &#34;task&#34; then&#10;  is defined(result.status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], result.status.state))&#10;else&#10;  true" />
             <zeebe:property name="correlationKeyExpression" value="=pollingData.id" />
             <zeebe:property name="deduplicationModeManualFlag" value="false" />

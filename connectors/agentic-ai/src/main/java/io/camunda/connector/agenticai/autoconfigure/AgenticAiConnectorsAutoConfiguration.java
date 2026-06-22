@@ -26,12 +26,10 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaRe
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
+import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
-import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
-import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidatorImpl;
-import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
-import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
@@ -233,12 +231,6 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentLimitsValidator aiAgentLimitsValidator() {
-    return new AgentLimitsValidatorImpl();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public SystemPromptComposer aiAgentSystemPromptComposer(
       List<SystemPromptContributor> contributors) {
     return new SystemPromptComposerImpl(contributors);
@@ -253,19 +245,17 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentMessagesHandler aiAgentMessagesHandler(
-      GatewayToolHandlerRegistry gatewayToolHandlers,
-      SystemPromptComposer systemPromptComposer,
-      ToolCallResultDocumentExtractor documentExtractor) {
-    return new AgentMessagesHandlerImpl(
-        gatewayToolHandlers, systemPromptComposer, documentExtractor);
+  public AgentConversationTurnInputComposer aiAgentConversationTurnInputComposer(
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public AgentResponseHandler aiAgentResponseHandler(
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new AgentResponseHandlerImpl(objectMapper);
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
   }
 
   @Bean
@@ -276,19 +266,17 @@ public class AgenticAiConnectorsAutoConfiguration {
   public OutboundConnectorAgentRequestHandler aiAgentOutboundConnectorAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
-      AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
-      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentConversationTurnInputComposer agentConversationTurnInputComposer,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
+      SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
     return new OutboundConnectorAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
-        limitsValidator,
-        messagesHandler,
-        gatewayToolHandlers,
+        agentConversationTurnInputComposer,
         aiFrameworkAdapter,
+        systemPromptComposer,
         responseHandler,
         agentInstanceClient);
   }
@@ -312,19 +300,17 @@ public class AgenticAiConnectorsAutoConfiguration {
   public JobWorkerAgentRequestHandler aiAgentJobWorkerAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
-      AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
-      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentConversationTurnInputComposer agentConversationTurnInputComposer,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
+      SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
     return new JobWorkerAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
-        limitsValidator,
-        messagesHandler,
-        gatewayToolHandlers,
+        agentConversationTurnInputComposer,
         aiFrameworkAdapter,
+        systemPromptComposer,
         responseHandler,
         agentInstanceClient);
   }

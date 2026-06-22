@@ -49,6 +49,7 @@ public final class HiddenProperty extends Property {
         null,
         null,
         null,
+        null,
         TYPE);
   }
 
