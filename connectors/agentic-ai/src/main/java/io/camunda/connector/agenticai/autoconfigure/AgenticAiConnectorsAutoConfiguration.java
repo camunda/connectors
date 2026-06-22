@@ -74,6 +74,7 @@ import io.camunda.connector.agenticai.sandbox.internaltool.LoadSkillToolHandler;
 import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderFactory;
 import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderRegistry;
 import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
+import io.camunda.connector.agenticai.sandbox.skill.SkillsSystemPromptContributor;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
@@ -219,6 +220,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public SkillResolver skillResolver() {
     return new SkillResolver();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public SkillsSystemPromptContributor skillsSystemPromptContributor(SkillResolver skillResolver) {
+    return new SkillsSystemPromptContributor(skillResolver);
   }
 
   @Bean

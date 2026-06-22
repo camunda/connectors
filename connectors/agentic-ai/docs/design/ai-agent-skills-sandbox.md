@@ -297,14 +297,20 @@ sandbox image/template, or installed by the agent itself at runtime via `bash` (
 permits network/installs). Bundled scripts are run via `bash` — exactly the Anthropic model (scripts
 executed via bash; their code never enters the context window).
 
-**Source:** skills are **deployed resources** — each skill is a `.zip` deployed to the cluster
-(`newDeployResourceCommand().addResourceBytes(zip, "my-skill.zip")`), so it ships with the process
-deployment and inherits **versioning, tenant isolation, and deploy-permission governance**. The AI
-Agent config references the skills (by resource id/name); a skill registry resolves a reference → the
-deployed resource and fetches its bytes via the Camunda client resource API
-(`newResourceGetRequest` → `Resource{resourceId, resourceKey, version, …}`, then binary content
-fetch). This parallels how the ad-hoc tools schema already pulls process-definition XML from the
-engine. *(Not document storage — that's only used for `export_document` OUT.)*
+**Source:** skills are **Camunda Documents** — each skill is a `.zip` stored in document storage and
+referenced from the AI Agent config as a `List<Document>` (FEEL-resolved, exactly like the user-prompt
+`documents` field). A `SkillResolver` reads each document's bytes (`Document.asByteArray()`), unzips it,
+parses `SKILL.md`, and produces a `Skill`. The `export_document` OUT path uses the same document storage.
+
+> **Decision (revised from "deployed resources").** The original design routed skills through deployed
+> cluster resources (`newDeployResourceCommand().addResourceBytes(...)` + `newResourceGetRequest` /
+> resource content fetch) for versioning, tenant isolation and deploy-permission governance. This was
+> **verified infeasible**: the resource *content* endpoint is **RPA-only** — fetching a deployed `.zip`
+> returns `406 NOT_ACCEPTABLE: "Resource ... is of type 'zip', expected 'rpa'"`. Deployment succeeds and
+> metadata is readable, but the bytes cannot be fetched back for non-RPA resources. We therefore source
+> skills from **document storage**, which supports arbitrary binary content and byte retrieval. Trade-off:
+> governance shifts from deploy-permission to document-reference handling; a deployed-resource path can be
+> revisited if the platform later serves binary resource content.
 
 **Progressive disclosure:**
 
@@ -325,13 +331,13 @@ engine. *(Not document storage — that's only used for `export_document` OUT.)*
 This follows the Agent Skills client-implementation guidance
 ([agentskills.io](https://agentskills.io/client-implementation/adding-skills-support)) for the
 **cloud-hosted / sandboxed agent** case: the model cannot scan a local filesystem, so skills are
-provisioned from an external source — here, **deployed resources** in the Camunda cluster. **The model
+provisioned from an external source — here, **Camunda Documents** (document storage). **The model
 never touches Camunda; the connector is the bridge, and the model only ever sees the sandbox
 filesystem.**
 
 ```
-Camunda deployment resource (skill .zip)
-   │ (1) connector fetches resource bytes via the Camunda client (resourceKey → binary content)
+Camunda document storage (skill .zip)
+   │ (1) connector reads document bytes via Document.asByteArray()
    ▼
 Connector JVM (unzip in memory)
    │ (2) fs().writeBatch(...) → /workspace/skills/<name>/SKILL.md, scripts/, references/
@@ -343,25 +349,26 @@ Sandbox filesystem
 
 Mapped to the three progressive-disclosure tiers:
 
-- **Tier 1 — Catalog (session start).** For each configured skill the connector fetches the resource
-  zip and reads just `SKILL.md`'s frontmatter (`name`/`description`), emitting an `<available_skills>`
+- **Tier 1 — Catalog (session start).** For each configured skill the connector reads the document
+  zip and parses just `SKILL.md`'s frontmatter (`name`/`description`), emitting an `<available_skills>`
   section into the system prompt with `name`, `description`, and the **sandbox `location`** the skill
   will occupy (`/workspace/skills/<name>/SKILL.md`) so the model can resolve relative paths to
-  absolute. ~50–100 tokens/skill. (Resources are small; the zip is fetched once and the bytes can be
-  reused by `load_skill` — only the *unzip into the sandbox* and the full body are deferred to Level
-  2.) Omit the section entirely when no skills are configured.
+  absolute. ~50–100 tokens/skill. Omit the section entirely when no skills are configured.
+  *(Implemented by `SkillsSystemPromptContributor`, T7c.)*
 - **Tier 2 — Activation via `load_skill(name)`.** We use a **dedicated activation tool** rather than
   plain file-read activation *because materialization is lazy* — file-read activation would require
   eagerly unpacking every skill into the sandbox at startup. `load_skill`:
-  1. fetches the bundle from Camunda (JVM) and unzips it into `/workspace/skills/<name>/` via
+  1. reads the bundle from document storage (JVM) and unzips it into `/workspace/skills/<name>/` via
      `fs().writeBatch`,
   2. returns the `SKILL.md` **body** (frontmatter stripped), wrapped in `<skill_content name="...">`
      with the skill directory path and a `<skill_resources>` listing of bundled files (names, not
      contents),
-  3. is **idempotent** — if the skill is already materialized and in context, it returns a short
-     "already loaded" note instead of re-injecting the body.
-  The `name` parameter is constrained to an **enum of valid skill names** to prevent hallucinated
-  names.
+  3. is **idempotent** — if the skill is already materialized (its `SKILL.md` exists in the sandbox),
+     it returns a short "already loaded" note instead of re-writing files and re-injecting the body.
+  The `name` is **validated at runtime** against the per-invocation skill list (an unknown name returns
+  an error listing the valid names). *Note:* an enum-constrained schema was deferred — internal-tool
+  definitions are built once at startup, while valid skill names are per-invocation; the
+  `<available_skills>` catalog steers the model instead.
 - **Tier 3 — Resources on demand.** The model reads referenced files (REFERENCE.md, schemas) via
   `fs_read` and runs bundled scripts via `bash` — all against the sandbox FS.
   Their contents never round-trip through the connector or Camunda.
@@ -509,8 +516,9 @@ Future providers (AgentCore, Vercel, E2B, DockerSandbox for local testing) drop 
 SPI. Added to `AgentConfiguration` as `@Nullable SandboxConfiguration sandbox`;
 `sandboxConfiguration()` returns `Optional.empty()` for both `null` and `DisabledSandboxConfiguration`,
 and a present Optional only for an active provider — so the existing `isPresent()` guard in the
-initializer requires no change. A `skills` list (deployed-resource references) will be added as a
-parallel field in a follow-up task.
+initializer requires no change. A `skills` field (`@Nullable List<Document> skills`, FEEL-resolved like
+the user-prompt `documents` field) is added as a parallel field on the request data and surfaced on
+`AgentConfiguration`; skills are resolved from those documents by `SkillResolver`.
 
 ---
 
@@ -533,8 +541,8 @@ parallel field in a follow-up task.
 5. **Persistence (native)**: store the opaque `SandboxHandle` in `agentContext.properties`; `connect`
    to the same sandbox each invocation; pause on park / resume on next. *(Tier-1 doc-snapshot fallback
    for ephemeral providers is deferred to a follow-up — `exportWorkspace/importWorkspace` seam exists.)*
-6. **Skills**: `SKILL.md` parser (spec frontmatter only), a resource-backed `SkillRegistry` (resolve
-   reference → deployed resource via the Camunda client), a `SystemPromptContributor` that lists
+6. **Skills**: `SKILL.md` parser (spec frontmatter only), a document-backed `SkillResolver` (resolve a
+   `List<Document>` config field → unzip → `Skill`), a `SystemPromptContributor` that lists
    `{name, description}`, and the `load_skill` internal tool (materialize bundle → return body). No
    auto-setup, no extra tool declarations.
 7. **Config + wiring**: `SandboxConfiguration` in `AgentConfiguration`; conditional tool registration
@@ -583,9 +591,10 @@ parallel field in a follow-up task.
   `list_skills` tool).
 - **Skill setup:** not supported (not in the spec); deps handled by the sandbox image or by the agent
   at runtime.
-- **Skill source:** skills are **deployed resources** (a `.zip` per skill), referenced from the agent
-  config and fetched via the Camunda client resource API (versioned, tenant-scoped, deploy-governed) —
-  *not* document storage (which is only used for `export_document` OUT).
+- **Skill source:** skills are **Camunda Documents** (a `.zip` per skill), referenced from the agent
+  config as a FEEL-resolved `List<Document>` and read via `Document.asByteArray()`. *(Revised: the
+  deployed-resource approach was found infeasible — the resource content endpoint is RPA-only and rejects
+  `zip`. See the decision note in §6.)*
 - **Skill access model:** follows the agentskills.io cloud/sandboxed client pattern — connector fetches
   the resource zip and materializes it into the sandbox FS; model reads via `fs_read` / runs via
   `bash`; dedicated `load_skill` tool (enum-constrained, structured result) preserves laziness (§6).
@@ -701,18 +710,23 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
   returns the same FS state; Daytona `@SlowTest`: files + installed deps persist across reconnect).
 - **Size:** S–M.
 
-### T7 — Skills (SKILL.md + registry + catalog + load_skill + window pinning)
+### T7 — Skills (SKILL.md + resolver + catalog + load_skill + window pinning)
 - **Scope:** `sandbox/skill`: `SkillMdParser` (lenient frontmatter `name`/`description`; body),
-  resource-backed `SkillRegistry` (resolve a config reference → deployed resource via the Camunda
-  client `newResourceGetRequest`/search + binary content fetch; the zip is fetched once for the catalog
-  and reused), `load_skill` execution (unzip resource → `fs().writeBatch` into `/workspace/skills/<name>/`
+  document-backed `SkillResolver` (resolve a `List<Document>` config field → unzip → `Skill`;
+  zip-slip/size guards), `load_skill` execution (unzip → `fs().writeBatch` into `/workspace/skills/<name>/`
   → return structured `<skill_content>` body + `<skill_resources>`), a skills-catalog
   `SystemPromptContributor` (`<available_skills>` with sandbox `location`), and **pin activated skill
-  content** in `MessageWindowFilter` so it isn't evicted. Enum-constrained `load_skill` name; idempotent.
+  content** in `MessageWindowFilter` so it isn't evicted. `load_skill` name validated at runtime;
+  idempotent.
 - **Depends on:** T2, T3, T4.
+- **Split as delivered:** **T7a** = parser + `Skill` model + `SkillBundleReader` + `SkillResolver`
+  (✅ committed); **T7b** = `skills` config field + `InternalToolContext` + `load_skill` handler +
+  sub-loop wiring (✅ committed); **T7c** = `SkillsSystemPromptContributor` catalog (in progress).
+  **Window pinning** is deferred to a focused follow-up (the `MessageWindowFilter` assistant/tool-result
+  pairing makes it delicate; in the interim the `load_skill` result states the sandbox location so the
+  model can `fs_read` the instructions back after eviction).
 - **Acceptance:** unit tests — catalog rendered only when skills configured; `load_skill` materializes
-  bundle into fake FS and returns structured body; window filter preserves skill content; parser
-  leniency cases.
+  bundle into fake FS and returns structured body; parser leniency cases.
 - **Size:** L.
 
 ### T8 — End-to-end test + example skill
