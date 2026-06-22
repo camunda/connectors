@@ -88,8 +88,11 @@ jobs:
             [ "$pkg" = "pom" ] && continue
             case "$base" in *-base) continue;; esac
             module="${d#connectors-e2e-test/}"
-            runner=$(jq -r --arg m "$module" '.[$m] // "ubuntu-latest"' \
-              .github/workflows/e2e-runner-overrides.json)
+            runner="ubuntu-latest"
+            if [ -f .github/workflows/e2e-runner-overrides.json ]; then
+              runner=$(jq -r --arg m "$module" '.[$m] // "ubuntu-latest"' .github/workflows/e2e-runner-overrides.json)
+            fi
+            case "$runner" in ubuntu-latest|gcp-core-8-default) ;; *) runner="ubuntu-latest";; esac
             printf '{"module":"%s","runner":"%s"}\n' "$module" "$runner"
           done | jq -sc '.')
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
