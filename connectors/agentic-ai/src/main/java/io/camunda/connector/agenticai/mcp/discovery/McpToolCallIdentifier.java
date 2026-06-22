@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  * while passing the MCP tool name as part of the operation payload, together with the arguments to
  * pass to the MCP tool.
  */
-public record McpToolCallIdentifier(String elementName, String mcpToolName) {
+public record McpToolCallIdentifier(String elementId, String mcpToolName) {
   public static final String MCP_PREFIX = "MCP_";
   public static final String MCP_NAMESPACE_SEPARATOR = "___";
 
@@ -29,12 +29,12 @@ public record McpToolCallIdentifier(String elementName, String mcpToolName) {
       Pattern.compile(
           "^"
               + MCP_PREFIX
-              + "(?<elementName>\\S+?)"
+              + "(?<elementId>\\S+?)"
               + MCP_NAMESPACE_SEPARATOR
               + "(?<mcpToolName>\\S+)$");
 
   public String fullyQualifiedName() {
-    return MCP_PREFIX + elementName + MCP_NAMESPACE_SEPARATOR + mcpToolName;
+    return MCP_PREFIX + elementId + MCP_NAMESPACE_SEPARATOR + mcpToolName;
   }
 
   public static boolean isMcpToolCallIdentifier(String toolCallName) {
@@ -46,7 +46,7 @@ public record McpToolCallIdentifier(String elementName, String mcpToolName) {
     if (!matcher.matches()) {
       throw invalidToolCallNameException(toolCallName);
     }
-    return new McpToolCallIdentifier(matcher.group("elementName"), matcher.group("mcpToolName"));
+    return new McpToolCallIdentifier(matcher.group("elementId"), matcher.group("mcpToolName"));
   }
 
   private static IllegalArgumentException invalidToolCallNameException(String toolCallName) {

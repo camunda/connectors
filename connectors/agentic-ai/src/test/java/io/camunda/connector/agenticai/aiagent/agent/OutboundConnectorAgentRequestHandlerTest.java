@@ -53,6 +53,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,6 +76,7 @@ class OutboundConnectorAgentRequestHandlerTest {
   private static final Message USER_MESSAGE = userMessage("Write a haiku about the sea");
   private static final UserPromptConfiguration USER_PROMPT =
       new UserPromptConfiguration("Write a haiku about the sea", List.of());
+  private static final Duration EXECUTION_TIME = Duration.ofMillis(123);
 
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
@@ -339,6 +341,7 @@ class OutboundConnectorAgentRequestHandlerTest {
                     .status(AgentInstanceUpdateStatus.IDLE)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
+    verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completes — no additional agent instance calls
@@ -376,6 +379,7 @@ class OutboundConnectorAgentRequestHandlerTest {
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
                     .build()));
+    verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completes — no additional agent instance calls
@@ -457,15 +461,34 @@ class OutboundConnectorAgentRequestHandlerTest {
         .orElse(null);
   }
 
+  private void verifyHistoryItemsCreated() {
+    verify(agentInstanceClient)
+        .createHistoryForInputMessages(eq(agentExecutionContext), any(), any());
+    verify(agentInstanceClient)
+        .createHistoryForAssistantMessage(eq(agentExecutionContext), any(), any());
+  }
+
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
+    final var metrics =
+        new AgentMetrics(
+            1,
+            new TokenUsage(10, 20),
+            assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size(),
+            EXECUTION_TIME);
     doReturn(
             new TestFrameworkChatResponse(
-                assistantMessage, new TokenUsage(10, 20), Map.of("message", assistantMessage)))
+                assistantMessage, metrics, Map.of("message", assistantMessage)))
         .when(framework)
-        .executeChatRequest(eq(agentExecutionContext), snapshotCaptor.capture());
+        .executeMeasuringTime(eq(agentExecutionContext), snapshotCaptor.capture());
   }
 
   private record TestFrameworkChatResponse(
-      AssistantMessage assistantMessage, TokenUsage tokenUsage, Map<String, Object> rawChatResponse)
-      implements AiFrameworkChatResponse<Map<String, Object>> {}
+      AssistantMessage assistantMessage, AgentMetrics metrics, Map<String, Object> rawChatResponse)
+      implements AiFrameworkChatResponse<Map<String, Object>> {
+    @Override
+    public TestFrameworkChatResponse withExecutionTimeMetrics(Duration executionTime) {
+      return new TestFrameworkChatResponse(
+          assistantMessage, metrics.withExecutionTime(executionTime), rawChatResponse);
+    }
+  }
 }

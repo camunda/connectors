@@ -308,14 +308,14 @@ class AgentConversationTurnInputComposerImplTest {
 
   @Test
   void transformsToolCallResultsViaGatewayToolHandlerRegistry() {
-    // the composer must use the gateway-transformed results, not the raw input results
+    // the registry is also responsible for annotating elementId; mock returns results with it set
     var transformedResults =
         TOOL_CALL_RESULTS.stream()
             .map(
                 r ->
                     r.name().equals("getWeather")
-                        ? r.withContent("TRANSFORMED: " + r.content())
-                        : r)
+                        ? r.withContent("TRANSFORMED: " + r.content()).withElementId(r.name())
+                        : r.withElementId(r.name()))
             .toList();
     when(gatewayToolHandlers.transformToolCallResults(CTX_WITH_CONVERSATION, TOOL_CALL_RESULTS))
         .thenReturn(transformedResults);

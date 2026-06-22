@@ -21,6 +21,7 @@ import org.springframework.lang.Nullable;
 public record ToolCallResult(
     @Nullable String id,
     @Nullable String name,
+    @Nullable String elementId,
     @Nullable Object content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @JsonAnySetter @JsonAnyGetter
         Map<String, Object> properties)

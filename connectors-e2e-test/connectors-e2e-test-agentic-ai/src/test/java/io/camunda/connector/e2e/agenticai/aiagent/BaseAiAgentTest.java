@@ -24,6 +24,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
@@ -221,6 +222,26 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
     for (int i = 0; i < expectedMessages.length; i++) {
       expectedMessages[i].assertMatches(i, messages.get(i));
     }
+  }
+
+  /**
+   * Verifies on the engine that the agent instance is retrievable by key from secondary storage
+   * (RDBMS, eventually consistent) with its create-time definition, proving the {@code create}
+   * command landed on the broker and was indexed. Accumulated metrics / final status are verified
+   * via the {@code agentInstanceClient} spy, not here.
+   */
+  protected void assertAgentInstanceCreatedOnEngine(long agentInstanceKey, String expectedModel) {
+    await()
+        .alias("agent instance via REST get-by-key")
+        .atMost(Duration.ofSeconds(30))
+        .untilAsserted(
+            () -> {
+              final var agentInstance =
+                  camundaClient.newAgentInstanceGetRequest(agentInstanceKey).execute();
+              assertThat(agentInstance.getAgentInstanceKey()).isEqualTo(agentInstanceKey);
+              assertThat(agentInstance.getDefinition().getModel()).isEqualTo(expectedModel);
+              assertThat(agentInstance.getStatus()).isNotNull();
+            });
   }
 
   // ---------------------------------------------------------------------------

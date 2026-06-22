@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
@@ -177,10 +178,23 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public AgentInstanceHistoryMapper agentInstanceHistoryMapper(
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentInstanceHistoryMapper(objectMapper, gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentInstanceClient agentInstanceClient(
-      CamundaClient camundaClient, AgenticAiConnectorsConfigurationProperties configuration) {
+      CamundaClient camundaClient,
+      AgenticAiConnectorsConfigurationProperties configuration,
+      AgentInstanceHistoryMapper historyMapper) {
     return new CamundaAgentInstanceClient(
-        camundaClient, configuration.aiagent().agentInstance().retries(), Sleeper.threadSleep());
+        camundaClient,
+        configuration.aiagent().agentInstance().retries(),
+        Sleeper.threadSleep(),
+        historyMapper);
   }
 
   @Bean

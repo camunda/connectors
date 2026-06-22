@@ -1007,6 +1007,9 @@ On tool call iteration (tool calls present):
 | `ERROR_CODE_FAILED_MODEL_CALL`                          | `FAILED_MODEL_CALL`                            | `Langchain4JAiFrameworkAdapter` — any exception from `ChatModel.chat()`        |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | `AgentToolsResolverImpl` — existing tools removed after migration              |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`  | `AgentToolsResolverImpl` — gateway tools added/removed after migration         |
+| `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | `CamundaAgentInstanceClient.create` — retries exhausted or non-retryable error |
+| `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | `CamundaAgentInstanceClient.update` — retries exhausted or non-retryable error |
+| `ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED`         | `AGENT_INSTANCE_HISTORY_ITEM_FAILED`           | `CamundaAgentInstanceClient.createHistoryFor*` — retries exhausted or non-retryable error |
 
 Additional errors from `CamundaClientProcessDefinitionAdHocToolElementsResolver`:
 - `AD_HOC_SUB_PROCESS_NOT_FOUND` — element ID doesn't resolve to an `AdHocSubProcess` in BPMN
@@ -1521,3 +1524,54 @@ connector behavior, element template properties, or data model shapes, update th
 
 - **`ad-hoc-tools-schema/`**: Direct use of the Ad-Hoc Tools Schema Resolver
   - For custom LLM connectors that want to leverage AHSP tool metadata without the full AI Agent
+
+---
+
+## 23. Agent Instance Integration
+
+The agent reports its lifecycle to the engine's **agent instance** API via `AgentInstanceClient`
+(`CamundaAgentInstanceClient`). All calls silently skip when the `agentInstanceKey` is `null` (agents
+that pre-date the feature) and retry transient failures via `CamundaApiRetry`. A `404` is treated as
+**retryable** for updates and history items, because a freshly created agent instance may not yet be
+visible to follow-up calls (eventual consistency).
+
+### Status & metrics
+
+- **Status** (`AgentInstanceUpdateStatus`): `THINKING` is sent synchronously before the LLM call;
+  `IDLE`/`TOOL_CALLING` after, `TOOL_DISCOVERY` on the discovery path.
+- **Metrics delta**: per-turn `modelCalls`, `inputTokens`, `outputTokens`, `toolCalls` are sent on or
+  after job completion (synchronously on terminal turns, deferred via a completion listener on
+  intermediate tool-call turns).
+
+### Conversation history items
+
+During `BaseAgentRequestHandler.proceed`, the agent appends conversation history items around the LLM
+call (`POST /v2/agent-instances/{key}/history` via `newCreateAgentHistoryItemCommand`):
+
+- **Before the chat request** — `createHistoryForInputMessages(turn)` emits history items for the
+  current turn's new input messages: a `UserMessage` → one `USER` item (covers the user prompt, event
+  messages, and virtual document-reference messages); a `ToolCallResultMessage` → **one `TOOL_RESULT`
+  item per result**, each with that result's content block(s) and a single-entry `toolCalls` array
+  `{toolCallId: result.id(), toolName: result.name(), elementId, arguments: {}}` correlating it back
+  to the originating tool call.
+- **After the chat request** — `createHistoryForAssistantMessage(turn)` emits one `ASSISTANT` item with
+  the assistant text, the assistant's `toolCalls`, and per-call `metrics` (input/output tokens +
+  `durationMs`, measured via `AiFrameworkAdapter.executeMeasuringTime` and carried on the turn's
+  `AgentMetrics.executionTime`). Empty assistant content (tool-only turns) falls back to a single
+  `"No content"` text block, since the API rejects empty content.
+
+Each `toolCalls` entry carries the BPMN **`elementId`** alongside the (LLM-visible, possibly
+namespaced) `toolName`. For tool results it is resolved once on the model in
+`AgentConversationTurnInputComposerImpl` (`ToolCallResult.elementId`) and read directly; for assistant
+tool calls the mapper resolves it from the namespaced name via `GatewayToolHandlerRegistry.resolveElementId`.
+For ad-hoc tools the element id equals the tool name; for gateway tools (MCP/A2A) it is the BPMN
+gateway element id parsed from the namespaced name.
+
+Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text), and
+`DocumentContent` → a document reference block (Camunda documents only; external document references
+currently fall back to an object/text block — see follow-ups). The item carries the current turn's
+`iterationKey` and the active `jobKey`; the engine discards superseded/non-completed items by
+observing job completion (`jobLease` enforcement is a planned follow-up, camunda/camunda#55033).
+
+Failures to write a history item are **fatal** to the turn (propagated after retries), unlike the
+best-effort metrics updates.
