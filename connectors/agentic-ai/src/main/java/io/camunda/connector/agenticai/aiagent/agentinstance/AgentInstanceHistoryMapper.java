@@ -89,14 +89,17 @@ public class AgentInstanceHistoryMapper {
   }
 
   private InputHistoryItem toolResultHistoryItem(ToolCallResult result) {
+    // tool-call result id/name are nullable on the model (and partial/malformed results may omit
+    // them); default to empty strings, which the client model accepts
     return new InputHistoryItem(
         AgentHistoryRole.TOOL_RESULT,
         ensureNonEmpty(List.of(toolResultBlock(result.content()))),
         List.of(
             new AgentHistoryToolCall()
-                .toolCallId(result.id())
-                .toolName(result.name())
-                .elementId(elementIdFor(result.elementId(), result.name()))
+                .toolCallId(StringUtils.defaultString(result.id()))
+                .toolName(StringUtils.defaultString(result.name()))
+                .elementId(
+                    StringUtils.defaultString(elementIdFor(result.elementId(), result.name())))
                 .arguments(Map.of())));
   }
 
@@ -131,9 +134,12 @@ public class AgentInstanceHistoryMapper {
    * elementId} carried on the model (tool call results); otherwise derives it from the (namespaced)
    * tool name via the gateway handlers, falling back to the name itself for ad-hoc tools.
    */
-  private String elementIdFor(@Nullable String elementId, String toolName) {
+  private @Nullable String elementIdFor(@Nullable String elementId, @Nullable String toolName) {
     if (elementId != null) {
       return elementId;
+    }
+    if (toolName == null) {
+      return null;
     }
     return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);
   }

@@ -206,6 +206,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
    * without re-resolving.
    */
   private ToolCallResult withResolvedElementId(ToolCallResult result) {
+    if (result.name() == null) {
+      return result;
+    }
     return result.withElementId(
         gatewayToolHandlers.resolveElementId(result.name()).orElse(result.name()));
   }

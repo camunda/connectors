@@ -492,6 +492,38 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
+    void shouldDefaultNullToolResultIdNameAndElementIdToEmptyStrings() {
+      givenHistoryCommand();
+
+      // a partial/malformed tool result missing its name must not fail the turn
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(
+                  ToolCallResultMessage.builder()
+                      .results(List.of(ToolCallResult.builder().content("partial").build()))
+                      .build()),
+              null,
+              AgentMetrics.empty());
+
+      // when / then: no NPE, empty-string identifiers
+      client.createHistoryForInputMessages(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
+
+      final ArgumentCaptor<List<AgentHistoryToolCall>> toolCallsCaptor =
+          ArgumentCaptor.forClass(List.class);
+      verify(historyCommand).toolCalls(toolCallsCaptor.capture());
+      assertThat(toolCallsCaptor.getValue())
+          .singleElement()
+          .satisfies(
+              tc -> {
+                assertThat(tc.getToolCallId()).isEmpty();
+                assertThat(tc.getToolName()).isEmpty();
+                assertThat(tc.getElementId()).isEmpty();
+              });
+    }
+
+    @Test
     void shouldMapObjectContentToObjectBlock() {
       givenHistoryCommand();
 
