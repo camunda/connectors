@@ -115,13 +115,10 @@ class CamundaAgentInstanceClientTest {
   @BeforeEach
   void setUp() {
     recordedSleeps = new ArrayList<>();
+    var historyMapper = new AgentInstanceHistoryMapper(new ObjectMapper(), gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
-            camundaClient,
-            RETRIES_CONFIGURATION,
-            recordedSleeps::add,
-            new ObjectMapper(),
-            gatewayToolHandlers);
+            camundaClient, RETRIES_CONFIGURATION, recordedSleeps::add, historyMapper);
   }
 
   private void givenCreateCommand() {
@@ -382,9 +379,7 @@ class CamundaAgentInstanceClientTest {
   @Nested
   class HistoryItems {
 
-    @SuppressWarnings("unchecked")
-    private final ArgumentCaptor<List<AgentHistoryContent>> contentCaptor =
-        ArgumentCaptor.forClass(List.class);
+    @Captor private ArgumentCaptor<List<AgentHistoryContent>> contentCaptor;
 
     @Test
     void shouldCreateUserHistoryItemBeforeChat() {

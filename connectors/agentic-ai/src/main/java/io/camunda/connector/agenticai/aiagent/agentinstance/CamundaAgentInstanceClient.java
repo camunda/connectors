@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryContent;
 import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryMetrics;
@@ -20,7 +19,6 @@ import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.CreateAg
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -47,12 +45,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       CamundaClient camundaClient,
       RetriesProperties retriesProperties,
       Sleeper sleeper,
-      ObjectMapper objectMapper,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
+      AgentInstanceHistoryMapper historyMapper) {
     this.camundaClient = camundaClient;
     this.retriesProperties = retriesProperties;
     this.sleeper = sleeper;
-    this.historyMapper = new AgentInstanceHistoryMapper(objectMapper, gatewayToolHandlers);
+    this.historyMapper = historyMapper;
   }
 
   @Override
