@@ -27,7 +27,6 @@ import io.camunda.connector.appintegrations.model.auth.ApiKeyAuthentication;
 import io.camunda.connector.appintegrations.model.auth.AppIntegrationsAuthentication;
 import io.camunda.connector.appintegrations.model.auth.OAuthAuthentication;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
@@ -82,24 +81,22 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
   private static final String CLUSTER_ID_HEADER = "X-Cluster-Id";
   private static final String API_KEY_HEADER = "X-API-KEY";
 
-  // All HTTP calls — the backend POST and the OAuth client-credentials token fetch — go
-  // through the connector SDK's HttpClient (CustomApacheHttpClient), so the connector shares
-  // the SDK's transport (timeouts, proxy support, TLS) and OAuth token cache rather than
-  // maintaining a second HTTP stack.
+  // All HTTP calls go through the connector SDK's HttpClient (CustomApacheHttpClient), so the
+  // connector shares the SDK's transport (timeouts, proxy support, TLS). OAuth is delegated to the
+  // client as well: setting the authentication on the request makes execute() fetch, cache (shared
+  // OAuth token cache) and attach the client-credentials token, rather than maintaining a second
+  // HTTP stack or re-implementing token acquisition.
   private final ObjectMapper objectMapper;
   private final HttpClient httpClient;
-  private final OAuthService oAuthService;
 
   public AppIntegrationsConnector() {
     this.objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     this.httpClient = new CustomApacheHttpClient();
-    this.oAuthService = new OAuthService();
   }
 
   AppIntegrationsConnector(ObjectMapper objectMapper, HttpClient httpClient) {
     this.objectMapper = objectMapper;
     this.httpClient = httpClient;
-    this.oAuthService = new OAuthService();
   }
 
   @Operation(id = "sendMessage", name = "Send Message")
@@ -199,7 +196,9 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
       String baseUrl, String path, String body, AppIntegrationsAuthentication auth) {
     var headers = new HashMap<String, String>();
     headers.put("Content-Type", "application/json");
-    applyAuthentication(headers, auth);
+    if (auth instanceof ApiKeyAuthentication apiKey) {
+      headers.put(API_KEY_HEADER, apiKey.apiKey());
+    }
     applyContextHeaders(headers);
 
     var request = new HttpClientRequest();
@@ -209,44 +208,19 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
     request.setBody(body);
     request.setConnectionTimeoutInSeconds(REQUEST_TIMEOUT_SECONDS);
     request.setReadTimeoutInSeconds(REQUEST_TIMEOUT_SECONDS);
+    // OAuth is delegated to the SDK HttpClient: execute() fetches, caches and attaches the
+    // client-credentials token (shared OAuth token cache), the same way the HTTP connector does.
+    if (auth instanceof OAuthAuthentication oauth) {
+      request.setAuthentication(toClientAuthentication(oauth));
+    }
 
     return httpClient.execute(request, ResponseMappers.asString());
   }
 
   /**
-   * Applies the configured authentication to the outbound request headers: a shared API key via the
-   * {@code X-API-KEY} header, or an OAuth 2.0 client-credentials access token via the {@code
-   * Authorization} header.
-   */
-  private void applyAuthentication(
-      Map<String, String> headers, AppIntegrationsAuthentication auth) {
-    switch (auth) {
-      case ApiKeyAuthentication apiKey -> headers.put(API_KEY_HEADER, apiKey.apiKey());
-      case OAuthAuthentication oauth ->
-          headers.put("Authorization", "Bearer " + fetchOAuthToken(oauth));
-    }
-  }
-
-  /**
-   * Fetches (and caches) an OAuth 2.0 client-credentials access token using the shared connector
-   * SDK token cache, so token acquisition, caching and proactive reuse are handled consistently
-   * across connectors.
-   */
-  private String fetchOAuthToken(OAuthAuthentication oauth) {
-    var clientAuth = toClientAuthentication(oauth);
-    return OAuthTokenCacheHolder.get()
-        .getOrFetch(
-            clientAuth,
-            () ->
-                httpClient
-                    .execute(
-                        oAuthService.createOAuthRequestFrom(clientAuth),
-                        oAuthService::extractTokenFromResponse)
-                    .entity());
-  }
-
-  /**
-   * Maps the connector's OAuth model onto the HTTP client SDK model consumed by the token cache.
+   * Maps the connector's OAuth model onto the HTTP client SDK model. Set on the request, it lets
+   * the SDK HttpClient fetch, cache and attach the client-credentials token; it is also the key
+   * used to invalidate the cached token on a 401.
    */
   private io.camunda.connector.http.client.model.auth.OAuthAuthentication toClientAuthentication(
       OAuthAuthentication oauth) {
