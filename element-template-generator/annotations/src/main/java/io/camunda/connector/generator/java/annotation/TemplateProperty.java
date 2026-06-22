@@ -132,6 +132,7 @@ public @interface TemplateProperty {
     Hidden,
     String,
     Text,
+    Credential,
     Unknown
   }
 

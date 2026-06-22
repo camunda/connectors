@@ -52,6 +52,16 @@ public @interface ElementTemplate {
   ExtensionProperty[] extensionProperties() default {};
 
   /**
+   * Credential schema classes to embed in the generated element template.
+   *
+   * <p>Each referenced class must be annotated with {@link CredentialSchema}. Its {@link
+   * TemplateProperty}-annotated fields are walked to produce the embedded schema's field list, and
+   * the {@link CredentialSchema#id()} / {@link CredentialSchema#version()} / {@link
+   * CredentialSchema#label()} become the schema's {@code id} / {@code version} / {@code label}.
+   */
+  Class<?>[] credentialSchemas() default {};
+
+  /**
    * Element template version. The version should be incremented every time the template is changed
    * to make use of the version upgrade mechanism in Camunda Modeler.
    *

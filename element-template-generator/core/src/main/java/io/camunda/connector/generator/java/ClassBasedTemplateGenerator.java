@@ -203,6 +203,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
           template.engineVersion() + " is not a valid semantic version");
     }
 
+    var credentialSchemas = buildCredentialSchemas(template, context);
+
     return context.elementTypes().stream()
         .map(
             elementType -> {
@@ -236,6 +238,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                           mergedGroups, context, elementType, configuration, template))
                   .steps(stepTree.steps())
                   .presets(stepTree.presets())
+                  .credentialSchemas(credentialSchemas)
                   .build();
             })
         .toList();
@@ -308,6 +311,35 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
               template.defaultResultVariable(), template.defaultResultExpression()));
     }
     return newGroups;
+  }
+
+  private List<CredentialSchema> buildCredentialSchemas(
+      ElementTemplate template, TemplateGenerationContext context) {
+    return Arrays.stream(template.credentialSchemas())
+        .map(
+            schemaClass -> {
+              var schemaAnnotation =
+                  schemaClass.getAnnotation(
+                      io.camunda.connector.generator.java.annotation.CredentialSchema.class);
+              if (schemaAnnotation == null) {
+                throw new IllegalArgumentException(
+                    "Class "
+                        + schemaClass.getName()
+                        + " referenced in @ElementTemplate.credentialSchemas() must be annotated"
+                        + " with @CredentialSchema");
+              }
+              var schemaProperties =
+                  TemplatePropertiesUtil.extractTemplatePropertiesFromType(schemaClass, context)
+                      .stream()
+                      .map(PropertyBuilder::build)
+                      .toList();
+              return new CredentialSchema(
+                  schemaAnnotation.id(),
+                  schemaAnnotation.version(),
+                  schemaAnnotation.label().isBlank() ? null : schemaAnnotation.label(),
+                  schemaProperties);
+            })
+        .toList();
   }
 
   private List<PropertyBuilder> generateExtensionProperties(ElementTemplate template) {
