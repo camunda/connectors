@@ -5,7 +5,7 @@
   "description" : "Invoke REST API",
   "keywords" : [ "HTTP", "REST", "API call", "web request", "GET", "POST", "PUT", "PATCH", "DELETE", "fetch data", "send request", "invoke API" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 14,
+  "version" : 15,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -20,6 +20,9 @@
   "groups" : [ {
     "id" : "authentication",
     "label" : "Authentication"
+  }, {
+    "id" : "tls",
+    "label" : "Client certificate (mTLS)"
   }, {
     "id" : "endpoint",
     "label" : "HTTP endpoint"
@@ -424,6 +427,54 @@
     },
     "type" : "String"
   }, {
+    "id" : "clientTls.clientCertificate",
+    "label" : "Client certificate (PEM)",
+    "description" : "PEM-encoded client certificate chain presented to the server for mTLS. Provide together with the private key.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.clientCertificate",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "clientTls.clientPrivateKey",
+    "label" : "Client private key (PEM)",
+    "description" : "PEM-encoded private key (PKCS#1, PKCS#8 or EC), optionally encrypted.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.clientPrivateKey",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "clientTls.privateKeyPassword",
+    "label" : "Private key password",
+    "description" : "Password protecting the private key. Leave empty if it is not encrypted.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.privateKeyPassword",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "clientTls.trustedCertificate",
+    "label" : "Trusted CA certificate (PEM)",
+    "description" : "Optional PEM-encoded CA certificate(s) used to validate the server. If empty, the JVM's default trust store is used.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.trustedCertificate",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
     "id" : "method",
     "label" : "Method",
     "optional" : false,
@@ -611,7 +662,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "14",
+    "value" : "15",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
