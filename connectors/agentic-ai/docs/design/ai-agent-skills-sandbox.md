@@ -12,28 +12,34 @@ pluggable, sandbox-first execution environment.
 
 ## 1. Problem & goals
 
-We want the AI Agent to be substantially more capable: able to run *skills* that bundle instructions
-plus scripts/CLIs, write and run its own code, and read/write/search files — the way a coding agent
-works. Three concrete capabilities:
+We want the AI Agent to be substantially more capable: able to run arbitrary scripts/CLIs, write and
+run its own code, read/write files, and drive *skills* that bundle instructions plus scripts — the way
+a coding agent works. Four concrete capabilities:
 
-1. **Lazy skill loading** — an *internal* skill tool (not orchestrated through the ad-hoc sub-process)
+1. **Generic script/CLI execution** — a `bash` tool that runs arbitrary shell commands in the sandbox
+   (pipes, redirects, globs — e.g. `curl … | jq`, `grep -rn … .`). This is the primary execution
+   primitive; the agent writes a file and runs it via `bash` rather than via a separate code tool.
+2. **Virtual filesystem** — the agent can `read` and `write` files that persist across its reasoning
+   (search/list are done via `bash` — `grep`/`find`/`ls`).
+3. **Lazy skill loading** — an *internal* skill tool (not orchestrated through the ad-hoc sub-process)
    so the model discovers skills cheaply and loads full instructions/scripts only on demand
-   (progressive disclosure, à la Anthropic "Agent Skills").
-2. **Virtual filesystem** — the agent can `write`, `read`, `list`, and `search` files that persist
-   across the agent's reasoning.
-3. **Code execution** — run code the agent writes *and* scripts/CLIs that skills ship.
+   (progressive disclosure, à la Anthropic "Agent Skills"). Skill scripts run via `bash`.
+4. **Document export (OUT)** — an `export_document` tool turns a workspace artifact (e.g. a generated
+   `report.pdf`) into a Camunda **Document** so it escapes the sandbox into the process.
 
 ### Hard invariants (from design review)
 
-- **Sandbox-first, always.** Code and skill scripts are **never** executed in the connector/JVM
-  process. Execution only ever happens in an isolated sandbox. Two non-cloud implementations are
-  allowed: a **local Docker executor** (a real container sandbox running on a local/remote Docker
-  daemon — for local development and testing) and an **in-memory fake** (for unit tests; simulates
-  the FS, runs nothing). Neither executes inside the connector JVM.
+- **Sandbox-first, always.** Commands, code and skill scripts are **never** executed in the
+  connector/JVM process. Execution only ever happens in an isolated sandbox. Two non-cloud
+  implementations are allowed: a **local Docker executor** (a real container sandbox running on a
+  local/remote Docker daemon — for local development and testing) and an **in-memory fake** (for unit
+  tests; simulates the FS, runs nothing). Neither executes inside the connector JVM. There is **no
+  connector-side command filtering** — the sandbox boundary is the trust boundary; what `bash` may run
+  (and reach on the network) is the sandbox's policy.
 - **Bring-your-own-sandbox, optional.** The sandbox provider + credentials are configured on the AI
   Agent config (sealed interface + discriminator, like the existing `Authentication` / memory-backend
-  pattern). **If no sandbox is configured, the three internal tool families are simply not registered**
-  and the agent behaves exactly as it does today.
+  pattern). **If no sandbox is configured, the internal tools (`bash`, `fs_read`, `fs_write`,
+  `export_document`, `load_skill`) are simply not registered** and the agent behaves exactly as today.
 - **Provider-agnostic.** Target a `SandboxProvider` SPI from day one. The **first concrete adapter is
   Daytona** (locked) — chosen for ease of start: it has an **official Java SDK** (`io.daytona:sdk`,
   Java 11+) and provides durable, **indefinitely-retained** workspace persistence (see §5) that
@@ -170,16 +176,30 @@ public enum SandboxCapability {
 
 public interface SandboxSession extends AutoCloseable {
   SandboxHandle handle();          // opaque, serializable -> stored in agentContext.properties
-  ExecResult exec(ExecRequest req);            // ExecKind {COMMAND, CODE} + optional language
+  ExecResult exec(ExecRequest req);            // shell command (bash -lc); see ExecRequest below
   SandboxFileSystem fs();
   void terminate();
   default void close() { terminate(); }        // default: tear down; persistent strategies override
 }
 
+// Shell-only exec — the agent's `bash` tool maps straight onto this. No ExecKind/CODE mode:
+// run_code is gone, so code execution = fs.write(script) + exec("python script.py").
+record ExecRequest(String command,            // run as `bash -lc "<command>"` (pipes/redirects/globs)
+                   @Nullable String cwd,       // default workspace root
+                   @Nullable Map<String,String> env,
+                   int timeoutSeconds,         // per-call wall clock
+                   long maxOutputBytes) {}     // stdout/stderr cap (truncate beyond)
+record ExecResult(int exitCode, String stdout, String stderr,
+                  boolean truncated) {}        // stdout/stderr are UTF-8 text; binary detected upstream
+
 public interface SandboxFileSystem {
+  // read() returns raw bytes (binary-capable); the fs_read tool renders text + a marker for binary.
   byte[] read(String path);
+  FileInfo stat(String path);                  // size + detected contentType + isBinary (for export)
   void write(String path, byte[] content);
   void writeBatch(List<FileEntry> entries);
+  // list/search are NOT exposed as LLM tools (the agent uses `ls`/`grep`/`find` via bash); they exist
+  // for the connector's own use: skill materialization, workspace inspection, document export.
   List<FileInfo> list(String path);
   void delete(String path, boolean recursive);
   default List<Match> search(String dir, String pattern) { throw new UnsupportedOperationException(); }
@@ -195,8 +215,9 @@ interface Templatable { TemplateRef buildTemplate(TemplateSpec spec); }
 - **`SandboxHandle` is the linchpin** for the distributed loop: `{providerId, sessionId, snapshotRef?}`,
   serialized into `agentContext.properties` between turns; `connect(handle)` reattaches from any
   invocation.
-- `ExecRequest` carries `ExecKind {COMMAND, CODE}` + `language` — maps onto AgentCore's
-  `executeCommand`/`executeCode`, E2B's `commands.run`/`run_code`, Daytona's `exec`/`run_code`.
+- `exec` is **shell-only** (`bash -lc`) — maps onto AgentCore's `executeCommand`, E2B's
+  `commands.run`, Daytona's `process.executeCommand`. Provider-native code-run (`executeCode`/`codeRun`)
+  is intentionally *not* in the SPI; revisit only if write+bash proves insufficient.
 - Capabilities with no public Java API (e.g. Modal) would sit behind a sidecar adapter — same SPI.
 
 ### Module layout (decided)
@@ -272,9 +293,9 @@ description: Extract, merge and fill PDF forms. Use when working with PDF files,
 ```
 
 Dependencies are the responsibility of the **sandbox environment**: either pre-installed in the
-sandbox image/template, or installed by the agent itself at runtime via `run_command` (when the
-sandbox permits network/installs). Bundled scripts are run via `run_command` / `run_code` — exactly
-the Anthropic model (scripts executed via bash; their code never enters the context window).
+sandbox image/template, or installed by the agent itself at runtime via `bash` (when the sandbox
+permits network/installs). Bundled scripts are run via `bash` — exactly the Anthropic model (scripts
+executed via bash; their code never enters the context window).
 
 **Source:** skills are uploaded as Camunda **documents** and referenced from the AI Agent config. A
 skill registry resolves a skill name → its document bundle.
@@ -289,7 +310,7 @@ skill registry resolves a skill name → its document bundle.
   the document is only downloaded when the model decides to use the skill) and returns the `SKILL.md`
   body as the tool result. It does **not** install deps and does **not** declare extra LLM tools.
 - **Level 3 (as needed):** the model reads further bundled files via `fs_read` and runs bundled
-  scripts via `run_command` / `run_code`.
+  scripts via `bash`.
 
 `load_skill` is an **internal tool** executed in the in-process sub-loop — never an AHSP element.
 
@@ -309,7 +330,7 @@ Connector JVM (unzip in memory)
    │ (2) fs().writeBatch(...) → /workspace/skills/<name>/SKILL.md, scripts/, references/
    ▼
 Sandbox filesystem
-   ▲ (3) the model reads/executes via in-process tools: fs_read(...) / run_command(...) / run_code(...)
+   ▲ (3) the model reads/executes via in-process tools: fs_read(...) / bash(...)
    └── the LLM
 ```
 
@@ -333,7 +354,7 @@ Mapped to the three progressive-disclosure tiers:
   The `name` parameter is constrained to an **enum of valid skill names** to prevent hallucinated
   names.
 - **Tier 3 — Resources on demand.** The model reads referenced files (REFERENCE.md, schemas) via
-  `fs_read` and runs bundled scripts via `run_command` / `run_code` — all against the sandbox FS.
+  `fs_read` and runs bundled scripts via `bash` — all against the sandbox FS.
   Their contents never round-trip through the connector or Camunda.
 
 Implementation notes (from the guide):
@@ -355,17 +376,33 @@ Implementation notes (from the guide):
 
 ## 7. Internal tool families (registered only when a sandbox is configured)
 
-| Tool | Maps to SPI |
-|---|---|
-| `fs_write(path, content)` / `fs_read(path)` / `fs_list(path)` / `fs_search(dir, pattern)` | `SandboxFileSystem` |
-| `run_code(language, code)` | `exec(ExecKind.CODE, language, code)` |
-| `run_command(command)` | `exec(ExecKind.COMMAND, command)` |
-| `load_skill(name)` | skill registry + FS (skill list itself lives in the system prompt, not a tool) |
+A deliberately **minimal** set (bash is the workhorse; search/list/run-code collapse into it):
+
+| Tool | Maps to SPI | Notes |
+|---|---|---|
+| `bash(command)` | `exec(ExecRequest)` | Run a shell command via `bash -lc` — pipes/redirects/globs (`curl … \| jq`, `grep -rn … .`). **Stateless per call** (workspace FS persists; shell-local cwd/env/bg do not). Returns `stdout`/`stderr` (UTF-8, truncated to a cap) + `exitCode`; per-call timeout. The primary execution primitive. |
+| `fs_read(path)` | `SandboxFileSystem.read` | Returns text; for a binary/oversized file returns a structured marker (size + content-type) — never raw bytes — and points at `export_document`. |
+| `fs_write(path, content)` | `SandboxFileSystem.write` | Reliable file write (no shell-escaping pain); creates parent dirs. |
+| `export_document(path)` | `fs.read` + `DocumentFactory` | Reads the workspace file's bytes and mints a Camunda **Document**, returning a `DocumentContent` (see §8a). The way binary/large artifacts escape the sandbox into the process. |
+| `load_skill(name)` | skill registry + FS | Materializes a skill bundle into the FS, returns its `SKILL.md` body (the skills catalog lives in the system prompt, not a tool). |
+
+**Dropped vs. the original sketch:** `run_code` (→ `fs_write` + `bash`, or `python -c`/heredoc),
+`fs_search` (→ `grep`/`find` via `bash`), `fs_list` (→ `ls` via `bash`). The SPI keeps `list`/`search`
+for the connector's *own* use only (skill materialization, export).
 
 Registration: `AgentToolsResolver` appends these `ToolDefinition`s iff
-`AgentConfiguration.sandbox().isPresent()`. Their names are reserved/namespaced (e.g. `_fs_read`) and
-excluded from migration/gateway handling. Generated files surface as Camunda Documents via the
-existing `ToolCallResultDocumentExtractor` path.
+`AgentConfiguration.sandbox().isPresent()`. Their names are reserved/namespaced (e.g. `_bash`) and
+excluded from migration/gateway handling.
+
+### 7a. Bounding & binary handling
+- **Output cap + timeout:** `bash` stdout/stderr are truncated to a configurable `maxOutputBytes`
+  (last-N-bytes + truncation marker) and the call has a per-invocation `timeoutSeconds`; synchronous
+  only (no background/daemon support in the PoC). Protects the LLM context window and the job.
+- **Binary never enters context:** `bash` stdout and `fs_read` are treated as UTF-8 text; binary
+  (NUL bytes / invalid UTF-8 / over cap) is detected and returned as a marker
+  (`⟨binary, 12 KB, application/pdf — use export_document⟩`). The SPI's `fs.read()` keeps the full
+  `byte[]`, and `fs.stat()` carries `size`/`contentType`/`isBinary` — so nothing is lost at the
+  connector layer; only the model is shielded.
 
 ---
 
@@ -410,6 +447,26 @@ existing path) as the observability record.
 fails/superseded mid-burst loses that burst's in-process messages locally. Acceptable for the PoC;
 incremental persistence (or #7450 streaming) addresses it later.
 
+### 8a. Document export (OUT) — in PoC scope
+
+Binary/large artifacts produced in the sandbox (a generated `report.pdf`, chart, CSV) must be able to
+**escape into the process** as Camunda Documents. This is **in scope for the PoC** because the plumbing
+already exists — almost no new infrastructure:
+
+- **Trigger: an explicit `export_document(path)` tool** (the agent decides what matters). No
+  auto-capture / workspace diffing — that adds heuristics + junk-capture risk for no PoC benefit.
+- **Mechanism:** the `InternalToolExecutor` is handed the connector's document factory
+  (`Function<DocumentCreationRequest, Document>` / `OutboundConnectorContext.create(...)` — the same
+  one `aws-bedrock-codeinterpreter` already uses). `export_document` does
+  `fs.read(path)` → `createDocument(DocumentCreationRequest.from(bytes).contentType(stat.contentType).fileName(...))`
+  → returns a `DocumentContent` in the tool result.
+- **Surfacing:** `DocumentContent` rides the existing `ToolCallResultDocumentExtractor` path, so the
+  Document lands in the conversation *and* in the final `AgentResponse` — i.e. it becomes a process
+  variable / document the downstream BPMN can consume. Reuse the codeinterpreter size/count guards.
+- **Deferred (phase 2):** the **IN** direction — materializing input Camunda Documents into
+  `/workspace/input/` so the agent can operate on uploaded files. That needs a new config concept +
+  materialization step; OUT does not, which is why only OUT is in the PoC.
+
 ---
 
 ## 9. Configuration shape
@@ -439,7 +496,7 @@ Added to `AgentConfiguration` as `@Nullable SandboxConfiguration sandbox` + a
 
 ---
 
-## 10. PoC plan (all three, thin end-to-end)
+## 10. PoC plan (thin end-to-end)
 
 1. **SPI package**: `SandboxProvider`, `SandboxSession`, `SandboxFileSystem`, `SandboxHandle`,
    `ExecRequest/Result`, `SandboxCapability` + optional interfaces. Plus two non-cloud impls: a
@@ -464,7 +521,7 @@ Added to `AgentConfiguration` as `@Nullable SandboxConfiguration sandbox` + a
 7. **Config + wiring**: `SandboxConfiguration` in `AgentConfiguration`; conditional tool registration
    in `AgentToolsResolver`; Spring wiring in `AgenticAiConnectorsAutoConfiguration`.
 8. **Tests**: unit tests with the in-memory fake / local Docker executor covering the sub-loop, skill
-   load, FS tools, and handle reconnect; one e2e with mocked LLM exercising load_skill → run_command
+   load, FS tools, and handle reconnect; one e2e with mocked LLM exercising load_skill → bash
    → final answer.
 
 ### Out of scope for the PoC (designed, deferred)
@@ -483,6 +540,19 @@ Added to `AgentConfiguration` as `@Nullable SandboxConfiguration sandbox` + a
 ## 11. Resolved decisions & remaining questions
 
 **Resolved (design review):**
+- **Tool surface (minimal):** `bash` + `fs_read` + `fs_write` + `export_document` + `load_skill`.
+  `bash` (`bash -lc`, stateless per call) is the primary execution primitive — it replaces `run_code`
+  (→ write-file + bash) and `fs_search`/`fs_list` (→ `grep`/`find`/`ls`). `fs_read`/`fs_write` stay
+  structured (no shell-escaping pain). SPI keeps `fs.list`/`search` for the connector's own use only.
+- **Command safety:** **no** connector-side allow/deny list — the sandbox boundary is the trust
+  boundary; what `bash` runs and reaches (network/egress) is the sandbox's policy.
+- **bash bounding:** output truncated to a cap + per-call timeout, synchronous only (no background).
+- **SPI exec:** shell-only (`ExecRequest{command,cwd?,env?,timeoutSeconds,maxOutputBytes}`); no
+  `ExecKind`/native code-run.
+- **Document export (OUT) — in PoC scope:** explicit `export_document(path)` tool turns a workspace
+  artifact into a Camunda Document via the existing factory + `ToolCallResultDocumentExtractor` (T10).
+  Binary never enters context (text + marker); SPI `fs.read` is `byte[]` + `fs.stat` metadata. **IN**
+  direction (input docs → FS) deferred to phase 2.
 - **Module placement:** package inside `agentic-ai` under `sandbox/*`, dependency-isolated so it lifts
   into `agentic-ai-sandbox` (+ per-provider) modules later (codebase split planned anyway).
 - **Shared AgentCore code:** copy/adapt the proven bits for the PoC; extract a shared lib at the split.
@@ -494,7 +564,7 @@ Added to `AgentConfiguration` as `@Nullable SandboxConfiguration sandbox` + a
   at runtime.
 - **Skill access model:** follows the agentskills.io cloud/sandboxed client pattern — connector fetches
   bundles from Camunda docs and materializes them into the sandbox FS; model reads via `fs_read` / runs
-  via `run_command`; dedicated `load_skill` tool (enum-constrained, structured result) preserves
+  via `bash`; dedicated `load_skill` tool (enum-constrained, structured result) preserves
   laziness (§6). Two concrete touches to *existing* code: (a) `MessageWindowFilter` must **pin/exempt
   activated skill content** from eviction; (b) the system-prompt composer gains a skills catalog
   contributor.
@@ -530,30 +600,39 @@ alignment is **out of scope**.
 
 ```
 T1 ─┬─ T2 ─┬─ T3 ─┬─ T6
-    ├─ T4 ─┘      └─ T7 ─ T8
-    └─ T5 ────────── T6
+    │      │      ├─ T7 ─┐
+    │      │      └─ T10 ┴─ T8
+    ├─ T4 ─┘
+    └─ T5 ──────────── T6
     └─ T9 (optional, parallel)
 ```
+T2 now covers `bash` + `fs_read`/`fs_write`; T7 adds `load_skill`; **T10 adds `export_document`**.
+Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9 anytime after T1).
 
 ### T1 — Sandbox SPI core + in-memory fake
 - **Scope:** `sandbox/spi`: `SandboxProvider`, `SandboxSession` (`exec`, `fs`, `handle`, `terminate`,
-  `AutoCloseable`), `SandboxFileSystem`, `SandboxHandle` (opaque, serializable), `ExecRequest`/
-  `ExecResult` (`ExecKind {COMMAND, CODE}` + language), `SandboxCapability` + optional capability
-  interfaces (`Pausable`/`Snapshotable`/`Forkable`/`Templatable`). Plus `sandbox/provider/fake`: an
-  in-memory `SandboxProvider` (simulated FS, exec returns canned/echo output; runs nothing).
+  `AutoCloseable`), `SandboxFileSystem` (incl. `stat` for size/contentType/isBinary), `SandboxHandle`
+  (opaque, serializable), `ExecRequest` (shell `command`, `cwd?`, `env?`, `timeoutSeconds`,
+  `maxOutputBytes`) / `ExecResult` (`exitCode`, `stdout`, `stderr`, `truncated`) — **shell-only, no
+  `ExecKind`**, `SandboxCapability` + optional capability interfaces
+  (`Pausable`/`Snapshotable`/`Forkable`/`Templatable`). Plus `sandbox/provider/fake`: an in-memory
+  `SandboxProvider` (simulated FS, exec returns canned/echo output; runs nothing).
 - **Depends on:** —
 - **Acceptance:** interfaces compile with no provider deps; fake supports create→write→read→list→exec→
   handle round-trip; unit tests on the fake. No changes to the agent loop yet.
 - **Size:** S–M.
 
-### T2 — Internal tool layer
-- **Scope:** `sandbox/internaltool`: `InternalToolRegistry` (produces `ToolDefinition`s for
-  `fs_read/fs_write/fs_list/fs_search`, `run_code`, `run_command`, `load_skill`) and
-  `InternalToolExecutor` (maps a `ToolCall` → `SandboxSession` calls → `ToolCallResult`, errors
-  returned as result content). Reserved/namespaced names; helper to classify a `ToolCall` as internal.
+### T2 — Internal tool layer (bash + fs_read/fs_write)
+- **Scope:** `sandbox/internaltool`: `InternalToolRegistry` + `InternalToolExecutor` framework (maps a
+  `ToolCall` → `SandboxSession` calls → `ToolCallResult`, errors returned as result content; helper to
+  classify a `ToolCall` as internal; reserved/namespaced names). Implements the core tools: **`bash`**
+  (→ `exec`, with output truncation to `maxOutputBytes` + binary-stdout marker), **`fs_read`** (text +
+  binary marker via `fs.stat`), **`fs_write`**. `load_skill` (T7) and `export_document` (T10) plug in
+  their own executors on this framework.
 - **Depends on:** T1.
-- **Acceptance:** executor dispatches each tool to the right SPI call against the fake; reserved names
-  documented; unit tests incl. error mapping (non-zero exit, missing file).
+- **Acceptance:** executor dispatches each tool to the right SPI call against the fake; truncation +
+  binary-marker behavior covered; reserved names documented; unit tests incl. error mapping (non-zero
+  exit, missing file, binary).
 - **Size:** M.
 
 ### T3 — In-process sub-loop in `BaseAgentRequestHandler.proceed()`
@@ -581,10 +660,10 @@ T1 ─┬─ T2 ─┬─ T3 ─┬─ T6
 
 ### T5 — Daytona provider adapter
 - **Scope:** `sandbox/provider/daytona`: implement `SandboxProvider` over `io.daytona:sdk` (pinned
-  `0.x`) — `create(spec)`/`connect(handle)` (= `daytona.get(id)`), `exec` (`executeCommand`/`codeRun`),
-  `fs` (upload/download/list/search/delete), `terminate`/`stop`, snapshot; capabilities
-  `FS_PERSIST_ACROSS_CONNECTIONS` + `SNAPSHOT`/`FORK`; `SandboxHandle` = sandbox id; config maps to
-  auto-stop/auto-archive.
+  `0.x`) — `create(spec)`/`connect(handle)` (= `daytona.get(id)`), `exec` (→ `process.executeCommand`,
+  shell-only), `fs` (upload/download/list/search/delete/stat), `terminate`/`stop`, snapshot;
+  capabilities `FS_PERSIST_ACROSS_CONNECTIONS` + `SNAPSHOT`/`FORK`; `SandboxHandle` = sandbox id; config
+  maps to auto-stop/auto-archive.
 - **Depends on:** T1.
 - **Acceptance:** `@SlowTest`-tagged integration test (Daytona cloud creds or self-hosted) doing
   create→write→`pip install`→run→read→`get(id)` reconnect (deps still present). Skipped when creds
@@ -614,9 +693,9 @@ T1 ─┬─ T2 ─┬─ T3 ─┬─ T6
 
 ### T8 — End-to-end test + example skill
 - **Scope:** one e2e (mocked LLM, embedded engine, fake or Daytona provider) exercising
-  `load_skill` → `run_command` → `fs_read` → final answer; a sample `SKILL.md` bundle fixture.
-- **Depends on:** T7 (and T3/T5).
-- **Acceptance:** e2e green; demonstrates all three features end-to-end.
+  `load_skill` → `bash` → `export_document` → final answer; a sample `SKILL.md` bundle fixture.
+- **Depends on:** T7, T10 (and T3/T5).
+- **Acceptance:** e2e green; demonstrates all four capabilities end-to-end.
 - **Size:** M.
 
 ### T9 — Local Docker executor *(optional, parallel)*
@@ -625,6 +704,18 @@ T1 ─┬─ T2 ─┬─ T3 ─┬─ T6
 - **Depends on:** T1.
 - **Acceptance:** create→write→exec→read against a container; opt-in (requires Docker); `@SlowTest`.
 - **Size:** M.
+
+### T10 — Document export (OUT)
+- **Scope:** `export_document(path)` internal tool: thread the connector document factory
+  (`Function<DocumentCreationRequest, Document>` / `OutboundConnectorContext.create`) into
+  `InternalToolExecutor`; read bytes via `fs.read` + `fs.stat` (contentType), mint a Camunda Document,
+  return a `DocumentContent` in the tool result so it rides the existing `ToolCallResultDocumentExtractor`
+  path into the conversation and final `AgentResponse`. Reuse codeinterpreter size/count guards.
+  (IN direction — input docs → `/workspace/input/` — is explicitly deferred.)
+- **Depends on:** T2, T3.
+- **Acceptance:** unit test — `export_document` on a workspace file yields a `DocumentContent` that the
+  extractor surfaces; size guard enforced; binary `fs_read` marker points the model here.
+- **Size:** S–M.
 
 **Suggested delivery order:** T1 → T2 → T4 → T3 → T5 → T6 → T7 → T8 (T9 anytime after T1). T1, T2, T4
 are low-risk scaffolding; T3 and T7 are the substantive pieces; T5/T6 prove real persistence.
