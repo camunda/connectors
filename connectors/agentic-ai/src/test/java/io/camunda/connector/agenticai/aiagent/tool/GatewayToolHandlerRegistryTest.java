@@ -460,16 +460,19 @@ class GatewayToolHandlerRegistryTest {
               ToolCallResult.builder()
                   .id("GatewayA1_AFirstTool_123456")
                   .name("GatewayA1_AFirstTool")
+                  .elementId("GatewayA1_AFirstTool")
                   .content(Map.of("result1", "value1"))
                   .build(),
               ToolCallResult.builder()
                   .id("GatewayA2_ASecondTool_123456")
                   .name("GatewayA2_ASecondTool")
+                  .elementId("GatewayA2_ASecondTool")
                   .content(Map.of("result2", "value2"))
                   .build(),
               ToolCallResult.builder()
                   .id("GatewayB_BFirstTool_123456")
                   .name("GatewayB_BFirstTool")
+                  .elementId("GatewayB_BFirstTool")
                   .content(Map.of("contentB", Map.of("result3", "value3")))
                   .build());
 
@@ -532,7 +535,10 @@ class GatewayToolHandlerRegistryTest {
 
         final var expectedToolCallResults =
             new ArrayList<>(EXPECTED_TRANSFORMED_GATEWAY_TOOL_CALL_RESULTS);
-        expectedToolCallResults.addAll(nonGatewayToolCallResults);
+        expectedToolCallResults.addAll(
+            nonGatewayToolCallResults.stream()
+                .map(r -> r.name() != null ? r.withElementId(r.name()) : r)
+                .toList());
 
         assertThat(transformed).containsExactlyInAnyOrderElementsOf(expectedToolCallResults);
       }

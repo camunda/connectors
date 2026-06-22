@@ -189,28 +189,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return Optional.empty();
     }
 
-    final var resultsWithElementIds =
-        orderedToolCallResults.stream().map(this::withResolvedElementId).toList();
-
     return Optional.of(
         ToolCallResultMessage.builder()
-            .results(resultsWithElementIds)
+            .results(orderedToolCallResults)
             .metadata(defaultMessageMetadata())
             .build());
-  }
-
-  /**
-   * Annotates a tool call result with its BPMN element id, resolved from the (possibly namespaced)
-   * tool name via the gateway handlers. For ad-hoc tools the name already is the element id, so it
-   * is used as-is. This makes the element id available downstream (e.g. agent-instance history)
-   * without re-resolving.
-   */
-  private ToolCallResult withResolvedElementId(ToolCallResult result) {
-    if (result.name() == null) {
-      return result;
-    }
-    return result.withElementId(
-        gatewayToolHandlers.resolveElementId(result.name()).orElse(result.name()));
   }
 
   private UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
