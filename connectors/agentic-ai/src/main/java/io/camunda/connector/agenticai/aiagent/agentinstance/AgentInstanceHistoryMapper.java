@@ -35,7 +35,7 @@ import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
-import java.util.ArrayList;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
@@ -107,16 +107,15 @@ public class AgentInstanceHistoryMapper {
     if (toolCalls == null || toolCalls.isEmpty()) {
       return null;
     }
-    final List<AgentHistoryToolCall> historyToolCalls = new ArrayList<>(toolCalls.size());
-    for (final ToolCall toolCall : toolCalls) {
-      historyToolCalls.add(
-          new AgentHistoryToolCall()
-              .toolCallId(toolCall.id())
-              .toolName(toolCall.name())
-              .elementId(elementIdFor(null, toolCall.name()))
-              .arguments(toolCall.arguments()));
-    }
-    return historyToolCalls;
+    return toolCalls.stream()
+        .map(
+            toolCall ->
+                new AgentHistoryToolCall()
+                    .toolCallId(toolCall.id())
+                    .toolName(toolCall.name())
+                    .elementId(elementIdFor(null, toolCall.name()))
+                    .arguments(toolCall.arguments()))
+        .toList();
   }
 
   /**
@@ -144,15 +143,8 @@ public class AgentInstanceHistoryMapper {
         .durationMs(durationMs);
   }
 
-  private List<AgentHistoryContent> contentBlocks(@Nullable List<Content> contents) {
-    if (contents == null) {
-      return new ArrayList<>();
-    }
-    final List<AgentHistoryContent> blocks = new ArrayList<>(contents.size());
-    for (final Content content : contents) {
-      blocks.add(toHistoryContent(content));
-    }
-    return blocks;
+  private List<AgentHistoryContent> contentBlocks(List<Content> contents) {
+    return contents.stream().map(this::toHistoryContent).toList();
   }
 
   private AgentHistoryContent toHistoryContent(Content content) {
@@ -178,7 +170,11 @@ public class AgentInstanceHistoryMapper {
     if (value instanceof Map<?, ?> map) {
       return AgentHistoryContent.object((Map<String, Object>) map);
     }
-    return AgentHistoryContent.text(toJson(value));
+    try {
+      return AgentHistoryContent.object(objectMapper.convertValue(value, Map.class));
+    } catch (IllegalArgumentException e) {
+      return AgentHistoryContent.text(toJson(value));
+    }
   }
 
   private String toJson(Object value) {
@@ -217,7 +213,7 @@ public class AgentInstanceHistoryMapper {
       throw new IllegalArgumentException(
           "External document reference requires both url and name for a history item");
     }
-    return AgentHistoryContent.object(Map.of("url", ref.url(), "name", ref.name()));
+    return objectOrText(new ExternalDocumentReferenceModel(ref.url(), ref.name()));
   }
 
   private DocumentReferenceResponseImpl toDocumentReferenceResponse(
