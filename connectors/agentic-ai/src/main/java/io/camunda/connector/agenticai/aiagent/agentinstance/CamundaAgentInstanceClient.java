@@ -20,6 +20,7 @@ import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.CreateAg
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -46,11 +47,12 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       CamundaClient camundaClient,
       RetriesProperties retriesProperties,
       Sleeper sleeper,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
     this.camundaClient = camundaClient;
     this.retriesProperties = retriesProperties;
     this.sleeper = sleeper;
-    this.historyMapper = new AgentInstanceHistoryMapper(objectMapper);
+    this.historyMapper = new AgentInstanceHistoryMapper(objectMapper, gatewayToolHandlers);
   }
 
   @Override
@@ -159,16 +161,16 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       return;
     }
     for (final Message message : turn.inputMessages()) {
-      final AgentHistoryRole role = historyMapper.roleForInputMessage(message);
-      final List<AgentHistoryContent> content = historyMapper.inputMessageContent(message);
-      createHistoryItem(
-          executionContext,
-          agentInstanceKey.value(),
-          role,
-          content,
-          turn.iterationKey(),
-          null,
-          null);
+      for (final var item : historyMapper.inputHistoryItems(message)) {
+        createHistoryItem(
+            executionContext,
+            agentInstanceKey.value(),
+            item.role(),
+            item.content(),
+            turn.iterationKey(),
+            item.toolCalls(),
+            null);
+      }
     }
   }
 

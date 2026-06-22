@@ -537,6 +537,26 @@ class GatewayToolHandlerRegistryTest {
         assertThat(transformed).containsExactlyInAnyOrderElementsOf(expectedToolCallResults);
       }
     }
+
+    @Nested
+    class ResolveElementId {
+
+      @Test
+      void resolvesElementIdViaManagingHandler() {
+        when(handlerA.isGatewayManaged("GW_myElement")).thenReturn(true);
+        when(handlerA.elementId("GW_myElement")).thenReturn("myElement");
+
+        assertThat(registry.resolveElementId("GW_myElement")).contains("myElement");
+      }
+
+      @Test
+      void returnsEmpty_whenNotGatewayManaged() {
+        when(handlerA.isGatewayManaged("plainTool")).thenReturn(false);
+        when(handlerB.isGatewayManaged("plainTool")).thenReturn(false);
+
+        assertThat(registry.resolveElementId("plainTool")).isEmpty();
+      }
+    }
   }
 
   @Nested

@@ -29,6 +29,18 @@ public interface GatewayToolHandlerRegistry extends GatewayToolCallTransformer {
     return handlerForToolDefinition(toolName).isPresent();
   }
 
+  /**
+   * Resolves the BPMN element id for a gateway-managed tool name by delegating to the handler that
+   * manages it.
+   *
+   * @param toolName the (namespaced) tool name
+   * @return the resolved element id, or empty if the tool is not gateway-managed (callers default
+   *     to the tool name, which equals the element id for ad-hoc tools)
+   */
+  default Optional<String> resolveElementId(String toolName) {
+    return handlerForToolDefinition(toolName).map(handler -> handler.elementId(toolName));
+  }
+
   Optional<GatewayToolHandler> handlerForToolDefinition(String toolName);
 
   GatewayToolDiscoveryInitiationResult initiateToolDiscovery(

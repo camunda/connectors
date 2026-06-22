@@ -22,6 +22,7 @@ public record ToolCallResult(
     @Nullable String id,
     @Nullable String name,
     @Nullable Object content,
+    @Nullable String elementId,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @JsonAnySetter @JsonAnyGetter
         Map<String, Object> properties)
     implements ToolCallResultBuilder.With {

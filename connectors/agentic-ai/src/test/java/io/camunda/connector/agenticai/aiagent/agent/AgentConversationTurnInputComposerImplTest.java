@@ -330,7 +330,10 @@ class AgentConversationTurnInputComposerImplTest {
 
     var message =
         (ToolCallResultMessage) ((CompositionResult.NextTurn) result).messages().getFirst();
-    assertThat(message.results()).containsExactlyElementsOf(transformedResults);
+    // the composer also annotates each result with its element id; for these ad-hoc tools the
+    // gateway registry resolves to empty, so the element id falls back to the tool name
+    var expected = transformedResults.stream().map(r -> r.withElementId(r.name())).toList();
+    assertThat(message.results()).containsExactlyElementsOf(expected);
   }
 
   @Test

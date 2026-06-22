@@ -67,6 +67,11 @@ class A2aGatewayToolHandlerTest {
     void returnsCorrectType() {
       assertThat(handler.type()).isEqualTo(A2A_CLIENT_GATEWAY_TYPE);
     }
+
+    @Test
+    void resolvesElementIdFromNamespacedToolName() {
+      assertThat(handler.elementId("A2A_myElement")).isEqualTo("myElement");
+    }
   }
 
   @Nested

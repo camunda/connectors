@@ -45,6 +45,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.MessageUtil;
@@ -63,6 +64,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -103,6 +105,8 @@ class CamundaAgentInstanceClientTest {
 
   private CreateAgentInstanceCommandStep5 step5;
 
+  @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
+
   private List<Duration> recordedSleeps;
   private CamundaAgentInstanceClient client;
 
@@ -111,7 +115,11 @@ class CamundaAgentInstanceClientTest {
     recordedSleeps = new ArrayList<>();
     client =
         new CamundaAgentInstanceClient(
-            camundaClient, RETRIES_CONFIGURATION, recordedSleeps::add, new ObjectMapper());
+            camundaClient,
+            RETRIES_CONFIGURATION,
+            recordedSleeps::add,
+            new ObjectMapper(),
+            gatewayToolHandlers);
   }
 
   private void givenCreateCommand() {
@@ -414,10 +422,11 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void shouldCreateOneToolResultHistoryItemPerMessageBeforeChat() {
+    void shouldCreateOneToolResultHistoryItemPerResultBeforeChat() {
       givenHistoryCommand();
 
-      // given: a single tool-call-result message carrying two results
+      // given: a single tool-call-result message carrying two results (elementId already resolved
+      // on the model upstream, == tool name for these ad-hoc tools)
       final var turn =
           new AgentConversationTurn(
               1,
@@ -429,8 +438,13 @@ class CamundaAgentInstanceClientTest {
                                   .id("a")
                                   .name("getWeather")
                                   .content("sunny")
+                                  .elementId("getWeather")
                                   .build(),
-                              ToolCallResult.builder().id("b").name("getTime").build()))
+                              ToolCallResult.builder()
+                                  .id("b")
+                                  .name("getTime")
+                                  .elementId("getTime")
+                                  .build()))
                       .build()),
               null,
               AgentMetrics.empty());
@@ -439,19 +453,42 @@ class CamundaAgentInstanceClientTest {
       client.createHistoryForInputMessages(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
-      // then: one TOOL_RESULT item with one content block per result; no tool calls linked
-      verify(historyCommand).role(AgentHistoryRole.TOOL_RESULT);
-      verify(historyCommand, never()).toolCalls(any());
-      verify(historyCommand).content(contentCaptor.capture());
-      verify(historyCommand).execute();
+      // then: one TOOL_RESULT item per result, each with its own single content block and a
+      // single-entry toolCalls array correlating it to the originating tool call
+      verify(historyCommand, times(2)).role(AgentHistoryRole.TOOL_RESULT);
+      verify(historyCommand, times(2)).iteration(1);
+      verify(historyCommand, times(2)).execute();
 
-      assertThat(contentCaptor.getValue())
-          .hasSize(2)
-          .allSatisfy(c -> assertThat(c).isInstanceOf(AgentHistoryContent.TextContent.class));
-      assertThat(((AgentHistoryContent.TextContent) contentCaptor.getValue().get(0)).getText())
+      verify(historyCommand, times(2)).content(contentCaptor.capture());
+      final var contents = contentCaptor.getAllValues();
+      assertThat(contents).hasSize(2).allSatisfy(c -> assertThat(c).hasSize(1));
+      assertThat(((AgentHistoryContent.TextContent) contents.get(0).get(0)).getText())
           .isEqualTo("sunny");
-      assertThat(((AgentHistoryContent.TextContent) contentCaptor.getValue().get(1)).getText())
+      assertThat(((AgentHistoryContent.TextContent) contents.get(1).get(0)).getText())
           .isEqualTo(ToolCallResult.CONTENT_NO_RESULT);
+
+      final ArgumentCaptor<List<AgentHistoryToolCall>> toolCallsCaptor =
+          ArgumentCaptor.forClass(List.class);
+      verify(historyCommand, times(2)).toolCalls(toolCallsCaptor.capture());
+      final var toolCalls = toolCallsCaptor.getAllValues();
+      assertThat(toolCalls.get(0))
+          .singleElement()
+          .satisfies(
+              tc -> {
+                assertThat(tc.getToolCallId()).isEqualTo("a");
+                assertThat(tc.getToolName()).isEqualTo("getWeather");
+                assertThat(tc.getElementId()).isEqualTo("getWeather");
+                assertThat(tc.getArguments()).isEmpty();
+              });
+      assertThat(toolCalls.get(1))
+          .singleElement()
+          .satisfies(
+              tc -> {
+                assertThat(tc.getToolCallId()).isEqualTo("b");
+                assertThat(tc.getToolName()).isEqualTo("getTime");
+                assertThat(tc.getElementId()).isEqualTo("getTime");
+                assertThat(tc.getArguments()).isEmpty();
+              });
     }
 
     @Test
@@ -518,6 +555,8 @@ class CamundaAgentInstanceClientTest {
               tc -> {
                 assertThat(tc.getToolCallId()).isEqualTo("tc-1");
                 assertThat(tc.getToolName()).isEqualTo("getWeather");
+                // ad-hoc tool: element id == tool name (gateway registry resolves to empty)
+                assertThat(tc.getElementId()).isEqualTo("getWeather");
               });
 
       final ArgumentCaptor<AgentHistoryMetrics> metricsCaptor =
@@ -528,6 +567,48 @@ class CamundaAgentInstanceClientTest {
       assertThat(metricsCaptor.getValue().getDurationMs()).isEqualTo(345L);
 
       verify(historyCommand).execute();
+    }
+
+    @Test
+    void shouldResolveElementIdForGatewayAssistantToolCall() {
+      givenHistoryCommand();
+
+      // a gateway tool call keeps its namespaced name as toolName; elementId is the resolved
+      // BPMN element id from the gateway handlers
+      when(gatewayToolHandlers.resolveElementId("MCP_McpTest___greet"))
+          .thenReturn(Optional.of("McpTest"));
+
+      final var assistantMessage =
+          AssistantMessage.builder()
+              .content(MessageUtil.singleTextContent("Calling MCP tool"))
+              .toolCalls(
+                  List.of(
+                      ToolCall.builder()
+                          .id("tc-9")
+                          .name("MCP_McpTest___greet")
+                          .arguments(Map.of("name", "Peter"))
+                          .build()))
+              .build();
+      final var turn =
+          new AgentConversationTurn(
+              1, List.of(), assistantMessage, new AgentMetrics(1, new TokenUsage(1, 1), 1));
+
+      // when
+      client.createHistoryForAssistantMessage(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
+
+      // then
+      final ArgumentCaptor<List<AgentHistoryToolCall>> toolCallsCaptor =
+          ArgumentCaptor.forClass(List.class);
+      verify(historyCommand).toolCalls(toolCallsCaptor.capture());
+      assertThat(toolCallsCaptor.getValue())
+          .singleElement()
+          .satisfies(
+              tc -> {
+                assertThat(tc.getToolCallId()).isEqualTo("tc-9");
+                assertThat(tc.getToolName()).isEqualTo("MCP_McpTest___greet");
+                assertThat(tc.getElementId()).isEqualTo("McpTest");
+              });
     }
 
     @Test

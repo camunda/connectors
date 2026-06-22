@@ -68,6 +68,11 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   }
 
   @Override
+  public String elementId(String toolName) {
+    return A2aToolCallIdentifier.fromToolCallName(toolName).elementName();
+  }
+
+  @Override
   public GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
     final var a2aGatewayToolDefinitions = extractA2aGatewayToolDefinitions(gatewayToolDefinitions);

@@ -1009,7 +1009,7 @@ On tool call iteration (tool calls present):
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`  | `AgentToolsResolverImpl` — gateway tools added/removed after migration         |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | `CamundaAgentInstanceClient.create` — retries exhausted or non-retryable error |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | `CamundaAgentInstanceClient.update` — retries exhausted or non-retryable error |
-| `ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED`         | `AGENT_INSTANCE_HISTORY_ITEM_FAILED`           | `CamundaAgentInstanceClient.createHistoryItems*` — retries exhausted or non-retryable error |
+| `ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED`         | `AGENT_INSTANCE_HISTORY_ITEM_FAILED`           | `CamundaAgentInstanceClient.createHistoryFor*` — retries exhausted or non-retryable error |
 
 Additional errors from `CamundaClientProcessDefinitionAdHocToolElementsResolver`:
 - `AD_HOC_SUB_PROCESS_NOT_FOUND` — element ID doesn't resolve to an `AdHocSubProcess` in BPMN
@@ -1548,15 +1548,24 @@ visible to follow-up calls (eventual consistency).
 During `BaseAgentRequestHandler.proceed`, the agent appends conversation history items around the LLM
 call (`POST /v2/agent-instances/{key}/history` via `newCreateAgentHistoryItemCommand`):
 
-- **Before the chat request** — `createHistoryItemsBeforeChat(turn)` emits **one item per new input
-  message** of the current turn: `UserMessage` → `USER` (covers the user prompt, event messages, and
-  virtual document-reference messages); `ToolCallResultMessage` → a single `TOOL_RESULT` item with one
-  content block per result (no `toolCalls` linkage, since event-sourced results have `id = null`).
-- **After the chat request** — `createHistoryItemsAfterChat(turn)` emits one `ASSISTANT` item with the
-  assistant text, the assistant's `toolCalls`, and per-call `metrics` (input/output tokens +
+- **Before the chat request** — `createHistoryForInputMessages(turn)` emits history items for the
+  current turn's new input messages: a `UserMessage` → one `USER` item (covers the user prompt, event
+  messages, and virtual document-reference messages); a `ToolCallResultMessage` → **one `TOOL_RESULT`
+  item per result**, each with that result's content block(s) and a single-entry `toolCalls` array
+  `{toolCallId: result.id(), toolName: result.name(), elementId, arguments: {}}` correlating it back
+  to the originating tool call.
+- **After the chat request** — `createHistoryForAssistantMessage(turn)` emits one `ASSISTANT` item with
+  the assistant text, the assistant's `toolCalls`, and per-call `metrics` (input/output tokens +
   `durationMs`, measured via `AiFrameworkAdapter.executeMeasuringTime` and carried on the turn's
   `AgentMetrics.executionTime`). Empty assistant content (tool-only turns) falls back to a single
   `"No content"` text block, since the API rejects empty content.
+
+Each `toolCalls` entry carries the BPMN **`elementId`** alongside the (LLM-visible, possibly
+namespaced) `toolName`. For tool results it is resolved once on the model in
+`AgentConversationTurnInputComposerImpl` (`ToolCallResult.elementId`) and read directly; for assistant
+tool calls the mapper resolves it from the namespaced name via `GatewayToolHandlerRegistry.resolveElementId`.
+For ad-hoc tools the element id equals the tool name; for gateway tools (MCP/A2A) it is the BPMN
+gateway element id parsed from the namespaced name.
 
 Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text), and
 `DocumentContent` → a document reference block (Camunda documents only; external document references

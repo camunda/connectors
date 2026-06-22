@@ -180,12 +180,14 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AgentInstanceClient agentInstanceClient(
       CamundaClient camundaClient,
       AgenticAiConnectorsConfigurationProperties configuration,
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new CamundaAgentInstanceClient(
         camundaClient,
         configuration.aiagent().agentInstance().retries(),
         Sleeper.threadSleep(),
-        objectMapper);
+        objectMapper,
+        gatewayToolHandlers);
   }
 
   @Bean

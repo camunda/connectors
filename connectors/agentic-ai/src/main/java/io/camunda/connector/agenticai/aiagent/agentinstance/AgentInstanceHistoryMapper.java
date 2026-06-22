@@ -19,6 +19,7 @@ import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
@@ -52,15 +53,34 @@ public class AgentInstanceHistoryMapper {
   private static final String NO_CONTENT_PLACEHOLDER = "No content";
 
   private final ObjectMapper objectMapper;
+  private final GatewayToolHandlerRegistry gatewayToolHandlers;
 
-  public AgentInstanceHistoryMapper(ObjectMapper objectMapper) {
+  public AgentInstanceHistoryMapper(
+      ObjectMapper objectMapper, GatewayToolHandlerRegistry gatewayToolHandlers) {
     this.objectMapper = objectMapper;
+    this.gatewayToolHandlers = gatewayToolHandlers;
   }
 
-  public AgentHistoryRole roleForInputMessage(Message message) {
+  /**
+   * A single history item to be created for an input message. A {@link UserMessage} maps to one
+   * item; a {@link ToolCallResultMessage} maps to one item <em>per</em> tool call result, each
+   * carrying a single-entry {@code toolCalls} list correlating it to the originating tool call.
+   */
+  public record InputHistoryItem(
+      AgentHistoryRole role,
+      List<AgentHistoryContent> content,
+      @Nullable List<AgentHistoryToolCall> toolCalls) {}
+
+  public List<InputHistoryItem> inputHistoryItems(Message message) {
     return switch (message) {
-      case UserMessage ignored -> AgentHistoryRole.USER;
-      case ToolCallResultMessage ignored -> AgentHistoryRole.TOOL_RESULT;
+      case UserMessage userMessage ->
+          List.of(
+              new InputHistoryItem(
+                  AgentHistoryRole.USER,
+                  ensureNonEmpty(contentBlocks(userMessage.content())),
+                  null));
+      case ToolCallResultMessage toolCallResultMessage ->
+          toolCallResultMessage.results().stream().map(this::toolResultHistoryItem).toList();
       default ->
           throw new IllegalArgumentException(
               "Unsupported input message type for history item: "
@@ -68,18 +88,16 @@ public class AgentInstanceHistoryMapper {
     };
   }
 
-  public List<AgentHistoryContent> inputMessageContent(Message message) {
-    final List<AgentHistoryContent> content =
-        switch (message) {
-          case UserMessage userMessage -> contentBlocks(userMessage.content());
-          case ToolCallResultMessage toolCallResultMessage ->
-              toolResultContent(toolCallResultMessage.results());
-          default ->
-              throw new IllegalArgumentException(
-                  "Unsupported input message type for history item: "
-                      + message.getClass().getSimpleName());
-        };
-    return ensureNonEmpty(content);
+  private InputHistoryItem toolResultHistoryItem(ToolCallResult result) {
+    return new InputHistoryItem(
+        AgentHistoryRole.TOOL_RESULT,
+        ensureNonEmpty(List.of(toolResultBlock(result.content()))),
+        List.of(
+            new AgentHistoryToolCall()
+                .toolCallId(result.id())
+                .toolName(result.name())
+                .elementId(elementIdFor(result.elementId(), result.name()))
+                .arguments(Map.of())));
   }
 
   public List<AgentHistoryContent> assistantContent(AssistantMessage assistantMessage) {
@@ -102,9 +120,22 @@ public class AgentInstanceHistoryMapper {
           new AgentHistoryToolCall()
               .toolCallId(toolCall.id())
               .toolName(toolCall.name())
+              .elementId(elementIdFor(null, toolCall.name()))
               .arguments(toolCall.arguments()));
     }
     return historyToolCalls;
+  }
+
+  /**
+   * Resolves the BPMN element id for a tool call history entry. Prefers an already-resolved {@code
+   * elementId} carried on the model (tool call results); otherwise derives it from the (namespaced)
+   * tool name via the gateway handlers, falling back to the name itself for ad-hoc tools.
+   */
+  private String elementIdFor(@Nullable String elementId, String toolName) {
+    if (elementId != null) {
+      return elementId;
+    }
+    return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);
   }
 
   public AgentHistoryMetrics historyMetrics(AgentMetrics metrics) {
@@ -133,14 +164,6 @@ public class AgentInstanceHistoryMapper {
       case ObjectContent objectContent -> objectOrText(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
     };
-  }
-
-  private List<AgentHistoryContent> toolResultContent(List<ToolCallResult> results) {
-    final List<AgentHistoryContent> blocks = new ArrayList<>(results.size());
-    for (final ToolCallResult result : results) {
-      blocks.add(toolResultBlock(result.content()));
-    }
-    return blocks;
   }
 
   private AgentHistoryContent toolResultBlock(@Nullable Object resultContent) {

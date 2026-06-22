@@ -175,9 +175,20 @@ public class AgentInstanceClientVerifier {
       return this;
     }
 
-    /** Input messages contain tool call results (a follow-up turn after a tool call round). */
+    /**
+     * Input messages contain tool call results (a follow-up turn after a tool call round). Also
+     * asserts every result carries its resolved BPMN element id (== tool name for ad-hoc tools).
+     */
     public ChatTurnAssert fromToolResults() {
-      assertThat(before.inputMessages()).anyMatch(ToolCallResultMessage.class::isInstance);
+      final var toolResultMessage =
+          before.inputMessages().stream()
+              .filter(ToolCallResultMessage.class::isInstance)
+              .map(ToolCallResultMessage.class::cast)
+              .findFirst()
+              .orElseThrow(() -> new AssertionError("no tool call result message in input"));
+      assertThat(toolResultMessage.results())
+          .isNotEmpty()
+          .allSatisfy(r -> assertThat(r.elementId()).isNotNull().isEqualTo(r.name()));
       return this;
     }
 
