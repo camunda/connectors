@@ -412,7 +412,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(agentExecutionContext),
             any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
-    verifyHistoryItemsCreated();
+    verifyHistoryItemsCreated(assistantMessage);
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completes — deferred metrics PATCH fires now
@@ -460,7 +460,7 @@ class JobWorkerAgentRequestHandlerTest {
                     .status(AgentInstanceUpdateStatus.IDLE)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
                     .build()));
-    verifyHistoryItemsCreated();
+    verifyHistoryItemsCreated(assistantMessage);
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completes — no deferred PATCH (was already sent synchronously)
@@ -488,7 +488,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(agentExecutionContext),
             any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
-    verifyHistoryItemsCreated();
+    verifyHistoryItemsCreated(assistantMessage);
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job completion fails (execution error)
@@ -528,7 +528,7 @@ class JobWorkerAgentRequestHandlerTest {
             eq(agentExecutionContext),
             any(),
             eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
-    verifyHistoryItemsCreated();
+    verifyHistoryItemsCreated(assistantMessage);
     verifyNoMoreInteractions(agentInstanceClient);
 
     // when: job superseded (NOT_FOUND) — deferred listener fires, strips toolCalls, no status
@@ -648,14 +648,14 @@ class JobWorkerAgentRequestHandlerTest {
         .orElse(null);
   }
 
-  private void verifyHistoryItemsCreated() {
+  private void verifyHistoryItemsCreated(AssistantMessage expectedAssistantMessage) {
     verify(agentInstanceClient)
         .createHistoryForInputMessages(eq(agentExecutionContext), any(), turnCaptor.capture());
-    assertThat(turnCaptor.getValue().inputMessages()).isNotEmpty();
+    assertThat(turnCaptor.getValue().inputMessages()).containsExactly(USER_MESSAGE);
 
     verify(agentInstanceClient)
         .createHistoryForAssistantMessage(eq(agentExecutionContext), any(), turnCaptor.capture());
-    assertThat(turnCaptor.getValue().assistantMessage()).isNotNull();
+    assertThat(turnCaptor.getValue().assistantMessage()).isEqualTo(expectedAssistantMessage);
   }
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
