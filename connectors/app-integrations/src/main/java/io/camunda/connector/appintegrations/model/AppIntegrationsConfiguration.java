@@ -10,6 +10,7 @@ import io.camunda.connector.appintegrations.model.auth.AppIntegrationsAuthentica
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 public record AppIntegrationsConfiguration(
     @NotEmpty
@@ -20,4 +21,4 @@ public record AppIntegrationsConfiguration(
             tooltip =
                 "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.")
         String baseUrl,
-    @Valid AppIntegrationsAuthentication authentication) {}
+    @NotNull @Valid AppIntegrationsAuthentication authentication) {}

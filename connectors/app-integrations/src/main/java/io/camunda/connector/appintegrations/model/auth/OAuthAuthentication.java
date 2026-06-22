@@ -77,4 +77,10 @@ public record OAuthAuthentication(
 
   @TemplateProperty(ignore = true)
   public static final String TYPE = "oauth-client-credentials-flow";
+
+  @Override
+  public String toString() {
+    return "OAuthAuthentication{oauthTokenEndpoint='%s', clientId='%s', clientSecret=***, audience='%s', clientAuthentication='%s', scopes='%s'}"
+        .formatted(oauthTokenEndpoint, clientId, audience, clientAuthentication, scopes);
+  }
 }

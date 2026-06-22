@@ -10,6 +10,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.net.URI;
 
 public record CreateChannelRequest(
@@ -23,6 +24,7 @@ public record CreateChannelRequest(
                     + " (the groupId query parameter will be extracted automatically).")
         String teamId,
     @NotEmpty
+        @Size(max = 50)
         @TemplateProperty(
             group = "channel",
             label = "Channel name",

@@ -772,7 +772,9 @@
     "description" : "Display name for the new channel (max 50 characters).",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "minLength" : 0,
+      "maxLength" : 50
     },
     "feel" : "optional",
     "group" : "channel",

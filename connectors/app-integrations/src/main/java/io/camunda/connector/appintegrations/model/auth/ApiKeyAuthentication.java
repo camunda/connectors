@@ -27,4 +27,9 @@ public record ApiKeyAuthentication(
 
   @TemplateProperty(ignore = true)
   public static final String TYPE = "apikey";
+
+  @Override
+  public String toString() {
+    return "ApiKeyAuthentication{apiKey=***}";
+  }
 }
