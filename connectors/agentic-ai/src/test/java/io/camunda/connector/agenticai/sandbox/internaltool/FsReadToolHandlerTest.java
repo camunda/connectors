@@ -44,7 +44,8 @@ class FsReadToolHandlerTest {
     session.fs().write("/workspace/hello.txt", "Hello, world!".getBytes(StandardCharsets.UTF_8));
     FsReadToolHandler handler = new FsReadToolHandler();
 
-    ToolCallResult result = handler.execute(readCall("/workspace/hello.txt"), session);
+    ToolCallResult result =
+        handler.execute(readCall("/workspace/hello.txt"), session, InternalToolContext.empty());
 
     assertThat(result.content()).isEqualTo("Hello, world!");
     assertThat(result.id()).isEqualTo("read-1");
@@ -57,7 +58,8 @@ class FsReadToolHandlerTest {
     session.fs().write("/workspace/file.txt", text.getBytes(StandardCharsets.UTF_8));
     FsReadToolHandler handler = new FsReadToolHandler();
 
-    ToolCallResult result = handler.execute(readCall("/workspace/file.txt"), session);
+    ToolCallResult result =
+        handler.execute(readCall("/workspace/file.txt"), session, InternalToolContext.empty());
 
     assertThat(result.content()).isEqualTo(text);
   }
@@ -71,7 +73,8 @@ class FsReadToolHandlerTest {
     session.fs().write("/workspace/report.pdf", binaryBytes);
     FsReadToolHandler handler = new FsReadToolHandler();
 
-    ToolCallResult result = handler.execute(readCall("/workspace/report.pdf"), session);
+    ToolCallResult result =
+        handler.execute(readCall("/workspace/report.pdf"), session, InternalToolContext.empty());
 
     String content = (String) result.content();
     assertThat(content).contains("binary");
@@ -86,7 +89,8 @@ class FsReadToolHandlerTest {
     session.fs().write("/workspace/doc.pdf", binaryBytes);
     FsReadToolHandler handler = new FsReadToolHandler();
 
-    ToolCallResult result = handler.execute(readCall("/workspace/doc.pdf"), session);
+    ToolCallResult result =
+        handler.execute(readCall("/workspace/doc.pdf"), session, InternalToolContext.empty());
 
     String content = (String) result.content();
     assertThat(content).contains("binary");
@@ -102,7 +106,8 @@ class FsReadToolHandlerTest {
     byte[] bigContent = "B".repeat(100).getBytes(StandardCharsets.UTF_8);
     session.fs().write("/workspace/big.txt", bigContent);
 
-    ToolCallResult result = handler.execute(readCall("/workspace/big.txt"), session);
+    ToolCallResult result =
+        handler.execute(readCall("/workspace/big.txt"), session, InternalToolContext.empty());
 
     String content = (String) result.content();
     assertThat(content).contains("too large");
@@ -115,7 +120,9 @@ class FsReadToolHandlerTest {
   void execute_missingFile_shouldReturnErrorContent_notThrowException() {
     FsReadToolHandler handler = new FsReadToolHandler();
 
-    ToolCallResult result = handler.execute(readCall("/workspace/nonexistent.txt"), session);
+    ToolCallResult result =
+        handler.execute(
+            readCall("/workspace/nonexistent.txt"), session, InternalToolContext.empty());
 
     assertThat(result.content()).asString().contains("Error:");
     assertThat(result.content()).asString().containsIgnoringCase("not found");
@@ -130,7 +137,7 @@ class FsReadToolHandlerTest {
     ToolCall call =
         ToolCall.builder().id("r-nop").name(InternalToolNames.FS_READ).arguments(Map.of()).build();
 
-    ToolCallResult result = handler.execute(call, session);
+    ToolCallResult result = handler.execute(call, session, InternalToolContext.empty());
 
     assertThat(result.content()).asString().contains("Error:");
   }
@@ -142,7 +149,8 @@ class FsReadToolHandlerTest {
     session.fs().write("/workspace/f.txt", "x".getBytes(StandardCharsets.UTF_8));
     FsReadToolHandler handler = new FsReadToolHandler();
 
-    ToolCallResult result = handler.execute(readCall("/workspace/f.txt"), session);
+    ToolCallResult result =
+        handler.execute(readCall("/workspace/f.txt"), session, InternalToolContext.empty());
 
     assertThat(result.properties())
         .containsEntry(

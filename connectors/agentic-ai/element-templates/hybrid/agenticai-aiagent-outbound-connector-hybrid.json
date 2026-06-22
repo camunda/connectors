@@ -1713,6 +1713,18 @@
     },
     "type" : "Number"
   }, {
+    "id" : "data.skills",
+    "label" : "Skills",
+    "description" : "Skill bundles (.zip documents) the agent can load on demand via load_skill. Requires a sandbox.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.skills",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
     "id" : "data.response.format.type",
     "label" : "Response format",
     "description" : "Specify the response format. Support for JSON mode varies by provider.",

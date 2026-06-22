@@ -37,8 +37,11 @@ import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
 import io.camunda.connector.agenticai.sandbox.SandboxSessionFactoryImpl;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolContext;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.skill.Skill;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxSession;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
@@ -65,6 +68,7 @@ public abstract class BaseAgentRequestHandler<
   private final InternalToolRegistry internalToolRegistry;
   private final InternalToolExecutor internalToolExecutor;
   private final SandboxSessionFactory sandboxSessionFactory;
+  private final SkillResolver skillResolver;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -76,7 +80,8 @@ public abstract class BaseAgentRequestHandler<
       AgentInstanceClient agentInstanceClient,
       InternalToolRegistry internalToolRegistry,
       InternalToolExecutor internalToolExecutor,
-      SandboxSessionFactory sandboxSessionFactory) {
+      SandboxSessionFactory sandboxSessionFactory,
+      SkillResolver skillResolver) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -87,6 +92,7 @@ public abstract class BaseAgentRequestHandler<
     this.internalToolRegistry = internalToolRegistry;
     this.internalToolExecutor = internalToolExecutor;
     this.sandboxSessionFactory = sandboxSessionFactory;
+    this.skillResolver = skillResolver;
   }
 
   @Override
@@ -157,6 +163,14 @@ public abstract class BaseAgentRequestHandler<
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
 
+    // Resolve skills once per invocation (lazy: only when sandbox is configured and skills are
+    // set). This avoids re-unzipping bundles on every iteration of the internal sub-loop.
+    var skills =
+        agentConfiguration.skills() != null && agentConfiguration.sandboxConfiguration().isPresent()
+            ? skillResolver.resolve(agentConfiguration.skills())
+            : List.<Skill>of();
+    var internalToolContext = new InternalToolContext(skills);
+
     SandboxSession sandboxSession = null;
     int internalIterations = 0;
     try {
@@ -210,7 +224,8 @@ public abstract class BaseAgentRequestHandler<
         }
 
         LOGGER.debug("Executing {} internal tool call(s) in-process", internalCalls.size());
-        final var results = internalToolExecutor.execute(internalCalls, sandboxSession);
+        final var results =
+            internalToolExecutor.execute(internalCalls, sandboxSession, internalToolContext);
         conversation =
             conversation.nextTurn(
                 List.of(ToolCallResultMessage.builder().results(results).build()));

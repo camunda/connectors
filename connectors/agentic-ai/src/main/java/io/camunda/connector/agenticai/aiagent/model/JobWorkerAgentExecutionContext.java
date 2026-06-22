@@ -34,7 +34,8 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
             request.data().limits(),
             request.data().events(),
             request.data().response(),
-            request.data().sandbox());
+            request.data().sandbox(),
+            request.data().skills());
   }
 
   @Override

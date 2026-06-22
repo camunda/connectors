@@ -40,10 +40,12 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
 import io.camunda.connector.agenticai.sandbox.SandboxSessionFactoryImpl;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolContext;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
 import io.camunda.connector.agenticai.sandbox.provider.fake.InMemorySandboxProvider;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxHandle;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxSession;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxSpec;
@@ -106,7 +108,8 @@ class BaseAgentRequestHandlerSubLoopTest {
     }
 
     @Override
-    public ToolCallResult execute(ToolCall toolCall, SandboxSession session) {
+    public ToolCallResult execute(
+        ToolCall toolCall, SandboxSession session, InternalToolContext context) {
       callCount++;
       return ToolCallResult.builder()
           .id(toolCall.id())
@@ -148,7 +151,8 @@ class BaseAgentRequestHandlerSubLoopTest {
             agentInstanceClient,
             internalToolRegistry,
             internalToolExecutor,
-            sandboxSessionFactory);
+            sandboxSessionFactory,
+            new SkillResolver());
 
     // Common setup
     doReturn(new InProcessConversationStore())

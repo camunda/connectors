@@ -11,11 +11,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -50,5 +52,14 @@ public record OutboundConnectorAgentRequest(
       @Valid @Nullable MemoryConfiguration memory,
       @Valid @Nullable LimitsConfiguration limits,
       @Valid @Nullable OutboundConnectorResponseConfiguration response,
-      @Valid @Nullable SandboxConfiguration sandbox) {}
+      @Valid @Nullable SandboxConfiguration sandbox,
+      @FEEL
+          @TemplateProperty(
+              group = "sandbox",
+              label = "Skills",
+              description =
+                  "Skill bundles (.zip documents) the agent can load on demand via load_skill. Requires a sandbox.",
+              feel = FeelMode.required,
+              optional = true)
+          @Nullable List<Document> skills) {}
 }

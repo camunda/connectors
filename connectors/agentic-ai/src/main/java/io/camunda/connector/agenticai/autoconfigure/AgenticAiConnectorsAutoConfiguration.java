@@ -70,8 +70,10 @@ import io.camunda.connector.agenticai.sandbox.internaltool.FsWriteToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.internaltool.LoadSkillToolHandler;
 import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderFactory;
 import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderRegistry;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
@@ -211,6 +213,18 @@ public class AgenticAiConnectorsAutoConfiguration {
       DocumentFactory documentFactory) {
     return new ExportDocumentToolHandler(
         documentFactory, ExportDocumentToolHandler.DEFAULT_MAX_DOCUMENT_BYTES);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public SkillResolver skillResolver() {
+    return new SkillResolver();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public LoadSkillToolHandler sandboxLoadSkillToolHandler() {
+    return new LoadSkillToolHandler();
   }
 
   @Bean
@@ -365,7 +379,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentInstanceClient agentInstanceClient,
       InternalToolRegistry internalToolRegistry,
       InternalToolExecutor internalToolExecutor,
-      SandboxSessionFactory sandboxSessionFactory) {
+      SandboxSessionFactory sandboxSessionFactory,
+      SkillResolver skillResolver) {
     return new OutboundConnectorAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -376,7 +391,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         agentInstanceClient,
         internalToolRegistry,
         internalToolExecutor,
-        sandboxSessionFactory);
+        sandboxSessionFactory,
+        skillResolver);
   }
 
   @Bean
@@ -405,7 +421,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentInstanceClient agentInstanceClient,
       InternalToolRegistry internalToolRegistry,
       InternalToolExecutor internalToolExecutor,
-      SandboxSessionFactory sandboxSessionFactory) {
+      SandboxSessionFactory sandboxSessionFactory,
+      SkillResolver skillResolver) {
     return new JobWorkerAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -416,7 +433,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         agentInstanceClient,
         internalToolRegistry,
         internalToolExecutor,
-        sandboxSessionFactory);
+        sandboxSessionFactory,
+        skillResolver);
   }
 
   @Bean

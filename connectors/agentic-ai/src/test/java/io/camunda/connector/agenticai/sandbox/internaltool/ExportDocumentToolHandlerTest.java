@@ -75,7 +75,8 @@ class ExportDocumentToolHandlerTest {
     ExportDocumentToolHandler handler =
         new ExportDocumentToolHandler(mockDocumentFactory, MAX_BYTES);
 
-    ToolCallResult result = handler.execute(exportCall("/workspace/hello.txt"), session);
+    ToolCallResult result =
+        handler.execute(exportCall("/workspace/hello.txt"), session, InternalToolContext.empty());
 
     assertThat(result.id()).isEqualTo("export-1");
     assertThat(result.name()).isEqualTo(InternalToolNames.EXPORT_DOCUMENT);
@@ -107,7 +108,7 @@ class ExportDocumentToolHandlerTest {
     ExportDocumentToolHandler handler =
         new ExportDocumentToolHandler(mockDocumentFactory, MAX_BYTES);
 
-    handler.execute(exportCall("/workspace/data.json"), session);
+    handler.execute(exportCall("/workspace/data.json"), session, InternalToolContext.empty());
 
     ArgumentCaptor<DocumentCreationRequest> captor =
         ArgumentCaptor.forClass(DocumentCreationRequest.class);
@@ -128,7 +129,8 @@ class ExportDocumentToolHandlerTest {
     ExportDocumentToolHandler handler =
         new ExportDocumentToolHandler(mockDocumentFactory, MAX_BYTES);
 
-    ToolCallResult result = handler.execute(exportCall("/workspace/report.pdf"), session);
+    ToolCallResult result =
+        handler.execute(exportCall("/workspace/report.pdf"), session, InternalToolContext.empty());
 
     assertThat(result.content()).isInstanceOf(List.class);
     @SuppressWarnings("unchecked")
@@ -153,7 +155,8 @@ class ExportDocumentToolHandlerTest {
     ExportDocumentToolHandler handler =
         new ExportDocumentToolHandler(realDocumentFactory, MAX_BYTES);
 
-    ToolCallResult result = handler.execute(exportCall("/workspace/out.txt"), session);
+    ToolCallResult result =
+        handler.execute(exportCall("/workspace/out.txt"), session, InternalToolContext.empty());
 
     // Construct a real extractor with an empty registry (no gateway handlers → walker fallback)
     ToolCallResultDocumentExtractor extractor =
@@ -180,7 +183,8 @@ class ExportDocumentToolHandlerTest {
     byte[] bigContent = "X".repeat(100).getBytes(StandardCharsets.UTF_8);
     session.fs().write("/workspace/big.bin", bigContent);
 
-    ToolCallResult result = handler.execute(exportCall("/workspace/big.bin"), session);
+    ToolCallResult result =
+        handler.execute(exportCall("/workspace/big.bin"), session, InternalToolContext.empty());
 
     assertThat(result.content()).asString().contains("Error:");
     assertThat(result.content()).asString().contains("too large");
@@ -200,7 +204,7 @@ class ExportDocumentToolHandlerTest {
             .arguments(Map.of())
             .build();
 
-    ToolCallResult result = handler.execute(call, session);
+    ToolCallResult result = handler.execute(call, session, InternalToolContext.empty());
 
     assertThat(result.content()).asString().contains("Error:");
     verify(mockDocumentFactory, never()).create(any());
@@ -217,7 +221,7 @@ class ExportDocumentToolHandlerTest {
             .arguments(Map.of("path", "   "))
             .build();
 
-    ToolCallResult result = handler.execute(call, session);
+    ToolCallResult result = handler.execute(call, session, InternalToolContext.empty());
 
     assertThat(result.content()).asString().contains("Error:");
     verify(mockDocumentFactory, never()).create(any());
@@ -230,7 +234,9 @@ class ExportDocumentToolHandlerTest {
     ExportDocumentToolHandler handler =
         new ExportDocumentToolHandler(mockDocumentFactory, MAX_BYTES);
 
-    ToolCallResult result = handler.execute(exportCall("/workspace/nonexistent.txt"), session);
+    ToolCallResult result =
+        handler.execute(
+            exportCall("/workspace/nonexistent.txt"), session, InternalToolContext.empty());
 
     assertThat(result.content()).asString().contains("Error:");
     verify(mockDocumentFactory, never()).create(any());
@@ -248,7 +254,8 @@ class ExportDocumentToolHandlerTest {
     ExportDocumentToolHandler handler =
         new ExportDocumentToolHandler(mockDocumentFactory, MAX_BYTES);
 
-    ToolCallResult result = handler.execute(exportCall("/workspace/f.txt"), session);
+    ToolCallResult result =
+        handler.execute(exportCall("/workspace/f.txt"), session, InternalToolContext.empty());
 
     assertThat(result.properties())
         .containsEntry(

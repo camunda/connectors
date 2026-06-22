@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.api.error.ConnectorException;
 
 public class OutboundConnectorAgentRequestHandler
@@ -33,7 +34,8 @@ public class OutboundConnectorAgentRequestHandler
       AgentInstanceClient agentInstanceClient,
       InternalToolRegistry internalToolRegistry,
       InternalToolExecutor internalToolExecutor,
-      SandboxSessionFactory sandboxSessionFactory) {
+      SandboxSessionFactory sandboxSessionFactory,
+      SkillResolver skillResolver) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -44,7 +46,8 @@ public class OutboundConnectorAgentRequestHandler
         agentInstanceClient,
         internalToolRegistry,
         internalToolExecutor,
-        sandboxSessionFactory);
+        sandboxSessionFactory,
+        skillResolver);
   }
 
   @Override

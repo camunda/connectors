@@ -31,24 +31,26 @@ public class InternalToolExecutor {
   }
 
   /**
-   * Executes each call in {@code toolCalls} against {@code session}. The returned list has one
-   * entry per input call, in the same order.
+   * Executes each call in {@code toolCalls} against {@code session} with the given per-invocation
+   * {@code context}. The returned list has one entry per input call, in the same order.
    */
-  public List<ToolCallResult> execute(List<ToolCall> toolCalls, SandboxSession session) {
+  public List<ToolCallResult> execute(
+      List<ToolCall> toolCalls, SandboxSession session, InternalToolContext context) {
     List<ToolCallResult> results = new ArrayList<>(toolCalls.size());
     for (ToolCall call : toolCalls) {
-      results.add(executeSingle(call, session));
+      results.add(executeSingle(call, session, context));
     }
     return results;
   }
 
-  private ToolCallResult executeSingle(ToolCall call, SandboxSession session) {
+  private ToolCallResult executeSingle(
+      ToolCall call, SandboxSession session, InternalToolContext context) {
     InternalToolHandler handler = registry.findHandler(call.name());
     if (handler == null) {
       return errorResult(call, "Unknown internal tool: " + call.name());
     }
     try {
-      ToolCallResult raw = handler.execute(call, session);
+      ToolCallResult raw = handler.execute(call, session, context);
       // Ensure executedBy tag is always present, even if handler set its own properties.
       if (!EXECUTED_BY_SANDBOX.equals(raw.properties().get(PROPERTY_EXECUTED_BY))) {
         Map<String, Object> props = new java.util.HashMap<>(raw.properties());

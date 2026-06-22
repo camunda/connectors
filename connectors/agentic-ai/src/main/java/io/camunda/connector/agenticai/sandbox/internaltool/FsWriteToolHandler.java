@@ -45,7 +45,8 @@ public class FsWriteToolHandler implements InternalToolHandler {
   }
 
   @Override
-  public ToolCallResult execute(ToolCall toolCall, SandboxSession session) {
+  public ToolCallResult execute(
+      ToolCall toolCall, SandboxSession session, InternalToolContext context) {
     String path = (String) toolCall.arguments().get("path");
     String content = (String) toolCall.arguments().get("content");
 

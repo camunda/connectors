@@ -64,6 +64,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.Duration;
@@ -100,6 +101,7 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock private InternalToolRegistry internalToolRegistry;
   @Mock private InternalToolExecutor internalToolExecutor;
   @Mock private SandboxSessionFactory sandboxSessionFactory;
+  @Mock private SkillResolver skillResolver;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private JobWorkerAgentExecutionContext agentExecutionContext;

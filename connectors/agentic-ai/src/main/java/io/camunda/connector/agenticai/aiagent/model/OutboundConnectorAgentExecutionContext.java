@@ -46,7 +46,8 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
             // the outbound connector flavor does not support event handling
             null,
             request.data().response(),
-            request.data().sandbox());
+            request.data().sandbox(),
+            request.data().skills());
   }
 
   @Override

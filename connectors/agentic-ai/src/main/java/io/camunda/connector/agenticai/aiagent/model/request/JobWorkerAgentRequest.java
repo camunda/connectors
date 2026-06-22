@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
@@ -51,5 +52,14 @@ public record JobWorkerAgentRequest(
       @Valid LimitsConfiguration limits,
       @Valid EventHandlingConfiguration events,
       @Valid JobWorkerResponseConfiguration response,
-      @Valid @Nullable SandboxConfiguration sandbox) {}
+      @Valid @Nullable SandboxConfiguration sandbox,
+      @FEEL
+          @TemplateProperty(
+              group = "sandbox",
+              label = "Skills",
+              description =
+                  "Skill bundles (.zip documents) the agent can load on demand via load_skill. Requires a sandbox.",
+              feel = FeelMode.required,
+              optional = true)
+          @Nullable List<Document> skills) {}
 }

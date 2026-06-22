@@ -14,6 +14,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import io.camunda.connector.api.document.Document;
+import java.util.List;
 import java.util.Optional;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -31,7 +33,26 @@ public record AgentConfiguration(
     @Nullable LimitsConfiguration limits,
     @Nullable EventHandlingConfiguration events,
     @Nullable ResponseConfiguration response,
-    @Nullable SandboxConfiguration sandbox) {
+    @Nullable SandboxConfiguration sandbox,
+    @Nullable List<Document> skills) {
+
+  /**
+   * Convenience constructor for callers that do not supply skills. Delegates to the canonical
+   * 9-argument constructor with {@code skills = null}. This avoids breaking the ~13 existing {@code
+   * new AgentConfiguration(...)} call sites that were written before the {@code skills} field was
+   * added.
+   */
+  public AgentConfiguration(
+      ProviderConfiguration provider,
+      SystemPromptConfiguration systemPrompt,
+      UserPromptConfiguration userPrompt,
+      @Nullable MemoryConfiguration memory,
+      @Nullable LimitsConfiguration limits,
+      @Nullable EventHandlingConfiguration events,
+      @Nullable ResponseConfiguration response,
+      @Nullable SandboxConfiguration sandbox) {
+    this(provider, systemPrompt, userPrompt, memory, limits, events, response, sandbox, null);
+  }
 
   public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
   public static final int DEFAULT_MAX_MODEL_CALLS = 10;

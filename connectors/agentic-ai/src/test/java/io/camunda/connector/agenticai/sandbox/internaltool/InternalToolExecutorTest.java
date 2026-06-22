@@ -51,7 +51,8 @@ class InternalToolExecutorTest {
             .arguments(Map.of("command", "echo hello"))
             .build();
 
-    List<ToolCallResult> results = executor.execute(List.of(call), session);
+    List<ToolCallResult> results =
+        executor.execute(List.of(call), session, InternalToolContext.empty());
 
     assertThat(results).hasSize(1);
     assertThat(results.get(0).id()).isEqualTo("id1");
@@ -64,7 +65,8 @@ class InternalToolExecutorTest {
     ToolCall call =
         ToolCall.builder().id("id-unknown").name("nonexistent_tool").arguments(Map.of()).build();
 
-    List<ToolCallResult> results = executor.execute(List.of(call), session);
+    List<ToolCallResult> results =
+        executor.execute(List.of(call), session, InternalToolContext.empty());
 
     assertThat(results).hasSize(1);
     assertThat(results.get(0).id()).isEqualTo("id-unknown");
@@ -89,7 +91,8 @@ class InternalToolExecutorTest {
             .arguments(Map.of("path", "/workspace/hello.txt"))
             .build();
 
-    List<ToolCallResult> results = executor.execute(List.of(bashCall, readCall), session);
+    List<ToolCallResult> results =
+        executor.execute(List.of(bashCall, readCall), session, InternalToolContext.empty());
 
     assertThat(results)
         .allSatisfy(
@@ -118,7 +121,8 @@ class InternalToolExecutorTest {
             .arguments(Map.of("command", "cmd2"))
             .build();
 
-    List<ToolCallResult> results = executor.execute(List.of(call1, call2), session);
+    List<ToolCallResult> results =
+        executor.execute(List.of(call1, call2), session, InternalToolContext.empty());
 
     assertThat(results).hasSize(2);
     assertThat(results.get(0).id()).isEqualTo("c1");

@@ -28,8 +28,9 @@ public interface InternalToolHandler {
   ToolDefinition definition();
 
   /**
-   * Executes the tool call against the given sandbox session. Implementations must NOT throw — all
-   * errors are returned as result content so the LLM can read them.
+   * Executes the tool call against the given sandbox session and per-invocation context.
+   * Implementations must NOT throw — all errors are returned as result content so the LLM can read
+   * them.
    */
-  ToolCallResult execute(ToolCall toolCall, SandboxSession session);
+  ToolCallResult execute(ToolCall toolCall, SandboxSession session, InternalToolContext context);
 }

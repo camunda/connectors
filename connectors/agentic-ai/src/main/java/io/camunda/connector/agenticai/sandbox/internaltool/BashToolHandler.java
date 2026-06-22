@@ -59,7 +59,8 @@ public class BashToolHandler implements InternalToolHandler {
   }
 
   @Override
-  public ToolCallResult execute(ToolCall toolCall, SandboxSession session) {
+  public ToolCallResult execute(
+      ToolCall toolCall, SandboxSession session, InternalToolContext context) {
     String command = (String) toolCall.arguments().get("command");
     if (command == null || command.isBlank()) {
       return errorResult(toolCall, "Missing required argument: command");

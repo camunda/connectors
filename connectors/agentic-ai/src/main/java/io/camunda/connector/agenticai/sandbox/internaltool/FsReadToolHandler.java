@@ -57,7 +57,8 @@ public class FsReadToolHandler implements InternalToolHandler {
   }
 
   @Override
-  public ToolCallResult execute(ToolCall toolCall, SandboxSession session) {
+  public ToolCallResult execute(
+      ToolCall toolCall, SandboxSession session, InternalToolContext context) {
     String path = (String) toolCall.arguments().get("path");
     if (path == null || path.isBlank()) {
       return errorResult(toolCall, "Missing required argument: path");

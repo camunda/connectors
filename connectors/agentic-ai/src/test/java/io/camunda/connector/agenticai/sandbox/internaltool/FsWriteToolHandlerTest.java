@@ -45,7 +45,8 @@ class FsWriteToolHandlerTest {
     String path = "/workspace/output.txt";
     String content = "Hello from the LLM!";
 
-    ToolCallResult result = handler.execute(writeCall(path, content), session);
+    ToolCallResult result =
+        handler.execute(writeCall(path, content), session, InternalToolContext.empty());
 
     // Write should succeed
     assertThat(result.content()).asString().doesNotContain("Error:");
@@ -58,7 +59,8 @@ class FsWriteToolHandlerTest {
   void execute_successResult_containsBytesAndPath() {
     FsWriteToolHandler handler = new FsWriteToolHandler();
 
-    ToolCallResult result = handler.execute(writeCall("/workspace/f.txt", "abc"), session);
+    ToolCallResult result =
+        handler.execute(writeCall("/workspace/f.txt", "abc"), session, InternalToolContext.empty());
 
     assertThat(result.content()).asString().contains("3"); // 3 bytes
     assertThat(result.content()).asString().contains("/workspace/f.txt");
@@ -71,7 +73,8 @@ class FsWriteToolHandlerTest {
     FsWriteToolHandler handler = new FsWriteToolHandler();
     session.fs().write("/workspace/f.txt", "old content".getBytes(StandardCharsets.UTF_8));
 
-    handler.execute(writeCall("/workspace/f.txt", "new content"), session);
+    handler.execute(
+        writeCall("/workspace/f.txt", "new content"), session, InternalToolContext.empty());
 
     byte[] stored = session.fs().read("/workspace/f.txt");
     assertThat(new String(stored, StandardCharsets.UTF_8)).isEqualTo("new content");
@@ -89,7 +92,7 @@ class FsWriteToolHandlerTest {
             .arguments(Map.of("content", "data"))
             .build();
 
-    ToolCallResult result = handler.execute(call, session);
+    ToolCallResult result = handler.execute(call, session, InternalToolContext.empty());
 
     assertThat(result.content()).asString().contains("Error:");
   }
@@ -104,7 +107,7 @@ class FsWriteToolHandlerTest {
             .arguments(Map.of("path", "/workspace/f.txt"))
             .build();
 
-    ToolCallResult result = handler.execute(call, session);
+    ToolCallResult result = handler.execute(call, session, InternalToolContext.empty());
 
     assertThat(result.content()).asString().contains("Error:");
   }
@@ -115,7 +118,8 @@ class FsWriteToolHandlerTest {
   void execute_resultAlwaysTaggedExecutedBySandbox() {
     FsWriteToolHandler handler = new FsWriteToolHandler();
 
-    ToolCallResult result = handler.execute(writeCall("/workspace/tag.txt", "x"), session);
+    ToolCallResult result =
+        handler.execute(writeCall("/workspace/tag.txt", "x"), session, InternalToolContext.empty());
 
     assertThat(result.properties())
         .containsEntry(
