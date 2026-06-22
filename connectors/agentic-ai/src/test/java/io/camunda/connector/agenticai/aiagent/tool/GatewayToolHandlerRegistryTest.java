@@ -544,7 +544,7 @@ class GatewayToolHandlerRegistryTest {
       @Test
       void resolvesElementIdViaManagingHandler() {
         when(handlerA.isGatewayManaged("GW_myElement")).thenReturn(true);
-        when(handlerA.elementId("GW_myElement")).thenReturn("myElement");
+        when(handlerA.resolveElementId("GW_myElement")).thenReturn("myElement");
 
         assertThat(registry.resolveElementId("GW_myElement")).contains("myElement");
       }

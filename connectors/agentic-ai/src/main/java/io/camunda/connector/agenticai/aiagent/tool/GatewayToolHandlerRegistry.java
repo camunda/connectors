@@ -38,7 +38,7 @@ public interface GatewayToolHandlerRegistry extends GatewayToolCallTransformer {
    *     to the tool name, which equals the element id for ad-hoc tools)
    */
   default Optional<String> resolveElementId(String toolName) {
-    return handlerForToolDefinition(toolName).map(handler -> handler.elementId(toolName));
+    return handlerForToolDefinition(toolName).map(handler -> handler.resolveElementId(toolName));
   }
 
   Optional<GatewayToolHandler> handlerForToolDefinition(String toolName);

@@ -39,7 +39,7 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
    * @param toolName the namespaced gateway tool name (e.g. {@code MCP_myElement___myTool})
    * @return the BPMN element id (e.g. {@code myElement})
    */
-  String elementId(String toolName);
+  String resolveElementId(String toolName);
 
   GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);

@@ -72,7 +72,7 @@ class McpClientGatewayToolHandlerTest {
 
     @Test
     void resolvesElementIdFromNamespacedToolName() {
-      assertThat(handler.elementId("MCP_myElement___myTool")).isEqualTo("myElement");
+      assertThat(handler.resolveElementId("MCP_myElement___myTool")).isEqualTo("myElement");
     }
   }
 

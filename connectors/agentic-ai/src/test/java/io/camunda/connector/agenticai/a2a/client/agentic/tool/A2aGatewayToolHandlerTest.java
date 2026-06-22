@@ -70,7 +70,7 @@ class A2aGatewayToolHandlerTest {
 
     @Test
     void resolvesElementIdFromNamespacedToolName() {
-      assertThat(handler.elementId("A2A_myElement")).isEqualTo("myElement");
+      assertThat(handler.resolveElementId("A2A_myElement")).isEqualTo("myElement");
     }
   }
 
