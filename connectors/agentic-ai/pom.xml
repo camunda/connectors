@@ -319,6 +319,10 @@
       <artifactId>jackson-datatype-document</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-feel</artifactId>
       <scope>test</scope>

@@ -6,16 +6,18 @@
  */
 package io.camunda.connector.agenticai.sandbox.skill;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import java.util.Arrays;
 
 /**
- * Lenient, dependency-free parser for {@code SKILL.md} frontmatter.
+ * Parser for {@code SKILL.md} frontmatter.
  *
- * <p>Frontmatter is delimited by a leading {@code ---} line and a closing {@code ---} line.
- * Key/value pairs inside the frontmatter are parsed by splitting on the <em>first</em> colon only,
- * which tolerates the common "unquoted colon in description" malformation. Surrounding single or
- * double quotes are stripped from values.
+ * <p>Frontmatter is delimited by a leading {@code ---} line and a closing {@code ---} line. The
+ * block between the delimiters is parsed as YAML by Jackson's {@link YAMLMapper} (which wraps
+ * SnakeYAML), so it correctly handles block scalars ({@code description: |}), folded scalars,
+ * quoted values containing colons, and multi-line values — none of which a naive line/colon split
+ * handles.
  *
  * <p><b>Leniency contract:</b>
  *
@@ -31,14 +33,17 @@ public class SkillMdParser {
 
   private static final String FRONTMATTER_DELIMITER = "---";
 
+  /** Thread-safe and reusable; shared across concurrent invocations. */
+  private static final YAMLMapper YAML = new YAMLMapper();
+
   /**
    * Parses a {@code SKILL.md} string and returns its structured representation.
    *
    * @param skillMd the full text of SKILL.md
    * @return parsed result; {@link ParsedSkillMd#name()} may be {@code null} when the frontmatter
    *     {@code name} key is absent or blank
-   * @throws InvalidSkillException if there is no frontmatter block, or if {@code description} is
-   *     missing/blank
+   * @throws InvalidSkillException if there is no frontmatter block, if the frontmatter is not valid
+   *     YAML, or if {@code description} is missing/blank
    */
   public ParsedSkillMd parse(String skillMd) {
     if (skillMd == null || skillMd.isEmpty()) {
@@ -82,37 +87,31 @@ public class SkillMdParser {
           "SKILL.md frontmatter block is not closed (missing closing '---' line)");
     }
 
-    // Parse frontmatter key/value pairs
-    Map<String, String> frontmatter = new LinkedHashMap<>();
-    for (int i = openIdx + 1; i < closeIdx; i++) {
-      String line = lines[i];
-      if (line.isBlank()) {
-        continue;
-      }
-      int colonIdx = line.indexOf(':');
-      if (colonIdx < 0) {
-        // Not a key:value line — ignore (could be a continuation or comment)
-        continue;
-      }
-      String key = line.substring(0, colonIdx).trim();
-      String value = line.substring(colonIdx + 1).trim();
-      value = stripSurroundingQuotes(value);
-      if (!key.isEmpty()) {
-        frontmatter.put(key, value);
-      }
+    // Parse the frontmatter block as YAML
+    String frontmatterYaml = String.join("\n", Arrays.asList(lines).subList(openIdx + 1, closeIdx));
+    JsonNode frontmatter;
+    try {
+      frontmatter = YAML.readTree(frontmatterYaml);
+    } catch (Exception e) {
+      throw new InvalidSkillException("SKILL.md frontmatter is not valid YAML: " + e.getMessage());
+    }
+    if (frontmatter == null || !frontmatter.isObject()) {
+      throw new InvalidSkillException(
+          "SKILL.md frontmatter must be a YAML mapping of key/value pairs");
     }
 
     // Extract known keys
-    String name = frontmatter.get("name");
+    String name = textOrNull(frontmatter, "name");
     if (name != null && name.isBlank()) {
       name = null;
     }
 
-    String description = frontmatter.get("description");
+    String description = textOrNull(frontmatter, "description");
     if (description == null || description.isBlank()) {
       throw new InvalidSkillException(
           "SKILL.md frontmatter is missing a required 'description' field (or it is blank)");
     }
+    description = description.trim();
 
     // Build the body: everything after the closing ---
     StringBuilder bodyBuilder = new StringBuilder();
@@ -131,15 +130,9 @@ public class SkillMdParser {
     return new ParsedSkillMd(name, description, body);
   }
 
-  private static String stripSurroundingQuotes(String value) {
-    if (value.length() >= 2) {
-      char first = value.charAt(0);
-      char last = value.charAt(value.length() - 1);
-      if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
-        return value.substring(1, value.length() - 1);
-      }
-    }
-    return value;
+  private static String textOrNull(JsonNode node, String field) {
+    JsonNode value = node.get(field);
+    return value == null || value.isNull() ? null : value.asText();
   }
 
   /** Structured result of parsing a {@code SKILL.md} file. */

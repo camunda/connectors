@@ -93,16 +93,57 @@ class SkillMdParserTest {
   }
 
   // -------------------------------------------------------------------------
-  // Unquoted colon in description
+  // Block / folded scalars and colons (the reason we use a real YAML parser)
   // -------------------------------------------------------------------------
 
   @Test
-  void parse_unquotedColonInDescription_doesNotFail() {
+  void parse_blockScalarDescription_preservesMultipleLines() {
+    String skillMd =
+        """
+        ---
+        name: blocky
+        description: |
+          First line of the description.
+
+          A second paragraph with details: when to use it, what it does.
+        ---
+        Body.
+        """;
+
+    ParsedSkillMd result = parser.parse(skillMd);
+
+    assertThat(result.name()).isEqualTo("blocky");
+    assertThat(result.description())
+        .isEqualTo(
+            "First line of the description.\n\n"
+                + "A second paragraph with details: when to use it, what it does.");
+  }
+
+  @Test
+  void parse_foldedScalarDescription_joinsLinesWithSpaces() {
+    String skillMd =
+        """
+        ---
+        name: folded
+        description: >
+          folded line one
+          folded line two
+        ---
+        Body.
+        """;
+
+    ParsedSkillMd result = parser.parse(skillMd);
+
+    assertThat(result.description()).isEqualTo("folded line one folded line two");
+  }
+
+  @Test
+  void parse_quotedColonInDescription_isPreserved() {
     String skillMd =
         """
         ---
         name: api-skill
-        description: Calls the REST API: use for HTTP requests, REST, JSON payloads.
+        description: "Calls the REST API: use for HTTP requests, REST, JSON payloads."
         ---
         Body.
         """;
@@ -111,6 +152,23 @@ class SkillMdParserTest {
 
     assertThat(result.description())
         .isEqualTo("Calls the REST API: use for HTTP requests, REST, JSON payloads.");
+  }
+
+  @Test
+  void parse_unquotedColonSpaceInDescription_throwsInvalidSkillException() {
+    // An unquoted ": " makes this invalid YAML — authors must quote or use a block scalar.
+    String skillMd =
+        """
+        ---
+        name: api-skill
+        description: Calls the REST API: use for HTTP requests.
+        ---
+        Body.
+        """;
+
+    assertThatThrownBy(() -> parser.parse(skillMd))
+        .isInstanceOf(InvalidSkillException.class)
+        .hasMessageContaining("not valid YAML");
   }
 
   // -------------------------------------------------------------------------
