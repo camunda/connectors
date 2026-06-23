@@ -32,6 +32,7 @@ import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
 import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
@@ -174,6 +175,9 @@ public class SpringConnectorJobHandler implements JobHandler {
               connectorResponse.responseValue(),
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
+      if (!responseVariables.isEmpty()) {
+        InlineSizeGuard.check(objectMapper.writeValueAsBytes(responseVariables).length);
+      }
       return new ConnectorResult.SuccessResult(connectorResponse, responseVariables);
     } catch (Exception e) {
       return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
