@@ -67,6 +67,7 @@ import io.camunda.connector.agenticai.sandbox.internaltool.BashToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.ExportDocumentToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.FsReadToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.FsWriteToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.ImportDocumentToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolHandler;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
@@ -215,6 +216,14 @@ public class AgenticAiConnectorsAutoConfiguration {
       DocumentFactory documentFactory) {
     return new ExportDocumentToolHandler(
         documentFactory, ExportDocumentToolHandler.DEFAULT_MAX_DOCUMENT_BYTES);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ImportDocumentToolHandler sandboxImportDocumentToolHandler(
+      DocumentFactory documentFactory) {
+    return new ImportDocumentToolHandler(
+        documentFactory, ImportDocumentToolHandler.DEFAULT_MAX_DOCUMENT_BYTES);
   }
 
   @Bean

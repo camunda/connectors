@@ -14,6 +14,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.sandbox.provider.fake.InMemorySandboxProvider;
@@ -97,7 +98,7 @@ class LoadSkillToolHandlerTest {
       when(resolver.resolveByName(any(), eq(skill.name()))).thenReturn(Optional.of(skill));
     }
     when(resolver.resolveMetadata(any())).thenReturn(metadata);
-    return new InternalToolContext(docs, resolver);
+    return new InternalToolContext(docs, resolver, DocumentRegistry.empty());
   }
 
   // ---------------------------------------------------------------------------

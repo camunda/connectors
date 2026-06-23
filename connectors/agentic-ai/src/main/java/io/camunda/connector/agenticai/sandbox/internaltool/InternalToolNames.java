@@ -31,4 +31,10 @@ public final class InternalToolNames {
    * for T7 — {@code sandbox_load_skill} handler is wired separately.
    */
   public static final String LOAD_SKILL = "sandbox_load_skill";
+
+  /**
+   * Materialize an in-context document (addressed by its {@code <doc id="…"/>} handle) into the
+   * sandbox filesystem. IN counterpart to {@link #EXPORT_DOCUMENT} — T12.
+   */
+  public static final String IMPORT_DOCUMENT = "sandbox_import_document";
 }

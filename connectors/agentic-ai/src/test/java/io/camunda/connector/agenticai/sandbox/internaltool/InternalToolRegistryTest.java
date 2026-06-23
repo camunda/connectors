@@ -57,9 +57,11 @@ class InternalToolRegistryTest {
 
   @Test
   void isInternalTool_reservedButUnregisteredNames_shouldReturnFalse() {
-    // export_document and load_skill are reserved constants but not registered in this registry
+    // export_document, load_skill, and import_document are reserved constants but not registered in
+    // this registry
     assertThat(registry.isInternalTool(InternalToolNames.EXPORT_DOCUMENT)).isFalse();
     assertThat(registry.isInternalTool(InternalToolNames.LOAD_SKILL)).isFalse();
+    assertThat(registry.isInternalTool(InternalToolNames.IMPORT_DOCUMENT)).isFalse();
   }
 
   @Test

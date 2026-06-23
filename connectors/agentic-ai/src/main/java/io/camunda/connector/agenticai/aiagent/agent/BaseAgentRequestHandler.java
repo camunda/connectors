@@ -190,7 +190,13 @@ public abstract class BaseAgentRequestHandler<
         agentConfiguration.skills() != null && agentConfiguration.sandboxConfiguration().isPresent()
             ? agentConfiguration.skills()
             : List.<Document>of();
-    var internalToolContext = new InternalToolContext(skillDocs, skillResolver);
+
+    // Build the document registry once here (before the sub-loop) from the loaded registry plus the
+    // documents in the current input messages. Reused both for InternalToolContext
+    // (sandbox_import_document)
+    // and for the ConversationStoreRequest at the end — no double-build.
+    final var documentRegistry = buildRegistry(loadResult.documentRegistry(), inputMessages);
+    var internalToolContext = new InternalToolContext(skillDocs, skillResolver, documentRegistry);
 
     SandboxSession sandboxSession = null;
     int internalIterations = 0;
@@ -280,11 +286,11 @@ public abstract class BaseAgentRequestHandler<
     }
 
     LOGGER.debug("Storing conversation messages to session");
-    final var populatedRegistry = buildRegistry(loadResult.documentRegistry(), inputMessages);
+    // Reuse the registry that was already built before the sub-loop — no second traversal needed.
     final var storedRef =
         session.storeMessages(
             conversation.toAgentContext(),
-            ConversationStoreRequest.of(conversation.allMessages(), populatedRegistry));
+            ConversationStoreRequest.of(conversation.allMessages(), documentRegistry));
 
     final var storedConversation = conversation.withStoredConversation(storedRef);
     final var agentResponse = responseHandler.createResponse(storedConversation);

@@ -449,7 +449,7 @@ A deliberately **minimal** set (bash is the workhorse; search/list/run-code coll
 | `sandbox_fs_write(path, content)` | `SandboxFileSystem.write` | Reliable file write (no shell-escaping pain); creates parent dirs. |
 | `sandbox_export_document(path)` | `fs.read` + `DocumentFactory` | Reads the workspace file's bytes, uploads to Camunda document storage, and attaches the document as a user message in the conversation (so later steps can reference its contents). The way binary/large artifacts escape the sandbox into the process. |
 | `sandbox_load_skill(name)` | skill registry + FS | Materializes a skill bundle into the FS, returns its `SKILL.md` body (the skills catalog lives in the system prompt, not a tool). |
-| `sandbox_import_document(id, path?)` | document registry + `fs.write` | **(Designed — §11.)** Materializes a document the agent already has in context (by its `<doc id="…"/>` handle) into the sandbox FS so `bash`/`fs_read` can operate on it. The IN counterpart to `sandbox_export_document`. |
+| `sandbox_import_document(id, path?)` | document registry + `fs.write` | **(T12 — §11.5)** Materializes a document the agent already has in context (by its `<doc id="…"/>` handle) into the sandbox FS so `bash`/`fs_read` can operate on it. The IN counterpart to `sandbox_export_document`. |
 
 **Dropped vs. the original sketch:** `run_code` (→ `sandbox_fs_write` + `sandbox_bash`, or `python -c`/heredoc),
 `fs_search` (→ `grep`/`find` via `sandbox_bash`), `fs_list` (→ `ls` via `sandbox_bash`). The SPI keeps `list`/`search`
@@ -870,8 +870,12 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
 > ✅ **T11 (inbound document reference registry, §11)** — registry model (`DocumentHandle.idFor` +
 > `DocumentRegistry`/`DocumentRegistryEntry`), engine-driven population (prompt + tool-result docs),
 > conversation-payload persistence across both backends (SPI sidecar), and both `<doc/>` render-site
-> changes (uniform trimmed markers incl. prompt docs; tool-result text JSON→`<doc id/>`). 📐 **Designed,
-> not built:** **T12 — `sandbox_import_document`**. `fromAi()` document inputs (§11.7) are a downstream
+> changes (uniform trimmed markers incl. prompt docs; tool-result text JSON→`<doc id/>`). ✅ **T12
+> (`sandbox_import_document`, §11.5)** — registry threaded via `InternalToolContext` (built once before
+> the sub-loop, reused at store), registry-only resolution → `DocumentFactory.resolve` → `asByteArray`
+> → `fs.write`, over-cap + not-in-registry rejection (§11.6). *Known follow-up:* a document minted by
+> `sandbox_export_document` within the same sub-loop is not importable in that same invocation (registry
+> is built before the loop). 📐 **Designed, not built:** `fromAi()` document inputs (§11.7) are a downstream
 > follow-up enabled by T11.
 
 ### T1 — Sandbox SPI core + in-memory fake

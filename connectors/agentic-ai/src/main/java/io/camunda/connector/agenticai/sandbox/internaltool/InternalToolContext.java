@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.sandbox.internaltool;
 
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.sandbox.skill.Skill;
 import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.api.document.Document;
@@ -25,12 +26,16 @@ import java.util.Optional;
  * @param skillDocs the raw skill bundle documents available to the agent; may be empty, never null
  * @param skillResolver resolver used to materialize a bundle on demand; {@code null} only when
  *     there are no skill documents (see {@link #empty()})
+ * @param documentRegistry the per-execution document registry used by {@code
+ *     sandbox_import_document} to resolve inbound documents by their stable handle id; never null
+ *     (use {@link DocumentRegistry#empty()} when no registry is available)
  */
-public record InternalToolContext(List<Document> skillDocs, SkillResolver skillResolver) {
+public record InternalToolContext(
+    List<Document> skillDocs, SkillResolver skillResolver, DocumentRegistry documentRegistry) {
 
-  /** Returns an empty context with no skills. */
+  /** Returns an empty context with no skills and an empty document registry. */
   public static InternalToolContext empty() {
-    return new InternalToolContext(List.of(), null);
+    return new InternalToolContext(List.of(), null, DocumentRegistry.empty());
   }
 
   /** Resolves the named skill's full bundle on demand, or empty if it is unknown. */
