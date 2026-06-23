@@ -92,12 +92,14 @@ in-process sub-loop** right after the assistant message is produced:
 proceed():
   conversation = rehydrate(...)
   loop:                                            # NEW sub-loop
-    chatResponse = framework.executeChatRequest(window)
-    conversation = conversation.ingest(chatResponse)
+    agentInstance.createHistoryForInputMessages(currentTurn)   # #7590, per turn
+    chatResponse = framework.executeMeasuringTime(window)
+    conversation = conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics())
+    agentInstance.createHistoryForAssistantMessage(currentTurn) # #7590, per turn
     toolCalls = chatResponse.assistantMessage().toolCalls()
     if toolCalls are ALL internal (skill/fs/code):
-        results = internalToolExecutor.execute(toolCalls, sandboxSession)   # in-process, via SPI
-        conversation = conversation.append(ToolCallResultMessage(results))
+        results = internalToolExecutor.execute(toolCalls, sandboxSession, ctx)  # in-process, via SPI
+        conversation = conversation.nextTurn(ToolCallResultMessage(results))    # opens a fresh turn
         continue                                    # re-prompt LLM, never complete the job
     else:                                           # external/modeled tool calls OR final answer
         break
@@ -121,6 +123,29 @@ Properties:
 - **Sandbox session is scoped to one invocation.** The session opens at the first internal tool call
   and closes (`AutoCloseable`) when `proceed()` returns — so *within a burst*, full state (including
   `pip install`ed packages, running shells) is intact for free.
+
+### Turn semantics & agent-instance history (post-#7590 integration)
+
+The loop maps **one model call → one `AgentConversationTurn`**, preserving the existing turn invariant.
+Each iteration: `ingest(assistant, metrics)` completes the pending turn, then `nextTurn(toolResults)`
+moves it into `previousTurns` and opens a fresh pending turn whose input is the internal
+`ToolCallResultMessage` (`nextTurn()` was added for exactly this burst). Consequently an
+**internal-only execution of N internal tool rounds produces N+1 turns** (the `+1` is the final-answer
+call); a turn with zero internal calls is a single turn, identical to today. `iterationKey`s stay
+monotonic and gap-free, so they compose with reconstructed history; `invocationMetrics()` sums the N+1
+per-turn `modelCalls` (each turn carries `modelCalls=1`). The only departure from the classic model is
+*turns-per-job*: internal execution yields N+1 turns within one job instead of one.
+
+The rebase onto `main` integrated **#7590** (*record conversation history items on the agent instance*).
+The sub-loop now records **per turn, inside each iteration**:
+`createHistoryForInputMessages(currentTurn)` before the call and
+`createHistoryForAssistantMessage(currentTurn)` after `ingest`. So internal tool calls **and** their
+results are pushed to the agent instance as the burst progresses (one input-record + one assistant-record
+per turn), gated on a non-null `agentInstanceKey` (a silent no-op for agents predating the feature — keeping
+the "no sandbox configured → unchanged" invariant intact). The chat call also moved to
+`framework.executeMeasuringTime(...)` and per-turn metrics now flow from `chatResponse.metrics()` (the
+metric carrier #7590 introduced). This per-turn history write is **distinct from #7450 live streaming**
+(see §8): it is the durable history-item write that already happens, not a mid-call update channel.
 
 ### In-process vs gateway tool, and mixing
 
@@ -451,14 +476,20 @@ conversation plane — persisted as messages in the conversation store (transcri
 in the BPMN element tree. The PoC does **not** require any new engine endpoint; the persisted
 conversation is the audit record.
 
+- **As agent-instance history items (post-#7590):** since the rebase onto `main` integrated #7590,
+  the loop also calls `agentInstanceClient.createHistoryForInputMessages` /
+  `createHistoryForAssistantMessage` **once per turn, inside each sub-loop iteration** — so internal
+  tool calls and their results are recorded as agent-instance history items *as the burst runs*, not
+  only flattened at job completion. N internal rounds ⇒ N+1 input-records and N+1 assistant-records.
+  This is gated on a non-null `agentInstanceKey` (no-op for pre-feature agents).
+
 **Out of scope for the PoC — live per-iteration streaming (#7450).**
 [#7450](https://github.com/camunda/connectors/issues/7450) ("send iteration updates from connector to
-engine") extends the agent-instance update endpoint to carry conversation data (messages + tool-call
-`name`/`input`/`output`) *after each LLM call*. Once it lands, the sub-loop could push an update per
-iteration for live, fine-grained mid-job visibility (and the per-iteration update could double as a
-job-lease heartbeat). **We explicitly do not depend on or align with #7450 in this PoC** — it is a
-separate workstream (nikonovd, 8.10-alpha3). For now we persist messages at job completion (the
-existing path) as the observability record.
+engine") extends the agent-instance *update* endpoint to carry conversation data (messages + tool-call
+`name`/`input`/`output`) *after each LLM call* for live mid-job visibility (and a job-lease heartbeat).
+This is **distinct from the #7590 history-item write above** (which we now do per turn): #7450 is the
+streaming/update channel. **We explicitly do not depend on or align with #7450 in this PoC** — it is a
+separate workstream (nikonovd, 8.10-alpha3).
 
 **Durability nuance:** because the conversation store is written at job completion, a job that
 fails/superseded mid-burst loses that burst's in-process messages locally. Acceptable for the PoC;
