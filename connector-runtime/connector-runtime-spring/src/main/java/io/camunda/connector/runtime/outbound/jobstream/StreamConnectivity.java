@@ -37,40 +37,62 @@ public record StreamConnectivity(BrokerConnectivityState brokerState, List<Strin
    * Computes the connectivity state for {@code jobType} from the broker remote streams.
    *
    * @param jobType the job type to compute state for
-   * @param allRemoteStreams broker-side remote streams; {@link Optional#empty()} when broker
-   *     monitoring is not configured or unreachable, yielding {@link
-   *     BrokerConnectivityState#UNKNOWN}; a present {@link Optional} with an empty list yields
-   *     {@link BrokerConnectivityState#NONE}
+   * @param brokerStreams broker-side remote streams together with the total number of queried
+   *     brokers; {@link Optional#empty()} when broker monitoring is not configured or unreachable,
+   *     yielding {@link BrokerConnectivityState#UNKNOWN}
    */
   public static StreamConnectivity compute(
-      String jobType, Optional<List<RemoteJobStream>> allRemoteStreams) {
+      String jobType, Optional<BrokerStreamsResult> brokerStreams) {
 
-    Optional<List<RemoteJobStream>> remoteStreams =
-        allRemoteStreams.map(
-            streams -> streams.stream().filter(s -> jobType.equals(s.jobType())).toList());
+    Optional<List<RemoteJobStream>> filteredStreams =
+        brokerStreams.map(
+            data -> data.streams().stream().filter(s -> jobType.equals(s.jobType())).toList());
 
-    BrokerConnectivityState brokerState = computeBrokerState(remoteStreams);
-    List<String> streamIds = extractStreamIds(remoteStreams);
+    int totalBrokerCount = brokerStreams.map(BrokerStreamsResult::brokerCount).orElse(0);
+    BrokerConnectivityState brokerState =
+        filteredStreams
+            .map(streams -> computeBrokerState(streams, totalBrokerCount))
+            .orElse(BrokerConnectivityState.UNKNOWN);
+
+    List<String> streamIds = extractStreamIds(filteredStreams);
     return new StreamConnectivity(brokerState, streamIds);
   }
 
+  /**
+   * Determines connectivity state from the filtered (job-type-specific) streams and the total
+   * number of brokers that were queried.
+   *
+   * <ul>
+   *   <li>{@link BrokerConnectivityState#NONE} – no broker has any consumer with a non-null id for
+   *       this job type
+   *   <li>{@link BrokerConnectivityState#ALL_CONNECTED} – every queried broker has at least one
+   *       consumer with a non-null id
+   *   <li>{@link BrokerConnectivityState#PARTIALLY_CONNECTED} – some but not all brokers have a
+   *       consumer with a non-null id (including brokers that did not report the job type at all)
+   * </ul>
+   */
   private static BrokerConnectivityState computeBrokerState(
-      Optional<List<RemoteJobStream>> remoteStreams) {
-    return remoteStreams
-        .map(
-            streams -> {
-              if (streams.isEmpty()) {
-                return BrokerConnectivityState.NONE;
-              }
-              boolean allConnected =
-                  streams.stream()
-                      .allMatch(
-                          remote -> remote.consumers() != null && !remote.consumers().isEmpty());
-              return allConnected
-                  ? BrokerConnectivityState.ALL_CONNECTED
-                  : BrokerConnectivityState.PARTIALLY_CONNECTED;
-            })
-        .orElse(BrokerConnectivityState.UNKNOWN);
+      List<RemoteJobStream> filteredStreams, int totalBrokerCount) {
+
+    if (totalBrokerCount == 0) {
+      return BrokerConnectivityState.NONE;
+    }
+
+    long brokersWithValidConsumer =
+        filteredStreams.stream()
+            .filter(
+                remote ->
+                    remote.consumers() != null
+                        && remote.consumers().stream().anyMatch(c -> c.get("id") != null))
+            .count();
+
+    if (brokersWithValidConsumer == 0) {
+      return BrokerConnectivityState.NONE;
+    }
+    if (brokersWithValidConsumer == totalBrokerCount) {
+      return BrokerConnectivityState.ALL_CONNECTED;
+    }
+    return BrokerConnectivityState.PARTIALLY_CONNECTED;
   }
 
   private static List<String> extractStreamIds(Optional<List<RemoteJobStream>> remoteStreams) {

@@ -22,7 +22,7 @@ import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
-import io.camunda.connector.runtime.outbound.jobstream.RemoteJobStream;
+import io.camunda.connector.runtime.outbound.jobstream.BrokerStreamsResult;
 import io.camunda.connector.runtime.outbound.jobstream.StreamConnectivity;
 import java.util.List;
 import java.util.Optional;
@@ -47,18 +47,18 @@ public class OutboundConnectorsService {
   }
 
   public List<OutboundConnectorResponse> findAll(String runtimeId) {
-    Optional<List<RemoteJobStream>> remoteStreams = queryBrokerStreams();
+    Optional<BrokerStreamsResult> brokerStreams = queryBrokerStreams();
     return connectorFactory.getRuntimeConfigurations().stream()
-        .map(config -> toResponse(config, runtimeId, remoteStreams))
+        .map(config -> toResponse(config, runtimeId, brokerStreams))
         .toList();
   }
 
   public List<OutboundConnectorResponse> findByType(String type, String runtimeId) {
-    Optional<List<RemoteJobStream>> remoteStreams = queryBrokerStreams();
+    Optional<BrokerStreamsResult> brokerStreams = queryBrokerStreams();
     var results =
         connectorFactory.getRuntimeConfigurations().stream()
             .filter(config -> config.config().type().equals(type))
-            .map(config -> toResponse(config, runtimeId, remoteStreams))
+            .map(config -> toResponse(config, runtimeId, brokerStreams))
             .toList();
     if (results.isEmpty()) {
       throw new DataNotFoundException(OutboundConnectorResponse.class, type);
@@ -66,7 +66,7 @@ public class OutboundConnectorsService {
     return results;
   }
 
-  private Optional<List<RemoteJobStream>> queryBrokerStreams() {
+  private Optional<BrokerStreamsResult> queryBrokerStreams() {
     if (brokerJobStreamClient == null) {
       return Optional.empty();
     }
@@ -81,8 +81,8 @@ public class OutboundConnectorsService {
   private OutboundConnectorResponse toResponse(
       AbstractConnectorFactory.ConnectorRuntimeConfiguration<OutboundConnectorConfiguration> config,
       String runtimeId,
-      Optional<List<RemoteJobStream>> remoteStreams) {
-    var connectivity = StreamConnectivity.compute(config.config().type(), remoteStreams);
+      Optional<BrokerStreamsResult> brokerStreams) {
+    var connectivity = StreamConnectivity.compute(config.config().type(), brokerStreams);
     var connectorConfig = config.config();
     return new OutboundConnectorResponse(
         connectorConfig.name(),

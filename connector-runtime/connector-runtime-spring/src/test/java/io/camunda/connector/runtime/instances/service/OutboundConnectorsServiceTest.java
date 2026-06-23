@@ -27,6 +27,7 @@ import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
+import io.camunda.connector.runtime.outbound.jobstream.BrokerStreamsResult;
 import io.camunda.connector.runtime.outbound.jobstream.RemoteJobStream;
 import java.util.List;
 import java.util.Map;
@@ -90,7 +91,7 @@ class OutboundConnectorsServiceTest {
   void shouldReturnNone_whenBrokerReturnsNoConsumersForType() throws Exception {
     // A broker exists for TYPE but has no consumers
     when(brokerClient.fetchRemoteStreams())
-        .thenReturn(List.of(new RemoteJobStream(TYPE, List.of())));
+        .thenReturn(new BrokerStreamsResult(List.of(new RemoteJobStream(TYPE, List.of())), 1));
 
     var service = new OutboundConnectorsService(factory, brokerClient);
     var results = service.findAll(RUNTIME_ID);
@@ -105,7 +106,8 @@ class OutboundConnectorsServiceTest {
   void shouldReturnAllConnected_whenAllBrokersHaveConsumer() throws Exception {
     var broker1 = new RemoteJobStream(TYPE, List.of(Map.of("id", STREAM_ID)));
     var broker2 = new RemoteJobStream(TYPE, List.of(Map.of("id", STREAM_ID)));
-    when(brokerClient.fetchRemoteStreams()).thenReturn(List.of(broker1, broker2));
+    when(brokerClient.fetchRemoteStreams())
+        .thenReturn(new BrokerStreamsResult(List.of(broker1, broker2), 2));
 
     var service = new OutboundConnectorsService(factory, brokerClient);
     var results = service.findAll(RUNTIME_ID);
@@ -121,7 +123,7 @@ class OutboundConnectorsServiceTest {
     var connectedBroker = new RemoteJobStream(TYPE, List.of(Map.of("id", STREAM_ID)));
     var disconnectedBroker = new RemoteJobStream(TYPE, List.of());
     when(brokerClient.fetchRemoteStreams())
-        .thenReturn(List.of(connectedBroker, disconnectedBroker));
+        .thenReturn(new BrokerStreamsResult(List.of(connectedBroker, disconnectedBroker), 2));
 
     var service = new OutboundConnectorsService(factory, brokerClient);
     var results = service.findAll(RUNTIME_ID);
@@ -132,7 +134,7 @@ class OutboundConnectorsServiceTest {
 
   @Test
   void shouldReturnNone_whenBrokerClientReturnsEmptyList() throws Exception {
-    when(brokerClient.fetchRemoteStreams()).thenReturn(List.of());
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of(), 0));
 
     var service = new OutboundConnectorsService(factory, brokerClient);
     var results = service.findAll(RUNTIME_ID);
@@ -147,7 +149,7 @@ class OutboundConnectorsServiceTest {
 
   @Test
   void shouldPopulateResponseMetadata() throws Exception {
-    when(brokerClient.fetchRemoteStreams()).thenReturn(List.of());
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of(), 0));
 
     var service = new OutboundConnectorsService(factory, brokerClient);
     var response = service.findAll(RUNTIME_ID).getFirst();
@@ -176,7 +178,7 @@ class OutboundConnectorsServiceTest {
                     new OutboundConnectorConfiguration(
                         "RabbitMQ", new String[] {"message"}, OTHER_TYPE, () -> null, null),
                     true)));
-    when(brokerClient.fetchRemoteStreams()).thenReturn(List.of());
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of(), 0));
 
     var service = new OutboundConnectorsService(factory, brokerClient);
     var results = service.findByType(TYPE, RUNTIME_ID);
@@ -187,7 +189,7 @@ class OutboundConnectorsServiceTest {
 
   @Test
   void findByType_shouldThrowDataNotFoundException_whenTypeUnknown() throws Exception {
-    when(brokerClient.fetchRemoteStreams()).thenReturn(List.of());
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of(), 0));
 
     var service = new OutboundConnectorsService(factory, brokerClient);
 

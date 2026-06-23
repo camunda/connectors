@@ -48,7 +48,7 @@ class StreamConnectivityTest {
 
   @Test
   void compute_shouldReturnNone_whenBrokerStreamsExplicitlyEmpty() {
-    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(List.of()));
+    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(), 0)));
 
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.NONE);
     assertThat(result.streamIds()).isNull();
@@ -58,7 +58,18 @@ class StreamConnectivityTest {
   void compute_shouldReturnNone_whenBrokerHasNoConsumersForJobType() {
     var emptyBroker = new RemoteJobStream(JOB_TYPE, List.of());
 
-    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(List.of(emptyBroker)));
+    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(emptyBroker), 1)));
+
+    assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.NONE);
+    assertThat(result.streamIds()).isNull();
+  }
+
+  @Test
+  void compute_shouldReturnNone_whenBrokerConsumersHaveNullId() {
+    // Consumer entry exists but has no "id" key — should not count as connected
+    var brokerWithNullIdConsumer = new RemoteJobStream(JOB_TYPE, List.of(Map.of("other", "value")));
+
+    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(brokerWithNullIdConsumer), 1)));
 
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.NONE);
     assertThat(result.streamIds()).isNull();
@@ -69,7 +80,7 @@ class StreamConnectivityTest {
     var broker1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
     var broker2 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
 
-    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(List.of(broker1, broker2)));
+    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(broker1, broker2), 2)));
 
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.ALL_CONNECTED);
     assertThat(result.streamIds()).containsExactly(STREAM_ID_1);
@@ -82,7 +93,19 @@ class StreamConnectivityTest {
 
     var result =
         StreamConnectivity.compute(
-            JOB_TYPE, Optional.of(List.of(connectedBroker, disconnectedBroker)));
+            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(connectedBroker, disconnectedBroker), 2)));
+
+    assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.PARTIALLY_CONNECTED);
+  }
+
+  @Test
+  void compute_shouldReturnPartiallyConnected_whenOneOfTwoBrokersDoesNotReportJobType() {
+    // broker2 has no entry for JOB_TYPE at all (absent from streams); totalBrokerCount=2
+    var broker1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
+
+    var result =
+        StreamConnectivity.compute(
+            JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(broker1), 2)));
 
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.PARTIALLY_CONNECTED);
   }
@@ -96,7 +119,7 @@ class StreamConnectivityTest {
     var broker1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
     var broker2 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
 
-    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(List.of(broker1, broker2)));
+    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(broker1, broker2), 2)));
 
     assertThat(result.streamIds()).containsExactly(STREAM_ID_1);
   }
@@ -106,7 +129,7 @@ class StreamConnectivityTest {
     var broker1 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_1)));
     var broker2 = new RemoteJobStream(JOB_TYPE, List.of(Map.of("id", STREAM_ID_2)));
 
-    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(List.of(broker1, broker2)));
+    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(broker1, broker2), 2)));
 
     assertThat(result.streamIds()).containsExactlyInAnyOrder(STREAM_ID_1, STREAM_ID_2);
   }
@@ -115,7 +138,7 @@ class StreamConnectivityTest {
   void compute_shouldReturnNullStreamIds_whenNoConsumersFound() {
     var emptyBroker = new RemoteJobStream(JOB_TYPE, List.of());
 
-    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(List.of(emptyBroker)));
+    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(emptyBroker), 1)));
 
     assertThat(result.streamIds()).isNull();
   }
@@ -128,7 +151,7 @@ class StreamConnectivityTest {
   void compute_shouldOnlyConsiderRemoteStreamsMatchingJobType() {
     var otherRemote = new RemoteJobStream(OTHER_TYPE, List.of(Map.of("id", STREAM_ID_1)));
 
-    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(List.of(otherRemote)));
+    var result = StreamConnectivity.compute(JOB_TYPE, Optional.of(new BrokerStreamsResult(List.of(otherRemote), 1)));
 
     // Remote streams exist but none match JOB_TYPE → NONE
     assertThat(result.brokerState()).isEqualTo(BrokerConnectivityState.NONE);
