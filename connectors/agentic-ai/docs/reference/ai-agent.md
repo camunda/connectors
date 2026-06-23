@@ -960,6 +960,19 @@ The architecture supports adding more contributors by creating a Spring bean imp
 
 `BaseAgentRequestHandler.createSystemMessage()` calls `systemPromptComposer.compose(agentContext, configuration)`. When the composed prompt is blank it returns `null` (no system message is added or persisted); otherwise it wraps the prompt in a `SystemMessage` that `AgentConversation.rehydrate` places at the head of the conversation.
 
+#### Frozen system prompt (composed once, then reused from history)
+
+The system prompt is **composed only on the first turn** and then **reused from the conversation history** on every subsequent execution. Because the `SystemMessage` is persisted as the first element of the stored message stream (`AgentConversation.allMessages()`) and reconstructed by `TurnReconstructor` into `previousConversation.systemMessage()`, `proceed()` prefers that stored copy and only invokes `createSystemMessage()` when none exists yet:
+
+```java
+var systemMessage =
+    previousConversation
+        .systemMessage()
+        .orElseGet(() -> createSystemMessage(executionContext, agentContext));
+```
+
+This avoids re-running every `SystemPromptContributor` on each execution — most importantly the skills contributor, which would otherwise re-download and re-unzip all configured skill bundles to rebuild the `<available_skills>` catalog on every job. **Behavioral consequence:** the system prompt is effectively frozen at the first turn for the lifetime of the conversation. For the **Sub-process** flavor this is invisible (config is already frozen at AHSP entry). For the **Task** flavor it is a change: a system prompt that varies across iterations via input mappings is no longer re-evaluated after the first turn (see [§14 Task vs Sub-process Migration Difference](#task-vs-sub-process-migration-difference)).
+
 ---
 
 <a id="14-response-handling"></a>
@@ -1097,7 +1110,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 
 ### Task vs Sub-process Migration Difference
 
-- **Task**: Input mappings are re-evaluated each loop iteration, so config changes (system prompt, model, etc.) are picked up immediately
+- **Task**: Input mappings are re-evaluated each loop iteration, so config changes (model, etc.) are picked up immediately. **Exception:** the system prompt is frozen after the first turn (composed once, then reused from history — see [§13 Frozen system prompt](#frozen-system-prompt-composed-once-then-reused-from-history)), so system-prompt changes across iterations are **not** picked up
 - **Sub-process**: Input mappings are evaluated once on AHSP entry. Config changes via migration are **not** picked up for running instances
 
 ---

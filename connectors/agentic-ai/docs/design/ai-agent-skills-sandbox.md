@@ -381,7 +381,10 @@ Mapped to the three progressive-disclosure tiers:
   sandbox `location`: it is built while composing the system prompt, before any sandbox session
   exists, so the writable base directory (`workDir`) is not yet known. The `load_skill` result is
   what reports the resolved absolute location once the skill is materialized.
-  *(Implemented by `SkillsSystemPromptContributor`, T7c.)*
+  *(Implemented by `SkillsSystemPromptContributor`, T7c.)* The catalog is built **once on the first
+  turn**: the composed system prompt is persisted as the first conversation message and reused from
+  history on subsequent executions (see "Frozen system prompt" below), so the skill bundles are not
+  re-read to rebuild the catalog on every job.
 - **Tier 2 — Activation via `load_skill(name)`.** We use a **dedicated activation tool** rather than
   plain file-read activation *because materialization is lazy* — file-read activation would require
   eagerly unpacking every skill into the sandbox at startup. `load_skill`:
@@ -393,10 +396,16 @@ Mapped to the three progressive-disclosure tiers:
      contents),
   3. is **idempotent** — if the skill is already materialized (its `SKILL.md` exists in the sandbox),
      it returns a short "already loaded" note instead of re-writing files and re-injecting the body.
-  The `name` is **validated at runtime** against the per-invocation skill list (an unknown name returns
-  an error listing the valid names). *Note:* an enum-constrained schema was deferred — internal-tool
-  definitions are built once at startup, while valid skill names are per-invocation; the
-  `<available_skills>` catalog steers the model instead.
+  The `name` is **constrained to a JSON-schema `enum`** of the configured skill names so the model
+  cannot request a nonexistent skill (it is also validated at runtime, returning an error listing the
+  valid names). The enum is resolved **once at agent initialization** and frozen into `load_skill`'s
+  definition alongside the ad-hoc tools (via `SkillAwareInternalToolHandler` +
+  `InternalToolRegistry.toolDefinitions(skillNames)`); it rides in the already-persisted tool
+  definitions, adding no separate agent-context state. *(Implemented; the earlier note that the enum
+  was deferred no longer applies.)* Skill **bundles** are resolved **lazily** — `load_skill`
+  materializes only the requested bundle via `SkillResolver.resolveByName()`, rather than the prior
+  eager resolution of all bundles on every invocation; `InternalToolContext` carries the raw
+  `List<Document>` + the resolver instead of pre-resolved skills.
 - **Tier 3 — Resources on demand.** The model reads referenced files (REFERENCE.md, schemas) via
   `fs_read` and runs bundled scripts via `bash` — all against the sandbox FS.
   Their contents never round-trip through the connector or Camunda.
@@ -405,8 +414,18 @@ Implementation notes (from the guide):
 
 - **Protect skill content from context eviction.** `MessageWindowFilter` (sliding window, default 20)
   must **not** evict an activated skill's instructions mid-conversation — that silently degrades
-  behavior with no visible error. Flag `load_skill` results as protected/pinned so the window filter
-  preserves them.
+  behavior with no visible error. True pinning (flagging `load_skill` results as protected so the
+  window filter preserves them) is **deferred** — it is delicate with the naive last-N filter because
+  a pinned tool-result message must keep its paired assistant tool-call message or the LLM API rejects
+  the malformed sequence. **Interim measure (implemented):** the `load_skill` "already loaded" note
+  tells the model to re-read `<workDir>/skills/<name>/SKILL.md` via `fs_read` if the instructions are
+  no longer in its context, since the bundle remains on the sandbox FS.
+- **Frozen system prompt.** The system prompt — including the Tier-1 `<available_skills>` catalog — is
+  composed once on the first turn and then reused from the conversation history on every subsequent
+  execution (`previousConversation.systemMessage()` in `BaseAgentRequestHandler.proceed()`). This
+  avoids re-running the skills contributor (and re-reading every bundle) on each job. It applies to
+  both connector flavors; for the Task flavor it means a per-iteration-varying system prompt is no
+  longer re-evaluated after the first turn. See `docs/reference/ai-agent.md` §13.
 - **Parser leniency.** Extract `name`+`description` tolerantly: warn-but-load on name/length
   mismatches; skip a skill only if the description is missing/empty or the YAML is unparseable; handle
   the common "unquoted colon in description" malformation.

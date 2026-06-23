@@ -158,7 +158,16 @@ public abstract class BaseAgentRequestHandler<
       final ConversationSession session,
       final ConversationStore store) {
     var agentConfiguration = executionContext.configuration();
-    var systemMessage = createSystemMessage(executionContext, agentContext);
+    // Freeze the system prompt: compose it once on the first turn, then reuse the copy persisted in
+    // the conversation history. This avoids re-running every system-prompt contributor on each
+    // execution — notably re-resolving (downloading + unzipping) all skill bundles for the Tier-1
+    // catalog. The composed message is stored as the first message via
+    // AgentConversation#allMessages
+    // and reconstructed by TurnReconstructor into previousConversation.systemMessage().
+    var systemMessage =
+        previousConversation
+            .systemMessage()
+            .orElseGet(() -> createSystemMessage(executionContext, agentContext));
     var conversation =
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
