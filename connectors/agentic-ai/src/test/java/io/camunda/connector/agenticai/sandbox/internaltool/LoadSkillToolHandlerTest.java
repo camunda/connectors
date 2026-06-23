@@ -162,6 +162,8 @@ class LoadSkillToolHandlerTest {
     assertThat(result.content())
         .asString()
         .contains("Bundled files live under /workspace/skills/demo");
+    assertThat(result.content()).asString().contains("sandbox_fs_read");
+    assertThat(result.content()).asString().contains("sandbox_bash");
   }
 
   @Test
@@ -213,6 +215,9 @@ class LoadSkillToolHandlerTest {
     assertThat(content).doesNotContain("Error:");
     // Must not contain skill_content tag (that is from the first load)
     assertThat(content).doesNotContain("<skill_content");
+    // Already-loaded note references prefixed tool names
+    assertThat(content).contains("sandbox_fs_read");
+    assertThat(content).contains("sandbox_bash");
   }
 
   // ---------------------------------------------------------------------------
@@ -280,6 +285,7 @@ class LoadSkillToolHandlerTest {
     assertThat(handler.name()).isEqualTo(InternalToolNames.LOAD_SKILL);
     assertThat(handler.definition().name()).isEqualTo(InternalToolNames.LOAD_SKILL);
     assertThat(handler.definition().description()).isNotBlank();
+    assertThat(handler.definition().isSandboxTool()).isTrue();
 
     @SuppressWarnings("unchecked")
     Map<String, Object> props =

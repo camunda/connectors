@@ -146,6 +146,7 @@ public class BashToolHandler implements InternalToolHandler {
                 + "Returns stdout, stderr, and exit code. "
                 + "Stateless per call — workspace filesystem persists but shell state (cwd, env vars, background jobs) does not.")
         .inputSchema(schema)
+        .metadata(Map.of(ToolDefinition.METADATA_SANDBOX_TOOL, true))
         .build();
   }
 }

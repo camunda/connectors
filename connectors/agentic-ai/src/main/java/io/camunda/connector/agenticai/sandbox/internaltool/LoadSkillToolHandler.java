@@ -92,8 +92,8 @@ public class LoadSkillToolHandler implements SkillAwareInternalToolHandler {
       // stat succeeded → already materialized
       String alreadyNote =
           ("Skill '%s' is already loaded at %s. If you no longer have its instructions in your "
-                  + "context, read %s/SKILL.md with fs_read to retrieve them. Read bundled files "
-                  + "with fs_read and run scripts with bash.")
+                  + "context, read %s/SKILL.md with sandbox_fs_read to retrieve them. Read bundled files "
+                  + "with sandbox_fs_read and run scripts with sandbox_bash.")
               .formatted(skill.name(), dir, dir);
       return successResult(toolCall, alreadyNote);
     } catch (Exception ignored) {
@@ -128,7 +128,7 @@ public class LoadSkillToolHandler implements SkillAwareInternalToolHandler {
 
     sb.append("Bundled files live under ")
         .append(dir)
-        .append(". Read them with fs_read and run scripts with bash.");
+        .append(". Read them with sandbox_fs_read and run scripts with sandbox_bash.");
 
     return successResult(toolCall, sb.toString());
   }
@@ -182,9 +182,10 @@ public class LoadSkillToolHandler implements SkillAwareInternalToolHandler {
         .description(
             "Materialize a skill bundle into the workspace and return its instructions. "
                 + "The result reports the exact workspace location of the skill's files. "
-                + "Read bundled files with fs_read and execute scripts with bash. "
+                + "Read bundled files with sandbox_fs_read and execute scripts with sandbox_bash. "
                 + "Calling this tool a second time for the same skill is a no-op.")
         .inputSchema(schema)
+        .metadata(Map.of(ToolDefinition.METADATA_SANDBOX_TOOL, true))
         .build();
   }
 }

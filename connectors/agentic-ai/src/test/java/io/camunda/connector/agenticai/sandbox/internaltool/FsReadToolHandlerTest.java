@@ -78,7 +78,7 @@ class FsReadToolHandlerTest {
 
     String content = (String) result.content();
     assertThat(content).contains("binary");
-    assertThat(content).contains("export_document");
+    assertThat(content).contains("sandbox_export_document");
     // Raw bytes must NOT be returned to the LLM
     assertThat(result.content()).isNotEqualTo(new String(binaryBytes, StandardCharsets.UTF_8));
   }
@@ -94,7 +94,7 @@ class FsReadToolHandlerTest {
 
     String content = (String) result.content();
     assertThat(content).contains("binary");
-    assertThat(content).contains("export_document");
+    assertThat(content).contains("sandbox_export_document");
   }
 
   // --- Oversized file ---
@@ -164,7 +164,8 @@ class FsReadToolHandlerTest {
     FsReadToolHandler handler = new FsReadToolHandler();
 
     assertThat(handler.definition().name()).isEqualTo(InternalToolNames.FS_READ);
-    assertThat(handler.definition().description()).contains("export_document");
+    assertThat(handler.definition().description()).contains("sandbox_export_document");
+    assertThat(handler.definition().isSandboxTool()).isTrue();
     @SuppressWarnings("unchecked")
     Map<String, Object> props =
         (Map<String, Object>) handler.definition().inputSchema().get("properties");

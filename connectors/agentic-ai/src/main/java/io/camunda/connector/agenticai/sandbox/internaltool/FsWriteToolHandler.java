@@ -114,6 +114,7 @@ public class FsWriteToolHandler implements InternalToolHandler {
                 + "Creates or overwrites the file at the given path. "
                 + "Parent directory creation is handled by the filesystem provider.")
         .inputSchema(schema)
+        .metadata(Map.of(ToolDefinition.METADATA_SANDBOX_TOOL, true))
         .build();
   }
 }

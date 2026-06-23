@@ -1710,7 +1710,7 @@
   }, {
     "id" : "data.skills",
     "label" : "Skills",
-    "description" : "Skill bundles (.zip documents) the agent can load on demand via load_skill. Requires a sandbox.",
+    "description" : "Skill bundles (.zip documents) the agent can load on demand via sandbox_load_skill. Requires a sandbox.",
     "optional" : true,
     "feel" : "required",
     "group" : "sandbox",

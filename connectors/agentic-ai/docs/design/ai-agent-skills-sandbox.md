@@ -38,8 +38,8 @@ a coding agent works. Four concrete capabilities:
   (and reach on the network) is the sandbox's policy.
 - **Bring-your-own-sandbox, optional.** The sandbox provider + credentials are configured on the AI
   Agent config (sealed interface + discriminator, like the existing `Authentication` / memory-backend
-  pattern). **If no sandbox is configured, the internal tools (`bash`, `fs_read`, `fs_write`,
-  `export_document`, `load_skill`) are simply not registered** and the agent behaves exactly as today.
+  pattern). **If no sandbox is configured, the internal tools (`sandbox_bash`, `sandbox_fs_read`, `sandbox_fs_write`,
+  `sandbox_export_document`, `sandbox_load_skill`) are simply not registered** and the agent behaves exactly as today.
 - **Provider-agnostic.** Target a `SandboxProvider` SPI from day one. The **first concrete adapter is
   Daytona** (locked) — chosen for ease of start: it has an **official Java SDK** (`io.daytona:sdk`,
   Java 11+) and provides durable, **indefinitely-retained** workspace persistence (see §5) that
@@ -444,14 +444,14 @@ A deliberately **minimal** set (bash is the workhorse; search/list/run-code coll
 
 | Tool | Maps to SPI | Notes |
 |---|---|---|
-| `bash(command)` | `exec(ExecRequest)` | Run a shell command via `bash -lc` — pipes/redirects/globs (`curl … \| jq`, `grep -rn … .`). **Stateless per call** (workspace FS persists; shell-local cwd/env/bg do not). Returns `stdout`/`stderr` (UTF-8, truncated to a cap) + `exitCode`; per-call timeout. The primary execution primitive. |
-| `fs_read(path)` | `SandboxFileSystem.read` | Returns text; for a binary/oversized file returns a structured marker (size + content-type) — never raw bytes — and points at `export_document`. |
-| `fs_write(path, content)` | `SandboxFileSystem.write` | Reliable file write (no shell-escaping pain); creates parent dirs. |
-| `export_document(path)` | `fs.read` + `DocumentFactory` | Reads the workspace file's bytes and mints a Camunda **Document**, returning a `DocumentContent` (see §8a). The way binary/large artifacts escape the sandbox into the process. |
-| `load_skill(name)` | skill registry + FS | Materializes a skill bundle into the FS, returns its `SKILL.md` body (the skills catalog lives in the system prompt, not a tool). |
+| `sandbox_bash(command)` | `exec(ExecRequest)` | Run a shell command via `bash -lc` — pipes/redirects/globs (`curl … \| jq`, `grep -rn … .`). **Stateless per call** (workspace FS persists; shell-local cwd/env/bg do not). Returns `stdout`/`stderr` (UTF-8, truncated to a cap) + `exitCode`; per-call timeout. The primary execution primitive. |
+| `sandbox_fs_read(path)` | `SandboxFileSystem.read` | Returns text; for a binary/oversized file returns a structured marker (size + content-type) — never raw bytes — and points at `sandbox_export_document`. |
+| `sandbox_fs_write(path, content)` | `SandboxFileSystem.write` | Reliable file write (no shell-escaping pain); creates parent dirs. |
+| `sandbox_export_document(path)` | `fs.read` + `DocumentFactory` | Reads the workspace file's bytes, uploads to Camunda document storage, and attaches the document as a user message in the conversation (so later steps can reference its contents). The way binary/large artifacts escape the sandbox into the process. |
+| `sandbox_load_skill(name)` | skill registry + FS | Materializes a skill bundle into the FS, returns its `SKILL.md` body (the skills catalog lives in the system prompt, not a tool). |
 
-**Dropped vs. the original sketch:** `run_code` (→ `fs_write` + `bash`, or `python -c`/heredoc),
-`fs_search` (→ `grep`/`find` via `bash`), `fs_list` (→ `ls` via `bash`). The SPI keeps `list`/`search`
+**Dropped vs. the original sketch:** `run_code` (→ `sandbox_fs_write` + `sandbox_bash`, or `python -c`/heredoc),
+`fs_search` (→ `grep`/`find` via `sandbox_bash`), `fs_list` (→ `ls` via `sandbox_bash`). The SPI keeps `list`/`search`
 for the connector's *own* use only (skill materialization, export).
 
 Registration: `AgentToolsResolver` appends these `ToolDefinition`s iff
@@ -523,15 +523,16 @@ Binary/large artifacts produced in the sandbox (a generated `report.pdf`, chart,
 **escape into the process** as Camunda Documents. This is **in scope for the PoC** because the plumbing
 already exists — almost no new infrastructure:
 
-- **Trigger: an explicit `export_document(path)` tool** (the agent decides what matters). No
+- **Trigger: an explicit `sandbox_export_document(path)` tool** (the agent decides what matters). No
   auto-capture / workspace diffing — that adds heuristics + junk-capture risk for no PoC benefit.
 - **Mechanism:** the `InternalToolExecutor` is handed the connector's document factory
   (`Function<DocumentCreationRequest, Document>` / `OutboundConnectorContext.create(...)` — the same
-  one `aws-bedrock-codeinterpreter` already uses). `export_document` does
+  one `aws-bedrock-codeinterpreter` already uses). `sandbox_export_document` does
   `fs.read(path)` → `createDocument(DocumentCreationRequest.from(bytes).contentType(stat.contentType).fileName(...))`
-  → returns a `DocumentContent` in the tool result.
-- **Surfacing:** `DocumentContent` rides the existing `ToolCallResultDocumentExtractor` path, so the
-  Document lands in the conversation *and* in the final `AgentResponse` — i.e. it becomes a process
+  → returns a summary string + `Document` in the tool result content list.
+- **Surfacing:** the document rides the existing `ToolCallResultDocumentExtractor` path; the turn
+  composer re-wraps it into a user message attached to the conversation so the LLM can reference its
+  contents in subsequent steps, and it lands in the final `AgentResponse` — i.e. it becomes a process
   variable / document the downstream BPMN can consume. Reuse the codeinterpreter size/count guards.
 - **Deferred (phase 2):** the **IN** direction — materializing input Camunda Documents into
   `/workspace/input/` so the agent can operate on uploaded files. That needs a new config concept +
@@ -622,16 +623,16 @@ the user-prompt `documents` field) is added as a parallel field on the request d
 ## 11. Resolved decisions & remaining questions
 
 **Resolved (design review):**
-- **Tool surface (minimal):** `bash` + `fs_read` + `fs_write` + `export_document` + `load_skill`.
-  `bash` (`bash -lc`, stateless per call) is the primary execution primitive — it replaces `run_code`
-  (→ write-file + bash) and `fs_search`/`fs_list` (→ `grep`/`find`/`ls`). `fs_read`/`fs_write` stay
+- **Tool surface (minimal):** `sandbox_bash` + `sandbox_fs_read` + `sandbox_fs_write` + `sandbox_export_document` + `sandbox_load_skill`.
+  `sandbox_bash` (`bash -lc`, stateless per call) is the primary execution primitive — it replaces `run_code`
+  (→ write-file + sandbox_bash) and `fs_search`/`fs_list` (→ `grep`/`find`/`ls`). `sandbox_fs_read`/`sandbox_fs_write` stay
   structured (no shell-escaping pain). SPI keeps `fs.list`/`search` for the connector's own use only.
 - **Command safety:** **no** connector-side allow/deny list — the sandbox boundary is the trust
   boundary; what `bash` runs and reaches (network/egress) is the sandbox's policy.
 - **bash bounding:** output truncated to a cap + per-call timeout, synchronous only (no background).
 - **SPI exec:** shell-only (`ExecRequest{command,cwd?,env?,timeoutSeconds,maxOutputBytes}`); no
   `ExecKind`/native code-run.
-- **Document export (OUT) — in PoC scope:** explicit `export_document(path)` tool turns a workspace
+- **Document export (OUT) — in PoC scope:** explicit `sandbox_export_document(path)` tool turns a workspace
   artifact into a Camunda Document via the existing factory + `ToolCallResultDocumentExtractor` (T10).
   Binary never enters context (text + marker); SPI `fs.read` is `byte[]` + `fs.stat` metadata. **IN**
   direction (input docs → FS) deferred to phase 2.

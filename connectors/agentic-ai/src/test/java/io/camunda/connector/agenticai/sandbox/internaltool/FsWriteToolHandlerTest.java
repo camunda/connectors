@@ -134,6 +134,7 @@ class FsWriteToolHandlerTest {
 
     assertThat(handler.definition().name()).isEqualTo(InternalToolNames.FS_WRITE);
     assertThat(handler.definition().description()).isNotBlank();
+    assertThat(handler.definition().isSandboxTool()).isTrue();
     @SuppressWarnings("unchecked")
     Map<String, Object> props =
         (Map<String, Object>) handler.definition().inputSchema().get("properties");

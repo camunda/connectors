@@ -12,23 +12,23 @@ public final class InternalToolNames {
   private InternalToolNames() {}
 
   /** Run a shell command via {@code bash -lc}. Primary execution primitive. */
-  public static final String BASH = "bash";
+  public static final String BASH = "sandbox_bash";
 
   /** Read a file from the sandbox filesystem. Returns text or a binary/size marker. */
-  public static final String FS_READ = "fs_read";
+  public static final String FS_READ = "sandbox_fs_read";
 
   /** Write text content to a file in the sandbox filesystem. */
-  public static final String FS_WRITE = "fs_write";
+  public static final String FS_WRITE = "sandbox_fs_write";
 
   /**
    * Export a workspace file as a Camunda Document (OUT direction). Reserved for T10 — {@code
-   * export_document} handler is wired separately.
+   * sandbox_export_document} handler is wired separately.
    */
-  public static final String EXPORT_DOCUMENT = "export_document";
+  public static final String EXPORT_DOCUMENT = "sandbox_export_document";
 
   /**
    * Materialize a skill bundle into the sandbox filesystem and return its instructions. Reserved
-   * for T7 — {@code load_skill} handler is wired separately.
+   * for T7 — {@code sandbox_load_skill} handler is wired separately.
    */
-  public static final String LOAD_SKILL = "load_skill";
+  public static final String LOAD_SKILL = "sandbox_load_skill";
 }

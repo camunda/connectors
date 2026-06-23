@@ -58,7 +58,7 @@ public record OutboundConnectorAgentRequest(
               group = "sandbox",
               label = "Skills",
               description =
-                  "Skill bundles (.zip documents) the agent can load on demand via load_skill. Requires a sandbox.",
+                  "Skill bundles (.zip documents) the agent can load on demand via sandbox_load_skill. Requires a sandbox.",
               feel = FeelMode.required,
               optional = true)
           @Nullable List<Document> skills) {}

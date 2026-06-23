@@ -272,6 +272,7 @@ class ExportDocumentToolHandlerTest {
     assertThat(handler.name()).isEqualTo(InternalToolNames.EXPORT_DOCUMENT);
     assertThat(handler.definition().name()).isEqualTo(InternalToolNames.EXPORT_DOCUMENT);
     assertThat(handler.definition().description()).isNotBlank();
+    assertThat(handler.definition().isSandboxTool()).isTrue();
 
     @SuppressWarnings("unchecked")
     Map<String, Object> props =

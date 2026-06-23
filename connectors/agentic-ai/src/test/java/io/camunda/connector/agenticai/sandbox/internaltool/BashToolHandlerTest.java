@@ -165,4 +165,14 @@ class BashToolHandlerTest {
     assertThat(props).containsKey("command");
     assertThat(handler.definition().inputSchema()).containsKey("required");
   }
+
+  @Test
+  void definition_shouldBeMarkedAsSandboxTool() {
+    BashToolHandler handler = new BashToolHandler();
+
+    assertThat(handler.definition().isSandboxTool()).isTrue();
+    assertThat(handler.definition().metadata())
+        .containsEntry(
+            io.camunda.connector.agenticai.model.tool.ToolDefinition.METADATA_SANDBOX_TOOL, true);
+  }
 }

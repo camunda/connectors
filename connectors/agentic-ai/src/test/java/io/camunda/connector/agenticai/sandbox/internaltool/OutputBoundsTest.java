@@ -82,7 +82,7 @@ class OutputBoundsTest {
   void binaryFileMarker_shouldContainBinaryAndExportDocument() {
     String marker = OutputBounds.binaryFileMarker(2048L, "application/pdf");
     assertThat(marker).contains("binary");
-    assertThat(marker).contains("export_document");
+    assertThat(marker).contains("sandbox_export_document");
   }
 
   // --- oversizedFileMarker ---
@@ -91,6 +91,6 @@ class OutputBoundsTest {
   void oversizedFileMarker_shouldContainSizeAndExportDocument() {
     String marker = OutputBounds.oversizedFileMarker(2_000_000L, "text/plain");
     assertThat(marker).contains("too large");
-    assertThat(marker).contains("export_document");
+    assertThat(marker).contains("sandbox_export_document");
   }
 }

@@ -151,8 +151,9 @@ public class FsReadToolHandler implements InternalToolHandler {
         .description(
             "Read a file from the sandbox filesystem. "
                 + "Returns the file's text content for UTF-8 text files. "
-                + "Binary files or files over the size limit return a marker — use export_document to retrieve them as Camunda Documents.")
+                + "Binary files or files over the size limit return a marker — use sandbox_export_document to retrieve them as Camunda Documents.")
         .inputSchema(schema)
+        .metadata(Map.of(ToolDefinition.METADATA_SANDBOX_TOOL, true))
         .build();
   }
 }

@@ -79,7 +79,7 @@ class SkillsSystemPromptContributorTest {
     assertThat(result).contains("Parse and transform CSV files.");
 
     // The absolute workspace location must NOT be advertised here — it is unknown before a sandbox
-    // session exists and is reported by the load_skill result instead.
+    // session exists and is reported by the sandbox_load_skill result instead.
     assertThat(result).doesNotContain("location=");
   }
 

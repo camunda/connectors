@@ -153,7 +153,7 @@ public class ExportDocumentToolHandler implements InternalToolHandler {
     pathProp.put(
         PROPERTY_DESCRIPTION,
         "Absolute path of the file to export within the sandbox. Use a path produced by your "
-            + "earlier tool calls (e.g. a file you created with fs_write or bash); these live under "
+            + "earlier tool calls (e.g. a file you created with sandbox_fs_write or sandbox_bash); these live under "
             + "the sandbox working directory.");
 
     Map<String, Object> properties = Map.of("path", pathProp);
@@ -167,10 +167,12 @@ public class ExportDocumentToolHandler implements InternalToolHandler {
         .name(InternalToolNames.EXPORT_DOCUMENT)
         .description(
             "Export a file from the sandbox workspace as a Camunda Document. "
-                + "The document is returned in the tool result and surfaced into the agent response. "
+                + "The file is uploaded to Camunda document storage and then attached to the conversation as a user message "
+                + "(so you can reference its contents in later steps). "
                 + "Supports any file type (text or binary). "
                 + "Files over the size limit cannot be exported.")
         .inputSchema(schema)
+        .metadata(Map.of(ToolDefinition.METADATA_SANDBOX_TOOL, true))
         .build();
   }
 }

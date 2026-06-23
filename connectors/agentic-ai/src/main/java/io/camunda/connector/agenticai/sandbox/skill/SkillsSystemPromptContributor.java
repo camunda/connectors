@@ -92,9 +92,9 @@ public class SkillsSystemPromptContributor implements SystemPromptContributor {
     sb.append("<available_skills>\n");
     sb.append(
         "The following skills are available. Each provides instructions and (optionally) bundled"
-            + " scripts/resources. To use a skill, call the load_skill tool with its name; this"
+            + " scripts/resources. To use a skill, call the sandbox_load_skill tool with its name; this"
             + " materializes the skill into the workspace and returns its instructions. Then read"
-            + " bundled files with fs_read and run scripts with bash.\n");
+            + " bundled files with sandbox_fs_read and run scripts with sandbox_bash.\n");
     sb.append("\n");
 
     for (Skill skill : skills) {

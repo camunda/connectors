@@ -85,23 +85,23 @@ final class OutputBounds {
   }
 
   /**
-   * Binary file read marker (substituted by {@code fs_read} when a file is binary or over cap).
-   * Points the LLM toward {@code export_document}.
+   * Binary file read marker (substituted by {@code sandbox_fs_read} when a file is binary or over
+   * cap). Points the LLM toward {@code sandbox_export_document}.
    */
   static String binaryFileMarker(long size, String contentType) {
-    return "⟨binary, " + humanSize(size) + ", " + contentType + " — use export_document⟩";
+    return "⟨binary, " + humanSize(size) + ", " + contentType + " — use sandbox_export_document⟩";
   }
 
   /**
-   * Oversized text file marker (substituted by {@code fs_read} when a text file exceeds the read
-   * cap).
+   * Oversized text file marker (substituted by {@code sandbox_fs_read} when a text file exceeds the
+   * read cap).
    */
   static String oversizedFileMarker(long size, String contentType) {
     return "⟨file too large to read ("
         + humanSize(size)
         + ", "
         + contentType
-        + ") — use export_document or read a subsection via bash⟩";
+        + ") — use sandbox_export_document or read a subsection via sandbox_bash⟩";
   }
 
   private static boolean isContinuationByte(byte b) {

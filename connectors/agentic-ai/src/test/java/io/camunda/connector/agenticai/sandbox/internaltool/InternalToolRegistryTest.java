@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.sandbox.internaltool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.model.tool.ToolCall;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,5 +71,24 @@ class InternalToolRegistryTest {
 
     assertThat(registry.isInternalToolCall(bashCall)).isTrue();
     assertThat(registry.isInternalToolCall(externalCall)).isFalse();
+  }
+
+  @Test
+  void toolDefinitions_allInternalToolsAreMarkedAsSandboxTools() {
+    assertThat(registry.toolDefinitions())
+        .allSatisfy(td -> assertThat(td.isSandboxTool()).isTrue());
+  }
+
+  @Test
+  void nonSandboxToolDefinition_hasEmptyMetadataAndIsSandboxToolReturnsFalse() {
+    ToolDefinition nonSandbox =
+        ToolDefinition.builder()
+            .name("my_bpmn_tool")
+            .description("A regular BPMN tool")
+            .inputSchema(Map.of())
+            .build();
+
+    assertThat(nonSandbox.isSandboxTool()).isFalse();
+    assertThat(nonSandbox.metadata()).isEmpty();
   }
 }
