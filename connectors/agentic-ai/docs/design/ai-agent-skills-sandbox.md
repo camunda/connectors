@@ -365,7 +365,7 @@ Camunda document storage (skill .zip)
    │ (1) connector reads document bytes via Document.asByteArray()
    ▼
 Connector JVM (unzip in memory)
-   │ (2) fs().writeBatch(...) → /workspace/skills/<name>/SKILL.md, scripts/, references/
+   │ (2) fs().writeBatch(...) → <workDir>/skills/<name>/SKILL.md, scripts/, references/
    ▼
 Sandbox filesystem
    ▲ (3) the model reads/executes via in-process tools: fs_read(...) / bash(...)
@@ -376,15 +376,18 @@ Mapped to the three progressive-disclosure tiers:
 
 - **Tier 1 — Catalog (session start).** For each configured skill the connector reads the document
   zip and parses just `SKILL.md`'s frontmatter (`name`/`description`), emitting an `<available_skills>`
-  section into the system prompt with `name`, `description`, and the **sandbox `location`** the skill
-  will occupy (`/workspace/skills/<name>/SKILL.md`) so the model can resolve relative paths to
-  absolute. ~50–100 tokens/skill. Omit the section entirely when no skills are configured.
+  section into the system prompt with `name` and `description`. ~50–100 tokens/skill. Omit the
+  section entirely when no skills are configured. The catalog **does not** advertise an absolute
+  sandbox `location`: it is built while composing the system prompt, before any sandbox session
+  exists, so the writable base directory (`workDir`) is not yet known. The `load_skill` result is
+  what reports the resolved absolute location once the skill is materialized.
   *(Implemented by `SkillsSystemPromptContributor`, T7c.)*
 - **Tier 2 — Activation via `load_skill(name)`.** We use a **dedicated activation tool** rather than
   plain file-read activation *because materialization is lazy* — file-read activation would require
   eagerly unpacking every skill into the sandbox at startup. `load_skill`:
-  1. reads the bundle from document storage (JVM) and unzips it into `/workspace/skills/<name>/` via
-     `fs().writeBatch`,
+  1. reads the bundle from document storage (JVM) and unzips it into `<workDir>/skills/<name>/` via
+     `fs().writeBatch` (where `<workDir>` is `SandboxSession.workDir()` — the sandbox's actual
+     writable working directory, not a hardcoded mount),
   2. returns the `SKILL.md` **body** (frontmatter stripped), wrapped in `<skill_content name="...">`
      with the skill directory path and a `<skill_resources>` listing of bundled files (names, not
      contents),
@@ -645,8 +648,15 @@ the user-prompt `documents` field) is added as a parallel field on the request d
   only in the BPMN element tree (§8). Live per-iteration engine streaming (#7450) is **out of scope**.
 
 **Remaining / to confirm:**
-- **Working-directory contract:** single `/workspace` root (assumed; confirm against Daytona's default
-  home dir, e.g. `/home/daytona`).
+- **Working-directory contract:** ~~single `/workspace` root (assumed)~~ **Resolved.** The original
+  hardcoded `/workspace` was wrong: it does not exist in the default Daytona image and is not writable
+  by the `daytona` user, so `load_skill` failed with an opaque HTTP 400 on the first file upload
+  (Daytona's `/files/upload` 400s when the target dir cannot be created). Fixed by adding
+  `SandboxSession.workDir()` — internal tools now materialize under the sandbox's real working
+  directory (Daytona: `getWorkDir()` → `getUserHomeDir()` → `/home/daytona`; in-memory fake:
+  `/workspace`). `DaytonaSandboxFileSystem.write()` no longer silently swallows the parent-directory
+  create error — it surfaces it when the subsequent upload fails, so a non-writable base is no longer
+  opaque.
 - **Task flavor:** nice-to-have, not the main target. The sub-loop lives in the shared base, so the
   Task flavor gets it for free *if* its completion semantics line up; if it complicates the PoC, ship
   the Sub-process flavor only.
@@ -760,7 +770,7 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
 ### T7 — Skills (SKILL.md + resolver + catalog + load_skill + window pinning)
 - **Scope:** `sandbox/skill`: `SkillMdParser` (lenient frontmatter `name`/`description`; body),
   document-backed `SkillResolver` (resolve a `List<Document>` config field → unzip → `Skill`;
-  zip-slip/size guards), `load_skill` execution (unzip → `fs().writeBatch` into `/workspace/skills/<name>/`
+  zip-slip/size guards), `load_skill` execution (unzip → `fs().writeBatch` into `<workDir>/skills/<name>/`
   → return structured `<skill_content>` body + `<skill_resources>`), a skills-catalog
   `SystemPromptContributor` (`<available_skills>` with sandbox `location`), and **pin activated skill
   content** in `MessageWindowFilter` so it isn't evicted. `load_skill` name validated at runtime;

@@ -17,9 +17,12 @@ import org.slf4j.LoggerFactory;
  * Contributes a Tier-1 skills catalog to the system prompt when skills are configured and a sandbox
  * is present.
  *
- * <p>Emits an {@code <available_skills>} XML block listing each skill's name, description, and the
- * workspace location it will occupy once loaded. The full SKILL.md body is intentionally omitted
- * here (Tier-2) — it is returned by the {@code load_skill} tool on demand.
+ * <p>Emits an {@code <available_skills>} XML block listing each skill's name and description. The
+ * workspace location is intentionally NOT advertised here: this contributor runs while composing
+ * the system prompt, before any sandbox session exists, so the writable base directory is not yet
+ * known. The {@code load_skill} tool reports the exact materialized location in its result. The
+ * full SKILL.md body is likewise omitted here (Tier-2) — it is returned by {@code load_skill} on
+ * demand.
  *
  * <p>Returns {@code null} (no contribution) when:
  *
@@ -34,9 +37,6 @@ import org.slf4j.LoggerFactory;
 public class SkillsSystemPromptContributor implements SystemPromptContributor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SkillsSystemPromptContributor.class);
-
-  /** Workspace base path where skills are materialized by {@code load_skill}. */
-  static final String SKILLS_WORKSPACE_BASE = "/workspace/skills";
 
   /** Order value — runs before A2A contributor (order 100). */
   public static final int ORDER = 90;
@@ -98,12 +98,7 @@ public class SkillsSystemPromptContributor implements SystemPromptContributor {
     sb.append("\n");
 
     for (Skill skill : skills) {
-      String location = SKILLS_WORKSPACE_BASE + "/" + skill.name() + "/SKILL.md";
-      sb.append("<skill name=\"")
-          .append(skill.name())
-          .append("\" location=\"")
-          .append(location)
-          .append("\">\n");
+      sb.append("<skill name=\"").append(skill.name()).append("\">\n");
       sb.append(skill.description()).append("\n");
       sb.append("</skill>\n");
     }

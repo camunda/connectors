@@ -7,11 +7,18 @@
 package io.camunda.connector.agenticai.sandbox.internaltool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.sandbox.provider.fake.InMemorySandboxProvider;
 import io.camunda.connector.agenticai.sandbox.skill.Skill;
+import io.camunda.connector.agenticai.sandbox.spi.FileEntry;
+import io.camunda.connector.agenticai.sandbox.spi.SandboxException;
+import io.camunda.connector.agenticai.sandbox.spi.SandboxFileSystem;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxSession;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxSpec;
 import java.nio.charset.StandardCharsets;
@@ -19,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class LoadSkillToolHandlerTest {
 
@@ -128,6 +136,36 @@ class LoadSkillToolHandlerTest {
     assertThat(result.content())
         .asString()
         .contains("Bundled files live under /workspace/skills/demo");
+  }
+
+  @Test
+  void execute_materialisesUnderSessionWorkDir() {
+    // Regression: skill files must be written under the session's workDir, not a hardcoded
+    // "/workspace" path. A real Daytona sandbox reports e.g. /home/daytona, and writing to
+    // /workspace there fails with HTTP 400 because the path is not writable.
+    SandboxFileSystem fs = mock(SandboxFileSystem.class);
+    SandboxSession customSession = mock(SandboxSession.class);
+    when(customSession.workDir()).thenReturn("/home/daytona");
+    when(customSession.fs()).thenReturn(fs);
+    // stat fails → not yet materialized, so the handler proceeds to write
+    when(fs.stat(anyString())).thenThrow(new SandboxException("no such file"));
+
+    Skill skill = buildSkill("my-skill", "A test skill", "Body.");
+    InternalToolContext ctx = new InternalToolContext(List.of(skill));
+
+    ToolCallResult result = handler.execute(loadCall("my-skill"), customSession, ctx);
+
+    assertThat(result.content()).asString().doesNotContain("Error:");
+
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<List<FileEntry>> captor = ArgumentCaptor.forClass(List.class);
+    verify(fs).writeBatch(captor.capture());
+    assertThat(captor.getValue())
+        .isNotEmpty()
+        .allSatisfy(entry -> assertThat(entry.path()).startsWith("/home/daytona/skills/my-skill/"));
+
+    // The result must advertise the resolved (non-/workspace) location.
+    assertThat(result.content()).asString().contains("location=\"/home/daytona/skills/my-skill\"");
   }
 
   // ---------------------------------------------------------------------------

@@ -152,7 +152,9 @@ public class ExportDocumentToolHandler implements InternalToolHandler {
     pathProp.put(PROPERTY_TYPE, TYPE_STRING);
     pathProp.put(
         PROPERTY_DESCRIPTION,
-        "Absolute workspace path of the file to export, e.g. /workspace/report.pdf.");
+        "Absolute path of the file to export within the sandbox. Use a path produced by your "
+            + "earlier tool calls (e.g. a file you created with fs_write or bash); these live under "
+            + "the sandbox working directory.");
 
     Map<String, Object> properties = Map.of("path", pathProp);
 

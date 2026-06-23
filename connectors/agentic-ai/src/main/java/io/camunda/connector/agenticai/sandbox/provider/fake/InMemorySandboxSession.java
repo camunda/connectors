@@ -16,6 +16,9 @@ import java.util.function.Function;
 
 class InMemorySandboxSession implements SandboxSession {
 
+  /** Fixed working directory for the in-memory fake. */
+  static final String WORK_DIR = "/workspace";
+
   private final SandboxHandle handle;
   private final InMemorySandboxFileSystem fileSystem;
   private final Function<ExecRequest, ExecResult> execHandler;
@@ -36,6 +39,11 @@ class InMemorySandboxSession implements SandboxSession {
   @Override
   public SandboxHandle handle() {
     return handle;
+  }
+
+  @Override
+  public String workDir() {
+    return WORK_DIR;
   }
 
   @Override

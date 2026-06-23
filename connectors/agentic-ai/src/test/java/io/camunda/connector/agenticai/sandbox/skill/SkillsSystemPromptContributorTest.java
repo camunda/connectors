@@ -72,13 +72,15 @@ class SkillsSystemPromptContributorTest {
 
     // skill1 assertions
     assertThat(result).contains("name=\"pdf-tools\"");
-    assertThat(result).contains("location=\"/workspace/skills/pdf-tools/SKILL.md\"");
     assertThat(result).contains("Extract, merge and fill PDF forms.");
 
     // skill2 assertions
     assertThat(result).contains("name=\"csv-parser\"");
-    assertThat(result).contains("location=\"/workspace/skills/csv-parser/SKILL.md\"");
     assertThat(result).contains("Parse and transform CSV files.");
+
+    // The absolute workspace location must NOT be advertised here — it is unknown before a sandbox
+    // session exists and is reported by the load_skill result instead.
+    assertThat(result).doesNotContain("location=");
   }
 
   @Test
@@ -94,12 +96,12 @@ class SkillsSystemPromptContributorTest {
     String result = contributor.contribute(executionContext, agentContext);
 
     assertThat(result).isNotNull();
-    // The body should NOT appear — only name, description, and location
+    // The body should NOT appear — only name and description
     assertThat(result).doesNotContain("FULL SKILL.MD BODY CONTENT");
   }
 
   @Test
-  void contribute_singleSkill_locationFormatIsCorrect() {
+  void contribute_singleSkill_skillEntryFormatIsCorrect() {
     givenConfiguration();
     var doc = mock(Document.class);
     var skill = new Skill("my-skill", "Does something useful.", "body", List.of());
@@ -110,8 +112,7 @@ class SkillsSystemPromptContributorTest {
 
     String result = contributor.contribute(executionContext, agentContext);
 
-    assertThat(result)
-        .contains("<skill name=\"my-skill\" location=\"/workspace/skills/my-skill/SKILL.md\">");
+    assertThat(result).contains("<skill name=\"my-skill\">");
     assertThat(result).contains("Does something useful.");
     assertThat(result).contains("</skill>");
   }

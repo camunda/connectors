@@ -60,22 +60,33 @@ class DaytonaSandboxFileSystem implements SandboxFileSystem {
 
   @Override
   public void write(String path, byte[] content) {
-    // Ensure the parent directory exists. createFolder is idempotent in practice but may throw
-    // on "already exists" from some server versions — swallow that to match SPI contract that
-    // parent dirs are created transparently.
+    // Ensure the parent directory exists. createFolder (os.MkdirAll server-side) is idempotent for
+    // existing directories, so a failure here is usually benign (already exists). We do NOT throw
+    // immediately: instead we keep the cause and only surface it if the upload also fails — the
+    // upload outcome is the real signal, and the create error explains an otherwise-opaque 400
+    // (e.g. parent could not be created because the base directory is not writable).
     String parent = parentDir(path);
+    DaytonaException createFolderError = null;
     if (parent != null && !parent.isEmpty()) {
       try {
         fs.createFolder(parent, "755");
       } catch (DaytonaException e) {
-        // Ignore "already exists" style errors; re-throw anything unexpected only if the
-        // subsequent upload also fails.
+        createFolderError = e;
       }
     }
     try {
       fs.uploadFile(content, path);
     } catch (DaytonaException e) {
-      throw new SandboxException("Failed to write file '" + path + "': " + e.getMessage(), e);
+      String message = "Failed to write file '" + path + "': " + e.getMessage();
+      if (createFolderError != null) {
+        message +=
+            " (creating parent directory '"
+                + parent
+                + "' also failed: "
+                + createFolderError.getMessage()
+                + ")";
+      }
+      throw new SandboxException(message, e);
     }
   }
 

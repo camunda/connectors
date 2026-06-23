@@ -52,6 +52,28 @@ class DaytonaSandboxSession implements SandboxSession {
     return new SandboxHandle(DaytonaSandboxProvider.PROVIDER_ID, sandbox.getId(), null);
   }
 
+  /**
+   * Resolves the sandbox working directory from the Daytona SDK, preferring the explicit work
+   * directory and falling back to the user home directory, then to the Daytona default {@code
+   * /home/daytona}. Never returns {@code /workspace} — that path does not exist in the default
+   * Daytona image and is not writable by the {@code daytona} user.
+   */
+  @Override
+  public String workDir() {
+    String dir = sandbox.getWorkDir();
+    if (dir == null || dir.isBlank()) {
+      dir = sandbox.getUserHomeDir();
+    }
+    if (dir == null || dir.isBlank()) {
+      dir = "/home/daytona";
+    }
+    // Normalize: strip trailing slash so callers can append "/skills/..." uniformly.
+    if (dir.length() > 1 && dir.endsWith("/")) {
+      dir = dir.substring(0, dir.length() - 1);
+    }
+    return dir;
+  }
+
   @Override
   public ExecResult exec(ExecRequest req) {
     try {

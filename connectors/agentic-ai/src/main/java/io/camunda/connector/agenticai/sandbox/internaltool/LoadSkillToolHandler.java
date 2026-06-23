@@ -75,7 +75,9 @@ public class LoadSkillToolHandler implements InternalToolHandler {
           toolCall, "unknown skill '%s'. Available skills: %s.".formatted(skillName, available));
     }
 
-    String dir = "/workspace/skills/" + skill.name();
+    // Materialize under the sandbox working directory rather than a hardcoded mount point — the
+    // writable root varies by provider/image (see SandboxSession#workDir).
+    String dir = session.workDir() + "/skills/" + skill.name();
     String skillMdPath = dir + "/SKILL.md";
 
     // Idempotency: if SKILL.md already exists the skill is already loaded — return a short note.
@@ -83,9 +85,10 @@ public class LoadSkillToolHandler implements InternalToolHandler {
       session.fs().stat(skillMdPath);
       // stat succeeded → already materialized
       String alreadyNote =
-          "Skill '%s' is already loaded at %s. Its instructions are in %s/SKILL.md; "
-                  .formatted(skill.name(), dir, dir)
-              + "read bundled files with fs_read and run scripts with bash.";
+          ("Skill '%s' is already loaded at %s. If you no longer have its instructions in your "
+                  + "context, read %s/SKILL.md with fs_read to retrieve them. Read bundled files "
+                  + "with fs_read and run scripts with bash.")
+              .formatted(skill.name(), dir, dir);
       return successResult(toolCall, alreadyNote);
     } catch (Exception ignored) {
       // stat failed → not yet materialized, proceed with writing
@@ -167,7 +170,7 @@ public class LoadSkillToolHandler implements InternalToolHandler {
         .name(InternalToolNames.LOAD_SKILL)
         .description(
             "Materialize a skill bundle into the workspace and return its instructions. "
-                + "After loading, the skill's files are accessible under /workspace/skills/<name>/. "
+                + "The result reports the exact workspace location of the skill's files. "
                 + "Read bundled files with fs_read and execute scripts with bash. "
                 + "Calling this tool a second time for the same skill is a no-op.")
         .inputSchema(schema)
