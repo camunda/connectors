@@ -198,7 +198,8 @@ class PresetCoverageRuleTest {
           "presets": [ { "id": "p", "properties": { "x": "y" } } ]
         }
         """);
-    assertThat(rule.apply(Path.of("connectors/aws/element-templates/x.json"), template)).isEmpty();
+    assertThat(rule.apply(Path.of("connectors/agentic-ai/element-templates/x.json"), template))
+        .isEmpty();
   }
 
   @Test

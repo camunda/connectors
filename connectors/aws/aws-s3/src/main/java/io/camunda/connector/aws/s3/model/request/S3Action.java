@@ -11,7 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateDiscriminatorProperty(
     label = "Action",
-    group = "action",
+    group = "operation",
     name = "actionDiscriminator",
     defaultValue = "uploadObject")
 @TemplateSubType(id = "action", label = "Action")

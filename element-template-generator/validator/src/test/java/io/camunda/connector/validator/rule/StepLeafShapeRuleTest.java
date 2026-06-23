@@ -118,7 +118,7 @@ class StepLeafShapeRuleTest {
   @Test
   void ignoredConnector_noFindings() throws Exception {
     JsonNode template = read("{ \"steps\": [ { } ] }");
-    assertThat(rule.apply(Path.of("connectors/aws/element-templates/aws.json"), template))
+    assertThat(rule.apply(Path.of("connectors/agentic-ai/element-templates/aws.json"), template))
         .isEmpty();
   }
 

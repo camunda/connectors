@@ -10,7 +10,10 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(id = OperationTypes.DESCRIBE_TABLE)
+@TemplateSubType(
+    id = OperationTypes.DESCRIBE_TABLE,
+    description = "Return the metadata of a DynamoDB table",
+    keywords = {"describe table", "table schema", "table metadata"})
 public record DescribeTable(
     @TemplateProperty(
             label = "Table name",

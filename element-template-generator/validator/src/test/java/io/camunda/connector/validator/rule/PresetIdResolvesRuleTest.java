@@ -80,7 +80,8 @@ class PresetIdResolvesRuleTest {
   @Test
   void ignoredConnector_noFindings() throws Exception {
     JsonNode template = read("{ \"steps\": [ { \"presetId\": \"x\" } ], \"presets\": [] }");
-    assertThat(rule.apply(Path.of("connectors/aws/element-templates/x.json"), template)).isEmpty();
+    assertThat(rule.apply(Path.of("connectors/agentic-ai/element-templates/x.json"), template))
+        .isEmpty();
   }
 
   private static JsonNode read(String json) throws Exception {

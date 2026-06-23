@@ -11,7 +11,11 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(id = "deleteObject", label = "Delete object")
+@TemplateSubType(
+    id = "deleteObject",
+    label = "Delete object",
+    description = "Delete an object from an S3 bucket",
+    keywords = {"delete", "remove object", "remove s3 file"})
 public record DeleteObject(
     @TemplateProperty(
             label = "AWS bucket",

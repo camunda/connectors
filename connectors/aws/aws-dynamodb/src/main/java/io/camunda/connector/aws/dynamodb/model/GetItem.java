@@ -12,7 +12,10 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = OperationTypes.GET_ITEM)
+@TemplateSubType(
+    id = OperationTypes.GET_ITEM,
+    description = "Fetch a single item from a DynamoDB table by primary key",
+    keywords = {"get item", "fetch item", "lookup item"})
 public record GetItem(
     @TemplateProperty(
             label = "Table name",
