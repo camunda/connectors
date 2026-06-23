@@ -128,7 +128,10 @@ class AppIntegrationsConnectorTest {
   @Test
   void sendMessage_oauth401_invalidatesTokenAndRetries() {
     OAuthTokenCacheHolder.set(tokenCache);
-    doReturn(httpResponse(401, "Unauthorized"), httpResponse(201, "{\"conversation\":null}"))
+    // The SDK HttpClient throws (errorCode = status code) on a 401, it does not return it. The
+    // connector must catch that, invalidate the cached token, and retry once — the retry succeeds.
+    doThrow(new ConnectorException("401", "Unauthorized"))
+        .doReturn(httpResponse(201, "{\"conversation\":null}"))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
@@ -139,6 +142,21 @@ class AppIntegrationsConnectorTest {
     verify(tokenCache)
         .invalidate(any(io.camunda.connector.http.client.model.auth.OAuthAuthentication.class));
     verify(httpClient, times(2)).execute(any(HttpClientRequest.class), any());
+  }
+
+  @Test
+  void sendMessage_apiKey401_propagatesWithoutRetry() {
+    // A 401 with a non-OAuth auth has no cached token to refresh, so it must propagate as-is.
+    doThrow(new ConnectorException("401", "Unauthorized"))
+        .when(httpClient)
+        .execute(any(HttpClientRequest.class), any());
+
+    var request = new SendMessageRequest(CONFIG, "user@example.com", null, "Hi", null);
+
+    assertThatThrownBy(() -> connector.sendMessage(request, context))
+        .isInstanceOfSatisfying(
+            ConnectorException.class, e -> assertThat(e.getErrorCode()).isEqualTo("401"));
+    verify(httpClient, times(1)).execute(any(HttpClientRequest.class), any());
   }
 
   @Test
@@ -193,15 +211,16 @@ class AppIntegrationsConnectorTest {
 
   @Test
   void sendMessage_backendError_throwsConnectorException() {
-    doReturn(httpResponse(500, "Internal Server Error"))
+    // The SDK HttpClient throws on status >= 400 with the status code as the error code.
+    doThrow(new ConnectorException("500", "Internal Server Error"))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
     var request = new SendMessageRequest(CONFIG, "user@example.com", null, "Hello", null);
 
     assertThatThrownBy(() -> connector.sendMessage(request, context))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("500");
+        .isInstanceOfSatisfying(
+            ConnectorException.class, e -> assertThat(e.getErrorCode()).isEqualTo("500"));
   }
 
   @Test
@@ -353,7 +372,7 @@ class AppIntegrationsConnectorTest {
 
   @Test
   void createChannel_backendError_throwsConnectorException() {
-    doReturn(httpResponse(500, "Internal Server Error"))
+    doThrow(new ConnectorException("500", "Internal Server Error"))
         .when(httpClient)
         .execute(any(HttpClientRequest.class), any());
 
@@ -361,8 +380,8 @@ class AppIntegrationsConnectorTest {
         new CreateChannelRequest(
             CONFIG, "b7779302-e8cb-4b34-901b-5b150a19fd47", "My Channel", null, "standard");
     assertThatThrownBy(() -> connector.createChannel(request))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("500");
+        .isInstanceOfSatisfying(
+            ConnectorException.class, e -> assertThat(e.getErrorCode()).isEqualTo("500"));
   }
 
   @Test

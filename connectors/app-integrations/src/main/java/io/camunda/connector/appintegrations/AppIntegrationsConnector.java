@@ -147,47 +147,61 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
             request.teamId(),
             request.displayName(),
             request.description(),
-            request.membershipType() != null ? request.membershipType() : "standard");
+            request.membershipType());
 
     return post(request.configuration(), CREATE_CHANNEL_PATH, payload, CreateChannelResult.class);
   }
 
   /**
-   * Sends a POST to the App Integrations backend, authenticating via the configured mechanism. On a
-   * {@code 401} from an OAuth-authenticated request the cached token is invalidated and the call is
-   * retried once with a freshly fetched token.
+   * Sends a POST to the App Integrations backend, authenticating via the configured mechanism.
+   *
+   * <p>The SDK {@link HttpClient} throws a {@link ConnectorException} (with the HTTP status code as
+   * its error code) for any response status {@code >= 400}, so success is implied when {@link
+   * #send} returns. On a {@code 401} from an OAuth-authenticated request the cached token may be
+   * stale or revoked: it is invalidated and the call is retried once with a freshly fetched token.
+   * Any other failure — or a second {@code 401} on the retry — propagates to the caller.
    */
   private <T> T post(
       AppIntegrationsConfiguration config, String path, Object payload, Class<T> resultType) {
-    try {
-      var body = objectMapper.writeValueAsString(payload);
-      var auth = config.authentication();
+    var body = serialize(payload);
+    var auth = config.authentication();
 
-      var response = send(config.baseUrl(), path, body, auth);
-      if (response.status() == 401 && auth instanceof OAuthAuthentication oauth) {
+    HttpResponse<String> response;
+    try {
+      response = send(config.baseUrl(), path, body, auth);
+    } catch (ConnectorException e) {
+      if ("401".equals(e.getErrorCode()) && auth instanceof OAuthAuthentication oauth) {
         LOGGER.debug("Received 401 from {}; invalidating OAuth token and retrying", path);
         OAuthTokenCacheHolder.get().invalidate(toClientAuthentication(oauth));
         response = send(config.baseUrl(), path, body, auth);
+      } else {
+        throw e;
       }
+    }
 
-      LOGGER.debug("POST {} → {}", path, response.status());
-      if (response.status() >= 200 && response.status() < 300) {
-        var responseBody = response.entity();
-        if (responseBody == null || responseBody.isBlank()) {
-          // Successful ack with no body (e.g. 204) — nothing to deserialize.
-          return null;
-        }
-        return objectMapper.readValue(responseBody, resultType);
-      }
+    LOGGER.debug("POST {} → {}", path, response.status());
+    return deserialize(response.entity(), resultType);
+  }
 
-      throw new ConnectorException(
-          "APP_INTEGRATIONS_ERROR",
-          "App Integrations responded with status %d: %s"
-              .formatted(response.status(), response.entity()));
-
+  private String serialize(Object payload) {
+    try {
+      return objectMapper.writeValueAsString(payload);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
-          "IO_ERROR", "Failed to process App Integrations payload: " + e.getMessage(), e);
+          "IO_ERROR", "Failed to serialize App Integrations payload: " + e.getMessage(), e);
+    }
+  }
+
+  private <T> T deserialize(String responseBody, Class<T> resultType) {
+    if (responseBody == null || responseBody.isBlank()) {
+      // Successful ack with no body (e.g. 204) — nothing to deserialize.
+      return null;
+    }
+    try {
+      return objectMapper.readValue(responseBody, resultType);
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          "IO_ERROR", "Failed to parse App Integrations response: " + e.getMessage(), e);
     }
   }
 
