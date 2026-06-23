@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.model.document;
 
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
@@ -40,7 +41,11 @@ public final class DocumentHandle {
     if (document == null) {
       return UUID.randomUUID().toString();
     }
-    return switch (document.reference()) {
+    return idForReference(document.reference());
+  }
+
+  private static String idForReference(DocumentReference reference) {
+    return switch (reference) {
       case CamundaDocumentReference ref -> ref.getDocumentId();
       case ExternalDocumentReference ref -> "ext-" + sha256Prefix(ref.url(), 12);
       case InlineDocumentReference ref when ref.content() != null && !ref.content().isBlank() ->
