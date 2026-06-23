@@ -38,7 +38,7 @@ jobs:
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -143,7 +143,7 @@ jobs:
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
