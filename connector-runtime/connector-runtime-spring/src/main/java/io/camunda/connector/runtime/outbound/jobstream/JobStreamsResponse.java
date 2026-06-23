@@ -19,6 +19,6 @@ package io.camunda.connector.runtime.outbound.jobstream;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
-/** Full response from the Zeebe gateway {@code /actuator/jobstreams} endpoint. */
+/** Response from a Zeebe broker's {@code /actuator/jobstreams} endpoint. */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record JobStreamsResponse(List<RemoteJobStream> remote, List<ClientJobStream> client) {}
+public record JobStreamsResponse(List<RemoteJobStream> remote) {}
