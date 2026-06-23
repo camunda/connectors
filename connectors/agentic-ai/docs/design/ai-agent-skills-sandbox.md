@@ -449,6 +449,7 @@ A deliberately **minimal** set (bash is the workhorse; search/list/run-code coll
 | `sandbox_fs_write(path, content)` | `SandboxFileSystem.write` | Reliable file write (no shell-escaping pain); creates parent dirs. |
 | `sandbox_export_document(path)` | `fs.read` + `DocumentFactory` | Reads the workspace file's bytes, uploads to Camunda document storage, and attaches the document as a user message in the conversation (so later steps can reference its contents). The way binary/large artifacts escape the sandbox into the process. |
 | `sandbox_load_skill(name)` | skill registry + FS | Materializes a skill bundle into the FS, returns its `SKILL.md` body (the skills catalog lives in the system prompt, not a tool). |
+| `sandbox_import_document(id, path?)` | document registry + `fs.write` | **(Designed — §11.)** Materializes a document the agent already has in context (by its `<doc id="…"/>` handle) into the sandbox FS so `bash`/`fs_read` can operate on it. The IN counterpart to `sandbox_export_document`. |
 
 **Dropped vs. the original sketch:** `run_code` (→ `sandbox_fs_write` + `sandbox_bash`, or `python -c`/heredoc),
 `fs_search` (→ `grep`/`find` via `sandbox_bash`), `fs_list` (→ `ls` via `sandbox_bash`). The SPI keeps `list`/`search`
@@ -531,12 +532,15 @@ already exists — almost no new infrastructure:
   `fs.read(path)` → `createDocument(DocumentCreationRequest.from(bytes).contentType(stat.contentType).fileName(...))`
   → returns a summary string + `Document` in the tool result content list.
 - **Surfacing:** the document rides the existing `ToolCallResultDocumentExtractor` path; the turn
-  composer re-wraps it into a user message attached to the conversation so the LLM can reference its
-  contents in subsequent steps, and it lands in the final `AgentResponse` — i.e. it becomes a process
-  variable / document the downstream BPMN can consume. Reuse the codeinterpreter size/count guards.
-- **Deferred (phase 2):** the **IN** direction — materializing input Camunda Documents into
-  `/workspace/input/` so the agent can operate on uploaded files. That needs a new config concept +
-  materialization step; OUT does not, which is why only OUT is in the PoC.
+  composer re-wraps it into a **user message attached to the conversation after the tool-call result**,
+  so the LLM can reference its contents on the next turn. (It is **not** auto-injected into the final
+  `AgentResponse` — there is no `documents()` field on `AgentResponse`; the response is the model's last
+  message. The document is, however, a real persisted Camunda Document, so downstream BPMN can consume it
+  if the model surfaces its reference.) Reuse the codeinterpreter size/count guards.
+- **The IN direction (designed — §11):** materializing a Camunda Document the agent already has in
+  context into the sandbox FS so it can be operated on. Rather than a one-off importer keyed to a config
+  path, this is built on a **document reference registry** (§11) that gives every in-context document a
+  stable handle — `sandbox_import_document(id)` is its first consumer.
 
 ---
 
@@ -620,7 +624,158 @@ the user-prompt `documents` field) is added as a parallel field on the request d
 
 ---
 
-## 11. Resolved decisions & remaining questions
+## 11. Inbound documents — the document reference registry
+
+`sandbox_export_document` (§8a) moves artifacts OUT. The symmetric gap is IN: a document the agent
+already holds in context (a user-prompt attachment, or a file returned by an MCP/A2A/BPMN tool) cannot
+be operated on by `bash`/`sandbox_fs_read` because it never lands in the sandbox FS. Rather than a
+one-off importer, we introduce a small **core facility** — a per-execution registry of every document
+the agent has seen, each addressable by a stable handle — and build the import tool on top of it.
+
+This is **not sandbox-specific**: it belongs in the core agent model (conversation/memory), and the
+sandbox import tool is merely its first consumer.
+
+### 11.1 Three consumers of one facility
+
+1. **Referencing in reasoning** — the agent can name a document deterministically ("the PDF you
+   attached, `id=…`") instead of describing it.
+2. **`sandbox_import_document(id, path?)`** — materialize an in-context document into the sandbox FS.
+3. **`fromAi()` document inputs (enabled, §11.7)** — a BPMN tool declares a document-typed
+   `fromAi()` parameter; the LLM fills it with a handle; the runtime resolves the handle to a real
+   `Document` server-side. The agent never fabricates a reference.
+
+### 11.2 Registry model
+
+- **One entry per document the execution has seen**, keyed by a stable handle `id`:
+  - **Camunda documents** → the real `documentId` (already a UUID; dedups naturally).
+  - **External documents** → a deterministic `ext-<sha256(url)[:12]>` (re-encountering the same URL
+    maps to the same entry; the raw URL is **never** exposed to the model).
+  - **Inline/generic** (bytes embedded, no resolvable reference) → a generated id, registered
+    **in-invocation only** (we will not persist bytes into the registry; rare edge case, documented).
+- **Entry payload:** the handle `id` + a serializable **`DocumentReferenceModel`** + light metadata
+  (`fileName`, `contentType`). **Never bytes.**
+- **Population is engine-driven, not agent-driven** (this is the security boundary — §11.6): entries
+  are added by the runtime as documents enter context — user-prompt documents and tool-call-result
+  documents (via the existing `ToolCallResultDocumentExtractor`/`ContentTreeDocumentWalker`), plus
+  documents minted by `sandbox_export_document`. Appended incrementally per turn; deduped by `id`.
+
+### 11.3 Persistence — in the conversation payload, not the cursor
+
+The registry is **conversation-scoped state** and is persisted by the `ConversationStore` alongside the
+messages — **not** in `ConversationContext`, which is the cursor that always lives in the `agentContext`
+process variable. This directly answers the variable-size concern:
+
+- **`camunda-document` backend** → the registry rides in the **external JSON document** (via
+  `CamundaDocumentConversationSerializer`) → **zero process-variable cost**.
+- **`in-process` backend** → it sits in `agentContext` next to the messages (same size envelope as the
+  conversation already has; references-only + deduped, so it grows with document **count**, not size).
+
+Entries round-trip via `DocumentReferenceModel` and are re-resolved on load exactly as the conversation
+memory already re-resolves document references across turns. Threading the registry through
+`ConversationStore.storeMessages`/`loadMessages` (a small SPI extension carrying it as a sidecar to the
+message list) is the bulk of Phase 1 — respect the store's write-ahead-with-pointer-visibility
+contract (§6, `ConversationStore`).
+
+### 11.4 The `<doc/>` marker — one handle, two render sites
+
+Introduce a single deterministic handle derivation — `DocumentHandle.idFor(document)` (Camunda →
+`documentId`; external → `ext-<sha256(url)[:12]>`; inline → generated) — used **everywhere** a document
+is referenced: registry keying (§11.2) and both render sites below. One document ⇒ exactly one `id`
+across the whole turn, which is what makes correlation work.
+
+**Attributes.** The `<doc … />` tag (`DocumentReferenceXmlTag`) is reduced to what is useful to the
+agent: **`id`, `fileName`, `contentType`**, plus **`toolName`/`toolCallId` when the document came from a
+tool call**. We **keep `toolName`/`toolCallId`** — that correlation is important and must not be dropped.
+Dropped: `storeId`, the raw `documentId` (subsumed by `id`), and `url` (security: no address ever reaches
+the model). Prompt/event documents simply have no tool attribution to emit (blank attributes are already
+omitted).
+
+**Two render sites, correlated by the shared `id`:**
+
+1. **Inside the tool-call-result text (NEW — replaces JSON).** Today `ToolCallConverterImpl.contentAsString`
+   serializes a non-string tool result via `objectMapper.writeValueAsString(...)`, so a `Document` in the
+   content tree becomes a **JSON document-reference blob**. Change this so each `Document` node renders as
+   a `<doc id="…" fileName="…" contentType="…"/>` tag — **without** `toolName`/`toolCallId` (redundant
+   inside its own result). The implementation walks the content tree (as `ContentTreeDocumentWalker`
+   already does) and substitutes document nodes with their tag rather than emitting the reference JSON.
+   *(Care: for results that are arbitrary JSON with embedded references, the substitution must be defined
+   precisely — a Phase-1 design detail.)*
+2. **Synthetic user message** (`createDocumentPairs`, the content-bearing pairing): `<doc id="…"
+   fileName="…" contentType="…" toolName="…" toolCallId="…"/>` immediately followed by the real
+   `DocumentContent` block. This is the one that carries `toolName`/`toolCallId`, telling the model which
+   tool call produced the document.
+
+The model correlates site 1 (the reference returned by the function) with site 2 (the actual content)
+via the shared `id` — replacing today's "mirror the DocumentSerializer JSON field names" scheme
+(update that rationale in `DocumentReferenceXmlTag`'s javadoc).
+
+**Applied uniformly**, including **user-prompt documents** (new — `createUserPromptMessage` currently
+emits bare `DocumentContent` with no marker, so prompt docs have no handle today). This is the "Always"
+decision: prompt-doc markers are emitted for every agent, not gated on a configured sandbox.
+
+### 11.5 `sandbox_import_document(id, path?)`
+
+```
+sandbox_import_document(
+  id:   string   // required — the id from a <doc id="…"/> marker
+  path?: string  // optional — target sandbox path; default <workDir>/<fileName>
+)
+→ "Imported 'report.pdf' (12345 bytes, application/pdf) to /home/daytona/report.pdf."
+```
+
+- Resolves `id` **against the registry only**; on miss → error listing the available handles.
+- Then `registry.get(id).reference()` → resolve → `asByteArray()` → `session.fs().write(path, bytes)`
+  (the exact plumbing `sandbox_load_skill` already uses; the FS write primitive is byte-capable).
+- The registry is handed to the handler via `InternalToolContext` (new field), alongside `skillDocs`.
+- Reuse the export size guard (`maxDocumentBytes`) as an import cap.
+
+### 11.6 Security model — how we ground "only the agent's own documents"
+
+The principle is **capability handles, not addresses**:
+
+1. **Allow-list = registry membership.** Resolution is membership in *this execution's* registry. A
+   guessed-but-valid `documentId` from another process is not in the registry → rejected. Resolution is
+   never a store lookup of an agent-supplied id.
+2. **No agent-supplied address reaches a fetch.** The tool does `registry.get(id)` → a reference *we*
+   stored, then resolves that. It never fetches an agent-supplied id or URL. This closes **IDOR**
+   (Camunda — can't address a foreign document) and **SSRF** (external — can't pass an arbitrary URL);
+   minting our own `ext-…` ids for external docs is precisely what removes the raw-URL attack surface.
+3. **Population is engine-driven.** Entries come only from documents the runtime placed in context
+   (modeler-set prompt docs, trusted gateway tool results). The agent has no tool to add an entry.
+4. **Defense in depth.** The underlying Camunda document store still enforces tenant/store
+   authorization under the connector's identity regardless.
+
+### 11.7 `fromAi()` document inputs (enabled — out of immediate scope)
+
+Once handles exist, a BPMN tool can declare a document-typed `fromAi()` parameter. The LLM supplies a
+handle `id`; when the runtime assembles the tool-call process variables (`ToolCallProcessVariable`), it
+resolves `id` → `DocumentReferenceModel` from the registry and passes a real `Document` to the
+downstream element — deterministically, with the same allow-list. Designed-for here, **not built in this
+increment.**
+
+### 11.8 Phasing
+
+- **Phase 1 (T11) — registry + handles.** `DocumentHandle.idFor(...)` deterministic id derivation;
+  `DocumentRegistry` model (`id` → `{DocumentReferenceModel, fileName, contentType}`); engine-driven
+  population from prompt + tool-result docs; persistence in the conversation payload across both backends
+  (the `ConversationStore` SPI sidecar). Plus the two `<doc/>` render-site changes (§11.4): (a) the
+  reduced-attribute marker (`id`/`fileName`/`contentType` + `toolName`/`toolCallId` when from a tool
+  call) applied uniformly incl. prompt docs, and (b) tool-call-result document serialization switched
+  from JSON references to `<doc id/>` tags (no tool attribution) in `ToolCallConverterImpl`.
+  Independently valuable (the agent can reference docs by id even before import exists). *Acceptance:* a
+  prompt document and a tool-result document both appear with stable `id`s; a document returned by a tool
+  renders as `<doc id/>` (not JSON) in the result text and correlates by `id` with its content-bearing
+  user message (which retains `toolName`/`toolCallId`); the registry survives a store round-trip on both
+  backends; no bytes persisted; full module suite green.
+- **Phase 2 (T12) — `sandbox_import_document`.** Registry threaded via `InternalToolContext`; resolve →
+  `asByteArray()` → `fs.write`; registry-only resolution with the security guarantees of §11.6.
+  *Acceptance:* the agent imports an in-context document and `bash`/`fs_read` operates on it; a handle
+  not in the registry is rejected; over-cap import is refused.
+- **Follow-up — `fromAi()` document inputs (§11.7).**
+
+---
+
+## 12. Resolved decisions & remaining questions
 
 **Resolved (design review):**
 - **Tool surface (minimal):** `sandbox_bash` + `sandbox_fs_read` + `sandbox_fs_write` + `sandbox_export_document` + `sandbox_load_skill`.
@@ -683,7 +838,7 @@ the user-prompt `documents` field) is added as a parallel field on the request d
 
 ---
 
-## 12. Work breakdown (PoC tasks)
+## 13. Work breakdown (PoC tasks)
 
 Each task below is a self-contained, PR-sized unit with explicit dependencies and acceptance criteria.
 All live under a new `sandbox/*` package tree in `agentic-ai` (module-extractable later). `#7450`
@@ -707,6 +862,10 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
 > full module suite green (1579 tests). ⏳ **Remaining:** T8 (full Zeebe e2e + example skill), T9
 > (Docker provider, optional), and **window-filter skill-content pinning** (deferred from T7). The
 > stack is ready for a manual live run via the Daytona provider (set sandbox = Daytona + API key).
+> 📐 **Designed, not built:** **T11/T12 — inbound documents (the document reference registry, §11)**:
+> T11 = registry model + conversation-payload persistence + uniform trimmed `<doc id/>` markers (incl.
+> prompt docs); T12 = `sandbox_import_document`. `fromAi()` document inputs (§11.7) are a downstream
+> follow-up enabled by T11.
 
 ### T1 — Sandbox SPI core + in-memory fake
 - **Scope:** `sandbox/spi`: `SandboxProvider`, `SandboxSession` (`exec`, `fs`, `handle`, `terminate`,
