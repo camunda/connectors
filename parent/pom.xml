@@ -88,7 +88,7 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.0</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.22.0</version.jackson-datatype-jsr310>
-    <version.hibernate-validator>9.1.0.Final</version.hibernate-validator>
+    <version.hibernate-validator>9.1.1.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.json>20250517</version.json>
     <version.failsafe>3.3.2</version.failsafe>
@@ -100,7 +100,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.34</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.46.15</version.aws-sdk2>
+    <version.aws-sdk2>2.46.17</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
