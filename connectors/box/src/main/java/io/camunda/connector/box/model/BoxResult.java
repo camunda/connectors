@@ -10,10 +10,19 @@ import io.camunda.connector.api.document.Document;
 import java.util.List;
 
 public sealed interface BoxResult
-    permits BoxResult.Download, BoxResult.Generic, BoxResult.Search, BoxResult.Upload {
+    permits BoxResult.Download,
+        BoxResult.DownloadAsText,
+        BoxResult.DownloadAsJson,
+        BoxResult.Generic,
+        BoxResult.Search,
+        BoxResult.Upload {
   record Item(String id, String type) {}
 
   record Download(Item item, Document document) implements BoxResult {}
+
+  record DownloadAsText(Item item, String content) implements BoxResult {}
+
+  record DownloadAsJson(Item item, Object content) implements BoxResult {}
 
   record Upload(Item item) implements BoxResult {}
 

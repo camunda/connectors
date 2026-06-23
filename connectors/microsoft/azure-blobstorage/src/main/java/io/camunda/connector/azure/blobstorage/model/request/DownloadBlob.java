@@ -6,12 +6,19 @@
  */
 package io.camunda.connector.azure.blobstorage.model.request;
 
+import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(id = "downloadBlob", label = "Download blob")
+@DocumentReturnFormat(
+    group = "operation",
+    tooltip =
+        "How the downloaded payload should be returned. Document reference uploads the payload to"
+            + " the document store; as text decodes it as a String; as JSON parses it into a"
+            + " structure you can access via dot notation.")
 public record DownloadBlob(
     @TemplateProperty(
             label = "Blob Storage container",
@@ -33,15 +40,5 @@ public record DownloadBlob(
             binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
         @NotBlank
         String fileName,
-    @TemplateProperty(
-            label = "Return document as reference",
-            id = "downloadOperationAsFile",
-            group = "operation",
-            tooltip =
-                "By default, only a reference to the document is returned. If this option is unchecked, the full content of the document is extracted and included in the response.",
-            type = TemplateProperty.PropertyType.Boolean,
-            defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-            defaultValue = "true",
-            binding = @TemplateProperty.PropertyBinding(name = "operation.asFile"))
-        boolean asFile)
+    @TemplateProperty(ignore = true) @Deprecated boolean asFile)
     implements BlobStorageOperation {}

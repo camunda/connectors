@@ -7,6 +7,7 @@
 package io.camunda.connector.aws.s3;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.aws.s3.core.S3Executor;
@@ -33,7 +34,8 @@ class S3ConnectorFunctionTest extends BaseTest {
 
     try (MockedStatic<S3Executor> s3ExecutorMockedStatic = Mockito.mockStatic(S3Executor.class)) {
       s3ExecutorMockedStatic.when(() -> S3Executor.create(any(), any())).thenReturn(s3Executor);
-      when(s3Executor.execute(any())).thenReturn(new UploadResponse("test", "test", "link"));
+      when(s3Executor.execute(any(), anyBoolean()))
+          .thenReturn(new UploadResponse("test", "test", "link"));
       var response = s3ConnectorFunction.execute(context);
       Assertions.assertNotNull(response);
       Assertions.assertInstanceOf(UploadResponse.class, response);
@@ -51,7 +53,8 @@ class S3ConnectorFunctionTest extends BaseTest {
 
     try (MockedStatic<S3Executor> s3ExecutorMockedStatic = Mockito.mockStatic(S3Executor.class)) {
       s3ExecutorMockedStatic.when(() -> S3Executor.create(any(), any())).thenReturn(s3Executor);
-      when(s3Executor.execute(any())).thenReturn(new DownloadResponse("test", "test", null));
+      when(s3Executor.execute(any(), anyBoolean()))
+          .thenReturn(new DownloadResponse("test", "test", null));
       var response = s3ConnectorFunction.execute(context);
       Assertions.assertNotNull(response);
       Assertions.assertInstanceOf(DownloadResponse.class, response);
@@ -69,7 +72,7 @@ class S3ConnectorFunctionTest extends BaseTest {
 
     try (MockedStatic<S3Executor> s3ExecutorMockedStatic = Mockito.mockStatic(S3Executor.class)) {
       s3ExecutorMockedStatic.when(() -> S3Executor.create(any(), any())).thenReturn(s3Executor);
-      when(s3Executor.execute(any())).thenReturn(new DeleteResponse("test", "test"));
+      when(s3Executor.execute(any(), anyBoolean())).thenReturn(new DeleteResponse("test", "test"));
       var response = s3ConnectorFunction.execute(context);
       Assertions.assertNotNull(response);
       Assertions.assertInstanceOf(DeleteResponse.class, response);

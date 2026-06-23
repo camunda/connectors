@@ -9,8 +9,12 @@ package io.camunda.connector.azure.blobstorage.model.response;
 import io.camunda.connector.api.document.Document;
 
 public sealed interface DownloadResponse
-    permits DownloadResponse.DocumentContent, DownloadResponse.StringContent {
+    permits DownloadResponse.DocumentContent,
+        DownloadResponse.StringContent,
+        DownloadResponse.JsonContent {
   record DocumentContent(Document document) implements DownloadResponse {}
 
   record StringContent(String content) implements DownloadResponse {}
+
+  record JsonContent(Object content) implements DownloadResponse {}
 }

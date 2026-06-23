@@ -5,7 +5,7 @@
   "description" : "Execute S3 requests",
   "keywords" : [ "upload file", "download file", "delete file", "upload object", "download object", "delete object", "object storage", "bucket", "file storage" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/amazon-s3/",
-  "version" : 3,
+  "version" : 4,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -457,14 +457,12 @@
     "tooltip" : "Key of the object which should be download",
     "type" : "String"
   }, {
-    "id" : "downloadActionAsFile",
-    "label" : "Create document",
-    "optional" : false,
-    "value" : true,
-    "feel" : "static",
+    "id" : "documentReturnFormat",
+    "label" : "Response format",
+    "value" : "DOCUMENT",
     "group" : "downloadObject",
     "binding" : {
-      "name" : "action.asFile",
+      "name" : "documentReturnFormat.choice",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -472,13 +470,46 @@
       "equals" : "downloadObject",
       "type" : "simple"
     },
-    "tooltip" : "If set to true, a document reference will be created. If set to false, the content will be extracted and provided inside the response.",
-    "type" : "Boolean"
+    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Document reference",
+      "value" : "DOCUMENT"
+    }, {
+      "name" : "as text",
+      "value" : "TEXT"
+    }, {
+      "name" : "as JSON",
+      "value" : "JSON"
+    } ]
+  }, {
+    "id" : "documentReturnFormatEncoding",
+    "label" : "Encoding",
+    "description" : "Character set used to decode the response. Default UTF-8.",
+    "value" : "UTF-8",
+    "feel" : "optional",
+    "group" : "downloadObject",
+    "binding" : {
+      "name" : "documentReturnFormat.encoding",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "documentReturnFormat",
+        "equals" : "TEXT",
+        "type" : "simple"
+      }, {
+        "property" : "actionDiscriminator",
+        "equals" : "downloadObject",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "3",
+    "value" : "4",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

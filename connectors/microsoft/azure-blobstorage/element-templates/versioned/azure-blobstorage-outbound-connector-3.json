@@ -5,7 +5,7 @@
   "description" : "Upload and download files from Azure Blob Storage.",
   "keywords" : [ "download file from azure blob storage", "upload file to azure blob storage", "download blob", "upload blob", "download file", "upload file", "blob storage", "file storage", "cloud storage" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
-  "version" : 4,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -242,12 +242,14 @@
     "tooltip" : "Specify the name of the document to be downloaded.",
     "type" : "String"
   }, {
-    "id" : "documentReturnFormat",
-    "label" : "Response format",
-    "value" : "DOCUMENT",
+    "id" : "downloadOperationAsFile",
+    "label" : "Return document as reference",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
-      "name" : "documentReturnFormat.choice",
+      "name" : "operation.asFile",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -255,41 +257,8 @@
       "equals" : "downloadBlob",
       "type" : "simple"
     },
-    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Document reference",
-      "value" : "DOCUMENT"
-    }, {
-      "name" : "as text",
-      "value" : "TEXT"
-    }, {
-      "name" : "as JSON",
-      "value" : "JSON"
-    } ]
-  }, {
-    "id" : "documentReturnFormatEncoding",
-    "label" : "Encoding",
-    "description" : "Character set used to decode the response. Default UTF-8.",
-    "value" : "UTF-8",
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "documentReturnFormat.encoding",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "documentReturnFormat",
-        "equals" : "TEXT",
-        "type" : "simple"
-      }, {
-        "property" : "operationDiscriminator",
-        "equals" : "downloadBlob",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
+    "tooltip" : "By default, only a reference to the document is returned. If this option is unchecked, the full content of the document is extracted and included in the response.",
+    "type" : "Boolean"
   }, {
     "id" : "container",
     "label" : "Blob Storage container",
@@ -526,7 +495,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

@@ -9,6 +9,7 @@ package io.camunda.connector.box.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -189,6 +190,12 @@ public record BoxRequest(
     }
 
     @TemplateSubType(id = "downloadFile", label = "Download File")
+    @DocumentReturnFormat(
+        group = "operation",
+        tooltip =
+            "How the downloaded payload should be returned. Document reference uploads the payload"
+                + " to the document store; as text decodes it as a String; as JSON parses it into a"
+                + " structure you can access via dot notation.")
     record DownloadFile(
         @TemplateProperty(
                 id = "downloadFilePath",

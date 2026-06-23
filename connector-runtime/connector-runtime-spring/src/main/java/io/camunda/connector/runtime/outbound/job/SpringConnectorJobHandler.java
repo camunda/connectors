@@ -32,6 +32,7 @@ import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
 import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
@@ -48,6 +49,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.document.DocumentReturnProcessor;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.IgnoreError;
@@ -88,6 +90,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private final ValidationProvider validationProvider;
   private final DocumentFactory documentFactory;
   private final ObjectMapper objectMapper;
+  private final DocumentReturnProcessor documentReturnProcessor;
 
   public SpringConnectorJobHandler(
       MetricsRecorder outboundMetrics,
@@ -102,6 +105,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
+    this.documentReturnProcessor = new DocumentReturnProcessor(documentFactory, objectMapper);
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
@@ -183,7 +187,25 @@ public class SpringConnectorJobHandler implements JobHandler {
 
   private ConnectorResponse getConnectorResponse(OutboundConnectorContext context)
       throws Exception {
-    final var responseValue = call.execute(context);
+    Object responseValue = call.execute(context);
+
+    if (responseValue instanceof DocumentReturn<?> documentReturn) {
+      // Safety net: if process() throws before it reaches the convert() try-with-resources, the
+      // payload stream still owns external resources (e.g. an open HTTP response / Apache client
+      // for the REST connector). Close it here so the connection is always released.
+      var responseFormat = context.readDocumentReturnFormat().orElse(null);
+      try {
+        responseValue = documentReturnProcessor.process(documentReturn, responseFormat);
+      } catch (Throwable t) {
+        try {
+          documentReturn.payload().stream().close();
+        } catch (Exception closeError) {
+          t.addSuppressed(closeError);
+        }
+        throw t;
+      }
+    }
+
     if (responseValue instanceof ConnectorResponse connectorResponse) {
       return connectorResponse;
     }
