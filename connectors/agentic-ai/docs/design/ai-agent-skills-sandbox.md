@@ -653,7 +653,10 @@ sandbox import tool is merely its first consumer.
   - **Inline/generic** (bytes embedded, no resolvable reference) → a generated id, registered
     **in-invocation only** (we will not persist bytes into the registry; rare edge case, documented).
 - **Entry payload:** the handle `id` + a serializable **`DocumentReferenceModel`** + light metadata
-  (`fileName`, `contentType`). **Never bytes.**
+  (`fileName`, `contentType`). **Never bytes.** **No tool attribution is stored** — `toolName`/
+  `toolCallId` are *occurrence-scoped* (which tool call surfaced the doc in a given turn), a property
+  of the render site (§11.4), not of the document's identity. The same document may appear in multiple
+  occurrences but has exactly one registry entry.
 - **Population is engine-driven, not agent-driven** (this is the security boundary — §11.6): entries
   are added by the runtime as documents enter context — user-prompt documents and tool-call-result
   documents (via the existing `ToolCallResultDocumentExtractor`/`ContentTreeDocumentWalker`), plus
@@ -688,7 +691,9 @@ agent: **`id`, `fileName`, `contentType`**, plus **`toolName`/`toolCallId` when 
 tool call**. We **keep `toolName`/`toolCallId`** — that correlation is important and must not be dropped.
 Dropped: `storeId`, the raw `documentId` (subsumed by `id`), and `url` (security: no address ever reaches
 the model). Prompt/event documents simply have no tool attribution to emit (blank attributes are already
-omitted).
+omitted). `toolName`/`toolCallId` are **passed in at render time** (`DocumentReferenceXmlTag.from(doc,
+toolCallId, toolName)`), supplied by the render site that knows the originating tool call — they are
+**not** read back from the registry (the registry has no such field; §11.2).
 
 **Two render sites, correlated by the shared `id`:**
 
@@ -862,9 +867,11 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
 > full module suite green (1579 tests). ⏳ **Remaining:** T8 (full Zeebe e2e + example skill), T9
 > (Docker provider, optional), and **window-filter skill-content pinning** (deferred from T7). The
 > stack is ready for a manual live run via the Daytona provider (set sandbox = Daytona + API key).
-> 📐 **Designed, not built:** **T11/T12 — inbound documents (the document reference registry, §11)**:
-> T11 = registry model + conversation-payload persistence + uniform trimmed `<doc id/>` markers (incl.
-> prompt docs); T12 = `sandbox_import_document`. `fromAi()` document inputs (§11.7) are a downstream
+> ✅ **T11 (inbound document reference registry, §11)** — registry model (`DocumentHandle.idFor` +
+> `DocumentRegistry`/`DocumentRegistryEntry`), engine-driven population (prompt + tool-result docs),
+> conversation-payload persistence across both backends (SPI sidecar), and both `<doc/>` render-site
+> changes (uniform trimmed markers incl. prompt docs; tool-result text JSON→`<doc id/>`). 📐 **Designed,
+> not built:** **T12 — `sandbox_import_document`**. `fromAi()` document inputs (§11.7) are a downstream
 > follow-up enabled by T11.
 
 ### T1 — Sandbox SPI core + in-memory fake

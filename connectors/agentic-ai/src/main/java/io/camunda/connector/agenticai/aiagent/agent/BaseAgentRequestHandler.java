@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -28,10 +29,13 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.MessageUtil;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.model.message.UserMessage;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -46,6 +50,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -128,8 +133,8 @@ public abstract class BaseAgentRequestHandler<
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
-      final var loadedMessages = session.loadMessages(agentContext).messages();
-      final var previousConversation = TurnReconstructor.reconstruct(loadedMessages);
+      final var loadResult = session.loadMessages(agentContext);
+      final var previousConversation = TurnReconstructor.reconstruct(loadResult.messages());
 
       LOGGER.trace("Composing turn input from history and invocation state");
       final var compositionResult =
@@ -145,7 +150,13 @@ public abstract class BaseAgentRequestHandler<
         }
         case CompositionResult.NextTurn(var newMessages) ->
             proceed(
-                executionContext, agentContext, previousConversation, newMessages, session, store);
+                executionContext,
+                agentContext,
+                previousConversation,
+                newMessages,
+                loadResult,
+                session,
+                store);
       };
     }
   }
@@ -155,6 +166,7 @@ public abstract class BaseAgentRequestHandler<
       final AgentContext agentContext,
       final PreviousConversation previousConversation,
       final List<Message> inputMessages,
+      final ConversationLoadResult loadResult,
       final ConversationSession session,
       final ConversationStore store) {
     var agentConfiguration = executionContext.configuration();
@@ -268,9 +280,11 @@ public abstract class BaseAgentRequestHandler<
     }
 
     LOGGER.debug("Storing conversation messages to session");
+    final var populatedRegistry = buildRegistry(loadResult.documentRegistry(), inputMessages);
     final var storedRef =
         session.storeMessages(
-            conversation.toAgentContext(), ConversationStoreRequest.of(conversation.allMessages()));
+            conversation.toAgentContext(),
+            ConversationStoreRequest.of(conversation.allMessages(), populatedRegistry));
 
     final var storedConversation = conversation.withStoredConversation(storedRef);
     final var agentResponse = responseHandler.createResponse(storedConversation);
@@ -490,6 +504,37 @@ public abstract class BaseAgentRequestHandler<
         }
       }
     };
+  }
+
+  /**
+   * Builds the document registry for this turn by combining the registry loaded from the previous
+   * turn with the documents newly added in {@code inputMessages} (user-prompt documents from {@link
+   * DocumentContent} content blocks, and tool-call-result documents from {@link
+   * ToolCallResultMessage} result content trees). Population is engine-driven only — no
+   * agent-facing tool adds entries (§11.6).
+   */
+  private static DocumentRegistry buildRegistry(
+      DocumentRegistry loadedRegistry, List<Message> inputMessages) {
+    final var newDocs = new ArrayList<Document>();
+    for (var msg : inputMessages) {
+      switch (msg) {
+        case UserMessage userMsg ->
+            userMsg.content().stream()
+                .filter(c -> c instanceof DocumentContent)
+                .map(c -> ((DocumentContent) c).document())
+                .forEach(newDocs::add);
+        case ToolCallResultMessage toolMsg ->
+            toolMsg.results().stream()
+                .flatMap(
+                    r ->
+                        ContentTreeDocumentWalker.extractDocumentsFromContent(r.content()).stream())
+                .forEach(newDocs::add);
+        default -> {
+          // SystemMessage and AssistantMessage carry no inbound documents
+        }
+      }
+    }
+    return loadedRegistry.withAddedDocuments(newDocs);
   }
 
   private static <C extends AgentExecutionContext>

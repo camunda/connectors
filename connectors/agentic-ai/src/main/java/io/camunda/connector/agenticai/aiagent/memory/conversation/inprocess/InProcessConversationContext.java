@@ -10,14 +10,18 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
+import org.springframework.lang.Nullable;
 
 @AgenticAiRecord
 @JsonDeserialize(
     builder = InProcessConversationContext.InProcessConversationContextJacksonProxyBuilder.class)
-public record InProcessConversationContext(String conversationId, List<Message> messages)
+public record InProcessConversationContext(
+    String conversationId, List<Message> messages, @Nullable DocumentRegistry documentRegistry)
     implements ConversationContext, InProcessConversationContextBuilder.With {
+
   public static InProcessConversationContextBuilder builder() {
     return InProcessConversationContextBuilder.builder();
   }
