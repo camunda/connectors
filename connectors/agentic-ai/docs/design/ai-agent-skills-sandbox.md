@@ -641,6 +641,12 @@ T1 ─┬─ T2 ─┬─ T3 ─┬─ T6
 T2 now covers `bash` + `fs_read`/`fs_write`; T7 adds `load_skill`; **T10 adds `export_document`**.
 Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9 anytime after T1).
 
+> **Implementation status (branch `claude/quirky-cori-ln89rs`, PR #7594).** ✅ **Committed:** T1, T2,
+> T4, T3, T10, T7a/T7b/T7c, **T5 (real Daytona provider)**, **T6 (cross-invocation sandbox reuse)** —
+> full module suite green (1579 tests). ⏳ **Remaining:** T8 (full Zeebe e2e + example skill), T9
+> (Docker provider, optional), and **window-filter skill-content pinning** (deferred from T7). The
+> stack is ready for a manual live run via the Daytona provider (set sandbox = Daytona + API key).
+
 ### T1 — Sandbox SPI core + in-memory fake
 - **Scope:** `sandbox/spi`: `SandboxProvider`, `SandboxSession` (`exec`, `fs`, `handle`, `terminate`,
   `AutoCloseable`), `SandboxFileSystem` (incl. `stat` for size/contentType/isBinary), `SandboxHandle`
@@ -701,6 +707,11 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
   create→write→`pip install`→run→read→`get(id)` reconnect (deps still present). Skipped when creds
   absent.
 - **Size:** M–L.
+- **Status:** ✅ committed. Pinned `io.daytona:sdk:0.189.0`. `DaytonaSandboxProvider` +
+  `DaytonaSandboxFileSystem` + `DaytonaSandboxProviderFactory` bean. exec maps
+  `process.executeCommand` (combined output → stdout, empty stderr). `terminate()` closes only the
+  HTTP client (sandbox persists; auto-stop/auto-archive manage idle). Live `DaytonaSandboxProviderIT`
+  gated by `@EnabledIfEnvironmentVariable(DAYTONA_API_KEY)`; pure-mapping unit tests run always.
 
 ### T6 — Cross-invocation persistence
 - **Scope:** persist `SandboxHandle` in `agentContext.properties`; reconnect via `connect(handle)` at
@@ -709,6 +720,11 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
 - **Acceptance:** simulated two-invocation test (fake: handle survives in agentContext and reconnect
   returns the same FS state; Daytona `@SlowTest`: files + installed deps persist across reconnect).
 - **Size:** S–M.
+- **Status:** ✅ committed. Handle persisted under `agentContext.properties["sandboxHandle"]`.
+  **Key fix:** `properties` is `Map<String,Object>` with no type info, so the handle rehydrates as a
+  plain `Map` after a store round-trip; `SandboxSessionFactoryImpl.readHandle(...)` now accepts both a
+  live `SandboxHandle` and a rehydrated `Map` (else `instanceof` failed → a new sandbox every job).
+  `SandboxSessionFactoryImplTest` covers the rehydrated-Map regression.
 
 ### T7 — Skills (SKILL.md + resolver + catalog + load_skill + window pinning)
 - **Scope:** `sandbox/skill`: `SkillMdParser` (lenient frontmatter `name`/`description`; body),
@@ -721,7 +737,7 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
 - **Depends on:** T2, T3, T4.
 - **Split as delivered:** **T7a** = parser + `Skill` model + `SkillBundleReader` + `SkillResolver`
   (✅ committed); **T7b** = `skills` config field + `InternalToolContext` + `load_skill` handler +
-  sub-loop wiring (✅ committed); **T7c** = `SkillsSystemPromptContributor` catalog (in progress).
+  sub-loop wiring (✅ committed); **T7c** = `SkillsSystemPromptContributor` catalog (✅ committed).
   **Window pinning** is deferred to a focused follow-up (the `MessageWindowFilter` assistant/tool-result
   pairing makes it delicate; in the interim the `load_skill` result states the sandbox location so the
   model can `fs_read` the instructions back after eviction).
