@@ -29,7 +29,7 @@
 /connectors/aws/aws-bedrock-agentcore-long-term-memory @camunda/connectors-agentic-ai
 
 # Custom rule for IDP collaborators
-/connectors/idp-extraction @camunda/connectors-idp @camunda/connectors
+/connectors/idp-extraction @camunda/connectors-idp
 
 # These files are excluded so that Renovate can automatically merge dependency upgrades
 renovate.json
