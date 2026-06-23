@@ -12,6 +12,9 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 public record CreateChannelRequest(
     @NotNull @Valid AppIntegrationsConfiguration configuration,
@@ -51,22 +54,33 @@ public record CreateChannelRequest(
 
   public CreateChannelRequest {
     teamId = extractGroupId(teamId);
+    // Single runtime source of the channel-type default; the template's defaultValue only pre-fills
+    // the editor dropdown and is not guaranteed to be present for non-template callers.
+    if (membershipType == null || membershipType.isBlank()) {
+      membershipType = "standard";
+    }
   }
 
+  /**
+   * Accepts either a raw groupId or a full Microsoft Teams URL. For a URL, the {@code groupId}
+   * query parameter is extracted and percent-decoded; if the input is not a URL or carries no such
+   * parameter it is returned unchanged.
+   */
   private static String extractGroupId(String input) {
     if (input == null || !input.startsWith("http")) {
       return input;
     }
     try {
-      var query = new URI(input).getQuery();
+      var query = new URI(input).getRawQuery();
       if (query != null) {
         for (var param : query.split("&")) {
           if (param.startsWith("groupId=")) {
-            return param.substring("groupId=".length());
+            return URLDecoder.decode(param.substring("groupId=".length()), StandardCharsets.UTF_8);
           }
         }
       }
-    } catch (Exception ignored) {
+    } catch (URISyntaxException | IllegalArgumentException e) {
+      // Not a parseable URI or malformed percent-encoding — fall back to the input verbatim.
     }
     return input;
   }
