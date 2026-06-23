@@ -14,6 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.set-modules.outputs.modules }}
+    env:
+      # Runner overrides: JSON map from e2e module name → runner label.
+      # Modules absent from the map use ubuntu-latest.
+      # To redirect a new module to a different runner, add one key-value pair here.
+      E2E_RUNNER_OVERRIDES: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-default"}'
     steps:
       - uses: actions/checkout@v7
         with:
@@ -76,8 +81,9 @@ jobs:
 
       # Discover the e2e-test modules to run from this branch's checkout so the test matrix is
       # branch-accurate. Leaf poms with `jar` packaging are test modules; aggregators (`pom`
-      # packaging) and `*-base` shared libraries are excluded. Paths are emitted relative to
-      # connectors-e2e-test/pom.xml so they can be passed directly to `-pl`.
+      # packaging) and `*-base` shared libraries are excluded. Each entry is a
+      # {"module": "...", "runner": "..."} object; runner comes from E2E_RUNNER_OVERRIDES
+      # (defaults to ubuntu-latest for modules not listed there).
       - name: Discover e2e-test modules
         id: set-modules
         run: |
@@ -86,8 +92,10 @@ jobs:
             pkg=$(grep -m1 -oP '(?<=<packaging>)[^<]+' "$p" || echo jar)
             [ "$pkg" = "pom" ] && continue
             case "$base" in *-base) continue;; esac
-            echo "${d#connectors-e2e-test/}"
-          done | jq -R -s -c 'split("\n") | map(select(length>0))')
+            module="${d#connectors-e2e-test/}"
+            runner=$(printf '%s' "$E2E_RUNNER_OVERRIDES" | jq -r --arg m "$module" '.[$m] // "ubuntu-latest"')
+            printf '{"module":"%s","runner":"%s"}\n' "$module" "$runner"
+          done | jq -sc '.')
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
 
       - name: Sanitize branch name for artifact
@@ -106,20 +114,16 @@ jobs:
           include-hidden-files: true
           overwrite: true
 
-  # Test phase (matrix: module): each e2e-test module runs in its own job, in isolation.
-  # Defaults to ubuntu-latest; resource-heavy modules override the runner via matrix.include.
+  # Test phase (matrix: entry): each e2e-test module runs in its own job, in isolation.
+  # Runner is baked into each entry by the build job (sourced from e2e-runner-overrides.json).
   test:
-    name: ${{ matrix.module }}
+    name: ${{ matrix.entry.module }}
     needs: build
-    runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.entry.runner }}
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(needs.build.outputs.modules) }}
-        include:
-          # Override the runner for resource-heavy modules; all others use ubuntu-latest.
-          - module: connectors-e2e-test-agentic-ai
-            runner: gcp-core-8-default
+        entry: ${{ fromJson(needs.build.outputs.modules) }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -177,7 +181,7 @@ jobs:
           echo "module=${MODULE//\//-}" >> "$GITHUB_OUTPUT"
         env:
           BRANCH: ${{ inputs.branch }}
-          MODULE: ${{ matrix.module }}
+          MODULE: ${{ matrix.entry.module }}
 
       # Restore the first-party SNAPSHOTs built by the build job; the test run resolves
       # connectors + e2e base from here and does not rebuild them.
@@ -190,13 +194,13 @@ jobs:
       # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
       # artifact, so nothing upstream is rebuilt.
       - name: Test e2e module
-        run: ./mvnw --batch-mode test -pl "${{ matrix.module }}" -f connectors-e2e-test/pom.xml
+        run: ./mvnw --batch-mode test -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
 
       - name: Publish Test Report
         if: always()
         uses: scacap/action-surefire-report@v1
         with:
-          check_name: Tests (${{ inputs.branch }} / ${{ matrix.module }})
+          check_name: Tests (${{ inputs.branch }} / ${{ matrix.entry.module }})
 
       - name: Upload detailed surefire reports
         if: always()
@@ -226,15 +230,18 @@ jobs:
           BRANCH: ${{ inputs.branch }}
         run: |
           prefix="(${BRANCH}) / "
-          # $p is a jq variable passed via --arg, not a shell variable
-          # shellcheck disable=SC2016
+          # --paginate emits one JSON doc per page; --slurp collects them so .[].jobs[] spans all pages.
           failed_modules=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs" \
-            --paginate \
-            --jq --arg p "$prefix" \
-            '[.jobs[] | select(.conclusion == "failure") | select(.name | startswith($p)) | .name | ltrimstr($p) | select(test("^connectors-"))] | map("• " + .) | join("\\n")' \
+            --paginate | \
+            jq -rs --arg p "$prefix" \
+            '[.[].jobs[] | select(.conclusion == "failure") | select(.name | startswith($p)) | .name | ltrimstr($p) | select(test("^connectors-"))] | map("• " + .) | join("\n")' \
           )
           [ -z "$failed_modules" ] && failed_modules="(see run for details)"
-          echo "failed_modules=$failed_modules" >> "$GITHUB_OUTPUT"
+          {
+            echo "failed_modules<<EOF_MODULES"
+            echo "$failed_modules"
+            echo "EOF_MODULES"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Post failure summary to Slack
         uses: slackapi/slack-github-action@v3.0.3
