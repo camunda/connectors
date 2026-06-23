@@ -40,9 +40,9 @@ import io.camunda.connector.agenticai.sandbox.SandboxSessionFactoryImpl;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolContext;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
-import io.camunda.connector.agenticai.sandbox.skill.Skill;
 import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxSession;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
@@ -163,13 +163,13 @@ public abstract class BaseAgentRequestHandler<
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
 
-    // Resolve skills once per invocation (lazy: only when sandbox is configured and skills are
-    // set). This avoids re-unzipping bundles on every iteration of the internal sub-loop.
-    var skills =
+    // Pass skill bundles as documents (not pre-resolved): load_skill materializes the requested
+    // bundle lazily, so invocations that never load a skill pay no unzip cost.
+    var skillDocs =
         agentConfiguration.skills() != null && agentConfiguration.sandboxConfiguration().isPresent()
-            ? skillResolver.resolve(agentConfiguration.skills())
-            : List.<Skill>of();
-    var internalToolContext = new InternalToolContext(skills);
+            ? agentConfiguration.skills()
+            : List.<Document>of();
+    var internalToolContext = new InternalToolContext(skillDocs, skillResolver);
 
     SandboxSession sandboxSession = null;
     int internalIterations = 0;

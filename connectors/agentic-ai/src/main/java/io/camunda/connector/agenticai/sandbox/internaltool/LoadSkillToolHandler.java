@@ -69,15 +69,14 @@ public class LoadSkillToolHandler implements SkillAwareInternalToolHandler {
       return errorResult(toolCall, "missing required argument: name");
     }
 
-    if (context.skills().isEmpty()) {
+    if (context.skillDocs().isEmpty()) {
       return errorResult(toolCall, "no skills are configured for this agent.");
     }
 
-    Skill skill =
-        context.skills().stream().filter(s -> s.name().equals(skillName)).findFirst().orElse(null);
+    // Lazily materialize only the requested bundle, rather than resolving all configured skills.
+    Skill skill = context.resolveSkill(skillName).orElse(null);
     if (skill == null) {
-      String available =
-          context.skills().stream().map(Skill::name).reduce((a, b) -> a + ", " + b).orElse("");
+      String available = String.join(", ", context.skillNames());
       return errorResult(
           toolCall, "unknown skill '%s'. Available skills: %s.".formatted(skillName, available));
     }

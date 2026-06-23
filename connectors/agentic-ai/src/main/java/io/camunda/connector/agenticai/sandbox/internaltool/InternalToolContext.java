@@ -7,22 +7,43 @@
 package io.camunda.connector.agenticai.sandbox.internaltool;
 
 import io.camunda.connector.agenticai.sandbox.skill.Skill;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
+import io.camunda.connector.api.document.Document;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Per-invocation context carried through the internal-tool execution path. Holds data that is
  * resolved once per agent invocation (outside the internal sub-loop) and handed to every {@link
  * InternalToolHandler} on each call.
  *
- * <p>Currently only carries the resolved skill list, but is intentionally kept as a record so
- * additional per-invocation context can be added later without changing every handler signature.
+ * <p>Skills are carried as their raw {@link Document} bundles plus a {@link SkillResolver}, NOT as
+ * pre-resolved {@link Skill}s: {@code load_skill} materializes the requested bundle lazily via
+ * {@link #resolveSkill(String)} so that invocations which never load a skill pay no unzip cost.
+ * (The Tier-1 catalog is still rendered per invocation by the system-prompt contributor.)
  *
- * @param skills the skills available to the agent for this invocation; may be empty but never null
+ * @param skillDocs the raw skill bundle documents available to the agent; may be empty, never null
+ * @param skillResolver resolver used to materialize a bundle on demand; {@code null} only when
+ *     there are no skill documents (see {@link #empty()})
  */
-public record InternalToolContext(List<Skill> skills) {
+public record InternalToolContext(List<Document> skillDocs, SkillResolver skillResolver) {
 
   /** Returns an empty context with no skills. */
   public static InternalToolContext empty() {
-    return new InternalToolContext(List.of());
+    return new InternalToolContext(List.of(), null);
+  }
+
+  /** Resolves the named skill's full bundle on demand, or empty if it is unknown. */
+  public Optional<Skill> resolveSkill(String name) {
+    return skillResolver == null ? Optional.empty() : skillResolver.resolveByName(skillDocs, name);
+  }
+
+  /** Returns the names of all configured skills (resolves metadata; used for error listings). */
+  public List<String> skillNames() {
+    return skillResolver == null
+        ? List.of()
+        : skillResolver.resolveMetadata(skillDocs).stream()
+            .map(SkillResolver.SkillMetadata::name)
+            .toList();
   }
 }

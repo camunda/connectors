@@ -11,6 +11,7 @@ import io.camunda.connector.api.document.DocumentMetadata;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,6 +118,25 @@ public class SkillResolver {
 
   /** Lightweight skill metadata: name and description, without the bundle file bytes. */
   public record SkillMetadata(String name, String description) {}
+
+  /**
+   * Resolves a single skill (full bundle, including file bytes) by name, on demand. Used by {@code
+   * load_skill} so that bundles are only materialized for the skill the model actually requests,
+   * rather than eagerly resolving every configured bundle on each invocation.
+   *
+   * <p>Delegates to {@link #resolve(List)} and filters, so duplicate-name precedence ("first wins")
+   * and parse-failure skipping match the catalog/enum view.
+   *
+   * @param skillDocuments the configured skill documents; may be {@code null} or empty
+   * @param name the requested skill name
+   * @return the resolved skill, or empty if no document resolves to that name
+   */
+  public Optional<Skill> resolveByName(List<Document> skillDocuments, String name) {
+    if (skillDocuments == null || skillDocuments.isEmpty() || name == null) {
+      return Optional.empty();
+    }
+    return resolve(skillDocuments).stream().filter(skill -> name.equals(skill.name())).findFirst();
+  }
 
   /**
    * Derives a best-effort fallback name from a document's metadata or reference.

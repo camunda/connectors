@@ -7,7 +7,9 @@
 package io.camunda.connector.agenticai.sandbox.internaltool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,14 +18,19 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.sandbox.provider.fake.InMemorySandboxProvider;
 import io.camunda.connector.agenticai.sandbox.skill.Skill;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver.SkillMetadata;
 import io.camunda.connector.agenticai.sandbox.spi.FileEntry;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxException;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxFileSystem;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxSession;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxSpec;
+import io.camunda.connector.api.document.Document;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -74,6 +81,25 @@ class LoadSkillToolHandlerTest {
         .build();
   }
 
+  /**
+   * Builds an {@link InternalToolContext} backed by a mock {@link SkillResolver} that lazily
+   * resolves the given skills by name (mirroring production, where {@code load_skill} resolves the
+   * requested bundle on demand). Unknown names resolve to {@link Optional#empty()} (Mockito's
+   * default for {@code Optional}-returning methods).
+   */
+  private static InternalToolContext ctxWith(Skill... skills) {
+    SkillResolver resolver = mock(SkillResolver.class);
+    List<Document> docs = new ArrayList<>();
+    List<SkillMetadata> metadata = new ArrayList<>();
+    for (Skill skill : skills) {
+      docs.add(mock(Document.class));
+      metadata.add(new SkillMetadata(skill.name(), skill.description()));
+      when(resolver.resolveByName(any(), eq(skill.name()))).thenReturn(Optional.of(skill));
+    }
+    when(resolver.resolveMetadata(any())).thenReturn(metadata);
+    return new InternalToolContext(docs, resolver);
+  }
+
   // ---------------------------------------------------------------------------
   // Happy path — materialize a skill
   // ---------------------------------------------------------------------------
@@ -81,7 +107,7 @@ class LoadSkillToolHandlerTest {
   @Test
   void execute_happyPath_materialisesFilesIntoFilesystem() {
     Skill skill = buildSkill("my-skill", "A test skill", "Do something useful.");
-    InternalToolContext ctx = new InternalToolContext(List.of(skill));
+    InternalToolContext ctx = ctxWith(skill);
 
     ToolCallResult result = handler.execute(loadCall("my-skill"), session, ctx);
 
@@ -102,7 +128,7 @@ class LoadSkillToolHandlerTest {
   @Test
   void execute_happyPath_resultContainsSkillContentTag() {
     Skill skill = buildSkill("demo", "A demo skill", "These are the instructions.");
-    InternalToolContext ctx = new InternalToolContext(List.of(skill));
+    InternalToolContext ctx = ctxWith(skill);
 
     ToolCallResult result = handler.execute(loadCall("demo"), session, ctx);
 
@@ -115,7 +141,7 @@ class LoadSkillToolHandlerTest {
   @Test
   void execute_happyPath_resultContainsSkillResourcesTag() {
     Skill skill = buildSkill("demo", "A demo skill", "Instructions here.");
-    InternalToolContext ctx = new InternalToolContext(List.of(skill));
+    InternalToolContext ctx = ctxWith(skill);
 
     ToolCallResult result = handler.execute(loadCall("demo"), session, ctx);
 
@@ -129,7 +155,7 @@ class LoadSkillToolHandlerTest {
   @Test
   void execute_happyPath_resultContainsBundledFilesGuidance() {
     Skill skill = buildSkill("demo", "A demo skill", "Instructions.");
-    InternalToolContext ctx = new InternalToolContext(List.of(skill));
+    InternalToolContext ctx = ctxWith(skill);
 
     ToolCallResult result = handler.execute(loadCall("demo"), session, ctx);
 
@@ -151,7 +177,7 @@ class LoadSkillToolHandlerTest {
     when(fs.stat(anyString())).thenThrow(new SandboxException("no such file"));
 
     Skill skill = buildSkill("my-skill", "A test skill", "Body.");
-    InternalToolContext ctx = new InternalToolContext(List.of(skill));
+    InternalToolContext ctx = ctxWith(skill);
 
     ToolCallResult result = handler.execute(loadCall("my-skill"), customSession, ctx);
 
@@ -175,7 +201,7 @@ class LoadSkillToolHandlerTest {
   @Test
   void execute_secondCall_returnsAlreadyLoadedNote() {
     Skill skill = buildSkill("idem-skill", "Idempotent skill", "Body.");
-    InternalToolContext ctx = new InternalToolContext(List.of(skill));
+    InternalToolContext ctx = ctxWith(skill);
 
     // First call: loads the skill
     handler.execute(loadCall("idem-skill"), session, ctx);
@@ -196,7 +222,7 @@ class LoadSkillToolHandlerTest {
   @Test
   void execute_missingNameArg_returnsError() {
     Skill skill = buildSkill("s", "d", "b");
-    InternalToolContext ctx = new InternalToolContext(List.of(skill));
+    InternalToolContext ctx = ctxWith(skill);
 
     ToolCallResult result = handler.execute(loadCallNoArgs(), session, ctx);
 
@@ -218,7 +244,7 @@ class LoadSkillToolHandlerTest {
   void execute_unknownSkillName_returnsErrorListingAvailable() {
     Skill s1 = buildSkill("skill-a", "desc", "body");
     Skill s2 = buildSkill("skill-b", "desc", "body");
-    InternalToolContext ctx = new InternalToolContext(List.of(s1, s2));
+    InternalToolContext ctx = ctxWith(s1, s2);
 
     ToolCallResult result = handler.execute(loadCall("nonexistent"), session, ctx);
 
@@ -236,7 +262,7 @@ class LoadSkillToolHandlerTest {
   @Test
   void execute_resultAlwaysTaggedExecutedBySandbox() {
     Skill skill = buildSkill("tagged", "d", "b");
-    InternalToolContext ctx = new InternalToolContext(List.of(skill));
+    InternalToolContext ctx = ctxWith(skill);
 
     ToolCallResult result = handler.execute(loadCall("tagged"), session, ctx);
 
