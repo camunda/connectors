@@ -12,17 +12,14 @@ import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_O
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentReferenceTagSerializer;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -32,9 +29,16 @@ import org.apache.commons.lang3.StringUtils;
 public class ToolCallConverterImpl implements ToolCallConverter {
 
   private final ObjectMapper objectMapper;
+  private final ObjectMapper documentTagObjectMapper;
 
   public ToolCallConverterImpl(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
+    this.documentTagObjectMapper =
+        objectMapper
+            .copy()
+            .registerModule(
+                new SimpleModule()
+                    .addSerializer(Document.class, new DocumentReferenceTagSerializer()));
   }
 
   @Override
@@ -103,10 +107,9 @@ public class ToolCallConverterImpl implements ToolCallConverter {
   /**
    * Converts a content tree value to a string for the LLM tool result.
    *
-   * <p>{@link Document} leaf nodes are replaced with {@code <doc/>} XML tags (no tool attribution —
-   * see Site 1 vs Site 2 in §11.4 of the skills design doc). Other values are serialized via JSON
-   * (which will encode any remaining document references as their JSON reference shapes, e.g. for
-   * document references not wrapped in a {@link Document}).
+   * <p>{@link Document} nodes at any nesting depth in the content tree are rendered as {@code
+   * <doc/>} XML tags via the registered {@link DocumentReferenceTagSerializer} (no tool attribution
+   * — Site 1). All other values are serialized to JSON.
    */
   private String contentAsString(String toolName, Object result) {
     try {
@@ -116,50 +119,11 @@ public class ToolCallConverterImpl implements ToolCallConverter {
       if (result instanceof String s) {
         return s;
       }
-      // Substitute Document leaf nodes in the content tree with <doc/> XML tags before
-      // JSON-serializing the rest. This produces stable, model-safe ids (from DocumentHandle)
-      // instead of the raw reference JSON that the ObjectMapper would emit for Document objects.
-      final var substituted = substituteDocuments(result);
-      return objectMapper.writeValueAsString(substituted);
+      return documentTagObjectMapper.writeValueAsString(result);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
           "Failed to convert result of tool call '%s' to string: %s"
               .formatted(toolName, humanReadableJsonProcessingExceptionMessage(e)));
     }
-  }
-
-  /**
-   * Recursively walks the content tree and replaces {@link Document} leaf nodes with their {@code
-   * <doc/>} XML tag strings. Maps, Lists, and arrays are traversed; all other non-Document types
-   * are returned unchanged.
-   */
-  private static Object substituteDocuments(Object node) {
-    return switch (node) {
-      case null -> null;
-      case Document doc -> DocumentReferenceXmlTag.from(doc).toXml();
-      case Map<?, ?> map -> {
-        final var result = new LinkedHashMap<Object, Object>(map.size());
-        map.forEach((k, v) -> result.put(k, substituteDocuments(v)));
-        yield result;
-      }
-      case List<?> list -> {
-        final var result = new ArrayList<>(list.size());
-        list.forEach(item -> result.add(substituteDocuments(item)));
-        yield result;
-      }
-      case Collection<?> collection -> {
-        final var result = new ArrayList<>();
-        collection.forEach(item -> result.add(substituteDocuments(item)));
-        yield result;
-      }
-      case Object[] array -> {
-        final var result = new Object[array.length];
-        for (int i = 0; i < array.length; i++) {
-          result[i] = substituteDocuments(array[i]);
-        }
-        yield result;
-      }
-      default -> node;
-    };
   }
 }
