@@ -264,4 +264,28 @@ class LoadSkillToolHandlerTest {
     List<String> required = (List<String>) handler.definition().inputSchema().get("required");
     assertThat(required).contains("name");
   }
+
+  @Test
+  void definition_generic_hasNoNameEnum() {
+    @SuppressWarnings("unchecked")
+    Map<String, Object> props =
+        (Map<String, Object>) handler.definition().inputSchema().get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> nameProp = (Map<String, Object>) props.get("name");
+    assertThat(nameProp).doesNotContainKey("enum");
+  }
+
+  @Test
+  void definition_withSkillNames_constrainsNameToEnum() {
+    var def = handler.definition(List.of("pdf-tools", "csv-parser"));
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> props = (Map<String, Object>) def.inputSchema().get("properties");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> nameProp = (Map<String, Object>) props.get("name");
+
+    @SuppressWarnings("unchecked")
+    List<String> nameEnum = (List<String>) nameProp.get("enum");
+    assertThat(nameEnum).containsExactly("pdf-tools", "csv-parser");
+  }
 }

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.sandbox.internaltool;
 
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_DESCRIPTION;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ENUM;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_PROPERTIES;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_REQUIRED;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_TYPE;
@@ -36,12 +37,13 @@ import java.util.Map;
  * <p>The handler is idempotent: if a skill's {@code SKILL.md} already exists in the workspace it
  * returns a short "already loaded" note instead of re-writing files.
  */
-public class LoadSkillToolHandler implements InternalToolHandler {
+public class LoadSkillToolHandler implements SkillAwareInternalToolHandler {
 
+  /** Generic definition (no skill enum) used when the configured skills are not yet known. */
   private final ToolDefinition definition;
 
   public LoadSkillToolHandler() {
-    this.definition = buildDefinition();
+    this.definition = buildDefinition(List.of());
   }
 
   @Override
@@ -52,6 +54,11 @@ public class LoadSkillToolHandler implements InternalToolHandler {
   @Override
   public ToolDefinition definition() {
     return definition;
+  }
+
+  @Override
+  public ToolDefinition definition(List<String> skillNames) {
+    return buildDefinition(skillNames);
   }
 
   @Override
@@ -151,13 +158,18 @@ public class LoadSkillToolHandler implements InternalToolHandler {
         .build();
   }
 
-  private static ToolDefinition buildDefinition() {
+  private static ToolDefinition buildDefinition(List<String> skillNames) {
     Map<String, Object> nameProp = new LinkedHashMap<>();
     nameProp.put(PROPERTY_TYPE, TYPE_STRING);
     nameProp.put(
         PROPERTY_DESCRIPTION,
         "The name of the skill to load. Must be one of the skills listed under "
             + "<available_skills> in the system prompt.");
+    // Constrain to the configured skill names so the model cannot request a nonexistent skill.
+    // Empty when the configured skills are not yet known (generic definition).
+    if (skillNames != null && !skillNames.isEmpty()) {
+      nameProp.put(PROPERTY_ENUM, List.copyOf(skillNames));
+    }
 
     Map<String, Object> properties = Map.of("name", nameProp);
 

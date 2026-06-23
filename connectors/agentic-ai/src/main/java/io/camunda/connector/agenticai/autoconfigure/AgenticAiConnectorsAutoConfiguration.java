@@ -306,9 +306,14 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentToolsResolver toolsResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AgentInstanceClient agentInstanceClient,
-      InternalToolRegistry internalToolRegistry) {
+      InternalToolRegistry internalToolRegistry,
+      SkillResolver skillResolver) {
     return new AgentInitializerImpl(
-        toolsResolver, gatewayToolHandlers, agentInstanceClient, internalToolRegistry);
+        toolsResolver,
+        gatewayToolHandlers,
+        agentInstanceClient,
+        internalToolRegistry,
+        skillResolver);
   }
 
   @Bean

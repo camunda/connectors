@@ -32,8 +32,23 @@ public class InternalToolRegistry {
 
   /** Returns tool definitions for all registered handlers, in registration order. */
   public List<ToolDefinition> toolDefinitions() {
+    return toolDefinitions(List.of());
+  }
+
+  /**
+   * Returns tool definitions for all registered handlers, in registration order, specializing any
+   * {@link SkillAwareInternalToolHandler} to the given configured skill names (e.g. constraining
+   * {@code load_skill}'s {@code name} to an enum). Other handlers return their generic definition.
+   *
+   * @param skillNames the configured skill names; pass an empty list when unknown
+   */
+  public List<ToolDefinition> toolDefinitions(List<String> skillNames) {
     return handlers.values().stream()
-        .map(InternalToolHandler::definition)
+        .map(
+            h ->
+                h instanceof SkillAwareInternalToolHandler skillAware
+                    ? skillAware.definition(skillNames)
+                    : h.definition())
         .collect(Collectors.toList());
   }
 

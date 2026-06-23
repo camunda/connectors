@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -41,6 +42,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolNames;
 import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.ArrayList;
@@ -79,6 +81,7 @@ class AgentInitializerTest {
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @Mock private AgentInstanceClient agentInstanceClient;
   @Mock private InternalToolRegistry internalToolRegistry;
+  @Mock private SkillResolver skillResolver;
   @Mock private JobContext jobContext;
   @InjectMocks private AgentInitializerImpl agentInitializer;
 
@@ -91,7 +94,7 @@ class AgentInitializerTest {
     lenient().when(executionContext.configuration()).thenReturn(agentConfiguration);
     lenient().when(agentConfiguration.sandboxConfiguration()).thenReturn(Optional.empty());
     // Default: internalToolRegistry returns empty definitions list.
-    lenient().when(internalToolRegistry.toolDefinitions()).thenReturn(List.of());
+    lenient().when(internalToolRegistry.toolDefinitions(anyList())).thenReturn(List.of());
   }
 
   @Nested
@@ -692,7 +695,7 @@ class AgentInitializerTest {
     void withSandbox_internalToolDefinitionsAreAppendedAfterAdHocTools() {
       when(agentConfiguration.sandboxConfiguration())
           .thenReturn(Optional.of(new DaytonaSandboxConfiguration("key", null, null, null, null)));
-      when(internalToolRegistry.toolDefinitions())
+      when(internalToolRegistry.toolDefinitions(anyList()))
           .thenReturn(List.of(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF));
       when(toolsResolver.loadAdHocToolsSchema(any(), any()))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(ADHOC_TOOL), null));
@@ -713,7 +716,7 @@ class AgentInitializerTest {
     void withSandboxAndNoAdHocTools_onlyInternalToolDefinitionsRegistered() {
       when(agentConfiguration.sandboxConfiguration())
           .thenReturn(Optional.of(new DaytonaSandboxConfiguration("key", null, null, null, null)));
-      when(internalToolRegistry.toolDefinitions())
+      when(internalToolRegistry.toolDefinitions(anyList()))
           .thenReturn(List.of(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF));
       when(toolsResolver.loadAdHocToolsSchema(any(), any()))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));

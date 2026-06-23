@@ -98,6 +98,27 @@ public class SkillResolver {
   }
 
   /**
+   * Resolves skill documents into lightweight {@link SkillMetadata} (name + description only),
+   * without retaining the bundle file bytes. Used at agent initialization to build the {@code
+   * load_skill} name enum and to render the Tier-1 catalog, where the full bundle is not needed.
+   *
+   * <p>This currently delegates to {@link #resolve(List)} and projects the result, so it pays the
+   * same unzip cost; the file bytes are simply not retained. It can later be optimized to parse
+   * only {@code SKILL.md}.
+   *
+   * @param skillDocuments the documents to resolve; may be {@code null} or empty
+   * @return metadata in input order, skipping any that fail to parse or are duplicates
+   */
+  public List<SkillMetadata> resolveMetadata(List<Document> skillDocuments) {
+    return resolve(skillDocuments).stream()
+        .map(skill -> new SkillMetadata(skill.name(), skill.description()))
+        .toList();
+  }
+
+  /** Lightweight skill metadata: name and description, without the bundle file bytes. */
+  public record SkillMetadata(String name, String description) {}
+
+  /**
    * Derives a best-effort fallback name from a document's metadata or reference.
    *
    * <p>Tries {@link DocumentMetadata#getFileName()} first (stripping the {@code .zip} extension if
