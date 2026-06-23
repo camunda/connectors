@@ -58,7 +58,7 @@ jobs:
           private-key: ${{ steps.secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         continue-on-error: true # cache failures should not fail the build
         with:
           path: ~/.m2/repository
