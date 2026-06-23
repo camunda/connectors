@@ -35,7 +35,9 @@ import java.util.function.Function;
 @ElementTemplate(
     name = "CSV Connector",
     id = "io.camunda.connectors.csv",
-    version = 1,
+    description =
+        "Read or write CSV documents — parse a CSV into structured records or render rows back into CSV.",
+    version = 2,
     engineVersion = "^8.8",
     keywords = {
       "read CSV",
@@ -50,7 +52,11 @@ import java.util.function.Function;
     icon = "icon.svg")
 public class CsvConnector implements OutboundConnectorProvider {
 
-  @Operation(id = "readCsv", name = "Read CSV")
+  @Operation(
+      id = "readCsv",
+      name = "Read CSV",
+      description = "Read a CSV document and return its records",
+      keywords = {"read csv", "parse csv", "import csv"})
   public ReadCsvResult readCsv(
       @Variable ReadCsvRequest request,
       @Header(name = "recordMapper", required = false)
@@ -78,7 +84,11 @@ public class CsvConnector implements OutboundConnectorProvider {
     };
   }
 
-  @Operation(id = "writeCsv", name = "Write CSV")
+  @Operation(
+      id = "writeCsv",
+      name = "Write CSV",
+      description = "Render rows as a CSV document",
+      keywords = {"write csv", "export csv", "generate csv"})
   public Object writeCsv(@Variable WriteCsvRequest request, OutboundConnectorContext context) {
     var csv = createCsv(request.data(), request.format());
     if (request.createDocument()) {

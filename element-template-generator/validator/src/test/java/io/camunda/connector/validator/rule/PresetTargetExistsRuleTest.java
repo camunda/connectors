@@ -220,7 +220,7 @@ class PresetTargetExistsRuleTest {
           "presets": [ { "id": "p", "properties": { "missing": "y" } } ]
         }
         """);
-    assertThat(rule.apply(Path.of("connectors/aws/element-templates/aws.json"), template))
+    assertThat(rule.apply(Path.of("connectors/agentic-ai/element-templates/aws.json"), template))
         .isEmpty();
   }
 

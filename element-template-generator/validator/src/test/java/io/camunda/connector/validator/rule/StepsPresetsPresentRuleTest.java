@@ -83,8 +83,8 @@ class StepsPresetsPresentRuleTest {
   @Test
   void ignoredConnector_noFindings() throws Exception {
     JsonNode template = read("{}");
-    // "aws" is on the ignore list.
-    Path ignored = Path.of("connectors/aws/element-templates/aws-s3.json");
+    // "agentic-ai" is on the ignore list.
+    Path ignored = Path.of("connectors/agentic-ai/element-templates/foo.json");
     assertThat(rule.apply(ignored, template)).isEmpty();
   }
 

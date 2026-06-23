@@ -102,6 +102,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     var context = TemplateGenerationContextUtil.createContext(connectorDefinition, configuration);
 
     List<PropertyBuilder> properties;
+    StepTreeResult stepTree;
     if (OutboundConnectorFunction.class.isAssignableFrom(connectorDefinition)
         || InboundConnectorExecutable.class.isAssignableFrom(connectorDefinition)) {
       properties =
@@ -112,11 +113,13 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         properties.addAll(
             LinkedResourcePropertiesUtil.buildClassBasedLinkedResourceProperties(connectorInput));
       }
+      stepTree = StepTreeWalker.walk(connectorInput);
     } else if (OutboundConnectorProvider.class.isAssignableFrom(connectorDefinition)) {
       List<MethodWithAnnotation<Operation>> methods =
           ReflectionUtil.getMethodsAnnotatedWith(connectorDefinition, Operation.class);
       properties = new ArrayList<>(List.of(createOperationsProperty(methods)));
       properties.addAll(getOperationProperties(methods, context));
+      stepTree = OperationStepTreeWalker.walk(methods);
     } else {
       throw new IllegalArgumentException(
           "Connector class "
@@ -221,6 +224,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .propertyGroups(
                       addServiceProperties(
                           mergedGroups, context, elementType, configuration, template))
+                  .steps(stepTree.steps())
+                  .presets(stepTree.presets())
                   .build();
             })
         .toList();

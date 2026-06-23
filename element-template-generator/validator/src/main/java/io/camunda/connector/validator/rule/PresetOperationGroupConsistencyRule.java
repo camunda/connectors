@@ -34,12 +34,15 @@ import java.util.Set;
  *
  * <ul>
  *   <li>The matching entry in {@code properties[]} has {@code group == "operation"}.
- *   <li>An {@code "operation"} group is declared in {@code groups[]} and is the first entry.
+ *   <li>An {@code "operation"} group is declared in {@code groups[]} and is the first entry (or, in
+ *       hybrid templates, immediately follows the synthetic {@code taskDefinitionType} group at
+ *       index 0).
  * </ul>
  */
 public class PresetOperationGroupConsistencyRule implements Rule {
 
   public static final String OPERATION_GROUP_ID = "operation";
+  private static final String TASK_DEFINITION_TYPE_GROUP_ID = "taskDefinitionType";
 
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
@@ -116,9 +119,18 @@ public class PresetOperationGroupConsistencyRule implements Rule {
               "Template uses operation presets but declares no \"operation\" group."));
       return;
     }
-    JsonNode first = groups.get(0);
-    JsonNode firstId = first.path(ElementTemplate.ID);
-    if (!firstId.isTextual() || !OPERATION_GROUP_ID.equals(firstId.asText())) {
+    int expectedIndex = 0;
+    JsonNode firstId = groups.get(0).path(ElementTemplate.ID);
+    if (firstId.isTextual() && TASK_DEFINITION_TYPE_GROUP_ID.equals(firstId.asText())) {
+      // Hybrid templates: the synthetic taskDefinitionType group always sits at index 0; the
+      // operation group must be right after it.
+      expectedIndex = 1;
+    }
+    JsonNode expectedNode = groups.size() > expectedIndex ? groups.get(expectedIndex) : null;
+    JsonNode expectedIdNode = expectedNode == null ? null : expectedNode.path(ElementTemplate.ID);
+    if (expectedIdNode == null
+        || !expectedIdNode.isTextual()
+        || !OPERATION_GROUP_ID.equals(expectedIdNode.asText())) {
       // Look up the index of the operation group, if any, for a more useful message.
       int opIndex = -1;
       for (int i = 0; i < groups.size(); i++) {
@@ -129,9 +141,15 @@ public class PresetOperationGroupConsistencyRule implements Rule {
         }
       }
       String pointer = opIndex >= 0 ? "/groups/" + opIndex : "/groups";
+      String expectedPositionMsg =
+          expectedIndex == 0
+              ? "the first entry in groups[]"
+              : "immediately after the \"" + TASK_DEFINITION_TYPE_GROUP_ID + "\" group (index 1)";
       String message =
           opIndex >= 0
-              ? "Operation group must be the first entry in groups[] (currently at index "
+              ? "Operation group must be "
+                  + expectedPositionMsg
+                  + " (currently at index "
                   + opIndex
                   + ")."
               : "Template uses operation presets but declares no \"operation\" group.";
