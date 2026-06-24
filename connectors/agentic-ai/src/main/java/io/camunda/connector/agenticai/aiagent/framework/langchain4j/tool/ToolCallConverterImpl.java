@@ -12,10 +12,13 @@ import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_O
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentReferenceTagSerializer;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Map;
 import java.util.Objects;
@@ -26,9 +29,16 @@ import org.apache.commons.lang3.StringUtils;
 public class ToolCallConverterImpl implements ToolCallConverter {
 
   private final ObjectMapper objectMapper;
+  private final ObjectMapper documentTagObjectMapper;
 
   public ToolCallConverterImpl(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
+    this.documentTagObjectMapper =
+        objectMapper
+            .copy()
+            .registerModule(
+                new SimpleModule()
+                    .addSerializer(Document.class, new DocumentReferenceTagSerializer()));
   }
 
   @Override
@@ -76,7 +86,10 @@ public class ToolCallConverterImpl implements ToolCallConverter {
    * Converts the result of a tool call to a {@link ToolExecutionResultMessage}.
    *
    * <p>If the result is not a string, it will be serialized to a JSON string using the connectors
-   * ObjectMapper. Document instances in the content tree are serialized as document references.
+   * ObjectMapper. {@link Document} instances in the content tree are rendered as {@code <doc id="…"
+   * fileName="…" contentType="…"/>} tags (without tool attribution — the tool attribution is
+   * emitted at Site 2, in the separate content-bearing user message). All other values are
+   * serialized to JSON.
    */
   @Override
   public ToolExecutionResultMessage asToolExecutionResultMessage(ToolCallResult toolCallResult) {
@@ -91,6 +104,13 @@ public class ToolCallConverterImpl implements ToolCallConverter {
     return toolExecutionResultMessage(id, name, content);
   }
 
+  /**
+   * Converts a content tree value to a string for the LLM tool result.
+   *
+   * <p>{@link Document} nodes at any nesting depth in the content tree are rendered as {@code
+   * <doc/>} XML tags via the registered {@link DocumentReferenceTagSerializer} (no tool attribution
+   * — Site 1). All other values are serialized to JSON.
+   */
   private String contentAsString(String toolName, Object result) {
     try {
       if (result == null) {
@@ -99,7 +119,7 @@ public class ToolCallConverterImpl implements ToolCallConverter {
       if (result instanceof String s) {
         return s;
       }
-      return objectMapper.writeValueAsString(result);
+      return documentTagObjectMapper.writeValueAsString(result);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
           "Failed to convert result of tool call '%s' to string: %s"

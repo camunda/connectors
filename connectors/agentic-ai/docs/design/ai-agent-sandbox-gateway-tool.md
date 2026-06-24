@@ -180,8 +180,27 @@ follow-up**.
 
 ## 7. Documents
 
-- **Registry stays in core.** `DocumentRegistry`/`DocumentHandle` and the `<doc id/>` rendering are
-  ported from PR #7594 unchanged — still needed for stable handles and import.
+- **Registry stays in core.** `DocumentRegistry`/`DocumentHandle`/`DocumentRegistryEntry`, the reworked
+  `DocumentReferenceXmlTag` (synthetic `<doc id/>`, raw address dropped), and `DocumentReferenceTagSerializer`
+  (registered on the `ToolCallConverterImpl` `ObjectMapper` so any `Document` in a tool-result content tree
+  renders as `<doc/>`) are ported from PR #7594 — needed for stable handles and import. The composer's
+  `<doc id/>` prefix for **user-prompt** documents is ported too; the **mixed-turn / in-process sub-loop**
+  parts of #7594's composer diff (`alreadyAnsweredToolCallIds`/`pendingInputMessages`) are **NOT** ported —
+  the gateway model has no in-process sub-loop.
+- **Registry lives on the `AgentConversation` aggregate (DP2 resolution).** The registry is conversation-scoped
+  state with the conversation's exact lifecycle (loaded with it, grown per turn, stored with it). #7594 carries
+  it as a hand-threaded sibling local in `BaseAgentRequestHandler`; we instead make it a **member of
+  `AgentConversation`**, with `buildRegistry` (loaded ∪ this-turn input docs) folded into `rehydrate(...)`.
+  **Critical invariant:** it is **excluded from `toAgentContext()`** so it never enters the size-limited
+  `agentContext` process variable — it is persisted **only** through the conversation store
+  (`ConversationStoreRequest`/`ConversationLoadResult`, kept 1:1 with #7594). `AgentResponseHandlerImpl.createResponse`
+  then sources the registry from `conversation.documentRegistry()` (no new `createResponse` param). This is a
+  deliberate, documented divergence from #7594's structure.
+- **Gateway seam carries the registry.** `GatewayToolCallTransformer.transformToolCalls` gains a
+  `DocumentRegistry` parameter (handler beans are singletons, so it must ride as a call arg, not handler state);
+  MCP/A2A ignore it, sandbox uses it. The unresolvable-id edge case (model hallucinates an id) yields a generic
+  connector-side "not found" for now — the rich "available handles" listing would require a gateway short-circuit
+  (return a synthetic result without dispatch) and is a flagged follow-up.
 - **Export** fits *better* here than in-process: minting a Camunda Document belongs in a connector, which
   has the document-creation context natively.
 - **Import** is **handler-contract-driven, not the general `fromAi()` feature.** The fixed
@@ -317,10 +336,26 @@ New connector package: `@OutboundConnector`, element template with `gateway.type
 create→write→bash→read→reconnect; unit tests mock the Daytona client.
 
 ### P4 — Document export/import ops + registry port
-Port `DocumentRegistry`/`DocumentHandle`/`<doc id/>`. Connector `EXPORT_DOCUMENT` (mint Document) +
-`IMPORT_DOCUMENT` (receive resolved `Document`, write FS). Handler import-id→reference resolution.
+Dependency-ordered sub-steps:
+- **P4a — Model port (1:1 from #7594, no entanglement):** `DocumentHandle`, `DocumentRegistry`,
+  `DocumentRegistryEntry`, and the reworked `DocumentReferenceXmlTag` (replaces main's old sealed-interface
+  scheme). Pure copies + their unit tests.
+- **P4b — Serializer wiring:** port `DocumentReferenceTagSerializer`; register it on the `ToolCallConverterImpl`
+  `ObjectMapper` (`SimpleModule().addSerializer(Document.class, …)`). Port the composer's user-prompt `<doc id/>`
+  prefix **only** (skip the mixed-turn/sub-loop diff). Fix the one old call site
+  (`AgentConversationTurnInputComposerImpl:255`).
+- **P4c — Registry onto the aggregate (DP2):** add `documentRegistry` to `AgentConversation`; fold `buildRegistry`
+  into `rehydrate`; exclude from `toAgentContext`; wire `ConversationLoadResult`/`ConversationStoreRequest` (1:1
+  with #7594) + the in-process & camunda-document stores to load/persist it.
+- **P4d — Gateway seam:** add `DocumentRegistry` param to `transformToolCalls` (transformer + registry impl +
+  MCP/A2A/sandbox handlers); `createResponse` sources it from `conversation.documentRegistry()`. Implement
+  `SandboxGatewayToolHandler` import-id→reference resolution (replace the P2 `TODO(P4)`); generic not-found on miss.
+- **P4e — Connector ops:** `SandboxDaytonaFunction` `EXPORT_DOCUMENT` (mint Document via `DocumentFactory`, return
+  in tool-result content) + `IMPORT_DOCUMENT` (bind resolved `Document` reference, write bytes to FS). Add the
+  import document-reference field to `SandboxDaytonaRequest` + element-template binding.
+
 *Acceptance:* unit tests on export round-trip + import allow-list rejection; registry survives a store
-round-trip.
+round-trip; existing converter/composer unit tests stay green.
 
 ### P5 — Skills: ingestion + catalog + contributor
 Port `SkillMdParser`/`SkillBundleReader` into the connector; `CREATE` unzips `List<Document>` into
