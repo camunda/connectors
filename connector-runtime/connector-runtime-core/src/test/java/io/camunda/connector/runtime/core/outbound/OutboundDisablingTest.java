@@ -83,6 +83,43 @@ public class OutboundDisablingTest {
   }
 
   @Test
+  public void enabledAllowlistDisablesEverythingElse() throws Exception {
+    restoreSystemProperties(
+        () -> {
+          withEnvironmentVariables("CONNECTOR_OUTBOUND_ENABLED", "io.camunda:local")
+              .execute(
+                  () -> {
+                    OutboundConnectorFactory factory =
+                        DiscoveryUtils.getFactory(new AnnotatedLocalFunction());
+                    Assertions.assertInstanceOf(
+                        AnnotatedLocalFunction.class,
+                        factory.getInstance("io.camunda:local"),
+                        "Connector in the allowlist should be available");
+
+                    Assertions.assertThrows(
+                        RuntimeException.class,
+                        () -> factory.getInstance("io.camunda:annotated"),
+                        "Connector not in the allowlist should be disabled");
+                  });
+        });
+  }
+
+  @Test
+  public void enabledAndDisabledTogetherThrows() throws Exception {
+    restoreSystemProperties(
+        () -> {
+          withEnvironmentVariables("CONNECTOR_OUTBOUND_ENABLED", "io.camunda:local")
+              .and("CONNECTOR_OUTBOUND_DISABLED", "io.camunda:annotated")
+              .execute(
+                  () ->
+                      Assertions.assertThrows(
+                          IllegalStateException.class,
+                          () -> DiscoveryUtils.getFactory(new AnnotatedLocalFunction()),
+                          "ENABLED and DISABLED are mutually exclusive"));
+        });
+  }
+
+  @Test
   public void namedDisablingForManuallyRegisteredConnectors() throws Exception {
     restoreSystemProperties(
         () -> {
