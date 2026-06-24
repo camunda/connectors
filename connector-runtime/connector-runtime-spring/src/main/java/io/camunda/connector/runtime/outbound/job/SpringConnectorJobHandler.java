@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound.job;
 
 import static java.util.Objects.requireNonNullElse;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.JobCallbackFinalCommandStep;
 import io.camunda.client.api.response.ActivatedJob;
@@ -165,7 +166,8 @@ public class SpringConnectorJobHandler implements JobHandler {
 
       var connectorResponse = getConnectorResponse(context);
 
-      if (connectorResponse instanceof AdHocSubProcessConnectorResponse) {
+      if (connectorResponse instanceof AdHocSubProcessConnectorResponse ahsp) {
+        InlineSizeGuard.check(objectMapper.writeValueAsBytes(ahsp.variables()).length);
         // AHSP responses provide their own variables; skip result expression evaluation
         return new ConnectorResult.SuccessResult(connectorResponse, Map.of());
       }
@@ -268,6 +270,7 @@ public class SpringConnectorJobHandler implements JobHandler {
 
     switch (error) {
       case BpmnError bpmnError -> {
+        checkVariablesSize(bpmnError.variables());
         LOGGER.debug(
             "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
         CompletableFuture<CommandOutcome> throwBpmnErrorRequest =
@@ -284,6 +287,7 @@ public class SpringConnectorJobHandler implements JobHandler {
                     completionFailure));
       }
       case JobError jobError -> {
+        checkVariablesSize(jobError.variablesWithErrorMessage());
         LOGGER.debug("Throwing incident for job {}", job.getKey());
         CompletableFuture<CommandOutcome> failJobRequest =
             failJob(
@@ -338,6 +342,7 @@ public class SpringConnectorJobHandler implements JobHandler {
           response,
           completionFailure -> new ExecutionFailed(cause, completionFailure));
     } else {
+      checkVariablesSize(ignoreError.variables());
       LOGGER.debug("Ignoring error for job {}", job.getKey());
       completeJob(
           client,
@@ -485,6 +490,15 @@ public class SpringConnectorJobHandler implements JobHandler {
 
               return adHocSubProcess;
             });
+  }
+
+  private void checkVariablesSize(Map<String, Object> variables) {
+    if (variables == null || variables.isEmpty()) return;
+    try {
+      InlineSizeGuard.check(objectMapper.writeValueAsBytes(variables).length);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize variables for size check", e);
+    }
   }
 
   private static String truncateErrorMessage(String message) {
