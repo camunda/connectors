@@ -32,7 +32,7 @@ import io.camunda.connector.runtime.core.common.AbstractConnectorFactory.Connect
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
-import io.camunda.connector.runtime.outbound.jobstream.GatewayConnectivityState;
+import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,7 @@ import org.springframework.test.web.servlet.MockMvc;
     classes = TestConnectorRuntimeApplication.class,
     properties = {
       "camunda.connector.hostname=localhost",
-      "camunda.connector.gateway.monitoring.enabled=false"
+      "camunda.connector.broker.monitoring.enabled=false",
     })
 @AutoConfigureMockMvc
 class OutboundConnectorsRestControllerTest {
@@ -99,20 +99,21 @@ class OutboundConnectorsRestControllerTest {
     assertEquals(30000L, http.timeout());
     assertEquals("localhost", http.runtimeId());
     assertTrue(http.enabled());
-    assertEquals(GatewayConnectivityState.UNKNOWN, http.gatewayConnectivityState());
+    // No broker monitoring configured in this test — broker state is UNKNOWN
+    assertEquals(BrokerConnectivityState.UNKNOWN, http.brokerConnectivityState());
 
     var slack = connectors.stream().filter(c -> c.type().equals(TYPE_2)).findFirst().orElseThrow();
     assertEquals("Slack", slack.name());
     assertEquals(List.of("channel", "message"), slack.inputVariables());
     assertEquals("localhost", slack.runtimeId());
     assertTrue(slack.enabled());
-    assertEquals(GatewayConnectivityState.UNKNOWN, slack.gatewayConnectivityState());
+    assertEquals(BrokerConnectivityState.UNKNOWN, slack.brokerConnectivityState());
 
     var disabled =
         connectors.stream().filter(c -> c.type().equals(TYPE_DISABLED)).findFirst().orElseThrow();
     assertEquals("Disabled Connector", disabled.name());
     assertFalse(disabled.enabled());
-    assertEquals(GatewayConnectivityState.UNKNOWN, disabled.gatewayConnectivityState());
+    assertEquals(BrokerConnectivityState.UNKNOWN, disabled.brokerConnectivityState());
   }
 
   @Test

@@ -71,9 +71,10 @@ class BrokerJobStreamClientTest {
 
     var result = client.fetchRemoteStreams();
 
-    assertThat(result).hasSize(1);
-    assertThat(result.getFirst().jobType()).isEqualTo(JOB_TYPE);
-    assertThat(result.getFirst().consumers().getFirst()).containsEntry("id", STREAM_ID);
+    assertThat(result.streams()).hasSize(1);
+    assertThat(result.streams().getFirst().jobType()).isEqualTo(JOB_TYPE);
+    assertThat(result.streams().getFirst().consumers().getFirst()).containsEntry("id", STREAM_ID);
+    assertThat(result.brokerCount()).isEqualTo(1);
     verify(getRequestedFor(urlEqualTo(JOB_STREAMS_PATH)));
   }
 
@@ -98,8 +99,9 @@ class BrokerJobStreamClientTest {
 
     var result = client.fetchRemoteStreams();
 
-    assertThat(result).hasSize(2);
-    assertThat(result).allMatch(s -> JOB_TYPE.equals(s.jobType()));
+    assertThat(result.streams()).hasSize(2);
+    assertThat(result.streams()).allMatch(s -> JOB_TYPE.equals(s.jobType()));
+    assertThat(result.brokerCount()).isEqualTo(2);
     verify(2, getRequestedFor(urlEqualTo(JOB_STREAMS_PATH)));
   }
 
@@ -115,7 +117,9 @@ class BrokerJobStreamClientTest {
             """)));
     var client = clientWithAddresses(wmRuntimeInfo.getHttpPort(), "localhost");
 
-    assertThat(client.fetchRemoteStreams()).isEmpty();
+    var result = client.fetchRemoteStreams();
+    assertThat(result.streams()).isEmpty();
+    assertThat(result.brokerCount()).isEqualTo(1);
   }
 
   @Test
@@ -153,8 +157,9 @@ class BrokerJobStreamClientTest {
 
     var result = client.fetchRemoteStreams();
 
-    assertThat(result).hasSize(1);
-    assertThat(result.getFirst().jobType()).isEqualTo(JOB_TYPE);
+    assertThat(result.streams()).hasSize(1);
+    assertThat(result.streams().getFirst().jobType()).isEqualTo(JOB_TYPE);
+    assertThat(result.brokerCount()).isEqualTo(1);
     verify(getRequestedFor(urlEqualTo(JOB_STREAMS_PATH)));
   }
 

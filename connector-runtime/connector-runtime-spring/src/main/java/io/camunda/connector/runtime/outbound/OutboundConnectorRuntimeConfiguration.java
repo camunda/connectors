@@ -38,7 +38,6 @@ import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorsRestController;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
-import io.camunda.connector.runtime.outbound.jobstream.GatewayJobStreamClient;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import java.net.URI;
 import java.util.Arrays;
@@ -86,18 +85,6 @@ public class OutboundConnectorRuntimeConfiguration {
     return ValidationUtil.discoverDefaultValidationProviderImplementation();
   }
 
-  @Bean
-  @ConditionalOnProperty(
-      name = "camunda.connector.gateway.monitoring.enabled",
-      havingValue = "true",
-      matchIfMissing = true)
-  public GatewayJobStreamClient gatewayJobStreamClient(
-      CamundaClient camundaClient,
-      @ConnectorsObjectMapper ObjectMapper mapper,
-      @Value("${camunda.connector.gateway.monitoring.port:9600}") int monitoringPort) {
-    return new GatewayJobStreamClient(camundaClient, monitoringPort, mapper);
-  }
-
   /**
    * Creates a {@link BrokerJobStreamClient} when broker monitoring is enabled (on by default; set
    * {@code camunda.connector.broker.monitoring.enabled=false} to disable).
@@ -141,10 +128,9 @@ public class OutboundConnectorRuntimeConfiguration {
   @Bean
   public OutboundConnectorsService outboundConnectorsService(
       OutboundConnectorFactory outboundConnectorConfigurationRegistry,
-      @Autowired(required = false) GatewayJobStreamClient gatewayJobStreamClient,
       @Autowired(required = false) BrokerJobStreamClient brokerJobStreamClient) {
     return new OutboundConnectorsService(
-        outboundConnectorConfigurationRegistry, gatewayJobStreamClient, brokerJobStreamClient);
+        outboundConnectorConfigurationRegistry, brokerJobStreamClient);
   }
 
   @Bean

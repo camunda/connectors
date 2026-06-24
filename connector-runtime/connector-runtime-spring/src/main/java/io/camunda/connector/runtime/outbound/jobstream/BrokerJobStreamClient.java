@@ -83,11 +83,11 @@ public class BrokerJobStreamClient {
    * Fetches and aggregates the {@code remote} job streams from all brokers. URIs are either taken
    * from the explicit address list or resolved from the Camunda topology.
    *
-   * @return combined list of remote streams from all brokers
+   * @return aggregated streams and the total number of brokers that were queried
    * @throws IOException if any broker endpoint returns a non-200 status
    * @throws Exception if the topology request or any broker HTTP request fails
    */
-  public List<RemoteJobStream> fetchRemoteStreams() throws Exception {
+  public BrokerStreamsResult fetchRemoteStreams() throws Exception {
     List<URI> uris = resolveUris();
     List<RemoteJobStream> result = new ArrayList<>();
     for (URI uri : uris) {
@@ -100,7 +100,7 @@ public class BrokerJobStreamClient {
       }
       result.addAll(objectMapper.readValue(response.body(), JobStreamsResponse.class).remote());
     }
-    return result;
+    return new BrokerStreamsResult(result, uris.size());
   }
 
   private List<URI> resolveUris() {

@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.instances.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -28,11 +27,7 @@ import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
-import io.camunda.connector.runtime.outbound.jobstream.ClientJobStream;
-import io.camunda.connector.runtime.outbound.jobstream.ClientStreamId;
-import io.camunda.connector.runtime.outbound.jobstream.GatewayConnectivityState;
-import io.camunda.connector.runtime.outbound.jobstream.GatewayJobStreamClient;
-import io.camunda.connector.runtime.outbound.jobstream.JobStreamsResponse;
+import io.camunda.connector.runtime.outbound.jobstream.BrokerStreamsResult;
 import io.camunda.connector.runtime.outbound.jobstream.RemoteJobStream;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +42,6 @@ class OutboundConnectorsServiceTest {
   private static final String STREAM_ID = "stream-abc-123";
 
   private final OutboundConnectorFactory factory = mock(OutboundConnectorFactory.class);
-  private final GatewayJobStreamClient gatewayClient = mock(GatewayJobStreamClient.class);
   private final BrokerJobStreamClient brokerClient = mock(BrokerJobStreamClient.class);
 
   @BeforeEach
@@ -62,156 +56,91 @@ class OutboundConnectorsServiceTest {
   }
 
   // ---------------------------------------------------------------------------
-  // Gateway not configured / unreachable
+  // Broker client not configured / unreachable
   // ---------------------------------------------------------------------------
 
   @Test
-  void shouldReturnUnknown_whenNoGatewayClientConfigured() {
+  void shouldReturnUnknown_whenNoBrokerClientConfigured() {
     var service = new OutboundConnectorsService(factory);
     var results = service.findAll(RUNTIME_ID);
 
-    assertEquals(1, results.size());
-    assertEquals(GatewayConnectivityState.UNKNOWN, results.getFirst().gatewayConnectivityState());
-    assertThat(results.getFirst().brokerConnectivityState()).isNull();
+    assertThat(results).hasSize(1);
+    assertThat(results.getFirst().brokerConnectivityState())
+        .isEqualTo(BrokerConnectivityState.UNKNOWN);
     assertThat(results.getFirst().streamIds()).isNull();
   }
 
   @Test
-  void shouldReturnUnreachable_whenGatewayClientThrows() throws Exception {
-    when(gatewayClient.fetchJobStreams()).thenThrow(new RuntimeException("connection refused"));
+  void shouldReturnUnknown_whenBrokerClientThrows() throws Exception {
+    when(brokerClient.fetchRemoteStreams()).thenThrow(new RuntimeException("connection refused"));
 
-    var service = new OutboundConnectorsService(factory, gatewayClient);
-    var results = service.findAll(RUNTIME_ID);
-
-    assertEquals(1, results.size());
-    assertEquals(
-        GatewayConnectivityState.UNREACHABLE, results.getFirst().gatewayConnectivityState());
-    assertThat(results.getFirst().brokerConnectivityState()).isNull();
-    assertThat(results.getFirst().streamIds()).isNull();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Gateway reachable — client stream absent
-  // ---------------------------------------------------------------------------
-
-  @Test
-  void shouldReturnNotConnected_whenNoClientStreamForJobType() throws Exception {
-    when(gatewayClient.fetchJobStreams())
-        .thenReturn(new JobStreamsResponse(List.of(), List.of())); // no streams at all
-
-    var service = new OutboundConnectorsService(factory, gatewayClient);
+    var service = new OutboundConnectorsService(factory, brokerClient);
     var results = service.findAll(RUNTIME_ID);
 
     assertThat(results).hasSize(1);
-    assertThat(results.getFirst().gatewayConnectivityState())
-        .isEqualTo(GatewayConnectivityState.NOT_CONNECTED);
-    assertThat(results.getFirst().brokerConnectivityState()).isNull();
+    assertThat(results.getFirst().brokerConnectivityState())
+        .isEqualTo(BrokerConnectivityState.UNKNOWN);
     assertThat(results.getFirst().streamIds()).isNull();
   }
 
   // ---------------------------------------------------------------------------
-  // Gateway reachable — client stream present, embedded gateway (remote in gateway response)
+  // Broker client returns data
   // ---------------------------------------------------------------------------
 
   @Test
-  void shouldReturnConnectedAndAllBrokers_whenFullyConnected_embeddedGateway() throws Exception {
-    var clientStream = new ClientJobStream(TYPE, new ClientStreamId(STREAM_ID, 0), List.of(0));
-    var brokerStream = new RemoteJobStream(TYPE, List.of(Map.of("id", STREAM_ID)));
-    when(gatewayClient.fetchJobStreams())
-        .thenReturn(new JobStreamsResponse(List.of(brokerStream), List.of(clientStream)));
+  void shouldReturnNone_whenBrokerReturnsNoConsumersForType() throws Exception {
+    // A broker exists for TYPE but has no consumers
+    when(brokerClient.fetchRemoteStreams())
+        .thenReturn(new BrokerStreamsResult(List.of(new RemoteJobStream(TYPE, List.of())), 1));
 
-    var service = new OutboundConnectorsService(factory, gatewayClient);
+    var service = new OutboundConnectorsService(factory, brokerClient);
+    var results = service.findAll(RUNTIME_ID);
+
+    assertThat(results).hasSize(1);
+    assertThat(results.getFirst().brokerConnectivityState())
+        .isEqualTo(BrokerConnectivityState.NONE);
+    assertThat(results.getFirst().streamIds()).isNull();
+  }
+
+  @Test
+  void shouldReturnAllConnected_whenAllBrokersHaveConsumer() throws Exception {
+    var broker1 = new RemoteJobStream(TYPE, List.of(Map.of("id", STREAM_ID)));
+    var broker2 = new RemoteJobStream(TYPE, List.of(Map.of("id", STREAM_ID)));
+    when(brokerClient.fetchRemoteStreams())
+        .thenReturn(new BrokerStreamsResult(List.of(broker1, broker2), 2));
+
+    var service = new OutboundConnectorsService(factory, brokerClient);
     var results = service.findAll(RUNTIME_ID);
 
     assertThat(results).hasSize(1);
     var response = results.getFirst();
-    assertThat(response.gatewayConnectivityState()).isEqualTo(GatewayConnectivityState.CONNECTED);
     assertThat(response.brokerConnectivityState()).isEqualTo(BrokerConnectivityState.ALL_CONNECTED);
     assertThat(response.streamIds()).containsExactly(STREAM_ID);
   }
 
   @Test
-  void shouldReturnPartiallyConnected_whenOnlyOneBrokerHasConsumer_embeddedGateway()
-      throws Exception {
-    var clientStream = new ClientJobStream(TYPE, new ClientStreamId(STREAM_ID, 0), List.of(0));
+  void shouldReturnPartiallyConnected_whenOnlyOneBrokerHasConsumer() throws Exception {
     var connectedBroker = new RemoteJobStream(TYPE, List.of(Map.of("id", STREAM_ID)));
     var disconnectedBroker = new RemoteJobStream(TYPE, List.of());
-    when(gatewayClient.fetchJobStreams())
-        .thenReturn(
-            new JobStreamsResponse(
-                List.of(connectedBroker, disconnectedBroker), List.of(clientStream)));
+    when(brokerClient.fetchRemoteStreams())
+        .thenReturn(new BrokerStreamsResult(List.of(connectedBroker, disconnectedBroker), 2));
 
-    var service = new OutboundConnectorsService(factory, gatewayClient);
+    var service = new OutboundConnectorsService(factory, brokerClient);
     var results = service.findAll(RUNTIME_ID);
 
     assertThat(results.getFirst().brokerConnectivityState())
         .isEqualTo(BrokerConnectivityState.PARTIALLY_CONNECTED);
   }
 
-  // ---------------------------------------------------------------------------
-  // Standalone gateway: empty remote in gateway response → UNKNOWN without broker client
-  // ---------------------------------------------------------------------------
-
-  @Test
-  void shouldReturnUnknownBrokerState_whenGatewayRemoteEmpty_andNoBrokerClientConfigured()
-      throws Exception {
-    var clientStream = new ClientJobStream(TYPE, new ClientStreamId(STREAM_ID, 0), List.of(0));
-    when(gatewayClient.fetchJobStreams())
-        .thenReturn(new JobStreamsResponse(List.of(), List.of(clientStream)));
-
-    var service = new OutboundConnectorsService(factory, gatewayClient);
-    var results = service.findAll(RUNTIME_ID);
-
-    assertThat(results.getFirst().brokerConnectivityState())
-        .isEqualTo(BrokerConnectivityState.UNKNOWN);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Standalone gateway with broker client configured
-  // ---------------------------------------------------------------------------
-
-  @Test
-  void shouldReturnAllConnected_whenBrokerClientReturnsFullRemoteStreams() throws Exception {
-    var clientStream = new ClientJobStream(TYPE, new ClientStreamId(STREAM_ID, 0), List.of(0));
-    var brokerStream = new RemoteJobStream(TYPE, List.of(Map.of("id", STREAM_ID)));
-    // Gateway has no remote (standalone)
-    when(gatewayClient.fetchJobStreams())
-        .thenReturn(new JobStreamsResponse(List.of(), List.of(clientStream)));
-    when(brokerClient.fetchRemoteStreams()).thenReturn(List.of(brokerStream));
-
-    var service = new OutboundConnectorsService(factory, gatewayClient, brokerClient);
-    var results = service.findAll(RUNTIME_ID);
-
-    assertThat(results.getFirst().brokerConnectivityState())
-        .isEqualTo(BrokerConnectivityState.ALL_CONNECTED);
-  }
-
   @Test
   void shouldReturnNone_whenBrokerClientReturnsEmptyList() throws Exception {
-    var clientStream = new ClientJobStream(TYPE, new ClientStreamId(STREAM_ID, 0), List.of(0));
-    when(gatewayClient.fetchJobStreams())
-        .thenReturn(new JobStreamsResponse(List.of(), List.of(clientStream)));
-    when(brokerClient.fetchRemoteStreams()).thenReturn(List.of());
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of(), 0));
 
-    var service = new OutboundConnectorsService(factory, gatewayClient, brokerClient);
+    var service = new OutboundConnectorsService(factory, brokerClient);
     var results = service.findAll(RUNTIME_ID);
 
     assertThat(results.getFirst().brokerConnectivityState())
         .isEqualTo(BrokerConnectivityState.NONE);
-  }
-
-  @Test
-  void shouldReturnUnknownBrokerState_whenBrokerClientThrows() throws Exception {
-    var clientStream = new ClientJobStream(TYPE, new ClientStreamId(STREAM_ID, 0), List.of(0));
-    when(gatewayClient.fetchJobStreams())
-        .thenReturn(new JobStreamsResponse(List.of(), List.of(clientStream)));
-    when(brokerClient.fetchRemoteStreams()).thenThrow(new RuntimeException("broker unreachable"));
-
-    var service = new OutboundConnectorsService(factory, gatewayClient, brokerClient);
-    var results = service.findAll(RUNTIME_ID);
-
-    assertThat(results.getFirst().brokerConnectivityState())
-        .isEqualTo(BrokerConnectivityState.UNKNOWN);
   }
 
   // ---------------------------------------------------------------------------
@@ -220,9 +149,9 @@ class OutboundConnectorsServiceTest {
 
   @Test
   void shouldPopulateResponseMetadata() throws Exception {
-    when(gatewayClient.fetchJobStreams()).thenReturn(new JobStreamsResponse(List.of(), List.of()));
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of(), 0));
 
-    var service = new OutboundConnectorsService(factory, gatewayClient);
+    var service = new OutboundConnectorsService(factory, brokerClient);
     var response = service.findAll(RUNTIME_ID).getFirst();
 
     assertThat(response.name()).isEqualTo("HTTP JSON");
@@ -249,9 +178,9 @@ class OutboundConnectorsServiceTest {
                     new OutboundConnectorConfiguration(
                         "RabbitMQ", new String[] {"message"}, OTHER_TYPE, () -> null, null),
                     true)));
-    when(gatewayClient.fetchJobStreams()).thenReturn(new JobStreamsResponse(List.of(), List.of()));
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of(), 0));
 
-    var service = new OutboundConnectorsService(factory, gatewayClient);
+    var service = new OutboundConnectorsService(factory, brokerClient);
     var results = service.findByType(TYPE, RUNTIME_ID);
 
     assertThat(results).hasSize(1);
@@ -260,9 +189,9 @@ class OutboundConnectorsServiceTest {
 
   @Test
   void findByType_shouldThrowDataNotFoundException_whenTypeUnknown() throws Exception {
-    when(gatewayClient.fetchJobStreams()).thenReturn(new JobStreamsResponse(List.of(), List.of()));
+    when(brokerClient.fetchRemoteStreams()).thenReturn(new BrokerStreamsResult(List.of(), 0));
 
-    var service = new OutboundConnectorsService(factory, gatewayClient);
+    var service = new OutboundConnectorsService(factory, brokerClient);
 
     assertThatThrownBy(() -> service.findByType("io.camunda:unknown:1", RUNTIME_ID))
         .isInstanceOf(DataNotFoundException.class);
