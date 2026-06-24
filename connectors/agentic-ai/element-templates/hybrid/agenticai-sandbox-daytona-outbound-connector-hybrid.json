@@ -208,6 +208,30 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.skills",
+    "label" : "Skills",
+    "description" : "Skill bundles (.zip documents) materialized into the sandbox workspace (.agents/skills/) at creation. Activated on demand by the agent via sandbox_fs_read of the skill's SKILL.md.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.skills",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.startupScript",
+    "label" : "Startup script",
+    "description" : "Optional shell script run once at sandbox creation (e.g. to install tools or add skills). Runs after skill bundles are materialized.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.startupScript",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
     "id" : "data.operation",
     "label" : "Operation",
     "description" : "The sandbox operation to perform.",
