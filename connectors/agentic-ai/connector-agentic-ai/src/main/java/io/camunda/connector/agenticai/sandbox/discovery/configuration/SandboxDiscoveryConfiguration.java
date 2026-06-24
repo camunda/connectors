@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.sandbox.discovery.configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.sandbox.discovery.SandboxGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.sandbox.discovery.SandboxGatewayToolHandler;
+import io.camunda.connector.agenticai.sandbox.systemprompt.SandboxSkillsSystemPromptContributor;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -32,5 +33,12 @@ public class SandboxDiscoveryConfiguration {
   public SandboxGatewayToolHandler sandboxGatewayToolHandler(
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new SandboxGatewayToolHandler(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public SandboxSkillsSystemPromptContributor sandboxSkillsSystemPromptContributor(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new SandboxSkillsSystemPromptContributor(objectMapper);
   }
 }
