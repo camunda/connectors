@@ -105,6 +105,38 @@ public class OutboundDisablingTest {
   }
 
   @Test
+  public void emptyEnabledAllowlistDisablesEverything() throws Exception {
+    restoreSystemProperties(
+        () -> {
+          withEnvironmentVariables("CONNECTOR_OUTBOUND_ENABLED", "")
+              .execute(
+                  () -> {
+                    OutboundConnectorFactory factory =
+                        DiscoveryUtils.getFactory(new AnnotatedLocalFunction());
+                    Assertions.assertThrows(
+                        RuntimeException.class,
+                        () -> factory.getInstance("io.camunda:local"),
+                        "An empty allowlist should disable every connector");
+                  });
+        });
+  }
+
+  @Test
+  public void emptyEnabledWithDisabledThrows() throws Exception {
+    restoreSystemProperties(
+        () -> {
+          withEnvironmentVariables("CONNECTOR_OUTBOUND_ENABLED", "")
+              .and("CONNECTOR_OUTBOUND_DISABLED", "io.camunda:annotated")
+              .execute(
+                  () ->
+                      Assertions.assertThrows(
+                          IllegalStateException.class,
+                          () -> DiscoveryUtils.getFactory(new AnnotatedLocalFunction()),
+                          "Mutual exclusion is enforced even when ENABLED is empty"));
+        });
+  }
+
+  @Test
   public void enabledAndDisabledTogetherThrows() throws Exception {
     restoreSystemProperties(
         () -> {

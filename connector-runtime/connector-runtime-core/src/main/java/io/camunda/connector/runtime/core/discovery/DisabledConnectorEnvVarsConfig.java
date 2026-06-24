@@ -39,10 +39,13 @@ public class DisabledConnectorEnvVarsConfig {
   public boolean isConnectorDisabled(ConnectorConfiguration config) {
     var direction = config.direction();
     var type = config.type().toLowerCase();
-    var enabledTypes = getConnectorTypes(direction, "ENABLED");
+    // Presence (not parsed content) decides the mode: an env var set to an empty/whitespace value
+    // still counts as "set".
+    var enabledSet = getConnectorEnvironmentVariable(direction.name(), "ENABLED").isPresent();
+    var disabledSet = getConnectorEnvironmentVariable(direction.name(), "DISABLED").isPresent();
 
     // ENABLED (allowlist) and DISABLED (blocklist) are mutually exclusive per direction
-    if (!enabledTypes.isEmpty() && !getConnectorTypes(direction, "DISABLED").isEmpty()) {
+    if (enabledSet && disabledSet) {
       throw new IllegalStateException(
           "CONNECTOR_"
               + direction.name()
@@ -52,8 +55,8 @@ public class DisabledConnectorEnvVarsConfig {
     }
 
     boolean isDisabled;
-    if (!enabledTypes.isEmpty()) {
-      isDisabled = !enabledTypes.contains(type);
+    if (enabledSet) {
+      isDisabled = !getConnectorTypes(direction, "ENABLED").contains(type);
       if (isDisabled) {
         LOG.info(
             "Connector {} is not in the CONNECTOR_{}_ENABLED allowlist and has been disabled",
