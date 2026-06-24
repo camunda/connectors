@@ -885,9 +885,12 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
 
 > **Implementation status (branch `claude/quirky-cori-ln89rs`, PR #7594).** ✅ **Committed:** T1, T2,
 > T4, T3, T10, T7a/T7b/T7c, **T5 (real Daytona provider)**, **T6 (cross-invocation sandbox reuse)** —
-> full module suite green (1579 tests). ⏳ **Remaining:** T8 (full Zeebe e2e + example skill), T9
-> (Docker provider, optional), and **window-filter skill-content pinning** (deferred from T7). The
-> stack is ready for a manual live run via the Daytona provider (set sandbox = Daytona + API key).
+> full module suite green (~1680 tests). ✅ **Live e2e scenarios (T8, partial):** the gated
+> `AiAgentSandboxSkillsIT` (scenarios A–E) runs **5/5 green** against real Daytona + Bedrock with a
+> WireMock-hosted skill bundle and a checked-in `sandbox-doc-tools` fixture. ⏳ **Remaining:** the
+> **mocked-LLM full Zeebe e2e** (the other half of T8), T9 (Docker provider, optional), and
+> **window-filter skill-content pinning** (deferred from T7). The stack runs live via the Daytona
+> provider (set sandbox = Daytona + API key).
 > ✅ **T11 (inbound document reference registry, §11)** — registry model (`DocumentHandle.idFor` +
 > `DocumentRegistry`/`DocumentRegistryEntry`), engine-driven population (prompt + tool-result docs),
 > conversation-payload persistence across both backends (SPI sidecar), and both `<doc/>` render-site
@@ -903,8 +906,13 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
 > already-answered in-process tool calls as satisfied). ✅ **Configurable sandbox lifecycle** —
 > dropdown-driven auto-stop / auto-archive / auto-delete on `DaytonaSandboxConfiguration` (§9), applied
 > in `DaytonaSandboxProvider`; the live `AiAgentSandboxSkillsIT` (5/5) uses a short auto-stop +
-> immediate auto-delete so test sandboxes self-clean even if the JVM dies. 📐 **Designed, not built:**
-> `fromAi()` document inputs (§11.7) are a downstream follow-up enabled by T11.
+> immediate auto-delete so test sandboxes self-clean even if the JVM dies. ✅ **Nested config bindings**
+> — provider-specific settings bind under `data.sandbox.daytona.*` (mirroring `data.provider.bedrock.*`)
+> so a second sandbox provider can be added without an `apiKey` collision; each lifecycle setting is a
+> `{mode, duration}` object (`autoStop.mode`/`autoStop.duration`, …), the "Duration" dropdown choice is
+> labelled "Custom Duration", and auto-delete DURATION defaults to `PT5M`. 📐 **Designed, not built:**
+> `fromAi()` document inputs (§11.7) are a downstream follow-up enabled by T11. **See §14 for the full
+> known-limitations / follow-ups list.**
 
 ### T1 — Sandbox SPI core + in-memory fake
 - **Scope:** `sandbox/spi`: `SandboxProvider`, `SandboxSession` (`exec`, `fs`, `handle`, `terminate`,
@@ -1035,3 +1043,61 @@ are low-risk scaffolding; T3 and T7 are the substantive pieces; T5/T6 prove real
 
 **Cross-cutting (each task):** unit tests per module conventions (unit-only apart from existing Spring
 tests); update `AGENTS.md` / reference docs when a task adds public types or behavioral contracts.
+
+---
+
+## 14. Known limitations & follow-ups
+
+Consolidated list of everything the PoC defers or leaves rough, in rough priority. None are blockers
+for the PoC; the ⭐ items must be resolved before this ships to production.
+
+**Functional gaps**
+
+1. **Same-sub-loop export→import gap.** A document minted by `sandbox_export_document` inside a
+   sub-loop is **not** importable in that same invocation: the `DocumentRegistry` is built once *before*
+   the loop in `BaseAgentRequestHandler.proceed()`. The live e2e tests around it (export and import as
+   separate prompts). *Fix:* fold newly-minted docs into the registry after each internal iteration
+   (reuse `ContentTreeDocumentWalker.extractDocumentsFromContent` on the tool results and rebuild the
+   `InternalToolContext`). Small, self-contained, no external dependency.
+2. **`fromAi()` document inputs (§11.7).** Designed, not built. A tool declares a document-typed
+   `fromAi` parameter, the LLM supplies a `<doc id/>` handle, and the runtime resolves id→reference when
+   building the `ToolCallProcessVariable` (`AgentResponse.java`). Enabled by the T11 registry.
+3. **⭐ Agent-instance system prompt doesn't reflect the composed prompt.** `agentInstanceClient.create()`
+   (in `AgentInitializerImpl.provisionAgentInstance`) records `configuration.systemPrompt().prompt()` —
+   the **raw** configured prompt. The `<available_skills>` catalog and other contributor output (A2A,
+   …) are only added later by `SystemPromptComposer` on the first `proceed()` turn and frozen into the
+   conversation history, so the agent-instance observability record never shows the real composed prompt.
+   **Decision:** compose the prompt **once when the agent reaches READY** (all tools/skills known,
+   including A2A which depends on discovered tools), freeze it for `proceed()` reuse, and push it to the
+   agent instance. The catalog needs only `{name, description}` and skill metadata is already resolved at
+   init (`AgentInitializerImpl.resolveSkillNames` → `SkillResolver.resolveMetadata`), so switch
+   `SkillsSystemPromptContributor` from `resolve()` (full bundle download/unzip) to `resolveMetadata()`
+   to keep composition cheap. **Blocked on an engine dependency:** the `UpdateAgentInstance` command must
+   accept `systemPrompt` (today it only carries status + metrics deltas).
+4. **Lifecycle intervals applied on create, not connect.** `DaytonaSandboxProvider.applyIntervals` runs
+   in `create()`; `connect()` doesn't receive the `SandboxSpec`, so on T6 sandbox reuse a changed
+   auto-stop/archive/delete config is not re-applied to the existing sandbox. *Fix:* thread the spec
+   into `connect()` and re-apply. Edge case (config rarely changes mid-conversation), low priority.
+
+**Robustness / hygiene**
+
+5. **`<skill_content>` window pinning.** `MessageWindowFilter` can evict loaded skill content; pinning
+   it is delicate with the naive last-N filter + assistant/tool-result pairing constraint. Interim: the
+   `load_skill` "already loaded" result tells the model the sandbox location so it can `fs_read` the
+   skill back after eviction.
+6. **OkHttp empty-umbrella-jar workaround is fragile.** The Daytona SDK pulls `com.squareup.okhttp3:okhttp:5.x`,
+   which in 5.x is an empty Kotlin-Multiplatform umbrella (real classes live in `okhttp-jvm`, linked only
+   via Gradle module metadata that Maven doesn't read). We add an explicit `okhttp-jvm` runtime dep in
+   `connectors/agentic-ai/pom.xml`. Revisit on any Daytona SDK bump.
+7. **⭐ No process/conversation-lifecycle sandbox reaper** (design §6b). We rely entirely on provider-side
+   TTL (auto-stop + auto-archive + auto-delete). Abandoned/parked process instances leave a sandbox until
+   its TTL fires; there is no engine-tied GC that deletes a sandbox when the owning process instance or
+   conversation ends/cancels. **Must be addressed before production.**
+8. **Auto-stop idle-vs-runtime assumption.** The e2e uses auto-stop `PT5M` + auto-delete IMMEDIATELY
+   assuming Daytona auto-stop is **idle**-based (won't fire mid-test). Held up empirically (5/5); would
+   break if Daytona switched to max-runtime semantics.
+
+**Optional / original task list**
+
+9. **T8 mocked-LLM full Zeebe e2e** and **T9 local Docker sandbox provider** — not started (the gated
+   live-LLM scenarios A–E are done; see the implementation-status note above).

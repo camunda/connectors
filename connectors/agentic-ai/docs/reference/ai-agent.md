@@ -973,6 +973,8 @@ var systemMessage =
 
 This avoids re-running every `SystemPromptContributor` on each execution — most importantly the skills contributor, which would otherwise re-download and re-unzip all configured skill bundles to rebuild the `<available_skills>` catalog on every job. **Behavioral consequence:** the system prompt is effectively frozen at the first turn for the lifetime of the conversation. For the **Sub-process** flavor this is invisible (config is already frozen at AHSP entry). For the **Task** flavor it is a change: a system prompt that varies across iterations via input mappings is no longer re-evaluated after the first turn (see [§14 Task vs Sub-process Migration Difference](#task-vs-sub-process-migration-difference)).
 
+> **Known limitation (agent-instance record).** The composed system prompt is *not* what gets recorded on the agent instance: `agentInstanceClient.create()` is issued during initialization with the **raw** `SystemPromptConfiguration.prompt()`, before composition runs. So contributor output — the `<available_skills>` skills catalog, A2A protocol instructions, etc. — does not appear in the agent-instance observability record. Aligning the recorded prompt with the composed/frozen one is a tracked follow-up (it needs the `UpdateAgentInstance` command to accept a `systemPrompt`).
+
 ---
 
 <a id="14-response-handling"></a>
