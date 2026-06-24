@@ -19,8 +19,14 @@ import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -472,6 +478,81 @@ class SandboxGatewayToolHandlerTest {
       var transformed = handler.transformToolCallResults(agentContext, List.of(result));
 
       assertThat(transformed.getFirst()).isEqualTo(result);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Extract documents
+  // -------------------------------------------------------------------------
+
+  @Nested
+  class ExtractDocuments {
+
+    // Use document-aware ObjectMapper so convertValue can deserialize a reference map to Document
+    private final ObjectMapper documentObjectMapper = TestObjectMapperSupplier.getInstance();
+    private final DocumentFactoryImpl documentFactory =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+    private SandboxGatewayToolHandler documentHandler;
+
+    @BeforeEach
+    void setUpDocumentHandler() {
+      documentHandler = new SandboxGatewayToolHandler(documentObjectMapper);
+    }
+
+    @Test
+    void extractsDocumentFromExportResultMap() {
+      // Create a real Document and convert it to a reference map (as the runtime would do after
+      // round-tripping through Zeebe)
+      Document doc =
+          documentFactory.create(
+              DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
+                  .fileName("export.bin")
+                  .contentType("application/octet-stream")
+                  .build());
+      // Serialize via Document (not doc.reference()) so DocumentSerializer adds the discriminator
+      // key "camunda.document.type", which the deserializer needs to identify a document reference.
+      Map<?, ?> referenceMap = documentObjectMapper.convertValue(doc, Map.class);
+      Map<String, Object> content =
+          Map.of(
+              "summary",
+              "Exported 'export.bin' (5 bytes) as a document.",
+              "document",
+              referenceMap);
+      var toolCallResult =
+          ToolCallResult.builder().id("call-1").name("Sandbox_Gateway_1").content(content).build();
+
+      var documents = documentHandler.extractDocuments(toolCallResult);
+
+      assertThat(documents).hasSize(1);
+      assertThat(documents.getFirst()).isInstanceOf(Document.class);
+    }
+
+    @Test
+    void returnsEmptyList_whenContentIsString() {
+      var toolCallResult =
+          ToolCallResult.builder()
+              .id("call-1")
+              .name("Sandbox_Gateway_1")
+              .content("Imported 'file.txt' (42 bytes) to /dest/file.txt.")
+              .build();
+
+      var documents = documentHandler.extractDocuments(toolCallResult);
+
+      assertThat(documents).isEmpty();
+    }
+
+    @Test
+    void returnsEmptyList_whenMapHasNoDocumentKey() {
+      var toolCallResult =
+          ToolCallResult.builder()
+              .id("call-1")
+              .name("Sandbox_Gateway_1")
+              .content(Map.of("summary", "some output"))
+              .build();
+
+      var documents = documentHandler.extractDocuments(toolCallResult);
+
+      assertThat(documents).isEmpty();
     }
   }
 

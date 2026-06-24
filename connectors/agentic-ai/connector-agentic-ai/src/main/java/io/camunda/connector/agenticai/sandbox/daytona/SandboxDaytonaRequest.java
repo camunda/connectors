@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.sandbox.daytona;
 
 import io.camunda.connector.agenticai.sandbox.discovery.SandboxOperation;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
@@ -63,10 +64,10 @@ public record SandboxDaytonaRequest(@Valid @NotNull SandboxDaytonaRequestData da
           @Nullable String content,
       @TemplateProperty(
               group = "operation",
-              label = "Document ID",
-              description = "Document ID (EXPORT_DOCUMENT, IMPORT_DOCUMENT operations).",
-              defaultValue = "=toolCall.id",
+              label = "Document",
+              description = "Document to import into the sandbox (IMPORT_DOCUMENT operation).",
+              defaultValue = "=toolCall.document",
               feel = FeelMode.optional,
               optional = true)
-          @Nullable String documentId) {}
+          @Nullable Document document) {}
 }
