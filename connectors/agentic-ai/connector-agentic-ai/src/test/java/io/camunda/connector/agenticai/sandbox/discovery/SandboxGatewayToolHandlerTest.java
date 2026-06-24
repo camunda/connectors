@@ -120,8 +120,15 @@ class SandboxGatewayToolHandlerTest {
 
       var result = handler.initiateToolDiscovery(agentContext, gatewayToolDefinitions);
 
-      assertThat(result.agentContext().properties())
-          .containsEntry(PROPERTY_SANDBOX, "Sandbox_Gateway_1");
+      // initiateToolDiscovery now stores a SandboxState (elementId only, handle/workDir null)
+      final var storedRaw = result.agentContext().properties().get(PROPERTY_SANDBOX);
+      assertThat(storedRaw).isInstanceOf(SandboxState.class);
+      final var storedState = (SandboxState) storedRaw;
+      assertThat(storedState.elementId()).isEqualTo("Sandbox_Gateway_1");
+      assertThat(storedState.handle()).isNull();
+      assertThat(storedState.workDir()).isNull();
+      assertThat(storedState.catalog()).isNullOrEmpty();
+
       assertThat(result.toolDiscoveryToolCalls()).hasSize(1);
       assertThat(result.toolDiscoveryToolCalls().getFirst())
           .satisfies(
@@ -136,7 +143,7 @@ class SandboxGatewayToolHandlerTest {
 
     @Test
     void createsDiscoveryToolCall_withAgentInstanceKey_whenMetadataPresent() {
-      var metadata = new AgentMetadata(1001L, 2002L, 3003L);
+      var metadata = new AgentMetadata(1001L, 2002L, 3003L, null);
       var agentContext = AgentContext.empty().withMetadata(metadata);
       var gatewayToolDefinitions =
           List.of(createGatewayToolDefinition("sandbox", "Sandbox_Gateway_1"));
@@ -151,7 +158,7 @@ class SandboxGatewayToolHandlerTest {
 
     @Test
     void createsDiscoveryToolCall_withoutAgentInstanceKey_whenMetadataHasNullKey() {
-      var metadata = new AgentMetadata(1001L, 2002L, null);
+      var metadata = new AgentMetadata(1001L, 2002L, null, null);
       var agentContext = AgentContext.empty().withMetadata(metadata);
       var gatewayToolDefinitions =
           List.of(createGatewayToolDefinition("sandbox", "Sandbox_Gateway_1"));
@@ -202,7 +209,9 @@ class SandboxGatewayToolHandlerTest {
 
     @Test
     void returnsTrue_whenSandboxTrackedAndResultPresent() {
-      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1");
+      // properties["sandbox"] is now a SandboxState
+      var sandboxState = SandboxState.builder().elementId("Sandbox_Gateway_1").build();
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, sandboxState);
       var toolCallResults =
           List.of(
               ToolCallResult.builder()
@@ -216,7 +225,8 @@ class SandboxGatewayToolHandlerTest {
 
     @Test
     void returnsFalse_whenSandboxTrackedButResultAbsent() {
-      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1");
+      var sandboxState = SandboxState.builder().elementId("Sandbox_Gateway_1").build();
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, sandboxState);
 
       assertThat(handler.allToolDiscoveryResultsPresent(agentContext, List.of())).isFalse();
     }
@@ -288,14 +298,15 @@ class SandboxGatewayToolHandlerTest {
       assertThat(toolDefs).hasSize(5);
       assertThat(toolDefs)
           .allSatisfy(def -> assertThat("sandbox".equals(def.gatewayType())).isTrue());
+      // Per-tool metadata must only contain gatewayType and operation — no
+      // elementId/handle/workDir/catalog
       assertThat(toolDefs)
           .allSatisfy(
               def ->
                   assertThat(def.metadata())
-                      .containsEntry(ToolDefinition.METADATA_ELEMENT_ID, "MyElem")
-                      .containsEntry(SandboxToolDefinitions.METADATA_HANDLE, "handle-abc")
-                      .containsEntry(SandboxToolDefinitions.METADATA_WORK_DIR, "/workspace")
-                      .containsKey(SandboxToolDefinitions.METADATA_CATALOG));
+                      .containsOnlyKeys(
+                          ToolDefinition.METADATA_GATEWAY_TYPE,
+                          SandboxToolDefinitions.METADATA_OPERATION));
     }
 
     @Test
@@ -316,7 +327,73 @@ class SandboxGatewayToolHandlerTest {
           .allSatisfy(
               def ->
                   assertThat(def.metadata())
-                      .doesNotContainKey(SandboxToolDefinitions.METADATA_CATALOG));
+                      .containsOnlyKeys(
+                          ToolDefinition.METADATA_GATEWAY_TYPE,
+                          SandboxToolDefinitions.METADATA_OPERATION));
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Contribute discovery context
+  // -------------------------------------------------------------------------
+
+  @Nested
+  class ContributeDiscoveryContext {
+
+    @Test
+    void storesSandboxState_withHandleWorkDirCatalog() {
+      var agentContext = AgentContext.empty();
+      var catalog =
+          List.of(Map.of("name", "my-skill", "description", "does something", "location", "loc1"));
+      var content = Map.of("handle", "handle-abc", "workDir", "/workspace", "catalog", catalog);
+      var discoveryResult =
+          ToolCallResult.builder()
+              .id(SANDBOX_DISCOVERY_PREFIX + "MyElem")
+              .name("MyElem")
+              .content(content)
+              .build();
+
+      var updatedContext =
+          handler.contributeDiscoveryContext(agentContext, List.of(discoveryResult));
+
+      final var raw = updatedContext.properties().get(PROPERTY_SANDBOX);
+      assertThat(raw).isInstanceOf(SandboxState.class);
+      final var state = (SandboxState) raw;
+      assertThat(state.elementId()).isEqualTo("MyElem");
+      assertThat(state.handle()).isEqualTo("handle-abc");
+      assertThat(state.workDir()).isEqualTo("/workspace");
+      assertThat(state.catalog()).isNotNull().hasSize(1);
+      assertThat(state.catalog().getFirst().name()).isEqualTo("my-skill");
+    }
+
+    @Test
+    void storesSandboxState_withoutCatalog() {
+      var agentContext = AgentContext.empty();
+      var content = Map.of("handle", "h1", "workDir", "/ws");
+      var discoveryResult =
+          ToolCallResult.builder()
+              .id(SANDBOX_DISCOVERY_PREFIX + "MyElem")
+              .name("MyElem")
+              .content(content)
+              .build();
+
+      var updatedContext =
+          handler.contributeDiscoveryContext(agentContext, List.of(discoveryResult));
+
+      final var state = (SandboxState) updatedContext.properties().get(PROPERTY_SANDBOX);
+      assertThat(state.elementId()).isEqualTo("MyElem");
+      assertThat(state.handle()).isEqualTo("h1");
+      assertThat(state.workDir()).isEqualTo("/ws");
+      assertThat(state.catalog()).isNullOrEmpty();
+    }
+
+    @Test
+    void returnsAgentContextUnchanged_whenNoResults() {
+      var agentContext = AgentContext.empty();
+
+      var updatedContext = handler.contributeDiscoveryContext(agentContext, List.of());
+
+      assertThat(updatedContext).isEqualTo(agentContext);
     }
   }
 
@@ -327,15 +404,18 @@ class SandboxGatewayToolHandlerTest {
   @Nested
   class TransformToolCalls {
 
+    private AgentContext agentContextWithState(String elementId, String handle) {
+      var sandboxState =
+          SandboxState.builder().elementId(elementId).handle(handle).workDir("/ws").build();
+      var toolDefs = SandboxToolDefinitions.sandboxToolDefinitions();
+      return AgentContext.empty()
+          .withProperty(PROPERTY_SANDBOX, sandboxState)
+          .withToolDefinitions(toolDefs);
+    }
+
     @Test
     void rewritesSandboxBashCall_toElementCallWithOperation() {
-      var toolDefs =
-          SandboxToolDefinitions.sandboxToolDefinitions(
-              "Sandbox_Gateway_1", "handle-xyz", "/ws", null);
-      var agentContext =
-          AgentContext.empty()
-              .withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1")
-              .withToolDefinitions(toolDefs);
+      var agentContext = agentContextWithState("Sandbox_Gateway_1", "handle-xyz");
       var toolCalls =
           List.of(new ToolCall("call-1", SandboxToolNames.BASH, Map.of("command", "ls -la")));
 
@@ -356,7 +436,8 @@ class SandboxGatewayToolHandlerTest {
 
     @Test
     void passesThrough_nonSandboxToolCalls() {
-      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1");
+      var sandboxState = SandboxState.builder().elementId("Sandbox_Gateway_1").build();
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, sandboxState);
       var toolCalls = List.of(new ToolCall("call-2", "some_regular_tool", Map.of("arg", "value")));
 
       var result = handler.transformToolCalls(agentContext, DocumentRegistry.empty(), toolCalls);
@@ -366,8 +447,9 @@ class SandboxGatewayToolHandlerTest {
 
     @Test
     void passesThrough_sandboxToolCallWithoutMatchingToolDefinition() {
-      // No tool definitions in context → can't find elementId/handle, so pass through
-      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1");
+      // No tool definitions in context → gatewayType check fails, so pass through
+      var sandboxState = SandboxState.builder().elementId("Sandbox_Gateway_1").build();
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, sandboxState);
       var toolCalls =
           List.of(new ToolCall("call-3", SandboxToolNames.FS_READ, Map.of("path", "/file.txt")));
 
@@ -381,13 +463,7 @@ class SandboxGatewayToolHandlerTest {
       var reference = new CamundaDocumentReferenceModel("store-1", "doc-id-1", null, null);
       var entry = new DocumentRegistryEntry("known-doc-id", reference, "file.txt", "text/plain");
       var registry = DocumentRegistry.of(List.of(entry));
-      var toolDefs =
-          SandboxToolDefinitions.sandboxToolDefinitions(
-              "Sandbox_Gateway_1", "handle-xyz", "/ws", null);
-      var agentContext =
-          AgentContext.empty()
-              .withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1")
-              .withToolDefinitions(toolDefs);
+      var agentContext = agentContextWithState("Sandbox_Gateway_1", "handle-xyz");
       var toolCalls =
           List.of(
               new ToolCall(
@@ -414,13 +490,7 @@ class SandboxGatewayToolHandlerTest {
 
     @Test
     void importDocument_omitsDocumentKey_whenIdNotInRegistry() {
-      var toolDefs =
-          SandboxToolDefinitions.sandboxToolDefinitions(
-              "Sandbox_Gateway_1", "handle-xyz", "/ws", null);
-      var agentContext =
-          AgentContext.empty()
-              .withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1")
-              .withToolDefinitions(toolDefs);
+      var agentContext = agentContextWithState("Sandbox_Gateway_1", "handle-xyz");
       var toolCalls =
           List.of(
               new ToolCall(
@@ -449,13 +519,7 @@ class SandboxGatewayToolHandlerTest {
       var reference = new CamundaDocumentReferenceModel("store-1", "doc-id-1", null, null);
       var entry = new DocumentRegistryEntry("known-doc-id", reference, null, null);
       var registry = DocumentRegistry.of(List.of(entry));
-      var toolDefs =
-          SandboxToolDefinitions.sandboxToolDefinitions(
-              "Sandbox_Gateway_1", "handle-xyz", "/ws", null);
-      var agentContext =
-          AgentContext.empty()
-              .withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1")
-              .withToolDefinitions(toolDefs);
+      var agentContext = agentContextWithState("Sandbox_Gateway_1", "handle-xyz");
       // LLM supplies only id, no path
       var toolCalls =
           List.of(
@@ -481,7 +545,8 @@ class SandboxGatewayToolHandlerTest {
 
     @Test
     void setsElementId_whenResultNameMatchesSandboxElementId() {
-      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1");
+      var sandboxState = SandboxState.builder().elementId("Sandbox_Gateway_1").build();
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, sandboxState);
       var result =
           ToolCallResult.builder().id("call-1").name("Sandbox_Gateway_1").content("output").build();
 
@@ -493,7 +558,8 @@ class SandboxGatewayToolHandlerTest {
 
     @Test
     void passesThrough_resultNotMatchingSandboxElementId() {
-      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1");
+      var sandboxState = SandboxState.builder().elementId("Sandbox_Gateway_1").build();
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, sandboxState);
       var result =
           ToolCallResult.builder().id("call-2").name("other_tool").content("output").build();
 

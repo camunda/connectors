@@ -11,7 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.sandbox.discovery.SandboxToolDefinitions;
+import io.camunda.connector.agenticai.sandbox.discovery.SandboxGatewayToolHandler;
+import io.camunda.connector.agenticai.sandbox.discovery.SandboxState;
 import io.camunda.connector.agenticai.sandbox.discovery.SkillCatalogEntry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,11 +28,11 @@ class SandboxSkillsSystemPromptContributorTest {
   }
 
   // -------------------------------------------------------------------------
-  // Happy path — catalog present as in-memory list
+  // Happy path — catalog present in SandboxState (in-memory)
   // -------------------------------------------------------------------------
 
   @Test
-  void contribute_catalogPresentAsObjects_rendersAvailableSkillsBlock() {
+  void contribute_catalogPresentInSandboxState_rendersAvailableSkillsBlock() {
     List<SkillCatalogEntry> catalog =
         List.of(
             new SkillCatalogEntry(
@@ -40,9 +41,18 @@ class SandboxSkillsSystemPromptContributorTest {
                 "/ws/.agents/skills/pdf-tools/SKILL.md"),
             new SkillCatalogEntry(
                 "web-scraper", "Scrape web pages.", "/ws/.agents/skills/web-scraper/SKILL.md"));
-    var toolDefs = SandboxToolDefinitions.sandboxToolDefinitions("Sandbox_1", "h1", "/ws", catalog);
+    var sandboxState =
+        SandboxState.builder()
+            .elementId("Sandbox_1")
+            .handle("h1")
+            .workDir("/ws")
+            .catalog(catalog)
+            .build();
     var agentContext =
-        AgentContext.builder().state(AgentState.READY).toolDefinitions(toolDefs).build();
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .properties(java.util.Map.of(SandboxGatewayToolHandler.PROPERTY_SANDBOX, sandboxState))
+            .build();
 
     String result = contributor.contribute(null, agentContext);
 
@@ -65,7 +75,7 @@ class SandboxSkillsSystemPromptContributorTest {
   @Test
   void contribute_catalogPresentAsMaps_renderedIdenticallyToObjectForm() {
     // Simulate what happens after Zeebe round-trips the agentContext through JSON serialization:
-    // the catalog becomes List<Map<String,Object>> rather than List<SkillCatalogEntry>.
+    // the SandboxState is deserialized back from a generic Map.
     ObjectMapper om = new ObjectMapper();
     List<SkillCatalogEntry> nativeCatalog =
         List.of(
@@ -73,11 +83,20 @@ class SandboxSkillsSystemPromptContributorTest {
                 "pdf-tools",
                 "Extract and merge PDF forms.",
                 "/ws/.agents/skills/pdf-tools/SKILL.md"));
-    var nativeToolDefs =
-        SandboxToolDefinitions.sandboxToolDefinitions("Sandbox_1", "h1", "/ws", nativeCatalog);
-
+    var nativeSandboxState =
+        SandboxState.builder()
+            .elementId("Sandbox_1")
+            .handle("h1")
+            .workDir("/ws")
+            .catalog(nativeCatalog)
+            .build();
     var agentContextNative =
-        AgentContext.builder().state(AgentState.READY).toolDefinitions(nativeToolDefs).build();
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .properties(
+                java.util.Map.of(SandboxGatewayToolHandler.PROPERTY_SANDBOX, nativeSandboxState))
+            .build();
+
     // Simulate serialization round-trip through ObjectMapper
     AgentContext agentContextRoundTripped;
     try {
@@ -98,14 +117,12 @@ class SandboxSkillsSystemPromptContributorTest {
   }
 
   // -------------------------------------------------------------------------
-  // No catalog metadata → returns null
+  // No sandbox state in properties → returns null
   // -------------------------------------------------------------------------
 
   @Test
-  void contribute_noCatalogMetadata_returnsNull() {
-    var toolDefs = SandboxToolDefinitions.sandboxToolDefinitions("Sandbox_1", "h1", "/ws", null);
-    var agentContext =
-        AgentContext.builder().state(AgentState.READY).toolDefinitions(toolDefs).build();
+  void contribute_noSandboxProperty_returnsNull() {
+    var agentContext = AgentContext.builder().state(AgentState.READY).build();
 
     String result = contributor.contribute(null, agentContext);
 
@@ -113,8 +130,27 @@ class SandboxSkillsSystemPromptContributorTest {
   }
 
   @Test
-  void contribute_emptyToolDefinitions_returnsNull() {
+  void contribute_emptyProperties_returnsNull() {
     var agentContext = AgentContext.empty();
+
+    String result = contributor.contribute(null, agentContext);
+
+    assertThat(result).isNull();
+  }
+
+  // -------------------------------------------------------------------------
+  // Sandbox state present but with null catalog → returns null
+  // -------------------------------------------------------------------------
+
+  @Test
+  void contribute_sandboxStateWithNullCatalog_returnsNull() {
+    var sandboxState =
+        SandboxState.builder().elementId("Sandbox_1").handle("h1").workDir("/ws").build();
+    var agentContext =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .properties(java.util.Map.of(SandboxGatewayToolHandler.PROPERTY_SANDBOX, sandboxState))
+            .build();
 
     String result = contributor.contribute(null, agentContext);
 
@@ -127,10 +163,18 @@ class SandboxSkillsSystemPromptContributorTest {
 
   @Test
   void contribute_emptyCatalog_returnsNull() {
-    var toolDefs =
-        SandboxToolDefinitions.sandboxToolDefinitions("Sandbox_1", "h1", "/ws", List.of());
+    var sandboxState =
+        SandboxState.builder()
+            .elementId("Sandbox_1")
+            .handle("h1")
+            .workDir("/ws")
+            .catalog(List.of())
+            .build();
     var agentContext =
-        AgentContext.builder().state(AgentState.READY).toolDefinitions(toolDefs).build();
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .properties(java.util.Map.of(SandboxGatewayToolHandler.PROPERTY_SANDBOX, sandboxState))
+            .build();
 
     String result = contributor.contribute(null, agentContext);
 
