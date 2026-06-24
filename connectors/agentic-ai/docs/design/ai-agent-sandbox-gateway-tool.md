@@ -74,10 +74,13 @@ When the AHSP reaches `TOOL_DISCOVERY` and a `gateway.type=sandbox` element is p
 
 - **`initiateToolDiscovery`** emits one discovery tool call targeting the sandbox element with
   `{operation: CREATE}`.
-- The connector executes `CREATE` (see §5): **idempotently** create-or-get the Daytona sandbox by its
-  `processInstanceKey` + `agentInstanceKey` labels, unzip the configured skill documents into
-  `.agents/skills/`, run the `startupScript` (general bootstrap; may also add skills), scan
-  `.agents/skills/`, and return `{handle, catalog:[{name, description, location}], workDir}`.
+- The connector executes `CREATE` (see §5): **always provisions a fresh** Daytona sandbox (no
+  create-or-get), labels it **informatively** with `processInstanceKey` + `agentInstanceKey` (the
+  `agentInstanceKey` is stamped into the CREATE call from `agentContext.metadata()`; see §6), unzips
+  the configured skill documents into `.agents/skills/`, runs the `startupScript` (general bootstrap;
+  may also add skills), scans `.agents/skills/`, and returns
+  `{handle, catalog:[{name, description, location}], workDir}`. The returned `handle` is the sandbox's
+  own id — every later call re-addresses the sandbox by it (the labels never address anything).
 - **`handleToolDiscoveryResults`**:
   - injects the **fixed `sandbox_*` tool definitions** into `agentContext.toolDefinitions`, each stamped
     with metadata `{gatewayType: "sandbox", elementId: <sandbox element>, handle, workDir, catalog}`.
@@ -103,22 +106,27 @@ conversation turn.
 
 ## 4. Marking, routing & the max-1 rule
 
-Sandbox tools are **routed by metadata, not by name prefix** — this is the key departure from MCP/A2A:
+Sandbox tool **dispatch is routed by metadata, not by name prefix** — the key departure from MCP/A2A:
 
-- `ToolDefinition.metadata` carries `gatewayType=sandbox` (the existing `isSandboxTool()` flag) **and**
-  the target `elementId` (stamped at discovery). The handler's `transformToolCalls` routes any
-  sandbox-metadata call to that element with `{operation: <BASH|FS_READ|…>, handle, …args}`. **No prefix
-  is parsed.**
-- The **`sandbox_` name prefix is kept purely as a discoverability convention** — the LLM and humans see
+- `ToolDefinition.metadata` carries `gatewayType="sandbox"` (key `ToolDefinition.METADATA_GATEWAY_TYPE`,
+  replacing the old `isSandboxTool()` boolean) **and**, per tool, its `operation`
+  (`SandboxToolDefinitions.METADATA_OPERATION`) and the target `elementId` (all stamped at discovery).
+  The handler's `transformToolCalls` decides "is this mine?" by `gatewayType=="sandbox"` and selects
+  the operation **from metadata** — **no prefix is parsed in the dispatch path**, and the per-tool name
+  no longer encodes the operation.
+- **One name-based seam remains (deliberately):** the shared `GatewayToolHandler.isGatewayManaged(toolName)`
+  — used by the registry for document extraction and `elementId` resolution — only receives the tool
+  *name*, so the sandbox handler still answers it via the `sandbox_` prefix. Migrating that interface
+  seam to metadata would churn MCP/A2A, so it stays a **noted follow-up** (see below).
+- The **`sandbox_` name prefix is also a discoverability convention** — the LLM and humans see
   `sandbox_bash`, `sandbox_fs_read`, … — and a **validation reserves the `sandbox_` namespace** so a
-  modeled BPMN tool cannot collide with it.
-- **Max one sandbox connector per process**, enforced at discovery (incident on >1, fail fast). This is
-  a *direct consequence* of dropping the prefix: without a prefix to disambiguate elements, two
-  sandboxes would both expose a tool literally named `sandbox_bash` — an unresolvable name collision.
-  Max-1 dissolves it.
+  modeled BPMN tool cannot collide with it (this also keeps the residual name-based seam safe).
+- **Max one sandbox connector per process**, enforced at discovery (incident on >1, fail fast). Without
+  a prefix to disambiguate elements, two sandboxes would both expose a tool literally named
+  `sandbox_bash` — an unresolvable collision. Max-1 dissolves it.
 
-MCP and A2A keep their prefix scheme this PR; the broader prefix→metadata migration is a **noted future
-follow-up**.
+MCP and A2A keep their prefix scheme this PR; the broader prefix→metadata migration **of the
+`GatewayToolHandler` interface seam** is a **noted future follow-up**.
 
 ---
 
@@ -127,9 +135,17 @@ follow-up**.
 - **Module placement:** a **standalone package within the agentic-ai module** for now (mirrors where
   the MCP Client connector lives), structured so it splits into its own module later (the codebase split
   is planned anyway). Daytona SDK + the `okhttp-jvm` workaround stay in agentic-ai (they already are).
-- **Mode:** **AI-Agent-tool mode only** for the PoC. Operation dispatch is structured so a **standalone
-  mode** (direct, agent-less invocation) can be added later — deferred because standalone has no agent
-  to hold the handle across calls, which is extra surface not core to validating the model.
+- **Mode:** a **connector-mode dropdown** (mirroring the MCP Client connector's discriminator) with a
+  single **"AI Agent tool"** subtype for the PoC; a **standalone mode** (direct, agent-less invocation)
+  can be added later as a second subtype without touching the dispatch path (deferred — standalone has
+  no agent to hold the handle across calls). The mode is a visible discriminator so the connector's
+  purpose is self-evident in Modeler.
+- **Dispatch input:** in AI-Agent-tool mode the per-call properties are **not** surfaced individually
+  (the element template can't drive an `operation` dropdown the agent populates). Instead a single
+  **hidden** field bound `=toolCall` carries the whole tool call; the connector deserializes it into a
+  typed `SandboxToolCall` record using the **document-aware `@ConnectorsObjectMapper`** (so the
+  `Document` import payload rehydrates) and switches on its `operation`. The in-flight `handle` from the
+  generic gateway seam is read as `sandboxId` on the Daytona side (`@JsonProperty("handle")`).
 - **Talks to Daytona directly** — no `SandboxProvider` SPI. Connector unit tests mock the Daytona client.
 - **Config** (ports the in-process `DaytonaConnection` onto the connector):
   - `apiKey` (required, redacted), `apiUrl` (self-hosted), `snapshot`,
@@ -143,15 +159,15 @@ follow-up**.
     pre-seed data, etc. Built **now** — cheap, the connector just `exec`s it. **Populating `.agents/skills/`
     (e.g. `npx -y skills add *`) is one use among many**, complementing — not replacing — the document
     skill path: a deployment can use the documents, the script, both, or neither.
-- **Operations** (single `operation` discriminator on the request):
+- **Operations** (the `operation` lives inside the typed `SandboxToolCall`, not as a surfaced property):
 
   | Op | LLM tool | Behavior |
   |---|---|---|
-  | `CREATE` | — (discovery) | Idempotent create-or-get by label; unzip the skill documents into `.agents/skills/`; run the (general-purpose) `startupScript`; scan `.agents/skills/`; return `{handle, catalog, workDir}`. |
-  | `BASH` | `sandbox_bash` | `bash -lc`; truncate stdout/stderr to a cap; binary-stdout marker; per-call timeout. |
+  | `CREATE` | — (discovery) | **Always provisions a fresh sandbox** (no create-or-get); labels it (PI + AI key) informatively; unzip the skill documents into `.agents/skills/`; run the (general-purpose) `startupScript`; scan `.agents/skills/`; return `{handle, catalog, workDir}`. |
+  | `BASH` | `sandbox_bash` | `bash -lc`; per-call timeout; output capped/truncated; binary-output marker. **Daytona's toolbox API returns combined stdout+stderr in one stream** — there is no separate `stderr`; the tool description says so. |
   | `FS_READ` | `sandbox_fs_read` | Text, or a binary/oversized marker pointing at export. |
   | `FS_WRITE` | `sandbox_fs_write` | Reliable write (no shell-escaping), creates parent dirs. |
-  | `EXPORT_DOCUMENT` | `sandbox_export_document` | Read file bytes → mint a Camunda Document (connector has the factory) → return in the tool result; rides the existing `ToolCallResultDocumentExtractor` path. |
+  | `EXPORT_DOCUMENT` | `sandbox_export_document` | Read file bytes → mint a Camunda Document (connector has the factory) → return in the tool result. The handler overrides `extractDocuments` to re-hydrate the `Document` from the result's reference map — the generic `ContentTreeDocumentWalker` can't find `Document`s inside reference maps, so the export path needs this handler-specific walk (a small deviation from "rides the generic extractor path"). |
   | `IMPORT_DOCUMENT` | `sandbox_import_document` | Receives a resolved `Document` (see §7) → write bytes to FS. |
 
   `fs.list`/`fs.search` are **native Daytona operations** used **connector-internally** (e.g. scanning
@@ -169,8 +185,15 @@ follow-up**.
   properties), injected into **every** sandbox tool-call activation by the handler. Flexible (admits snapshot/fork refs and
   >1 sandbox later); a new pattern vs. self-contained MCP/A2A elements, but the
   `transformToolCalls(AgentContext, …)` seam already receives the context.
-- **Labels.** The sandbox is labelled with `processInstanceKey` + `agentInstanceKey`. These power (a)
-  idempotent `CREATE` (create-or-get) and (b) the future reaper's "find sandboxes for PI X" query.
+- **Labels are informative only.** The sandbox is labelled with `processInstanceKey` +
+  `agentInstanceKey`, but the labels **address nothing** — the sandbox is always re-found by the id in
+  the handle. `CREATE` therefore **always provisions a fresh sandbox** (no create-or-get-by-label). The
+  key reason for using `agentInstanceKey` (not `elementId`) is correctness for the **future reaper**: in
+  a multi-instance ad-hoc sub-process the same element id runs for *multiple* agent instances in the
+  same process, so `processInstanceKey + elementId` does **not** uniquely identify an agent. The
+  `agentInstanceKey` may be absent (agent-instance feature off) — the label is then simply omitted,
+  which is harmless since it never addresses anything. Trade-off accepted: a `CREATE` job retried
+  mid-discovery can leak a second sandbox until the reaper exists (the labels are its hook).
 - **Teardown = provider TTL only** for the PoC (auto-stop/archive/delete). The **engine-tied reaper**
   (delete on process-end/cancel/conversation-end) is the ⭐ **production blocker** — *more* acute here
   than in the in-process model, because the sandbox now lives for the whole conversation across many
@@ -205,10 +228,13 @@ follow-up**.
   has the document-creation context natively.
 - **Import** is **handler-contract-driven, not the general `fromAi()` feature.** The fixed
   `sandbox_import_document(id, path?)` tool takes an `id` string. The `SandboxGatewayToolHandler`
-  special-cases it in `transformToolCalls`: resolve `id` **against the registry** (`findById` → reject
-  if absent — §11.6 allow-list, IDOR/SSRF closed, security stays in the agent), then inject the resolved
-  **document reference** as a normal activation variable. The connector binds it as a standard `Document`
-  (the runtime resolves references to connectors routinely) and writes the bytes. The general §11.7
+  special-cases it in `transformToolCalls`: resolve `id` **against the registry** (`findById` — §11.6
+  allow-list, IDOR/SSRF closed, security stays in the agent), then inject the resolved **document
+  reference** as a normal activation variable. The connector binds it as a standard `Document` (the
+  runtime resolves references to connectors routinely) and writes the bytes. **On an unresolvable id**
+  the handler does not short-circuit (the gateway seam transforms calls, it doesn't synthesize results):
+  it omits the document and dispatches anyway, and the connector returns `SANDBOX_IMPORT_NO_DOCUMENT` —
+  costing one wasted job round-trip on a hallucinated id, with security intact. The general §11.7
   user-declared `fromAi`-document-input mechanism remains a **separate future follow-up**.
 
 ---
@@ -420,3 +446,29 @@ to `UpdateAgentInstance` (cross-team engine dep, same as #7594) + compose-at-REA
 ### P8 — Live e2e (scenarios A–E, new BPMN)
 New gateway-topology BPMN; port the `AiAgentSandboxSkillsIT` scenarios + judge assertions. *Acceptance:*
 5/5 green against real Daytona + Bedrock.
+
+---
+
+## 14. Revisions after design review (post-P7)
+
+A review of the implemented PoC against this design surfaced three substantive deviations, since
+corrected in code (this design has been updated in place to match):
+
+- **R1 — Metadata routing (`§4`).** Dispatch now routes by `gatewayType="sandbox"` + per-tool
+  `operation` metadata instead of the `sandbox_` name prefix; the old `isSandboxTool()` boolean is gone.
+  The shared `GatewayToolHandler.isGatewayManaged(toolName)` interface seam (registry-level: document
+  extraction, `elementId` resolution) intentionally stays name-based — migrating it would churn MCP/A2A
+  (a noted follow-up, §12). Also corrected the `sandbox_bash` description to promise **combined**
+  stdout/stderr (Daytona has no separate stderr stream — confirmed identical in the in-process PoC).
+- **R2 — Connector input model (`§5`).** Replaced the six surfaced per-call properties (incl. a dead
+  `operation` dropdown the template couldn't drive) with a connector-mode dropdown (single "AI Agent
+  tool" subtype) + a single hidden `=toolCall` field parsed internally into a typed `SandboxToolCall`
+  via the document-aware `@ConnectorsObjectMapper`.
+- **R3 — Sandbox identity (`§3`, `§6`).** Labels are now `processInstanceKey` + `agentInstanceKey`
+  (informative only); the sandbox is addressed by the returned handle/id, `CREATE` always provisions a
+  fresh sandbox (no create-or-get). Fixes the multi-instance-AHSP uniqueness bug (`elementId` is not
+  unique per agent instance). On the Daytona side the in-flight `handle` is read as `sandboxId`.
+
+Three low-severity items were resolved as documentation only (no behavior change): the `EXPORT_DOCUMENT`
+`extractDocuments` override (§5), the import unresolvable-id round-trip (§7), and the skill-name
+directory fallback (§8, plus a regression test).
