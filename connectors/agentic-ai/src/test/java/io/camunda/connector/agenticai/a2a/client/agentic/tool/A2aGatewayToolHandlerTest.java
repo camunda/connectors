@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
@@ -363,7 +364,7 @@ class A2aGatewayToolHandlerTest {
               new ToolCall("call1", "A2A_a2a1", Map.of("message", "hello")),
               new ToolCall("call2", "regular_tool", Map.of("arg", "value")));
 
-      var result = handler.transformToolCalls(agentContext, toolCalls);
+      var result = handler.transformToolCalls(agentContext, DocumentRegistry.empty(), toolCalls);
 
       assertThat(result).hasSize(2);
       assertThat(result)
@@ -391,7 +392,7 @@ class A2aGatewayToolHandlerTest {
               new ToolCall("call1", "regular_tool1", Map.of("arg1", "value1")),
               new ToolCall("call2", "regular_tool2", Map.of("arg2", "value2")));
 
-      var result = handler.transformToolCalls(agentContext, toolCalls);
+      var result = handler.transformToolCalls(agentContext, DocumentRegistry.empty(), toolCalls);
 
       assertThat(result).isEqualTo(toolCalls);
     }

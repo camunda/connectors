@@ -13,11 +13,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -297,7 +300,7 @@ class SandboxGatewayToolHandlerTest {
       var toolCalls =
           List.of(new ToolCall("call-1", SandboxToolNames.BASH, Map.of("command", "ls -la")));
 
-      var result = handler.transformToolCalls(agentContext, toolCalls);
+      var result = handler.transformToolCalls(agentContext, DocumentRegistry.empty(), toolCalls);
 
       assertThat(result).hasSize(1);
       assertThat(result.getFirst())
@@ -317,7 +320,7 @@ class SandboxGatewayToolHandlerTest {
       var agentContext = AgentContext.empty().withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1");
       var toolCalls = List.of(new ToolCall("call-2", "some_regular_tool", Map.of("arg", "value")));
 
-      var result = handler.transformToolCalls(agentContext, toolCalls);
+      var result = handler.transformToolCalls(agentContext, DocumentRegistry.empty(), toolCalls);
 
       assertThat(result).isEqualTo(toolCalls);
     }
@@ -329,9 +332,104 @@ class SandboxGatewayToolHandlerTest {
       var toolCalls =
           List.of(new ToolCall("call-3", SandboxToolNames.FS_READ, Map.of("path", "/file.txt")));
 
-      var result = handler.transformToolCalls(agentContext, toolCalls);
+      var result = handler.transformToolCalls(agentContext, DocumentRegistry.empty(), toolCalls);
 
       assertThat(result).isEqualTo(toolCalls);
+    }
+
+    @Test
+    void importDocument_resolvesIdToReference_whenPresentInRegistry() {
+      var reference = new CamundaDocumentReferenceModel("store-1", "doc-id-1", null, null);
+      var entry = new DocumentRegistryEntry("known-doc-id", reference, "file.txt", "text/plain");
+      var registry = DocumentRegistry.of(List.of(entry));
+      var toolDefs =
+          SandboxToolDefinitions.sandboxToolDefinitions(
+              "Sandbox_Gateway_1", "handle-xyz", "/ws", null);
+      var agentContext =
+          AgentContext.empty()
+              .withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1")
+              .withToolDefinitions(toolDefs);
+      var toolCalls =
+          List.of(
+              new ToolCall(
+                  "call-import",
+                  SandboxToolNames.IMPORT_DOCUMENT,
+                  Map.of("id", "known-doc-id", "path", "/dest/file.txt")));
+
+      var result = handler.transformToolCalls(agentContext, registry, toolCalls);
+
+      assertThat(result).hasSize(1);
+      assertThat(result.getFirst())
+          .satisfies(
+              tc -> {
+                assertThat(tc.id()).isEqualTo("call-import");
+                assertThat(tc.name()).isEqualTo("Sandbox_Gateway_1");
+                assertThat(tc.arguments())
+                    .containsEntry("operation", SandboxOperation.IMPORT_DOCUMENT)
+                    .containsEntry("handle", "handle-xyz")
+                    .containsEntry("document", reference)
+                    .containsEntry("path", "/dest/file.txt")
+                    .doesNotContainKey("id");
+              });
+    }
+
+    @Test
+    void importDocument_omitsDocumentKey_whenIdNotInRegistry() {
+      var toolDefs =
+          SandboxToolDefinitions.sandboxToolDefinitions(
+              "Sandbox_Gateway_1", "handle-xyz", "/ws", null);
+      var agentContext =
+          AgentContext.empty()
+              .withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1")
+              .withToolDefinitions(toolDefs);
+      var toolCalls =
+          List.of(
+              new ToolCall(
+                  "call-import",
+                  SandboxToolNames.IMPORT_DOCUMENT,
+                  Map.of("id", "hallucinated-id")));
+
+      var result = handler.transformToolCalls(agentContext, DocumentRegistry.empty(), toolCalls);
+
+      assertThat(result).hasSize(1);
+      assertThat(result.getFirst())
+          .satisfies(
+              tc -> {
+                assertThat(tc.id()).isEqualTo("call-import");
+                assertThat(tc.name()).isEqualTo("Sandbox_Gateway_1");
+                assertThat(tc.arguments())
+                    .containsEntry("operation", SandboxOperation.IMPORT_DOCUMENT)
+                    .containsEntry("handle", "handle-xyz")
+                    .doesNotContainKey("document")
+                    .doesNotContainKey("id");
+              });
+    }
+
+    @Test
+    void importDocument_omitsPathKey_whenNotSuppliedByLlm() {
+      var reference = new CamundaDocumentReferenceModel("store-1", "doc-id-1", null, null);
+      var entry = new DocumentRegistryEntry("known-doc-id", reference, null, null);
+      var registry = DocumentRegistry.of(List.of(entry));
+      var toolDefs =
+          SandboxToolDefinitions.sandboxToolDefinitions(
+              "Sandbox_Gateway_1", "handle-xyz", "/ws", null);
+      var agentContext =
+          AgentContext.empty()
+              .withProperty(PROPERTY_SANDBOX, "Sandbox_Gateway_1")
+              .withToolDefinitions(toolDefs);
+      // LLM supplies only id, no path
+      var toolCalls =
+          List.of(
+              new ToolCall(
+                  "call-import", SandboxToolNames.IMPORT_DOCUMENT, Map.of("id", "known-doc-id")));
+
+      var result = handler.transformToolCalls(agentContext, registry, toolCalls);
+
+      assertThat(result).hasSize(1);
+      assertThat(result.getFirst().arguments())
+          .containsEntry("document", reference)
+          .doesNotContainKey("path")
+          .doesNotContainKey("id");
     }
   }
 

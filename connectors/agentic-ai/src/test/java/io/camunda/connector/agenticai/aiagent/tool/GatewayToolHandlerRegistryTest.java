@@ -18,6 +18,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -376,10 +377,10 @@ class GatewayToolHandlerRegistryTest {
       }
 
       private void testTransformToolCalls(List<ToolCall> nonGatewayToolCalls) {
-        when(handlerA.transformToolCalls(eq(AGENT_CONTEXT), anyList()))
+        when(handlerA.transformToolCalls(eq(AGENT_CONTEXT), any(DocumentRegistry.class), anyList()))
             .thenAnswer(
                 i -> {
-                  List<ToolCall> tc = i.getArgument(1);
+                  List<ToolCall> tc = i.getArgument(2);
                   return tc.stream()
                       .map(
                           toolCall -> {
@@ -399,10 +400,10 @@ class GatewayToolHandlerRegistryTest {
                       .toList();
                 });
 
-        when(handlerB.transformToolCalls(eq(AGENT_CONTEXT), anyList()))
+        when(handlerB.transformToolCalls(eq(AGENT_CONTEXT), any(DocumentRegistry.class), anyList()))
             .thenAnswer(
                 i -> {
-                  List<ToolCall> tc = i.getArgument(1);
+                  List<ToolCall> tc = i.getArgument(2);
                   return tc.stream()
                       .map(
                           toolCall -> {
@@ -425,7 +426,8 @@ class GatewayToolHandlerRegistryTest {
         final var toolCalls = new ArrayList<>(GATEWAY_TOOL_CALLS);
         toolCalls.addAll(nonGatewayToolCalls);
 
-        final var transformed = registry.transformToolCalls(AGENT_CONTEXT, toolCalls);
+        final var transformed =
+            registry.transformToolCalls(AGENT_CONTEXT, DocumentRegistry.empty(), toolCalls);
 
         final var expectedToolCalls = new ArrayList<>(EXPECTED_TRANSFORMED_GATEWAY_TOOL_CALLS);
         expectedToolCalls.addAll(nonGatewayToolCalls);

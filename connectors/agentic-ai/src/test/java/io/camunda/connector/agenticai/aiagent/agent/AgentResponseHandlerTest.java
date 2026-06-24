@@ -84,8 +84,8 @@ class AgentResponseHandlerTest {
   void setUp() {
     responseHandler = new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
     // by default, registry passes tool calls through unchanged
-    when(gatewayToolHandlers.transformToolCalls(any(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
+    when(gatewayToolHandlers.transformToolCalls(any(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
   }
 
   /**
