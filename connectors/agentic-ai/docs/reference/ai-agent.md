@@ -278,13 +278,11 @@ on every completion. Authoritative definition:
 
 ### AgentExecutionContext (the transient request context)
 
-Contains everything needed for a single execution:
-- `jobContext()`: Job metadata (process definition key, element ID, etc.)
-- `initialAgentContext()`: The `AgentContext` from input variables
-- `initialToolCallResults()`: Tool call results from the current invocation
-- `provider()`: LLM provider configuration
-- `systemPrompt()`, `userPrompt()`: Prompt configurations
-- `memory()`, `limits()`, `events()`, `response()`: Various configurations
+The transient per-invocation request context, assembled fresh for each job activation and never
+persisted. It carries the job metadata, the inbound `AgentContext` and tool-call results, the LLM
+provider configuration, the system- and user-prompt configurations, and the memory, limits, event, and
+response settings that shape the turn. Authoritative definition:
+[`AgentExecutionContext.java`](../../src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).
 
 ### AgentResponse (the output)
 
@@ -939,7 +937,9 @@ The architecture supports adding more contributors by creating a Spring bean imp
 
 ### Usage Site
 
-`BaseAgentRequestHandler.createSystemMessage()` calls `systemPromptComposer.compose(executionContext, agentContext)`. When the composed prompt is blank it returns `null` (no system message is added or persisted); otherwise it wraps the prompt in a `SystemMessage` that `AgentConversation.rehydrate` places at the head of the conversation.
+The core request handler invokes the composer once per turn while assembling the conversation. A blank
+composed prompt produces no system message (nothing is added or persisted); a non-blank one becomes a
+`SystemMessage` placed at the head of the conversation when it is rehydrated for the LLM.
 
 ---
 
