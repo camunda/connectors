@@ -254,7 +254,8 @@ class SandboxGatewayToolHandlerTest {
       var toolDefs = handler.handleToolDiscoveryResults(agentContext, List.of(discoveryResult));
 
       assertThat(toolDefs).hasSize(5);
-      assertThat(toolDefs).allSatisfy(def -> assertThat(def.isSandboxTool()).isTrue());
+      assertThat(toolDefs)
+          .allSatisfy(def -> assertThat("sandbox".equals(def.gatewayType())).isTrue());
       assertThat(toolDefs)
           .allSatisfy(
               def ->

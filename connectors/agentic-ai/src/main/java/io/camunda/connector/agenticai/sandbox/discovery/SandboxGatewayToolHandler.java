@@ -59,6 +59,11 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
     return GATEWAY_TYPE;
   }
 
+  /**
+   * Interface-level routing remains name-prefix based (registry seam shared with MCP/A2A); per-call
+   * transformation routing is metadata-driven (see transformToolCalls). Migrating the interface to
+   * metadata is a separate follow-up.
+   */
   @Override
   public boolean isGatewayManaged(String toolName) {
     return toolName != null && toolName.startsWith(SandboxToolNames.RESERVED_PREFIX);
@@ -158,23 +163,25 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
     return toolCalls.stream()
         .map(
             toolCall -> {
-              if (!isGatewayManaged(toolCall.name())) {
-                return toolCall;
-              }
-              // Find the ToolDefinition for this tool name to get metadata (elementId, handle)
+              // Find the ToolDefinition for this tool name to get metadata (gatewayType, elementId,
+              // handle, operation)
               final var toolDef =
                   agentContext.toolDefinitions().stream()
                       .filter(td -> toolCall.name().equals(td.name()))
                       .findFirst()
                       .orElse(null);
-              if (toolDef == null) {
+              // Route by metadata: only transform if the tool definition carries
+              // gatewayType=sandbox
+              if (toolDef == null || !"sandbox".equals(toolDef.gatewayType())) {
                 return toolCall;
               }
               final var elementId =
                   (String) toolDef.metadata().get(ToolDefinition.METADATA_ELEMENT_ID);
               final var handle =
                   (String) toolDef.metadata().get(SandboxToolDefinitions.METADATA_HANDLE);
-              final var operation = toolNameToOperation(toolCall.name());
+              final var operation =
+                  operationFromMetadata(
+                      toolDef.metadata().get(SandboxToolDefinitions.METADATA_OPERATION));
               if (elementId == null || operation == null) {
                 return toolCall;
               }
@@ -266,15 +273,16 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
     }
   }
 
-  private SandboxOperation toolNameToOperation(String toolName) {
-    return switch (toolName) {
-      case SandboxToolNames.BASH -> SandboxOperation.BASH;
-      case SandboxToolNames.FS_READ -> SandboxOperation.FS_READ;
-      case SandboxToolNames.FS_WRITE -> SandboxOperation.FS_WRITE;
-      case SandboxToolNames.EXPORT_DOCUMENT -> SandboxOperation.EXPORT_DOCUMENT;
-      case SandboxToolNames.IMPORT_DOCUMENT -> SandboxOperation.IMPORT_DOCUMENT;
-      default -> null;
-    };
+  private static SandboxOperation operationFromMetadata(Object raw) {
+    if (raw instanceof SandboxOperation op) return op;
+    if (raw instanceof String s) {
+      try {
+        return SandboxOperation.valueOf(s);
+      } catch (IllegalArgumentException e) {
+        return null;
+      }
+    }
+    return null;
   }
 
   private List<GatewayToolDefinition> extractSandboxGatewayToolDefinitions(

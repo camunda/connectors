@@ -41,9 +41,30 @@ class SandboxToolDefinitionsTest {
   }
 
   @Test
-  void allDefinitionsAreSandboxTools() {
+  void allDefinitionsHaveSandboxGatewayType() {
     final var defs = SandboxToolDefinitions.sandboxToolDefinitions(ELEMENT_ID);
-    assertThat(defs).allSatisfy(def -> assertThat(def.isSandboxTool()).isTrue());
+    assertThat(defs).allSatisfy(def -> assertThat("sandbox".equals(def.gatewayType())).isTrue());
+  }
+
+  @Test
+  void eachDefinitionCarriesCorrectOperation() {
+    final var defs = SandboxToolDefinitions.sandboxToolDefinitions(ELEMENT_ID);
+    final var bash = findByName(defs, SandboxToolNames.BASH);
+    final var fsRead = findByName(defs, SandboxToolNames.FS_READ);
+    final var fsWrite = findByName(defs, SandboxToolNames.FS_WRITE);
+    final var exportDoc = findByName(defs, SandboxToolNames.EXPORT_DOCUMENT);
+    final var importDoc = findByName(defs, SandboxToolNames.IMPORT_DOCUMENT);
+
+    assertThat(bash.metadata())
+        .containsEntry(SandboxToolDefinitions.METADATA_OPERATION, SandboxOperation.BASH);
+    assertThat(fsRead.metadata())
+        .containsEntry(SandboxToolDefinitions.METADATA_OPERATION, SandboxOperation.FS_READ);
+    assertThat(fsWrite.metadata())
+        .containsEntry(SandboxToolDefinitions.METADATA_OPERATION, SandboxOperation.FS_WRITE);
+    assertThat(exportDoc.metadata())
+        .containsEntry(SandboxToolDefinitions.METADATA_OPERATION, SandboxOperation.EXPORT_DOCUMENT);
+    assertThat(importDoc.metadata())
+        .containsEntry(SandboxToolDefinitions.METADATA_OPERATION, SandboxOperation.IMPORT_DOCUMENT);
   }
 
   @Test

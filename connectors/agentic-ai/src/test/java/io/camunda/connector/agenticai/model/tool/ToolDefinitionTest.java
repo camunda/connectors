@@ -72,30 +72,30 @@ class ToolDefinitionTest {
   }
 
   @Test
-  void isSandboxToolReturnsTrueWhenMetadataKeySet() {
+  void gatewayTypeReturnsSandboxWhenMetadataKeySet() {
     final var def =
         ToolDefinition.builder()
             .name("sandbox_bash")
             .inputSchema(Map.of())
-            .metadata(Map.of(ToolDefinition.METADATA_SANDBOX_TOOL, true))
+            .metadata(Map.of(ToolDefinition.METADATA_GATEWAY_TYPE, "sandbox"))
             .build();
-    assertThat(def.isSandboxTool()).isTrue();
+    assertThat(def.gatewayType()).isEqualTo("sandbox");
   }
 
   @Test
-  void isSandboxToolReturnsFalseWhenMetadataEmpty() {
+  void gatewayTypeReturnsNullWhenMetadataEmpty() {
     final var def = ToolDefinition.builder().name("regular_tool").inputSchema(Map.of()).build();
-    assertThat(def.isSandboxTool()).isFalse();
+    assertThat(def.gatewayType()).isNull();
   }
 
   @Test
-  void isSandboxToolReturnsFalseWhenMetadataKeyFalse() {
+  void gatewayTypeReturnsNullWhenKeyAbsent() {
     final var def =
         ToolDefinition.builder()
             .name("not_sandbox")
             .inputSchema(Map.of())
-            .metadata(Map.of(ToolDefinition.METADATA_SANDBOX_TOOL, false))
+            .metadata(Map.of("someOtherKey", "someValue"))
             .build();
-    assertThat(def.isSandboxTool()).isFalse();
+    assertThat(def.gatewayType()).isNull();
   }
 }
