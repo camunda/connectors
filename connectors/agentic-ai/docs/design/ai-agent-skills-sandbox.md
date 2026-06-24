@@ -1101,3 +1101,57 @@ for the PoC; the ⭐ items must be resolved before this ships to production.
 
 9. **T8 mocked-LLM full Zeebe e2e** and **T9 local Docker sandbox provider** — not started (the gated
    live-LLM scenarios A–E are done; see the implementation-status note above).
+
+---
+
+## 15. Mapping to the "Shortcomings & Improvement Areas" doc
+
+Cross-reference of this PR against the team [Camunda Agentic AI – Shortcomings & Improvement Areas](https://docs.google.com/document/d/1zpOFKi_73JJ2ZWRTB2VC3eDBrHNZUWyr8IMKU9A18Ks/edit)
+doc. Section numbers below are that doc's IDs.
+
+### Fully implemented (for the PoC)
+
+- **7.1 — No Code Execution / Sandbox.** Delivered. `sandbox_bash` is the generic execution primitive
+  (write a file, run it), behind a provider-agnostic, sandbox-first `SandboxProvider` SPI with Daytona
+  as the first managed adapter. Note we took a **third architecture** beyond the doc's two suggested
+  options (MCP-based, or a `fromAi()` code connector): in-process internal tools that never round-trip
+  through Zeebe, with the **sandbox boundary as the trust boundary** (no connector-side code filtering),
+  cross-invocation reuse (T6), and configurable lifecycle (auto-stop/archive/delete). Covers all four of
+  the doc's motivations: data transformation (the CSV/stats e2e scenario), dynamic problem-solving,
+  reduced tool sprawl, and self-validation.
+
+### Partially implemented
+
+- **1.3 — No Document Workspace for Agents.** Most of the proposed shape is built. Of the doc's four
+  capabilities: ✅ **named references** (the `DocumentRegistry` + stable `<doc id/>` handles + sandbox FS
+  paths), ✅ **inter-tool data passing** (a tool writes to the sandbox FS / mints a doc, another consumes
+  it by handle — modulo the same-sub-loop export→import gap, §14.1), ❌ **multimodal bridge** (registry
+  docs are imported as bytes for tools to operate on; they are **not** auto-converted to
+  `ImageContent`/`PdfFileContent` for the LLM — that's the 1.1/1.2 gap below), and ⚠️ **output artifacts**
+  (only partial — `sandbox_export_document` mints a Camunda Document that escapes via the tool-result
+  extractor into `AgentResponse`, but there is still no first-class `responseDocument`/`responseFiles`
+  field). We also went further than the doc's "rather than a literal filesystem" framing by providing a
+  **real virtual FS** inside the sandbox in addition to the registry. The doc's three open challenges:
+  ✅ distributed-execution persistence (registry rides the conversation payload across both backends),
+  ✅ LLM-context-cost policy (bytes never enter context; docs are referenced by handle, imported on
+  demand), ❌ lifecycle cleanup (the sandbox reaper, §14.7 — unresolved).
+- **2.3 — No Progressive Tool Discovery.** The progressive-disclosure **pattern** is implemented for
+  **skills**: a Tier-1 `{name, description}` catalog in the system prompt, full instructions/scripts
+  loaded on demand via `sandbox_load_skill` (the doc's "two-tier discovery" idea). `sandbox_bash` also
+  attacks tool sprawl (the doc's 7.1 motivation). **Not** addressed: the core 2.3 problem of MCP tool
+  sets (all N tool definitions sent every call), tool pagination/categories, or dynamic tool-set changes.
+- **5.3 — No Agent Scratchpad / Working Memory.** The sandbox virtual FS is a durable, out-of-context
+  working store the agent can write to and re-read across iterations (persisted via T6 reuse) — a
+  file-based scratchpad. **Not** the structured scratchpad the doc describes: contents are not
+  auto-injected into the system prompt (the agent must `fs_read` to recall), there is no plan-tracking /
+  running-summary surviving context eviction, and it requires a sandbox to be configured.
+
+### Not addressed by this PR (adjacent)
+
+- **1.1 — Tool Call Results Are Text-Only** and **1.2 — Agent Output Is Text-Only.** This PR moves
+  documents around as handles/bytes; it does not make tool results or agent output natively multimodal,
+  and adds no `responseDocument`/`responseFiles` output field. The `<doc id/>` rendering refines the
+  existing #6999 document-extraction but is not a multimodal bridge. Tracked separately under
+  multimodality.
+- **7.2 — Code Mode Pattern (Cloudflare-style).** Distinct approach (typed-API `search()`/`execute()` in
+  a V8 isolate). Our sandbox is general code/script execution, not API-spec codegen. Not in PoC scope.
