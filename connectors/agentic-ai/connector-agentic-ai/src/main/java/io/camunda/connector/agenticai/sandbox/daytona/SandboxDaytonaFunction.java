@@ -108,7 +108,8 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
       case CREATE -> {
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         String processInstanceKey = String.valueOf(job.getProcessInstanceKey());
-        String elementId = job.getElementId();
+        String agentInstanceKey =
+            tc.agentInstanceKey() != null ? String.valueOf(tc.agentInstanceKey()) : null;
         var spec =
             new SandboxCreateSpec(
                 data.snapshot(),
@@ -116,7 +117,7 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
                 data.autoArchiveMinutes(),
                 data.autoDeleteMinutes());
         DaytonaSandboxInfo info =
-            daytonaClient.create(daytona, spec, processInstanceKey, elementId);
+            daytonaClient.create(daytona, spec, processInstanceKey, agentInstanceKey);
         Sandbox sandbox = daytonaClient.connect(daytona, info.handle());
         String workDir = info.workDir();
         String skillsRoot = workDir + "/.agents/skills";
@@ -138,18 +139,18 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         yield new SandboxCreateResult(info.handle(), workDir, catalog);
       }
       case BASH -> {
-        String handle = requireHandle(tc.handle(), "BASH");
+        String sandboxId = requireSandboxId(tc.sandboxId(), "BASH");
         String command = requireArg(tc.command(), "command", "BASH");
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
-        Sandbox sandbox = daytonaClient.connect(daytona, handle);
+        Sandbox sandbox = daytonaClient.connect(daytona, sandboxId);
         ExecOutcome outcome = daytonaClient.exec(sandbox, command, EXEC_TIMEOUT_SECONDS);
         yield formatBashResult(outcome);
       }
       case FS_READ -> {
-        String handle = requireHandle(tc.handle(), "FS_READ");
+        String sandboxId = requireSandboxId(tc.sandboxId(), "FS_READ");
         String path = requireArg(tc.path(), "path", "FS_READ");
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
-        Sandbox sandbox = daytonaClient.connect(daytona, handle);
+        Sandbox sandbox = daytonaClient.connect(daytona, sandboxId);
         byte[] bytes = daytonaClient.fsRead(sandbox, path);
         if (OutputBounds.isBinary(bytes)) {
           yield OutputBounds.binaryFileMarker(bytes.length, "application/octet-stream");
@@ -160,20 +161,20 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         yield new String(bytes, StandardCharsets.UTF_8);
       }
       case FS_WRITE -> {
-        String handle = requireHandle(tc.handle(), "FS_WRITE");
+        String sandboxId = requireSandboxId(tc.sandboxId(), "FS_WRITE");
         String path = requireArg(tc.path(), "path", "FS_WRITE");
         String content = tc.content() != null ? tc.content() : "";
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
-        Sandbox sandbox = daytonaClient.connect(daytona, handle);
+        Sandbox sandbox = daytonaClient.connect(daytona, sandboxId);
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         daytonaClient.fsWrite(sandbox, path, bytes);
         yield "Written " + bytes.length + " bytes to " + path;
       }
       case EXPORT_DOCUMENT -> {
-        String handle = requireHandle(tc.handle(), "EXPORT_DOCUMENT");
+        String sandboxId = requireSandboxId(tc.sandboxId(), "EXPORT_DOCUMENT");
         String path = requireArg(tc.path(), "path", "EXPORT_DOCUMENT");
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
-        Sandbox sandbox = daytonaClient.connect(daytona, handle);
+        Sandbox sandbox = daytonaClient.connect(daytona, sandboxId);
         byte[] bytes = daytonaClient.fsRead(sandbox, path);
         if (bytes.length > DEFAULT_MAX_DOCUMENT_BYTES) {
           throw new ConnectorException(
@@ -202,7 +203,7 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
               "SANDBOX_IMPORT_NO_DOCUMENT",
               "No document to import: the requested document id was not found in the conversation registry.");
         }
-        String handle = requireHandle(tc.handle(), "IMPORT_DOCUMENT");
+        String sandboxId = requireSandboxId(tc.sandboxId(), "IMPORT_DOCUMENT");
         byte[] bytes = document.asByteArray();
         if (bytes.length > DEFAULT_MAX_DOCUMENT_BYTES) {
           throw new ConnectorException(
@@ -221,7 +222,7 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
           targetPath = "imported-file";
         }
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
-        Sandbox sandbox = daytonaClient.connect(daytona, handle);
+        Sandbox sandbox = daytonaClient.connect(daytona, sandboxId);
         daytonaClient.fsWrite(sandbox, targetPath, bytes);
         String fileName =
             targetPath.contains("/")
@@ -305,12 +306,12 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
     return OutputBounds.truncate(text, MAX_OUTPUT_BYTES, false);
   }
 
-  private static String requireHandle(String handle, String op) {
-    if (handle == null || handle.isBlank()) {
+  private static String requireSandboxId(String sandboxId, String op) {
+    if (sandboxId == null || sandboxId.isBlank()) {
       throw new ConnectorException(
-          "SANDBOX_MISSING_HANDLE", "handle is required for operation " + op);
+          "SANDBOX_MISSING_SANDBOX_ID", "sandboxId is required for operation " + op);
     }
-    return handle;
+    return sandboxId;
   }
 
   private static String requireArg(String value, String argName, String op) {

@@ -52,12 +52,16 @@ public class DaytonaClient {
    *
    * @param daytona configured SDK client
    * @param spec lifecycle/snapshot parameters (minutes already resolved)
-   * @param processInstanceKey Zeebe process instance key (used as a label for idempotency/reaper)
-   * @param sandboxElementId BPMN element id of the sandbox gateway element
+   * @param processInstanceKey Zeebe process instance key (informative label)
+   * @param agentInstanceKey the agent instance key (informative label; may be null); the sandbox is
+   *     addressed by the returned id, not by label
    * @return handle and working directory of the created sandbox
    */
   public DaytonaSandboxInfo create(
-      Daytona daytona, SandboxCreateSpec spec, String processInstanceKey, String sandboxElementId) {
+      Daytona daytona,
+      SandboxCreateSpec spec,
+      String processInstanceKey,
+      @Nullable String agentInstanceKey) {
     try {
       CreateSandboxFromSnapshotParams params = new CreateSandboxFromSnapshotParams();
 
@@ -77,18 +81,21 @@ public class DaytonaClient {
         params.setAutoDeleteInterval(deleteMinutes);
       }
 
-      // Set labels for idempotency / reaper identification
+      // Informative labels only (for humans and the future reaper). The sandbox is
+      // always addressed by its returned id (the handle), never re-found by label.
       Map<String, String> labels = new HashMap<>();
       labels.put("processInstanceKey", processInstanceKey);
-      labels.put("sandboxElementId", sandboxElementId);
+      if (agentInstanceKey != null && !agentInstanceKey.isBlank()) {
+        labels.put("agentInstanceKey", agentInstanceKey);
+      }
       params.setLabels(labels);
 
       Sandbox sandbox = daytona.create(params);
       LOGGER.debug(
-          "Created Daytona sandbox id={} for processInstanceKey={} elementId={}",
+          "Created Daytona sandbox id={} for processInstanceKey={} agentInstanceKey={}",
           sandbox.getId(),
           processInstanceKey,
-          sandboxElementId);
+          agentInstanceKey);
       return new DaytonaSandboxInfo(sandbox.getId(), workDir(sandbox));
     } catch (DaytonaException e) {
       throw new DaytonaClientException("Failed to create Daytona sandbox: " + e.getMessage(), e);

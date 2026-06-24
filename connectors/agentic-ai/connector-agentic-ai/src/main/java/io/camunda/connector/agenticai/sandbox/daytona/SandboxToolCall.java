@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.sandbox.daytona;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.agenticai.sandbox.discovery.SandboxOperation;
 import io.camunda.connector.api.document.Document;
 import org.jspecify.annotations.Nullable;
@@ -15,8 +16,9 @@ import org.jspecify.annotations.Nullable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SandboxToolCall(
     SandboxOperation operation,
-    @Nullable String handle,
+    @JsonProperty("handle") @Nullable String sandboxId,
     @Nullable String command,
     @Nullable String path,
     @Nullable String content,
-    @Nullable Document document) {}
+    @Nullable Document document,
+    @Nullable Long agentInstanceKey) {}

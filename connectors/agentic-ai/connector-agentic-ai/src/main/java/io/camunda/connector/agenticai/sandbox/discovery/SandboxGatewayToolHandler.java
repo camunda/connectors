@@ -104,7 +104,13 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
 
     final var elementId = sandboxDefs.getFirst().name();
     final var updatedCtx = agentContext.withProperty(PROPERTY_SANDBOX, elementId);
-    final var createOp = Map.<String, Object>of("operation", SandboxOperation.CREATE);
+    final var createOp = new LinkedHashMap<String, Object>();
+    createOp.put("operation", SandboxOperation.CREATE);
+    final Long agentInstanceKey =
+        agentContext.metadata() != null ? agentContext.metadata().agentInstanceKey() : null;
+    if (agentInstanceKey != null) {
+      createOp.put("agentInstanceKey", agentInstanceKey);
+    }
     final var discoveryCall =
         new ToolCall(SANDBOX_DISCOVERY_PREFIX + elementId, elementId, createOp);
     return new GatewayToolDiscoveryInitiationResult(updatedCtx, List.of(discoveryCall));
