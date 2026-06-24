@@ -142,9 +142,11 @@ mvn clean install -DskipTests -pl connectors/agentic-ai   # build the module, sk
 mvn test -pl connectors/agentic-ai                        # unit / integration tests
 ```
 
-**Prerequisite**: element-template generation and the e2e tests require `element-templates-cli` on your
-PATH. When it is missing, e2e tests can fail with confusing errors that look unrelated to the change.
-You can install it once with `npm i -g element-templates-cli`, if needed.
+**Prerequisite**: the e2e tests require `element-templates-cli` on your PATH. The e2e harness shells out
+to it (`BpmnFile.apply`) to apply templates, so it must be installed even though no pom declares it.
+Template generation itself uses the `element-template-generator-maven-plugin` and needs no CLI. When it
+is missing, e2e tests fail with errors that can look unrelated to your change. Install it once with
+`npm i -g element-templates-cli`.
 
 Unit tests use JUnit 5, Mockito, and AssertJ. In this module use unit tests only, apart from the few
 existing Spring Boot tests and the e2e suite. For repo-wide build/commit/PR/CI/spotless/license rules,
