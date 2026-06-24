@@ -335,7 +335,9 @@ New connector package: `@OutboundConnector`, element template with `gateway.type
 `CREATE` (idempotent by label), `BASH`, `FS_READ`, `FS_WRITE`. *Acceptance:* gated Daytona IT —
 create→write→bash→read→reconnect; unit tests mock the Daytona client.
 
-### P4 — Document export/import ops + registry port
+### P4 — Document export/import ops + registry port — ✅ DONE
+Commits: P4a/P4b `b733203515`, P4c `15779c6596`, P4d `41c84e2da5`, P4e `23b1790251`. Full
+agentic-ai unit suite green (1498 tests). Full Zeebe round-trip for EXPORT deferred to P8.
 Dependency-ordered sub-steps:
 - **P4a — Model port (1:1 from #7594, no entanglement):** `DocumentHandle`, `DocumentRegistry`,
   `DocumentRegistryEntry`, and the reworked `DocumentReferenceXmlTag` (replaces main's old sealed-interface
