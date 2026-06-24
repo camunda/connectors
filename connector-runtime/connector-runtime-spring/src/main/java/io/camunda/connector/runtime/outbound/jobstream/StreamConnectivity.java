@@ -19,99 +19,95 @@ package io.camunda.connector.runtime.outbound.jobstream;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 /**
- * Captures the connectivity state of a single connector job type as observed from both the gateway
- * (client streams) and the brokers (remote streams).
+ * Captures the broker-side connectivity state of a single connector job type.
  *
- * <p>Gateway state and broker state are derived from separate sources:
+ * <p>Both fields are sourced from the {@code remote} streams queried directly from each broker via
+ * the {@code /actuator/jobstreams} monitoring endpoint.
  *
- * <ul>
- *   <li>Gateway state comes from the {@code client} streams of the gateway's {@code
- *       /actuator/jobstreams} endpoint.
- *   <li>Broker state comes from the {@code remote} streams queried directly from each broker (when
- *       broker monitoring is configured and reachable), or falls back to the gateway's own {@code
- *       remote} data (only non-empty when the gateway is embedded in a broker). When neither source
- *       is available, broker state is {@link BrokerConnectivityState#UNKNOWN}.
- * </ul>
- *
- * @param gatewayState whether the connector is registered as a client stream on the gateway
- * @param brokerState whether the gateway stream is propagated to all brokers; {@code null} when
- *     {@code gatewayState} is not {@link GatewayConnectivityState#CONNECTED}
- * @param streamIds the server-side stream IDs observed for this job type; {@code null} when the
- *     gateway is unreachable or not configured
+ * @param brokerState whether the connector's stream appears as a consumer on all brokers; {@link
+ *     BrokerConnectivityState#UNKNOWN} when broker monitoring is not configured or unreachable
+ * @param streamIds consumer IDs observed across all brokers for this job type; {@code null} when
+ *     broker monitoring is unavailable or no consumers were found
  */
-public record StreamConnectivity(
-    GatewayConnectivityState gatewayState,
-    BrokerConnectivityState brokerState,
-    List<String> streamIds) {
+public record StreamConnectivity(BrokerConnectivityState brokerState, List<String> streamIds) {
 
-  /** Convenience factory for cases where the gateway could not be queried. */
-  public static StreamConnectivity unavailable(GatewayConnectivityState gatewayState) {
-    return new StreamConnectivity(gatewayState, null, null);
+  /**
+   * Computes the connectivity state for {@code jobType} from the broker remote streams.
+   *
+   * @param jobType the job type to compute state for
+   * @param brokerStreams broker-side remote streams together with the total number of queried
+   *     brokers; {@link Optional#empty()} when broker monitoring is not configured or unreachable,
+   *     yielding {@link BrokerConnectivityState#UNKNOWN}
+   */
+  public static StreamConnectivity compute(
+      String jobType, Optional<BrokerStreamsResult> brokerStreams) {
+
+    Optional<List<RemoteJobStream>> filteredStreams =
+        brokerStreams.map(
+            data -> data.streams().stream().filter(s -> jobType.equals(s.jobType())).toList());
+
+    int totalBrokerCount = brokerStreams.map(BrokerStreamsResult::brokerCount).orElse(0);
+    BrokerConnectivityState brokerState =
+        filteredStreams
+            .map(streams -> computeBrokerState(streams, totalBrokerCount))
+            .orElse(BrokerConnectivityState.UNKNOWN);
+
+    List<String> streamIds = extractStreamIds(filteredStreams);
+    return new StreamConnectivity(brokerState, streamIds);
   }
 
   /**
-   * Computes the connectivity state for a given job type from separate gateway and broker data.
+   * Determines connectivity state from the filtered (job-type-specific) streams and the total
+   * number of brokers that were queried.
    *
-   * @param jobType the job type to compute state for
-   * @param allClientStreams all client streams from the gateway's response
-   * @param allRemoteStreams broker-side remote streams; {@link Optional#empty()} when broker state
-   *     cannot be determined (broker monitoring not configured or unavailable, and no embedded
-   *     gateway remote data), which yields {@link BrokerConnectivityState#UNKNOWN}; a present
-   *     {@link Optional} with an empty list yields {@link BrokerConnectivityState#NONE}
+   * <ul>
+   *   <li>{@link BrokerConnectivityState#NONE} – no broker has any consumer with a non-null id for
+   *       this job type
+   *   <li>{@link BrokerConnectivityState#ALL_CONNECTED} – every queried broker has at least one
+   *       consumer with a non-null id
+   *   <li>{@link BrokerConnectivityState#PARTIALLY_CONNECTED} – some but not all brokers have a
+   *       consumer with a non-null id (including brokers that did not report the job type at all)
+   * </ul>
    */
-  public static StreamConnectivity compute(
-      String jobType,
-      List<ClientJobStream> allClientStreams,
-      Optional<List<RemoteJobStream>> allRemoteStreams) {
+  private static BrokerConnectivityState computeBrokerState(
+      List<RemoteJobStream> filteredStreams, int totalBrokerCount) {
 
-    List<ClientJobStream> clientStreams =
-        allClientStreams.stream().filter(s -> jobType.equals(s.jobType())).toList();
-
-    if (clientStreams.isEmpty()) {
-      return unavailable(GatewayConnectivityState.NOT_CONNECTED);
+    if (totalBrokerCount == 0) {
+      return BrokerConnectivityState.NONE;
     }
 
-    List<String> streamIds =
-        clientStreams.stream()
-            .map(s -> s.id() != null ? s.id().serverStreamId() : null)
-            .filter(Objects::nonNull)
-            .distinct()
-            .toList();
+    long brokersWithValidConsumer =
+        filteredStreams.stream()
+            .filter(
+                remote ->
+                    remote.consumers() != null
+                        && remote.consumers().stream().anyMatch(c -> c.get("id") != null))
+            .count();
 
-    Optional<List<RemoteJobStream>> remoteStreams =
-        allRemoteStreams.map(
-            streams -> streams.stream().filter(s -> jobType.equals(s.jobType())).toList());
-
-    BrokerConnectivityState brokerState = computeBrokerState(Set.copyOf(streamIds), remoteStreams);
-
-    return new StreamConnectivity(
-        GatewayConnectivityState.CONNECTED, brokerState, streamIds.isEmpty() ? null : streamIds);
+    if (brokersWithValidConsumer == 0) {
+      return BrokerConnectivityState.NONE;
+    }
+    if (brokersWithValidConsumer == totalBrokerCount) {
+      return BrokerConnectivityState.ALL_CONNECTED;
+    }
+    return BrokerConnectivityState.PARTIALLY_CONNECTED;
   }
 
-  private static BrokerConnectivityState computeBrokerState(
-      Set<String> clientStreamIds, Optional<List<RemoteJobStream>> remoteStreams) {
-    return remoteStreams
-        .map(
-            streams -> {
-              if (streams.isEmpty()) {
-                return BrokerConnectivityState.NONE;
-              }
-              boolean allConnected =
-                  streams.stream()
-                      .allMatch(
-                          remote ->
-                              remote.consumers() != null
-                                  && remote.consumers().stream()
-                                      .anyMatch(
-                                          consumer ->
-                                              clientStreamIds.contains(consumer.get("id"))));
-              return allConnected
-                  ? BrokerConnectivityState.ALL_CONNECTED
-                  : BrokerConnectivityState.PARTIALLY_CONNECTED;
-            })
-        .orElse(BrokerConnectivityState.UNKNOWN);
+  private static List<String> extractStreamIds(Optional<List<RemoteJobStream>> remoteStreams) {
+    List<String> ids =
+        remoteStreams
+            .map(
+                streams ->
+                    streams.stream()
+                        .filter(r -> r.consumers() != null)
+                        .flatMap(r -> r.consumers().stream())
+                        .map(c -> c.get("id"))
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList())
+            .orElse(List.of());
+    return ids.isEmpty() ? null : ids;
   }
 }

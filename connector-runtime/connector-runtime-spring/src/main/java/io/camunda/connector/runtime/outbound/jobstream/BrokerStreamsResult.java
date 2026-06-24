@@ -16,8 +16,13 @@
  */
 package io.camunda.connector.runtime.outbound.jobstream;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
 
-/** Identifies a client job stream on the gateway. */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public record ClientStreamId(String serverStreamId, int localId) {}
+/**
+ * Aggregated remote streams from all queried brokers, together with the total number of brokers
+ * that were queried.
+ *
+ * @param streams combined list of remote streams from all brokers
+ * @param brokerCount total number of brokers that were queried
+ */
+public record BrokerStreamsResult(List<RemoteJobStream> streams, int brokerCount) {}
