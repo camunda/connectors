@@ -13,8 +13,8 @@ import io.camunda.connector.agenticai.model.AgenticAiRecord;
 /**
  * A single skill entry in the sandbox skill catalog returned by the CREATE operation.
  *
- * <p>Each entry describes a reusable skill script that can be loaded into the sandbox via the
- * {@code load_skill} tool.
+ * <p>Each entry describes a reusable skill that can be read via {@code sandbox_fs_read} at its
+ * {@code location} to activate it.
  */
 @AgenticAiRecord
 @JsonDeserialize(builder = SkillCatalogEntry.SkillCatalogEntryJacksonProxyBuilder.class)
