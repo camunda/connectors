@@ -35,7 +35,8 @@ class AgentConfigurationSandboxTest {
 
   @Test
   void sandboxConfiguration_isPresentForDaytona() {
-    var daytona = new DaytonaSandboxConfiguration("key", null, null, null, null);
+    var daytona =
+        new DaytonaSandboxConfiguration("key", null, null, null, null, null, null, null, null);
     var config = new AgentConfiguration(null, null, null, null, null, null, null, daytona);
     assertThat(config.sandboxConfiguration()).isPresent().contains(daytona);
   }

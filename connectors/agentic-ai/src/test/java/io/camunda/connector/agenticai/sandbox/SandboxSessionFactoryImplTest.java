@@ -35,7 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class SandboxSessionFactoryImplTest {
 
   private static final DaytonaSandboxConfiguration SANDBOX_CONFIG =
-      new DaytonaSandboxConfiguration("api-key", null, null, null, null);
+      new DaytonaSandboxConfiguration("api-key", null, null, null, null, null, null, null, null);
 
   @Mock private SandboxProviderRegistry providerRegistry;
   @Mock private SandboxProvider provider;

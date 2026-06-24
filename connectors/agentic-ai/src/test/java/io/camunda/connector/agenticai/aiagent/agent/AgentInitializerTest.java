@@ -694,7 +694,10 @@ class AgentInitializerTest {
     @Test
     void withSandbox_internalToolDefinitionsAreAppendedAfterAdHocTools() {
       when(agentConfiguration.sandboxConfiguration())
-          .thenReturn(Optional.of(new DaytonaSandboxConfiguration("key", null, null, null, null)));
+          .thenReturn(
+              Optional.of(
+                  new DaytonaSandboxConfiguration(
+                      "key", null, null, null, null, null, null, null, null)));
       when(internalToolRegistry.toolDefinitions(anyList()))
           .thenReturn(List.of(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF));
       when(toolsResolver.loadAdHocToolsSchema(any(), any()))
@@ -715,7 +718,10 @@ class AgentInitializerTest {
     @Test
     void withSandboxAndNoAdHocTools_onlyInternalToolDefinitionsRegistered() {
       when(agentConfiguration.sandboxConfiguration())
-          .thenReturn(Optional.of(new DaytonaSandboxConfiguration("key", null, null, null, null)));
+          .thenReturn(
+              Optional.of(
+                  new DaytonaSandboxConfiguration(
+                      "key", null, null, null, null, null, null, null, null)));
       when(internalToolRegistry.toolDefinitions(anyList()))
           .thenReturn(List.of(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF));
       when(toolsResolver.loadAdHocToolsSchema(any(), any()))

@@ -1681,13 +1681,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.sandbox.autoStopMinutes",
-    "label" : "Auto-stop (minutes)",
-    "optional" : true,
-    "feel" : "static",
+    "id" : "data.sandbox.autoStop",
+    "label" : "Auto-stop",
+    "description" : "Controls how long a running sandbox stays up before stopping. DISABLED means it never auto-stops (Daytona default: 15 min).",
+    "optional" : false,
+    "value" : "DURATION",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.sandbox.autoStopMinutes",
+      "name" : "data.sandbox.autoStop",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1695,15 +1696,51 @@
       "equals" : "daytona",
       "type" : "simple"
     },
-    "type" : "Number"
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Disabled",
+      "value" : "DISABLED"
+    }, {
+      "name" : "Duration",
+      "value" : "DURATION"
+    } ]
   }, {
-    "id" : "data.sandbox.autoArchiveMinutes",
-    "label" : "Auto-archive (minutes)",
+    "id" : "data.sandbox.autoStopDuration",
+    "label" : "Auto-stop duration",
+    "description" : "ISO-8601 duration after which an idle running sandbox is stopped. Default: PT15M (15 minutes).",
     "optional" : true,
-    "feel" : "static",
+    "value" : "PT15M",
+    "feel" : "optional",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.sandbox.autoArchiveMinutes",
+      "name" : "data.sandbox.autoStopDuration",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.sandbox.type",
+        "equals" : "daytona",
+        "type" : "simple"
+      }, {
+        "property" : "data.sandbox.autoStop",
+        "equals" : "DURATION",
+        "type" : "simple"
+      }, {
+        "property" : "data.sandbox.type",
+        "equals" : "daytona",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sandbox.autoArchive",
+    "label" : "Auto-archive",
+    "description" : "Controls when a stopped sandbox is archived. DEFAULT uses Daytona's default (7 days). Max duration: 30 days.",
+    "optional" : false,
+    "value" : "DEFAULT",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.autoArchive",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1711,7 +1748,96 @@
       "equals" : "daytona",
       "type" : "simple"
     },
-    "type" : "Number"
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Default (7 days)",
+      "value" : "DEFAULT"
+    }, {
+      "name" : "Duration",
+      "value" : "DURATION"
+    } ]
+  }, {
+    "id" : "data.sandbox.autoArchiveDuration",
+    "label" : "Auto-archive duration",
+    "description" : "ISO-8601 duration after which a stopped sandbox is archived. Must not exceed 30 days (P30D).",
+    "optional" : true,
+    "value" : "P7D",
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.autoArchiveDuration",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.sandbox.type",
+        "equals" : "daytona",
+        "type" : "simple"
+      }, {
+        "property" : "data.sandbox.autoArchive",
+        "equals" : "DURATION",
+        "type" : "simple"
+      }, {
+        "property" : "data.sandbox.type",
+        "equals" : "daytona",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sandbox.autoDelete",
+    "label" : "Auto-delete",
+    "description" : "Controls when a stopped sandbox is deleted. DISABLED means never delete. IMMEDIATELY deletes the sandbox right after it stops (0 minutes).",
+    "optional" : false,
+    "value" : "DISABLED",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.autoDelete",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Disabled",
+      "value" : "DISABLED"
+    }, {
+      "name" : "Immediately after stopping",
+      "value" : "IMMEDIATELY"
+    }, {
+      "name" : "Duration",
+      "value" : "DURATION"
+    } ]
+  }, {
+    "id" : "data.sandbox.autoDeleteDuration",
+    "label" : "Auto-delete duration",
+    "description" : "ISO-8601 duration after which a stopped sandbox is deleted.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.autoDeleteDuration",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.sandbox.type",
+        "equals" : "daytona",
+        "type" : "simple"
+      }, {
+        "property" : "data.sandbox.autoDelete",
+        "equals" : "DURATION",
+        "type" : "simple"
+      }, {
+        "property" : "data.sandbox.type",
+        "equals" : "daytona",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "data.skills",
     "label" : "Skills",

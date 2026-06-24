@@ -128,6 +128,9 @@ public class DaytonaSandboxProvider implements SandboxProvider {
     if (spec.autoArchiveMinutes() != null) {
       sandbox.setAutoArchiveInterval(spec.autoArchiveMinutes());
     }
+    if (spec.autoDeleteMinutes() != null) {
+      sandbox.setAutoDeleteInterval(spec.autoDeleteMinutes());
+    }
   }
 
   private static void closeQuietly(Daytona daytona) {

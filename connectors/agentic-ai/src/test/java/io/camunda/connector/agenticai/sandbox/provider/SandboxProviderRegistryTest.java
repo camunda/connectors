@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 class SandboxProviderRegistryTest {
 
   private static final DaytonaSandboxConfiguration DAYTONA_CONFIG =
-      new DaytonaSandboxConfiguration("api-key", null, null, null, null);
+      new DaytonaSandboxConfiguration("api-key", null, null, null, null, null, null, null, null);
 
   /** Stub provider — does not perform real I/O. */
   private static class StubSandboxProvider implements SandboxProvider {

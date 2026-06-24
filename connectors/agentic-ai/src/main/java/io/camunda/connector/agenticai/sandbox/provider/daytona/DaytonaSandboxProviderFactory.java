@@ -38,6 +38,11 @@ public class DaytonaSandboxProviderFactory implements SandboxProviderFactory {
   public SandboxSpec specFor(SandboxConfiguration config) {
     DaytonaSandboxConfiguration cfg = (DaytonaSandboxConfiguration) config;
     return new SandboxSpec(
-        cfg.snapshot(), null, null, cfg.autoStopMinutes(), cfg.autoArchiveMinutes());
+        cfg.snapshot(),
+        null,
+        null,
+        cfg.autoStopMinutes(),
+        cfg.autoArchiveMinutes(),
+        cfg.autoDeleteMinutes());
   }
 }
