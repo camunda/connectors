@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.*;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,12 @@ class AgentConversationTest {
       List<Message> storedMessages, List<Message> inputMessages) {
     var history = TurnReconstructor.reconstruct(storedMessages);
     return AgentConversation.rehydrate(
-        CONFIG, BASE_CONTEXT, history, systemMessage("sys"), inputMessages);
+        CONFIG,
+        BASE_CONTEXT,
+        history,
+        systemMessage("sys"),
+        inputMessages,
+        DocumentRegistry.empty());
   }
 
   @Test
@@ -94,7 +100,12 @@ class AgentConversationTest {
     var history = TurnReconstructor.reconstruct(List.of());
     var conv =
         AgentConversation.rehydrate(
-            CONFIG, BASE_CONTEXT, history, null, List.of(userMessage("hi")));
+            CONFIG,
+            BASE_CONTEXT,
+            history,
+            null,
+            List.of(userMessage("hi")),
+            DocumentRegistry.empty());
     assertThat(conv.systemMessage()).isNull();
     assertThat(conv.allMessages()).noneMatch(SystemMessage.class::isInstance);
     assertThat(conv.allMessages()).containsExactly(userMessage("hi"));
@@ -141,7 +152,8 @@ class AgentConversationTest {
             contextWithHistory,
             history,
             systemMessage("sys"),
-            List.of(userMessage("next")));
+            List.of(userMessage("next")),
+            DocumentRegistry.empty());
 
     assertThat(conv.turns()).hasSize(2);
     assertThat(conv.turns()).allSatisfy(t -> assertThat(t.metrics().modelCalls()).isZero());

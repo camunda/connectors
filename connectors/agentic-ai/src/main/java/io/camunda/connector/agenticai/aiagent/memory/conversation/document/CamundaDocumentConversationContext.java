@@ -6,13 +6,17 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.document.Document;
 import java.util.List;
+import org.springframework.lang.Nullable;
 
 @AgenticAiRecord
 @JsonDeserialize(
@@ -35,5 +39,12 @@ public record CamundaDocumentConversationContext(
   public static class CamundaDocumentConversationContextJacksonProxyBuilder
       extends CamundaDocumentConversationContextBuilder {}
 
-  public record DocumentContent(List<Message> messages) {}
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record DocumentContent(
+      List<Message> messages, @Nullable DocumentRegistry documentRegistry) {
+    public DocumentContent(List<Message> messages) {
+      this(messages, null);
+    }
+  }
 }

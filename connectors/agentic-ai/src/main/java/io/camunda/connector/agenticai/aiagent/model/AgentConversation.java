@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
@@ -35,19 +36,22 @@ public final class AgentConversation {
   private final @Nullable SystemMessage systemMessage;
   private final List<AgentConversationTurn> previousTurns;
   private final AgentConversationTurn currentTurn;
+  private final DocumentRegistry documentRegistry;
 
   private AgentConversation(
       AgentConfiguration configuration,
       AgentContext currentContext,
       @Nullable SystemMessage systemMessage,
       List<AgentConversationTurn> previousTurns,
-      AgentConversationTurn currentTurn) {
+      AgentConversationTurn currentTurn,
+      DocumentRegistry documentRegistry) {
     this.configuration = configuration;
     this.currentContext = currentContext;
     this.systemMessage = systemMessage;
     this.previousTurns = List.copyOf(previousTurns);
     this.currentTurn = currentTurn;
     this.agentInstanceKey = AgentInstanceKey.from(currentContext.metadata());
+    this.documentRegistry = documentRegistry;
   }
 
   /**
@@ -67,11 +71,17 @@ public final class AgentConversation {
       AgentContext agentContext,
       PreviousConversation previousConversation,
       @Nullable SystemMessage systemMessage,
-      List<Message> inputMessages) {
+      List<Message> inputMessages,
+      DocumentRegistry documentRegistry) {
     int nextKey = previousConversation.turns().size() + 1;
     var currentTurn = new AgentConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
     return new AgentConversation(
-        configuration, agentContext, systemMessage, previousConversation.turns(), currentTurn);
+        configuration,
+        agentContext,
+        systemMessage,
+        previousConversation.turns(),
+        currentTurn,
+        documentRegistry);
   }
 
   /**
@@ -85,7 +95,12 @@ public final class AgentConversation {
     }
     var completedTurn = currentTurn.withAssistantMessage(assistantMessage, turnMetrics);
     return new AgentConversation(
-        configuration, currentContext, systemMessage, previousTurns, completedTurn);
+        configuration,
+        currentContext,
+        systemMessage,
+        previousTurns,
+        completedTurn,
+        documentRegistry);
   }
 
   /**
@@ -95,7 +110,7 @@ public final class AgentConversation {
   public AgentConversation withStoredConversation(ConversationContext ref) {
     var updatedCtx = currentContext.withConversation(ref);
     return new AgentConversation(
-        configuration, updatedCtx, systemMessage, previousTurns, currentTurn);
+        configuration, updatedCtx, systemMessage, previousTurns, currentTurn, documentRegistry);
   }
 
   /** Returns the composed system message for this invocation, or {@code null} when it was blank. */
@@ -121,6 +136,11 @@ public final class AgentConversation {
   /** Returns the static per-invocation configuration. */
   public AgentConfiguration configuration() {
     return configuration;
+  }
+
+  /** Returns the document registry for this conversation. */
+  public DocumentRegistry documentRegistry() {
+    return documentRegistry;
   }
 
   /** Returns the current turn's metrics, or empty metrics while the turn is still pending. */
