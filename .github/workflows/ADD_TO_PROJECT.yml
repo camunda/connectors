@@ -61,19 +61,8 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          ITEM_DATA=$(gh api graphql \
-            -f query='query($owner: String!, $repo: String!, $issueNumber: Int!) { repository(owner: $owner, name: $repo) { issue(number: $issueNumber) { projectItems(first: 20) { nodes { id project { ... on ProjectV2 { number id } } } } } } }' \
-            -F owner='${{ github.repository_owner }}' \
-            -F repo='${{ github.event.repository.name }}' \
-            -F issueNumber=${{ github.event.issue.number }})
-          PROJECT_ID=$(echo “$ITEM_DATA” | jq -r '.data.repository.issue.projectItems.nodes[] | select(.project.number == 23) | .project.id' | head -1)
-          ITEM_ID=$(echo “$ITEM_DATA” | jq -r '.data.repository.issue.projectItems.nodes[] | select(.project.number == 23) | .id' | head -1)
-          if [ -n “$ITEM_ID” ] && [ “$ITEM_ID” != “null” ]; then
-            gh api graphql \
-              -f query='mutation($projectId: ID!, $itemId: ID!) { deleteProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) { deletedItemId } }' \
-              -F projectId=”$PROJECT_ID” \
-              -F itemId=”$ITEM_ID”
-          fi
+          PROJECT_TITLE=$(gh project view 23 --owner camunda --format json | jq -r '.title')
+          gh issue edit “${{ github.event.issue.number }}” --remove-project “$PROJECT_TITLE” --repo “${{ github.repository }}”
 
   add-default:
     name: Add issue to project if no label
