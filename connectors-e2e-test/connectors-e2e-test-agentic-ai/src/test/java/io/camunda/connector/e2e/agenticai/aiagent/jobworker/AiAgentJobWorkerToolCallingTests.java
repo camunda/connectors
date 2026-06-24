@@ -19,8 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.jobworker;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseExternalDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTagAttributes;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -111,20 +110,21 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
-    // tool result: document reference serialized as JSON
+    // Site-1: tool result message — document serialized as a JSON-encoded "<doc .../>" tag
+    // (no tool attribution). The content is a JSON string value containing the XML tag.
     final var toolResultText = lastMessages.get(3).content();
-    final var documentReference = parseDocumentReference(toolResultText);
     assertThat(lastMessages.get(3).role()).isEqualTo("tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
-    assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
+    final var site1Attrs = parseDocumentTagAttributes(toolResultText);
+    assertThat(site1Attrs.get("contentType")).isEqualTo(mimeType);
 
-    // document user message: extracted document content (decoded from wire format)
+    // Site-2: synthetic user message — same id, plus toolName and toolCallId for correlation
     assertExtractedDocumentsUserMessage(
         lastMessages.get(4),
         ExtractedDocument.forToolCall(
             "aaa111",
             "Download_A_File",
-            documentReference,
+            site1Attrs,
             block -> assertDocumentContentBlockJson(block, type, mimeType)));
 
     assertThat(lastMessages.get(5).role()).isEqualTo("assistant");
@@ -180,19 +180,21 @@ public class AiAgentJobWorkerToolCallingTests extends BaseAiAgentJobWorkerTest {
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
-    // tool result: external document reference serialized as { url, name }
+    // Site-1: tool result message — external document serialized as a JSON-encoded "<doc .../>"
+    // tag (id is "ext-<sha256(url)[:12]>", no fileName/contentType for external refs).
     final var toolResultText = lastMessages.get(3).content();
-    final var externalRef = parseExternalDocumentReference(toolResultText);
-    assertThat(externalRef.url()).isEqualTo(docUrl);
-    assertThat(externalRef.name()).isEqualTo(docName);
+    assertThat(lastMessages.get(3).role()).isEqualTo("tool");
+    assertThat(lastMessages.get(3).toolCallId()).isEqualTo("ext111");
+    final var site1Attrs = parseDocumentTagAttributes(toolResultText);
+    assertThat(site1Attrs.get("id")).startsWith("ext-");
 
-    // document user message: external doc rendered with content block
+    // Site-2: synthetic user message — same id, plus toolName and toolCallId for correlation
     assertExtractedDocumentsUserMessage(
         lastMessages.get(4),
-        ExtractedDocument.forExternalToolCall(
+        ExtractedDocument.forToolCall(
             "ext111",
             "External_File_Reference",
-            externalRef,
+            site1Attrs,
             block -> assertDocumentContentBlockJson(block, "base64", "application/pdf")));
 
     assertAgentResponse(

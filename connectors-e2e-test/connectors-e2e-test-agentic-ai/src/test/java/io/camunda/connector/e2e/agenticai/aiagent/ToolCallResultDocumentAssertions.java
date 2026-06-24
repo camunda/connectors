@@ -22,14 +22,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
-import io.camunda.connector.document.jackson.DocumentReferenceModel;
-import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Assertion helpers for the synthetic user message that carries documents extracted from tool call
@@ -37,62 +36,124 @@ import java.util.function.Consumer;
  *
  * <p>The user message has the structure {@code preamble + (xml-tag, content-block)*}, so it can
  * carry documents from one or many tool call results. Use {@link
- * #assertExtractedDocumentsUserMessage(JsonNode, ExtractedDocument...)} to assert against any
- * number of documents in one go.
+ * #assertExtractedDocumentsUserMessage(RecordedMessage, ExtractedDocument...)} to assert against
+ * any number of documents in one go.
  *
  * <p>All assertions operate on OpenAI-compatible wire-format {@link JsonNode} objects recorded by
  * WireMock — no framework-specific types required.
+ *
+ * <h2>Site-1 vs Site-2 rendering</h2>
+ *
+ * <p><b>Site 1 — tool result message</b>: A {@link io.camunda.connector.api.document.Document} in
+ * the tool call result is serialized via {@link
+ * io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentReferenceTagSerializer}
+ * which writes the document as a JSON string containing the {@code <doc/>} XML tag (id, fileName,
+ * contentType only — no tool attribution). When the result is a bare {@code Document}, the tool
+ * message content is a JSON string value (e.g. {@code "\"<doc id=\\\"...\\\" />\"")}. When the
+ * result is wrapped in an object (e.g. an HTTP connector returning {@code {"status":200,
+ * "document":"<doc .../>"}}) the tag appears as a string value nested inside the JSON object. Use
+ * {@link #parseDocumentTagAttributes(String)} to find and parse the {@code <doc/>} tag from either
+ * form.
+ *
+ * <p><b>Site 2 — synthetic user message</b>: The extracted-documents user message uses the same
+ * {@code <doc/>} tag format but also includes {@code toolName} and {@code toolCallId} attributes
+ * for correlation. The tag is rendered with the same {@code id} as Site 1 so that the LLM can
+ * correlate the tool result marker with the document content.
  */
 public final class ToolCallResultDocumentAssertions {
 
   public static final String EXTRACTED_DOCUMENTS_PREAMBLE =
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
+  /** Pattern that matches a {@code <doc ... />} self-closing XML tag. */
+  private static final Pattern DOC_TAG_PATTERN = Pattern.compile("<doc[^>]*/>");
+
+  /** Pattern that matches a named attribute in an XML tag: {@code name="value"}. */
+  private static final Pattern ATTR_PATTERN = Pattern.compile("(\\w+)=\"([^\"]*?)\"");
+
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private ToolCallResultDocumentAssertions() {}
 
   /**
-   * Locates the first Camunda document reference inside a serialized tool call result and
-   * deserializes it into the production {@link CamundaDocumentReferenceModel}. Recursively descends
-   * into objects/arrays until it finds an object carrying the {@code camunda.document.type=camunda}
-   * discriminator.
+   * Parses the Site-1 tool result content and returns the attributes of the first {@code <doc/>}
+   * tag found.
    *
-   * <p>Throws {@link AssertionError} if the text cannot be parsed as JSON or no document reference
-   * is present.
+   * <p>Site-1 tool result content may be:
+   *
+   * <ul>
+   *   <li>a JSON string containing the {@code <doc/>} tag directly (bare {@code Document} result),
+   *       e.g. {@code "\"<doc id=\\\"...\\\" />\""}
+   *   <li>a JSON object where one of the string values contains a {@code <doc/>} tag (e.g. an HTTP
+   *       connector returning {@code {"status":200,"document":"<doc id=\\\"...\\\" />"}})
+   * </ul>
+   *
+   * <p>Throws {@link AssertionError} if no {@code <doc/>} tag is found.
    */
-  public static CamundaDocumentReferenceModel parseDocumentReference(String toolResultText) {
-    return parseFirstDocumentNode(toolResultText, "camunda", CamundaDocumentReferenceModel.class);
+  public static Map<String, String> parseDocumentTagAttributes(String toolResultContent) {
+    final String tag = findDocTag(toolResultContent);
+    final Map<String, String> attributes = new LinkedHashMap<>();
+    final Matcher attrMatcher = ATTR_PATTERN.matcher(tag);
+    while (attrMatcher.find()) {
+      attributes.put(attrMatcher.group(1), attrMatcher.group(2));
+    }
+    return attributes;
   }
 
-  /** Same as {@link #parseDocumentReference} but for external references. */
-  public static ExternalDocumentReferenceModel parseExternalDocumentReference(
-      String toolResultText) {
-    return parseFirstDocumentNode(toolResultText, "external", ExternalDocumentReferenceModel.class);
+  /**
+   * Extracts the raw {@code <doc/>} XML tag string from a Site-1 tool result content. Handles both
+   * bare JSON string content and JSON object content where the tag is nested in a string field.
+   * Throws {@link AssertionError} if no {@code <doc/>} tag is found.
+   */
+  public static String parseDocumentReferenceTag(String toolResultContent) {
+    return findDocTag(toolResultContent);
   }
 
-  private static <T> T parseFirstDocumentNode(
-      String toolResultText, String discriminator, Class<T> referenceType) {
+  /**
+   * Finds the first {@code <doc/>} tag anywhere in the tool result content, which may be a JSON
+   * string or a JSON object containing string fields.
+   */
+  private static String findDocTag(String toolResultContent) {
     final JsonNode root;
     try {
-      root = OBJECT_MAPPER.readTree(toolResultText);
-    } catch (JsonProcessingException e) {
-      throw new AssertionError("Failed to parse tool result text as JSON: " + toolResultText, e);
-    }
-
-    final JsonNode docNode = findFirstDocumentNode(root, discriminator);
-    if (docNode == null) {
-      throw new AssertionError(
-          "No '%s' document reference found in tool result text: %s"
-              .formatted(discriminator, toolResultText));
-    }
-
-    try {
-      return OBJECT_MAPPER.treeToValue(docNode, referenceType);
+      root = OBJECT_MAPPER.readTree(toolResultContent);
     } catch (JsonProcessingException e) {
       throw new AssertionError(
-          "Failed to deserialize '%s' document reference: %s".formatted(discriminator, docNode), e);
+          "Failed to parse tool result content as JSON: " + toolResultContent, e);
     }
+
+    final String tag = findDocTagInNode(root);
+    if (tag == null) {
+      throw new AssertionError("No <doc/> tag found in tool result content: " + toolResultContent);
+    }
+    return tag;
+  }
+
+  private static String findDocTagInNode(JsonNode node) {
+    if (node == null) {
+      return null;
+    }
+    if (node.isTextual()) {
+      final Matcher m = DOC_TAG_PATTERN.matcher(node.asText());
+      if (m.find()) {
+        return m.group();
+      }
+    } else if (node.isObject()) {
+      for (var entry : node.properties()) {
+        final String found = findDocTagInNode(entry.getValue());
+        if (found != null) {
+          return found;
+        }
+      }
+    } else if (node.isArray()) {
+      for (var element : node) {
+        final String found = findDocTagInNode(element);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+    return null;
   }
 
   /**
@@ -166,31 +227,6 @@ public final class ToolCallResultDocumentAssertions {
     }
   }
 
-  private static JsonNode findFirstDocumentNode(JsonNode node, String discriminator) {
-    if (node == null) {
-      return null;
-    }
-    if (node.isObject()) {
-      if (discriminator.equals(node.path(DocumentReferenceModel.DISCRIMINATOR_KEY).asText(null))) {
-        return node;
-      }
-      for (var property : node.properties()) {
-        final var found = findFirstDocumentNode(property.getValue(), discriminator);
-        if (found != null) {
-          return found;
-        }
-      }
-    } else if (node.isArray()) {
-      for (var element : node) {
-        final var found = findFirstDocumentNode(element, discriminator);
-        if (found != null) {
-          return found;
-        }
-      }
-    }
-    return null;
-  }
-
   /**
    * Specification of one expected extracted document slot in the synthetic user message: an XML tag
    * with optional tool call correlation attributes plus a content block check operating on the raw
@@ -198,34 +234,29 @@ public final class ToolCallResultDocumentAssertions {
    */
   public record ExtractedDocument(String expectedXmlTag, Consumer<JsonNode> contentBlockAssertion) {
 
-    /** Camunda document extracted from a tool call result. */
+    /**
+     * Document extracted from a tool call result. Builds the expected Site-2 {@code <doc/>} tag
+     * from the attributes parsed out of the Site-1 tag (id, fileName, contentType) combined with
+     * the tool call attribution (toolCallId, toolName).
+     *
+     * @param toolCallId tool call id for Site-2 attribution
+     * @param toolName tool name for Site-2 attribution
+     * @param site1Attributes attributes map from {@link
+     *     ToolCallResultDocumentAssertions#parseDocumentTagAttributes(String)}
+     * @param contentBlockAssertion assertion on the OpenAI content block node
+     */
     public static ExtractedDocument forToolCall(
         String toolCallId,
         String toolName,
-        CamundaDocumentReferenceModel reference,
+        Map<String, String> site1Attributes,
         Consumer<JsonNode> contentBlockAssertion) {
-      final var metadata = reference.metadata();
       return new ExtractedDocument(
-          new CamundaDocumentReferenceXmlTag(
+          new DocumentReferenceXmlTag(
+                  site1Attributes.get("id"),
+                  site1Attributes.get("fileName"),
+                  site1Attributes.get("contentType"),
                   toolCallId,
-                  toolName,
-                  reference.documentId(),
-                  reference.storeId(),
-                  metadata != null ? metadata.getContentType() : null,
-                  metadata != null ? metadata.getFileName() : null)
-              .toXml(),
-          contentBlockAssertion);
-    }
-
-    /** External document extracted from a tool call result. */
-    public static ExtractedDocument forExternalToolCall(
-        String toolCallId,
-        String toolName,
-        ExternalDocumentReferenceModel reference,
-        Consumer<JsonNode> contentBlockAssertion) {
-      return new ExtractedDocument(
-          new ExternalDocumentReferenceXmlTag(
-                  toolCallId, toolName, reference.url(), reference.name())
+                  toolName)
               .toXml(),
           contentBlockAssertion);
     }

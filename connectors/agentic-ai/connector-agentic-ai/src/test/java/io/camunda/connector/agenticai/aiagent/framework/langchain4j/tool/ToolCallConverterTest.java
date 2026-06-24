@@ -8,20 +8,22 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
@@ -161,19 +163,24 @@ class ToolCallConverterTest {
     }
 
     @Test
-    void serializesDocumentsAsReferencesInResults() throws JSONException {
+    void serializesDocumentsAsXmlDocTagsInResults() throws JSONException {
       final var doc1 = createDocument("Hello, world!", "text/plain", "test.txt");
       final var doc2 = createDocument("<PDF CONTENT>", "application/pdf", "test.pdf");
-      final var doc1Ref = (CamundaDocumentReference) doc1.reference();
-      final var doc2Ref = (CamundaDocumentReference) doc2.reference();
+      final var doc1Id = DocumentHandle.idFor(doc1);
+      final var doc2Id = DocumentHandle.idFor(doc2);
+      // Use a mock for external doc — ExternalDocument would try to download the URL for metadata
+      final var externalRef = mock(ExternalDocumentReference.class);
+      when(externalRef.url()).thenReturn("https://example.com/report.pdf");
+      final var externalDoc = mock(Document.class);
+      when(externalDoc.reference()).thenReturn(externalRef);
+      when(externalDoc.metadata()).thenReturn(null);
+      final var externalDocId = DocumentHandle.idFor(externalDoc);
 
       final var content = new LinkedHashMap<String, Object>();
       content.put("hello", "world");
       content.put("document1", doc1);
       content.put("document2", doc2);
-      content.put(
-          "document3",
-          new ExternalDocument("https://example.com/report.pdf", "Quarterly Report", url -> null));
+      content.put("document3", externalDoc);
 
       final ToolCallResult toolCallResult =
           ToolCallResult.builder().id("toolId").name("toolName").content(content).build();
@@ -183,42 +190,42 @@ class ToolCallConverterTest {
       assertThat(resultMessage.id()).isEqualTo("toolId");
       assertThat(resultMessage.toolName()).isEqualTo("toolName");
 
+      // Documents are now serialized as <doc id="..." .../> XML tags (Site 1: no tool attribution).
+      // The surrounding JSON structure is preserved; only Document leaf nodes are substituted.
       JSONAssert.assertEquals(
           """
           {
             "hello": "world",
-            "document1": {
-              "camunda.document.type": "camunda",
-              "storeId": "in-memory",
-              "documentId": "%s",
-              "contentHash": "%s",
-              "metadata": {
-                "contentType": "text/plain",
-                "fileName": "test.txt"
-              }
-            },
-            "document2": {
-              "camunda.document.type": "camunda",
-              "storeId": "in-memory",
-              "documentId": "%s",
-              "contentHash": "%s",
-              "metadata": {
-                "contentType": "application/pdf",
-                "fileName": "test.pdf"
-              }
-            },
-            "document3": {
-              "camunda.document.type": "external",
-              "url": "https://example.com/report.pdf",
-              "name": "Quarterly Report"
-            }
+            "document1": "<doc id=\\"%s\\" fileName=\\"test.txt\\" contentType=\\"text/plain\\" />",
+            "document2": "<doc id=\\"%s\\" fileName=\\"test.pdf\\" contentType=\\"application/pdf\\" />",
+            "document3": "<doc id=\\"%s\\" />"
           }
           """
-              .formatted(
-                  doc1Ref.getDocumentId(),
-                  doc1Ref.getContentHash(),
-                  doc2Ref.getDocumentId(),
-                  doc2Ref.getContentHash()),
+              .formatted(doc1Id, doc2Id, externalDocId),
+          resultMessage.text(),
+          true);
+    }
+
+    @Test
+    void serializesDocumentListsAsXmlTags() throws JSONException {
+      final var doc1 = createDocument("data", "text/plain", "file.txt");
+      final var doc1Id = DocumentHandle.idFor(doc1);
+
+      final var content = new LinkedHashMap<String, Object>();
+      content.put("files", List.of(doc1));
+
+      final ToolCallResult toolCallResult =
+          ToolCallResult.builder().id("toolId").name("toolName").content(content).build();
+
+      final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
+
+      JSONAssert.assertEquals(
+          """
+          {
+            "files": ["<doc id=\\"%s\\" fileName=\\"file.txt\\" contentType=\\"text/plain\\" />"]
+          }
+          """
+              .formatted(doc1Id),
           resultMessage.text(),
           true);
     }

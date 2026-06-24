@@ -18,14 +18,12 @@ package io.camunda.connector.e2e.agenticai.aiagent.outboundconnector;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.EXTRACTED_DOCUMENTS_PREAMBLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseExternalDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReferenceTag;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -35,12 +33,17 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 @SlowTest
 public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
+
+  /** Pattern to extract a named attribute value from a {@code <doc .../>} XML tag. */
+  private static final Pattern ATTR_PATTERN = Pattern.compile("(\\w+)=\"([^\"]*?)\"");
 
   @Test
   void executesAgentWithToolCallingAndUserFeedback() throws Exception {
@@ -102,23 +105,21 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
     assertRole(lastMessages.get(1), "user"); // initial prompt
     assertRole(lastMessages.get(2), "assistant"); // tool call
 
-    // tool result: document serialized as a document reference (parsed from the tool message text)
+    // Site-1: tool result message — document serialized as a JSON-encoded "<doc .../>" tag
+    // (no tool attribution). The content is a JSON string, e.g. "\"<doc id=\\\"...\\\" />\"".
     assertRole(lastMessages.get(3), "tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
-    final var documentReference = parseDocumentReference(lastMessages.get(3).content());
-    assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
+    final var site1Tag = parseDocumentReferenceTag(lastMessages.get(3).content());
+    final var docId = extractAttr(site1Tag, "id");
+    final var docFileName = extractAttr(site1Tag, "fileName");
+    final var docContentType = extractAttr(site1Tag, "contentType");
+    assertThat(docContentType).isEqualTo(mimeType);
 
-    // synthetic user message carrying the extracted document content
-    final var expectedXmlTag =
-        new CamundaDocumentReferenceXmlTag(
-                "aaa111",
-                "Download_A_File",
-                documentReference.documentId(),
-                documentReference.storeId(),
-                documentReference.metadata().getContentType(),
-                documentReference.metadata().getFileName())
+    // Site-2: synthetic user message — same id, plus toolName and toolCallId for correlation
+    final var expectedSite2Tag =
+        new DocumentReferenceXmlTag(docId, docFileName, docContentType, "aaa111", "Download_A_File")
             .toXml();
-    assertExtractedDocumentsUserMessage(lastMessages.get(4), expectedXmlTag, type, mimeType);
+    assertExtractedDocumentsUserMessage(lastMessages.get(4), expectedSite2Tag, type, mimeType);
 
     assertRole(lastMessages.get(5), "assistant"); // response after tool
     assertRole(lastMessages.get(6), "user"); // follow-up prompt
@@ -141,7 +142,6 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
   void supportsExternalDocumentReferenceResponsesFromToolCalls() throws Exception {
     final var initialUserPrompt = "Reference an external document!";
     final var docUrl = wireMock.getHttpBaseUrl() + "/test.pdf";
-    final var docName = "Quarterly Report";
     final var aiFinalResponseText = "Referenced the external document.";
 
     OpenAiCompletionsChatModelStubs.stubConversation(
@@ -152,7 +152,7 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
             ToolCall.of(
                 "ext111",
                 "External_File_Reference",
-                "{\"url\": \"%s\", \"name\": \"%s\"}".formatted(docUrl, docName))),
+                "{\"url\": \"%s\", \"name\": \"%s\"}".formatted(docUrl, "Quarterly Report"))),
         Turn.text(aiFinalResponseText, 11, 22));
 
     enqueueUserFeedback(userSatisfiedFeedback());
@@ -171,19 +171,26 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
     assertRole(lastMessages.get(1), "user"); // initial prompt
     assertRole(lastMessages.get(2), "assistant"); // tool call
 
-    // tool result: external document reference serialized as { url, name }
+    // Site-1: tool result message — external document serialized as a JSON-encoded "<doc .../>" tag
+    // (no tool attribution). The id is "ext-<sha256(url)[:12]>".
     assertRole(lastMessages.get(3), "tool");
-    final var externalRef = parseExternalDocumentReference(lastMessages.get(3).content());
-    assertThat(externalRef.url()).isEqualTo(docUrl);
-    assertThat(externalRef.name()).isEqualTo(docName);
+    assertThat(lastMessages.get(3).toolCallId()).isEqualTo("ext111");
+    final var site1Tag = parseDocumentReferenceTag(lastMessages.get(3).content());
+    final var extDocId = extractAttr(site1Tag, "id");
+    assertThat(extDocId).startsWith("ext-");
 
-    // synthetic user message: external doc rendered as <doc url="…" name="…" /> + content block
-    final var expectedXmlTag =
-        new ExternalDocumentReferenceXmlTag(
-                "ext111", "External_File_Reference", externalRef.url(), externalRef.name())
+    // Site-2: synthetic user message — same id, plus the resolved fileName/contentType and the
+    // toolName/toolCallId correlation attributes (the external doc's name + resolved PDF type).
+    final var expectedSite2Tag =
+        new DocumentReferenceXmlTag(
+                extDocId,
+                "Quarterly Report",
+                "application/pdf",
+                "ext111",
+                "External_File_Reference")
             .toXml();
     assertExtractedDocumentsUserMessage(
-        lastMessages.get(4), expectedXmlTag, "base64", "application/pdf");
+        lastMessages.get(4), expectedSite2Tag, "base64", "application/pdf");
 
     assertAgentResponse(
         zeebeTest,
@@ -212,7 +219,7 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
    * block}.
    *
    * <p>The content block is classified the same way as {@link
-   * io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions#assertDocumentContentBlock}:
+   * io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions#assertDocumentContentBlockJson}:
    * {@code text} → {@code type=text}; {@code application/pdf} → {@code type=file}; otherwise {@code
    * type=image_url} with a {@code data:<mime>;base64,} URL.
    */
@@ -244,5 +251,19 @@ public class AiAgentConnectorToolCallingTests extends BaseAiAgentConnectorTest {
       assertThat(block.path("image_url").path("url").asText())
           .startsWith("data:" + expectedMimeType + ";base64,");
     }
+  }
+
+  /**
+   * Extracts the value of the named attribute from a {@code <doc .../> } XML tag string. Returns
+   * {@code null} if the attribute is not present.
+   */
+  private static String extractAttr(String xmlTag, String attributeName) {
+    final Matcher m = ATTR_PATTERN.matcher(xmlTag);
+    while (m.find()) {
+      if (attributeName.equals(m.group(1))) {
+        return m.group(2);
+      }
+    }
+    return null;
   }
 }
