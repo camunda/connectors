@@ -6,8 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCallResultMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -177,6 +179,14 @@ class BaseAgentRequestHandlerSubLoopTest {
     return assistantMessage("calling external tool", List.of(toolCall));
   }
 
+  private AssistantMessage withInternalAndExternalToolCall(String internalId, String externalId) {
+    var internal =
+        ToolCall.builder().id(internalId).name(INTERNAL_TOOL_NAME).arguments(Map.of()).build();
+    var external =
+        ToolCall.builder().id(externalId).name(EXTERNAL_TOOL_NAME).arguments(Map.of()).build();
+    return assistantMessage("calling internal and external tools", List.of(internal, external));
+  }
+
   private AssistantMessage finalAnswer(String text) {
     return assistantMessage(text);
   }
@@ -298,6 +308,43 @@ class BaseAgentRequestHandlerSubLoopTest {
     assertThat(response.agentResponse().toolCalls()).hasSize(1);
     assertThat(response.agentResponse().toolCalls().get(0).metadata().name())
         .isEqualTo(EXTERNAL_TOOL_NAME);
+  }
+
+  @Test
+  void mixedTurn_internalAndExternalInOneTurn_reEntersSuccessfully() {
+    // Turn 1: a single assistant message requesting BOTH an in-process and an external tool call.
+    // The in-process tool runs immediately; the external call is surfaced to the AHSP and the job
+    // completes. The in-process result is persisted as an open trailing turn.
+    doReturn(new TestChatResponse(withInternalAndExternalToolCall("i1", "e1"), TOKEN_USAGE))
+        .when(framework)
+        .executeMeasuringTime(any(), any());
+
+    var first = requestHandler.handleRequest(executionContext);
+
+    verify(framework, times(1)).executeMeasuringTime(any(), any());
+    assertThat(stubHandler.getCallCount()).isEqualTo(1);
+    assertThat(first.agentResponse().toolCalls()).hasSize(1);
+    assertThat(first.agentResponse().toolCalls().get(0).metadata().name())
+        .isEqualTo(EXTERNAL_TOOL_NAME);
+
+    // Re-entry: the external tool result arrives. The conversation persisted in turn 1 ends with
+    // the open trailing turn (the in-process result). Reconstruction must NOT reject it, and the
+    // persisted in-process result must merge with the arriving external result as the next turn's
+    // input. (Before the fix, TurnReconstructor threw here and the AI_Agent raised an incident.)
+    var storedContext = first.agentResponse().context();
+    when(agentInitializer.initializeAgent(executionContext))
+        .thenReturn(new ReadyToConverse(storedContext, TOOL_CALL_RESULTS));
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(
+            new CompositionResult.NextTurn(List.of(toolCallResultMessage(TOOL_CALL_RESULTS))));
+    doReturn(new TestChatResponse(finalAnswer("here is the summary"), TOKEN_USAGE))
+        .when(framework)
+        .executeMeasuringTime(any(), any());
+
+    var second = requestHandler.handleRequest(executionContext);
+
+    assertThat(second.agentResponse().responseText()).isEqualTo("here is the summary");
+    assertThat(second.agentResponse().toolCalls()).isEmpty();
   }
 
   @Test

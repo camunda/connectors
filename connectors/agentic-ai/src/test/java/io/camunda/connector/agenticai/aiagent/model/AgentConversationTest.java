@@ -51,6 +51,27 @@ class AgentConversationTest {
   }
 
   @Test
+  void rehydrate_mergesPendingInput_fromOpenTrailingTurn() {
+    // Stored conversation ends with an open turn: an in-process tool result was persisted while an
+    // external tool call was still pending (mixed turn). On re-entry the external result arrives as
+    // the input; both must be merged into the next turn's input.
+    var internalResult = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var storedMessages =
+        List.<Message>of(
+            userMessage("load the skill and fetch the file"),
+            assistantMessage("calling tools", TOOL_CALLS),
+            internalResult);
+    var externalResult = toolCallResultMessage(TOOL_CALL_RESULTS);
+
+    var conv = rehydrate(storedMessages, List.of(externalResult));
+
+    assertThat(conv.turns()).hasSize(1); // the single completed turn (the assistant tool-call turn)
+    assertThat(conv.currentTurn().assistantMessage()).isNull();
+    assertThat(conv.currentTurn().iterationKey()).isEqualTo(2);
+    assertThat(conv.currentTurn().inputMessages()).containsExactly(internalResult, externalResult);
+  }
+
+  @Test
   void rehydrate_createsPendingTurn_withInputMessages() {
     var inputMessages = List.<Message>of(userMessage("hello"));
     var conv = rehydrate(List.of(), inputMessages);

@@ -69,7 +69,19 @@ public final class AgentConversation {
       @Nullable SystemMessage systemMessage,
       List<Message> inputMessages) {
     int nextKey = previousConversation.turns().size() + 1;
-    var currentTurn = new AgentConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
+    // Prepend any pending input from an open trailing turn (e.g. an in-process tool result recorded
+    // while an external tool call was still pending) so it is merged with this turn's input — both
+    // are answers to the same prior assistant message. Normally pendingInputMessages is empty.
+    var pending = previousConversation.pendingInputMessages();
+    List<Message> turnInput;
+    if (pending.isEmpty()) {
+      turnInput = inputMessages;
+    } else {
+      turnInput = new ArrayList<>(pending.size() + inputMessages.size());
+      turnInput.addAll(pending);
+      turnInput.addAll(inputMessages);
+    }
+    var currentTurn = new AgentConversationTurn(nextKey, turnInput, null, AgentMetrics.empty());
     return new AgentConversation(
         configuration, agentContext, systemMessage, previousConversation.turns(), currentTurn);
   }
