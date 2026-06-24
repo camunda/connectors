@@ -232,7 +232,7 @@ public class AiAgentSandboxSkillsIT {
             """
             The agent variable contains a responseText showing it fetched a CSV document, imported
             it into its sandbox, and reports details of the file: that the header/first line is
-            "name,score" and that the file contains rows for alice, bob and carol (4 data rows / 5
+            "name,score" and that the file contains rows for alice, bob and carol (3 data rows / 4
             total lines).""");
   }
 
