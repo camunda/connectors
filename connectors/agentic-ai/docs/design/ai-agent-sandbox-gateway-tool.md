@@ -380,11 +380,12 @@ Commits: P5a `57d80dd0b8` (connector), P5b `3ffb3858f9` (core). Affected sandbox
 contributor handles the serialized metadata form; CREATE materializes bundles + scans the FS catalog.
 The full `fs_read`-of-`location` round-trip is validated end-to-end in P8.
 
-### P6 — Remove the in-process variant from core
-Delete the sub-loop, internal-tool framework, SPI/fake, `SandboxSessionFactory`, and the AI Agent
-`sandbox`/`skills` config fields. Revert turn semantics. *Acceptance:* full module suite green; no
-`SandboxProvider`/internal-tool references remain; AI Agent behaves as today when no sandbox element is
-present.
+### P6 — Remove the in-process variant from core — ✅ DONE (no-op)
+Verified nothing to remove: this branch was cut from `main`, which never carried the in-process PoC.
+No `SandboxProvider`/`SandboxSession`/`InternalTool*` sources exist; the AI Agent request has no
+`sandbox`/`skills` config fields; `BaseAgentRequestHandler` has no sub-loop, `maxInternalToolIterations`,
+or mixed-turn machinery. Turn semantics are already classic. The migration surface in §10 applies only
+to PR #7594 (the in-process reference), not to this branch.
 
 ### P7 — Frozen-prompt/agent-instance verification
 Verify whether composing at READY (catalog known) closes §14.3. Implement if free; else re-note the
