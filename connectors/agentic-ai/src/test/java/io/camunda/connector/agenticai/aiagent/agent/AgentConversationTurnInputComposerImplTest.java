@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCallResultMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -132,6 +133,60 @@ class AgentConversationTurnInputComposerImplTest {
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
     var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+  }
+
+  @Test
+  void mixedTurn_internalToolAnsweredInProcess_externalResultProceeds() {
+    // Mixed turn: the stored conversation ends with an open trailing turn — the assistant
+    // requested two tool calls (one internal, one external), the internal one was already
+    // executed in-process and persisted as pending input, and now the external result arrives.
+    // The internal tool call must be treated as satisfied (merged later by rehydrate), so only
+    // the external result is needed to proceed.
+    List<Message> storedMessages =
+        List.of(
+            userMessage("hi"),
+            assistantMessage("thinking", TOOL_CALLS),
+            // "fedcba" was answered in-process; it is the open trailing turn's pending input
+            toolCallResultMessage(List.of(TOOL_CALL_RESULTS.get(1))));
+    var history = TurnReconstructor.reconstruct(storedMessages);
+    assertThat(history.pendingInputMessages()).hasSize(1);
+
+    // only the external tool call result ("abcdef") arrives
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.getFirst()));
+
+    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+
+    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
+    var nextTurn = (CompositionResult.NextTurn) result;
+    // only the external result is composed here; the in-process result is prepended by rehydrate
+    assertThat(nextTurn.messages())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            m ->
+                assertThat(m.results())
+                    .singleElement()
+                    .satisfies(r -> assertThat(r.id()).isEqualTo("abcdef")));
+  }
+
+  @Test
+  void mixedTurn_internalAnsweredButExternalStillMissing_defers() {
+    // Same open trailing turn, but the external result has not arrived yet -> still defer.
+    List<Message> storedMessages =
+        List.of(
+            userMessage("hi"),
+            assistantMessage("thinking", TOOL_CALLS),
+            toolCallResultMessage(List.of(TOOL_CALL_RESULTS.get(1))));
+    var history = TurnReconstructor.reconstruct(storedMessages);
+
+    var input = AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of());
+
+    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
   }
 

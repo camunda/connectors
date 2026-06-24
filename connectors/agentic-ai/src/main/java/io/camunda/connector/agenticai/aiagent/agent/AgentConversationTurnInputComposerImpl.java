@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -97,9 +98,21 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
       final var toolCalls = previousConversation.turns().getLast().toolCalls();
 
+      // Tool calls already answered in-process during a mixed turn (e.g. a sandbox tool executed
+      // by the sub-loop while an external BPMN tool call is dispatched through the AHSP) are
+      // persisted as pending input and merged into the next turn by AgentConversation#rehydrate.
+      // They must NOT be treated as missing here, and they are NOT re-added to this message —
+      // rehydrate prepends them.
+      final var alreadyAnsweredToolCallIds =
+          alreadyAnsweredToolCallIds(previousConversation.pendingInputMessages());
+
       final var toolCallResultMessage =
           createToolCallResultMessage(
-              agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
+              agentContext,
+              toolCalls,
+              agentInput.toolCallResults(),
+              alreadyAnsweredToolCallIds,
+              interruptMissingToolCalls);
 
       // either we have all results or we interrupted the missing tool calls
       // if message is null, we wait on further tool call results to be added
@@ -153,10 +166,20 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return UserMessage.builder().content(content).metadata(defaultMessageMetadata()).build();
   }
 
+  private Set<String> alreadyAnsweredToolCallIds(List<Message> pendingInputMessages) {
+    return pendingInputMessages.stream()
+        .filter(ToolCallResultMessage.class::isInstance)
+        .map(ToolCallResultMessage.class::cast)
+        .flatMap(m -> m.results().stream())
+        .map(ToolCallResult::id)
+        .collect(Collectors.toSet());
+  }
+
   private Optional<ToolCallResultMessage> createToolCallResultMessage(
       AgentContext agentContext,
       List<ToolCall> toolCalls,
       List<ToolCallResult> toolCallResults,
+      Set<String> alreadyAnsweredToolCallIds,
       boolean interruptMissingToolCalls) {
     final var transformedToolCallResults =
         gatewayToolHandlers.transformToolCallResults(agentContext, toolCallResults);
@@ -168,6 +191,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     final var orderedToolCallResults = new ArrayList<ToolCallResult>();
     toolCalls.forEach(
         toolCall -> {
+          // Already answered in-process (mixed turn) — satisfied, and merged by rehydrate.
+          if (alreadyAnsweredToolCallIds.contains(toolCall.id())) {
+            return;
+          }
           final var result = toolCallResultsById.get(toolCall.id());
           if (result != null) {
             orderedToolCallResults.add(result);
