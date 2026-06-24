@@ -15,15 +15,6 @@ jobs:
   add-by-label:
     name: Add issue to project if label
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        mapping:
-          - label: idp
-            project-url: https://github.com/orgs/camunda/projects/133/views/1
-          - label: agentic-ai
-            project-url: https://github.com/orgs/camunda/projects/155/views/1
-
     steps:
       - name: Import Secrets
         id: vault-secrets
@@ -53,25 +44,32 @@ jobs:
         env:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
 
-      - name: Add to project if “${{ matrix.mapping.label }}” present
-        if: contains(steps.get-labels.outputs.labels, matrix.mapping.label)
+      - name: Add to idp project
+        if: contains(steps.get-labels.outputs.labels, 'idp')
         uses: actions/add-to-project@v2.0.0
         with:
-          project-url: ${{ matrix.mapping.project-url }}
+          project-url: https://github.com/orgs/camunda/projects/133/views/1
+          github-token: ${{ steps.app-token.outputs.token }}
+
+      - name: Add to agentic-ai project
+        if: contains(steps.get-labels.outputs.labels, 'agentic-ai')
+        uses: actions/add-to-project@v2.0.0
+        with:
+          project-url: https://github.com/orgs/camunda/projects/155/views/1
           github-token: ${{ steps.app-token.outputs.token }}
 
       - name: Remove from connectors project
-        if: contains(steps.get-labels.outputs.labels, matrix.mapping.label)
+        if: contains(steps.get-labels.outputs.labels, 'idp') || contains(steps.get-labels.outputs.labels, 'agentic-ai')
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
         run: |
           PROJECT_TITLE=$(gh project view 23 --owner camunda --format json | jq -r '.title')
-          ITEM_NUMBER=$(jq -r '.issue.number // .pull_request.number' < “$GITHUB_EVENT_PATH”)
-          if [ “${{ github.event_name }}” = “pull_request” ]; then
-            gh pr edit “$ITEM_NUMBER” --remove-project “$PROJECT_TITLE” --repo “${{ github.repository }}”
+          ITEM_NUMBER=$(jq -r '.issue.number // .pull_request.number' < "$GITHUB_EVENT_PATH")
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            gh pr edit "$ITEM_NUMBER" --remove-project "$PROJECT_TITLE" --repo "${{ github.repository }}"
           else
-            gh issue edit “$ITEM_NUMBER” --remove-project “$PROJECT_TITLE” --repo “${{ github.repository }}”
+            gh issue edit "$ITEM_NUMBER" --remove-project "$PROJECT_TITLE" --repo "${{ github.repository }}"
           fi
 
   add-default:
