@@ -76,7 +76,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.82.0</version.grpc>
+    <version.grpc>1.82.1</version.grpc>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
@@ -91,7 +91,7 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>3.5.15</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>7.4.9</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.34</version.logback>
+    <version.logback>1.5.35</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
     <version.software-aws-java-sdk>2.46.17</version.software-aws-java-sdk>
@@ -125,7 +125,7 @@ limitations under the License.</license.inlineheader>
     <version.commons-io>2.22.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
-    <version.kafka-clients>4.3.0</version.kafka-clients>
+    <version.kafka-clients>4.3.1</version.kafka-clients>
 
     <version.microsoft-graph>6.65.0</version.microsoft-graph>
     <version.azure-identity>1.18.4</version.azure-identity>
