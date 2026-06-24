@@ -110,7 +110,8 @@ public class HttpJsonFunctionTest extends BaseTest {
         "{ \"createdAt\": \"2022-10-10T05:03:14.723Z\", \"name\": \"Marvin Cremin\",\"unknown\": null, \"id\": \"1\" }";
     stubFor(any(urlPathEqualTo("/http-endpoint")).willReturn(aResponse().withBody(response)));
 
-    final var context = OutboundConnectorContextBuilder.create().variables(request).build();
+    final var context =
+        OutboundConnectorContextBuilder.create().includeAllValidators().variables(request).build();
     // when connector execute
     var functionCallResponseAsObject = functionUnderTest.execute(context);
     // then null field 'unknown' exists in response body and has a null value
@@ -131,7 +132,8 @@ public class HttpJsonFunctionTest extends BaseTest {
     stubFor(
         put(urlPathEqualTo("/http-endpoint")).willReturn(aResponse().withStatus(200)).withId(uuid));
 
-    final var context = OutboundConnectorContextBuilder.create().variables(request).build();
+    final var context =
+        OutboundConnectorContextBuilder.create().includeAllValidators().variables(request).build();
     functionUnderTest.execute(context);
 
     List<ServeEvent> allServeEvents = getAllServeEvents(ServeEventQuery.forStubMapping(uuid));
@@ -152,7 +154,8 @@ public class HttpJsonFunctionTest extends BaseTest {
     stubFor(
         put(urlPathEqualTo("/http-endpoint")).willReturn(aResponse().withStatus(200)).withId(uuid));
 
-    final var context = OutboundConnectorContextBuilder.create().variables(request).build();
+    final var context =
+        OutboundConnectorContextBuilder.create().includeAllValidators().variables(request).build();
     functionUnderTest.execute(context);
 
     List<ServeEvent> allServeEvents = getAllServeEvents(ServeEventQuery.forStubMapping(uuid));
@@ -168,6 +171,7 @@ public class HttpJsonFunctionTest extends BaseTest {
         OutboundConnectorContextBuilder.create()
             .variables(input)
             .secrets(new StaticSecretProvider("foo"))
+            .includeAllValidators()
             .build();
     return (HttpCommonResult) functionUnderTest.execute(context);
   }

@@ -7,26 +7,30 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
@@ -35,6 +39,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.ThrowingConsumer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,20 +51,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AgentResponseHandlerTest {
 
-  private static final AgentContext AGENT_CONTEXT =
+  // Base context with modelCalls=5; toAgentContext() adds 1 from ingest → expected context has 6
+  private static final AgentContext BASE_AGENT_CONTEXT =
       AgentContext.empty()
           .withState(AgentState.READY)
           .withMetrics(AgentMetrics.empty().withModelCalls(5));
 
-  private static final List<ToolCallProcessVariable> TOOL_CALLS =
-      List.of(
-          ToolCallProcessVariable.from(
-              ToolCall.builder()
-                  .id("123456")
-                  .name("tool1")
-                  .arguments(Map.of("a", 10, "b", "twenty"))
-                  .build()),
-          ToolCallProcessVariable.from(ToolCall.builder().id("234567").name("tool2").build()));
+  private static final AgentContext EXPECTED_AGENT_CONTEXT =
+      BASE_AGENT_CONTEXT.withMetrics(AgentMetrics.empty().withModelCalls(6));
+
+  // Assistant messages in these tests carry no tool calls, so the registry returns empty
+  private static final List<ToolCallProcessVariable> EXPECTED_TOOL_CALLS = List.of();
 
   private static final String HAIKU_TEXT =
       "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
@@ -72,9 +74,32 @@ class AgentResponseHandlerTest {
               .containsExactly(entry("text", HAIKU_TEXT), entry("length", HAIKU_TEXT.length()));
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final AgentResponseHandler responseHandler = new AgentResponseHandlerImpl(objectMapper);
 
-  @Mock private AgentExecutionContext executionContext;
+  @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
+
+  private AgentResponseHandler responseHandler;
+
+  @BeforeEach
+  void setUp() {
+    responseHandler = new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
+    // by default, registry passes tool calls through unchanged
+    when(gatewayToolHandlers.transformToolCalls(any(), any()))
+        .thenAnswer(inv -> inv.getArgument(1));
+  }
+
+  /**
+   * Builds a conversation that has completed one turn with the given assistant message and response
+   * configuration. The conversation has RAW_TOOL_CALLS on the assistant message by default when the
+   * provided assistantMessage has no tool calls; the tool calls are taken from the message itself.
+   */
+  private AgentConversation conversationWith(
+      ResponseConfiguration responseConfig, AssistantMessage assistantMessage) {
+    var config = new AgentConfiguration(null, null, null, null, null, null, responseConfig);
+    var history = TurnReconstructor.reconstruct(List.of());
+    return AgentConversation.rehydrate(
+            config, BASE_AGENT_CONTEXT, history, systemMessage("system"), List.of())
+        .ingest(assistantMessage, new AgentMetrics(1, AgentMetrics.TokenUsage.empty(), 0));
+  }
 
   @Nested
   class Text {
@@ -238,9 +263,9 @@ class AgentResponseHandlerTest {
           .hasMessageStartingWith("Failed to parse response content as JSON")
           .isInstanceOfSatisfying(
               ConnectorException.class,
-              e -> {
-                assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT);
-              });
+              e ->
+                  assertThat(e.getErrorCode())
+                      .isEqualTo(ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT));
     }
 
     @Test
@@ -282,15 +307,12 @@ class AgentResponseHandlerTest {
 
   private AgentResponse createResponse(
       ResponseConfiguration responseConfiguration, AssistantMessage assistantMessage) {
-    when(executionContext.response()).thenReturn(responseConfiguration);
-
-    final var response =
-        responseHandler.createResponse(
-            executionContext, AGENT_CONTEXT, assistantMessage, TOOL_CALLS);
+    final var conversation = conversationWith(responseConfiguration, assistantMessage);
+    final var response = responseHandler.createResponse(conversation);
 
     assertThat(response).isNotNull();
-    assertThat(response.context()).isEqualTo(AGENT_CONTEXT);
-    assertThat(response.toolCalls()).containsExactlyElementsOf(TOOL_CALLS);
+    assertThat(response.context()).isEqualTo(EXPECTED_AGENT_CONTEXT);
+    assertThat(response.toolCalls()).containsExactlyElementsOf(EXPECTED_TOOL_CALLS);
 
     return response;
   }

@@ -37,6 +37,14 @@ public class AuthenticationMapper {
               String scopes) ->
           new io.camunda.connector.http.client.model.auth.OAuthAuthentication(
               oauthTokenEndpoint, clientId, clientSecret, audience, clientAuthentication, scopes);
+      case OAuthRefreshTokenAuthentication(
+              String oauthTokenEndpoint,
+              String clientId,
+              String clientSecret,
+              String refreshToken,
+              String scopes) ->
+          new io.camunda.connector.http.client.model.auth.OAuthRefreshTokenAuthentication(
+              oauthTokenEndpoint, clientId, clientSecret, refreshToken, scopes);
       default -> throw new IllegalArgumentException("Unsupported Authentication type");
     };
   }

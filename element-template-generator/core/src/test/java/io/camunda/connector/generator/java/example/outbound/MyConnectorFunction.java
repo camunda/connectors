@@ -216,4 +216,18 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       },
       icon = "my-connector-icon.png")
   public static class WithMultipleElementTypes extends MyConnectorFunction {}
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = WithLanguageProperty.LanguageInput.class)
+  public static class WithLanguageProperty extends MyConnectorFunction {
+
+    record LanguageInput(
+        @TemplateProperty(id = "jsonField", label = "JSON field", language = "json")
+            String jsonField,
+        @TemplateProperty(id = "normalField", label = "Normal field") String normalField) {}
+  }
 }

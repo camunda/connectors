@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -80,7 +81,8 @@ public abstract class WebhookTestsBase {
             mock(InboundCorrelationHandler.class),
             e -> {},
             mapper,
-            new ActivityLogRegistry());
+            new ActivityLogRegistry(),
+            mock(CamundaClient.class));
 
     context.reportHealth(Health.up());
     return spy(context);

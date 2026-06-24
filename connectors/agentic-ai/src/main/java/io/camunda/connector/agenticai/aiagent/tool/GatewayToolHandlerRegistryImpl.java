@@ -161,6 +161,13 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
           gatewayToolHandler.transformToolCallResults(agentContext, transformedToolCallResults);
     }
 
-    return transformedToolCallResults;
+    return transformedToolCallResults.stream().map(this::withElementId).toList();
+  }
+
+  private ToolCallResult withElementId(ToolCallResult result) {
+    if (result.elementId() != null || result.name() == null) {
+      return result;
+    }
+    return result.withElementId(resolveElementId(result.name()).orElse(result.name()));
   }
 }

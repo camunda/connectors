@@ -12,7 +12,10 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = OperationTypes.DELETE_ITEM)
+@TemplateSubType(
+    id = OperationTypes.DELETE_ITEM,
+    description = "Delete a single item from a DynamoDB table by primary key",
+    keywords = {"delete item", "remove item", "drop item"})
 public record DeleteItem(
     @TemplateProperty(
             label = "Table name",

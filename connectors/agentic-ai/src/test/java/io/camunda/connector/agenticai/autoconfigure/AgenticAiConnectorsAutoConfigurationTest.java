@@ -20,9 +20,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGen
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
-import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
-import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
@@ -99,8 +98,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AwsAgentCoreConversationMapper.class,
           AwsAgentCoreConversationStore.class,
           ConversationStoreRegistry.class,
-          AgentLimitsValidator.class,
-          AgentMessagesHandler.class,
+          AgentConversationTurnInputComposer.class,
           AgentResponseHandler.class,
           OutboundConnectorAgentRequestHandler.class,
           AiAgentFunction.class,

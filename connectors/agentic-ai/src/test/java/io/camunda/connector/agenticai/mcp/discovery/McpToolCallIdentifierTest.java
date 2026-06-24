@@ -109,7 +109,7 @@ class McpToolCallIdentifierTest {
     void parsesCorrectly_whenValidToolCallName() {
       var result = McpToolCallIdentifier.fromToolCallName("MCP_myElement___myTool");
 
-      assertThat(result.elementName()).isEqualTo("myElement");
+      assertThat(result.elementId()).isEqualTo("myElement");
       assertThat(result.mcpToolName()).isEqualTo("myTool");
     }
 
@@ -117,7 +117,7 @@ class McpToolCallIdentifierTest {
     void parsesCorrectly_whenNamesContainSpecialCharacters() {
       var result = McpToolCallIdentifier.fromToolCallName("MCP_my-element_123___file_read-action");
 
-      assertThat(result.elementName()).isEqualTo("my-element_123");
+      assertThat(result.elementId()).isEqualTo("my-element_123");
       assertThat(result.mcpToolName()).isEqualTo("file_read-action");
     }
 
@@ -125,7 +125,7 @@ class McpToolCallIdentifierTest {
     void parsesCorrectly_whenMinimalValidNames() {
       var result = McpToolCallIdentifier.fromToolCallName("MCP_a___b");
 
-      assertThat(result.elementName()).isEqualTo("a");
+      assertThat(result.elementId()).isEqualTo("a");
       assertThat(result.mcpToolName()).isEqualTo("b");
     }
 
@@ -135,7 +135,7 @@ class McpToolCallIdentifierTest {
           McpToolCallIdentifier.fromToolCallName(
               "MCP_Activity_1mlgkr7___loan-affordability___loan-affordability");
 
-      assertThat(result.elementName()).isEqualTo("Activity_1mlgkr7");
+      assertThat(result.elementId()).isEqualTo("Activity_1mlgkr7");
       assertThat(result.mcpToolName()).isEqualTo("loan-affordability___loan-affordability");
     }
 
@@ -187,7 +187,7 @@ class McpToolCallIdentifierTest {
       var parsed = McpToolCallIdentifier.fromToolCallName(fullyQualifiedName);
 
       assertThat(parsed).isEqualTo(original);
-      assertThat(parsed.elementName()).isEqualTo(elementName);
+      assertThat(parsed.elementId()).isEqualTo(elementName);
       assertThat(parsed.mcpToolName()).isEqualTo(toolName);
     }
 

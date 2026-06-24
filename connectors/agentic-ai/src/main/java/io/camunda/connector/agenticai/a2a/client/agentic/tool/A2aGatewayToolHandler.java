@@ -68,6 +68,11 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   }
 
   @Override
+  public String resolveElementId(String toolName) {
+    return A2aToolCallIdentifier.fromToolCallName(toolName).elementId();
+  }
+
+  @Override
   public GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
     final var a2aGatewayToolDefinitions = extractA2aGatewayToolDefinitions(gatewayToolDefinitions);
@@ -183,7 +188,7 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
                 final var toolCallIdentifier = A2aToolCallIdentifier.fromToolCallName(toolCallName);
                 return new ToolCall(
                     toolCall.id(),
-                    toolCallIdentifier.elementName(),
+                    toolCallIdentifier.elementId(),
                     Map.of(
                         "operation",
                         A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration

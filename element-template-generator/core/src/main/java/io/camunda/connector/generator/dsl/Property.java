@@ -44,6 +44,7 @@ public abstract sealed class Property
   protected final String tooltip;
   protected final String placeholder;
   protected final Object exampleValue;
+  protected final String language;
   protected final String type;
 
   public record GeneratedValue(String type) {}
@@ -63,6 +64,7 @@ public abstract sealed class Property
       String tooltip,
       String placeholder,
       Object exampleValue,
+      String language,
       String type) {
     this.id = id;
     this.label = label;
@@ -77,6 +79,7 @@ public abstract sealed class Property
     this.condition = condition;
     this.tooltip = tooltip;
     this.placeholder = placeholder;
+    this.language = language;
     this.type = type;
     this.exampleValue = exampleValue;
   }
@@ -148,6 +151,10 @@ public abstract sealed class Property
     return exampleValue;
   }
 
+  public String getLanguage() {
+    return language;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -167,6 +174,7 @@ public abstract sealed class Property
         && feel == property.feel
         && Objects.equals(group, property.group)
         && Objects.equals(binding, property.binding)
+        && Objects.equals(language, property.language)
         && Objects.equals(type, property.type);
   }
 
@@ -183,6 +191,7 @@ public abstract sealed class Property
         feel,
         group,
         binding,
+        language,
         type,
         tooltip);
   }

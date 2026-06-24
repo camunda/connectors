@@ -129,6 +129,7 @@ public class BaseTest {
 
   protected OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
     return OutboundConnectorContextBuilder.create()
+        .includeAllValidators()
         .secret(SecretsConstant.URL, ActualValue.URL)
         .secret(SecretsConstant.METHOD, ActualValue.METHOD)
         .secret(SecretsConstant.CONNECT_TIMEOUT, String.valueOf(ActualValue.CONNECT_TIMEOUT))

@@ -21,7 +21,7 @@ jobs:
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Import Secrets
         id: secrets
@@ -40,7 +40,7 @@ jobs:
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -198,7 +198,7 @@ jobs:
     permissions: { }
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
@@ -241,7 +241,7 @@ jobs:
                       "operateVersion": "SNAPSHOT",
                       "tasklistVersion": "SNAPSHOT",
                       "connectorsVersion": "${{ needs.build-image.outputs.connectors-version }}",
-                      "optimizeVersion": "8-SNAPSHOT"
+                      "optimizeVersion": "SNAPSHOT"
                   }
                 }'
 
@@ -386,7 +386,7 @@ jobs:
     timeout-minutes: 20
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Check for agentic-ai changes
         id: changes
@@ -441,7 +441,7 @@ jobs:
 
       - name: Restore Maven cache
         if: steps.changes.outputs.ai == 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}

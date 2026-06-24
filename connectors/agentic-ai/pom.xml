@@ -309,7 +309,6 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-document</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>

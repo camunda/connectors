@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -29,7 +30,6 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -44,19 +44,22 @@ public class InboundIntermediateConnectorContextImpl
   private final ObjectMapper objectMapper;
   private final InboundCorrelationHandler correlationHandler;
   private final Long activationTimestamp;
+  private final CamundaClient camundaClient;
 
   public InboundIntermediateConnectorContextImpl(
       final InboundConnectorManagementContext inboundContext,
       final ProcessInstanceClient processInstanceClient,
       final ValidationProvider validationProvider,
       final ObjectMapper objectMapper,
-      final InboundCorrelationHandler correlationHandler) {
+      final InboundCorrelationHandler correlationHandler,
+      final CamundaClient camundaClient) {
     this.inboundContext = inboundContext;
     this.processInstanceClient = processInstanceClient;
     this.validationProvider = validationProvider;
     this.objectMapper = objectMapper;
     this.correlationHandler = correlationHandler;
     this.activationTimestamp = System.currentTimeMillis();
+    this.camundaClient = camundaClient;
   }
 
   @Override
@@ -79,18 +82,8 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   private ProcessInstanceContext createProcessInstanceContext(ElementInstance elementInstance) {
-    Supplier<Map<String, Object>> variableSupplier =
-        () ->
-            processInstanceClient.fetchVariablesByProcessInstanceKey(
-                elementInstance.getProcessInstanceKey(), elementInstance.getElementInstanceKey());
-
     return new DefaultProcessInstanceContext(
-        this,
-        elementInstance,
-        validationProvider,
-        correlationHandler,
-        objectMapper,
-        variableSupplier);
+        this, elementInstance, validationProvider, correlationHandler, objectMapper, camundaClient);
   }
 
   @Override

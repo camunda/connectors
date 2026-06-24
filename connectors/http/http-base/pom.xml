@@ -38,6 +38,10 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>host-ip-validator-annotation</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock-standalone</artifactId>
       <scope>test</scope>

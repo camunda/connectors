@@ -6,6 +6,12 @@
  */
 package io.camunda.connector.idp.extraction.model.providers.aws;
 
+/**
+ * @deprecated Legacy IDP extraction provider model, used only by {@link
+ *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction} via {@code AwsProvider}.
+ *     Retained for backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 public enum TextExtractionEngineType {
   AWS_TEXTRACT,
   APACHE_PDFBOX

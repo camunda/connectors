@@ -136,7 +136,23 @@
         "org.elasticsearch.client:elasticsearch-rest-client"
       ],
       "enabled": false
-    }
+    },
+    {
+      "description": "Pin Box SDK to v5 line; v10 drops the legacy com.box.sdk package and the auto-paginating iterators.",
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["com.box:box-java-sdk"],
+      "enabled": false
+    },
+    {
+      "description": "Disable major version updates for json-schema-validator — v3 is a complete API rewrite requiring a dedicated migration.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "matchPackageNames": [
+        "com.networknt:json-schema-validator"
+      ],
+      "enabled": false,
+      }
   ],
   "baseBranchPatterns": [
     "main",

@@ -6,9 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.api.error.ConnectorException;
+import org.jspecify.annotations.Nullable;
 
 public interface AgentInstanceClient {
 
@@ -23,13 +24,39 @@ public interface AgentInstanceClient {
 
   /**
    * Updates the status and/or metrics of an existing agent instance. Silently skips when {@code
-   * agentContext} has no {@code agentInstanceKey} (e.g. agents that pre-date this feature).
+   * agentInstanceKey} is {@code null} (e.g. agents that pre-date this feature).
    *
    * @throws ConnectorException with code AGENT_INSTANCE_UPDATE_FAILED when retries are exhausted or
    *     a non-retryable error occurs
    */
   void update(
       AgentExecutionContext executionContext,
-      AgentContext agentContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
       AgentInstanceUpdateRequest request);
+
+  /**
+   * Appends one conversation history item per input message of the given turn before the LLM call.
+   * All input messages are considered, e.g. user messages, including virtual ones as well as tool
+   * call results. Silently skips when {@code agentInstanceKey} is {@code null} (e.g. agents that
+   * pre-date the agent-instance feature).
+   *
+   * @throws ConnectorException with code AGENT_INSTANCE_HISTORY_ITEM_FAILED when retries are
+   *     exhausted or a non-retryable error occurs
+   */
+  void createHistoryForInputMessages(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      AgentConversationTurn turn);
+
+  /**
+   * Appends the assistant history item including turn metrics for the given completed turn, after
+   * the LLM call. Silently skips when {@code agentInstanceKey} is {@code null}.
+   *
+   * @throws ConnectorException with code AGENT_INSTANCE_HISTORY_ITEM_FAILED when retries are
+   *     exhausted or a non-retryable error occurs
+   */
+  void createHistoryForAssistantMessage(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      AgentConversationTurn turn);
 }

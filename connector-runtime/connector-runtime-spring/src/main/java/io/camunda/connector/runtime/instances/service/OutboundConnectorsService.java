@@ -21,10 +21,11 @@ import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
-import io.camunda.connector.runtime.outbound.jobstream.GatewayJobStreamClient;
-import io.camunda.connector.runtime.outbound.jobstream.GatewayResult;
+import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
+import io.camunda.connector.runtime.outbound.jobstream.BrokerStreamsResult;
 import io.camunda.connector.runtime.outbound.jobstream.StreamConnectivity;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,31 +34,31 @@ public class OutboundConnectorsService {
   private static final Logger LOG = LoggerFactory.getLogger(OutboundConnectorsService.class);
 
   private final OutboundConnectorFactory connectorFactory;
-  private final GatewayJobStreamClient gatewayJobStreamClient;
+  private final BrokerJobStreamClient brokerJobStreamClient;
 
   public OutboundConnectorsService(OutboundConnectorFactory connectorFactory) {
     this(connectorFactory, null);
   }
 
   public OutboundConnectorsService(
-      OutboundConnectorFactory connectorFactory, GatewayJobStreamClient gatewayJobStreamClient) {
+      OutboundConnectorFactory connectorFactory, BrokerJobStreamClient brokerJobStreamClient) {
     this.connectorFactory = connectorFactory;
-    this.gatewayJobStreamClient = gatewayJobStreamClient;
+    this.brokerJobStreamClient = brokerJobStreamClient;
   }
 
   public List<OutboundConnectorResponse> findAll(String runtimeId) {
-    GatewayResult gateway = queryGateway();
+    Optional<BrokerStreamsResult> brokerStreams = queryBrokerStreams();
     return connectorFactory.getRuntimeConfigurations().stream()
-        .map(config -> toResponse(config, runtimeId, gateway))
+        .map(config -> toResponse(config, runtimeId, brokerStreams))
         .toList();
   }
 
   public List<OutboundConnectorResponse> findByType(String type, String runtimeId) {
-    GatewayResult gateway = queryGateway();
+    Optional<BrokerStreamsResult> brokerStreams = queryBrokerStreams();
     var results =
         connectorFactory.getRuntimeConfigurations().stream()
             .filter(config -> config.config().type().equals(type))
-            .map(config -> toResponse(config, runtimeId, gateway))
+            .map(config -> toResponse(config, runtimeId, brokerStreams))
             .toList();
     if (results.isEmpty()) {
       throw new DataNotFoundException(OutboundConnectorResponse.class, type);
@@ -65,35 +66,23 @@ public class OutboundConnectorsService {
     return results;
   }
 
-  private GatewayResult queryGateway() {
-    if (gatewayJobStreamClient == null) {
-      return new GatewayResult.Failure.Unknown();
+  private Optional<BrokerStreamsResult> queryBrokerStreams() {
+    if (brokerJobStreamClient == null) {
+      return Optional.empty();
     }
     try {
-      return new GatewayResult.Success(gatewayJobStreamClient.fetchJobStreams());
+      return Optional.of(brokerJobStreamClient.fetchRemoteStreams());
     } catch (Exception e) {
-      LOG.warn("Failed to fetch job streams from gateway: {}", e.getMessage());
-      return new GatewayResult.Failure.Unreachable();
+      LOG.warn("Failed to fetch remote streams from brokers: {}", e.getMessage());
+      return Optional.empty();
     }
   }
 
   private OutboundConnectorResponse toResponse(
       AbstractConnectorFactory.ConnectorRuntimeConfiguration<OutboundConnectorConfiguration> config,
       String runtimeId,
-      GatewayResult gateway) {
-    String jobType = config.config().type();
-    StreamConnectivity connectivity =
-        switch (gateway) {
-          case GatewayResult.Failure f -> StreamConnectivity.unavailable(f.gatewayState());
-          case GatewayResult.Success s -> StreamConnectivity.compute(jobType, s.streams());
-        };
-    return buildResponse(config, runtimeId, connectivity);
-  }
-
-  private OutboundConnectorResponse buildResponse(
-      AbstractConnectorFactory.ConnectorRuntimeConfiguration<OutboundConnectorConfiguration> config,
-      String runtimeId,
-      StreamConnectivity connectivity) {
+      Optional<BrokerStreamsResult> brokerStreams) {
+    var connectivity = StreamConnectivity.compute(config.config().type(), brokerStreams);
     var connectorConfig = config.config();
     return new OutboundConnectorResponse(
         connectorConfig.name(),
@@ -104,7 +93,6 @@ public class OutboundConnectorsService {
         connectorConfig.timeout(),
         config.isActive(),
         runtimeId,
-        connectivity.gatewayState(),
         connectivity.brokerState(),
         connectivity.streamIds());
   }

@@ -44,7 +44,13 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 public class ProviderUtil {
 
-  // legacy retrieval of text extractor from ProviderConfig
+  /**
+   * @deprecated Legacy retrieval of text extractor from {@link ProviderConfig}, used only by {@link
+   *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. Use {@link
+   *     #getTextExtractor(io.camunda.connector.idp.extraction.request.common.extraction.ExtractionProvider)}
+   *     instead. Retained for backwards compatibility; no removal currently planned.
+   */
+  @Deprecated(since = "8.9")
   public static TextExtractor getTextExtractor(ProviderConfig providerConfig) {
     return switch (providerConfig) {
       case AwsProvider aws -> {
@@ -95,6 +101,13 @@ public class ProviderUtil {
     };
   }
 
+  /**
+   * @deprecated Legacy retrieval of ML extractor from {@link ProviderConfig}, used only by {@link
+   *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. Use {@link
+   *     #getMlExtractor(io.camunda.connector.idp.extraction.request.common.extraction.ExtractionProvider)}
+   *     instead. Retained for backwards compatibility; no removal currently planned.
+   */
+  @Deprecated(since = "8.9")
   public static MlExtractor getMlExtractor(ProviderConfig providerConfig) {
     return switch (providerConfig) {
       case AwsProvider aws -> {
@@ -168,7 +181,14 @@ public class ProviderUtil {
     };
   }
 
-  // legacy retrieval of ai client from ExtractionRequest
+  /**
+   * @deprecated Legacy retrieval of AI client from {@link ExtractionRequest}, used only by {@link
+   *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. Use {@link
+   *     #getAiClient(io.camunda.connector.idp.extraction.request.common.ai.AiProvider,
+   *     io.camunda.connector.idp.extraction.model.ConverseData)} instead. Retained for backwards
+   *     compatibility; no removal currently planned.
+   */
+  @Deprecated(since = "8.9")
   public static AiClient getAiClient(ExtractionRequest extractionRequest) {
     final var input = extractionRequest.input();
     return switch (extractionRequest.baseRequest()) {

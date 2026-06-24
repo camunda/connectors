@@ -6,19 +6,24 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import java.time.Duration;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = AgentMetrics.AgentMetricsJacksonProxyBuilder.class)
 public record AgentMetrics(
     int modelCalls,
     @RecordBuilder.Initializer(source = TokenUsage.class, value = "empty") TokenUsage tokenUsage,
-    int toolCalls)
+    int toolCalls,
+    @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable Duration executionTime)
     implements AgentMetricsBuilder.With {
+
   public AgentMetrics {
     if (modelCalls < 0) {
       throw new IllegalArgumentException("Model calls must be non-negative");
@@ -27,6 +32,22 @@ public record AgentMetrics(
     if (toolCalls < 0) {
       throw new IllegalArgumentException("Tool calls must be non-negative");
     }
+  }
+
+  public AgentMetrics(int modelCalls, TokenUsage tokenUsage, int toolCalls) {
+    this(modelCalls, tokenUsage, toolCalls, null);
+  }
+
+  /**
+   * Adds the counter metrics (model calls, token usage, tool calls) of {@code other}. {@link
+   * #executionTime} is a per-turn measurement and is intentionally not accumulated.
+   */
+  public AgentMetrics add(AgentMetrics other) {
+    Objects.requireNonNull(other);
+
+    return this.incrementModelCalls(other.modelCalls())
+        .incrementTokenUsage(other.tokenUsage())
+        .incrementToolCalls(other.toolCalls());
   }
 
   public AgentMetrics incrementModelCalls(int additionalModelCalls) {
@@ -39,14 +60,6 @@ public record AgentMetrics(
 
   public AgentMetrics incrementToolCalls(int additionalToolCalls) {
     return withToolCalls(toolCalls + additionalToolCalls);
-  }
-
-  public AgentMetrics minus(AgentMetrics other) {
-    return builder()
-        .modelCalls(requirePositive(modelCalls - other.modelCalls(), "modelCalls"))
-        .tokenUsage(tokenUsage.minus(other.tokenUsage()))
-        .toolCalls(requirePositive(toolCalls - other.toolCalls(), "toolCalls"))
-        .build();
   }
 
   public static AgentMetrics empty() {
@@ -77,19 +90,6 @@ public record AgentMetrics(
                   .outputTokenCount(builder.outputTokenCount() + tokenUsage.outputTokenCount()));
     }
 
-    public TokenUsage minus(TokenUsage other) {
-      return with(
-          builder ->
-              builder
-                  .inputTokenCount(
-                      requirePositive(
-                          builder.inputTokenCount() - other.inputTokenCount(), "inputTokenCount"))
-                  .outputTokenCount(
-                      requirePositive(
-                          builder.outputTokenCount() - other.outputTokenCount(),
-                          "outputTokenCount")));
-    }
-
     public static TokenUsage empty() {
       return builder().build();
     }
@@ -101,14 +101,5 @@ public record AgentMetrics(
     @JsonPOJOBuilder(withPrefix = "")
     public static class AgentMetricsTokenUsageJacksonProxyBuilder
         extends AgentMetricsTokenUsageBuilder {}
-  }
-
-  private static int requirePositive(int value, String field) {
-    if (value < 0) {
-      var targetMessage =
-          "%s value is negative after subtraction. Actual value: %s".formatted(field, value);
-      throw new IllegalStateException(targetMessage);
-    }
-    return value;
   }
 }

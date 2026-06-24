@@ -88,24 +88,6 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   }
 
   @Override
-  public SearchResponse<Variable> queryVariables(
-      long processInstanceKey, long elementInstanceKey, String variablePaginationIndex) {
-    final var query =
-        camundaClient
-            .newVariableSearchRequest()
-            .filter(
-                v ->
-                    v.processInstanceKey(processInstanceKey)
-                        .scopeKey(s -> s.in(processInstanceKey, elementInstanceKey)));
-    if (variablePaginationIndex != null) {
-      query.page(p -> p.limit(limit).after(variablePaginationIndex));
-    } else {
-      query.page(p -> p.limit(limit));
-    }
-    return query.send().join();
-  }
-
-  @Override
   public BpmnModelInstance getProcessModel(long processDefinitionKey) {
     final String xml =
         camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).send().join();

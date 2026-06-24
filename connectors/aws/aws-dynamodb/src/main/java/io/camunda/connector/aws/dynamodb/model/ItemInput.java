@@ -13,7 +13,10 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonDeserialize()
-@TemplateSubType(label = "Item", id = "itemOperation")
+@TemplateSubType(
+    label = "Item",
+    id = "itemOperation",
+    description = "Add, retrieve, update or delete items inside a DynamoDB table")
 @TemplateDiscriminatorProperty(name = "itemOperation", group = "operation", label = "Select action")
 public sealed interface ItemInput extends AwsInput
     permits AddItem, DeleteItem, GetItem, UpdateItem {}

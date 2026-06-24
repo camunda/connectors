@@ -11,6 +11,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * @deprecated Legacy IDP extraction provider model, used only by {@link
+ *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. The structured /
+ *     unstructured / classification connectors use the {@code request.common} provider model
+ *     instead. Retained for backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = AwsProvider.class)
 @JsonSubTypes({
   @JsonSubTypes.Type(value = AwsProvider.class, name = "aws"),

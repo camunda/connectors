@@ -21,6 +21,8 @@
     <module>http-client</module>
     <module>connector-utils</module>
     <module>connector-test-utils</module>
+    <module>host-ip-validator</module>
+    <module>host-ip-validator-annotation</module>
   </modules>
 
 </project>
