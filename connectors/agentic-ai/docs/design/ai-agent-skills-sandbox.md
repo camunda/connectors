@@ -560,25 +560,36 @@ Two subtypes are implemented for the PoC:
 record DisabledSandboxConfiguration() implements SandboxConfiguration {}
 
 // primary PoC provider (locked):
+// Provider-specific settings nest one level deeper under `daytona` (binding prefix
+// `data.sandbox.daytona.*`), mirroring the LLM provider configs (`data.provider.bedrock.*`). This
+// keeps the discriminator (`data.sandbox.type`) free of provider-specific keys, so a second sandbox
+// provider can be added without an `apiKey` (or other) binding collision.
 @TemplateSubType(id = "daytona", label = "Daytona")
-record DaytonaSandboxConfiguration(
-    String apiKey,                          // @NotBlank, redacted in toString
-    @Nullable String apiUrl,                // self-hosted base URL
-    @Nullable String snapshot,              // optional pre-loaded workspace image
-    // Lifecycle settings: each is a dropdown "mode" + an ISO-8601 duration string shown only when
-    // mode = DURATION. Helper methods (autoStopMinutes()/autoArchiveMinutes()/autoDeleteMinutes())
-    // convert these to the integer MINUTES the Daytona SDK expects, or null = "don't set".
-    @Nullable AutoStopMode autoStop,        // DISABLED -> 0 (never); DURATION -> mins (default PT15M)
-    @Nullable String autoStopDuration,
-    @Nullable AutoArchiveMode autoArchive,  // DEFAULT -> not set (Daytona 7d); DURATION -> mins, max 30d
-    @Nullable String autoArchiveDuration,
-    @Nullable AutoDeleteMode autoDelete,    // DISABLED -> not set (never); IMMEDIATELY -> 0; DURATION -> mins
-    @Nullable String autoDeleteDuration)
-    implements SandboxConfiguration {}
+record DaytonaSandboxConfiguration(@Valid @NotNull DaytonaConnection daytona)
+    implements SandboxConfiguration {
+
+  record DaytonaConnection(
+      String apiKey,                          // @NotBlank, redacted in toString
+      @Nullable String apiUrl,                // self-hosted base URL
+      @Nullable String snapshot,              // optional pre-loaded workspace image
+      // Each lifecycle setting is its own object: a dropdown `mode` + an ISO-8601 `duration` string
+      // shown only when mode = DURATION (e.g. `data.sandbox.daytona.autoStop.mode` +
+      // `.../autoStop.duration`). Helper methods on DaytonaConnection
+      // (autoStopMinutes()/autoArchiveMinutes()/autoDeleteMinutes()) convert these to the integer
+      // MINUTES the Daytona SDK expects, or null = "don't set".
+      @Nullable AutoStopConfiguration autoStop,     // DISABLED -> 0 (never); DURATION -> mins (default PT15M)
+      @Nullable AutoArchiveConfiguration autoArchive, // DEFAULT -> not set (Daytona 7d); DURATION -> mins, max 30d
+      @Nullable AutoDeleteConfiguration autoDelete) {} // DISABLED -> not set; IMMEDIATELY -> 0; DURATION -> mins (default PT5M)
+
+  record AutoStopConfiguration(@Nullable AutoStopMode mode, @Nullable String duration) {}
+  record AutoArchiveConfiguration(@Nullable AutoArchiveMode mode, @Nullable String duration) {}
+  record AutoDeleteConfiguration(@Nullable AutoDeleteMode mode, @Nullable String duration) {}
+}
 ```
 
 > **ISO-8601 gotcha:** days precede the `T` — `P7D` (7 days) and `PT15M` (15 minutes) are valid;
 > `PT7D` is **not** (`Duration.parse` rejects it). Auto-archive is validated to not exceed 30 days.
+> When auto-delete mode is DURATION but no duration is given, it defaults to `PT5M` (5 minutes).
 
 Future providers (AgentCore, Vercel, E2B, DockerSandbox for local testing) drop in behind the same
 SPI. Added to `AgentConfiguration` as `@Nullable SandboxConfiguration sandbox`;

@@ -9,7 +9,9 @@ package io.camunda.connector.agenticai.sandbox.provider.daytona;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.AutoStopConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.AutoStopMode;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.DaytonaConnection;
 import io.camunda.connector.agenticai.sandbox.spi.ExecRequest;
 import io.camunda.connector.agenticai.sandbox.spi.ExecResult;
 import io.camunda.connector.agenticai.sandbox.spi.FileInfo;
@@ -49,7 +51,13 @@ class DaytonaSandboxProviderIT {
 
     DaytonaSandboxConfiguration cfg =
         new DaytonaSandboxConfiguration(
-            apiKey, apiUrl, null, AutoStopMode.DURATION, "PT15M", null, null, null, null);
+            new DaytonaConnection(
+                apiKey,
+                apiUrl,
+                null,
+                new AutoStopConfiguration(AutoStopMode.DURATION, "PT15M"),
+                null,
+                null));
 
     DaytonaSandboxProviderFactory factory = new DaytonaSandboxProviderFactory();
     DaytonaSandboxProvider provider = (DaytonaSandboxProvider) factory.create(cfg);

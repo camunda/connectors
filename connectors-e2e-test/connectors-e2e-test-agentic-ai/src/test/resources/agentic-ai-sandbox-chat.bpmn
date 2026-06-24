@@ -59,13 +59,13 @@
           <zeebe:input source="WAIT_FOR_TOOL_CALL_RESULTS" target="data.events.behavior" />
           <zeebe:input source="=10" target="data.limits.maxInternalToolIterations" />
           <zeebe:input source="daytona" target="data.sandbox.type" />
-          <zeebe:input source="{{secrets.DAYTONA_API_KEY}}" target="data.sandbox.apiKey" />
+          <zeebe:input source="{{secrets.DAYTONA_API_KEY}}" target="data.sandbox.daytona.apiKey" />
           <!-- Short, crash-safe lifecycle for the live e2e: even if the test JVM dies and the
                explicit @AfterEach delete never runs, Daytona auto-stops the idle sandbox after
                5 min and immediately deletes it on stop, so no orphaned sandboxes accumulate. -->
-          <zeebe:input source="DURATION" target="data.sandbox.autoStop" />
-          <zeebe:input source="PT5M" target="data.sandbox.autoStopDuration" />
-          <zeebe:input source="IMMEDIATELY" target="data.sandbox.autoDelete" />
+          <zeebe:input source="DURATION" target="data.sandbox.daytona.autoStop.mode" />
+          <zeebe:input source="PT5M" target="data.sandbox.daytona.autoStop.duration" />
+          <zeebe:input source="IMMEDIATELY" target="data.sandbox.daytona.autoDelete.mode" />
           <zeebe:input source="=[camundaAiAgentsSkill]" target="data.skills" />
           <zeebe:input source="text" target="data.response.format.type" />
           <zeebe:input source="=false" target="data.response.format.parseJson" />

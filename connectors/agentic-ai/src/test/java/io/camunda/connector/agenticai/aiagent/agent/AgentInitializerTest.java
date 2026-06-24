@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.DaytonaConnection;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -697,7 +698,7 @@ class AgentInitializerTest {
           .thenReturn(
               Optional.of(
                   new DaytonaSandboxConfiguration(
-                      "key", null, null, null, null, null, null, null, null)));
+                      new DaytonaConnection("key", null, null, null, null, null))));
       when(internalToolRegistry.toolDefinitions(anyList()))
           .thenReturn(List.of(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF));
       when(toolsResolver.loadAdHocToolsSchema(any(), any()))
@@ -721,7 +722,7 @@ class AgentInitializerTest {
           .thenReturn(
               Optional.of(
                   new DaytonaSandboxConfiguration(
-                      "key", null, null, null, null, null, null, null, null)));
+                      new DaytonaConnection("key", null, null, null, null, null))));
       when(internalToolRegistry.toolDefinitions(anyList()))
           .thenReturn(List.of(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF));
       when(toolsResolver.loadAdHocToolsSchema(any(), any()))

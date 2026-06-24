@@ -30,19 +30,19 @@ public class DaytonaSandboxProviderFactory implements SandboxProviderFactory {
 
   @Override
   public SandboxProvider create(SandboxConfiguration config) {
-    DaytonaSandboxConfiguration cfg = (DaytonaSandboxConfiguration) config;
-    return new DaytonaSandboxProvider(cfg.apiKey(), cfg.apiUrl());
+    var daytona = ((DaytonaSandboxConfiguration) config).daytona();
+    return new DaytonaSandboxProvider(daytona.apiKey(), daytona.apiUrl());
   }
 
   @Override
   public SandboxSpec specFor(SandboxConfiguration config) {
-    DaytonaSandboxConfiguration cfg = (DaytonaSandboxConfiguration) config;
+    var daytona = ((DaytonaSandboxConfiguration) config).daytona();
     return new SandboxSpec(
-        cfg.snapshot(),
+        daytona.snapshot(),
         null,
         null,
-        cfg.autoStopMinutes(),
-        cfg.autoArchiveMinutes(),
-        cfg.autoDeleteMinutes());
+        daytona.autoStopMinutes(),
+        daytona.autoArchiveMinutes(),
+        daytona.autoDeleteMinutes());
   }
 }

@@ -11,9 +11,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.AutoArchiveConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.AutoArchiveMode;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.AutoDeleteConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.AutoDeleteMode;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.AutoStopConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.AutoStopMode;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.DaytonaConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DisabledSandboxConfiguration;
 import io.camunda.connector.agenticai.util.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
@@ -21,11 +25,19 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for {@link SandboxConfiguration} — Jackson round-trip, toString redaction, and
- * conversion helpers.
+ * conversion helpers. Daytona settings live one level deeper under {@code daytona} (binding prefix
+ * {@code data.sandbox.daytona.}), and lifecycle settings are grouped into mode + duration objects.
  */
 class SandboxConfigurationTest {
 
   private final ObjectMapper objectMapper = TestObjectMapperSupplier.getInstance();
+
+  private static DaytonaConnection connection(
+      AutoStopConfiguration autoStop,
+      AutoArchiveConfiguration autoArchive,
+      AutoDeleteConfiguration autoDelete) {
+    return new DaytonaConnection("k", null, null, autoStop, autoArchive, autoDelete);
+  }
 
   // -------------------------------------------------------------------------
   // Deserialization
@@ -37,30 +49,30 @@ class SandboxConfigurationTest {
         """
         {
           "type": "daytona",
-          "apiKey": "secret-key",
-          "apiUrl": "https://my-daytona.example.com",
-          "snapshot": "my-snapshot",
-          "autoStop": "DURATION",
-          "autoStopDuration": "PT30M",
-          "autoArchive": "DURATION",
-          "autoArchiveDuration": "PT60M",
-          "autoDelete": "IMMEDIATELY"
+          "daytona": {
+            "apiKey": "secret-key",
+            "apiUrl": "https://my-daytona.example.com",
+            "snapshot": "my-snapshot",
+            "autoStop": { "mode": "DURATION", "duration": "PT30M" },
+            "autoArchive": { "mode": "DURATION", "duration": "PT60M" },
+            "autoDelete": { "mode": "IMMEDIATELY" }
+          }
         }
         """;
 
     SandboxConfiguration result = objectMapper.readValue(json, SandboxConfiguration.class);
 
     assertThat(result).isInstanceOf(DaytonaSandboxConfiguration.class);
-    DaytonaSandboxConfiguration daytona = (DaytonaSandboxConfiguration) result;
+    DaytonaConnection daytona = ((DaytonaSandboxConfiguration) result).daytona();
     assertThat(daytona.apiKey()).isEqualTo("secret-key");
     assertThat(daytona.apiUrl()).isEqualTo("https://my-daytona.example.com");
     assertThat(daytona.snapshot()).isEqualTo("my-snapshot");
-    assertThat(daytona.autoStop()).isEqualTo(AutoStopMode.DURATION);
-    assertThat(daytona.autoStopDuration()).isEqualTo("PT30M");
-    assertThat(daytona.autoArchive()).isEqualTo(AutoArchiveMode.DURATION);
-    assertThat(daytona.autoArchiveDuration()).isEqualTo("PT60M");
-    assertThat(daytona.autoDelete()).isEqualTo(AutoDeleteMode.IMMEDIATELY);
-    assertThat(daytona.autoDeleteDuration()).isNull();
+    assertThat(daytona.autoStop())
+        .isEqualTo(new AutoStopConfiguration(AutoStopMode.DURATION, "PT30M"));
+    assertThat(daytona.autoArchive())
+        .isEqualTo(new AutoArchiveConfiguration(AutoArchiveMode.DURATION, "PT60M"));
+    assertThat(daytona.autoDelete())
+        .isEqualTo(new AutoDeleteConfiguration(AutoDeleteMode.IMMEDIATELY, null));
   }
 
   @Test
@@ -69,23 +81,20 @@ class SandboxConfigurationTest {
         """
         {
           "type": "daytona",
-          "apiKey": "secret-key"
+          "daytona": { "apiKey": "secret-key" }
         }
         """;
 
     SandboxConfiguration result = objectMapper.readValue(json, SandboxConfiguration.class);
 
     assertThat(result).isInstanceOf(DaytonaSandboxConfiguration.class);
-    DaytonaSandboxConfiguration daytona = (DaytonaSandboxConfiguration) result;
+    DaytonaConnection daytona = ((DaytonaSandboxConfiguration) result).daytona();
     assertThat(daytona.apiKey()).isEqualTo("secret-key");
     assertThat(daytona.apiUrl()).isNull();
     assertThat(daytona.snapshot()).isNull();
     assertThat(daytona.autoStop()).isNull();
-    assertThat(daytona.autoStopDuration()).isNull();
     assertThat(daytona.autoArchive()).isNull();
-    assertThat(daytona.autoArchiveDuration()).isNull();
     assertThat(daytona.autoDelete()).isNull();
-    assertThat(daytona.autoDeleteDuration()).isNull();
   }
 
   // -------------------------------------------------------------------------
@@ -96,48 +105,50 @@ class SandboxConfigurationTest {
   void daytonaSandboxConfiguration_roundTrip() throws Exception {
     DaytonaSandboxConfiguration original =
         new DaytonaSandboxConfiguration(
-            "my-api-key", null, "snap-v1", AutoStopMode.DURATION, "PT15M", null, null, null, null);
+            new DaytonaConnection(
+                "my-api-key",
+                null,
+                "snap-v1",
+                new AutoStopConfiguration(AutoStopMode.DURATION, "PT15M"),
+                null,
+                null));
 
     String serialized = objectMapper.writeValueAsString(original);
     SandboxConfiguration deserialized =
         objectMapper.readValue(serialized, SandboxConfiguration.class);
 
     assertThat(deserialized).isInstanceOf(DaytonaSandboxConfiguration.class);
-    DaytonaSandboxConfiguration daytona = (DaytonaSandboxConfiguration) deserialized;
+    DaytonaConnection daytona = ((DaytonaSandboxConfiguration) deserialized).daytona();
     assertThat(daytona.apiKey()).isEqualTo("my-api-key");
     assertThat(daytona.snapshot()).isEqualTo("snap-v1");
-    assertThat(daytona.autoStop()).isEqualTo(AutoStopMode.DURATION);
-    assertThat(daytona.autoStopDuration()).isEqualTo("PT15M");
+    assertThat(daytona.autoStop())
+        .isEqualTo(new AutoStopConfiguration(AutoStopMode.DURATION, "PT15M"));
   }
 
   @Test
   void daytonaSandboxConfiguration_providerTypeIsCorrect() {
     DaytonaSandboxConfiguration config =
-        new DaytonaSandboxConfiguration("key", null, null, null, null, null, null, null, null);
+        new DaytonaSandboxConfiguration(connection(null, null, null));
     assertThat(config.providerType()).isEqualTo("daytona");
     assertThat(DaytonaSandboxConfiguration.TYPE).isEqualTo("daytona");
   }
 
   @Test
-  void daytonaSandboxConfiguration_toStringRedactsApiKey() {
-    DaytonaSandboxConfiguration config =
-        new DaytonaSandboxConfiguration(
+  void daytonaConnection_toStringRedactsApiKey() {
+    DaytonaConnection connection =
+        new DaytonaConnection(
             "super-secret",
             "https://api.example.com",
             null,
-            AutoStopMode.DURATION,
-            "PT15M",
-            null,
-            null,
+            new AutoStopConfiguration(AutoStopMode.DURATION, "PT15M"),
             null,
             null);
 
-    String str = config.toString();
+    String str = connection.toString();
 
     assertThat(str).doesNotContain("super-secret");
     assertThat(str).contains("[REDACTED]");
     assertThat(str).contains("https://api.example.com");
-    assertThat(str).contains("DURATION");
     assertThat(str).contains("PT15M");
   }
 
@@ -147,33 +158,33 @@ class SandboxConfigurationTest {
 
   @Test
   void autoStopMinutes_disabled_returnsZero() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, AutoStopMode.DISABLED, null, null, null, null, null);
-    assertThat(cfg.autoStopMinutes()).isEqualTo(0);
+    var conn = connection(new AutoStopConfiguration(AutoStopMode.DISABLED, null), null, null);
+    assertThat(conn.autoStopMinutes()).isEqualTo(0);
   }
 
   @Test
   void autoStopMinutes_durationExplicit_returnsParsedMinutes() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, AutoStopMode.DURATION, "PT15M", null, null, null, null);
-    assertThat(cfg.autoStopMinutes()).isEqualTo(15);
+    var conn = connection(new AutoStopConfiguration(AutoStopMode.DURATION, "PT15M"), null, null);
+    assertThat(conn.autoStopMinutes()).isEqualTo(15);
   }
 
   @Test
-  void autoStopMinutes_durationNullUsesDefault() {
-    // null mode + null duration → default PT15M
-    var cfg = new DaytonaSandboxConfiguration("k", null, null, null, null, null, null, null, null);
-    assertThat(cfg.autoStopMinutes()).isEqualTo(15);
+  void autoStopMinutes_subObjectNullUsesDefault() {
+    // autoStop sub-object absent → default DURATION PT15M
+    var conn = connection(null, null, null);
+    assertThat(conn.autoStopMinutes()).isEqualTo(15);
+  }
+
+  @Test
+  void autoStopMinutes_nullModeUsesDefault() {
+    var conn = connection(new AutoStopConfiguration(null, null), null, null);
+    assertThat(conn.autoStopMinutes()).isEqualTo(15);
   }
 
   @Test
   void autoStopMinutes_durationBlankUsesDefault() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, AutoStopMode.DURATION, "  ", null, null, null, null);
-    assertThat(cfg.autoStopMinutes()).isEqualTo(15);
+    var conn = connection(new AutoStopConfiguration(AutoStopMode.DURATION, "  "), null, null);
+    assertThat(conn.autoStopMinutes()).isEqualTo(15);
   }
 
   // -------------------------------------------------------------------------
@@ -182,40 +193,34 @@ class SandboxConfigurationTest {
 
   @Test
   void autoArchiveMinutes_default_returnsNull() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, AutoArchiveMode.DEFAULT, null, null, null);
-    assertThat(cfg.autoArchiveMinutes()).isNull();
+    var conn = connection(null, new AutoArchiveConfiguration(AutoArchiveMode.DEFAULT, null), null);
+    assertThat(conn.autoArchiveMinutes()).isNull();
   }
 
   @Test
-  void autoArchiveMinutes_nullMode_returnsNull() {
-    var cfg = new DaytonaSandboxConfiguration("k", null, null, null, null, null, null, null, null);
-    assertThat(cfg.autoArchiveMinutes()).isNull();
+  void autoArchiveMinutes_subObjectNull_returnsNull() {
+    var conn = connection(null, null, null);
+    assertThat(conn.autoArchiveMinutes()).isNull();
   }
 
   @Test
   void autoArchiveMinutes_duration7Days_returns10080() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, AutoArchiveMode.DURATION, "P7D", null, null);
-    assertThat(cfg.autoArchiveMinutes()).isEqualTo(7 * 24 * 60);
+    var conn =
+        connection(null, new AutoArchiveConfiguration(AutoArchiveMode.DURATION, "P7D"), null);
+    assertThat(conn.autoArchiveMinutes()).isEqualTo(7 * 24 * 60);
   }
 
   @Test
   void autoArchiveMinutes_durationNullUsesDefault7Days() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, AutoArchiveMode.DURATION, null, null, null);
-    assertThat(cfg.autoArchiveMinutes()).isEqualTo(7 * 24 * 60);
+    var conn = connection(null, new AutoArchiveConfiguration(AutoArchiveMode.DURATION, null), null);
+    assertThat(conn.autoArchiveMinutes()).isEqualTo(7 * 24 * 60);
   }
 
   @Test
   void autoArchiveMinutes_durationExceeds30Days_throwsConnectorException() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, AutoArchiveMode.DURATION, "P31D", null, null);
-    assertThatThrownBy(cfg::autoArchiveMinutes)
+    var conn =
+        connection(null, new AutoArchiveConfiguration(AutoArchiveMode.DURATION, "P31D"), null);
+    assertThatThrownBy(conn::autoArchiveMinutes)
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("30 days");
   }
@@ -226,52 +231,40 @@ class SandboxConfigurationTest {
 
   @Test
   void autoDeleteMinutes_disabled_returnsNull() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, null, null, AutoDeleteMode.DISABLED, null);
-    assertThat(cfg.autoDeleteMinutes()).isNull();
+    var conn = connection(null, null, new AutoDeleteConfiguration(AutoDeleteMode.DISABLED, null));
+    assertThat(conn.autoDeleteMinutes()).isNull();
   }
 
   @Test
-  void autoDeleteMinutes_nullMode_returnsNull() {
-    var cfg = new DaytonaSandboxConfiguration("k", null, null, null, null, null, null, null, null);
-    assertThat(cfg.autoDeleteMinutes()).isNull();
+  void autoDeleteMinutes_subObjectNull_returnsNull() {
+    var conn = connection(null, null, null);
+    assertThat(conn.autoDeleteMinutes()).isNull();
   }
 
   @Test
   void autoDeleteMinutes_immediately_returnsZero() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, null, null, AutoDeleteMode.IMMEDIATELY, null);
-    assertThat(cfg.autoDeleteMinutes()).isEqualTo(0);
+    var conn =
+        connection(null, null, new AutoDeleteConfiguration(AutoDeleteMode.IMMEDIATELY, null));
+    assertThat(conn.autoDeleteMinutes()).isEqualTo(0);
   }
 
   @Test
   void autoDeleteMinutes_duration30Min_returns30() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, null, null, AutoDeleteMode.DURATION, "PT30M");
-    assertThat(cfg.autoDeleteMinutes()).isEqualTo(30);
+    var conn =
+        connection(null, null, new AutoDeleteConfiguration(AutoDeleteMode.DURATION, "PT30M"));
+    assertThat(conn.autoDeleteMinutes()).isEqualTo(30);
   }
 
   @Test
-  void autoDeleteMinutes_durationBlank_throwsConnectorException() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, null, null, AutoDeleteMode.DURATION, "");
-    assertThatThrownBy(cfg::autoDeleteMinutes)
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("required");
+  void autoDeleteMinutes_durationBlankUsesDefault5Min() {
+    var conn = connection(null, null, new AutoDeleteConfiguration(AutoDeleteMode.DURATION, ""));
+    assertThat(conn.autoDeleteMinutes()).isEqualTo(5);
   }
 
   @Test
-  void autoDeleteMinutes_durationNull_throwsConnectorException() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, null, null, AutoDeleteMode.DURATION, null);
-    assertThatThrownBy(cfg::autoDeleteMinutes)
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("required");
+  void autoDeleteMinutes_durationNullUsesDefault5Min() {
+    var conn = connection(null, null, new AutoDeleteConfiguration(AutoDeleteMode.DURATION, null));
+    assertThat(conn.autoDeleteMinutes()).isEqualTo(5);
   }
 
   // -------------------------------------------------------------------------
@@ -280,32 +273,29 @@ class SandboxConfigurationTest {
 
   @Test
   void autoStopMinutes_invalidIso8601_throwsConnectorException() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, AutoStopMode.DURATION, "not-a-duration", null, null, null, null);
-    assertThatThrownBy(cfg::autoStopMinutes)
+    var conn =
+        connection(new AutoStopConfiguration(AutoStopMode.DURATION, "not-a-duration"), null, null);
+    assertThatThrownBy(conn::autoStopMinutes)
         .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("autoStopDuration");
+        .hasMessageContaining("autoStop.duration");
   }
 
   @Test
   void autoArchiveMinutes_invalidIso8601_throwsConnectorException() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, AutoArchiveMode.DURATION, "bad-value", null, null);
-    assertThatThrownBy(cfg::autoArchiveMinutes)
+    var conn =
+        connection(null, new AutoArchiveConfiguration(AutoArchiveMode.DURATION, "bad-value"), null);
+    assertThatThrownBy(conn::autoArchiveMinutes)
         .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("autoArchiveDuration");
+        .hasMessageContaining("autoArchive.duration");
   }
 
   @Test
   void autoDeleteMinutes_invalidIso8601_throwsConnectorException() {
-    var cfg =
-        new DaytonaSandboxConfiguration(
-            "k", null, null, null, null, null, null, AutoDeleteMode.DURATION, "bad-value");
-    assertThatThrownBy(cfg::autoDeleteMinutes)
+    var conn =
+        connection(null, null, new AutoDeleteConfiguration(AutoDeleteMode.DURATION, "bad-value"));
+    assertThatThrownBy(conn::autoDeleteMinutes)
         .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("autoDeleteDuration");
+        .hasMessageContaining("autoDelete.duration");
   }
 
   // -------------------------------------------------------------------------

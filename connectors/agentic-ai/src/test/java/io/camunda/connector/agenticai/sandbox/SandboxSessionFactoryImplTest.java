@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.DaytonaConnection;
 import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderRegistry;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxHandle;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxProvider;
@@ -35,7 +36,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class SandboxSessionFactoryImplTest {
 
   private static final DaytonaSandboxConfiguration SANDBOX_CONFIG =
-      new DaytonaSandboxConfiguration("api-key", null, null, null, null, null, null, null, null);
+      new DaytonaSandboxConfiguration(
+          new DaytonaConnection("api-key", null, null, null, null, null));
 
   @Mock private SandboxProviderRegistry providerRegistry;
   @Mock private SandboxProvider provider;

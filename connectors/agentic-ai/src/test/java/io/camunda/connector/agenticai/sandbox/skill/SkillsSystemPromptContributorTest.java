@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.DaytonaConnection;
 import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Optional;
@@ -36,7 +37,7 @@ class SkillsSystemPromptContributorTest {
   /** A non-disabled sandbox configuration used to signal "sandbox is present". */
   private static final DaytonaSandboxConfiguration SANDBOX =
       new DaytonaSandboxConfiguration(
-          "dummy-api-key", null, null, null, null, null, null, null, null);
+          new DaytonaConnection("dummy-api-key", null, null, null, null, null));
 
   @BeforeEach
   void setUp() {

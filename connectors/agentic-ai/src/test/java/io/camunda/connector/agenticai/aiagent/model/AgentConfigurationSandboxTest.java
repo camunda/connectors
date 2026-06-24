@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.DaytonaConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DisabledSandboxConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +37,7 @@ class AgentConfigurationSandboxTest {
   @Test
   void sandboxConfiguration_isPresentForDaytona() {
     var daytona =
-        new DaytonaSandboxConfiguration("key", null, null, null, null, null, null, null, null);
+        new DaytonaSandboxConfiguration(new DaytonaConnection("key", null, null, null, null, null));
     var config = new AgentConfiguration(null, null, null, null, null, null, null, daytona);
     assertThat(config.sandboxConfiguration()).isPresent().contains(daytona);
   }

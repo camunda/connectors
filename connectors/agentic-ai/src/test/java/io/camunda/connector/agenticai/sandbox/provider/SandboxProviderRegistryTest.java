@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.SandboxConfiguration.DaytonaSandboxConfiguration.DaytonaConnection;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxCapability;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxHandle;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxProvider;
@@ -23,7 +24,8 @@ import org.junit.jupiter.api.Test;
 class SandboxProviderRegistryTest {
 
   private static final DaytonaSandboxConfiguration DAYTONA_CONFIG =
-      new DaytonaSandboxConfiguration("api-key", null, null, null, null, null, null, null, null);
+      new DaytonaSandboxConfiguration(
+          new DaytonaConnection("api-key", null, null, null, null, null));
 
   /** Stub provider — does not perform real I/O. */
   private static class StubSandboxProvider implements SandboxProvider {
