@@ -11,6 +11,11 @@ import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.DaytonaSandb
 import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.ExecOutcome;
 import io.camunda.connector.agenticai.sandbox.discovery.SandboxCreateResult;
 import io.camunda.connector.agenticai.sandbox.discovery.SandboxGatewayToolHandler;
+import io.camunda.connector.agenticai.sandbox.discovery.SkillCatalogEntry;
+import io.camunda.connector.agenticai.sandbox.skill.Skill;
+import io.camunda.connector.agenticai.sandbox.skill.SkillMdParser;
+import io.camunda.connector.agenticai.sandbox.skill.SkillMdParser.ParsedSkillMd;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -22,9 +27,12 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.daytona.sdk.Daytona;
 import io.daytona.sdk.Sandbox;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "Sandbox (Daytona)",
@@ -50,18 +58,29 @@ import java.util.Map;
     })
 public class SandboxDaytonaFunction implements OutboundConnectorFunction {
 
+  private static final Logger LOG = LoggerFactory.getLogger(SandboxDaytonaFunction.class);
+
   private static final int EXEC_TIMEOUT_SECONDS = OutputBounds.DEFAULT_TIMEOUT_SECONDS;
   private static final long MAX_OUTPUT_BYTES = OutputBounds.DEFAULT_MAX_OUTPUT_BYTES;
   private static final long DEFAULT_MAX_DOCUMENT_BYTES = 25L * 1024 * 1024;
 
   private final DaytonaClient daytonaClient;
+  private final SkillResolver skillResolver;
+  private final SkillMdParser skillMdParser;
 
   public SandboxDaytonaFunction() {
     this(new DaytonaClient());
   }
 
   public SandboxDaytonaFunction(DaytonaClient daytonaClient) {
+    this(daytonaClient, new SkillResolver(), new SkillMdParser());
+  }
+
+  public SandboxDaytonaFunction(
+      DaytonaClient daytonaClient, SkillResolver skillResolver, SkillMdParser skillMdParser) {
     this.daytonaClient = daytonaClient;
+    this.skillResolver = skillResolver;
+    this.skillMdParser = skillMdParser;
   }
 
   @Override
@@ -78,8 +97,25 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         String elementId = job.getElementId();
         DaytonaSandboxInfo info =
             daytonaClient.create(daytona, config, processInstanceKey, elementId);
-        // TODO(P5): materialize skills from document storage + scan catalog
-        yield new SandboxCreateResult(info.handle(), info.workDir(), List.of());
+        Sandbox sandbox = daytonaClient.connect(daytona, info.handle());
+        String workDir = info.workDir();
+        String skillsRoot = workDir + "/.agents/skills";
+        daytonaClient.exec(sandbox, "mkdir -p " + skillsRoot, EXEC_TIMEOUT_SECONDS);
+        List<Skill> skills = skillResolver.resolve(data.skills());
+        for (Skill skill : skills) {
+          for (Skill.SkillFile f : skill.files()) {
+            daytonaClient.fsWrite(
+                sandbox, skillsRoot + "/" + skill.name() + "/" + f.relativePath(), f.content());
+          }
+        }
+        if (data.startupScript() != null && !data.startupScript().isBlank()) {
+          ExecOutcome r = daytonaClient.exec(sandbox, data.startupScript(), EXEC_TIMEOUT_SECONDS);
+          if (r.exitCode() != 0) {
+            LOG.warn("Sandbox startup script exited with code {}: {}", r.exitCode(), r.stdout());
+          }
+        }
+        List<SkillCatalogEntry> catalog = scanSkillCatalog(sandbox, skillsRoot);
+        yield new SandboxCreateResult(info.handle(), workDir, catalog);
       }
       case BASH -> {
         String handle = requireHandle(data.handle(), "BASH");
@@ -174,6 +210,38 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         yield "Imported '%s' (%d bytes) to %s.".formatted(fileName, bytes.length, targetPath);
       }
     };
+  }
+
+  private List<SkillCatalogEntry> scanSkillCatalog(Sandbox sandbox, String skillsRoot) {
+    ExecOutcome find =
+        daytonaClient.exec(
+            sandbox,
+            "find " + skillsRoot + " -maxdepth 2 -name SKILL.md -type f 2>/dev/null | sort",
+            EXEC_TIMEOUT_SECONDS);
+    if (find.exitCode() != 0 || find.stdout() == null || find.stdout().isBlank()) {
+      return List.of();
+    }
+    List<SkillCatalogEntry> catalog = new ArrayList<>();
+    for (String line : find.stdout().split("\\R")) {
+      String location = line.trim();
+      if (location.isBlank()) {
+        continue;
+      }
+      try {
+        byte[] bytes = daytonaClient.fsRead(sandbox, location);
+        ParsedSkillMd parsed = skillMdParser.parse(new String(bytes, StandardCharsets.UTF_8));
+        int lastSlash = location.lastIndexOf('/');
+        String dirName =
+            lastSlash > 0
+                ? location.substring(location.lastIndexOf('/', lastSlash - 1) + 1, lastSlash)
+                : location;
+        String name = (parsed.name() != null && !parsed.name().isBlank()) ? parsed.name() : dirName;
+        catalog.add(new SkillCatalogEntry(name, parsed.description(), location));
+      } catch (Exception e) {
+        LOG.warn("Skipping SKILL.md at '{}' due to parse error: {}", location, e.getMessage());
+      }
+    }
+    return List.copyOf(catalog);
   }
 
   private String formatBashResult(ExecOutcome outcome) {

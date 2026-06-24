@@ -12,6 +12,7 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /** Input record for the Sandbox (Daytona) outbound connector. */
@@ -69,5 +70,22 @@ public record SandboxDaytonaRequest(@Valid @NotNull SandboxDaytonaRequestData da
               defaultValue = "=toolCall.document",
               feel = FeelMode.optional,
               optional = true)
-          @Nullable Document document) {}
+          @Nullable Document document,
+      @TemplateProperty(
+              group = "sandbox",
+              label = "Skills",
+              description =
+                  "Skill bundles (.zip documents) materialized into the sandbox workspace (.agents/skills/) at creation. Activated on demand by the agent via sandbox_fs_read of the skill's SKILL.md.",
+              feel = FeelMode.required,
+              optional = true)
+          @Nullable List<Document> skills,
+      @TemplateProperty(
+              group = "sandbox",
+              label = "Startup script",
+              description =
+                  "Optional shell script run once at sandbox creation (e.g. to install tools or add skills). Runs after skill bundles are materialized.",
+              type = TemplateProperty.PropertyType.Text,
+              feel = FeelMode.optional,
+              optional = true)
+          @Nullable String startupScript) {}
 }
