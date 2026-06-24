@@ -11,6 +11,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -150,7 +152,8 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
   }
 
   @Override
-  public List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls) {
+  public List<ToolCall> transformToolCalls(
+      AgentContext agentContext, DocumentRegistry documentRegistry, List<ToolCall> toolCalls) {
     return toolCalls.stream()
         .map(
             toolCall -> {
@@ -179,9 +182,30 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
               if (handle != null) {
                 payload.put("handle", handle);
               }
-              // merge LLM-supplied arguments (command, path, content, id, etc.)
-              if (toolCall.arguments() != null) {
-                payload.putAll(toolCall.arguments());
+              if (operation == SandboxOperation.IMPORT_DOCUMENT) {
+                // Resolve the document registry id to a reference on the trusted in-process side.
+                // The connector job has no access to the registry; resolution must happen here.
+                final var id =
+                    toolCall.arguments() != null ? (String) toolCall.arguments().get("id") : null;
+                final var path =
+                    toolCall.arguments() != null ? (String) toolCall.arguments().get("path") : null;
+                final java.util.Optional<DocumentRegistryEntry> registryEntry =
+                    id != null ? documentRegistry.findById(id) : java.util.Optional.empty();
+                if (registryEntry.isPresent()) {
+                  payload.put("document", registryEntry.get().reference());
+                } else {
+                  LOGGER.warn(
+                      "sandbox_import_document: no document found in registry for id '{}' — the connector will return an error",
+                      id);
+                }
+                if (path != null) {
+                  payload.put("path", path);
+                }
+              } else {
+                // merge LLM-supplied arguments (command, path, content, etc.)
+                if (toolCall.arguments() != null) {
+                  payload.putAll(toolCall.arguments());
+                }
               }
               return new ToolCall(toolCall.id(), elementId, payload);
             })

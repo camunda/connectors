@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
@@ -31,7 +32,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
@@ -84,8 +84,8 @@ class AgentResponseHandlerTest {
   void setUp() {
     responseHandler = new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
     // by default, registry passes tool calls through unchanged
-    when(gatewayToolHandlers.transformToolCalls(any(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
+    when(gatewayToolHandlers.transformToolCalls(any(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
   }
 
   /**
