@@ -36,7 +36,7 @@ public sealed interface SandboxConnectorMode permits SandboxConnectorMode.AiAgen
               group = "connectorMode",
               label = "Tool call",
               description = "The tool call dispatched by the AI agent. Populated automatically.",
-              type = TemplateProperty.PropertyType.Hidden,
+              type = TemplateProperty.PropertyType.Text,
               feel = FeelMode.required,
               defaultValue = "=toolCall")
           @Nullable Object toolCall)
