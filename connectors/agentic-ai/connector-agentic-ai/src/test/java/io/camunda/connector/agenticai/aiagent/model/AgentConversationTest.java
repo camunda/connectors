@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.List;
@@ -27,7 +28,12 @@ class AgentConversationTest {
       List<Message> storedMessages, List<Message> inputMessages) {
     var history = TurnReconstructor.reconstruct(storedMessages);
     return AgentConversation.rehydrate(
-        CONFIG, BASE_CONTEXT, history, systemMessage("sys"), inputMessages);
+        CONFIG,
+        BASE_CONTEXT,
+        history,
+        systemMessage("sys"),
+        inputMessages,
+        DocumentRegistry.empty());
   }
 
   @Test
@@ -68,7 +74,8 @@ class AgentConversationTest {
             contextWithStoredKey,
             history,
             systemMessage("sys"),
-            List.of(userMessage("next")));
+            List.of(userMessage("next")),
+            DocumentRegistry.empty());
 
     assertThat(conv.currentTurn().iterationKey()).isEqualTo(6);
   }
@@ -88,7 +95,8 @@ class AgentConversationTest {
             contextWithMetadataNoKey,
             history,
             systemMessage("sys"),
-            List.of(userMessage("next")));
+            List.of(userMessage("next")),
+            DocumentRegistry.empty());
 
     assertThat(conv.currentTurn().iterationKey()).isEqualTo(2);
   }
@@ -137,7 +145,12 @@ class AgentConversationTest {
     var history = TurnReconstructor.reconstruct(List.of());
     var conv =
         AgentConversation.rehydrate(
-            CONFIG, BASE_CONTEXT, history, null, List.of(userMessage("hi")));
+            CONFIG,
+            BASE_CONTEXT,
+            history,
+            null,
+            List.of(userMessage("hi")),
+            DocumentRegistry.empty());
     assertThat(conv.systemMessage()).isNull();
     assertThat(conv.allMessages()).noneMatch(SystemMessage.class::isInstance);
     assertThat(conv.allMessages()).containsExactly(userMessage("hi"));
@@ -175,7 +188,8 @@ class AgentConversationTest {
                 contextWithMetadata,
                 history,
                 systemMessage("sys"),
-                List.of(userMessage("hi")))
+                List.of(userMessage("hi")),
+                DocumentRegistry.empty())
             .ingest(assistantMessage("hello"), AgentMetrics.empty());
 
     var ctx = conv.toAgentContext();
@@ -196,7 +210,8 @@ class AgentConversationTest {
             contextWithStoredKey,
             history,
             systemMessage("sys"),
-            List.of(userMessage("hi")));
+            List.of(userMessage("hi")),
+            DocumentRegistry.empty());
 
     assertThat(conv.currentTurn().assistantMessage()).isNull();
     var ctx = conv.toAgentContext();
@@ -236,7 +251,8 @@ class AgentConversationTest {
             contextWithHistory,
             history,
             systemMessage("sys"),
-            List.of(userMessage("next")));
+            List.of(userMessage("next")),
+            DocumentRegistry.empty());
 
     assertThat(conv.turns()).hasSize(2);
     assertThat(conv.turns()).allSatisfy(t -> assertThat(t.metrics().modelCalls()).isZero());

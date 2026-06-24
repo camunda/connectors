@@ -9,15 +9,19 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
 @JsonDeserialize(
     builder = InProcessConversationContext.InProcessConversationContextJacksonProxyBuilder.class)
-public record InProcessConversationContext(String conversationId, List<Message> messages)
+public record InProcessConversationContext(
+    String conversationId, List<Message> messages, @Nullable DocumentRegistry documentRegistry)
     implements ConversationContext, InProcessConversationContextBuilder.With {
+
   public static InProcessConversationContextBuilder builder() {
     return InProcessConversationContextBuilder.builder();
   }
