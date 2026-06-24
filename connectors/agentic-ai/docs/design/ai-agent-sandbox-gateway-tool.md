@@ -279,9 +279,28 @@ size-guard logic (ported into the connector ops).
 contributor + max-1 enforcement + `sandbox_` namespace-reservation validation + the new sandbox
 connector package.
 
-**Possible bonus:** discovery completing before turn 1 may close the frozen-prompt/agent-instance gap
-(PR #7594 §14.3) without the deferred engine API, by composing the system prompt at READY with the full
-catalog. **To verify** during implementation.
+**Possible bonus — VERIFIED, NOT free (P7).** The gateway model does **not** close the §14.3
+agent-instance/system-prompt gap for free. Root cause confirmed on this branch:
+`AgentInitializerImpl.provisionAgentInstance` calls `agentInstanceClient.create()` at the
+**INITIALIZING** stage — the very first job, *before* gateway discovery runs — and
+`CamundaAgentInstanceClient.executeCreate` records the **raw** `configuration.systemPrompt().prompt()`.
+The catalog only becomes known at the **READY** transition (`completeToolDiscovery`, a later job, after
+the sandbox `CREATE` round-trip), so `create()` cannot see it. If anything the gateway model makes the
+catalog available *later* than #7594 (which could resolve it in-JVM at init); the `<available_skills>`
+block still reaches the model correctly (it is composed in `proceed()` at the first READY turn from the
+catalog metadata on the persisted tool defs), but the agent-instance observability record keeps the raw
+prompt. Reflecting the composed prompt there needs one of:
+- **(a)** engine support — add `systemPrompt` to `UpdateAgentInstance` (the `UpdateAgentInstanceCommandStep2`
+  builder today carries only status + `modelCalls`/`inputTokens`/`outputTokens`/`toolCalls`), then
+  compose-at-READY and push via `update()`. This is the same cross-team dependency #7594 identified.
+- **(b)** defer `agentInstanceClient.create()` from INITIALIZING to the READY transition and compose the
+  prompt in the initializer so `create()` records it directly — avoids the engine dependency, but is a
+  structural change (move composition into `AgentInitializer`) **and conflicts with labelling the sandbox
+  with `agentInstanceKey` at `CREATE`** (decision §6 / the planned reaper hook): the sandbox `CREATE` runs
+  during TOOL_DISCOVERY, *before* READY, so the key would not yet exist.
+
+Neither is free, so this stays a documented follow-up (engine dependency unchanged). Not implemented in
+this PoC.
 
 ---
 
@@ -387,10 +406,16 @@ No `SandboxProvider`/`SandboxSession`/`InternalTool*` sources exist; the AI Agen
 or mixed-turn machinery. Turn semantics are already classic. The migration surface in §10 applies only
 to PR #7594 (the in-process reference), not to this branch.
 
-### P7 — Frozen-prompt/agent-instance verification
-Verify whether composing at READY (catalog known) closes §14.3. Implement if free; else re-note the
-engine dependency. *Acceptance:* agent-instance record reflects the composed prompt, or the gap is
-re-documented with the precise blocker.
+### P7 — Frozen-prompt/agent-instance verification — ✅ DONE (verified; gap persists, not free)
+**Finding:** the gap is **not** closed for free; the engine dependency is unchanged. Evidence (this
+branch): `agentInstanceClient.create()` runs at INITIALIZING (`AgentInitializerImpl.provisionAgentInstance`),
+before discovery, and records the raw `configuration.systemPrompt().prompt()`; the catalog is known only
+at READY (`completeToolDiscovery`), a later job. `UpdateAgentInstanceCommandStep2` has no `systemPrompt`
+setter (status + metric deltas only). The `<available_skills>` block still reaches the model correctly
+(composed in `proceed()` at the first READY turn from the persisted tool-def catalog metadata) — only the
+agent-instance observability record is stale. Two non-free fixes documented in §10: (a) add `systemPrompt`
+to `UpdateAgentInstance` (cross-team engine dep, same as #7594) + compose-at-READY-and-update; (b) defer
+`create()` to READY (conflicts with `agentInstanceKey`→sandbox-`CREATE` labelling). No code change. See §10.
 
 ### P8 — Live e2e (scenarios A–E, new BPMN)
 New gateway-topology BPMN; port the `AiAgentSandboxSkillsIT` scenarios + judge assertions. *Acceptance:*
