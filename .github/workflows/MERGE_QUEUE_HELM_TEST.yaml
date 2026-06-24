@@ -211,8 +211,9 @@ jobs:
           status: failure
           evidence: "SM E2E / Helm Integration Tests failed."
           pr: ${{ github.event.merge_group.head_ref }}
-          # Existing AlwaysGreen alerting channel/token (same as connectors-streak-detector.yml)
-          slack_channel: ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}
+          # Shared AlwaysGreen channel (#alwaysgreen-reliability) — consistent
+          # across all AlwaysGreen repos. The connectors bot must be a member.
+          slack_channel: "C0AK0AVKRL0"
           slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
 

@@ -144,7 +144,7 @@ jobs:
         continue-on-error: true
         env:
           SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
-          CHANNEL_ID: ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}
+          CHANNEL_ID: C0AK0AVKRL0
           BASE_REF: ${{ steps.streak.outputs.base_ref }}
         run: |
           set -euo pipefail
@@ -176,7 +176,7 @@ jobs:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           payload: |
             {
-              "channel": "${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}",
+              "channel": "C0AK0AVKRL0",
               "text": ":rotating_light: ${{ steps.find-message.outputs.active_marker }} (${{ steps.streak.outputs.streak_count }} consecutive failures)\n${{ steps.medics.outputs.pings }} — please triage.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}> on `${{ steps.streak.outputs.base_ref }}`\nLatest failing run: ${{ github.event.workflow_run.html_url }}"
             }
 
@@ -188,7 +188,7 @@ jobs:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           payload: |
             {
-              "channel": "${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}",
+              "channel": "C0AK0AVKRL0",
               "ts": "${{ steps.find-message.outputs.existing_ts }}",
               "text": ":rotating_light: ${{ steps.find-message.outputs.active_marker }} (${{ steps.streak.outputs.streak_count }} consecutive failures, ongoing)\n${{ steps.medics.outputs.pings }} — still triaging.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}> on `${{ steps.streak.outputs.base_ref }}`\nLatest failing run: ${{ github.event.workflow_run.html_url }}"
             }
@@ -201,7 +201,7 @@ jobs:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           payload: |
             {
-              "channel": "${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}",
+              "channel": "C0AK0AVKRL0",
               "ts": "${{ steps.find-message.outputs.existing_ts }}",
               "text": ":white_check_mark: ${{ env.STREAK_MARKER_RESOLVED }} on ${{ steps.streak.outputs.base_ref }} — first green run after the streak.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}>\nFirst green run: ${{ github.event.workflow_run.html_url }}"
             }
