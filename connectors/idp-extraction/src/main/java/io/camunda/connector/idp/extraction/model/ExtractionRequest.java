@@ -11,6 +11,13 @@ import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * @deprecated Legacy IDP extraction request, bound only by {@link
+ *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. The structured /
+ *     unstructured / classification connectors use the {@code request.*} models instead. Retained
+ *     for backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 public record ExtractionRequest(
     @Valid @NotNull ExtractionRequestData input,
     @TemplateProperty(group = "baseRequest") ProviderConfig baseRequest) {}
