@@ -71,3 +71,23 @@ See the [Ad-hoc tools schema resolver documentation](https://docs.camunda.io/doc
 | Connector           | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
 | Ad-hoc tools schema | 8.8 | 2 | [`agenticai-adhoctoolsschema-outbound-connector.json`](./agenticai-adhoctoolsschema-outbound-connector.json) |
+
+## Maintaining this index
+
+This index must stay in sync with the JSON files in this folder every time a template version is
+bumped or a connector is added. The latest template of each connector lives in this folder; superseded
+ones move into [`versioned/`](./versioned/) when `versionHistoryEnabled` is set.
+
+When `versionHistoryEnabled` moves a superseded template into `versioned/`:
+
+1. **Identify the new minimum Camunda version** by checking the `engines.camunda` field of the new
+   template (e.g. `^8.10`).
+2. **Same minimum as the current top row**: replace the top row, updating the template version and the
+   file link (now pointing into `versioned/`).
+3. **Higher minimum than the current top row**: insert a new top row with the new minimum Camunda
+   version and template version, and move the previous top row's link under `versioned/`.
+4. **AI Agent has two tables** (Task and Sub-process) sharing the same version numbers. Update both.
+5. **New connector**: add a section in the same order as the existing ones (AI Agent, MCP Client, A2A,
+   Ad-hoc tools schema) with an intro paragraph linking to the `docs.camunda.io` overview page.
+
+Do not list `hybrid/` templates here. They are intentionally omitted.
