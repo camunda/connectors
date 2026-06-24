@@ -144,7 +144,7 @@ mvn test -pl connectors/agentic-ai                        # unit / integration t
 
 **Prerequisite**: element-template generation and the e2e tests require `element-templates-cli` on your
 PATH. When it is missing, e2e tests can fail with confusing errors that look unrelated to the change.
-You can it once with `npm i -g element-templates-cli`, if needed.
+You can install it once with `npm i -g element-templates-cli`, if needed.
 
 Unit tests use JUnit 5, Mockito, and AssertJ. In this module use unit tests only, apart from the few
 existing Spring Boot tests and the e2e suite. For repo-wide build/commit/PR/CI/spotless/license rules,
