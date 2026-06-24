@@ -7,9 +7,11 @@
 package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -125,6 +127,61 @@ class AdHocToolsSchemaResolverTest {
               assertThat(gw.type()).isEqualTo("B");
               assertThat(gw.name()).isEqualTo("GW_B_1");
               assertThat(gw.description()).isEqualTo("Gateway Type B 1 documentation");
+            });
+  }
+
+  @Test
+  void throwsConnectorExceptionWhenModeledToolNameUsesSandboxPrefix() {
+    final var reservedElement =
+        AdHocToolElement.builder().elementId("sandbox_foo").elementName("Sandbox Foo").build();
+
+    when(schemaGenerator.generateToolSchema(reservedElement)).thenReturn(DUMMY_SCHEMA);
+
+    assertThatThrownBy(() -> resolver.resolveAdHocToolsSchema(List.of(reservedElement)))
+        .isInstanceOf(ConnectorException.class)
+        .satisfies(
+            ex -> {
+              final var connectorException = (ConnectorException) ex;
+              assertThat(connectorException.getErrorCode()).isEqualTo("SANDBOX_RESERVED_TOOL_NAME");
+              assertThat(connectorException.getMessage()).contains("sandbox_foo");
+              assertThat(connectorException.getMessage()).contains("'sandbox_' prefix is reserved");
+            });
+  }
+
+  @Test
+  void doesNotThrowForNormalToolName() {
+    final var element =
+        AdHocToolElement.builder().elementId("My_Normal_Tool").elementName("Normal Tool").build();
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
+
+    final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
+    assertThat(schemaResponse.toolDefinitions()).hasSize(1);
+    assertThat(schemaResponse.toolDefinitions().getFirst().name()).isEqualTo("My_Normal_Tool");
+  }
+
+  @Test
+  void throwsConnectorExceptionListingAllReservedNames() {
+    final var reserved1 =
+        AdHocToolElement.builder().elementId("sandbox_bash").elementName("Bash").build();
+    final var reserved2 =
+        AdHocToolElement.builder().elementId("sandbox_fs_read").elementName("FS Read").build();
+    final var normalElement =
+        AdHocToolElement.builder().elementId("Normal_Tool").elementName("Normal Tool").build();
+
+    when(schemaGenerator.generateToolSchema(reserved1)).thenReturn(DUMMY_SCHEMA);
+    when(schemaGenerator.generateToolSchema(reserved2)).thenReturn(DUMMY_SCHEMA);
+    when(schemaGenerator.generateToolSchema(normalElement)).thenReturn(DUMMY_SCHEMA);
+
+    assertThatThrownBy(
+            () -> resolver.resolveAdHocToolsSchema(List.of(reserved1, reserved2, normalElement)))
+        .isInstanceOf(ConnectorException.class)
+        .satisfies(
+            ex -> {
+              final var connectorException = (ConnectorException) ex;
+              assertThat(connectorException.getErrorCode()).isEqualTo("SANDBOX_RESERVED_TOOL_NAME");
+              assertThat(connectorException.getMessage()).contains("sandbox_bash");
+              assertThat(connectorException.getMessage()).contains("sandbox_fs_read");
             });
   }
 }
