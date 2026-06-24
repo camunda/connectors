@@ -24,8 +24,8 @@ public record ToolDefinition(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements ToolDefinitionBuilder.With {
 
-  /** Metadata key marking a tool definition as a sandbox gateway tool. */
-  public static final String METADATA_SANDBOX_TOOL = "sandbox";
+  /** Metadata key carrying the gateway type (e.g. "sandbox") for gateway-managed tools. */
+  public static final String METADATA_GATEWAY_TYPE = "gatewayType";
 
   /** Metadata key carrying the target BPMN element id a sandbox tool call routes to. */
   public static final String METADATA_ELEMENT_ID = "elementId";
@@ -35,8 +35,9 @@ public record ToolDefinition(
   }
 
   @JsonIgnore
-  public boolean isSandboxTool() {
-    return Boolean.TRUE.equals(metadata().get(METADATA_SANDBOX_TOOL));
+  public @Nullable String gatewayType() {
+    final var value = metadata().get(METADATA_GATEWAY_TYPE);
+    return value instanceof String s ? s : null;
   }
 
   public static ToolDefinitionBuilder builder() {

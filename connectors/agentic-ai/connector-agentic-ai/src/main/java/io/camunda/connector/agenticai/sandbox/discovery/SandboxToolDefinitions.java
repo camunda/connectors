@@ -26,6 +26,9 @@ public final class SandboxToolDefinitions {
 
   private SandboxToolDefinitions() {}
 
+  /** Metadata key carrying the sandbox operation (a {@link SandboxOperation} enum value). */
+  public static final String METADATA_OPERATION = "operation";
+
   /** Metadata key carrying the sandbox handle (opaque identifier for the provisioned sandbox). */
   public static final String METADATA_HANDLE = "handle";
 
@@ -49,18 +52,15 @@ public final class SandboxToolDefinitions {
    * @return list of five sandbox tool definitions
    */
   public static List<ToolDefinition> sandboxToolDefinitions(String elementId) {
-    final var metadata =
-        Map.<String, Object>of(
-            ToolDefinition.METADATA_SANDBOX_TOOL,
-            true,
-            ToolDefinition.METADATA_ELEMENT_ID,
-            elementId);
+    final var baseMetadata = new LinkedHashMap<String, Object>();
+    baseMetadata.put(ToolDefinition.METADATA_GATEWAY_TYPE, SandboxGatewayToolHandler.GATEWAY_TYPE);
+    baseMetadata.put(ToolDefinition.METADATA_ELEMENT_ID, elementId);
     return List.of(
-        bashDefinition(metadata),
-        fsReadDefinition(metadata),
-        fsWriteDefinition(metadata),
-        exportDocumentDefinition(metadata),
-        importDocumentDefinition(metadata));
+        bashDefinition(withOperation(baseMetadata, SandboxOperation.BASH)),
+        fsReadDefinition(withOperation(baseMetadata, SandboxOperation.FS_READ)),
+        fsWriteDefinition(withOperation(baseMetadata, SandboxOperation.FS_WRITE)),
+        exportDocumentDefinition(withOperation(baseMetadata, SandboxOperation.EXPORT_DOCUMENT)),
+        importDocumentDefinition(withOperation(baseMetadata, SandboxOperation.IMPORT_DOCUMENT)));
   }
 
   /**
@@ -75,20 +75,27 @@ public final class SandboxToolDefinitions {
    */
   public static List<ToolDefinition> sandboxToolDefinitions(
       String elementId, String handle, String workDir, List<SkillCatalogEntry> catalog) {
-    final var metadata = new LinkedHashMap<String, Object>();
-    metadata.put(ToolDefinition.METADATA_SANDBOX_TOOL, true);
-    metadata.put(ToolDefinition.METADATA_ELEMENT_ID, elementId);
-    metadata.put(METADATA_HANDLE, handle);
-    metadata.put(METADATA_WORK_DIR, workDir);
+    final var baseMetadata = new LinkedHashMap<String, Object>();
+    baseMetadata.put(ToolDefinition.METADATA_GATEWAY_TYPE, SandboxGatewayToolHandler.GATEWAY_TYPE);
+    baseMetadata.put(ToolDefinition.METADATA_ELEMENT_ID, elementId);
+    baseMetadata.put(METADATA_HANDLE, handle);
+    baseMetadata.put(METADATA_WORK_DIR, workDir);
     if (catalog != null && !catalog.isEmpty()) {
-      metadata.put(METADATA_CATALOG, catalog);
+      baseMetadata.put(METADATA_CATALOG, catalog);
     }
     return List.of(
-        bashDefinition(metadata),
-        fsReadDefinition(metadata),
-        fsWriteDefinition(metadata),
-        exportDocumentDefinition(metadata),
-        importDocumentDefinition(metadata));
+        bashDefinition(withOperation(baseMetadata, SandboxOperation.BASH)),
+        fsReadDefinition(withOperation(baseMetadata, SandboxOperation.FS_READ)),
+        fsWriteDefinition(withOperation(baseMetadata, SandboxOperation.FS_WRITE)),
+        exportDocumentDefinition(withOperation(baseMetadata, SandboxOperation.EXPORT_DOCUMENT)),
+        importDocumentDefinition(withOperation(baseMetadata, SandboxOperation.IMPORT_DOCUMENT)));
+  }
+
+  private static Map<String, Object> withOperation(
+      Map<String, Object> baseMetadata, SandboxOperation operation) {
+    final var copy = new LinkedHashMap<>(baseMetadata);
+    copy.put(METADATA_OPERATION, operation);
+    return copy;
   }
 
   private static ToolDefinition bashDefinition(Map<String, Object> metadata) {
@@ -106,9 +113,9 @@ public final class SandboxToolDefinitions {
     return ToolDefinition.builder()
         .name(SandboxToolNames.BASH)
         .description(
-            "Run a shell command in the sandbox via bash -lc. Returns stdout, stderr, and exit"
-                + " code. Stateless per call — workspace filesystem persists but shell state (cwd,"
-                + " env vars, background jobs) does not.")
+            "Run a shell command in the sandbox via bash -lc. Returns combined stdout/stderr output"
+                + " and the exit code. Stateless per call — workspace filesystem persists but shell"
+                + " state (cwd, env vars, background jobs) does not.")
         .inputSchema(schema)
         .metadata(metadata)
         .build();
