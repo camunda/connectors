@@ -45,7 +45,7 @@ jobs:
       - name: Get labels
         id: get-labels
         run: |
-          echo "::set-output name=labels::$(jq -r '.issue? // .pull_request? | .labels[].name' <"$GITHUB_EVENT_PATH")"
+          echo "labels=$(jq -r '.issue? // .pull_request? | .labels[].name' <"$GITHUB_EVENT_PATH")" >> "$GITHUB_OUTPUT"
         env:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
 
@@ -56,16 +56,36 @@ jobs:
           project-url: ${{ matrix.mapping.project-url }}
           github-token: ${{ steps.app-token.outputs.token }}
 
-      # Mark that at least one label matched
-      - name: Flag “matched”
-        if: contains(steps.get-labels.outputs.labels, matrix.mapping.label)
-        run: echo "::set-output name=matched::true"
-        id: flag
+      - name: Remove from connectors project
+        if: contains(steps.get-labels.outputs.labels, matrix.mapping.label) && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          ITEM_DATA=$(gh api graphql \
+            -f query='query($owner: String!, $repo: String!, $issueNumber: Int!) { repository(owner: $owner, name: $repo) { issue(number: $issueNumber) { projectItems(first: 20) { nodes { id project { ... on ProjectV2 { number id } } } } } } }' \
+            -F owner='${{ github.repository_owner }}' \
+            -F repo='${{ github.event.repository.name }}' \
+            -F issueNumber=${{ github.event.issue.number }})
+          PROJECT_ID=$(echo “$ITEM_DATA” | jq -r '.data.repository.issue.projectItems.nodes[] | select(.project.number == 23) | .project.id' | head -1)
+          ITEM_ID=$(echo “$ITEM_DATA” | jq -r '.data.repository.issue.projectItems.nodes[] | select(.project.number == 23) | .id' | head -1)
+          if [ -n “$ITEM_ID” ] && [ “$ITEM_ID” != “null” ]; then
+            gh api graphql \
+              -f query='mutation($projectId: ID!, $itemId: ID!) { deleteProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) { deletedItemId } }' \
+              -F projectId=”$PROJECT_ID” \
+              -F itemId=”$ITEM_ID”
+          fi
 
   add-default:
     name: Add issue to project if no label
     runs-on: ubuntu-latest
-    if: needs.add-by-label.outputs['flag.matched'] != 'true'
+    needs: [add-by-label]
+    if: |
+      (github.event_name == 'issues' &&
+       !contains(github.event.issue.labels.*.name, 'idp') &&
+       !contains(github.event.issue.labels.*.name, 'agentic-ai')) ||
+      (github.event_name == 'pull_request' &&
+       !contains(github.event.pull_request.labels.*.name, 'idp') &&
+       !contains(github.event.pull_request.labels.*.name, 'agentic-ai'))
     steps:
       - name: Import Secrets
         id: vault-secrets
