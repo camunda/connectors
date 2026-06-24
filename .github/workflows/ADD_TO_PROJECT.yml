@@ -64,9 +64,15 @@ jobs:
         if: contains(steps.get-labels.outputs.labels, matrix.mapping.label)
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
         run: |
           PROJECT_TITLE=$(gh project view 23 --owner camunda --format json | jq -r '.title')
-          gh issue edit “${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.issue.number }}” --remove-project “$PROJECT_TITLE” --repo “${{ github.repository }}”
+          ITEM_NUMBER=$(jq -r '.issue.number // .pull_request.number' < “$GITHUB_EVENT_PATH”)
+          if [ “${{ github.event_name }}” = “pull_request” ]; then
+            gh pr edit “$ITEM_NUMBER” --remove-project “$PROJECT_TITLE” --repo “${{ github.repository }}”
+          else
+            gh issue edit “$ITEM_NUMBER” --remove-project “$PROJECT_TITLE” --repo “${{ github.repository }}”
+          fi
 
   add-default:
     name: Add issue to project if no label
