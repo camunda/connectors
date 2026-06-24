@@ -1,8 +1,8 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Sandbox (Daytona)",
+  "name" : "Daytona.io",
   "id" : "io.camunda.connectors.agenticai.sandbox.daytona.v0",
-  "description" : "Provisions and manages a Daytona sandbox for AI agent tool execution.",
+  "description" : "Provisions and manages a Daytona sandbox for AI agent tool execution (bash, file system, document and skill operations).",
   "version" : 1,
   "category" : {
     "id" : "aiTools",
@@ -46,7 +46,7 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "data.daytona.apiKey",
+    "id" : "data.apiKey",
     "label" : "API key",
     "optional" : false,
     "constraints" : {
@@ -55,42 +55,42 @@
     "feel" : "optional",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.daytona.apiKey",
+      "name" : "data.apiKey",
       "type" : "zeebe:input"
     },
     "type" : "String"
   }, {
-    "id" : "data.daytona.apiUrl",
+    "id" : "data.apiUrl",
     "label" : "API URL",
     "description" : "Base URL for self-hosted Daytona deployments.",
     "optional" : true,
     "feel" : "optional",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.daytona.apiUrl",
+      "name" : "data.apiUrl",
       "type" : "zeebe:input"
     },
     "type" : "String"
   }, {
-    "id" : "data.daytona.snapshot",
+    "id" : "data.snapshot",
     "label" : "Snapshot",
     "optional" : true,
     "feel" : "optional",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.daytona.snapshot",
+      "name" : "data.snapshot",
       "type" : "zeebe:input"
     },
     "type" : "String"
   }, {
-    "id" : "data.daytona.autoStop.mode",
+    "id" : "data.autoStop.mode",
     "label" : "Auto-stop",
     "description" : "Controls how long a running sandbox stays up before stopping. DISABLED means it never auto-stops (Daytona default: 15 min).",
     "optional" : false,
     "value" : "DURATION",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.daytona.autoStop.mode",
+      "name" : "data.autoStop.mode",
       "type" : "zeebe:input"
     },
     "type" : "Dropdown",
@@ -102,7 +102,7 @@
       "value" : "DURATION"
     } ]
   }, {
-    "id" : "data.daytona.autoStop.duration",
+    "id" : "data.autoStop.duration",
     "label" : "Auto-stop duration",
     "description" : "ISO-8601 duration after which an idle running sandbox is stopped. Default: PT15M (15 minutes).",
     "optional" : true,
@@ -110,26 +110,26 @@
     "feel" : "optional",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.daytona.autoStop.duration",
+      "name" : "data.autoStop.duration",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "data.daytona.autoStop.mode",
+        "property" : "data.autoStop.mode",
         "equals" : "DURATION",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "data.daytona.autoArchive.mode",
+    "id" : "data.autoArchive.mode",
     "label" : "Auto-archive",
     "description" : "Controls when a stopped sandbox is archived. DEFAULT uses Daytona's default (7 days). Max duration: 30 days.",
     "optional" : false,
     "value" : "DEFAULT",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.daytona.autoArchive.mode",
+      "name" : "data.autoArchive.mode",
       "type" : "zeebe:input"
     },
     "type" : "Dropdown",
@@ -141,7 +141,7 @@
       "value" : "DURATION"
     } ]
   }, {
-    "id" : "data.daytona.autoArchive.duration",
+    "id" : "data.autoArchive.duration",
     "label" : "Auto-archive duration",
     "description" : "ISO-8601 duration after which a stopped sandbox is archived. Must not exceed 30 days (P30D).",
     "optional" : true,
@@ -149,26 +149,26 @@
     "feel" : "optional",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.daytona.autoArchive.duration",
+      "name" : "data.autoArchive.duration",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "data.daytona.autoArchive.mode",
+        "property" : "data.autoArchive.mode",
         "equals" : "DURATION",
         "type" : "simple"
       } ]
     },
     "type" : "String"
   }, {
-    "id" : "data.daytona.autoDelete.mode",
+    "id" : "data.autoDelete.mode",
     "label" : "Auto-delete",
     "description" : "Controls when a stopped sandbox is deleted. DISABLED means never delete. IMMEDIATELY deletes the sandbox right after it stops (0 minutes).",
     "optional" : false,
     "value" : "DISABLED",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.daytona.autoDelete.mode",
+      "name" : "data.autoDelete.mode",
       "type" : "zeebe:input"
     },
     "type" : "Dropdown",
@@ -183,7 +183,7 @@
       "value" : "DURATION"
     } ]
   }, {
-    "id" : "data.daytona.autoDelete.duration",
+    "id" : "data.autoDelete.duration",
     "label" : "Auto-delete duration",
     "description" : "ISO-8601 duration after which a stopped sandbox is deleted. Default: PT5M (5 minutes).",
     "optional" : true,
@@ -191,12 +191,12 @@
     "feel" : "optional",
     "group" : "sandbox",
     "binding" : {
-      "name" : "data.daytona.autoDelete.duration",
+      "name" : "data.autoDelete.duration",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "data.daytona.autoDelete.mode",
+        "property" : "data.autoDelete.mode",
         "equals" : "DURATION",
         "type" : "simple"
       } ]
@@ -403,5 +403,8 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
-  } ]
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjExIiBoZWlnaHQ9IjIyMCIgdmlld0JveD0iMCAwIDIxMSAyMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHg9IjExLjE0MjgiIHk9IjE0OS4wMjUiIHdpZHRoPSI3Ni4yNDc0IiBoZWlnaHQ9IjI2LjE0MjEiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3QgeD0iMTEzLjUyMiIgeT0iNTcuNTI4NyIgd2lkdGg9Ijg3LjEzOTkiIGhlaWdodD0iMjYuMTQyMSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB3aWR0aD0iOTEuNDk3MSIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0ibWF0cml4KDAuNzA3MTA1IC0wLjcwNzEwOCAwLjcwNzEwNSAwLjcwNzEwOCA2Ny43NzM3IDY1LjU4NTgpIiBmaWxsPSIjMTYxNjE2Ii8+CjxyZWN0IHdpZHRoPSI3MC4yNjkxIiBoZWlnaHQ9IjI2LjE0MiIgdHJhbnNmb3JtPSJtYXRyaXgoLTAuNzA3MTA1IC0wLjcwNzEwOCAtMC43MDcxMDUgMC43MDcxMDggNjguMTcyOSAxMzAuOTQxKSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB3aWR0aD0iNzQuMDY5MSIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0ibWF0cml4KC0wLjcwNzEwNSAwLjcwNzEwOCAtMC43MDcxMDUgLTAuNzA3MTA4IDEzMy41MzIgMTY3LjUxMSkiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3Qgd2lkdGg9IjgyLjc4MzEiIGhlaWdodD0iMjYuMTQyIiB0cmFuc2Zvcm09Im1hdHJpeCgwLjcwNzEwNSAwLjcwNzEwOCAwLjcwNzEwNSAtMC43MDcxMDggMTMzLjEzMyAxMDIuMTU2KSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB4PSI2Ny43NzM3IiB5PSIzNy45MjI3IiB3aWR0aD0iNjMuMTc2NyIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0icm90YXRlKDkwIDY3Ljc3MzcgMzcuOTIyNykiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3QgeD0iMTU5LjI3OCIgeT0iMTI5LjQxOSIgd2lkdGg9Ijc4LjQyNjIiIGhlaWdodD0iMjYuMTQyIiB0cmFuc2Zvcm09InJvdGF0ZSg5MCAxNTkuMjc4IDEyOS40MTkpIiBmaWxsPSIjMTYxNjE2Ii8+Cjwvc3ZnPgo="
+  }
 }
