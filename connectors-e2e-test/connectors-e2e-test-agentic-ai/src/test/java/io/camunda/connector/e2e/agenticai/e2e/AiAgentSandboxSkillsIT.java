@@ -23,6 +23,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.process.test.api.CamundaAssert.assertThatProcessInstance;
 import static io.camunda.process.test.api.CamundaAssert.setAssertionTimeout;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
@@ -30,18 +32,24 @@ import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.daytona.sdk.Daytona;
+import io.daytona.sdk.DaytonaConfig;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -121,10 +129,16 @@ public class AiAgentSandboxSkillsIT {
   // Generous timeout for real sandbox creation + multiple LLM round-trips.
   private static final Duration PROCESS_TIMEOUT = Duration.ofMinutes(5);
 
+  private static final Logger LOG = LoggerFactory.getLogger(AiAgentSandboxSkillsIT.class);
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   @Autowired private CamundaClient camundaClient;
 
   private String skillDownloadUrl;
   private String sampleCsvUrl;
+
+  // Process instances started by each test, used to resolve and delete their sandboxes in teardown.
+  private final List<Long> startedProcessInstanceKeys = new ArrayList<>();
 
   @BeforeAll
   static void setUp() {
@@ -290,17 +304,89 @@ public class AiAgentSandboxSkillsIT {
   // ---------------------------------------------------------------------------
 
   private ProcessInstanceEvent startChat(String inputText) {
-    return camundaClient
-        .newCreateInstanceCommand()
-        .bpmnProcessId(PROCESS_ID)
-        .latestVersion()
-        .variables(
-            Map.of(
-                "inputText", inputText,
-                "inputDocuments", List.of(),
-                "skillDownloadUrl", skillDownloadUrl))
-        .send()
-        .join();
+    var instance =
+        camundaClient
+            .newCreateInstanceCommand()
+            .bpmnProcessId(PROCESS_ID)
+            .latestVersion()
+            .variables(
+                Map.of(
+                    "inputText", inputText,
+                    "inputDocuments", List.of(),
+                    "skillDownloadUrl", skillDownloadUrl))
+            .send()
+            .join();
+    startedProcessInstanceKeys.add(instance.getProcessInstanceKey());
+    return instance;
+  }
+
+  /**
+   * Best-effort teardown: deletes the Daytona sandbox created by each test immediately so the happy
+   * path leaves nothing behind. The BPMN's short auto-stop + auto-delete is the crash-safe net for
+   * when this never runs (JVM dies); this just makes cleanup instant in the common case.
+   */
+  @AfterEach
+  void deleteSandboxes() {
+    String apiKey = System.getenv("DAYTONA_API_KEY");
+    String apiUrl = System.getenv("DAYTONA_API_URL"); // may be null for cloud
+    try {
+      for (Long processInstanceKey : startedProcessInstanceKeys) {
+        String sandboxId = resolveSandboxId(processInstanceKey);
+        if (sandboxId != null) {
+          deleteSandbox(apiKey, apiUrl, sandboxId);
+        }
+      }
+    } finally {
+      startedProcessInstanceKeys.clear();
+    }
+  }
+
+  /**
+   * Reads the persisted {@code agentContext} variable and extracts the sandbox session id from
+   * {@code properties.sandboxHandle.sessionId}. Returns {@code null} if not resolvable (e.g. the
+   * agent never opened a sandbox or the variable is gone).
+   */
+  private String resolveSandboxId(long processInstanceKey) {
+    try {
+      // withFullValues() disables value truncation — agentContext is large, so the default
+      // truncated value would not parse as JSON.
+      var items =
+          camundaClient
+              .newVariableSearchRequest()
+              .filter(f -> f.processInstanceKey(processInstanceKey).name("agentContext"))
+              .withFullValues()
+              .send()
+              .join()
+              .items();
+      if (items.isEmpty()) {
+        return null;
+      }
+      JsonNode context = OBJECT_MAPPER.readTree(items.getFirst().getValue());
+      JsonNode sessionId = context.path("properties").path("sandboxHandle").path("sessionId");
+      return sessionId.isMissingNode() || sessionId.isNull() ? null : sessionId.asText();
+    } catch (Exception e) {
+      LOG.warn(
+          "Could not resolve sandbox id for process instance {}: {}",
+          processInstanceKey,
+          e.getMessage());
+      return null;
+    }
+  }
+
+  private static void deleteSandbox(String apiKey, String apiUrl, String sandboxId) {
+    DaytonaConfig.Builder builder = new DaytonaConfig.Builder().apiKey(apiKey);
+    if (apiUrl != null && !apiUrl.isBlank()) {
+      builder = builder.apiUrl(apiUrl);
+    }
+    try (Daytona daytona = new Daytona(builder.build())) {
+      daytona.get(sandboxId).delete();
+      LOG.info("Deleted Daytona sandbox id={} during e2e teardown", sandboxId);
+    } catch (Exception e) {
+      LOG.warn(
+          "Failed to delete Daytona sandbox id={} during e2e teardown: {}",
+          sandboxId,
+          e.getMessage());
+    }
   }
 
   private void completeUserFeedbackSatisfied(ProcessInstanceEvent processInstance) {
