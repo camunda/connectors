@@ -565,10 +565,20 @@ record DaytonaSandboxConfiguration(
     String apiKey,                          // @NotBlank, redacted in toString
     @Nullable String apiUrl,                // self-hosted base URL
     @Nullable String snapshot,              // optional pre-loaded workspace image
-    @Nullable Integer autoStopMinutes,      // 0 = never; provider default 15
-    @Nullable Integer autoArchiveMinutes)   // provider default if null
+    // Lifecycle settings: each is a dropdown "mode" + an ISO-8601 duration string shown only when
+    // mode = DURATION. Helper methods (autoStopMinutes()/autoArchiveMinutes()/autoDeleteMinutes())
+    // convert these to the integer MINUTES the Daytona SDK expects, or null = "don't set".
+    @Nullable AutoStopMode autoStop,        // DISABLED -> 0 (never); DURATION -> mins (default PT15M)
+    @Nullable String autoStopDuration,
+    @Nullable AutoArchiveMode autoArchive,  // DEFAULT -> not set (Daytona 7d); DURATION -> mins, max 30d
+    @Nullable String autoArchiveDuration,
+    @Nullable AutoDeleteMode autoDelete,    // DISABLED -> not set (never); IMMEDIATELY -> 0; DURATION -> mins
+    @Nullable String autoDeleteDuration)
     implements SandboxConfiguration {}
 ```
+
+> **ISO-8601 gotcha:** days precede the `T` — `P7D` (7 days) and `PT15M` (15 minutes) are valid;
+> `PT7D` is **not** (`Duration.parse` rejects it). Auto-archive is validated to not exceed 30 days.
 
 Future providers (AgentCore, Vercel, E2B, DockerSandbox for local testing) drop in behind the same
 SPI. Added to `AgentConfiguration` as `@Nullable SandboxConfiguration sandbox`;
@@ -875,8 +885,15 @@ Suggested order: T1 → T2 → T4 → T3 → T5 → T6 → T7 → T10 → T8 (T9
 > the sub-loop, reused at store), registry-only resolution → `DocumentFactory.resolve` → `asByteArray`
 > → `fs.write`, over-cap + not-in-registry rejection (§11.6). *Known follow-up:* a document minted by
 > `sandbox_export_document` within the same sub-loop is not importable in that same invocation (registry
-> is built before the loop). 📐 **Designed, not built:** `fromAi()` document inputs (§11.7) are a downstream
-> follow-up enabled by T11.
+> is built before the loop). ✅ **Mixed-turn re-entry fix** — a single assistant turn emitting BOTH an
+> in-process (sandbox) tool call AND an external (BPMN) tool call now persists, reconstructs and
+> re-enters correctly (Part 1: `TurnReconstructor`/`PreviousConversation.pendingInputMessages` +
+> `AgentConversation.rehydrate`; Part 2: `AgentConversationTurnInputComposerImpl` treats
+> already-answered in-process tool calls as satisfied). ✅ **Configurable sandbox lifecycle** —
+> dropdown-driven auto-stop / auto-archive / auto-delete on `DaytonaSandboxConfiguration` (§9), applied
+> in `DaytonaSandboxProvider`; the live `AiAgentSandboxSkillsIT` (5/5) uses a short auto-stop +
+> immediate auto-delete so test sandboxes self-clean even if the JVM dies. 📐 **Designed, not built:**
+> `fromAi()` document inputs (§11.7) are a downstream follow-up enabled by T11.
 
 ### T1 — Sandbox SPI core + in-memory fake
 - **Scope:** `sandbox/spi`: `SandboxProvider`, `SandboxSession` (`exec`, `fs`, `handle`, `terminate`,
