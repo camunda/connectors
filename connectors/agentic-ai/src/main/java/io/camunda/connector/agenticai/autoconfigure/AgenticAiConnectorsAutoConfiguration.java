@@ -61,6 +61,7 @@ import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
+import io.camunda.connector.agenticai.sandbox.daytona.SandboxDaytonaConfiguration;
 import io.camunda.connector.agenticai.sandbox.discovery.configuration.SandboxDiscoveryConfiguration;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -89,7 +90,8 @@ import org.springframework.context.annotation.Import;
   A2aClientAgenticToolConfiguration.class,
   A2aClientPollingConfiguration.class,
   A2aClientWebhookConfiguration.class,
-  SandboxDiscoveryConfiguration.class
+  SandboxDiscoveryConfiguration.class,
+  SandboxDaytonaConfiguration.class
 })
 public class AgenticAiConnectorsAutoConfiguration {
 
