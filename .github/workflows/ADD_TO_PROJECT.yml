@@ -45,7 +45,11 @@ jobs:
       - name: Get labels
         id: get-labels
         run: |
-          echo "labels=$(jq -r '.issue? // .pull_request? | .labels[].name' <"$GITHUB_EVENT_PATH")" >> "$GITHUB_OUTPUT"
+          {
+            echo "labels<<EOF"
+            jq -r '.issue? // .pull_request? | .labels[].name' <"$GITHUB_EVENT_PATH"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
         env:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
 
