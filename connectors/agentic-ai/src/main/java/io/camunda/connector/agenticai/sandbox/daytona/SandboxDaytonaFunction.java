@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.sandbox.daytona;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.DaytonaSandboxInfo;
 import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.ExecOutcome;
+import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.SandboxCreateSpec;
 import io.camunda.connector.agenticai.sandbox.discovery.SandboxCreateResult;
 import io.camunda.connector.agenticai.sandbox.discovery.SandboxGatewayToolHandler;
 import io.camunda.connector.agenticai.sandbox.discovery.SkillCatalogEntry;
@@ -35,14 +36,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
-    name = "Sandbox (Daytona)",
+    name = "Daytona.io",
     inputVariables = {"data"},
     type = "io.camunda.agenticai:sandboxdaytona:1")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.sandbox.daytona.v0",
-    name = "Sandbox (Daytona)",
-    description = "Provisions and manages a Daytona sandbox for AI agent tool execution.",
+    name = "Daytona.io",
+    description =
+        "Provisions and manages a Daytona sandbox for AI agent tool execution (bash, file system, document and skill operations).",
     version = 1,
+    icon = "daytona.svg",
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = SandboxDaytonaRequest.class,
     defaultResultVariable = "toolCallResult",
@@ -87,16 +90,21 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     final SandboxDaytonaRequest request = context.bindVariables(SandboxDaytonaRequest.class);
     final SandboxDaytonaRequest.SandboxDaytonaRequestData data = request.data();
-    final DaytonaConnection config = data.daytona();
     final JobContext job = context.getJobContext();
 
     return switch (data.operation()) {
       case CREATE -> {
-        Daytona daytona = DaytonaClient.buildClient(config.apiKey(), config.apiUrl());
+        Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         String processInstanceKey = String.valueOf(job.getProcessInstanceKey());
         String elementId = job.getElementId();
+        var spec =
+            new SandboxCreateSpec(
+                data.snapshot(),
+                data.autoStopMinutes(),
+                data.autoArchiveMinutes(),
+                data.autoDeleteMinutes());
         DaytonaSandboxInfo info =
-            daytonaClient.create(daytona, config, processInstanceKey, elementId);
+            daytonaClient.create(daytona, spec, processInstanceKey, elementId);
         Sandbox sandbox = daytonaClient.connect(daytona, info.handle());
         String workDir = info.workDir();
         String skillsRoot = workDir + "/.agents/skills";
@@ -120,7 +128,7 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
       case BASH -> {
         String handle = requireHandle(data.handle(), "BASH");
         String command = requireArg(data.command(), "command", "BASH");
-        Daytona daytona = DaytonaClient.buildClient(config.apiKey(), config.apiUrl());
+        Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         Sandbox sandbox = daytonaClient.connect(daytona, handle);
         ExecOutcome outcome = daytonaClient.exec(sandbox, command, EXEC_TIMEOUT_SECONDS);
         yield formatBashResult(outcome);
@@ -128,7 +136,7 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
       case FS_READ -> {
         String handle = requireHandle(data.handle(), "FS_READ");
         String path = requireArg(data.path(), "path", "FS_READ");
-        Daytona daytona = DaytonaClient.buildClient(config.apiKey(), config.apiUrl());
+        Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         Sandbox sandbox = daytonaClient.connect(daytona, handle);
         byte[] bytes = daytonaClient.fsRead(sandbox, path);
         if (OutputBounds.isBinary(bytes)) {
@@ -143,7 +151,7 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         String handle = requireHandle(data.handle(), "FS_WRITE");
         String path = requireArg(data.path(), "path", "FS_WRITE");
         String content = data.content() != null ? data.content() : "";
-        Daytona daytona = DaytonaClient.buildClient(config.apiKey(), config.apiUrl());
+        Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         Sandbox sandbox = daytonaClient.connect(daytona, handle);
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         daytonaClient.fsWrite(sandbox, path, bytes);
@@ -152,7 +160,7 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
       case EXPORT_DOCUMENT -> {
         String handle = requireHandle(data.handle(), "EXPORT_DOCUMENT");
         String path = requireArg(data.path(), "path", "EXPORT_DOCUMENT");
-        Daytona daytona = DaytonaClient.buildClient(config.apiKey(), config.apiUrl());
+        Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         Sandbox sandbox = daytonaClient.connect(daytona, handle);
         byte[] bytes = daytonaClient.fsRead(sandbox, path);
         if (bytes.length > DEFAULT_MAX_DOCUMENT_BYTES) {
@@ -200,7 +208,7 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         } else {
           targetPath = "imported-file";
         }
-        Daytona daytona = DaytonaClient.buildClient(config.apiKey(), config.apiUrl());
+        Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         Sandbox sandbox = daytonaClient.connect(daytona, handle);
         daytonaClient.fsWrite(sandbox, targetPath, bytes);
         String fileName =

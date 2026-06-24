@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.DaytonaSandboxInfo;
 import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.ExecOutcome;
+import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.SandboxCreateSpec;
 import io.daytona.sdk.Daytona;
 import io.daytona.sdk.Sandbox;
 import java.nio.charset.StandardCharsets;
@@ -31,11 +32,11 @@ class SandboxDaytonaIT {
     String apiUrl = System.getenv("DAYTONA_API_URL"); // may be null → uses cloud default
 
     DaytonaClient client = new DaytonaClient();
-    DaytonaConnection config = new DaytonaConnection(apiKey, apiUrl, null, null, null, null);
+    var spec = new SandboxCreateSpec(null, null, null, null);
 
     // 1. Create sandbox
     Daytona daytona = DaytonaClient.buildClient(apiKey, apiUrl);
-    DaytonaSandboxInfo info = client.create(daytona, config, "it-test-999", "SandboxElementIT");
+    DaytonaSandboxInfo info = client.create(daytona, spec, "it-test-999", "SandboxElementIT");
     assertThat(info.handle()).isNotBlank();
     assertThat(info.workDir()).isNotBlank();
 

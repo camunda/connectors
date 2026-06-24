@@ -51,31 +51,28 @@ public class DaytonaClient {
    * Creates a new sandbox, applying lifecycle intervals and process-level labels.
    *
    * @param daytona configured SDK client
-   * @param config connection and lifecycle settings
+   * @param spec lifecycle/snapshot parameters (minutes already resolved)
    * @param processInstanceKey Zeebe process instance key (used as a label for idempotency/reaper)
    * @param sandboxElementId BPMN element id of the sandbox gateway element
    * @return handle and working directory of the created sandbox
    */
   public DaytonaSandboxInfo create(
-      Daytona daytona,
-      DaytonaConnection config,
-      String processInstanceKey,
-      String sandboxElementId) {
+      Daytona daytona, SandboxCreateSpec spec, String processInstanceKey, String sandboxElementId) {
     try {
       CreateSandboxFromSnapshotParams params = new CreateSandboxFromSnapshotParams();
 
       // Set snapshot if configured
-      if (config.snapshot() != null && !config.snapshot().isBlank()) {
-        params.setSnapshot(config.snapshot());
+      if (spec.snapshot() != null && !spec.snapshot().isBlank()) {
+        params.setSnapshot(spec.snapshot());
       }
 
       // Apply lifecycle intervals
-      params.setAutoStopInterval(config.autoStopMinutes());
-      Integer archiveMinutes = config.autoArchiveMinutes();
+      params.setAutoStopInterval(spec.autoStopMinutes());
+      Integer archiveMinutes = spec.autoArchiveMinutes();
       if (archiveMinutes != null) {
         params.setAutoArchiveInterval(archiveMinutes);
       }
-      Integer deleteMinutes = config.autoDeleteMinutes();
+      Integer deleteMinutes = spec.autoDeleteMinutes();
       if (deleteMinutes != null) {
         params.setAutoDeleteInterval(deleteMinutes);
       }
@@ -240,6 +237,13 @@ public class DaytonaClient {
     if (lastSlash <= 0) return null;
     return path.substring(0, lastSlash);
   }
+
+  /** Lifecycle/snapshot parameters for sandbox creation (minutes already resolved). */
+  public record SandboxCreateSpec(
+      @Nullable String snapshot,
+      @Nullable Integer autoStopMinutes,
+      @Nullable Integer autoArchiveMinutes,
+      @Nullable Integer autoDeleteMinutes) {}
 
   /** Result of a sandbox provisioning operation. */
   public record DaytonaSandboxInfo(String handle, String workDir) {}
