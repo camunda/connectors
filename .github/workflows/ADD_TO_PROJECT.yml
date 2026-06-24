@@ -61,12 +61,12 @@ jobs:
           github-token: ${{ steps.app-token.outputs.token }}
 
       - name: Remove from connectors project
-        if: contains(steps.get-labels.outputs.labels, matrix.mapping.label) && github.event_name != 'pull_request'
+        if: contains(steps.get-labels.outputs.labels, matrix.mapping.label)
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           PROJECT_TITLE=$(gh project view 23 --owner camunda --format json | jq -r '.title')
-          gh issue edit “${{ github.event.issue.number }}” --remove-project “$PROJECT_TITLE” --repo “${{ github.repository }}”
+          gh issue edit “${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.issue.number }}” --remove-project “$PROJECT_TITLE” --repo “${{ github.repository }}”
 
   add-default:
     name: Add issue to project if no label
