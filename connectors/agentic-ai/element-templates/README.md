@@ -82,8 +82,9 @@ When `versionHistoryEnabled` moves a superseded template into `versioned/`:
 
 1. **Identify the new minimum Camunda version** by checking the `engines.camunda` field of the new
    template (e.g. `^8.10`).
-2. **Same minimum as the current top row**: replace the top row, updating the template version and the
-   file link (now pointing into `versioned/`).
+2. **Same minimum as the current top row**: bump the top row's template version and keep its link
+   pointing to the latest `./<file>.json` in this folder. The superseded version moves into `versioned/`
+   but is not listed (the table shows only the latest template per minimum Camunda version).
 3. **Higher minimum than the current top row**: insert a new top row with the new minimum Camunda
    version and template version, and move the previous top row's link under `versioned/`.
 4. **AI Agent has two tables** (Task and Sub-process) sharing the same version numbers. Update both.
