@@ -119,4 +119,19 @@ public class InboundDiscoveryDisablingTest {
                           "ENABLED and DISABLED are mutually exclusive"));
         });
   }
+
+  @Test
+  public void emptyEnabledWithDisabledThrows() throws Exception {
+    restoreSystemProperties(
+        () -> {
+          withEnvironmentVariables("CONNECTOR_INBOUND_ENABLED", "")
+              .and("CONNECTOR_INBOUND_DISABLED", "io.camunda:annotated")
+              .execute(
+                  () ->
+                      Assertions.assertThrows(
+                          IllegalStateException.class,
+                          DefaultInboundConnectorFactory::new,
+                          "Mutual exclusion is enforced even when ENABLED is empty"));
+        });
+  }
 }
