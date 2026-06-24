@@ -126,7 +126,7 @@ limitations under the License.</license.inlineheader>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
-    <version.httpcore5>5.4.2</version.httpcore5>
+    <version.httpcore5>5.4.3</version.httpcore5>
     <version.httpclient5>5.6.1</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
     <version.ayza>10.0.5</version.ayza>
