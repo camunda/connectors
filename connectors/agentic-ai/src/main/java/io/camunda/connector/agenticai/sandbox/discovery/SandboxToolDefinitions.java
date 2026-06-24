@@ -29,73 +29,29 @@ public final class SandboxToolDefinitions {
   /** Metadata key carrying the sandbox operation (a {@link SandboxOperation} enum value). */
   public static final String METADATA_OPERATION = "operation";
 
-  /** Metadata key carrying the sandbox handle (opaque identifier for the provisioned sandbox). */
-  public static final String METADATA_HANDLE = "handle";
-
   /**
-   * Metadata key carrying the sandbox working directory (the base filesystem path within the
-   * sandbox).
-   */
-  public static final String METADATA_WORK_DIR = "workDir";
-
-  /**
-   * Metadata key carrying the skill catalog entries available in the sandbox (may be null/absent if
-   * the sandbox has no skills configured).
-   */
-  public static final String METADATA_CATALOG = "catalog";
-
-  /**
-   * Returns the list of {@link ToolDefinition}s for all sandbox gateway tools, each tagged with
-   * sandbox metadata pointing at the given BPMN element id.
+   * Returns the fixed list of {@link ToolDefinition}s for all sandbox gateway tools. Each tool
+   * definition carries only {@code gatewayType} and {@code operation} in its metadata.
+   * Sandbox-level state (element id, handle, working directory, skill catalog) is stored once in
+   * {@code agentContext.properties} under {@link SandboxGatewayToolHandler#PROPERTY_SANDBOX} as a
+   * {@link SandboxState}.
    *
-   * @param elementId the BPMN element id of the sandbox gateway element
    * @return list of five sandbox tool definitions
    */
-  public static List<ToolDefinition> sandboxToolDefinitions(String elementId) {
-    final var baseMetadata = new LinkedHashMap<String, Object>();
-    baseMetadata.put(ToolDefinition.METADATA_GATEWAY_TYPE, SandboxGatewayToolHandler.GATEWAY_TYPE);
-    baseMetadata.put(ToolDefinition.METADATA_ELEMENT_ID, elementId);
+  public static List<ToolDefinition> sandboxToolDefinitions() {
     return List.of(
-        bashDefinition(withOperation(baseMetadata, SandboxOperation.BASH)),
-        fsReadDefinition(withOperation(baseMetadata, SandboxOperation.FS_READ)),
-        fsWriteDefinition(withOperation(baseMetadata, SandboxOperation.FS_WRITE)),
-        exportDocumentDefinition(withOperation(baseMetadata, SandboxOperation.EXPORT_DOCUMENT)),
-        importDocumentDefinition(withOperation(baseMetadata, SandboxOperation.IMPORT_DOCUMENT)));
+        bashDefinition(withOperation(SandboxOperation.BASH)),
+        fsReadDefinition(withOperation(SandboxOperation.FS_READ)),
+        fsWriteDefinition(withOperation(SandboxOperation.FS_WRITE)),
+        exportDocumentDefinition(withOperation(SandboxOperation.EXPORT_DOCUMENT)),
+        importDocumentDefinition(withOperation(SandboxOperation.IMPORT_DOCUMENT)));
   }
 
-  /**
-   * Returns the list of {@link ToolDefinition}s for all sandbox gateway tools, each tagged with
-   * sandbox metadata including the sandbox handle, working directory, and optional skill catalog.
-   *
-   * @param elementId the BPMN element id of the sandbox gateway element
-   * @param handle the opaque sandbox handle returned by the CREATE operation
-   * @param workDir the sandbox working directory returned by the CREATE operation
-   * @param catalog optional skill catalog returned by the CREATE operation (may be null)
-   * @return list of five sandbox tool definitions
-   */
-  public static List<ToolDefinition> sandboxToolDefinitions(
-      String elementId, String handle, String workDir, List<SkillCatalogEntry> catalog) {
-    final var baseMetadata = new LinkedHashMap<String, Object>();
-    baseMetadata.put(ToolDefinition.METADATA_GATEWAY_TYPE, SandboxGatewayToolHandler.GATEWAY_TYPE);
-    baseMetadata.put(ToolDefinition.METADATA_ELEMENT_ID, elementId);
-    baseMetadata.put(METADATA_HANDLE, handle);
-    baseMetadata.put(METADATA_WORK_DIR, workDir);
-    if (catalog != null && !catalog.isEmpty()) {
-      baseMetadata.put(METADATA_CATALOG, catalog);
-    }
-    return List.of(
-        bashDefinition(withOperation(baseMetadata, SandboxOperation.BASH)),
-        fsReadDefinition(withOperation(baseMetadata, SandboxOperation.FS_READ)),
-        fsWriteDefinition(withOperation(baseMetadata, SandboxOperation.FS_WRITE)),
-        exportDocumentDefinition(withOperation(baseMetadata, SandboxOperation.EXPORT_DOCUMENT)),
-        importDocumentDefinition(withOperation(baseMetadata, SandboxOperation.IMPORT_DOCUMENT)));
-  }
-
-  private static Map<String, Object> withOperation(
-      Map<String, Object> baseMetadata, SandboxOperation operation) {
-    final var copy = new LinkedHashMap<>(baseMetadata);
-    copy.put(METADATA_OPERATION, operation);
-    return copy;
+  private static Map<String, Object> withOperation(SandboxOperation operation) {
+    final var metadata = new LinkedHashMap<String, Object>();
+    metadata.put(ToolDefinition.METADATA_GATEWAY_TYPE, SandboxGatewayToolHandler.GATEWAY_TYPE);
+    metadata.put(METADATA_OPERATION, operation);
+    return metadata;
   }
 
   private static ToolDefinition bashDefinition(Map<String, Object> metadata) {

@@ -103,7 +103,9 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
     }
 
     final var elementId = sandboxDefs.getFirst().name();
-    final var updatedCtx = agentContext.withProperty(PROPERTY_SANDBOX, elementId);
+    final var updatedCtx =
+        agentContext.withProperty(
+            PROPERTY_SANDBOX, SandboxState.builder().elementId(elementId).build());
     final var createOp = new LinkedHashMap<String, Object>();
     createOp.put("operation", SandboxOperation.CREATE);
     final Long agentInstanceKey =
@@ -149,18 +151,31 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
   @Override
   public List<ToolDefinition> handleToolDiscoveryResults(
       AgentContext agentContext, List<ToolCallResult> toolDiscoveryResults) {
+    // One CREATE result -> the fixed set of sandbox tools. Sandbox-level state (handle, workDir,
+    // catalog) is stored separately in contributeDiscoveryContext.
     return toolDiscoveryResults.stream()
-        .map(this::toolDefinitionsFromCreateResult)
-        .flatMap(List::stream)
+        .flatMap(r -> SandboxToolDefinitions.sandboxToolDefinitions().stream())
         .toList();
   }
 
-  private List<ToolDefinition> toolDefinitionsFromCreateResult(ToolCallResult result) {
-    final var createResult = objectMapper.convertValue(result.content(), SandboxCreateResult.class);
-    // result.name() == elementId (set in initiateToolDiscovery as name=elementId)
-    final var elementId = result.name();
-    return SandboxToolDefinitions.sandboxToolDefinitions(
-        elementId, createResult.handle(), createResult.workDir(), createResult.catalog());
+  @Override
+  public AgentContext contributeDiscoveryContext(
+      AgentContext agentContext, List<ToolCallResult> toolCallResults) {
+    // Exactly one sandbox CREATE result is expected (single sandbox per process).
+    for (ToolCallResult result : toolCallResults) {
+      final var createResult =
+          objectMapper.convertValue(result.content(), SandboxCreateResult.class);
+      final var elementId = result.name(); // name == elementId (set in initiateToolDiscovery)
+      final var state =
+          SandboxState.builder()
+              .elementId(elementId)
+              .handle(createResult.handle())
+              .workDir(createResult.workDir())
+              .catalog(createResult.catalog())
+              .build();
+      return agentContext.withProperty(PROPERTY_SANDBOX, state);
+    }
+    return agentContext;
   }
 
   @Override
@@ -169,8 +184,7 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
     return toolCalls.stream()
         .map(
             toolCall -> {
-              // Find the ToolDefinition for this tool name to get metadata (gatewayType, elementId,
-              // handle, operation)
+              // Find the ToolDefinition for this tool name to get metadata (gatewayType, operation)
               final var toolDef =
                   agentContext.toolDefinitions().stream()
                       .filter(td -> toolCall.name().equals(td.name()))
@@ -181,10 +195,13 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
               if (toolDef == null || !"sandbox".equals(toolDef.gatewayType())) {
                 return toolCall;
               }
-              final var elementId =
-                  (String) toolDef.metadata().get(ToolDefinition.METADATA_ELEMENT_ID);
-              final var handle =
-                  (String) toolDef.metadata().get(SandboxToolDefinitions.METADATA_HANDLE);
+              // Read sandbox-level state (elementId, handle) from agentContext.properties
+              final var state = getSandboxState(agentContext);
+              if (state == null) {
+                return toolCall;
+              }
+              final var elementId = state.elementId();
+              final var handle = state.handle();
               final var operation =
                   operationFromMetadata(
                       toolDef.metadata().get(SandboxToolDefinitions.METADATA_OPERATION));
@@ -298,6 +315,19 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
 
   @Nullable
   private String getSandboxElementId(AgentContext agentContext) {
-    return (String) agentContext.properties().getOrDefault(PROPERTY_SANDBOX, null);
+    final var state = getSandboxState(agentContext);
+    return state != null ? state.elementId() : null;
+  }
+
+  @Nullable
+  private SandboxState getSandboxState(AgentContext agentContext) {
+    final var raw = agentContext.properties().get(PROPERTY_SANDBOX);
+    if (raw == null) {
+      return null;
+    }
+    if (raw instanceof SandboxState s) {
+      return s;
+    }
+    return objectMapper.convertValue(raw, SandboxState.class);
   }
 }

@@ -6,13 +6,12 @@
  */
 package io.camunda.connector.agenticai.sandbox.systemprompt;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContributor;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.sandbox.discovery.SandboxToolDefinitions;
+import io.camunda.connector.agenticai.sandbox.discovery.SandboxGatewayToolHandler;
+import io.camunda.connector.agenticai.sandbox.discovery.SandboxState;
 import io.camunda.connector.agenticai.sandbox.discovery.SkillCatalogEntry;
 import java.util.List;
 import org.slf4j.Logger;
@@ -21,11 +20,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Contributes a skills catalog block to the agent system prompt when sandbox skills are available.
  *
- * <p>When the sandbox gateway tool's {@link SkillCatalogEntry} list is present in the agent's tool
- * definition metadata (key {@link SandboxToolDefinitions#METADATA_CATALOG}), this contributor
- * renders an {@code <available_skills>} XML block listing each skill's name, description, location,
- * and directory. The model activates a skill by calling {@code sandbox_fs_read} on the catalog
- * {@code location} to read the {@code SKILL.md}, then follows its instructions.
+ * <p>When the sandbox gateway tool's {@link SkillCatalogEntry} list is present in the agent's
+ * {@link SandboxState} (stored in {@code agentContext.properties} under {@link
+ * SandboxGatewayToolHandler#PROPERTY_SANDBOX}), this contributor renders an {@code
+ * <available_skills>} XML block listing each skill's name, description, location, and directory.
+ * The model activates a skill by calling {@code sandbox_fs_read} on the catalog {@code location} to
+ * read the {@code SKILL.md}, then follows its instructions.
  */
 public class SandboxSkillsSystemPromptContributor implements SystemPromptContributor {
 
@@ -55,24 +55,18 @@ public class SandboxSkillsSystemPromptContributor implements SystemPromptContrib
   }
 
   private List<SkillCatalogEntry> extractCatalog(AgentContext agentContext) {
-    for (ToolDefinition toolDef : agentContext.toolDefinitions()) {
-      if (toolDef.metadata() == null) {
-        continue;
-      }
-      Object raw = toolDef.metadata().get(SandboxToolDefinitions.METADATA_CATALOG);
-      if (raw == null) {
-        continue;
-      }
-      try {
-        return objectMapper.convertValue(raw, new TypeReference<List<SkillCatalogEntry>>() {});
-      } catch (Exception e) {
-        LOG.warn(
-            "Failed to convert skill catalog metadata to List<SkillCatalogEntry>: {}",
-            e.getMessage());
-        return null;
-      }
+    final var raw = agentContext.properties().get(SandboxGatewayToolHandler.PROPERTY_SANDBOX);
+    if (raw == null) {
+      return null;
     }
-    return null;
+    try {
+      final var state =
+          raw instanceof SandboxState s ? s : objectMapper.convertValue(raw, SandboxState.class);
+      return state.catalog();
+    } catch (Exception e) {
+      LOG.warn("Failed to read skill catalog from sandbox state: {}", e.getMessage());
+      return null;
+    }
   }
 
   private String buildSkillsCatalog(List<SkillCatalogEntry> catalog) {
