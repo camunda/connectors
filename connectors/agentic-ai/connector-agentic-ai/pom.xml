@@ -24,6 +24,16 @@
     <version.a2asdk>0.3.3.Final</version.a2asdk>
     <version.errorprone>2.50.0</version.errorprone>
     <version.nullaway>0.13.7</version.nullaway>
+    <version.daytona-sdk>0.189.0</version.daytona-sdk>
+    <!--
+      OkHttp 5.x publishes its JVM classes in the `okhttp-jvm` artifact; the plain
+      `okhttp` artifact is an empty Kotlin-Multiplatform umbrella that only links to
+      `okhttp-jvm` via Gradle module metadata (which Maven does not read). The Daytona
+      SDK depends on the empty `okhttp`, so without an explicit `okhttp-jvm` dependency
+      classes like okhttp3.Callback are missing at runtime (NoClassDefFoundError).
+      Keep this in sync with the OkHttp version resolved transitively by the Daytona SDK.
+    -->
+    <version.okhttp>5.4.0</version.okhttp>
   </properties>
 
   <licenses>
@@ -201,6 +211,24 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-auth</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.daytona</groupId>
+      <artifactId>sdk</artifactId>
+      <version>${version.daytona-sdk}</version>
+    </dependency>
+
+    <!--
+      Provide OkHttp's actual JVM classes. The Daytona SDK pulls the empty
+      `com.squareup.okhttp3:okhttp` umbrella (KMP), so its classes (okhttp3.Callback, …)
+      are only available through `okhttp-jvm`. See the version.okhttp property comment.
+    -->
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-jvm</artifactId>
+      <version>${version.okhttp}</version>
+      <scope>runtime</scope>
     </dependency>
 
     <dependency>
@@ -528,6 +556,17 @@
                 <ACKNOWLEDGEMENT_STRATEGY_SELECTION>false</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
                 <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
               </features>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.agenticai.sandbox.daytona.SandboxDaytonaFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.sandbox.daytona.v0</templateId>
+                  <templateFileName>agenticai-sandbox-daytona-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
