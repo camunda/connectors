@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
@@ -128,8 +129,39 @@ class SandboxGatewayToolHandlerTest {
                 assertThat(toolCall.id()).isEqualTo(SANDBOX_DISCOVERY_PREFIX + "Sandbox_Gateway_1");
                 assertThat(toolCall.name()).isEqualTo("Sandbox_Gateway_1");
                 assertThat(toolCall.arguments())
-                    .containsEntry("operation", SandboxOperation.CREATE);
+                    .containsEntry("operation", SandboxOperation.CREATE)
+                    .doesNotContainKey("agentInstanceKey");
               });
+    }
+
+    @Test
+    void createsDiscoveryToolCall_withAgentInstanceKey_whenMetadataPresent() {
+      var metadata = new AgentMetadata(1001L, 2002L, 3003L);
+      var agentContext = AgentContext.empty().withMetadata(metadata);
+      var gatewayToolDefinitions =
+          List.of(createGatewayToolDefinition("sandbox", "Sandbox_Gateway_1"));
+
+      var result = handler.initiateToolDiscovery(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.toolDiscoveryToolCalls()).hasSize(1);
+      assertThat(result.toolDiscoveryToolCalls().getFirst().arguments())
+          .containsEntry("operation", SandboxOperation.CREATE)
+          .containsEntry("agentInstanceKey", 3003L);
+    }
+
+    @Test
+    void createsDiscoveryToolCall_withoutAgentInstanceKey_whenMetadataHasNullKey() {
+      var metadata = new AgentMetadata(1001L, 2002L, null);
+      var agentContext = AgentContext.empty().withMetadata(metadata);
+      var gatewayToolDefinitions =
+          List.of(createGatewayToolDefinition("sandbox", "Sandbox_Gateway_1"));
+
+      var result = handler.initiateToolDiscovery(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.toolDiscoveryToolCalls()).hasSize(1);
+      assertThat(result.toolDiscoveryToolCalls().getFirst().arguments())
+          .containsEntry("operation", SandboxOperation.CREATE)
+          .doesNotContainKey("agentInstanceKey");
     }
 
     @Test

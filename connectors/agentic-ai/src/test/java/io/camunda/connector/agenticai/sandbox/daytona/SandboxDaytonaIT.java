@@ -36,7 +36,7 @@ class SandboxDaytonaIT {
 
     // 1. Create sandbox
     Daytona daytona = DaytonaClient.buildClient(apiKey, apiUrl);
-    DaytonaSandboxInfo info = client.create(daytona, spec, "it-test-999", "SandboxElementIT");
+    DaytonaSandboxInfo info = client.create(daytona, spec, "it-test-999", "it-agent-001");
     assertThat(info.handle()).isNotBlank();
     assertThat(info.workDir()).isNotBlank();
 
