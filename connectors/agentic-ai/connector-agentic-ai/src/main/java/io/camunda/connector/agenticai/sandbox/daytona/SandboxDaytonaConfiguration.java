@@ -6,6 +6,10 @@
  */
 package io.camunda.connector.agenticai.sandbox.daytona;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.sandbox.skill.SkillMdParser;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -19,7 +23,9 @@ public class SandboxDaytonaConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public SandboxDaytonaFunction sandboxDaytonaFunction() {
-    return new SandboxDaytonaFunction();
+  public SandboxDaytonaFunction sandboxDaytonaFunction(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new SandboxDaytonaFunction(
+        new DaytonaClient(), new SkillResolver(), new SkillMdParser(), objectMapper);
   }
 }

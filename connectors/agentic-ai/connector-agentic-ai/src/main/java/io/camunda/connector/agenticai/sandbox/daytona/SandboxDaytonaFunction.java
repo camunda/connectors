@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.sandbox.daytona;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.DaytonaSandboxInfo;
 import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.ExecOutcome;
@@ -51,7 +52,7 @@ import org.slf4j.LoggerFactory;
     defaultResultVariable = "toolCallResult",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "sandbox", label = "Sandbox Configuration"),
-      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
+      @ElementTemplate.PropertyGroup(id = "connectorMode", label = "Connector mode"),
     },
     extensionProperties = {
       @ElementTemplate.ExtensionProperty(
@@ -70,20 +71,30 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
   private final DaytonaClient daytonaClient;
   private final SkillResolver skillResolver;
   private final SkillMdParser skillMdParser;
+  private final ObjectMapper objectMapper;
 
   public SandboxDaytonaFunction() {
     this(new DaytonaClient());
   }
 
   public SandboxDaytonaFunction(DaytonaClient daytonaClient) {
-    this(daytonaClient, new SkillResolver(), new SkillMdParser());
+    this(daytonaClient, new SkillResolver(), new SkillMdParser(), new ObjectMapper());
   }
 
   public SandboxDaytonaFunction(
       DaytonaClient daytonaClient, SkillResolver skillResolver, SkillMdParser skillMdParser) {
+    this(daytonaClient, skillResolver, skillMdParser, new ObjectMapper());
+  }
+
+  public SandboxDaytonaFunction(
+      DaytonaClient daytonaClient,
+      SkillResolver skillResolver,
+      SkillMdParser skillMdParser,
+      ObjectMapper objectMapper) {
     this.daytonaClient = daytonaClient;
     this.skillResolver = skillResolver;
     this.skillMdParser = skillMdParser;
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -91,8 +102,9 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
     final SandboxDaytonaRequest request = context.bindVariables(SandboxDaytonaRequest.class);
     final SandboxDaytonaRequest.SandboxDaytonaRequestData data = request.data();
     final JobContext job = context.getJobContext();
+    final SandboxToolCall tc = resolveToolCall(data.connectorMode());
 
-    return switch (data.operation()) {
+    return switch (tc.operation()) {
       case CREATE -> {
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         String processInstanceKey = String.valueOf(job.getProcessInstanceKey());
@@ -126,16 +138,16 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         yield new SandboxCreateResult(info.handle(), workDir, catalog);
       }
       case BASH -> {
-        String handle = requireHandle(data.handle(), "BASH");
-        String command = requireArg(data.command(), "command", "BASH");
+        String handle = requireHandle(tc.handle(), "BASH");
+        String command = requireArg(tc.command(), "command", "BASH");
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         Sandbox sandbox = daytonaClient.connect(daytona, handle);
         ExecOutcome outcome = daytonaClient.exec(sandbox, command, EXEC_TIMEOUT_SECONDS);
         yield formatBashResult(outcome);
       }
       case FS_READ -> {
-        String handle = requireHandle(data.handle(), "FS_READ");
-        String path = requireArg(data.path(), "path", "FS_READ");
+        String handle = requireHandle(tc.handle(), "FS_READ");
+        String path = requireArg(tc.path(), "path", "FS_READ");
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         Sandbox sandbox = daytonaClient.connect(daytona, handle);
         byte[] bytes = daytonaClient.fsRead(sandbox, path);
@@ -148,9 +160,9 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         yield new String(bytes, StandardCharsets.UTF_8);
       }
       case FS_WRITE -> {
-        String handle = requireHandle(data.handle(), "FS_WRITE");
-        String path = requireArg(data.path(), "path", "FS_WRITE");
-        String content = data.content() != null ? data.content() : "";
+        String handle = requireHandle(tc.handle(), "FS_WRITE");
+        String path = requireArg(tc.path(), "path", "FS_WRITE");
+        String content = tc.content() != null ? tc.content() : "";
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         Sandbox sandbox = daytonaClient.connect(daytona, handle);
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
@@ -158,8 +170,8 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         yield "Written " + bytes.length + " bytes to " + path;
       }
       case EXPORT_DOCUMENT -> {
-        String handle = requireHandle(data.handle(), "EXPORT_DOCUMENT");
-        String path = requireArg(data.path(), "path", "EXPORT_DOCUMENT");
+        String handle = requireHandle(tc.handle(), "EXPORT_DOCUMENT");
+        String path = requireArg(tc.path(), "path", "EXPORT_DOCUMENT");
         Daytona daytona = DaytonaClient.buildClient(data.apiKey(), data.apiUrl());
         Sandbox sandbox = daytonaClient.connect(daytona, handle);
         byte[] bytes = daytonaClient.fsRead(sandbox, path);
@@ -184,13 +196,13 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         yield result;
       }
       case IMPORT_DOCUMENT -> {
-        Document document = data.document();
+        Document document = tc.document();
         if (document == null) {
           throw new ConnectorException(
               "SANDBOX_IMPORT_NO_DOCUMENT",
               "No document to import: the requested document id was not found in the conversation registry.");
         }
-        String handle = requireHandle(data.handle(), "IMPORT_DOCUMENT");
+        String handle = requireHandle(tc.handle(), "IMPORT_DOCUMENT");
         byte[] bytes = document.asByteArray();
         if (bytes.length > DEFAULT_MAX_DOCUMENT_BYTES) {
           throw new ConnectorException(
@@ -199,8 +211,8 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
                   .formatted(bytes.length, DEFAULT_MAX_DOCUMENT_BYTES));
         }
         String targetPath;
-        if (data.path() != null && !data.path().isBlank()) {
-          targetPath = data.path();
+        if (tc.path() != null && !tc.path().isBlank()) {
+          targetPath = tc.path();
         } else if (document.metadata() != null
             && document.metadata().getFileName() != null
             && !document.metadata().getFileName().isBlank()) {
@@ -218,6 +230,21 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         yield "Imported '%s' (%d bytes) to %s.".formatted(fileName, bytes.length, targetPath);
       }
     };
+  }
+
+  private SandboxToolCall resolveToolCall(SandboxConnectorMode mode) {
+    if (mode instanceof SandboxConnectorMode.AiAgentToolMode tool) {
+      final Object raw = tool.toolCall();
+      if (raw == null) {
+        throw new ConnectorException("SANDBOX_MISSING_TOOL_CALL", "No tool call payload provided.");
+      }
+      // Tests pass a typed SandboxToolCall directly (avoids serializing mock Documents);
+      // at runtime bindVariables yields a Map which the document-aware mapper rehydrates.
+      return raw instanceof SandboxToolCall s
+          ? s
+          : objectMapper.convertValue(raw, SandboxToolCall.class);
+    }
+    throw new ConnectorException("SANDBOX_UNSUPPORTED_MODE", "Unsupported connector mode: " + mode);
   }
 
   private List<SkillCatalogEntry> scanSkillCatalog(Sandbox sandbox, String skillsRoot) {
@@ -239,10 +266,12 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         byte[] bytes = daytonaClient.fsRead(sandbox, location);
         ParsedSkillMd parsed = skillMdParser.parse(new String(bytes, StandardCharsets.UTF_8));
         int lastSlash = location.lastIndexOf('/');
+        String parent = lastSlash > 0 ? location.substring(0, lastSlash) : "";
+        int parentSlash = parent.lastIndexOf('/');
         String dirName =
-            lastSlash > 0
-                ? location.substring(location.lastIndexOf('/', lastSlash - 1) + 1, lastSlash)
-                : location;
+            parentSlash >= 0
+                ? parent.substring(parentSlash + 1)
+                : (parent.isEmpty() ? location : parent);
         String name = (parsed.name() != null && !parsed.name().isBlank()) ? parsed.name() : dirName;
         catalog.add(new SkillCatalogEntry(name, parsed.description(), location));
       } catch (Exception e) {
