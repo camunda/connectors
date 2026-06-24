@@ -359,11 +359,26 @@ Dependency-ordered sub-steps:
 *Acceptance:* unit tests on export round-trip + import allow-list rejection; registry survives a store
 round-trip; existing converter/composer unit tests stay green.
 
-### P5 — Skills: ingestion + catalog + contributor
-Port `SkillMdParser`/`SkillBundleReader` into the connector; `CREATE` unzips `List<Document>` into
-`.agents/skills/`, scans, returns catalog. Core `SystemPromptContributor` emits `<available_skills>` with
-absolute `location`s + the file-read instruction block. *Acceptance:* catalog rendered only when skills
-present; parser leniency cases; `fs_read` of a `location` returns the body.
+### P5 — Skills: ingestion + catalog + contributor — ✅ DONE
+Commits: P5a `57d80dd0b8` (connector), P5b `3ffb3858f9` (core). Affected sandbox unit suite green (98 tests).
+- **P5a — Connector (skill materialization + FS catalog scan):** ported `Skill`/`SkillMdParser`/
+  `SkillBundleReader`/`SkillResolver`/`InvalidSkillException` into the connector `sandbox/skill/` package
+  (trimmed `SkillResolver`'s `load_skill`/in-process-only API: `resolveByName`/`resolveMetadata`/
+  `SkillMetadata`). Added `skills: List<Document>` + `startupScript: String` config to the sandbox
+  element. `CREATE` now: `mkdir -p <workDir>/.agents/skills` → materialize each bundle into
+  `.agents/skills/<name>/<relativePath>` → run `startupScript` (warn on non-zero, don't fail) → scan
+  `find .agents/skills -maxdepth 2 -name SKILL.md` and parse each for `{name, description, location}`.
+  Catalog returned in `SandboxCreateResult`. Regenerated templates; declared `jackson-dataformat-yaml`.
+- **P5b — Core (`SandboxSkillsSystemPromptContributor`):** reads the catalog from the sandbox tool-def
+  metadata (`METADATA_CATALOG`) in `AgentContext`, emits `<available_skills>` with each skill's
+  name/description/absolute `location`/skill `directory` + the file-read instruction block. Activation
+  is `sandbox_fs_read` of the `location` (no `load_skill` tool). Robust to both in-memory
+  (`List<SkillCatalogEntry>`) and JSON-round-tripped (`List<Map>`) catalog forms. Registered (order 90,
+  before A2A) in `SandboxDiscoveryConfiguration`.
+
+*Acceptance:* catalog rendered only when skills present (null otherwise); parser leniency cases; the
+contributor handles the serialized metadata form; CREATE materializes bundles + scans the FS catalog.
+The full `fs_read`-of-`location` round-trip is validated end-to-end in P8.
 
 ### P6 — Remove the in-process variant from core
 Delete the sub-loop, internal-tool framework, SPI/fake, `SandboxSessionFactory`, and the AI Agent
