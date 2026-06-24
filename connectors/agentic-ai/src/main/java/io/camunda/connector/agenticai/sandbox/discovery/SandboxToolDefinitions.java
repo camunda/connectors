@@ -26,6 +26,21 @@ public final class SandboxToolDefinitions {
 
   private SandboxToolDefinitions() {}
 
+  /** Metadata key carrying the sandbox handle (opaque identifier for the provisioned sandbox). */
+  public static final String METADATA_HANDLE = "handle";
+
+  /**
+   * Metadata key carrying the sandbox working directory (the base filesystem path within the
+   * sandbox).
+   */
+  public static final String METADATA_WORK_DIR = "workDir";
+
+  /**
+   * Metadata key carrying the skill catalog entries available in the sandbox (may be null/absent if
+   * the sandbox has no skills configured).
+   */
+  public static final String METADATA_CATALOG = "catalog";
+
   /**
    * Returns the list of {@link ToolDefinition}s for all sandbox gateway tools, each tagged with
    * sandbox metadata pointing at the given BPMN element id.
@@ -40,6 +55,34 @@ public final class SandboxToolDefinitions {
             true,
             ToolDefinition.METADATA_ELEMENT_ID,
             elementId);
+    return List.of(
+        bashDefinition(metadata),
+        fsReadDefinition(metadata),
+        fsWriteDefinition(metadata),
+        exportDocumentDefinition(metadata),
+        importDocumentDefinition(metadata));
+  }
+
+  /**
+   * Returns the list of {@link ToolDefinition}s for all sandbox gateway tools, each tagged with
+   * sandbox metadata including the sandbox handle, working directory, and optional skill catalog.
+   *
+   * @param elementId the BPMN element id of the sandbox gateway element
+   * @param handle the opaque sandbox handle returned by the CREATE operation
+   * @param workDir the sandbox working directory returned by the CREATE operation
+   * @param catalog optional skill catalog returned by the CREATE operation (may be null)
+   * @return list of five sandbox tool definitions
+   */
+  public static List<ToolDefinition> sandboxToolDefinitions(
+      String elementId, String handle, String workDir, List<SkillCatalogEntry> catalog) {
+    final var metadata = new LinkedHashMap<String, Object>();
+    metadata.put(ToolDefinition.METADATA_SANDBOX_TOOL, true);
+    metadata.put(ToolDefinition.METADATA_ELEMENT_ID, elementId);
+    metadata.put(METADATA_HANDLE, handle);
+    metadata.put(METADATA_WORK_DIR, workDir);
+    if (catalog != null && !catalog.isEmpty()) {
+      metadata.put(METADATA_CATALOG, catalog);
+    }
     return List.of(
         bashDefinition(metadata),
         fsReadDefinition(metadata),

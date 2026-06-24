@@ -79,10 +79,20 @@ When the AHSP reaches `TOOL_DISCOVERY` and a `gateway.type=sandbox` element is p
   `.agents/skills/`, run the `startupScript` (general bootstrap; may also add skills), scan
   `.agents/skills/`, and return `{handle, catalog:[{name, description, location}], workDir}`.
 - **`handleToolDiscoveryResults`**:
-  - stores the **handle** in `agentContext.properties` (the `mcpClients`/`a2aClients` convention),
-  - stores the **catalog** for the system-prompt contributor,
   - injects the **fixed `sandbox_*` tool definitions** into `agentContext.toolDefinitions`, each stamped
-    with metadata `{gatewayType: "sandbox", elementId: <sandbox element>}`.
+    with metadata `{gatewayType: "sandbox", elementId: <sandbox element>, handle, workDir, catalog}`.
+
+> **Implementation note (deviation from the original sketch).** The `GatewayToolHandler` discovery-result
+> seam (`handleToolDiscoveryResults`) returns only `List<ToolDefinition>`; the registry persists those via
+> `agentContext.withToolDefinitions(...)` and gives handlers **no path to write `agentContext.properties`
+> at result time** (MCP/A2A never needed one — they route by parsing the element id out of the tool name,
+> and hold no opaque runtime handle). The sandbox's `CREATE` result *is* opaque runtime state. Rather than
+> widen the core interface (churning MCP/A2A), we carry **handle + workDir + catalog in the injected
+> sandbox tool-def `metadata`** — which is persisted cross-turn just like `properties` would be, and is
+> on-thesis with §4's metadata routing. The sandbox **element id** is still tracked in
+> `agentContext.properties` (`PROPERTY_SANDBOX`, set at `initiateToolDiscovery`, mirroring `mcpClients`),
+> used by `allToolDiscoveryResultsPresent`, result identification, and reconciliation. The handle is a
+> short scalar (duplicated across the 5 defs, negligible); the catalog duplication is accepted for the PoC.
 
 The connector does **not** return tool definitions — the tool vocabulary is a fixed contract owned by
 core (a sandbox, unlike an MCP server, has a known fixed tool surface). Sandbox creation happens **at
@@ -154,8 +164,9 @@ follow-up**.
 
 ## 6. Handle lifecycle & teardown
 
-- **Agent holds the handle.** Returned by `CREATE`, persisted in `agentContext.properties`, injected
-  into **every** sandbox tool-call activation by the handler. Flexible (admits snapshot/fork refs and
+- **Agent holds the handle.** Returned by `CREATE`, persisted in the sandbox tool-def `metadata` (see the
+  §3 implementation note — not `agentContext.properties`, because the discovery-result seam cannot write
+  properties), injected into **every** sandbox tool-call activation by the handler. Flexible (admits snapshot/fork refs and
   >1 sandbox later); a new pattern vs. self-contained MCP/A2A elements, but the
   `transformToolCalls(AgentContext, …)` seam already receives the context.
 - **Labels.** The sandbox is labelled with `processInstanceKey` + `agentInstanceKey`. These power (a)

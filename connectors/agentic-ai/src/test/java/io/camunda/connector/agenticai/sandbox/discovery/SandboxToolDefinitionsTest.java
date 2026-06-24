@@ -11,7 +11,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class SandboxToolDefinitionsTest {
 
@@ -115,6 +119,67 @@ class SandboxToolDefinitionsTest {
         .containsEntry(ToolDefinition.METADATA_ELEMENT_ID, "Element_A");
     assertThat(defs2.getFirst().metadata())
         .containsEntry(ToolDefinition.METADATA_ELEMENT_ID, "Element_B");
+  }
+
+  // -------------------------------------------------------------------------
+  // Four-arg overload (with handle + workDir + catalog)
+  // -------------------------------------------------------------------------
+
+  @Test
+  void fourArgOverload_returnsExactlyFiveDefinitions() {
+    final var catalog =
+        List.of(
+            SkillCatalogEntry.builder()
+                .name("my-skill")
+                .description("does something")
+                .location("loc1")
+                .build());
+    final var defs =
+        SandboxToolDefinitions.sandboxToolDefinitions(ELEMENT_ID, "handle-abc", "/ws", catalog);
+    assertThat(defs).hasSize(5);
+  }
+
+  @Test
+  void fourArgOverload_allDefinitionsCarryHandleAndWorkDir() {
+    final var defs =
+        SandboxToolDefinitions.sandboxToolDefinitions(ELEMENT_ID, "handle-123", "/workspace", null);
+    assertThat(defs)
+        .allSatisfy(
+            def ->
+                assertThat(def.metadata())
+                    .containsEntry(ToolDefinition.METADATA_ELEMENT_ID, ELEMENT_ID)
+                    .containsEntry(SandboxToolDefinitions.METADATA_HANDLE, "handle-123")
+                    .containsEntry(SandboxToolDefinitions.METADATA_WORK_DIR, "/workspace"));
+  }
+
+  @Test
+  void fourArgOverload_catalogPresentInMetadata_whenNonEmpty() {
+    final var catalog =
+        List.of(
+            SkillCatalogEntry.builder()
+                .name("my-skill")
+                .description("desc")
+                .location("loc")
+                .build());
+    final var defs = SandboxToolDefinitions.sandboxToolDefinitions(ELEMENT_ID, "h", "/w", catalog);
+    assertThat(defs)
+        .allSatisfy(
+            def -> assertThat(def.metadata()).containsKey(SandboxToolDefinitions.METADATA_CATALOG));
+  }
+
+  @ParameterizedTest
+  @MethodSource("nullOrEmptyCatalog")
+  void fourArgOverload_catalogAbsentFromMetadata_whenNullOrEmpty(List<SkillCatalogEntry> catalog) {
+    final var defs = SandboxToolDefinitions.sandboxToolDefinitions(ELEMENT_ID, "h", "/w", catalog);
+    assertThat(defs)
+        .allSatisfy(
+            def ->
+                assertThat(def.metadata())
+                    .doesNotContainKey(SandboxToolDefinitions.METADATA_CATALOG));
+  }
+
+  static Stream<Arguments> nullOrEmptyCatalog() {
+    return Stream.of(Arguments.of((Object) null), Arguments.of(List.of()));
   }
 
   private static ToolDefinition findByName(List<ToolDefinition> defs, String name) {
