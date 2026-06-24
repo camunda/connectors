@@ -152,7 +152,18 @@ public abstract class BaseAgentRequestHandler<
       final ConversationSession session,
       final ConversationStore store) {
     var agentConfiguration = executionContext.configuration();
-    var systemMessage = createSystemMessage(executionContext, agentContext);
+    // Freeze the system prompt: compose it once on the first turn, then reuse the copy persisted in
+    // the conversation history. This avoids re-running every system-prompt contributor on each
+    // execution — notably the sandbox skills contributor, which renders the <available_skills>
+    // catalog. The composed message is stored as the first message via
+    // AgentConversation#allMessages
+    // and reconstructed by TurnReconstructor into previousConversation.systemMessage(). Because
+    // sandbox tool discovery (CREATE) completes before the first conversation turn, the skill
+    // catalog is already present when this first composition happens.
+    var systemMessage =
+        previousConversation
+            .systemMessage()
+            .orElseGet(() -> createSystemMessage(executionContext, agentContext));
     final var documentRegistry = buildRegistry(loadedRegistry, inputMessages);
     final var conversation =
         AgentConversation.rehydrate(
