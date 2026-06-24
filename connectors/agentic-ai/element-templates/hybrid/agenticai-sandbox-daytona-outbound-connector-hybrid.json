@@ -263,7 +263,7 @@
       "equals" : "aiAgentTool",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "Text"
   }, {
     "id" : "version",
     "label" : "Version",
