@@ -289,15 +289,15 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.documentId",
-    "label" : "Document ID",
-    "description" : "Document ID (EXPORT_DOCUMENT, IMPORT_DOCUMENT operations).",
+    "id" : "data.document",
+    "label" : "Document",
+    "description" : "Document to import into the sandbox (IMPORT_DOCUMENT operation).",
     "optional" : true,
-    "value" : "=toolCall.id",
+    "value" : "=toolCall.document",
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
-      "name" : "data.documentId",
+      "name" : "data.document",
       "type" : "zeebe:input"
     },
     "type" : "String"

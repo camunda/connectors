@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.util.CollectionUtils;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import jakarta.annotation.Nullable;
 import java.util.LinkedHashMap;
@@ -229,6 +230,40 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
               return result;
             })
         .toList();
+  }
+
+  /**
+   * Re-materializes documents exported by the sandbox connector.
+   *
+   * <p>The EXPORT_DOCUMENT result is a {@link Map} with a {@code "document"} key containing the
+   * document reference (serialized to a reference map by the connector runtime). The generic {@link
+   * io.camunda.connector.agenticai.aiagent.agent.ContentTreeDocumentWalker} cannot find real {@link
+   * Document} instances inside reference maps, so this handler converts the reference map back to a
+   * {@link Document} via the document-aware {@code objectMapper}.
+   */
+  @Override
+  public List<Document> extractDocuments(ToolCallResult toolCallResult) {
+    if (!(toolCallResult.content() instanceof Map<?, ?> contentMap)) {
+      return GatewayToolHandler.super.extractDocuments(toolCallResult);
+    }
+    Object docEntry = contentMap.get("document");
+    if (docEntry == null) {
+      return GatewayToolHandler.super.extractDocuments(toolCallResult);
+    }
+    try {
+      Document doc = objectMapper.convertValue(docEntry, Document.class);
+      if (doc == null) {
+        return List.of();
+      }
+      return List.of(doc);
+    } catch (Exception e) {
+      LOGGER.warn(
+          "Failed to convert document entry to Document in sandbox tool call result (id={}, name={}): {}",
+          toolCallResult.id(),
+          toolCallResult.name(),
+          e.getMessage());
+      return List.of();
+    }
   }
 
   private SandboxOperation toolNameToOperation(String toolName) {

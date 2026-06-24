@@ -12,6 +12,8 @@ import io.camunda.connector.agenticai.sandbox.daytona.DaytonaClient.ExecOutcome;
 import io.camunda.connector.agenticai.sandbox.discovery.SandboxCreateResult;
 import io.camunda.connector.agenticai.sandbox.discovery.SandboxGatewayToolHandler;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -20,7 +22,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.daytona.sdk.Daytona;
 import io.daytona.sdk.Sandbox;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @OutboundConnector(
     name = "Sandbox (Daytona)",
@@ -48,6 +52,7 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
 
   private static final int EXEC_TIMEOUT_SECONDS = OutputBounds.DEFAULT_TIMEOUT_SECONDS;
   private static final long MAX_OUTPUT_BYTES = OutputBounds.DEFAULT_MAX_OUTPUT_BYTES;
+  private static final long DEFAULT_MAX_DOCUMENT_BYTES = 25L * 1024 * 1024;
 
   private final DaytonaClient daytonaClient;
 
@@ -108,16 +113,66 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         daytonaClient.fsWrite(sandbox, path, bytes);
         yield "Written " + bytes.length + " bytes to " + path;
       }
-      case EXPORT_DOCUMENT ->
+      case EXPORT_DOCUMENT -> {
+        String handle = requireHandle(data.handle(), "EXPORT_DOCUMENT");
+        String path = requireArg(data.path(), "path", "EXPORT_DOCUMENT");
+        Daytona daytona = DaytonaClient.buildClient(config.apiKey(), config.apiUrl());
+        Sandbox sandbox = daytonaClient.connect(daytona, handle);
+        byte[] bytes = daytonaClient.fsRead(sandbox, path);
+        if (bytes.length > DEFAULT_MAX_DOCUMENT_BYTES) {
           throw new ConnectorException(
-              "SANDBOX_NOT_IMPLEMENTED",
-              // TODO(P4): implement EXPORT_DOCUMENT
-              "EXPORT_DOCUMENT is not yet implemented (P4)");
-      case IMPORT_DOCUMENT ->
+              "SANDBOX_DOCUMENT_TOO_LARGE",
+              "File '%s' is too large to export (%d bytes); maximum allowed is %d bytes."
+                  .formatted(path, bytes.length, DEFAULT_MAX_DOCUMENT_BYTES));
+        }
+        String fileName = path.contains("/") ? path.substring(path.lastIndexOf('/') + 1) : path;
+        String contentType = "application/octet-stream";
+        Document doc =
+            context.create(
+                DocumentCreationRequest.from(bytes)
+                    .contentType(contentType)
+                    .fileName(fileName)
+                    .build());
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put(
+            "summary", "Exported '%s' (%d bytes) as a document.".formatted(path, bytes.length));
+        result.put("document", doc);
+        yield result;
+      }
+      case IMPORT_DOCUMENT -> {
+        Document document = data.document();
+        if (document == null) {
           throw new ConnectorException(
-              "SANDBOX_NOT_IMPLEMENTED",
-              // TODO(P4): implement IMPORT_DOCUMENT
-              "IMPORT_DOCUMENT is not yet implemented (P4)");
+              "SANDBOX_IMPORT_NO_DOCUMENT",
+              "No document to import: the requested document id was not found in the conversation registry.");
+        }
+        String handle = requireHandle(data.handle(), "IMPORT_DOCUMENT");
+        byte[] bytes = document.asByteArray();
+        if (bytes.length > DEFAULT_MAX_DOCUMENT_BYTES) {
+          throw new ConnectorException(
+              "SANDBOX_DOCUMENT_TOO_LARGE",
+              "Document is too large to import (%d bytes); maximum allowed is %d bytes."
+                  .formatted(bytes.length, DEFAULT_MAX_DOCUMENT_BYTES));
+        }
+        String targetPath;
+        if (data.path() != null && !data.path().isBlank()) {
+          targetPath = data.path();
+        } else if (document.metadata() != null
+            && document.metadata().getFileName() != null
+            && !document.metadata().getFileName().isBlank()) {
+          targetPath = document.metadata().getFileName();
+        } else {
+          targetPath = "imported-file";
+        }
+        Daytona daytona = DaytonaClient.buildClient(config.apiKey(), config.apiUrl());
+        Sandbox sandbox = daytonaClient.connect(daytona, handle);
+        daytonaClient.fsWrite(sandbox, targetPath, bytes);
+        String fileName =
+            targetPath.contains("/")
+                ? targetPath.substring(targetPath.lastIndexOf('/') + 1)
+                : targetPath;
+        yield "Imported '%s' (%d bytes) to %s.".formatted(fileName, bytes.length, targetPath);
+      }
     };
   }
 
