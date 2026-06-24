@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.sandbox.daytona;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import io.camunda.connector.agenticai.sandbox.discovery.SandboxOperation;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -36,6 +35,9 @@ public record SandboxDaytonaRequest(@Valid @NotNull SandboxDaytonaRequestData da
    *     data.autoArchive.*}.
    * @param autoDelete Auto-delete lifecycle settings (mode + duration). Bound under {@code
    *     data.autoDelete.*}.
+   * @param skills Skill bundles materialized into the sandbox at creation.
+   * @param startupScript Optional shell script run once at sandbox creation.
+   * @param connectorMode How this connector is used (currently only AI Agent tool mode).
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record SandboxDaytonaRequestData(
@@ -57,56 +59,6 @@ public record SandboxDaytonaRequest(@Valid @NotNull SandboxDaytonaRequestData da
       @Valid @Nullable AutoArchiveConfiguration autoArchive,
       @Valid @Nullable AutoDeleteConfiguration autoDelete,
       @TemplateProperty(
-              group = "operation",
-              label = "Operation",
-              description = "The sandbox operation to perform.",
-              defaultValue = "=toolCall.operation",
-              feel = FeelMode.optional,
-              optional = false)
-          @NotNull
-          SandboxOperation operation,
-      @TemplateProperty(
-              group = "operation",
-              label = "Handle",
-              description =
-                  "The sandbox handle (returned by CREATE, used by BASH/FS_READ/FS_WRITE).",
-              defaultValue = "=toolCall.handle",
-              feel = FeelMode.optional,
-              optional = true)
-          @Nullable String handle,
-      @TemplateProperty(
-              group = "operation",
-              label = "Command",
-              description = "Shell command to run (BASH operation).",
-              defaultValue = "=toolCall.command",
-              feel = FeelMode.optional,
-              optional = true)
-          @Nullable String command,
-      @TemplateProperty(
-              group = "operation",
-              label = "Path",
-              description = "File path (FS_READ, FS_WRITE operations).",
-              defaultValue = "=toolCall.path",
-              feel = FeelMode.optional,
-              optional = true)
-          @Nullable String path,
-      @TemplateProperty(
-              group = "operation",
-              label = "Content",
-              description = "File content to write (FS_WRITE operation).",
-              defaultValue = "=toolCall.content",
-              feel = FeelMode.optional,
-              optional = true)
-          @Nullable String content,
-      @TemplateProperty(
-              group = "operation",
-              label = "Document",
-              description = "Document to import into the sandbox (IMPORT_DOCUMENT operation).",
-              defaultValue = "=toolCall.document",
-              feel = FeelMode.optional,
-              optional = true)
-          @Nullable Document document,
-      @TemplateProperty(
               group = "sandbox",
               label = "Skills",
               description =
@@ -122,7 +74,8 @@ public record SandboxDaytonaRequest(@Valid @NotNull SandboxDaytonaRequestData da
               type = TemplateProperty.PropertyType.Text,
               feel = FeelMode.optional,
               optional = true)
-          @Nullable String startupScript) {
+          @Nullable String startupScript,
+      @Valid @NotNull SandboxConnectorMode connectorMode) {
 
     /**
      * Returns the auto-stop interval in minutes for the Daytona API.
@@ -215,12 +168,10 @@ public record SandboxDaytonaRequest(@Valid @NotNull SandboxDaytonaRequestData da
           + autoArchive
           + ", autoDelete="
           + autoDelete
-          + ", operation="
-          + operation
-          + ", handle="
-          + handle
           + ", skills.size="
           + (skills != null ? skills.size() : 0)
+          + ", connectorMode="
+          + connectorMode
           + "]";
     }
 

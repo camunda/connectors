@@ -16,8 +16,8 @@
     "id" : "sandbox",
     "label" : "Sandbox Configuration"
   }, {
-    "id" : "operation",
-    "label" : "Operation"
+    "id" : "connectorMode",
+    "label" : "Connector mode"
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -227,104 +227,38 @@
     },
     "type" : "Text"
   }, {
-    "id" : "data.operation",
-    "label" : "Operation",
-    "description" : "The sandbox operation to perform.",
-    "optional" : false,
-    "value" : "=toolCall.operation",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "operation",
+    "id" : "data.connectorMode.type",
+    "label" : "Connector mode",
+    "description" : "How this connector is used. Currently only AI Agent tool mode is supported.",
+    "value" : "aiAgentTool",
+    "group" : "connectorMode",
     "binding" : {
-      "name" : "data.operation",
+      "name" : "data.connectorMode.type",
       "type" : "zeebe:input"
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "CREATE",
-      "value" : "CREATE"
-    }, {
-      "name" : "BASH",
-      "value" : "BASH"
-    }, {
-      "name" : "FS_READ",
-      "value" : "FS_READ"
-    }, {
-      "name" : "FS_WRITE",
-      "value" : "FS_WRITE"
-    }, {
-      "name" : "EXPORT_DOCUMENT",
-      "value" : "EXPORT_DOCUMENT"
-    }, {
-      "name" : "IMPORT_DOCUMENT",
-      "value" : "IMPORT_DOCUMENT"
+      "name" : "AI Agent tool",
+      "value" : "aiAgentTool"
     } ]
   }, {
-    "id" : "data.handle",
-    "label" : "Handle",
-    "description" : "The sandbox handle (returned by CREATE, used by BASH/FS_READ/FS_WRITE).",
-    "optional" : true,
-    "value" : "=toolCall.handle",
-    "feel" : "optional",
-    "group" : "operation",
+    "id" : "data.connectorMode.toolCall",
+    "label" : "Tool call",
+    "description" : "The tool call dispatched by the AI agent. Populated automatically.",
+    "optional" : false,
+    "value" : "=toolCall",
+    "feel" : "required",
+    "group" : "connectorMode",
     "binding" : {
-      "name" : "data.handle",
+      "name" : "data.connectorMode.toolCall",
       "type" : "zeebe:input"
     },
-    "type" : "String"
-  }, {
-    "id" : "data.command",
-    "label" : "Command",
-    "description" : "Shell command to run (BASH operation).",
-    "optional" : true,
-    "value" : "=toolCall.command",
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.command",
-      "type" : "zeebe:input"
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "data.path",
-    "label" : "Path",
-    "description" : "File path (FS_READ, FS_WRITE operations).",
-    "optional" : true,
-    "value" : "=toolCall.path",
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.path",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.content",
-    "label" : "Content",
-    "description" : "File content to write (FS_WRITE operation).",
-    "optional" : true,
-    "value" : "=toolCall.content",
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.content",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.document",
-    "label" : "Document",
-    "description" : "Document to import into the sandbox (IMPORT_DOCUMENT operation).",
-    "optional" : true,
-    "value" : "=toolCall.document",
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.document",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "version",
     "label" : "Version",
