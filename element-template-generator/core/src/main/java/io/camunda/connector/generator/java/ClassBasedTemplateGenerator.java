@@ -105,20 +105,23 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     StepTreeResult stepTree;
     if (OutboundConnectorFunction.class.isAssignableFrom(connectorDefinition)
         || InboundConnectorExecutable.class.isAssignableFrom(connectorDefinition)) {
-      properties =
-          new ArrayList<>(
-              TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context));
-      // Merge element-scoped properties (bound per activated element at correlation time) into the
-      // same template. Property id collisions are rejected by the ElementTemplate constructor.
-      var elementInput = template.elementInputDataClass();
-      if (elementInput != Void.class) {
-        properties.addAll(
-            TemplatePropertiesUtil.extractTemplatePropertiesFromType(elementInput, context));
+      // Merge the properties of all input data classes (in declaration order) into one template.
+      // Property id collisions are rejected by the ElementTemplate constructor.
+      properties = new ArrayList<>();
+      for (Class<?> inputClass : connectorInput) {
+        if (inputClass != Void.class) {
+          properties.addAll(
+              TemplatePropertiesUtil.extractTemplatePropertiesFromType(inputClass, context));
+        }
       }
       // zeebe:linkedResource is a service-task extension; skip it for inbound connectors
       if (OutboundConnectorFunction.class.isAssignableFrom(connectorDefinition)) {
-        properties.addAll(
-            LinkedResourcePropertiesUtil.buildClassBasedLinkedResourceProperties(connectorInput));
+        for (Class<?> inputClass : connectorInput) {
+          if (inputClass != Void.class) {
+            properties.addAll(
+                LinkedResourcePropertiesUtil.buildClassBasedLinkedResourceProperties(inputClass));
+          }
+        }
       }
       stepTree = StepTreeWalker.walk(connectorInput);
     } else if (OutboundConnectorProvider.class.isAssignableFrom(connectorDefinition)) {

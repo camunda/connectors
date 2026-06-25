@@ -33,21 +33,16 @@ public @interface ElementTemplate {
   String name();
 
   /**
-   * Reference to the connector input data class. Element template is generated based on the
-   * properties of this class.
-   */
-  Class<?> inputDataClass() default Void.class;
-
-  /**
-   * Reference to an optional element-scoped input data class. Its properties are merged into the
-   * same element template as {@link #inputDataClass()}, but unlike the connector-scoped input class
-   * they are <em>not</em> bound once at connector activation. Instead they are intended to be bound
-   * per activated element at correlation time, and they are excluded from deduplication.
+   * References to the connector input data classes. The element template is generated from the
+   * properties of these classes, merged in declaration order. A single class may be supplied
+   * without braces ({@code inputDataClass = Foo.class}).
    *
-   * <p>Use this for properties that may legitimately differ between BPMN elements that are
-   * deduplicated into a single connector executable (for example, a webhook response expression).
+   * <p>Multiple classes let a connector compose its template model from several sources (for
+   * example, a connector-scoped class plus an element-scoped class). This is purely a
+   * template-generation concern: runtime semantics such as the deduplication scope are declared
+   * separately on {@code @InboundConnector} ({@code deduplicationClasses}).
    */
-  Class<?> elementInputDataClass() default Void.class;
+  Class<?>[] inputDataClass() default {};
 
   Class<?> outputDataClass() default Void.class;
 

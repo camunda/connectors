@@ -21,8 +21,8 @@ import java.util.function.Function;
  * from deduplication, so that webhook elements that differ only in their response expression are
  * deduplicated into a single executable while each still produces its own response.
  *
- * <p>This class is referenced from {@code @ElementTemplate(elementInputDataClass = ...)} so that
- * its properties are merged into the same element template as the connector-scoped properties. The
+ * <p>This class is listed in {@code @ElementTemplate(inputDataClass = { ..., ... })} so that its
+ * properties are merged into the same element template as the connector-scoped properties. The
  * {@code inbound} wrapper keeps the generated property bindings (e.g. {@code
  * inbound.responseExpression}) identical to the previous layout.
  */

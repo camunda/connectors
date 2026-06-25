@@ -42,8 +42,10 @@ import org.slf4j.LoggerFactory;
     name = "Webhook Connector",
     icon = "icon.svg",
     version = 15,
-    inputDataClass = WebhookConnectorPropertiesWrapper.class,
-    elementInputDataClass = DynamicWebhookPropertiesWrapper.class,
+    inputDataClass = {
+      WebhookConnectorPropertiesWrapper.class,
+      DynamicWebhookPropertiesWrapper.class
+    },
     description = "Configure webhook to receive callbacks",
     keywords = {
       "receive webhook",
