@@ -18,6 +18,7 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import org.jspecify.annotations.NullUnmarked;
 
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.polling.v0",
@@ -52,6 +53,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
           templateNameOverride = "A2A Client Polling Receive Task Connector (early access)"),
     })
 @InboundConnector(name = "A2A Polling Connector", type = "io.camunda.agenticai:a2aclient:polling:0")
+// @NullUnmarked: processInstancesFetcherTask is a Spring lifecycle field initialized in activate(),
+// not in the constructor.
+@NullUnmarked
 public class A2aClientPollingExecutable
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 

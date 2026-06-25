@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import org.jspecify.annotations.NullUnmarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,9 @@ import org.slf4j.LoggerFactory;
  * Responsible for handling A2A polling operations. Each instance of this class is used for one
  * flowNode and manages polling across all its corresponding processInstances.
  */
+// @NullUnmarked: mainTaskFuture is assigned lazily via scheduleAtFixedRate in start(), not in the
+// constructor.
+@NullUnmarked
 public class A2aPollingProcessInstancesFetcherTask implements Runnable {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(A2aPollingProcessInstancesFetcherTask.class);

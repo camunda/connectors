@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import org.jspecify.annotations.NullUnmarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
@@ -47,6 +48,9 @@ import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
  * events. The session manages the lifecycle of the {@link BedrockAgentCoreClient} — it is closed
  * when the session is closed.
  */
+// @NullUnmarked: previousConversationContext, sessionId, branchName, and lastEventId are lifecycle
+// fields initialized in loadMessages(), not in the constructor.
+@NullUnmarked
 public class AwsAgentCoreConversationSession implements ConversationSession {
 
   private static final Logger LOGGER =

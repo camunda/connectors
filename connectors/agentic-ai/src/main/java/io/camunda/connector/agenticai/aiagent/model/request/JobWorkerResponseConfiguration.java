@@ -10,7 +10,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 public record JobWorkerResponseConfiguration(
     @Valid @NotNull ResponseFormatConfiguration format,
     @TemplateProperty(
@@ -22,7 +25,7 @@ public record JobWorkerResponseConfiguration(
                     + "and metadata (such as token usage). The message will be available as <code>response.responseMessage</code>.",
             type = TemplateProperty.PropertyType.Boolean,
             optional = true)
-        Boolean includeAssistantMessage,
+        @Nullable Boolean includeAssistantMessage,
     @TemplateProperty(
             group = "response",
             label = "Include agent context",
@@ -31,7 +34,7 @@ public record JobWorkerResponseConfiguration(
                 "Use this option if you need to re-inject the previous agent context into a future agent execution, for example when modeling a user feedback loop between an agent and a user task.",
             type = TemplateProperty.PropertyType.Boolean,
             optional = true)
-        Boolean includeAgentContext)
+        @Nullable Boolean includeAgentContext)
     implements ResponseConfiguration {
 
   public JobWorkerResponseConfiguration {

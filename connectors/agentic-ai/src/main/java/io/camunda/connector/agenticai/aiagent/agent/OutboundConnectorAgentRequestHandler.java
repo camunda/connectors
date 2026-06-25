@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
+import org.jspecify.annotations.Nullable;
 
 public class OutboundConnectorAgentRequestHandler
     extends BaseAgentRequestHandler<
@@ -54,9 +55,9 @@ public class OutboundConnectorAgentRequestHandler
   @Override
   public AiAgentTaskConnectorResponse buildConnectorResponse(
       OutboundConnectorAgentExecutionContext executionContext,
-      AgentConversation conversation,
-      AgentResponse agentResponse,
-      AgentJobCompletionListener completionListener) {
+      @Nullable AgentConversation conversation,
+      @Nullable AgentResponse agentResponse,
+      @Nullable AgentJobCompletionListener completionListener) {
     return new AiAgentTaskConnectorResponse(agentResponse, completionListener);
   }
 }

@@ -23,7 +23,10 @@ import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock")
 public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bedrock)
     implements ProviderConfiguration {
@@ -57,9 +60,9 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               optional = true)
-          String endpoint,
+          @Nullable String endpoint,
       @Valid @NotNull AwsAuthentication authentication,
-      @Valid TimeoutConfiguration timeouts,
+      @Valid @Nullable TimeoutConfiguration timeouts,
       @Valid @NotNull BedrockModel model) {
 
     @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
@@ -161,7 +164,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Integer maxTokens,
+            @Nullable Integer maxTokens,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -171,7 +174,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Double temperature,
+            @Nullable Double temperature,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -181,6 +184,6 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Double topP) {}
+            @Nullable Double topP) {}
   }
 }

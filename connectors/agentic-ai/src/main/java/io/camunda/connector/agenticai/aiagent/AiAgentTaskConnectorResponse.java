@@ -22,7 +22,7 @@ public record AiAgentTaskConnectorResponse(
     implements StandardConnectorResponse, AgentJobCompletionListener {
 
   @Override
-  public Object responseValue() {
+  public @Nullable Object responseValue() {
     return agentResponse;
   }
 

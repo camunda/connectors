@@ -9,10 +9,11 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.model.message.content.Content;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.model.message.content.TextContent;
+import org.jspecify.annotations.Nullable;
 
 public class ContentConverterImpl implements ContentConverter {
   private final DocumentToContentConverter documentToContentConverter;
@@ -38,7 +39,7 @@ public class ContentConverterImpl implements ContentConverter {
   }
 
   @Override
-  public String convertToString(Object content) throws JsonProcessingException {
+  public @Nullable String convertToString(@Nullable Object content) throws JsonProcessingException {
     if (content == null) {
       return null;
     }

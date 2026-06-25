@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.Map;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -20,6 +21,7 @@ import org.jspecify.annotations.Nullable;
  * <p>Example use case: MCP Client is a gateway to multiple tools exposed by the connected MCP
  * server
  */
+@NullMarked
 @AgenticAiRecord
 @JsonDeserialize(builder = GatewayToolDefinition.GatewayToolDefinitionJacksonProxyBuilder.class)
 public record GatewayToolDefinition(

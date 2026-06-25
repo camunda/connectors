@@ -10,9 +10,12 @@ import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 public record MemoryConfiguration(
-    @Valid @NestedProperties(group = "memory") MemoryStorageConfiguration storage,
+    @Valid @NestedProperties(group = "memory") @Nullable MemoryStorageConfiguration storage,
     // TODO support more advanced eviction policies (token window)
     @TemplateProperty(
             group = "memory",
@@ -29,4 +32,4 @@ public record MemoryConfiguration(
             defaultValue = "20",
             defaultValueType = TemplateProperty.DefaultValueType.Number)
         @Min(3)
-        Integer contextWindowSize) {}
+        @Nullable Integer contextWindowSize) {}

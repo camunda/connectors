@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.model;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
+import org.jspecify.annotations.Nullable;
 
 public record McpClientStandaloneFiltersConfiguration(
     @NestedProperties(
@@ -24,11 +25,11 @@ public record McpClientStandaloneFiltersConfiguration(
                     property = "data.connectorMode.operation.type",
                     oneOf = {"resources/read", "resources/list", "resources/templates/list"}))
         @Valid
-        McpClientResourcesFilterConfiguration resources,
+        @Nullable McpClientResourcesFilterConfiguration resources,
     @NestedProperties(
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "data.connectorMode.operation.type",
                     oneOf = {"prompts/get", "prompts/list"}))
         @Valid
-        McpClientPromptsFilterConfiguration prompts) {}
+        @Nullable McpClientPromptsFilterConfiguration prompts) {}

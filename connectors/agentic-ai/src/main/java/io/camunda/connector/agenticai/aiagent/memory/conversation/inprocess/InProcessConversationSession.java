@@ -14,10 +14,11 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSe
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 public class InProcessConversationSession implements ConversationSession {
 
-  private InProcessConversationContext previousConversationContext;
+  private @Nullable InProcessConversationContext previousConversationContext;
 
   @Override
   public ConversationLoadResult loadMessages(AgentContext agentContext) {

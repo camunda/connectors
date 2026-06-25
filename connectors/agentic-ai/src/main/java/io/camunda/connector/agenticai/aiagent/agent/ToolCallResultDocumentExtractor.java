@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +36,7 @@ public class ToolCallResultDocumentExtractor {
 
   /** Documents extracted from a single tool call result, grouped with the tool call identity. */
   public record ToolCallDocuments(
-      String toolCallId, String toolCallName, List<Document> documents) {}
+      @Nullable String toolCallId, @Nullable String toolCallName, List<Document> documents) {}
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
 
@@ -69,8 +71,8 @@ public class ToolCallResultDocumentExtractor {
 
   private List<Document> extractFromToolCallResult(ToolCallResult toolCallResult) {
     final var documents =
-        gatewayToolHandlers
-            .handlerForToolDefinition(toolCallResult.name())
+        Optional.ofNullable(toolCallResult.name())
+            .flatMap(gatewayToolHandlers::handlerForToolDefinition)
             .map(handler -> handler.extractDocuments(toolCallResult))
             .orElseGet(
                 () ->

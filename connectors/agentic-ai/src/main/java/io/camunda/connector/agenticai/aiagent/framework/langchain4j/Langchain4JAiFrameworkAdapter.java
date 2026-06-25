@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,14 +83,16 @@ public class Langchain4JAiFrameworkAdapter
   }
 
   private void configureResponseFormat(
-      ChatRequest.Builder chatRequestBuilder, ResponseConfiguration responseConfiguration) {
+      ChatRequest.Builder chatRequestBuilder,
+      @Nullable ResponseConfiguration responseConfiguration) {
     final var responseFormat = createResponseFormat(responseConfiguration);
     if (responseFormat != null) {
       chatRequestBuilder.responseFormat(responseFormat);
     }
   }
 
-  private ResponseFormat createResponseFormat(ResponseConfiguration responseConfiguration) {
+  private @Nullable ResponseFormat createResponseFormat(
+      @Nullable ResponseConfiguration responseConfiguration) {
     // do not explicitely configure response format to TEXT as (depending on the model) this might
     // lead to exceptions
     if (responseConfiguration != null

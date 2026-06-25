@@ -207,6 +207,25 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai
 When verifying changes, search the e2e test directory for test cases relevant to the change and run those selectively
 rather than running the full suite. Running all e2e tests takes a long time.
 
+## Null Safety
+
+This module enforces nullability via JSpecify annotations and NullAway (Error-Prone plugin) at compile time.
+All packages under `io.camunda.connector.agenticai` are treated as non-null by default — no `package-info.java` needed.
+
+**Rules:**
+
+- Every reference type is non-null by default. Add `@Nullable` (from `org.jspecify.annotations`) on fields,
+  method parameters, and return types that may be absent.
+- Fix null-safety errors by handling the null. Never suppress with `@SuppressWarnings("NullAway")` or
+  `NullabilityUtil.castToNonNull()`.
+- `@NullUnmarked` is allowed as a named deferral only. Every use requires a comment on the line above explaining why
+  (typically: lifecycle fields initialized outside the constructor). File a follow-up issue; reference it in the comment.
+- `@NullMarked` is applied per-class to element template data classes and shared model classes. New model/data
+  classes in these packages should also carry `@NullMarked`.
+- When calling third-party APIs (LangChain4J, MCP SDK, etc.), inspect their source to determine the actual null
+  contract. Do not assume `@NonNull` for unannotated return values.
+- NullAway runs on `src/main/java` only; test sources are excluded.
+
 ## Gateway Tool Pattern
 
 The Gateway Tool Pattern is the extensibility mechanism for integrating external tool providers (MCP, A2A) that expose

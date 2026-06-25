@@ -9,10 +9,11 @@ package io.camunda.connector.agenticai.mcp.client.model.content;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record McpTextContent(
-    String text, @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
+    String text, @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements McpContent {
   public McpTextContent {
     if (text == null || text.isBlank()) {

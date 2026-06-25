@@ -11,7 +11,9 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public record AdHocToolsSchemaRequest(@Valid @NotNull AdHocToolsSchemaRequestData data) {
   public record AdHocToolsSchemaRequestData(
       @NotBlank
