@@ -18,10 +18,10 @@ flexibility**.
 
 ## 1. Why invert the model?
 
-The in-process design (PR #7594, §3) chose the sub-loop precisely *because* gateway round-trips are
-expensive: an agent doing `read → edit → write → run → re-read` fires dozens of calls, and as gateway
-tools each is a full Zeebe round-trip. That is a real latency cost, and we keep it in view as the
-explicit risk this PoC measures. But the modeled approach buys things the in-process loop cannot:
+The in-process design (PR #7594, §3) chose the sub-loop on the assumption that gateway round-trips are
+too expensive for chatty workloads: an agent doing `read → edit → write → run → re-read` fires dozens of
+calls, each a full Zeebe round-trip as a gateway tool. In practice a Zeebe round-trip is fast, and the
+modeled approach buys things the in-process loop cannot:
 
 - **Durability.** Each tool call is a durable engine record and survives connector/JVM restarts; the
   in-process burst loses its messages if the job fails mid-burst (PR #7594 §8 "durability nuance").
@@ -35,9 +35,8 @@ explicit risk this PoC measures. But the modeled approach buys things the in-pro
 
 **Cost accounting note:** the modeled approach does *not* increase the model-call count. N internal
 tool rounds were already N+1 model calls in the sub-loop; they remain N+1 model calls here. What
-changes is that those calls are spread across N+1 **jobs** (with N+1 durable records and N+1 round-trip
-latencies) instead of one job. So `maxModelCalls` budgeting is unaffected; latency and durability are
-the deltas.
+changes is that those calls are spread across N+1 **jobs** (N+1 durable records) instead of one job. So
+`maxModelCalls` budgeting is unaffected; durability and observability are the deltas.
 
 ---
 
@@ -344,9 +343,6 @@ in-process PoC. Gated `@EnabledIfEnvironmentVariable` on `DAYTONA_API_KEY` + `AW
 
 ## 12. Risks & open follow-ups
 
-- **⭐ Latency** — the explicit thing this PoC measures. Per-call round-trips on chatty FS/exec
-  workloads. If it proves prohibitive, a connector-internal batching/loop is the documented (rejected-
-  for-now) optimization.
 - **⭐ Sandbox reaper** — engine-tied teardown; production blocker (§6).
 - **Standalone connector mode** — deferred (§5).
 - **Prefix→metadata migration for MCP/A2A** — deferred (§4).
