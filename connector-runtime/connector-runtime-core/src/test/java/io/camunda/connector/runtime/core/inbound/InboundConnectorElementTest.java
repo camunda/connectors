@@ -128,9 +128,12 @@ public class InboundConnectorElementTest {
   }
 
   @Test
-  void deduplicationId_excludesWebhookResponseExpression() {
+  void deduplicationId_excludesPropertiesOutsideScope() {
     // given two webhook elements that are identical except for their (element-scoped) response
-    // expression — issue #6684: they must deduplicate into a single executable.
+    // expression — issue #6684: they must deduplicate into a single executable. The connector's
+    // deduplication scope (derived from @InboundConnector.deduplicationClasses) covers the
+    // connector-scoped property prefix (here inbound.context) but not inbound.responseExpression.
+    var scope = List.of("inbound.context");
     var elementA =
         new InboundConnectorElement(
             Map.of(
@@ -149,9 +152,21 @@ public class InboundConnectorElementTest {
                 "inbound.responseExpression", "={body: \"B\"}"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
             new ProcessElementWithRuntimeData("myProcess", 0, 0, "elementB", "<default>"));
+    var elementDifferentContext =
+        new InboundConnectorElement(
+            Map.of(
+                "inbound.type", "io.camunda:webhook:1",
+                "deduplicationMode", "AUTO",
+                "inbound.context", "otherPath",
+                "inbound.responseExpression", "={body: \"A\"}"),
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "elementC", "<default>"));
 
     // then they share a deduplication id despite the differing response expressions
-    assertThat(elementA.deduplicationId(List.of())).isEqualTo(elementB.deduplicationId(List.of()));
+    assertThat(elementA.deduplicationId(scope)).isEqualTo(elementB.deduplicationId(scope));
+    // but an in-scope property (inbound.context) still distinguishes them
+    assertThat(elementA.deduplicationId(scope))
+        .isNotEqualTo(elementDifferentContext.deduplicationId(scope));
   }
 
   @Test

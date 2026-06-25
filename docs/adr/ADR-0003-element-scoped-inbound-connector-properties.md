@@ -25,11 +25,28 @@ ad-hoc resolution into each connector and the runtime, which Pavel rejected as a
 Introduce **element-scoped properties** as a first-class concept, alongside the existing
 (connector-scoped) properties.
 
-- A connector may declare a second input class via `@ElementTemplate.elementInputDataClass`. Its
-  `@TemplateProperty` fields are merged into the *same* element template as `inputDataClass`, so the
-  modeling experience is unchanged.
-- Element-scoped properties are **excluded from deduplication** (elements differing only in them
-  still group) and are **bound per activated element at correlation time**, not once at activation.
+- A connector may model itself with more than one input class. `@ElementTemplate.inputDataClass` is
+  a `Class<?>[]`: the generator merges the `@TemplateProperty` fields of every listed class into the
+  *same* element template, so the modeling experience is unchanged. This is purely an
+  element-template concern and carries no runtime semantics.
+- The deduplication scope is declared separately, as a runtime concern, via
+  `@InboundConnector.deduplicationClasses`. Only the properties contributed by those classes are
+  taken into account for deduplication; everything else bound into the same template (the
+  element-scoped classes) is excluded. Keeping the two annotations independent preserves the rule
+  that element-template annotations carry only generation concerns and runtime annotations carry only
+  runtime concerns. (The pre-existing string-list `@InboundConnector.deduplicationProperties` is
+  deprecated in favour of the class-based form.)
+- The runtime turns `deduplicationClasses` into a set of property-key *prefixes* by introspecting the
+  classes' Jackson serialization paths (`DeduplicationPropertyResolver`). It walks plain bean types
+  and stops at scalars, containers and polymorphic (`@JsonTypeInfo`) types, so a single prefix such
+  as `inbound.auth` transparently covers every nested/sealed subtype key without enumerating
+  subtypes. A raw property is in scope iff its key equals, or is nested under, a prefix. This needs
+  only Jackson (already used for binding), so the runtime gains **no dependency on the
+  element-template-generator**. The same scope drives both the deduplication id and the
+  divergence guard, so they stay consistent.
+- Element-scoped properties are therefore **excluded from deduplication** (elements differing only in
+  them still group) and are **bound per activated element at correlation time**, not once at
+  activation.
 - Binding lives on the SDK contract: `CorrelationResult.Success#bindProperties(Class)` delegates to
   `ProcessElement#bindProperties(Class)`. The runtime attaches a binder (carrying the
   secret-replacement + FEEL pipeline) to the activated element of a successful correlation, so the
@@ -48,7 +65,10 @@ Introduce **element-scoped properties** as a first-class concept, alongside the 
 ### Positive
 - Per-element correctness: deduplicated elements share one executable yet each resolves its own
   element-scoped values. No null-by-design field on the bound model.
-- One element template and one source class per scope; class membership defines dedup scope.
+- One element template spanning all input classes; `deduplicationClasses` membership defines the
+  dedup scope, with no hardcoded per-connector keywords and no runtime→generator dependency. For the
+  webhook the derived scope matches the previous deny-list output exactly, so deduplication ids are
+  unchanged.
 - The runtime is connector-agnostic — response construction stays in the connector's `response()`
   function, and the runtime no longer carries a webhook-specific binding type. A single response
   mechanism, with no `respond(...)` method to keep in sync.
@@ -59,8 +79,6 @@ Introduce **element-scoped properties** as a first-class concept, alongside the 
 - Element-scoped binding/evaluation runs **past the transaction boundary** (the process instance is
   already created or the message published), so failures cannot undo correlation and callers must
   handle them without reporting the event as unprocessed. This is documented on the binding methods.
-- The deduplication exclusion of element-scoped keys is currently still expressed as hardcoded
-  webhook keywords in `Keywords.PROPERTIES_EXCLUDED_FROM_DEDUPLICATION`. Deriving it from
-  `elementInputDataClass` (a `@TemplateProperty`-aware "walker") is deferred to a follow-up, because
-  it introduces a dependency from the runtime onto the element-template-generator and rewires the
-  core dedup path — better reviewed in isolation.
+- Prefix-based scope resolution assumes the bound property key matches the Jackson serialization
+  path, which holds for all current connectors (the runtime binds raw properties via Jackson). A
+  property bound under a name that differs from its Jackson path would not be matched.

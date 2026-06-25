@@ -152,19 +152,6 @@ public class Keywords {
   public static final String SYNCHRONOUS_RESPONSE = "synchronousResponse";
 
   /**
-   * Webhook response expression keywords. These are element-scoped: they may legitimately differ
-   * between BPMN elements that are deduplicated into a single webhook executable, so they must be
-   * excluded from deduplication and resolved per activated element at correlation time.
-   *
-   * <p>TODO(#6684): derive this exclusion from the connector's element-scoped input class (see
-   * {@code ElementTemplate#elementInputDataClass()}) instead of hardcoding webhook specifics here.
-   */
-  public static final String WEBHOOK_RESPONSE_EXPRESSION_KEYWORD = "inbound.responseExpression";
-
-  public static final String WEBHOOK_RESPONSE_BODY_EXPRESSION_KEYWORD =
-      "inbound.responseBodyExpression";
-
-  /**
    * Properties that are handled by the connector runtime and should not be passed to the inbound
    * connector along with the properties defined by the connector.
    */
@@ -200,7 +187,5 @@ public class Keywords {
           RESULT_EXPRESSION_KEYWORD,
           RESULT_VARIABLE_KEYWORD,
           CONSUME_UNMATCHED_EVENTS_KEYWORD,
-          SYNCHRONOUS_RESPONSE,
-          WEBHOOK_RESPONSE_EXPRESSION_KEYWORD,
-          WEBHOOK_RESPONSE_BODY_EXPRESSION_KEYWORD);
+          SYNCHRONOUS_RESPONSE);
 }

@@ -35,7 +35,13 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@InboundConnector(name = "Webhook", type = "io.camunda:webhook:1")
+@InboundConnector(
+    name = "Webhook",
+    type = "io.camunda:webhook:1",
+    // Deduplicate on the connector-scoped properties only; the element-scoped response expressions
+    // (DynamicWebhookProperties) are intentionally excluded so elements differing only in their
+    // response still deduplicate into a single executable.
+    deduplicationClasses = {WebhookConnectorPropertiesWrapper.class})
 @ElementTemplate(
     engineVersion = "^8.3",
     id = "io.camunda.connectors.webhook",
