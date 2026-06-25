@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - stable/**
   workflow_dispatch:
   merge_group:
 
