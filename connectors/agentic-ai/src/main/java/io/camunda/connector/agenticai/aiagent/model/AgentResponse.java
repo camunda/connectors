@@ -18,7 +18,7 @@ import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.camunda.connector.generator.java.annotation.DataExample;
 import java.util.List;
 import java.util.Map;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = AgentResponse.AgentResponseJacksonProxyBuilder.class)

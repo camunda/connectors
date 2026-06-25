@@ -8,8 +8,8 @@ package io.camunda.connector.agenticai.mcp.client.model.result;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.common.AgenticAiRecord;
-import jakarta.annotation.Nullable;
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = ResourceTemplate.ResourceTemplateBuilderJacksonProxyBuilder.class)

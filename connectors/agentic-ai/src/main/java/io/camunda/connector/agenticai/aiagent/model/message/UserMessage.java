@@ -13,7 +13,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.List;
 import java.util.Map;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = UserMessage.UserMessageJacksonProxyBuilder.class)
