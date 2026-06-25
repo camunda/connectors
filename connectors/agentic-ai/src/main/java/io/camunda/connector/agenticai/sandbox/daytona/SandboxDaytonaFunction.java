@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,7 +184,12 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
                   .formatted(path, bytes.length, DEFAULT_MAX_DOCUMENT_BYTES));
         }
         String fileName = path.contains("/") ? path.substring(path.lastIndexOf('/') + 1) : path;
-        String contentType = "application/octet-stream";
+        // Infer the content type from the file extension. The exported document is folded back into
+        // the conversation and re-inlined as LLM content on the next turn; a wrong/opaque type
+        // (e.g. the octet-stream default for a .csv) makes DocumentToContentConverter reject it and
+        // raises an incident. Mapping to a type the converter accepts (text/*, json/xml/yaml, pdf,
+        // images) keeps the EXPORT round-trip working.
+        String contentType = inferContentType(fileName);
         Document doc =
             context.create(
                 DocumentCreationRequest.from(bytes)
@@ -320,5 +326,31 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
           "SANDBOX_MISSING_ARG", argName + " is required for operation " + op);
     }
     return value;
+  }
+
+  /**
+   * Infers a document content type from a file name extension, restricted to the types the AI Agent
+   * framework can re-inline as LLM content ({@code text/*}, JSON/XML/YAML, PDF, common images).
+   * Unknown extensions fall back to {@code application/octet-stream}.
+   */
+  static String inferContentType(String fileName) {
+    final String lower = fileName.toLowerCase(Locale.ROOT);
+    final int dot = lower.lastIndexOf('.');
+    final String ext = dot >= 0 ? lower.substring(dot + 1) : "";
+    return switch (ext) {
+      case "csv" -> "text/csv";
+      case "txt", "log", "text" -> "text/plain";
+      case "md", "markdown" -> "text/markdown";
+      case "html", "htm" -> "text/html";
+      case "json" -> "application/json";
+      case "xml" -> "application/xml";
+      case "yaml", "yml" -> "application/yaml";
+      case "pdf" -> "application/pdf";
+      case "png" -> "image/png";
+      case "jpg", "jpeg" -> "image/jpeg";
+      case "gif" -> "image/gif";
+      case "webp" -> "image/webp";
+      default -> "application/octet-stream";
+    };
   }
 }
