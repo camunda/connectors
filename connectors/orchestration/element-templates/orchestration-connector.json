@@ -121,11 +121,11 @@
       "label": "Base URL",
       "type": "String",
       "feel": "optional",
-      "id": "authentication.operate_base_url",
+      "id": "authentication.orchestration_base_url",
       "group": "cluster",
       "binding": {
         "type": "zeebe:input",
-        "name": "authentication.operate_base_url"
+        "name": "authentication.orchestration_base_url"
       },
       "constraints": {
         "notEmpty": true
