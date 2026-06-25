@@ -31,7 +31,7 @@ inputs:
   repo:
     description: "owner/repo of the failing run (defaults to the calling repo)"
     required: false
-    default: ${{ github.repository }}
+    default: ""
   pr:
     description: >
       PR number, or a merge_group head_ref to extract it from
@@ -74,3 +74,4 @@ runs:
         SLACK_BOT_TOKEN: ${{ inputs.slack_bot_token }}
         GH_TOKEN: ${{ inputs.github_token }}
       run: node "$GITHUB_ACTION_PATH/feedback.mjs"
+
