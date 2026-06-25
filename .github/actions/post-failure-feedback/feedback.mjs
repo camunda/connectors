@@ -91,7 +91,7 @@ function model() {
     status: env('FB_STATUS', 'failure'),
     runUrl: env('FB_RUN_URL'),
     evidence: env('FB_EVIDENCE'),
-    repo: env('FB_REPO'),
+    repo: env('FB_REPO') || (process.env.GITHUB_REPOSITORY ?? ''),
     cookbook: env('FB_COOKBOOK_URL'),
     pr,
   };
@@ -227,3 +227,4 @@ main().catch((e) => {
   // Feedback is best-effort — never fail the CI job because of it.
   process.exit(0);
 });
+
