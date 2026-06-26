@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.camunda.connector.agenticai.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import org.jspecify.annotations.Nullable;
 
 public interface ContentConverter {

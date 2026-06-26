@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model;
 
-import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
