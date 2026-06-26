@@ -189,12 +189,14 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AgentInstanceClient agentInstanceClient(
       CamundaClient camundaClient,
       AgenticAiConnectorsConfigurationProperties configuration,
-      AgentInstanceHistoryMapper historyMapper) {
+      AgentInstanceHistoryMapper historyMapper,
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new CamundaAgentInstanceClient(
         camundaClient,
         configuration.aiagent().agentInstance().retries(),
         Sleeper.threadSleep(),
-        historyMapper);
+        historyMapper,
+        gatewayToolHandlers);
   }
 
   @Bean

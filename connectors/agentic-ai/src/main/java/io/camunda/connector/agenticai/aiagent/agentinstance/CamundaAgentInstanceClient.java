@@ -16,12 +16,15 @@ import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHis
 import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryRole;
 import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryToolCall;
 import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.CreateAgentHistoryItemFinalCommandStep;
+import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.AgentTool;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
@@ -40,16 +43,19 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   private final RetriesProperties retriesProperties;
   private final Sleeper sleeper;
   private final AgentInstanceHistoryMapper historyMapper;
+  private final GatewayToolHandlerRegistry gatewayToolHandlers;
 
   public CamundaAgentInstanceClient(
       CamundaClient camundaClient,
       RetriesProperties retriesProperties,
       Sleeper sleeper,
-      AgentInstanceHistoryMapper historyMapper) {
+      AgentInstanceHistoryMapper historyMapper,
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
     this.camundaClient = camundaClient;
     this.retriesProperties = retriesProperties;
     this.sleeper = sleeper;
     this.historyMapper = historyMapper;
+    this.gatewayToolHandlers = gatewayToolHandlers;
   }
 
   @Override
@@ -116,10 +122,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       long agentInstanceKey,
       AgentInstanceUpdateRequest request) {
     LOGGER.debug(
-        "Updating agent instance {}: status={}, delta={}",
+        "Updating agent instance {}: status={}, delta={}, tools={}",
         agentInstanceKey,
         request.status(),
-        request.delta());
+        request.delta(),
+        request.tools() != null ? request.tools().size() : "null");
     UpdateAgentInstanceCommandStep2 cmd =
         camundaClient
             .newUpdateAgentInstanceCommand(agentInstanceKey)
@@ -145,7 +152,24 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       }
     }
 
+    final var tools = request.tools();
+    if (tools != null) {
+      cmd = cmd.tools(mapTools(tools));
+    }
+
     cmd.execute();
+  }
+
+  private List<AgentTool> mapTools(List<ToolDefinition> toolDefinitions) {
+    return toolDefinitions.stream().map(this::mapTool).toList();
+  }
+
+  private AgentTool mapTool(ToolDefinition toolDefinition) {
+    final String elementId =
+        gatewayToolHandlers
+            .resolveElementId(toolDefinition.name())
+            .orElse(toolDefinition.name());
+    return AgentTool.of(toolDefinition.name(), toolDefinition.description(), elementId);
   }
 
   @Override

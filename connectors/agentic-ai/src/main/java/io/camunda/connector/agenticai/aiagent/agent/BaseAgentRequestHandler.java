@@ -219,7 +219,10 @@ public abstract class BaseAgentRequestHandler<
     agentInstanceClient.update(
         executionContext,
         conversation.agentInstanceKey(),
-        AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+        AgentInstanceUpdateRequest.builder()
+            .status(AgentInstanceUpdateStatus.THINKING)
+            .tools(conversation.toAgentContext().toolDefinitions())
+            .build());
   }
 
   private AgentInstanceUpdateStatus nextAgentInstanceState(int toolCallsDelta) {
@@ -330,7 +333,9 @@ public abstract class BaseAgentRequestHandler<
       // execution duration is a conversation-history concern and is not transmitted here, so it is
       // stripped from the delta.
       var updateRequestBuilder =
-          AgentInstanceUpdateRequest.builder().delta(metricsDelta.withExecutionTime(null));
+          AgentInstanceUpdateRequest.builder()
+              .delta(metricsDelta.withExecutionTime(null))
+              .tools(context.toolDefinitions());
       if (nextState != null) {
         updateRequestBuilder.status(nextState);
       }

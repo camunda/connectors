@@ -331,7 +331,11 @@ class OutboundConnectorAgentRequestHandlerTest {
         .update(
             eq(agentExecutionContext),
             any(),
-            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.THINKING)
+                    .tools(TOOL_DEFINITIONS)
+                    .build()));
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
@@ -340,6 +344,7 @@ class OutboundConnectorAgentRequestHandlerTest {
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .tools(TOOL_DEFINITIONS)
                     .build()));
     verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
@@ -369,7 +374,11 @@ class OutboundConnectorAgentRequestHandlerTest {
         .update(
             eq(agentExecutionContext),
             any(),
-            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.THINKING)
+                    .tools(TOOL_DEFINITIONS)
+                    .build()));
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
@@ -378,6 +387,7 @@ class OutboundConnectorAgentRequestHandlerTest {
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
+                    .tools(TOOL_DEFINITIONS)
                     .build()));
     verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
@@ -412,6 +422,7 @@ class OutboundConnectorAgentRequestHandlerTest {
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .tools(TOOL_DEFINITIONS)
                     .build()));
   }
 
