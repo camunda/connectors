@@ -545,6 +545,18 @@
         <version>${version.gmavenplus-plugin}</version>
         <executions>
           <execution>
+            <id>generate-nullmarked-package-info</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/generate-package-info.groovy</script>
+              </scripts>
+            </configuration>
+          </execution>
+          <execution>
             <id>generate-job-worker-template</id>
             <phase>process-classes</phase>
             <goals>
