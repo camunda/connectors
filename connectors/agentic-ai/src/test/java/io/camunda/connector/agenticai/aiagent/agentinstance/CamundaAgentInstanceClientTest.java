@@ -408,7 +408,8 @@ class CamundaAgentInstanceClientTest {
               .build();
 
       // when
-      client.update(TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
+      client.update(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
 
       // then: tools are passed to the command
       final ArgumentCaptor<List<AgentTool>> toolsCaptor = ArgumentCaptor.forClass(List.class);
@@ -448,7 +449,8 @@ class CamundaAgentInstanceClientTest {
               .build();
 
       // when
-      client.update(TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
+      client.update(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
 
       // then: gateway tool elementId is resolved through the registry
       final ArgumentCaptor<List<AgentTool>> toolsCaptor = ArgumentCaptor.forClass(List.class);
