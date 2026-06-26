@@ -250,7 +250,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
       assertThat(((ZeebeTaskHeader) property.getBinding()).key()).isEqualTo("retryBackoff");
       assertThat(property.getGroup()).isEqualTo("retries");
-      assertThat(property.getValue()).isEqualTo("PT0S");
+      assertThat(property.getValue()).isEqualTo("PT30S");
     }
 
     @Test
