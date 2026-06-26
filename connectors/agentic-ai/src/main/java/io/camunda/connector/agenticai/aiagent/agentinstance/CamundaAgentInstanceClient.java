@@ -150,7 +150,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     }
 
     final var tools = request.tools();
-    if (tools != null) {
+    if (tools != null && !tools.isEmpty()) {
       cmd = cmd.tools(toolMapper.mapTools(tools));
     }
 

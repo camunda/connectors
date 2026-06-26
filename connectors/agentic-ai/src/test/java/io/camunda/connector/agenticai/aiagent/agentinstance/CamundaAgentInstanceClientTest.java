@@ -475,6 +475,26 @@ class CamundaAgentInstanceClientTest {
       verify(updateCommandStep2, never()).tools(any());
       verify(updateCommandStep2).execute();
     }
+
+    @Test
+    void shouldNotCallToolsWhenToolsFieldIsEmpty() {
+      givenUpdateCommand();
+
+      // given: empty tools list in the request
+      final var request =
+          AgentInstanceUpdateRequest.builder()
+              .status(AgentInstanceUpdateStatus.THINKING)
+              .tools(List.of())
+              .build();
+
+      // when
+      client.update(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
+
+      // then: tools() is never called on the command
+      verify(updateCommandStep2, never()).tools(any());
+      verify(updateCommandStep2).execute();
+    }
   }
 
   @Nested
