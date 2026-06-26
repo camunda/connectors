@@ -24,17 +24,18 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.m
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
-import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.model.message.UserMessage;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.util.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -583,10 +584,7 @@ class AwsAgentCoreConversationStoreTest {
       final var assistantMessage = (AssistantMessage) loadResult.messages().get(0);
 
       assertThat(assistantMessage.content()).hasSize(1);
-      assertThat(
-              ((io.camunda.connector.agenticai.model.message.content.TextContent)
-                      assistantMessage.content().get(0))
-                  .text())
+      assertThat(((TextContent) assistantMessage.content().get(0)).text())
           .isEqualTo("Let me check the weather for you.");
 
       assertThat(assistantMessage.hasToolCalls()).isTrue();

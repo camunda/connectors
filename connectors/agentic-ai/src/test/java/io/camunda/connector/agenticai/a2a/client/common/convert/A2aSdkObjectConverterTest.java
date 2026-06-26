@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common.convert;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -20,7 +20,7 @@ import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
-import io.camunda.connector.agenticai.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;

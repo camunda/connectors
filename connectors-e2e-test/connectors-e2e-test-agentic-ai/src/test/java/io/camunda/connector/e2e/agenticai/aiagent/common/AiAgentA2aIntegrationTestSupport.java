@@ -30,7 +30,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.io.IOException;

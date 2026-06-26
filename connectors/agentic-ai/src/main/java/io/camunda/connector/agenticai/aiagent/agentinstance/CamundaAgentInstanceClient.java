@@ -19,12 +19,12 @@ import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.CreateAg
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
-import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
-import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
+import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
+import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureReason;
+import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.util.List;

@@ -8,8 +8,8 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 
 public interface ToolCallConverter {
   ToolExecutionRequest asToolExecutionRequest(ToolCall toolCall);

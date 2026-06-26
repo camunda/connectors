@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
@@ -30,15 +30,15 @@ import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
-import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.model.message.UserMessage;
-import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
@@ -218,13 +218,8 @@ class ChatMessageConverterTest {
         .hasSize(1)
         .satisfiesExactly(
             content -> {
-              assertThat(content)
-                  .isInstanceOf(
-                      io.camunda.connector.agenticai.model.message.content.TextContent.class);
-              assertThat(
-                      ((io.camunda.connector.agenticai.model.message.content.TextContent) content)
-                          .text())
-                  .isEqualTo("AI response");
+              assertThat(content).isInstanceOf(TextContent.class);
+              assertThat(((TextContent) content).text()).isEqualTo("AI response");
             });
 
     assertThat(result.metadata()).containsKey("timestamp");

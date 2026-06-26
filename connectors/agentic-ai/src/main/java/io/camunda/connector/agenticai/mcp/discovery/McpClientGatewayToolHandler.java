@@ -11,9 +11,15 @@ import static io.camunda.connector.agenticai.mcp.discovery.McpToolCallIdentifier
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.common.util.CollectionUtils;
+import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationDefinitions;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
@@ -24,12 +30,6 @@ import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResour
 import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.util.CollectionUtils;
-import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;

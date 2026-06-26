@@ -21,9 +21,9 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpe
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
