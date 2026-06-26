@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.a2a.client.inbound.polling.task;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.uber.nullaway.annotations.MonotonicNonNull;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
@@ -20,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +42,7 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
 
   private final ConcurrentHashMap<String, ScheduledPoll> runningPollTasks =
       new ConcurrentHashMap<>();
-  @MonotonicNonNull private ScheduledFuture<?> mainTaskFuture;
+  @Nullable private ScheduledFuture<?> mainTaskFuture;
 
   public A2aPollingProcessInstancesFetcherTask(
       final InboundIntermediateConnectorContext context,

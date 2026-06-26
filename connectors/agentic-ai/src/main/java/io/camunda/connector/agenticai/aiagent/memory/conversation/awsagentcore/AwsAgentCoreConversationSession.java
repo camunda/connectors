@@ -8,8 +8,6 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
 import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
 
-import com.uber.nullaway.annotations.EnsuresNonNull;
-import com.uber.nullaway.annotations.MonotonicNonNull;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
@@ -63,7 +61,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   private final AwsAgentCoreConversationMapper conversationMapper;
 
   @Nullable private AwsAgentCoreConversationContext previousConversationContext;
-  @MonotonicNonNull private String sessionId;
+  @Nullable private String sessionId;
   @Nullable private String branchName;
   @Nullable private String lastEventId;
   private int initialMessageCount = 0;
@@ -77,7 +75,6 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     this.conversationMapper = conversationMapper;
   }
 
-  @EnsuresNonNull("sessionId")
   @Override
   public ConversationLoadResult loadMessages(AgentContext agentContext) {
     previousConversationContext =
@@ -114,7 +111,8 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   @Override
   public ConversationContext storeMessages(
       AgentContext agentContext, ConversationStoreRequest request) {
-    if (sessionId == null) {
+    final String currentSessionId = sessionId;
+    if (currentSessionId == null) {
       throw new IllegalStateException("loadMessages() must be called before storeMessages()");
     }
     final List<Message> allMessages = request.messages();
@@ -147,7 +145,8 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       if (lastEventId != null) {
         branchName = UUID.randomUUID().toString();
       }
-      lastEventId = storeMessagesToAgentCore(sessionId, newMessages, branchName, lastEventId);
+      lastEventId =
+          storeMessagesToAgentCore(currentSessionId, newMessages, branchName, lastEventId);
       if (Objects.equals(lastEventId, previousLastEventId)) {
         // no events were actually written (all messages produced empty payloads) —
         // revert to the previous branch to avoid saving a phantom branch in context
@@ -156,14 +155,14 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       LOGGER.debug(
           "Stored {} new messages to AgentCore Memory for session '{}' on branch '{}'",
           newMessages.size(),
-          sessionId,
+          currentSessionId,
           branchName != null ? branchName : "<main>");
     }
 
     final var conversationContextBuilder =
         previousConversationContext != null
             ? previousConversationContext.with()
-            : AwsAgentCoreConversationContext.builder(sessionId)
+            : AwsAgentCoreConversationContext.builder(currentSessionId)
                 .memoryId(config.memoryId())
                 .actorId(config.actorId());
 
