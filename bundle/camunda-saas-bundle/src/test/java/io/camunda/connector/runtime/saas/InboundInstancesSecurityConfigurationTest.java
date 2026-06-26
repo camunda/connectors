@@ -16,12 +16,12 @@
  */
 package io.camunda.connector.runtime.saas;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
@@ -29,7 +29,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -51,13 +50,14 @@ import org.springframework.test.web.servlet.MockMvc;
       "camunda.connector.secretprovider.discovery.enabled=false",
       "management.endpoints.web.exposure.include=*",
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
+      "camunda.client.auth.token-url=http://localhost:0/not-used",
+      "camunda.client.auth.client-id=test",
+      "camunda.client.auth.client-secret=test",
       "spring.cloud.gcp.parametermanager.enabled=false"
     })
 @DirtiesContext
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
-@CamundaSpringProcessTest
-@SlowTest
 public class InboundInstancesSecurityConfigurationTest {
 
   private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
@@ -65,7 +65,6 @@ public class InboundInstancesSecurityConfigurationTest {
   @DynamicPropertySource
   static void registerOidcProperties(DynamicPropertyRegistry registry) {
     registry.add("camunda.connector.auth.issuer", OIDC_SERVER::issuer);
-    registry.add("camunda.client.auth.token-url", OIDC_SERVER::tokenUrl);
   }
 
   @AfterAll
@@ -76,6 +75,9 @@ public class InboundInstancesSecurityConfigurationTest {
   @MockitoBean(answers = Answers.RETURNS_MOCKS)
   public SaaSSecretConfiguration saaSSecretConfiguration;
 
+  @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
+  public CamundaClient camundaClient;
+
   @Autowired private MockMvc mvc;
 
   @Test
@@ -84,8 +86,7 @@ public class InboundInstancesSecurityConfigurationTest {
   }
 
   @Test
-  @WithMockUser
   public void inboundInstancesEndpoint_withAuth_returns200() throws Exception {
-    mvc.perform(get("/inbound-instances")).andExpect(status().isOk());
+    mvc.perform(get("/inbound-instances").with(jwt())).andExpect(status().isOk());
   }
 }
