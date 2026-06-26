@@ -30,9 +30,7 @@ public class AgentInstanceToolMapper {
 
   private AgentTool mapTool(ToolDefinition toolDefinition) {
     final String elementId =
-        gatewayToolHandlers
-            .resolveElementId(toolDefinition.name())
-            .orElse(toolDefinition.name());
+        gatewayToolHandlers.resolveElementId(toolDefinition.name()).orElse(toolDefinition.name());
     return AgentTool.of(toolDefinition.name(), toolDefinition.description(), elementId);
   }
 }

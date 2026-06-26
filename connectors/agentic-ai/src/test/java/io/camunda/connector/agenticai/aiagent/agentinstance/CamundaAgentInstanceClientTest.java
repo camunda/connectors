@@ -122,11 +122,7 @@ class CamundaAgentInstanceClientTest {
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
-            camundaClient,
-            RETRIES_CONFIGURATION,
-            recordedSleeps::add,
-            historyMapper,
-            toolMapper);
+            camundaClient, RETRIES_CONFIGURATION, recordedSleeps::add, historyMapper, toolMapper);
   }
 
   private void givenCreateCommand() {
