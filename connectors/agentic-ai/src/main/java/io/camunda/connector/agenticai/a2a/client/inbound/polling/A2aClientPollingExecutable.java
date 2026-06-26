@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.inbound.polling;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.uber.nullaway.annotations.Initializer;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
@@ -18,7 +19,6 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import org.jspecify.annotations.NullUnmarked;
 
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.polling.v0",
@@ -53,9 +53,6 @@ import org.jspecify.annotations.NullUnmarked;
           templateNameOverride = "A2A Client Polling Receive Task Connector (early access)"),
     })
 @InboundConnector(name = "A2A Polling Connector", type = "io.camunda.agenticai:a2aclient:polling:0")
-// @NullUnmarked: processInstancesFetcherTask is a Spring lifecycle field initialized in activate(),
-// not in the constructor.
-@NullUnmarked
 public class A2aClientPollingExecutable
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 
@@ -80,6 +77,7 @@ public class A2aClientPollingExecutable
     this.objectMapper = objectMapper;
   }
 
+  @Initializer
   @Override
   public void activate(final InboundIntermediateConnectorContext context) {
     processInstancesFetcherTask =

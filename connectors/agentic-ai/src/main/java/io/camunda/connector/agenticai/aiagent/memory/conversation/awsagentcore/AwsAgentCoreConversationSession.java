@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
 import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
 
+import com.uber.nullaway.annotations.EnsuresNonNull;
+import com.uber.nullaway.annotations.MonotonicNonNull;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
@@ -27,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import org.jspecify.annotations.NullUnmarked;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
@@ -48,9 +50,6 @@ import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
  * events. The session manages the lifecycle of the {@link BedrockAgentCoreClient} — it is closed
  * when the session is closed.
  */
-// @NullUnmarked: previousConversationContext, sessionId, branchName, and lastEventId are lifecycle
-// fields initialized in loadMessages(), not in the constructor.
-@NullUnmarked
 public class AwsAgentCoreConversationSession implements ConversationSession {
 
   private static final Logger LOGGER =
@@ -63,10 +62,10 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   private final BedrockAgentCoreClient client;
   private final AwsAgentCoreConversationMapper conversationMapper;
 
-  private AwsAgentCoreConversationContext previousConversationContext;
-  private String sessionId;
-  private String branchName;
-  private String lastEventId;
+  @Nullable private AwsAgentCoreConversationContext previousConversationContext;
+  @MonotonicNonNull private String sessionId;
+  @Nullable private String branchName;
+  @Nullable private String lastEventId;
   private int initialMessageCount = 0;
 
   public AwsAgentCoreConversationSession(
@@ -78,6 +77,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     this.conversationMapper = conversationMapper;
   }
 
+  @EnsuresNonNull("sessionId")
   @Override
   public ConversationLoadResult loadMessages(AgentContext agentContext) {
     previousConversationContext =
@@ -114,6 +114,9 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   @Override
   public ConversationContext storeMessages(
       AgentContext agentContext, ConversationStoreRequest request) {
+    if (sessionId == null) {
+      throw new IllegalStateException("loadMessages() must be called before storeMessages()");
+    }
     final List<Message> allMessages = request.messages();
 
     // extract system message — needs to be preserved in context since AgentCore doesn't support it
@@ -212,7 +215,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     }
   }
 
-  private List<Message> loadMessagesFromAgentCore(String sessionId, String branchName) {
+  private List<Message> loadMessagesFromAgentCore(String sessionId, @Nullable String branchName) {
     final var requestBuilder =
         ListEventsRequest.builder()
             .memoryId(config.memoryId())
@@ -279,8 +282,11 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
    * @param rootEventId the event ID to fork from (null on first turn)
    * @return the event ID of the last written event
    */
-  private String storeMessagesToAgentCore(
-      String sessionId, List<Message> messages, String branchName, String rootEventId) {
+  private @Nullable String storeMessagesToAgentCore(
+      String sessionId,
+      List<Message> messages,
+      @Nullable String branchName,
+      @Nullable String rootEventId) {
     String lastEventId = rootEventId;
     final Branch branch =
         rootEventId != null
@@ -329,7 +335,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     return lastEventId;
   }
 
-  private static Integer extractSeq(Event event) {
+  private static @Nullable Integer extractSeq(Event event) {
     if (event.metadata() == null) {
       return null;
     }

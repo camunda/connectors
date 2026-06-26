@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.a2a.client.inbound.webhook;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.uber.nullaway.annotations.Initializer;
 import io.a2a.spec.Task;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
@@ -31,7 +32,7 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
-import org.jspecify.annotations.NullUnmarked;
+import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,9 +69,7 @@ import org.slf4j.LoggerFactory;
           templateNameOverride = "A2A Client Webhook Receive Task Connector (early access)"),
     })
 @InboundConnector(name = "A2A Webhook Connector", type = "io.camunda.agenticai:a2aclient:webhook:0")
-// @NullUnmarked: props, authChecker, context, hmacVerifier are lifecycle fields initialized in
-// activate(), not in the constructor.
-@NullUnmarked
+@NullMarked
 public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aClientWebhookExecutable.class);
@@ -89,6 +88,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
     this.objectMapper = objectMapper;
   }
 
+  @Initializer
   @Override
   public void activate(InboundConnectorContext context) {
     this.context = context;

@@ -352,6 +352,12 @@
       <artifactId>jsonassert</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.uber.nullaway</groupId>
+      <artifactId>nullaway-annotations</artifactId>
+      <version>${version.nullaway}</version>
+<!--      <scope>runtime</scope>-->
+    </dependency>
   </dependencies>
 
   <build>
