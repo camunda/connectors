@@ -429,7 +429,6 @@ class JobWorkerAgentRequestHandlerTest {
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
-                    .tools(TOOL_DEFINITIONS)
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -468,7 +467,6 @@ class JobWorkerAgentRequestHandlerTest {
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
-                    .tools(TOOL_DEFINITIONS)
                     .build()));
     verifyHistoryItemsCreated(assistantMessage);
     verifyNoMoreInteractions(agentInstanceClient);
@@ -518,7 +516,6 @@ class JobWorkerAgentRequestHandlerTest {
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
-                    .tools(TOOL_DEFINITIONS)
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -562,7 +559,6 @@ class JobWorkerAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
-                    .tools(TOOL_DEFINITIONS)
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }

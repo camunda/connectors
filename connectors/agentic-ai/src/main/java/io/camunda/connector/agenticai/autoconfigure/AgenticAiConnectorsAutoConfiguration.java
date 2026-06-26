@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentReques
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceToolMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
@@ -186,17 +187,24 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public AgentInstanceToolMapper agentInstanceToolMapper(
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentInstanceToolMapper(gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentInstanceClient agentInstanceClient(
       CamundaClient camundaClient,
       AgenticAiConnectorsConfigurationProperties configuration,
       AgentInstanceHistoryMapper historyMapper,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
+      AgentInstanceToolMapper toolMapper) {
     return new CamundaAgentInstanceClient(
         camundaClient,
         configuration.aiagent().agentInstance().retries(),
         Sleeper.threadSleep(),
         historyMapper,
-        gatewayToolHandlers);
+        toolMapper);
   }
 
   @Bean

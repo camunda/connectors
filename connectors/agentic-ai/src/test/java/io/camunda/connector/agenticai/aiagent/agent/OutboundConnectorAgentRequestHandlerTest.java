@@ -344,7 +344,6 @@ class OutboundConnectorAgentRequestHandlerTest {
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
-                    .tools(TOOL_DEFINITIONS)
                     .build()));
     verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
@@ -387,7 +386,6 @@ class OutboundConnectorAgentRequestHandlerTest {
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
-                    .tools(TOOL_DEFINITIONS)
                     .build()));
     verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
@@ -422,7 +420,6 @@ class OutboundConnectorAgentRequestHandlerTest {
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
                     .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
-                    .tools(TOOL_DEFINITIONS)
                     .build()));
   }
 

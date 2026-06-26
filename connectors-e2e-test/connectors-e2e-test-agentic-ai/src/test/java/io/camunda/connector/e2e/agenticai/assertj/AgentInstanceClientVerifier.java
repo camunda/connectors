@@ -119,8 +119,7 @@ public class AgentInstanceClientVerifier {
                     request != null
                         && request.status() == endStatus
                         && Objects.equals(request.delta(), delta)
-                        && request.tools() != null
-                        && !request.tools().isEmpty()));
+                        && request.tools() == null));
 
     final var expectedIterationKey = ++turnCount;
     final var before = lastValue(beforeChatTurns);

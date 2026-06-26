@@ -333,9 +333,7 @@ public abstract class BaseAgentRequestHandler<
       // execution duration is a conversation-history concern and is not transmitted here, so it is
       // stripped from the delta.
       var updateRequestBuilder =
-          AgentInstanceUpdateRequest.builder()
-              .delta(metricsDelta.withExecutionTime(null))
-              .tools(context.toolDefinitions());
+          AgentInstanceUpdateRequest.builder().delta(metricsDelta.withExecutionTime(null));
       if (nextState != null) {
         updateRequestBuilder.status(nextState);
       }

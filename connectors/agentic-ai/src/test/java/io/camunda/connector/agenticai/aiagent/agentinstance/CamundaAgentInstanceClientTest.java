@@ -119,13 +119,14 @@ class CamundaAgentInstanceClientTest {
   void setUp() {
     recordedSleeps = new ArrayList<>();
     var historyMapper = new AgentInstanceHistoryMapper(new ObjectMapper(), gatewayToolHandlers);
+    var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
             camundaClient,
             RETRIES_CONFIGURATION,
             recordedSleeps::add,
             historyMapper,
-            gatewayToolHandlers);
+            toolMapper);
   }
 
   private void givenCreateCommand() {
