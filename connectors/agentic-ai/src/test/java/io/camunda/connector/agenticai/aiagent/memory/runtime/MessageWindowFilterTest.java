@@ -7,12 +7,12 @@
 package io.camunda.connector.agenticai.aiagent.memory.runtime;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
-import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
+import static io.camunda.connector.agenticai.aiagent.model.message.MessageUtil.singleTextContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

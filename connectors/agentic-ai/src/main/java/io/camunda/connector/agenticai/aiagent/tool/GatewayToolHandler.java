@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.aiagent.tool;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
 import java.util.List;
 

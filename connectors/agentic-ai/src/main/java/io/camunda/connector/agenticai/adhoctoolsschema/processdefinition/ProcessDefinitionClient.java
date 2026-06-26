@@ -8,10 +8,10 @@ package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
-import io.camunda.connector.agenticai.util.retry.CamundaApiRetry;
-import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.FailureReason;
-import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
-import io.camunda.connector.agenticai.util.retry.ErrorClassifier;
+import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
+import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureReason;
+import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
+import io.camunda.connector.agenticai.common.util.retry.ErrorClassifier;
 import io.camunda.connector.api.error.ConnectorException;
 
 public class ProcessDefinitionClient {

@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.outbound.convert;
 
-import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+import static io.camunda.connector.agenticai.aiagent.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,7 +17,7 @@ import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentConversionException;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
-import io.camunda.connector.agenticai.util.ObjectMapperConstants;
+import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;

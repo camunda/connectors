@@ -11,7 +11,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.Process
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.Collections;
 import java.util.List;

@@ -29,7 +29,7 @@ import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMes
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParametersBuilder;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;

@@ -19,7 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;

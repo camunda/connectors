@@ -16,12 +16,12 @@
  */
 package io.camunda.connector.e2e.agenticai.assertj;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
