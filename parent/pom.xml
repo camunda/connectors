@@ -97,7 +97,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-boot>4.1.0</version.spring-boot>
     <version.netty>4.2.15.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.0.4</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.36</version.logback>
+    <version.logback>1.5.37</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
     <version.aws-sdk2>2.46.17</version.aws-sdk2>
@@ -172,7 +172,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.2</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
-    <version.langchain4j>1.16.3</version.langchain4j>
+    <version.langchain4j>1.17.0</version.langchain4j>
     <version.mcp-sdk>2.0.0</version.mcp-sdk>
     <version.elasticsearch-java-client>8.19.17</version.elasticsearch-java-client>
 
