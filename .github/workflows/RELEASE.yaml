@@ -105,6 +105,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
       - name: Install element templates CLI
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
@@ -264,6 +269,9 @@ jobs:
         with:
           name: repository
 
+      - name: Ensure Maven wrapper is executable
+        run: chmod +x ./mvnw
+
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@v5
         with:
@@ -330,7 +338,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(inputs.version, 'rc')"
-        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
+        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded -DdeploymentName=connectors-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}

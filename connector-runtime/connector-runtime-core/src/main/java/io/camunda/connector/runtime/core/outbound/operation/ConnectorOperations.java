@@ -69,7 +69,9 @@ public record ConnectorOperations(Object connector, Map<String, OperationInvoker
     if (parameter.isAnnotationPresent(Variable.class)) {
       Variable variableAnnotation = parameter.getAnnotation(Variable.class);
       return new ParameterDescriptor.Variable<>(
-          getVariableName(variableAnnotation), parameter.getType(), variableAnnotation.required());
+          getVariableName(variableAnnotation),
+          parameter.getParameterizedType(),
+          variableAnnotation.required());
     } else if (parameter.getType().equals(OutboundConnectorContext.class)) {
       return new Context();
     } else if (parameter.isAnnotationPresent(Header.class)) {

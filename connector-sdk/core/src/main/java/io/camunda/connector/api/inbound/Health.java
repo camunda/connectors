@@ -155,6 +155,10 @@ public class Health {
     this.details = details;
   }
 
+  public Health withDetails(Map<String, Object> details) {
+    return new Health(this.status, this.error, details);
+  }
+
   private Health() {
     this(Status.UNKNOWN, null, null);
   }

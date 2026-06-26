@@ -8,13 +8,17 @@ package io.camunda.connector.rabbitmq.inbound;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Recoverable;
+import com.rabbitmq.client.RecoveryListener;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.rabbitmq.common.model.UriAuthentication;
@@ -30,6 +34,7 @@ import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +43,7 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
   RabbitMqInboundProperties properties;
 
   ConnectionFactorySupplier connectionFactorySupplier;
+  ConnectionFactory connectionFactoryMock;
   Channel channel;
 
   @BeforeEach
@@ -49,13 +55,14 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
           TimeoutException {
     channel = mock(Channel.class);
     connectionFactorySupplier = mock(ConnectionFactorySupplier.class);
-    ConnectionFactory connectionFactoryMock = mock(ConnectionFactory.class);
+    connectionFactoryMock = mock(ConnectionFactory.class);
     Connection connectionMock = mock(Connection.class);
 
     when(connectionFactorySupplier.createFactory(any(), any())).thenReturn(connectionFactoryMock);
 
-    when(connectionFactoryMock.newConnection()).thenReturn(connectionMock);
-    when(connectionMock.createChannel()).thenReturn(channel);
+    // lenient: tests that override newConnection() don't use these defaults
+    lenient().when(connectionFactoryMock.newConnection()).thenReturn(connectionMock);
+    lenient().when(connectionMock.createChannel()).thenReturn(channel);
 
     properties = new RabbitMqInboundProperties();
     properties.setQueueName(SecretsConstant.SECRETS + SecretsConstant.QUEUE_NAME);
@@ -107,5 +114,34 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
 
     // Then
     verify(channel).basicCancel(any());
+  }
+
+  @Test
+  void executable_shouldRemoveRecoveryListenerOnDeactivation() throws Exception {
+    // Given - a connection that also implements Recoverable (auto-recovery enabled)
+    Connection recoverableConnectionMock =
+        mock(Connection.class, withSettings().extraInterfaces(Recoverable.class));
+    Recoverable recoverable = (Recoverable) recoverableConnectionMock;
+
+    when(connectionFactoryMock.newConnection()).thenReturn(recoverableConnectionMock);
+    when(recoverableConnectionMock.createChannel()).thenReturn(channel);
+
+    InboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .properties(properties)
+            .definition(new InboundConnectorDefinition(null, null, null, List.of()))
+            .build();
+    RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
+
+    // When
+    executable.activate(context);
+    executable.deactivate();
+
+    // Then - the same listener instance that was added must be removed to avoid retention
+    ArgumentCaptor<RecoveryListener> listenerCaptor =
+        ArgumentCaptor.forClass(RecoveryListener.class);
+    verify(recoverable).addRecoveryListener(listenerCaptor.capture());
+    verify(recoverable).removeRecoveryListener(listenerCaptor.getValue());
   }
 }

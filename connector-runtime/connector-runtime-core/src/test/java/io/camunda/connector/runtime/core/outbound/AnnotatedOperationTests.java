@@ -118,7 +118,13 @@ public class AnnotatedOperationTests {
             .toList();
     Assertions.assertThatCollection(variables)
         .containsExactlyInAnyOrder(
-            "myStringParam", "myObjectParam", "nullObjectParam", "name", "value", "validatingName");
+            "myStringParam",
+            "myObjectParam",
+            "nullObjectParam",
+            "name",
+            "value",
+            "validatingName",
+            "spans");
   }
 
   @Test
@@ -148,5 +154,22 @@ public class AnnotatedOperationTests {
     when(activatedJob.getVariables()).thenReturn(json);
     return new JobHandlerContext(
         activatedJob, new NoOpSecretProvider(), validationProvider, null, objectMapper);
+  }
+
+  @Test
+  public void shouldDeserializeGenericListVariable() {
+    var json =
+        """
+          {
+            "spans": [
+              {"start": 1, "end": 3},
+              {"start": 5, "end": 7}
+            ]
+          }
+        """;
+
+    var result = invoker.execute(createMockContext(json, "myOperation7"));
+
+    assertEquals(6, result);
   }
 }

@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-aws-parent</artifactId>
-    <version>8.9.3</version>
+    <version>8.9.5</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -38,6 +38,11 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>auth</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sts</artifactId>
       <version>${version.aws-sdk2}</version>
     </dependency>
 
