@@ -114,7 +114,7 @@ public class CommonProperties {
         .feel(FeelMode.disabled)
         .description("ISO-8601 duration to wait between retries")
         .group("retries")
-        .value("PT0S");
+        .value("PT30S");
   }
 
   public static PropertyBuilder activationCondition() {

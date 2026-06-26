@@ -138,6 +138,8 @@ public class HttpMtlsTests {
                 "../../connectors/http/rest/element-templates/http-json-connector.json")
             .property("url", mockUrl)
             .property("method", "post")
+            .property("retryBackoff", "PT0S")
+            .property("retryCount", "0")
             .property("clientTls.trustedCertificate", mtlsResource("server.crt"))
             .property("body", "={\"order\": {\"status\": \"processing\"}}")
             .property("resultExpression", "={orderStatus: response.body.order.status}")
