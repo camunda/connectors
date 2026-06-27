@@ -77,6 +77,3 @@ See the [Ad-hoc tools schema resolver documentation](https://docs.camunda.io/doc
 This index must stay in sync with the JSON files in this folder every time a template version is
 bumped or a connector is added. The latest template of each connector lives in this folder; superseded
 ones move into [`versioned/`](./versioned/) when `versionHistoryEnabled` is set.
-
-The step-by-step maintenance procedure lives in the module's [`AGENTS.md`](../AGENTS.md)
-(Element templates section).
