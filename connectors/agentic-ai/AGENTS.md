@@ -28,6 +28,8 @@ Deep architecture lives in the reference docs, linked instead of copied:
 
 ## Start here, navigation
 
+> **`ai-agent.md` is a long reference.** Use the table below to locate the exact section, then read it by anchor or `Read` with `offset`/`limit`. Do not ingest the whole file.
+
 | Working on…                                                              | Read                                                                                    |
 |--------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
 | The distributed agent loop / execution model                             | [§3](docs/reference/ai-agent.md#3-the-agentic-loop)                                     |
@@ -220,8 +222,20 @@ To regenerate, run `mvn clean compile -pl connectors/agentic-ai` and commit the 
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
 [element template generator documentation](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-sdk/#element-template-generation).
 When a version is bumped, a template moves into `versioned/`, or a connector is added, also update
-[`element-templates/README.md`](element-templates/README.md) (rules in its "Maintaining this index"
-section).
+[`element-templates/README.md`](element-templates/README.md) following these rules:
+
+1. **Identify the new minimum Camunda version** by checking the `engines.camunda` field of the new
+   template (e.g. `^8.10`).
+2. **Same minimum as the current top row**: bump the top row's template version and keep its link
+   pointing to the latest `./<file>.json` in this folder. The superseded version moves into `versioned/`
+   but is not listed (the table shows only the latest template per minimum Camunda version).
+3. **Higher minimum than the current top row**: insert a new top row with the new minimum Camunda
+   version and template version, and move the previous top row's link under `versioned/`.
+4. **AI Agent has two tables** (Task and Sub-process) sharing the same version numbers. Update both.
+5. **New connector**: add a section in the same order as the existing ones (AI Agent, MCP Client, A2A,
+   Ad-hoc tools schema) with an intro paragraph linking to the `docs.camunda.io` overview page.
+
+Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
 ## Key entry points
 
@@ -263,7 +277,7 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 - **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
   config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`.
 - **`element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
-  (rules in its "Maintaining this index" section).
+  (maintenance rules are in the Element templates section above).
 
-> `CLAUDE.md` in this directory is a symlink to this file, giving a single source of truth. Edit
-> `AGENTS.md`; never replace the symlink with a copy.
+> `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
+> Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.
