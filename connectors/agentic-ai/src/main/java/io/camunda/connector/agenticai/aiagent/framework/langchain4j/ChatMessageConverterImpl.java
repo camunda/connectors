@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
-import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+import static io.camunda.connector.agenticai.aiagent.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,14 +17,14 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.message.AssistantMessageBuilder;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
-import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.model.message.UserMessage;
-import io.camunda.connector.agenticai.model.message.content.Content;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
-import io.camunda.connector.agenticai.util.ObjectMapperConstants;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessageBuilder;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;

@@ -6,15 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
-import static io.camunda.connector.agenticai.model.message.content.ObjectContent.objectContent;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
-import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;

@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory;
 
-import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Objects;
 

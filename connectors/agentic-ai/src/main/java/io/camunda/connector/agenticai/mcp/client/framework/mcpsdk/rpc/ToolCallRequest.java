@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
 import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpBlobContent;
@@ -16,7 +17,6 @@ import io.camunda.connector.agenticai.mcp.client.model.content.McpObjectContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpResourceLinkContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
-import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;

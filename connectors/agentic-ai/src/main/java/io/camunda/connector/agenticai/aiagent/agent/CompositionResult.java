@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import java.util.List;
 
 /**

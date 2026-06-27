@@ -22,7 +22,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecificatio
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.agenticai.TestUtil;
 import io.camunda.connector.e2e.agenticai.aiagent.common.AiAgentA2aIntegrationTestSupport;
 import io.camunda.connector.e2e.agenticai.aiagent.common.AiAgentA2aIntegrationTestSupport.A2aExpectedConversation;
