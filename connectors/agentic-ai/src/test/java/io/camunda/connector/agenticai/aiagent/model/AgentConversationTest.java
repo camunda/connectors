@@ -10,7 +10,8 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
-import io.camunda.connector.agenticai.model.message.*;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

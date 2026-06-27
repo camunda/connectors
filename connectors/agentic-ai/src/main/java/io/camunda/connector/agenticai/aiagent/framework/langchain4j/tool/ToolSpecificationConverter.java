@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 
 public interface ToolSpecificationConverter {

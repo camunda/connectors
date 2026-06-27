@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.mcp.client.model.result;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import jakarta.annotation.Nullable;
 
 @AgenticAiRecord

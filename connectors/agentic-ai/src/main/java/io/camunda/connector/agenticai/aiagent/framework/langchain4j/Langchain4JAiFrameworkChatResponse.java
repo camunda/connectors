@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import java.time.Duration;
 
 public record Langchain4JAiFrameworkChatResponse(

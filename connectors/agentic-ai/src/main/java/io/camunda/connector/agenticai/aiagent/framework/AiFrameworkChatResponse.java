@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import java.time.Duration;
 
 public interface AiFrameworkChatResponse<T> {

@@ -33,7 +33,7 @@ import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOp
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aToolOperationConfiguration;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;

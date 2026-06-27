@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpBlobContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpDocumentContent;
@@ -13,7 +14,6 @@ import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResour
 import io.camunda.connector.agenticai.mcp.client.model.content.McpObjectContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpResourceLinkContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
-import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import java.util.List;

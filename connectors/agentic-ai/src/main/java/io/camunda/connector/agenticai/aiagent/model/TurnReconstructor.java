@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
