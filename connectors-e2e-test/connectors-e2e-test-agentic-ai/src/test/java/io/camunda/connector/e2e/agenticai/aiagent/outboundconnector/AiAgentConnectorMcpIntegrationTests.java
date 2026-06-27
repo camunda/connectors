@@ -19,7 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.outboundconnector;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTagAttributes;
 import static io.camunda.connector.e2e.agenticai.mcp.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
@@ -350,17 +350,18 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
     final var toolResultText = lastMessages.get(3).content();
-    final var documentReference = parseDocumentReference(toolResultText);
     assertThat(lastMessages.get(3).role()).isEqualTo("tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("img111");
-    assertThat(documentReference.metadata().contentType()).isEqualTo("image/png");
+    // Site-1: document serialized as a JSON-encoded "<doc .../>" tag (no tool attribution)
+    final var site1Attrs = parseDocumentTagAttributes(toolResultText);
+    assertThat(site1Attrs.get("contentType")).isEqualTo("image/png");
 
     assertExtractedDocumentsUserMessage(
         lastMessages.get(4),
         ExtractedDocument.forToolCall(
             "img111",
             "MCP_A_MCP_Client___toolA",
-            documentReference,
+            site1Attrs,
             block -> {
               assertThat(block.path("type").asText()).isEqualTo("image_url");
               final var url = block.path("image_url").path("url").asText();

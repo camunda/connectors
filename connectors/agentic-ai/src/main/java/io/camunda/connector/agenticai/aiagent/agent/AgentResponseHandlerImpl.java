@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Optional;
@@ -38,11 +39,15 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   private final ObjectMapper objectMapper;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final InternalToolRegistry internalToolRegistry;
 
   public AgentResponseHandlerImpl(
-      ObjectMapper objectMapper, GatewayToolHandlerRegistry gatewayToolHandlers) {
+      ObjectMapper objectMapper,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      InternalToolRegistry internalToolRegistry) {
     this.objectMapper = objectMapper;
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.internalToolRegistry = internalToolRegistry;
   }
 
   @Override
@@ -57,8 +62,12 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
                         "Cannot create an agent response: the conversation has no completed turn"))
             .assistantMessage();
     final var rawToolCalls = Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of());
+    final var filteredToolCalls =
+        rawToolCalls.stream()
+            .filter(tc -> !internalToolRegistry.isInternalTool(tc.name()))
+            .toList();
     final var toolCalls =
-        gatewayToolHandlers.transformToolCalls(agentContext, rawToolCalls).stream()
+        gatewayToolHandlers.transformToolCalls(agentContext, filteredToolCalls).stream()
             .map(ToolCallProcessVariable::from)
             .toList();
 

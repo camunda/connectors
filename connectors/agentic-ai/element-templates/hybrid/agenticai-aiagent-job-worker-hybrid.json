@@ -58,6 +58,10 @@
     "tooltip" : "Configure how event sub-process results are handled. Results are added as user messages to the running agent.",
     "openByDefault" : false
   }, {
+    "id" : "sandbox",
+    "label" : "Sandbox",
+    "openByDefault" : false
+  }, {
     "id" : "response",
     "label" : "Response",
     "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/#response\">documentation</a> for details.",
@@ -1606,6 +1610,248 @@
       "name" : "Cancel tool calls",
       "value" : "INTERRUPT_TOOL_CALLS"
     } ]
+  }, {
+    "id" : "data.limits.maxInternalToolIterations",
+    "label" : "Maximum internal tool iterations",
+    "description" : "Maximum number of in-process (sandbox) tool execution iterations per invocation.",
+    "optional" : true,
+    "value" : 10,
+    "feel" : "static",
+    "group" : "limits",
+    "binding" : {
+      "name" : "data.limits.maxInternalToolIterations",
+      "type" : "zeebe:input"
+    },
+    "type" : "Number"
+  }, {
+    "id" : "data.sandbox.type",
+    "label" : "Sandbox",
+    "description" : "Optional sandbox for in-process tools (bash, file I/O). When disabled, the agent behaves exactly as without a sandbox.",
+    "value" : "disabled",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Disabled",
+      "value" : "disabled"
+    }, {
+      "name" : "Daytona",
+      "value" : "daytona"
+    } ]
+  }, {
+    "id" : "data.sandbox.daytona.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.daytona.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sandbox.daytona.apiUrl",
+    "label" : "API URL",
+    "description" : "Base URL for self-hosted Daytona deployments.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.daytona.apiUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sandbox.daytona.snapshot",
+    "label" : "Snapshot",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.daytona.snapshot",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sandbox.daytona.autoStop.mode",
+    "label" : "Auto-stop",
+    "description" : "Controls how long a running sandbox stays up before stopping. DISABLED means it never auto-stops (Daytona default: 15 min).",
+    "optional" : false,
+    "value" : "DURATION",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.daytona.autoStop.mode",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Disabled",
+      "value" : "DISABLED"
+    }, {
+      "name" : "Custom Duration",
+      "value" : "DURATION"
+    } ]
+  }, {
+    "id" : "data.sandbox.daytona.autoStop.duration",
+    "label" : "Auto-stop duration",
+    "description" : "ISO-8601 duration after which an idle running sandbox is stopped. Default: PT15M (15 minutes).",
+    "optional" : true,
+    "value" : "PT15M",
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.daytona.autoStop.duration",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.sandbox.daytona.autoStop.mode",
+        "equals" : "DURATION",
+        "type" : "simple"
+      }, {
+        "property" : "data.sandbox.type",
+        "equals" : "daytona",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sandbox.daytona.autoArchive.mode",
+    "label" : "Auto-archive",
+    "description" : "Controls when a stopped sandbox is archived. DEFAULT uses Daytona's default (7 days). Max duration: 30 days.",
+    "optional" : false,
+    "value" : "DEFAULT",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.daytona.autoArchive.mode",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Default (7 days)",
+      "value" : "DEFAULT"
+    }, {
+      "name" : "Custom Duration",
+      "value" : "DURATION"
+    } ]
+  }, {
+    "id" : "data.sandbox.daytona.autoArchive.duration",
+    "label" : "Auto-archive duration",
+    "description" : "ISO-8601 duration after which a stopped sandbox is archived. Must not exceed 30 days (P30D).",
+    "optional" : true,
+    "value" : "P7D",
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.daytona.autoArchive.duration",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.sandbox.daytona.autoArchive.mode",
+        "equals" : "DURATION",
+        "type" : "simple"
+      }, {
+        "property" : "data.sandbox.type",
+        "equals" : "daytona",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sandbox.daytona.autoDelete.mode",
+    "label" : "Auto-delete",
+    "description" : "Controls when a stopped sandbox is deleted. DISABLED means never delete. IMMEDIATELY deletes the sandbox right after it stops (0 minutes).",
+    "optional" : false,
+    "value" : "DISABLED",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.daytona.autoDelete.mode",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Disabled",
+      "value" : "DISABLED"
+    }, {
+      "name" : "Immediately after stopping",
+      "value" : "IMMEDIATELY"
+    }, {
+      "name" : "Custom Duration",
+      "value" : "DURATION"
+    } ]
+  }, {
+    "id" : "data.sandbox.daytona.autoDelete.duration",
+    "label" : "Auto-delete duration",
+    "description" : "ISO-8601 duration after which a stopped sandbox is deleted. Default: PT5M (5 minutes).",
+    "optional" : true,
+    "value" : "PT5M",
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.daytona.autoDelete.duration",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.sandbox.daytona.autoDelete.mode",
+        "equals" : "DURATION",
+        "type" : "simple"
+      }, {
+        "property" : "data.sandbox.type",
+        "equals" : "daytona",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.skills",
+    "label" : "Skills",
+    "description" : "Skill bundles (.zip documents) the agent can load on demand via sandbox_load_skill. Requires a sandbox.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.skills",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
   }, {
     "id" : "data.response.format.type",
     "label" : "Response format",

@@ -32,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
@@ -76,12 +77,14 @@ class AgentResponseHandlerTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
+  @Mock private InternalToolRegistry internalToolRegistry;
 
   private AgentResponseHandler responseHandler;
 
   @BeforeEach
   void setUp() {
-    responseHandler = new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
+    responseHandler =
+        new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers, internalToolRegistry);
     // by default, registry passes tool calls through unchanged
     when(gatewayToolHandlers.transformToolCalls(any(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
@@ -94,7 +97,7 @@ class AgentResponseHandlerTest {
    */
   private AgentConversation conversationWith(
       ResponseConfiguration responseConfig, AssistantMessage assistantMessage) {
-    var config = new AgentConfiguration(null, null, null, null, null, null, responseConfig);
+    var config = new AgentConfiguration(null, null, null, null, null, null, responseConfig, null);
     var history = TurnReconstructor.reconstruct(List.of());
     return AgentConversation.rehydrate(
             config, BASE_AGENT_CONTEXT, history, systemMessage("system"), List.of())

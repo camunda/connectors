@@ -19,6 +19,11 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver.SkillMetadata;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -32,14 +37,20 @@ public class AgentInitializerImpl implements AgentInitializer {
   private final AgentToolsResolver toolsResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AgentInstanceClient agentInstanceClient;
+  private final InternalToolRegistry internalToolRegistry;
+  private final SkillResolver skillResolver;
 
   public AgentInitializerImpl(
       AgentToolsResolver toolsResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry,
+      SkillResolver skillResolver) {
     this.toolsResolver = toolsResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.agentInstanceClient = agentInstanceClient;
+    this.internalToolRegistry = internalToolRegistry;
+    this.skillResolver = skillResolver;
   }
 
   @Override
@@ -98,7 +109,18 @@ public class AgentInitializerImpl implements AgentInitializer {
       List<ToolCallResult> initialToolCallResults) {
     // add ad-hoc tool definitions to agent context
     final var adHocToolsSchema = toolsResolver.loadAdHocToolsSchema(executionContext, agentContext);
-    agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());
+
+    // Append internal tool definitions (bash/fs_read/fs_write/load_skill) when a sandbox is
+    // configured. Internal tools are NOT added without a sandbox — behaviour is byte-for-byte
+    // unchanged. Skill names are resolved once here and frozen into load_skill's name enum; they
+    // are not re-resolved per invocation.
+    final var toolDefinitions =
+        executionContext.configuration().sandboxConfiguration().isPresent()
+            ? appendInternalTools(
+                adHocToolsSchema.toolDefinitions(), resolveSkillNames(executionContext))
+            : adHocToolsSchema.toolDefinitions();
+
+    agentContext = agentContext.withToolDefinitions(toolDefinitions);
 
     if (CollectionUtils.isEmpty(adHocToolsSchema.gatewayToolDefinitions())) {
       return new ReadyToConverse(agentContext.withState(AgentState.READY), initialToolCallResults);
@@ -107,6 +129,32 @@ public class AgentInitializerImpl implements AgentInitializer {
     // handle gateway tool definitions (e.g. MCP)
     return dispatchGatewayToolDiscovery(
         agentContext, initialToolCallResults, adHocToolsSchema.gatewayToolDefinitions());
+  }
+
+  /** Returns a new list containing the ad-hoc tools followed by all internal tool definitions. */
+  private List<ToolDefinition> appendInternalTools(
+      List<ToolDefinition> adHocTools, List<String> skillNames) {
+    final var combined = new ArrayList<>(adHocTools);
+    combined.addAll(internalToolRegistry.toolDefinitions(skillNames));
+    return List.copyOf(combined);
+  }
+
+  /**
+   * Resolves the configured skill names once at initialization so {@code load_skill}'s {@code name}
+   * parameter can be constrained to a frozen enum. Resolution failures are non-fatal: the generic
+   * (enum-less) definition is used and the agent can still initialize.
+   */
+  private List<String> resolveSkillNames(AgentExecutionContext executionContext) {
+    final var skillDocs = executionContext.configuration().skills();
+    if (CollectionUtils.isEmpty(skillDocs)) {
+      return List.of();
+    }
+    try {
+      return skillResolver.resolveMetadata(skillDocs).stream().map(SkillMetadata::name).toList();
+    } catch (Exception e) {
+      LOGGER.warn("Failed to resolve skill names for the load_skill enum: {}", e.getMessage(), e);
+      return List.of();
+    }
   }
 
   private AgentInitializationResult dispatchGatewayToolDiscovery(

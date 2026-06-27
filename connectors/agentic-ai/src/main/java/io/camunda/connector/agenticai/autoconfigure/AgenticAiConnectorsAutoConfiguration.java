@@ -62,6 +62,22 @@ import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactoryImpl;
+import io.camunda.connector.agenticai.sandbox.internaltool.BashToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.ExportDocumentToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.FsReadToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.FsWriteToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.ImportDocumentToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolHandler;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.internaltool.LoadSkillToolHandler;
+import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderFactory;
+import io.camunda.connector.agenticai.sandbox.provider.SandboxProviderRegistry;
+import io.camunda.connector.agenticai.sandbox.provider.daytona.DaytonaSandboxProviderFactory;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
+import io.camunda.connector.agenticai.sandbox.skill.SkillsSystemPromptContributor;
 import io.camunda.connector.agenticai.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
@@ -169,12 +185,108 @@ public class AgenticAiConnectorsAutoConfiguration {
     return new GatewayToolHandlerRegistryImpl(gatewayToolHandlers);
   }
 
+  // ---------------------------------------------------------------------------
+  // Sandbox infrastructure beans
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Stateless internal-tool handlers for the three core PoC tools. T7 (load_skill) requires
+   * per-invocation collaborators and will extend registration separately.
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  public BashToolHandler sandboxBashToolHandler() {
+    return new BashToolHandler();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public FsReadToolHandler sandboxFsReadToolHandler() {
+    return new FsReadToolHandler();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public FsWriteToolHandler sandboxFsWriteToolHandler() {
+    return new FsWriteToolHandler();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ExportDocumentToolHandler sandboxExportDocumentToolHandler(
+      DocumentFactory documentFactory) {
+    return new ExportDocumentToolHandler(
+        documentFactory, ExportDocumentToolHandler.DEFAULT_MAX_DOCUMENT_BYTES);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ImportDocumentToolHandler sandboxImportDocumentToolHandler(
+      DocumentFactory documentFactory) {
+    return new ImportDocumentToolHandler(
+        documentFactory, ImportDocumentToolHandler.DEFAULT_MAX_DOCUMENT_BYTES);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public SkillResolver skillResolver() {
+    return new SkillResolver();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public SkillsSystemPromptContributor skillsSystemPromptContributor(SkillResolver skillResolver) {
+    return new SkillsSystemPromptContributor(skillResolver);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public LoadSkillToolHandler sandboxLoadSkillToolHandler() {
+    return new LoadSkillToolHandler();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public InternalToolRegistry sandboxInternalToolRegistry(List<InternalToolHandler> handlers) {
+    return new InternalToolRegistry(handlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public InternalToolExecutor sandboxInternalToolExecutor(
+      InternalToolRegistry internalToolRegistry) {
+    return new InternalToolExecutor(internalToolRegistry);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public DaytonaSandboxProviderFactory daytonaSandboxProviderFactory() {
+    return new DaytonaSandboxProviderFactory();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public SandboxProviderRegistry sandboxProviderRegistry(List<SandboxProviderFactory> factories) {
+    return new SandboxProviderRegistry(factories);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public SandboxSessionFactory sandboxSessionFactory(
+      SandboxProviderRegistry sandboxProviderRegistry) {
+    return new SandboxSessionFactoryImpl(sandboxProviderRegistry);
+  }
+
+  // ---------------------------------------------------------------------------
+
   @Bean
   @ConditionalOnMissingBean
   public AgentToolsResolver aiAgentToolsResolver(
       AdHocToolsSchemaResolver toolsSchemaResolver,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      InternalToolRegistry internalToolRegistry) {
+    return new AgentToolsResolverImpl(
+        toolsSchemaResolver, gatewayToolHandlers, internalToolRegistry);
   }
 
   @Bean
@@ -212,8 +324,15 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AgentInitializer aiAgentInitializer(
       AgentToolsResolver toolsResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AgentInstanceClient agentInstanceClient) {
-    return new AgentInitializerImpl(toolsResolver, gatewayToolHandlers, agentInstanceClient);
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry,
+      SkillResolver skillResolver) {
+    return new AgentInitializerImpl(
+        toolsResolver,
+        gatewayToolHandlers,
+        agentInstanceClient,
+        internalToolRegistry,
+        skillResolver);
   }
 
   @Bean
@@ -278,8 +397,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AgentResponseHandler aiAgentResponseHandler(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      InternalToolRegistry internalToolRegistry) {
+    return new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers, internalToolRegistry);
   }
 
   @Bean
@@ -294,7 +414,11 @@ public class AgenticAiConnectorsAutoConfiguration {
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry,
+      InternalToolExecutor internalToolExecutor,
+      SandboxSessionFactory sandboxSessionFactory,
+      SkillResolver skillResolver) {
     return new OutboundConnectorAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -302,7 +426,11 @@ public class AgenticAiConnectorsAutoConfiguration {
         aiFrameworkAdapter,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        internalToolRegistry,
+        internalToolExecutor,
+        sandboxSessionFactory,
+        skillResolver);
   }
 
   @Bean
@@ -328,7 +456,11 @@ public class AgenticAiConnectorsAutoConfiguration {
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry,
+      InternalToolExecutor internalToolExecutor,
+      SandboxSessionFactory sandboxSessionFactory,
+      SkillResolver skillResolver) {
     return new JobWorkerAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -336,7 +468,11 @@ public class AgenticAiConnectorsAutoConfiguration {
         aiFrameworkAdapter,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        internalToolRegistry,
+        internalToolExecutor,
+        sandboxSessionFactory,
+        skillResolver);
   }
 
   @Bean

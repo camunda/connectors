@@ -29,6 +29,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -37,7 +39,9 @@ import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -97,7 +101,7 @@ class CamundaDocumentConversationStoreTest {
   }
 
   private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {
-    return new AgentConfiguration(null, null, null, memory, null, null, null);
+    return new AgentConfiguration(null, null, null, memory, null, null, null, null);
   }
 
   @Test
@@ -437,6 +441,70 @@ class CamundaDocumentConversationStoreTest {
         new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("test")));
 
     verify(documentStore, never()).deleteDocument(any());
+  }
+
+  @Test
+  void storesAndLoadsDocumentRegistry() throws Exception {
+    mockJobContext();
+
+    // Use a real document via an in-memory store so we don't need the package-private builder
+    final var realDocFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+    final var realDoc =
+        realDocFactory.create(
+            DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                .fileName("report.pdf")
+                .contentType("application/pdf")
+                .build());
+    final var expectedId = DocumentHandle.idFor(realDoc);
+    final var registry = DocumentRegistry.empty().withAddedDocuments(List.of(realDoc));
+
+    // First turn: store messages with a registry
+    final var storedDocument = mock(Document.class);
+    when(documentFactory.create(documentCreationRequestCaptor.capture()))
+        .thenReturn(storedDocument);
+
+    final var agentContext = AgentContext.empty();
+    AgentContext updatedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+      final var updatedCtx =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(TEST_MESSAGES, registry));
+      updatedAgentContext = agentContext.withConversation(updatedCtx);
+    }
+
+    // Verify that the persisted JSON contains the registry
+    final var persistedJson =
+        new String(documentCreationRequestCaptor.getValue().content().readAllBytes());
+    assertThat(persistedJson).contains(expectedId).contains("report.pdf");
+
+    // Second turn: simulate loading from the persisted document
+    final var savedJson = persistedJson;
+    when(storedDocument.asInputStream())
+        .thenReturn(new java.io.ByteArrayInputStream(savedJson.getBytes(StandardCharsets.UTF_8)));
+
+    try (var session2 = store.createSession(executionContext, updatedAgentContext)) {
+      final var loaded = session2.loadMessages(updatedAgentContext);
+      assertThat(loaded.documentRegistry().entries()).hasSize(1);
+      assertThat(loaded.documentRegistry().entries().getFirst().id()).isEqualTo(expectedId);
+      assertThat(loaded.documentRegistry().entries().getFirst().fileName()).isEqualTo("report.pdf");
+    }
+  }
+
+  @Test
+  void absentRegistryLoadsAsEmpty() throws Exception {
+    // A document stored before registry support (no documentRegistry field) must load as empty
+    final var oldFormatContent = new DocumentContent(TEST_MESSAGES);
+    final var document = mock(Document.class);
+    when(document.asInputStream()).thenReturn(documentContentAsInputStream(oldFormatContent));
+
+    final var previousCtx =
+        CamundaDocumentConversationContext.builder("old-conversation").document(document).build();
+    final var agentContext = AgentContext.empty().withConversation(previousCtx);
+
+    try (var session = store.createSession(executionContext, agentContext)) {
+      final var loaded = session.loadMessages(agentContext);
+      assertThat(loaded.documentRegistry().entries()).isEmpty();
+    }
   }
 
   private void assertDocumentCreationRequest(

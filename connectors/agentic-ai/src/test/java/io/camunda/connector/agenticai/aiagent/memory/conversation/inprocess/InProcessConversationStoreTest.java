@@ -15,7 +15,13 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -128,6 +134,53 @@ class InProcessConversationStoreTest {
                     .isEqualTo(previousConversationContext.conversationId());
                 assertThat(conversation.messages()).containsExactlyElementsOf(expectedMessages);
               });
+    }
+  }
+
+  @Test
+  void storesAndLoadsDocumentRegistry() {
+    final var documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+    final var doc =
+        documentFactory.create(
+            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                .fileName("report.pdf")
+                .contentType("application/pdf")
+                .build());
+    final var expectedId = DocumentHandle.idFor(doc);
+    final var registry = DocumentRegistry.empty().withAddedDocuments(List.of(doc));
+
+    final var agentContext = AgentContext.empty();
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+      final var updatedCtx =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(TEST_MESSAGES, registry));
+      final var nextAgentContext = agentContext.withConversation(updatedCtx);
+
+      // Second session: load and verify the registry survived the round-trip
+      try (var session2 = store.createSession(executionContext, nextAgentContext)) {
+        final var loaded = session2.loadMessages(nextAgentContext);
+
+        assertThat(loaded.documentRegistry().entries()).hasSize(1);
+        assertThat(loaded.documentRegistry().entries().getFirst().id()).isEqualTo(expectedId);
+        assertThat(loaded.documentRegistry().entries().getFirst().fileName())
+            .isEqualTo("report.pdf");
+      }
+    }
+  }
+
+  @Test
+  void absentRegistryLoadsAsEmpty() {
+    // A context stored without a registry (old format) must load as empty — backward compat
+    final var previousCtx =
+        InProcessConversationContext.builder("conv").messages(TEST_MESSAGES).build();
+    // documentRegistry is null on the old-format context
+    assertThat(previousCtx.documentRegistry()).isNull();
+
+    final var agentContext = AgentContext.empty().withConversation(previousCtx);
+
+    try (var session = store.createSession(executionContext, agentContext)) {
+      final var loaded = session.loadMessages(agentContext);
+      assertThat(loaded.documentRegistry().entries()).isEmpty();
     }
   }
 }

@@ -69,7 +69,19 @@ public final class AgentConversation {
       @Nullable SystemMessage systemMessage,
       List<Message> inputMessages) {
     int nextKey = previousConversation.turns().size() + 1;
-    var currentTurn = new AgentConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
+    // Prepend any pending input from an open trailing turn (e.g. an in-process tool result recorded
+    // while an external tool call was still pending) so it is merged with this turn's input — both
+    // are answers to the same prior assistant message. Normally pendingInputMessages is empty.
+    var pending = previousConversation.pendingInputMessages();
+    List<Message> turnInput;
+    if (pending.isEmpty()) {
+      turnInput = inputMessages;
+    } else {
+      turnInput = new ArrayList<>(pending.size() + inputMessages.size());
+      turnInput.addAll(pending);
+      turnInput.addAll(inputMessages);
+    }
+    var currentTurn = new AgentConversationTurn(nextKey, turnInput, null, AgentMetrics.empty());
     return new AgentConversation(
         configuration, agentContext, systemMessage, previousConversation.turns(), currentTurn);
   }
@@ -183,10 +195,50 @@ public final class AgentConversation {
     return List.copyOf(all);
   }
 
-  /** Returns cumulative metrics: the base context metrics plus the current turn's delta. */
+  /**
+   * Creates a new pending turn after a completed internal tool execution burst. The completed
+   * current turn is moved into previousTurns; a new pending turn is created with the given input
+   * messages (typically a ToolCallResultMessage).
+   *
+   * @throws IllegalStateException if the current turn is not yet complete
+   */
+  public AgentConversation nextTurn(List<Message> inputMessages) {
+    if (currentTurn.assistantMessage() == null) {
+      throw new IllegalStateException("nextTurn() called on a pending (not yet ingested) turn");
+    }
+    var newPreviousTurns = new ArrayList<>(previousTurns);
+    newPreviousTurns.add(currentTurn);
+    int nextKey = newPreviousTurns.size() + 1;
+    var newCurrentTurn =
+        new AgentConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
+    return new AgentConversation(
+        configuration, currentContext, systemMessage, newPreviousTurns, newCurrentTurn);
+  }
+
+  /**
+   * Cumulative metrics of ALL completed turns (previousTurns + current if complete) that were
+   * created during this invocation. Reconstructed turns from TurnReconstructor carry empty metrics,
+   * so this equals the metrics of turns created this invocation.
+   */
+  public AgentMetrics invocationMetrics() {
+    var result = AgentMetrics.empty();
+    for (var turn : allCompletedTurns()) {
+      result = result.add(turn.metrics());
+    }
+    return result;
+  }
+
+  /** Returns a copy with the given property stored in currentContext. */
+  public AgentConversation withContextProperty(String key, Object value) {
+    var updatedCtx = currentContext.withProperty(key, value);
+    return new AgentConversation(
+        configuration, updatedCtx, systemMessage, previousTurns, currentTurn);
+  }
+
+  /** Returns cumulative metrics: the base context metrics plus all invocation turn metrics. */
   public AgentMetrics totalMetrics() {
-    // it's currently the only total projection, as the TurnReconstructor is always assigning empty
-    // metrics per turn
-    return currentContext.metrics().add(currentTurnMetrics());
+    // invocationMetrics() sums only completed turns; reconstructed turns carry empty metrics so
+    // existing historical totals on the durable context are preserved correctly.
+    return currentContext.metrics().add(invocationMetrics());
   }
 }

@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -28,15 +29,28 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.MessageUtil;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
+import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.model.message.UserMessage;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactoryImpl;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolContext;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
+import io.camunda.connector.agenticai.sandbox.spi.SandboxSession;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -56,6 +70,10 @@ public abstract class BaseAgentRequestHandler<
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
+  private final InternalToolRegistry internalToolRegistry;
+  private final InternalToolExecutor internalToolExecutor;
+  private final SandboxSessionFactory sandboxSessionFactory;
+  private final SkillResolver skillResolver;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -64,7 +82,11 @@ public abstract class BaseAgentRequestHandler<
       AiFrameworkAdapter<?> framework,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry,
+      InternalToolExecutor internalToolExecutor,
+      SandboxSessionFactory sandboxSessionFactory,
+      SkillResolver skillResolver) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -72,6 +94,10 @@ public abstract class BaseAgentRequestHandler<
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
+    this.internalToolRegistry = internalToolRegistry;
+    this.internalToolExecutor = internalToolExecutor;
+    this.sandboxSessionFactory = sandboxSessionFactory;
+    this.skillResolver = skillResolver;
   }
 
   @Override
@@ -107,8 +133,8 @@ public abstract class BaseAgentRequestHandler<
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
-      final var loadedMessages = session.loadMessages(agentContext).messages();
-      final var previousConversation = TurnReconstructor.reconstruct(loadedMessages);
+      final var loadResult = session.loadMessages(agentContext);
+      final var previousConversation = TurnReconstructor.reconstruct(loadResult.messages());
 
       LOGGER.trace("Composing turn input from history and invocation state");
       final var compositionResult =
@@ -124,7 +150,13 @@ public abstract class BaseAgentRequestHandler<
         }
         case CompositionResult.NextTurn(var newMessages) ->
             proceed(
-                executionContext, agentContext, previousConversation, newMessages, session, store);
+                executionContext,
+                agentContext,
+                previousConversation,
+                newMessages,
+                loadResult,
+                session,
+                store);
       };
     }
   }
@@ -134,38 +166,133 @@ public abstract class BaseAgentRequestHandler<
       final AgentContext agentContext,
       final PreviousConversation previousConversation,
       final List<Message> inputMessages,
+      final ConversationLoadResult loadResult,
       final ConversationSession session,
       final ConversationStore store) {
     var agentConfiguration = executionContext.configuration();
-    var systemMessage = createSystemMessage(executionContext, agentContext);
-    final var conversation =
+    // Freeze the system prompt: compose it once on the first turn, then reuse the copy persisted in
+    // the conversation history. This avoids re-running every system-prompt contributor on each
+    // execution — notably re-resolving (downloading + unzipping) all skill bundles for the Tier-1
+    // catalog. The composed message is stored as the first message via
+    // AgentConversation#allMessages
+    // and reconstructed by TurnReconstructor into previousConversation.systemMessage().
+    var systemMessage =
+        previousConversation
+            .systemMessage()
+            .orElseGet(() -> createSystemMessage(executionContext, agentContext));
+    var conversation =
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
 
-    throwIfLimitsReached(conversation, agentConfiguration);
-    notifyThinking(executionContext, conversation);
+    // Pass skill bundles as documents (not pre-resolved): load_skill materializes the requested
+    // bundle lazily, so invocations that never load a skill pay no unzip cost.
+    var skillDocs =
+        agentConfiguration.skills() != null && agentConfiguration.sandboxConfiguration().isPresent()
+            ? agentConfiguration.skills()
+            : List.<Document>of();
 
-    final var agentInstanceKey = conversation.agentInstanceKey();
-    agentInstanceClient.createHistoryForInputMessages(
-        executionContext, agentInstanceKey, conversation.currentTurn());
+    // Build the document registry once here (before the sub-loop) from the loaded registry plus the
+    // documents in the current input messages. Reused both for InternalToolContext
+    // (sandbox_import_document)
+    // and for the ConversationStoreRequest at the end — no double-build.
+    final var documentRegistry = buildRegistry(loadResult.documentRegistry(), inputMessages);
+    var internalToolContext = new InternalToolContext(skillDocs, skillResolver, documentRegistry);
 
-    LOGGER.debug("Executing chat request with AI framework");
-    final var chatResponse =
-        framework.executeMeasuringTime(
-            executionContext, conversation.window(agentConfiguration.contextWindowSize()));
-    final var updatedConversation =
-        conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
+    SandboxSession sandboxSession = null;
+    int internalIterations = 0;
+    try {
+      while (true) {
+        throwIfLimitsReached(conversation, agentConfiguration);
+        notifyThinking(executionContext, conversation);
 
-    agentInstanceClient.createHistoryForAssistantMessage(
-        executionContext, agentInstanceKey, updatedConversation.currentTurn());
+        final var agentInstanceKey = conversation.agentInstanceKey();
+        agentInstanceClient.createHistoryForInputMessages(
+            executionContext, agentInstanceKey, conversation.currentTurn());
+
+        LOGGER.debug("Executing chat request with AI framework");
+        final var chatResponse =
+            framework.executeMeasuringTime(
+                executionContext, conversation.window(agentConfiguration.contextWindowSize()));
+        conversation = conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
+
+        agentInstanceClient.createHistoryForAssistantMessage(
+            executionContext, agentInstanceKey, conversation.currentTurn());
+
+        final var toolCalls =
+            java.util.Optional.ofNullable(chatResponse.assistantMessage().toolCalls())
+                .orElse(List.of());
+        final var internalCalls =
+            toolCalls.stream().filter(internalToolRegistry::isInternalToolCall).toList();
+
+        if (internalCalls.isEmpty()) {
+          // Final answer OR pure external tool calls — exit the sub-loop
+          break;
+        }
+
+        // There are internal calls: execute them in-process
+        if (internalIterations >= agentConfiguration.maxInternalToolIterations()) {
+          throw new ConnectorException(
+              AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_INTERNAL_TOOL_ITERATIONS_REACHED,
+              "Maximum number of internal tool iterations reached (iterations: %d, limit: %d)"
+                  .formatted(internalIterations, agentConfiguration.maxInternalToolIterations()));
+        }
+        internalIterations++;
+
+        if (sandboxSession == null) {
+          sandboxSession =
+              sandboxSessionFactory
+                  .openSession(executionContext, conversation.toAgentContext())
+                  .orElseThrow(
+                      () ->
+                          new ConnectorException(
+                              AgentErrorCodes
+                                  .ERROR_CODE_MAXIMUM_NUMBER_OF_INTERNAL_TOOL_ITERATIONS_REACHED,
+                              "Internal tool calls requested but no sandbox session could be opened"));
+        }
+
+        LOGGER.debug("Executing {} internal tool call(s) in-process", internalCalls.size());
+        final var results =
+            internalToolExecutor.execute(internalCalls, sandboxSession, internalToolContext);
+        conversation =
+            conversation.nextTurn(
+                List.of(ToolCallResultMessage.builder().results(results).build()));
+
+        // Check for external calls too — if any external calls are present, break after recording
+        final var externalCalls =
+            toolCalls.stream().filter(tc -> !internalToolRegistry.isInternalToolCall(tc)).toList();
+        if (!externalCalls.isEmpty()) {
+          // Mixed turn: internal done + recorded; let AHSP dispatch the externals
+          break;
+        }
+        // Pure internal — loop again (re-prompt LLM)
+      }
+    } finally {
+      if (sandboxSession != null) {
+        try {
+          var handle = sandboxSession.handle();
+          conversation =
+              conversation.withContextProperty(
+                  SandboxSessionFactoryImpl.SANDBOX_HANDLE_KEY, handle);
+        } catch (Exception e) {
+          LOGGER.error(
+              "Failed to retrieve sandbox session handle; handle will not be persisted", e);
+        }
+        try {
+          sandboxSession.close();
+        } catch (Exception e) {
+          LOGGER.warn("Error closing sandbox session", e);
+        }
+      }
+    }
 
     LOGGER.debug("Storing conversation messages to session");
+    // Reuse the registry that was already built before the sub-loop — no second traversal needed.
     final var storedRef =
         session.storeMessages(
-            updatedConversation.toAgentContext(),
-            ConversationStoreRequest.of(updatedConversation.allMessages()));
+            conversation.toAgentContext(),
+            ConversationStoreRequest.of(conversation.allMessages(), documentRegistry));
 
-    final var storedConversation = updatedConversation.withStoredConversation(storedRef);
+    final var storedConversation = conversation.withStoredConversation(storedRef);
     final var agentResponse = responseHandler.createResponse(storedConversation);
 
     LOGGER.debug("Request processing completed with agent response, completing job");
@@ -307,7 +434,14 @@ public abstract class BaseAgentRequestHandler<
       AgentConversation conversation,
       AgentResponse response,
       boolean rethrowOnFailure) {
-    final var metricsDelta = conversation.currentTurnMetrics();
+    final var invocationMetrics = conversation.invocationMetrics();
+    final var toolCallsDelta = response.toolCalls().size();
+    final var metricsDelta =
+        AgentMetrics.builder()
+            .modelCalls(invocationMetrics.modelCalls())
+            .tokenUsage(invocationMetrics.tokenUsage())
+            .toolCalls(toolCallsDelta)
+            .build();
     final var nextState = nextAgentInstanceState(metricsDelta.toolCalls());
     final var agentContext = response.context();
 
@@ -359,7 +493,13 @@ public abstract class BaseAgentRequestHandler<
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
-        final var strippedDelta = conversation.currentTurnMetrics().withToolCalls(0);
+        final var invocationMetrics = conversation.invocationMetrics();
+        final var strippedDelta =
+            AgentMetrics.builder()
+                .modelCalls(invocationMetrics.modelCalls())
+                .tokenUsage(invocationMetrics.tokenUsage())
+                .toolCalls(0)
+                .build();
         if (failure instanceof JobCompletionFailure.CommandFailure.CommandIgnored) {
           // Superseded job: report model/token cost but don't overwrite the current status
           notifyMetrics(executionContext, response.context(), strippedDelta, null, false);
@@ -373,6 +513,37 @@ public abstract class BaseAgentRequestHandler<
         }
       }
     };
+  }
+
+  /**
+   * Builds the document registry for this turn by combining the registry loaded from the previous
+   * turn with the documents newly added in {@code inputMessages} (user-prompt documents from {@link
+   * DocumentContent} content blocks, and tool-call-result documents from {@link
+   * ToolCallResultMessage} result content trees). Population is engine-driven only — no
+   * agent-facing tool adds entries (§11.6).
+   */
+  private static DocumentRegistry buildRegistry(
+      DocumentRegistry loadedRegistry, List<Message> inputMessages) {
+    final var newDocs = new ArrayList<Document>();
+    for (var msg : inputMessages) {
+      switch (msg) {
+        case UserMessage userMsg ->
+            userMsg.content().stream()
+                .filter(c -> c instanceof DocumentContent)
+                .map(c -> ((DocumentContent) c).document())
+                .forEach(newDocs::add);
+        case ToolCallResultMessage toolMsg ->
+            toolMsg.results().stream()
+                .flatMap(
+                    r ->
+                        ContentTreeDocumentWalker.extractDocumentsFromContent(r.content()).stream())
+                .forEach(newDocs::add);
+        default -> {
+          // SystemMessage and AssistantMessage carry no inbound documents
+        }
+      }
+    }
+    return loadedRegistry.withAddedDocuments(newDocs);
   }
 
   private static <C extends AgentExecutionContext>

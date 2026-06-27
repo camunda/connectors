@@ -14,6 +14,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.sandbox.SandboxSessionFactory;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolExecutor;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
+import io.camunda.connector.agenticai.sandbox.skill.SkillResolver;
 import io.camunda.connector.api.error.ConnectorException;
 
 public class OutboundConnectorAgentRequestHandler
@@ -27,7 +31,11 @@ public class OutboundConnectorAgentRequestHandler
       AiFrameworkAdapter<?> framework,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      InternalToolRegistry internalToolRegistry,
+      InternalToolExecutor internalToolExecutor,
+      SandboxSessionFactory sandboxSessionFactory,
+      SkillResolver skillResolver) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -35,7 +43,11 @@ public class OutboundConnectorAgentRequestHandler
         framework,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        internalToolRegistry,
+        internalToolExecutor,
+        sandboxSessionFactory,
+        skillResolver);
   }
 
   @Override

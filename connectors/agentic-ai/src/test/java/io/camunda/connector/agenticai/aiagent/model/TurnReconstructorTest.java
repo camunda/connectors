@@ -84,6 +84,30 @@ class TurnReconstructorTest {
   }
 
   @Test
+  void trailingToolCallResults_carriedAsPendingInput_notACompletedTurn() {
+    // A mixed turn: the assistant requested an in-process and an external tool call. The in-process
+    // tool result was recorded (open turn) while the external call is still dispatched to the AHSP.
+    var u = userMessage("load the skill and fetch the file");
+    var a = assistantMessage("calling tools", TOOL_CALLS);
+    var pending = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var result = TurnReconstructor.reconstruct(List.of(u, a, pending));
+
+    // The trailing tool result is NOT a completed turn — it is pending input for the next turn.
+    assertThat(result.turns()).hasSize(1);
+    assertTurn(result.turns().getFirst(), 1, true, u);
+    assertThat(result.turns().getFirst().assistantMessage()).isEqualTo(a);
+    assertThat(result.pendingInputMessages()).containsExactly(pending);
+  }
+
+  @Test
+  void noPendingInput_whenConversationEndsWithAssistant() {
+    var u = userMessage("hi");
+    var a = assistantMessage("hello");
+    var result = TurnReconstructor.reconstruct(List.of(u, a));
+    assertThat(result.pendingInputMessages()).isEmpty();
+  }
+
+  @Test
   void reconstructsIterationKey_fromPosition() {
     var u1 = userMessage("turn1");
     var a1 = assistantMessage("r1");

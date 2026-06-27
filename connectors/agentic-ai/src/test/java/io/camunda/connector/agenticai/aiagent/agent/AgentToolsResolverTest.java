@@ -19,6 +19,8 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolNames;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,13 +37,15 @@ class AgentToolsResolverTest {
 
   @Mock private AdHocToolsSchemaResolver toolsSchemaResolver;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
+  @Mock private InternalToolRegistry internalToolRegistry;
   @Mock private AgentExecutionContext executionContext;
 
   private AgentToolsResolverImpl agentToolsResolver;
 
   @BeforeEach
   void setUp() {
-    agentToolsResolver = new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+    agentToolsResolver =
+        new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers, internalToolRegistry);
   }
 
   @Nested
@@ -330,6 +334,101 @@ class AgentToolsResolverTest {
       assertThat(result.toolDefinitions())
           .extracting(ToolDefinition::name)
           .containsExactly("tool1", "tool2", "tool3");
+      assertThat(result.toolDefinitions().get(0).description()).isEqualTo("Updated Tool 1");
+    }
+
+    // ---------------------------------------------------------------------------
+    // Internal-tool migration exclusion (T4 acceptance criteria)
+    // ---------------------------------------------------------------------------
+
+    private static final ToolDefinition BASH_TOOL =
+        ToolDefinition.builder()
+            .name(InternalToolNames.BASH)
+            .description("Run bash")
+            .inputSchema(Map.of("type", "object"))
+            .build();
+
+    private static final ToolDefinition FS_READ_TOOL =
+        ToolDefinition.builder()
+            .name(InternalToolNames.FS_READ)
+            .description("Read file")
+            .inputSchema(Map.of("type", "object"))
+            .build();
+
+    private static final ToolDefinition FS_WRITE_TOOL =
+        ToolDefinition.builder()
+            .name(InternalToolNames.FS_WRITE)
+            .description("Write file")
+            .inputSchema(Map.of("type", "object"))
+            .build();
+
+    /**
+     * AC: A migration update where internal tools are present in the existing context must NOT
+     * throw {@code MIGRATION_MISSING_TOOLS} — internal tools are never in the ad-hoc schema.
+     */
+    @Test
+    void doesNotThrowMigrationMissingToolsForInternalTools() {
+      // Existing context has ad-hoc tool + all three internal tools (registered during
+      // beginToolDiscovery)
+      final var existingTools = List.of(TOOL_1, BASH_TOOL, FS_READ_TOOL, FS_WRITE_TOOL);
+      final var agentContext = AgentContext.empty().withToolDefinitions(existingTools);
+
+      // New ad-hoc schema only has TOOL_1 — internal tools are absent (they are never in ad-hoc
+      // schema)
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(TOOL_1), List.of()));
+      when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
+          .thenReturn(Map.of());
+      when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
+      // Internal tool names are excluded from the missing-tools check
+      when(internalToolRegistry.isInternalTool(InternalToolNames.BASH)).thenReturn(true);
+      when(internalToolRegistry.isInternalTool(InternalToolNames.FS_READ)).thenReturn(true);
+      when(internalToolRegistry.isInternalTool(InternalToolNames.FS_WRITE)).thenReturn(true);
+      when(internalToolRegistry.isInternalTool("tool1")).thenReturn(false);
+
+      // Should NOT throw — previously this was a false-positive MIGRATION_MISSING_TOOLS
+      final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
+
+      // Internal tools are preserved in the updated context
+      assertThat(result.toolDefinitions())
+          .extracting(ToolDefinition::name)
+          .contains(InternalToolNames.BASH, InternalToolNames.FS_READ, InternalToolNames.FS_WRITE);
+    }
+
+    /**
+     * AC: Internal tools are preserved across a migration re-resolution (they stay in the context).
+     */
+    @Test
+    void preservesInternalToolDefinitionsAcrossUpdate() {
+      final var existingTools = List.of(TOOL_1, BASH_TOOL, FS_READ_TOOL, FS_WRITE_TOOL);
+      final var agentContext = AgentContext.empty().withToolDefinitions(existingTools);
+
+      final var updatedTool1 =
+          ToolDefinition.builder()
+              .name("tool1")
+              .description("Updated Tool 1")
+              .inputSchema(Map.of("type", "object"))
+              .build();
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(updatedTool1), List.of()));
+      when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
+          .thenReturn(Map.of());
+      when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
+      when(internalToolRegistry.isInternalTool(InternalToolNames.BASH)).thenReturn(true);
+      when(internalToolRegistry.isInternalTool(InternalToolNames.FS_READ)).thenReturn(true);
+      when(internalToolRegistry.isInternalTool(InternalToolNames.FS_WRITE)).thenReturn(true);
+      when(internalToolRegistry.isInternalTool("tool1")).thenReturn(false);
+
+      final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
+
+      // tool1 updated, all three internal tools preserved
+      assertThat(result.toolDefinitions())
+          .extracting(ToolDefinition::name)
+          .containsExactlyInAnyOrder(
+              "tool1",
+              InternalToolNames.BASH,
+              InternalToolNames.FS_READ,
+              InternalToolNames.FS_WRITE);
       assertThat(result.toolDefinitions().get(0).description()).isEqualTo("Updated Tool 1");
     }
   }

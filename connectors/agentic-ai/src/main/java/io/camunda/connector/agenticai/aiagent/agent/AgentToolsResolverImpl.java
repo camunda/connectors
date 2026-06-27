@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.sandbox.internaltool.InternalToolRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -31,12 +32,15 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
 
   private final AdHocToolsSchemaResolver toolsSchemaResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final InternalToolRegistry internalToolRegistry;
 
   public AgentToolsResolverImpl(
       AdHocToolsSchemaResolver toolsSchemaResolver,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      InternalToolRegistry internalToolRegistry) {
     this.toolsSchemaResolver = toolsSchemaResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.internalToolRegistry = internalToolRegistry;
   }
 
   @Override
@@ -99,15 +103,19 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
       AgentContext agentContext, AdHocToolsSchemaResponse adHocToolsSchema) {
     final var existingToolDefinitions =
         agentContext.toolDefinitions().stream().collect(ORDERED_MAP_COLLECTOR);
-    final var existingNonGatewayToolDefinitions =
+    // Exclude both gateway-managed and internal tools from the "missing tools" check.
+    // Internal tools are never part of the ad-hoc schema, so they would always appear as
+    // "removed" without this exclusion — triggering a spurious MIGRATION_MISSING_TOOLS error.
+    final var existingNonGatewayNonInternalToolDefinitions =
         agentContext.toolDefinitions().stream()
             .filter(toolDefinition -> !gatewayToolHandlers.isGatewayManaged(toolDefinition.name()))
+            .filter(toolDefinition -> !internalToolRegistry.isInternalTool(toolDefinition.name()))
             .collect(ORDERED_MAP_COLLECTOR);
     final var newToolDefinitions =
         adHocToolsSchema.toolDefinitions().stream().collect(ORDERED_MAP_COLLECTOR);
 
     final var removedToolDefinitions =
-        existingNonGatewayToolDefinitions.values().stream()
+        existingNonGatewayNonInternalToolDefinitions.values().stream()
             .filter(toolDefinition -> !newToolDefinitions.containsKey(toolDefinition.name()))
             .toList();
     if (!removedToolDefinitions.isEmpty()) {
@@ -122,15 +130,18 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
               .formatted(String.join(", ", removedToolNames)));
     }
 
-    // overwrite existing tool definitions which have changed + add new ones
+    // overwrite existing tool definitions which have changed + add new ones;
+    // internal tool definitions (gateway-managed ones too) are preserved as-is from the existing
+    // map
     final var updatedToolDefinitions = new LinkedHashMap<>(existingToolDefinitions);
     newToolDefinitions
         .values()
         .forEach(
             newToolDefinition -> {
-              if (existingNonGatewayToolDefinitions.containsKey(newToolDefinition.name())) {
+              if (existingNonGatewayNonInternalToolDefinitions.containsKey(
+                  newToolDefinition.name())) {
                 final var existingToolDefinition =
-                    existingNonGatewayToolDefinitions.get(newToolDefinition.name());
+                    existingNonGatewayNonInternalToolDefinitions.get(newToolDefinition.name());
 
                 if (!existingToolDefinition.equals(newToolDefinition)) {
                   LOGGER.info(
@@ -138,7 +149,8 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
                       newToolDefinition.name());
                   updatedToolDefinitions.put(newToolDefinition.name(), newToolDefinition);
                 }
-              } else {
+              } else if (!gatewayToolHandlers.isGatewayManaged(newToolDefinition.name())
+                  && !internalToolRegistry.isInternalTool(newToolDefinition.name())) {
                 LOGGER.info(
                     "Adding new tool definition '{}' to agent context after process migration.",
                     newToolDefinition.name());

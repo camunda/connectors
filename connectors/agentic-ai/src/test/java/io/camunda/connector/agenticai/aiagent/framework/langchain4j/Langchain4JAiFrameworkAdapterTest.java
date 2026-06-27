@@ -295,7 +295,8 @@ class Langchain4JAiFrameworkAdapterTest {
     final var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.configuration())
         .thenReturn(
-            new AgentConfiguration(null, null, null, null, null, null, responseConfiguration));
+            new AgentConfiguration(
+                null, null, null, null, null, null, responseConfiguration, null));
 
     return executionContext;
   }
