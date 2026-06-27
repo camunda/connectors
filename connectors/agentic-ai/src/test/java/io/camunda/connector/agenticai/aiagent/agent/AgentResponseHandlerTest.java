@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
@@ -83,8 +84,8 @@ class AgentResponseHandlerTest {
   void setUp() {
     responseHandler = new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
     // by default, registry passes tool calls through unchanged
-    when(gatewayToolHandlers.transformToolCalls(any(), any()))
-        .thenAnswer(inv -> inv.getArgument(1));
+    when(gatewayToolHandlers.transformToolCalls(any(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(2));
   }
 
   /**
@@ -97,7 +98,12 @@ class AgentResponseHandlerTest {
     var config = new AgentConfiguration(null, null, null, null, null, null, responseConfig);
     var history = TurnReconstructor.reconstruct(List.of());
     return AgentConversation.rehydrate(
-            config, BASE_AGENT_CONTEXT, history, systemMessage("system"), List.of())
+            config,
+            BASE_AGENT_CONTEXT,
+            history,
+            systemMessage("system"),
+            List.of(),
+            DocumentRegistry.empty())
         .ingest(assistantMessage, new AgentMetrics(1, AgentMetrics.TokenUsage.empty(), 0));
   }
 

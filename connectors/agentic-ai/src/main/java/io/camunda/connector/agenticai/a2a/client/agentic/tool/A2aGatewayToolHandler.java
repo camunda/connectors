@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
@@ -179,7 +180,8 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
    * activity without the prefix.
    */
   @Override
-  public List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls) {
+  public List<ToolCall> transformToolCalls(
+      AgentContext agentContext, DocumentRegistry documentRegistry, List<ToolCall> toolCalls) {
     return toolCalls.stream()
         .map(
             toolCall -> {

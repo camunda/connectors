@@ -1,0 +1,349 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid Daytona.io",
+  "id" : "io.camunda.connectors.agenticai.sandbox.daytona.v0-hybrid",
+  "description" : "Provisions and manages a Daytona sandbox for AI agent tool execution (bash, file system, document and skill operations).",
+  "version" : 1,
+  "category" : {
+    "id" : "aiTools",
+    "name" : "AI Tools"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "sandbox",
+    "label" : "Sandbox Configuration"
+  }, {
+    "id" : "connectorMode",
+    "label" : "Connector mode"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda.agenticai:sandboxdaytona:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "value" : "sandbox",
+    "binding" : {
+      "name" : "io.camunda.agenticai.gateway.type",
+      "type" : "zeebe:property"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "data.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.apiKey",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.apiUrl",
+    "label" : "API URL",
+    "description" : "Base URL for self-hosted Daytona deployments.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.apiUrl",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.snapshot",
+    "label" : "Snapshot",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.snapshot",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.autoStop.mode",
+    "label" : "Auto-stop",
+    "description" : "Controls how long a running sandbox stays up before stopping. DISABLED means it never auto-stops (Daytona default: 15 min).",
+    "optional" : false,
+    "value" : "DURATION",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.autoStop.mode",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Disabled",
+      "value" : "DISABLED"
+    }, {
+      "name" : "Custom Duration",
+      "value" : "DURATION"
+    } ]
+  }, {
+    "id" : "data.autoStop.duration",
+    "label" : "Auto-stop duration",
+    "description" : "ISO-8601 duration after which an idle running sandbox is stopped. Default: PT15M (15 minutes).",
+    "optional" : true,
+    "value" : "PT15M",
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.autoStop.duration",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.autoStop.mode",
+        "equals" : "DURATION",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.autoArchive.mode",
+    "label" : "Auto-archive",
+    "description" : "Controls when a stopped sandbox is archived. DEFAULT uses Daytona's default (7 days). Max duration: 30 days.",
+    "optional" : false,
+    "value" : "DEFAULT",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.autoArchive.mode",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Default (7 days)",
+      "value" : "DEFAULT"
+    }, {
+      "name" : "Custom Duration",
+      "value" : "DURATION"
+    } ]
+  }, {
+    "id" : "data.autoArchive.duration",
+    "label" : "Auto-archive duration",
+    "description" : "ISO-8601 duration after which a stopped sandbox is archived. Must not exceed 30 days (P30D).",
+    "optional" : true,
+    "value" : "P7D",
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.autoArchive.duration",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.autoArchive.mode",
+        "equals" : "DURATION",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.autoDelete.mode",
+    "label" : "Auto-delete",
+    "description" : "Controls when a stopped sandbox is deleted. DISABLED means never delete. IMMEDIATELY deletes the sandbox right after it stops (0 minutes).",
+    "optional" : false,
+    "value" : "DISABLED",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.autoDelete.mode",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Disabled",
+      "value" : "DISABLED"
+    }, {
+      "name" : "Immediately after stopping",
+      "value" : "IMMEDIATELY"
+    }, {
+      "name" : "Custom Duration",
+      "value" : "DURATION"
+    } ]
+  }, {
+    "id" : "data.autoDelete.duration",
+    "label" : "Auto-delete duration",
+    "description" : "ISO-8601 duration after which a stopped sandbox is deleted. Default: PT5M (5 minutes).",
+    "optional" : true,
+    "value" : "PT5M",
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.autoDelete.duration",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.autoDelete.mode",
+        "equals" : "DURATION",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.skills",
+    "label" : "Skills",
+    "description" : "Skill bundles (.zip documents) materialized into the sandbox workspace (.agents/skills/) at creation. Activated on demand by the agent via sandbox_fs_read of the skill's SKILL.md.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.skills",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.startupScript",
+    "label" : "Startup script",
+    "description" : "Optional shell script run once at sandbox creation (e.g. to install tools or add skills). Runs after skill bundles are materialized.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.startupScript",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.connectorMode.type",
+    "label" : "Connector mode",
+    "description" : "How this connector is used. Currently only AI Agent tool mode is supported.",
+    "value" : "aiAgentTool",
+    "group" : "connectorMode",
+    "binding" : {
+      "name" : "data.connectorMode.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "AI Agent tool",
+      "value" : "aiAgentTool"
+    } ]
+  }, {
+    "id" : "data.connectorMode.toolCall",
+    "label" : "Tool call",
+    "description" : "The tool call dispatched by the AI agent. Populated automatically.",
+    "optional" : false,
+    "value" : "=toolCall",
+    "feel" : "required",
+    "group" : "connectorMode",
+    "binding" : {
+      "name" : "data.connectorMode.toolCall",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.agenticai.sandbox.daytona.v0",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "value" : "toolCallResult",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjExIiBoZWlnaHQ9IjIyMCIgdmlld0JveD0iMCAwIDIxMSAyMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHg9IjExLjE0MjgiIHk9IjE0OS4wMjUiIHdpZHRoPSI3Ni4yNDc0IiBoZWlnaHQ9IjI2LjE0MjEiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3QgeD0iMTEzLjUyMiIgeT0iNTcuNTI4NyIgd2lkdGg9Ijg3LjEzOTkiIGhlaWdodD0iMjYuMTQyMSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB3aWR0aD0iOTEuNDk3MSIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0ibWF0cml4KDAuNzA3MTA1IC0wLjcwNzEwOCAwLjcwNzEwNSAwLjcwNzEwOCA2Ny43NzM3IDY1LjU4NTgpIiBmaWxsPSIjMTYxNjE2Ii8+CjxyZWN0IHdpZHRoPSI3MC4yNjkxIiBoZWlnaHQ9IjI2LjE0MiIgdHJhbnNmb3JtPSJtYXRyaXgoLTAuNzA3MTA1IC0wLjcwNzEwOCAtMC43MDcxMDUgMC43MDcxMDggNjguMTcyOSAxMzAuOTQxKSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB3aWR0aD0iNzQuMDY5MSIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0ibWF0cml4KC0wLjcwNzEwNSAwLjcwNzEwOCAtMC43MDcxMDUgLTAuNzA3MTA4IDEzMy41MzIgMTY3LjUxMSkiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3Qgd2lkdGg9IjgyLjc4MzEiIGhlaWdodD0iMjYuMTQyIiB0cmFuc2Zvcm09Im1hdHJpeCgwLjcwNzEwNSAwLjcwNzEwOCAwLjcwNzEwNSAtMC43MDcxMDggMTMzLjEzMyAxMDIuMTU2KSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB4PSI2Ny43NzM3IiB5PSIzNy45MjI3IiB3aWR0aD0iNjMuMTc2NyIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0icm90YXRlKDkwIDY3Ljc3MzcgMzcuOTIyNykiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3QgeD0iMTU5LjI3OCIgeT0iMTI5LjQxOSIgd2lkdGg9Ijc4LjQyNjIiIGhlaWdodD0iMjYuMTQyIiB0cmFuc2Zvcm09InJvdGF0ZSg5MCAxNTkuMjc4IDEyOS40MTkpIiBmaWxsPSIjMTYxNjE2Ii8+Cjwvc3ZnPgo="
+  }
+}

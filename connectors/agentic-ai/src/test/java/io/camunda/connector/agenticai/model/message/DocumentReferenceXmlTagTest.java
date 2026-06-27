@@ -9,12 +9,9 @@ package io.camunda.connector.agenticai.model.message;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.model.message.DocumentReferenceXmlTag.GenericDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.model.document.DocumentHandle;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +22,15 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+/**
+ * Tests for {@link DocumentReferenceXmlTag}.
+ *
+ * <p>The tag now uses a single {@code id} attribute derived via {@link DocumentHandle#idFor} (not
+ * {@code storeId}/{@code documentId}/{@code url}). Tool attribution ({@code toolName}/{@code
+ * toolCallId}) is present only at Site 2 (the content-bearing user message), not at Site 1 (the
+ * tool-call result text). Prompt/event documents use {@link DocumentReferenceXmlTag#from(Document)}
+ * — no tool attribution.
+ */
 @ExtendWith(MockitoExtension.class)
 class DocumentReferenceXmlTagTest {
 
@@ -34,7 +40,7 @@ class DocumentReferenceXmlTagTest {
   @Mock private DocumentMetadata metadata;
 
   @Nested
-  class CamundaDocumentReferenceTag {
+  class CamundaDocumentTag {
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private CamundaDocumentReference ref;
@@ -43,40 +49,57 @@ class DocumentReferenceXmlTagTest {
     void setUp() {
       when(doc.reference()).thenReturn(ref);
       when(doc.metadata()).thenReturn(metadata);
+      when(ref.getDocumentId()).thenReturn(DOCUMENT_ID);
     }
 
     @Test
-    void generatesFullTagWithAllAttributes() {
-      when(ref.getDocumentId()).thenReturn(DOCUMENT_ID);
-      when(ref.getStoreId()).thenReturn("in-memory");
+    void generatesTagWithIdFileNameContentType() {
       when(metadata.getContentType()).thenReturn("application/pdf");
       when(metadata.getFileName()).thenReturn("report.pdf");
 
       var tag = DocumentReferenceXmlTag.from(doc, "call_abc", "search");
-      assertThat(tag).isInstanceOf(CamundaDocumentReferenceXmlTag.class);
+      assertThat(tag.id()).isEqualTo(DOCUMENT_ID);
       assertThat(tag.toXml())
           .isEqualTo(
-              "<doc toolName=\"search\" toolCallId=\"call_abc\" documentId=\"%s\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"report.pdf\" />"
+              "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" toolName=\"search\" toolCallId=\"call_abc\" />"
                   .formatted(DOCUMENT_ID));
     }
 
     @Test
-    void omitsBlankAttributes() {
-      when(ref.getDocumentId()).thenReturn(DOCUMENT_ID);
+    void omitsBlankOptionalAttributes() {
+      // metadata present but fileName/contentType are blank
+      when(metadata.getFileName()).thenReturn(null);
+      when(metadata.getContentType()).thenReturn(null);
 
       assertThat(DocumentReferenceXmlTag.from(doc).toXml())
-          .isEqualTo("<doc documentId=\"%s\" />".formatted(DOCUMENT_ID));
+          .isEqualTo("<doc id=\"%s\" />".formatted(DOCUMENT_ID));
+    }
+
+    @Test
+    void omitsToolAttributesWhenNotProvided() {
+      when(metadata.getFileName()).thenReturn("file.txt");
+      when(metadata.getContentType()).thenReturn("text/plain");
+
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
+          .isEqualTo(
+              "<doc id=\"%s\" fileName=\"file.txt\" contentType=\"text/plain\" />"
+                  .formatted(DOCUMENT_ID));
     }
 
     @Test
     void escapesSpecialCharactersInToolName() {
+      when(metadata.getFileName()).thenReturn(null);
+      when(metadata.getContentType()).thenReturn(null);
+
       assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
-          .isEqualTo("<doc toolName=\"tool&lt;with&quot;quotes&gt;\" toolCallId=\"call_1\" />");
+          .isEqualTo(
+              "<doc id=\"%s\" toolName=\"tool&lt;with&quot;quotes&gt;\" toolCallId=\"call_1\" />"
+                  .formatted(DOCUMENT_ID));
     }
   }
 
   @Nested
-  class ExternalDocumentReferenceTag {
+  class ExternalDocumentTag {
 
     @Mock private ExternalDocumentReference ref;
 
@@ -86,66 +109,53 @@ class DocumentReferenceXmlTagTest {
     }
 
     @Test
-    void generatesFullTagWithAllAttributes() {
+    void generatesTagWithDerivedIdNoRawUrl() {
       when(ref.url()).thenReturn("https://example.com/report.pdf");
-      when(ref.name()).thenReturn("Quarterly Report");
+      // no metadata: external docs typically have no metadata
+      when(doc.metadata()).thenReturn(null);
 
       var tag = DocumentReferenceXmlTag.from(doc, "call_abc", "search");
-      assertThat(tag).isInstanceOf(ExternalDocumentReferenceXmlTag.class);
+      // id is derived from the URL via DocumentHandle (ext-<sha256 prefix>)
+      assertThat(tag.id()).startsWith("ext-");
       assertThat(tag.toXml())
-          .isEqualTo(
-              "<doc toolName=\"search\" toolCallId=\"call_abc\" url=\"https://example.com/report.pdf\" name=\"Quarterly Report\" />");
+          .contains("id=\"ext-")
+          .contains("toolName=\"search\"")
+          .contains("toolCallId=\"call_abc\"")
+          // raw URL must NOT appear in the tag
+          .doesNotContain("url=")
+          .doesNotContain("https://example.com");
     }
 
     @Test
-    void omitsBlankNameAndToolContext() {
-      when(ref.url()).thenReturn("https://example.com/report.pdf");
+    void promptDocumentHasNoToolAttributes() {
+      when(ref.url()).thenReturn("https://example.com/doc.pdf");
+      when(doc.metadata()).thenReturn(null);
 
-      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
-          .isEqualTo("<doc url=\"https://example.com/report.pdf\" />");
-    }
-
-    @Test
-    void escapesSpecialCharactersInUrl() {
-      when(ref.url()).thenReturn("https://example.com/path?q=a&b=\"c\"");
-
-      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
-          .isEqualTo("<doc url=\"https://example.com/path?q=a&amp;b=&quot;c&quot;\" />");
+      var tag = DocumentReferenceXmlTag.from(doc);
+      assertThat(tag.toXml())
+          .contains("id=\"ext-")
+          .doesNotContain("toolName=")
+          .doesNotContain("toolCallId=")
+          .doesNotContain("url=");
     }
   }
 
   @Nested
-  class GenericDocumentReferenceTag {
+  class NullDocumentMetadata {
 
-    /** Custom reference subtype that isn't recognized by the tag's dispatch switch. */
-    private record CustomDocumentReference(String id) implements DocumentReference {}
-
-    @Test
-    void emitsToolContextForUnrecognizedReference() {
-      when(doc.reference()).thenReturn(new CustomDocumentReference("custom-1"));
-
-      var tag = DocumentReferenceXmlTag.from(doc, "call_1", "search");
-      assertThat(tag).isInstanceOf(GenericDocumentReferenceXmlTag.class);
-      assertThat(tag.toXml()).isEqualTo("<doc toolName=\"search\" toolCallId=\"call_1\" />");
-    }
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private CamundaDocumentReference ref;
 
     @Test
-    void emitsMinimalTagForUnrecognizedReferenceWithoutToolContext() {
-      when(doc.reference()).thenReturn(new CustomDocumentReference("custom-1"));
+    void toleratesNullMetadata() {
+      when(doc.reference()).thenReturn(ref);
+      when(doc.metadata()).thenReturn(null);
+      when(ref.getDocumentId()).thenReturn(DOCUMENT_ID);
 
-      assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
-    }
-
-    @Test
-    void emitsMinimalTagForNullReference() {
-      assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
-    }
-
-    @Test
-    void escapesSpecialCharactersInToolName() {
-      assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>&'").toXml())
-          .isEqualTo(
-              "<doc toolName=\"tool&lt;with&quot;quotes&gt;&amp;&apos;\" toolCallId=\"call_1\" />");
+      var tag = DocumentReferenceXmlTag.from(doc);
+      assertThat(tag.fileName()).isNull();
+      assertThat(tag.contentType()).isNull();
+      assertThat(tag.toXml()).isEqualTo("<doc id=\"%s\" />".formatted(DOCUMENT_ID));
     }
   }
 }

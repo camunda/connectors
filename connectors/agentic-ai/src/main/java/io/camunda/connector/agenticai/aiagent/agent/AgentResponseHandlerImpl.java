@@ -58,7 +58,9 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             .assistantMessage();
     final var rawToolCalls = Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of());
     final var toolCalls =
-        gatewayToolHandlers.transformToolCalls(agentContext, rawToolCalls).stream()
+        gatewayToolHandlers
+            .transformToolCalls(agentContext, conversation.documentRegistry(), rawToolCalls)
+            .stream()
             .map(ToolCallProcessVariable::from)
             .toList();
 

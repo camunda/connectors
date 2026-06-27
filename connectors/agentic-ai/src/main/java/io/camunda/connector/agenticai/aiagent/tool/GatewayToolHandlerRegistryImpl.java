@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -106,22 +107,25 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
 
     // merge tool definitions from all gateways to existing tool definitions
     List<ToolDefinition> mergedToolDefinitions = new ArrayList<>(agentContext.toolDefinitions());
-    groupedByGateway.entrySet().stream()
-        .filter(entry -> !entry.getKey().equals(DEFAULT_TYPE))
-        .forEach(
-            entry -> {
-              final var handler = handlers.get(entry.getKey());
-              final var gatewayToolDefinitions =
-                  handler.handleToolDiscoveryResults(agentContext, entry.getValue());
-              mergedToolDefinitions.addAll(gatewayToolDefinitions);
-            });
+    AgentContext updatedContext = agentContext;
+    for (var entry : groupedByGateway.entrySet()) {
+      if (entry.getKey().equals(DEFAULT_TYPE)) {
+        continue;
+      }
+      final var handler = handlers.get(entry.getKey());
+      mergedToolDefinitions.addAll(
+          handler.handleToolDiscoveryResults(updatedContext, entry.getValue()));
+      final var contributed = handler.contributeDiscoveryContext(updatedContext, entry.getValue());
+      if (contributed != null) {
+        updatedContext = contributed;
+      }
+    }
 
-    // remaining tool call results not being part of tool discovery
     final var nonGatewayToolCallResults =
         groupedByGateway.getOrDefault(DEFAULT_TYPE, Collections.emptyList());
 
     return new GatewayToolDiscoveryResult(
-        agentContext.withToolDefinitions(mergedToolDefinitions), nonGatewayToolCallResults);
+        updatedContext.withToolDefinitions(mergedToolDefinitions), nonGatewayToolCallResults);
   }
 
   private Map<String, List<ToolCallResult>> groupToolCallResultsByGateway(
@@ -142,11 +146,14 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
 
   @Override
   public List<ToolCall> transformToolCalls(
-      final AgentContext agentContext, final List<ToolCall> toolCalls) {
+      final AgentContext agentContext,
+      final DocumentRegistry documentRegistry,
+      final List<ToolCall> toolCalls) {
     List<ToolCall> transformedToolCalls = toolCalls;
     for (GatewayToolHandler gatewayToolHandler : handlers.values()) {
       transformedToolCalls =
-          gatewayToolHandler.transformToolCalls(agentContext, transformedToolCalls);
+          gatewayToolHandler.transformToolCalls(
+              agentContext, documentRegistry, transformedToolCalls);
     }
 
     return transformedToolCalls;

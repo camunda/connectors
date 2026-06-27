@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResour
 import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -208,7 +209,8 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
    * from the tool call name.
    */
   @Override
-  public List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls) {
+  public List<ToolCall> transformToolCalls(
+      AgentContext agentContext, DocumentRegistry documentRegistry, List<ToolCall> toolCalls) {
     return toolCalls.stream()
         .map(
             toolCall -> {

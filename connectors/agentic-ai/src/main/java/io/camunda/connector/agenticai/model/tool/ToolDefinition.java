@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.model.tool;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
@@ -16,8 +18,27 @@ import java.util.Map;
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)
 public record ToolDefinition(
-    String name, @Nullable String description, Map<String, Object> inputSchema)
+    String name,
+    @Nullable String description,
+    Map<String, Object> inputSchema,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements ToolDefinitionBuilder.With {
+
+  /** Metadata key carrying the gateway type (e.g. "sandbox") for gateway-managed tools. */
+  public static final String METADATA_GATEWAY_TYPE = "gatewayType";
+
+  /** Metadata key carrying the target BPMN element id a sandbox tool call routes to. */
+  public static final String METADATA_ELEMENT_ID = "elementId";
+
+  public ToolDefinition {
+    metadata = (metadata != null) ? metadata : Map.of();
+  }
+
+  @JsonIgnore
+  public @Nullable String gatewayType() {
+    final var value = metadata().get(METADATA_GATEWAY_TYPE);
+    return value instanceof String s ? s : null;
+  }
 
   public static ToolDefinitionBuilder builder() {
     return ToolDefinitionBuilder.builder();

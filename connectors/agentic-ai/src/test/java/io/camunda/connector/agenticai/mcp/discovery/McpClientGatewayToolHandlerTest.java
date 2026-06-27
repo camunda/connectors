@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.mcp.client.model.content.McpResourceLinkCo
 import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
+import io.camunda.connector.agenticai.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -348,7 +349,7 @@ class McpClientGatewayToolHandlerTest {
               new ToolCall("call1", "MCP_mcp1___tool1", Map.of("arg1", "value1")),
               new ToolCall("call2", "regular_tool", Map.of("arg2", "value2")));
 
-      var result = handler.transformToolCalls(agentContext, toolCalls);
+      var result = handler.transformToolCalls(agentContext, DocumentRegistry.empty(), toolCalls);
 
       assertThat(result).hasSize(2);
       assertThat(result)
@@ -376,7 +377,7 @@ class McpClientGatewayToolHandlerTest {
               new ToolCall("call1", "regular_tool1", Map.of("arg1", "value1")),
               new ToolCall("call2", "regular_tool2", Map.of("arg2", "value2")));
 
-      var result = handler.transformToolCalls(agentContext, toolCalls);
+      var result = handler.transformToolCalls(agentContext, DocumentRegistry.empty(), toolCalls);
 
       assertThat(result).isEqualTo(toolCalls);
     }
