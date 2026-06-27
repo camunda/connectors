@@ -32,6 +32,7 @@ import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHis
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep5;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1;
+import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.AgentTool;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.impl.command.CreateAgentHistoryItemCommandImpl;
@@ -55,6 +56,7 @@ import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
@@ -117,9 +119,10 @@ class CamundaAgentInstanceClientTest {
   void setUp() {
     recordedSleeps = new ArrayList<>();
     var historyMapper = new AgentInstanceHistoryMapper(new ObjectMapper(), gatewayToolHandlers);
+    var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
-            camundaClient, RETRIES_CONFIGURATION, recordedSleeps::add, historyMapper);
+            camundaClient, RETRIES_CONFIGURATION, recordedSleeps::add, historyMapper, toolMapper);
   }
 
   private void givenCreateCommand() {
@@ -374,6 +377,123 @@ class CamundaAgentInstanceClientTest {
               Duration.ofSeconds(4),
               Duration.ofSeconds(8));
       verify(camundaClient, times(5)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void shouldBuildCommandWithToolsForAdHocTools() {
+      givenUpdateCommand();
+
+      // given: ad-hoc tools where name == elementId
+      final var tools =
+          List.of(
+              ToolDefinition.builder()
+                  .name("getWeather")
+                  .description("Get the weather forecast")
+                  .inputSchema(Map.of("type", "object"))
+                  .build(),
+              ToolDefinition.builder()
+                  .name("calculateSum")
+                  .description("Calculate a sum")
+                  .inputSchema(Map.of("type", "object"))
+                  .build());
+
+      final var request =
+          AgentInstanceUpdateRequest.builder()
+              .status(AgentInstanceUpdateStatus.THINKING)
+              .tools(tools)
+              .build();
+
+      // when
+      client.update(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
+
+      // then: tools are passed to the command
+      final ArgumentCaptor<List<AgentTool>> toolsCaptor = ArgumentCaptor.forClass(List.class);
+      verify(updateCommandStep2).tools(toolsCaptor.capture());
+      final var capturedTools = toolsCaptor.getValue();
+      assertThat(capturedTools).hasSize(2);
+      assertThat(capturedTools.get(0).getName()).isEqualTo("getWeather");
+      assertThat(capturedTools.get(0).getDescription()).isEqualTo("Get the weather forecast");
+      assertThat(capturedTools.get(0).getElementId()).isEqualTo("getWeather");
+      assertThat(capturedTools.get(1).getName()).isEqualTo("calculateSum");
+      assertThat(capturedTools.get(1).getDescription()).isEqualTo("Calculate a sum");
+      assertThat(capturedTools.get(1).getElementId()).isEqualTo("calculateSum");
+      verify(updateCommandStep2).execute();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void shouldResolveElementIdForGatewayToolsInUpdate() {
+      givenUpdateCommand();
+
+      // given: a gateway tool with a resolved elementId
+      when(gatewayToolHandlers.resolveElementId("MCP_McpTest___greet"))
+          .thenReturn(Optional.of("McpTest"));
+
+      final var tools =
+          List.of(
+              ToolDefinition.builder()
+                  .name("MCP_McpTest___greet")
+                  .description("Greet someone")
+                  .inputSchema(Map.of("type", "object"))
+                  .build());
+
+      final var request =
+          AgentInstanceUpdateRequest.builder()
+              .status(AgentInstanceUpdateStatus.TOOL_CALLING)
+              .tools(tools)
+              .build();
+
+      // when
+      client.update(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
+
+      // then: gateway tool elementId is resolved through the registry
+      final ArgumentCaptor<List<AgentTool>> toolsCaptor = ArgumentCaptor.forClass(List.class);
+      verify(updateCommandStep2).tools(toolsCaptor.capture());
+      final var capturedTools = toolsCaptor.getValue();
+      assertThat(capturedTools).hasSize(1);
+      assertThat(capturedTools.get(0).getName()).isEqualTo("MCP_McpTest___greet");
+      assertThat(capturedTools.get(0).getDescription()).isEqualTo("Greet someone");
+      assertThat(capturedTools.get(0).getElementId()).isEqualTo("McpTest");
+      verify(updateCommandStep2).execute();
+    }
+
+    @Test
+    void shouldNotCallToolsWhenToolsFieldIsNull() {
+      givenUpdateCommand();
+
+      // given: no tools in the request
+      final var request = AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING);
+
+      // when
+      client.update(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
+
+      // then: tools() is never called on the command
+      verify(updateCommandStep2, never()).tools(any());
+      verify(updateCommandStep2).execute();
+    }
+
+    @Test
+    void shouldNotCallToolsWhenToolsFieldIsEmpty() {
+      givenUpdateCommand();
+
+      // given: empty tools list in the request
+      final var request =
+          AgentInstanceUpdateRequest.builder()
+              .status(AgentInstanceUpdateStatus.THINKING)
+              .tools(List.of())
+              .build();
+
+      // when
+      client.update(
+          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), request);
+
+      // then: tools() is never called on the command
+      verify(updateCommandStep2, never()).tools(any());
+      verify(updateCommandStep2).execute();
     }
   }
 

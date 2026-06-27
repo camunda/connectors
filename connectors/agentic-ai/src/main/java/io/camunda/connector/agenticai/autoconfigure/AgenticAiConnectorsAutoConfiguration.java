@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentReques
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceToolMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
@@ -178,7 +179,7 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentInstanceHistoryMapper agentInstanceHistoryMapper(
+  public AgentInstanceHistoryMapper aiAgentInstanceHistoryMapper(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new AgentInstanceHistoryMapper(objectMapper, gatewayToolHandlers);
@@ -186,15 +187,24 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentInstanceClient agentInstanceClient(
+  public AgentInstanceToolMapper aiAgentInstanceToolMapper(
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentInstanceToolMapper(gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgentInstanceClient aiAgentInstanceClient(
       CamundaClient camundaClient,
       AgenticAiConnectorsConfigurationProperties configuration,
-      AgentInstanceHistoryMapper historyMapper) {
+      AgentInstanceHistoryMapper historyMapper,
+      AgentInstanceToolMapper toolMapper) {
     return new CamundaAgentInstanceClient(
         camundaClient,
         configuration.aiagent().agentInstance().retries(),
         Sleeper.threadSleep(),
-        historyMapper);
+        historyMapper,
+        toolMapper);
   }
 
   @Bean
@@ -252,7 +262,7 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolCallResultDocumentExtractor toolCallResultDocumentExtractor(
+  public ToolCallResultDocumentExtractor aiAgentToolCallResultDocumentExtractor(
       GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new ToolCallResultDocumentExtractor(gatewayToolHandlers);
   }

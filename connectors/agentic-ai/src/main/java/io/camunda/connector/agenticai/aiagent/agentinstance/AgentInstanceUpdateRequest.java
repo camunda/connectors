@@ -9,12 +9,16 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import java.util.List;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
 public record AgentInstanceUpdateRequest(
-    @Nullable AgentInstanceUpdateStatus status, @Nullable AgentMetrics delta)
+    @Nullable AgentInstanceUpdateStatus status,
+    @Nullable AgentMetrics delta,
+    @Nullable List<ToolDefinition> tools)
     implements AgentInstanceUpdateRequestBuilder.With {
 
   public static AgentInstanceUpdateRequest statusOnly(AgentInstanceUpdateStatus status) {
