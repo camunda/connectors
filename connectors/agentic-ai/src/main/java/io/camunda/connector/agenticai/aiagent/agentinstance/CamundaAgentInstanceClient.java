@@ -40,16 +40,19 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   private final RetriesProperties retriesProperties;
   private final Sleeper sleeper;
   private final AgentInstanceHistoryMapper historyMapper;
+  private final AgentInstanceToolMapper toolMapper;
 
   public CamundaAgentInstanceClient(
       CamundaClient camundaClient,
       RetriesProperties retriesProperties,
       Sleeper sleeper,
-      AgentInstanceHistoryMapper historyMapper) {
+      AgentInstanceHistoryMapper historyMapper,
+      AgentInstanceToolMapper toolMapper) {
     this.camundaClient = camundaClient;
     this.retriesProperties = retriesProperties;
     this.sleeper = sleeper;
     this.historyMapper = historyMapper;
+    this.toolMapper = toolMapper;
   }
 
   @Override
@@ -116,10 +119,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       long agentInstanceKey,
       AgentInstanceUpdateRequest request) {
     LOGGER.debug(
-        "Updating agent instance {}: status={}, delta={}",
+        "Updating agent instance {}: status={}, delta={}, tools={}",
         agentInstanceKey,
         request.status(),
-        request.delta());
+        request.delta(),
+        request.tools() != null ? request.tools().size() : "null");
     UpdateAgentInstanceCommandStep2 cmd =
         camundaClient
             .newUpdateAgentInstanceCommand(agentInstanceKey)
@@ -143,6 +147,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       if (delta.toolCalls() != 0) {
         cmd = cmd.toolCalls(delta.toolCalls());
       }
+    }
+
+    final var tools = request.tools();
+    if (tools != null && !tools.isEmpty()) {
+      cmd = cmd.tools(toolMapper.mapTools(tools));
     }
 
     cmd.execute();

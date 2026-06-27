@@ -18,13 +18,12 @@ package io.camunda.connector.e2e.agenticai.assertj;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
@@ -33,6 +32,7 @@ import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.mockito.ArgumentCaptor;
@@ -100,7 +100,13 @@ public class AgentInstanceClientVerifier {
         .update(
             any(),
             any(),
-            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+            argThat(
+                request ->
+                    request != null
+                        && request.status() == AgentInstanceUpdateStatus.THINKING
+                        && request.delta() == null
+                        && request.tools() != null
+                        && !request.tools().isEmpty()));
     inOrder.verify(client).createHistoryForInputMessages(any(), any(), beforeChatTurns.capture());
     inOrder.verify(client).createHistoryForAssistantMessage(any(), any(), afterChatTurns.capture());
     inOrder
@@ -108,7 +114,12 @@ public class AgentInstanceClientVerifier {
         .update(
             any(),
             any(),
-            eq(AgentInstanceUpdateRequest.builder().status(endStatus).delta(delta).build()));
+            argThat(
+                request ->
+                    request != null
+                        && request.status() == endStatus
+                        && Objects.equals(request.delta(), delta)
+                        && request.tools() == null));
 
     final var expectedIterationKey = ++turnCount;
     final var before = lastValue(beforeChatTurns);

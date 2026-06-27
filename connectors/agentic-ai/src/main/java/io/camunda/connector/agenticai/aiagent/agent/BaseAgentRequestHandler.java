@@ -219,7 +219,10 @@ public abstract class BaseAgentRequestHandler<
     agentInstanceClient.update(
         executionContext,
         conversation.agentInstanceKey(),
-        AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING));
+        AgentInstanceUpdateRequest.builder()
+            .status(AgentInstanceUpdateStatus.THINKING)
+            .tools(conversation.toAgentContext().toolDefinitions())
+            .build());
   }
 
   private AgentInstanceUpdateStatus nextAgentInstanceState(int toolCallsDelta) {

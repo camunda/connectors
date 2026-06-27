@@ -411,7 +411,11 @@ class JobWorkerAgentRequestHandlerTest {
         .update(
             eq(agentExecutionContext),
             any(),
-            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.THINKING)
+                    .tools(TOOL_DEFINITIONS)
+                    .build()));
     verifyHistoryItemsCreated(assistantMessage);
     verifyNoMoreInteractions(agentInstanceClient);
 
@@ -450,7 +454,11 @@ class JobWorkerAgentRequestHandlerTest {
         .update(
             eq(agentExecutionContext),
             any(),
-            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.THINKING)
+                    .tools(TOOL_DEFINITIONS)
+                    .build()));
     verify(agentInstanceClient)
         .update(
             eq(agentExecutionContext),
@@ -487,7 +495,11 @@ class JobWorkerAgentRequestHandlerTest {
         .update(
             eq(agentExecutionContext),
             any(),
-            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.THINKING)
+                    .tools(TOOL_DEFINITIONS)
+                    .build()));
     verifyHistoryItemsCreated(assistantMessage);
     verifyNoMoreInteractions(agentInstanceClient);
 
@@ -527,7 +539,11 @@ class JobWorkerAgentRequestHandlerTest {
         .update(
             eq(agentExecutionContext),
             any(),
-            eq(AgentInstanceUpdateRequest.statusOnly(AgentInstanceUpdateStatus.THINKING)));
+            eq(
+                AgentInstanceUpdateRequest.builder()
+                    .status(AgentInstanceUpdateStatus.THINKING)
+                    .tools(TOOL_DEFINITIONS)
+                    .build()));
     verifyHistoryItemsCreated(assistantMessage);
     verifyNoMoreInteractions(agentInstanceClient);
 
