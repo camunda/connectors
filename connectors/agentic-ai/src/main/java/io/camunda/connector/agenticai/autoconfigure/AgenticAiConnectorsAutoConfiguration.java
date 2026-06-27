@@ -179,7 +179,7 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentInstanceHistoryMapper agentInstanceHistoryMapper(
+  public AgentInstanceHistoryMapper aiAgentInstanceHistoryMapper(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new AgentInstanceHistoryMapper(objectMapper, gatewayToolHandlers);
@@ -187,14 +187,14 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentInstanceToolMapper agentInstanceToolMapper(
+  public AgentInstanceToolMapper aiAgentInstanceToolMapper(
       GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new AgentInstanceToolMapper(gatewayToolHandlers);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentInstanceClient agentInstanceClient(
+  public AgentInstanceClient aiAgentInstanceClient(
       CamundaClient camundaClient,
       AgenticAiConnectorsConfigurationProperties configuration,
       AgentInstanceHistoryMapper historyMapper,
@@ -262,7 +262,7 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolCallResultDocumentExtractor toolCallResultDocumentExtractor(
+  public ToolCallResultDocumentExtractor aiAgentToolCallResultDocumentExtractor(
       GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new ToolCallResultDocumentExtractor(gatewayToolHandlers);
   }
