@@ -6,24 +6,48 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import java.time.Duration;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = AgentMetrics.AgentMetricsJacksonProxyBuilder.class)
 public record AgentMetrics(
     int modelCalls,
-    @RecordBuilder.Initializer(source = TokenUsage.class, value = "empty") TokenUsage tokenUsage)
+    @RecordBuilder.Initializer(source = TokenUsage.class, value = "empty") TokenUsage tokenUsage,
+    int toolCalls,
+    @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable Duration executionTime)
     implements AgentMetricsBuilder.With {
+
   public AgentMetrics {
     if (modelCalls < 0) {
       throw new IllegalArgumentException("Model calls must be non-negative");
     }
-
     Objects.requireNonNull(tokenUsage, "Token usage must not be null");
+    if (toolCalls < 0) {
+      throw new IllegalArgumentException("Tool calls must be non-negative");
+    }
+  }
+
+  public AgentMetrics(int modelCalls, TokenUsage tokenUsage, int toolCalls) {
+    this(modelCalls, tokenUsage, toolCalls, null);
+  }
+
+  /**
+   * Adds the counter metrics (model calls, token usage, tool calls) of {@code other}. {@link
+   * #executionTime} is a per-turn measurement and is intentionally not accumulated.
+   */
+  public AgentMetrics add(AgentMetrics other) {
+    Objects.requireNonNull(other);
+
+    return this.incrementModelCalls(other.modelCalls())
+        .incrementTokenUsage(other.tokenUsage())
+        .incrementToolCalls(other.toolCalls());
   }
 
   public AgentMetrics incrementModelCalls(int additionalModelCalls) {
@@ -32,6 +56,10 @@ public record AgentMetrics(
 
   public AgentMetrics incrementTokenUsage(TokenUsage additionalTokenUsage) {
     return withTokenUsage(tokenUsage.add(additionalTokenUsage));
+  }
+
+  public AgentMetrics incrementToolCalls(int additionalToolCalls) {
+    return withToolCalls(toolCalls + additionalToolCalls);
   }
 
   public static AgentMetrics empty() {

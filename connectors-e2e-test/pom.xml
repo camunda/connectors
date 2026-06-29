@@ -36,6 +36,7 @@
     <module>connectors-e2e-test-inbound-runtime</module>
     <module>connectors-e2e-test-csv</module>
     <module>connectors-e2e-test-feel</module>
+    <module>connectors-e2e-test-intrinsic-functions</module>
   </modules>
 
   <dependencies>

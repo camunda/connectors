@@ -19,14 +19,17 @@ package io.camunda.connector.runtime.inbound.executable;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Health.Status;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Cancelled;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /** Service responsible for handling queries against the executable state and building responses. */
@@ -137,7 +140,7 @@ public class InboundExecutableQueryService {
         cancelled.id(),
         cancelled.executable().getClass(),
         context.connectorElements(),
-        Health.down(cancelled.exceptionThrown()),
+        context.getHealth(),
         activityLogRegistry.getLogs(cancelled.id()),
         context.getActivationTimestamp());
   }
@@ -149,7 +152,7 @@ public class InboundExecutableQueryService {
         notRegistered.id(),
         null,
         data.connectorElements(),
-        Health.down(new RuntimeException("Connector " + data.type() + " not registered")),
+        notRegistered.health(),
         activityLogRegistry.getLogs(notRegistered.id()),
         null);
   }
@@ -161,7 +164,7 @@ public class InboundExecutableQueryService {
         failed.id(),
         null,
         data.connectorElements(),
-        Health.down(new RuntimeException(failed.reason())),
+        failed.health(),
         activityLogRegistry.getLogs(failed.id()),
         null);
   }
@@ -173,7 +176,7 @@ public class InboundExecutableQueryService {
         invalid.id(),
         null,
         data.connectorElements(),
-        Health.down(new RuntimeException("Invalid connector definition: " + invalid.reason())),
+        invalid.health(),
         activityLogRegistry.getLogs(invalid.id()),
         null);
   }
@@ -190,16 +193,20 @@ public class InboundExecutableQueryService {
       return Health.up();
     }
 
-    List<Health> healths = new ArrayList<>();
+    Map<String, Object> downHealthsById = new LinkedHashMap<>();
     for (RegisteredExecutable executable : executables) {
-      healths.add(getHealthFromExecutable(executable));
+      var health = getHealthFromExecutable(executable);
+      if (health.getStatus() == Status.DOWN) {
+        downHealthsById.put(executable.id().getId(), health);
+      }
     }
 
-    boolean anyDown = healths.stream().anyMatch(h -> h.getStatus() == Status.DOWN);
-    if (anyDown) {
-      long downCount = healths.stream().filter(h -> h.getStatus() == Status.DOWN).count();
+    if (!downHealthsById.isEmpty()) {
       return Health.down(
-          new RuntimeException(downCount + " of " + healths.size() + " connectors are down"));
+          new Health.Error(
+              "CONNECTORS_DOWN",
+              downHealthsById.size() + " of " + executables.size() + " connectors are down"),
+          downHealthsById);
     }
 
     return Health.up();
@@ -207,11 +214,33 @@ public class InboundExecutableQueryService {
 
   private Health getHealthFromExecutable(RegisteredExecutable executable) {
     return switch (executable) {
-      case Activated activated -> activated.context().getHealth();
-      case Cancelled cancelled -> Health.down(cancelled.exceptionThrown());
-      case ConnectorNotRegistered ignored -> Health.down(new RuntimeException("Not registered"));
-      case FailedToActivate failed -> Health.down(new RuntimeException(failed.reason()));
-      case InvalidDefinition invalid -> Health.down(new RuntimeException(invalid.reason()));
+      case Activated activated -> enrich(activated.context().getHealth(), activated.context());
+      case Cancelled cancelled -> enrich(cancelled.context().getHealth(), cancelled.context());
+      case ConnectorNotRegistered notRegistered ->
+          enrich(notRegistered.health(), notRegistered.data());
+      case FailedToActivate failed -> enrich(failed.health(), failed.data());
+      case InvalidDefinition invalid -> enrich(invalid.health(), invalid.data());
     };
+  }
+
+  private Health enrich(Health health, InboundConnectorManagementContext context) {
+    var def = context.getDefinition();
+    Map<String, Object> details = new LinkedHashMap<>();
+    if (health.getDetails() != null) details.putAll(health.getDetails());
+    if (!def.elements().isEmpty()) {
+      details.putIfAbsent("processId", def.elements().getFirst().bpmnProcessId());
+    }
+    details.putIfAbsent("tenantId", def.tenantId());
+    details.putIfAbsent("type", def.type());
+    return health.withDetails(details);
+  }
+
+  private Health enrich(Health health, InboundConnectorDetails data) {
+    Map<String, Object> details = new LinkedHashMap<>();
+    if (health.getDetails() != null) details.putAll(health.getDetails());
+    details.putIfAbsent("processId", data.processDefinitionId());
+    details.putIfAbsent("tenantId", data.tenantId());
+    details.putIfAbsent("type", data.type());
+    return health.withDetails(details);
   }
 }

@@ -7,21 +7,24 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
+import org.jspecify.annotations.NullMarked;
 
-public sealed interface AgentInitializationResult
-    permits AgentInitializationResult.AgentContextInitializationResult,
-        AgentInitializationResult.AgentDiscoveryInProgressInitializationResult,
-        AgentInitializationResult.AgentResponseInitializationResult {
+public sealed interface AgentInitializationResult {
 
-  record AgentContextInitializationResult(
-      AgentContext agentContext, List<ToolCallResult> toolCallResults)
+  /** Agent provisioned and tools resolved: proceed to the conversation phase. */
+  @NullMarked
+  record ReadyToConverse(AgentContext agentContext, List<ToolCallResult> toolCallResults)
       implements AgentInitializationResult {}
 
-  record AgentDiscoveryInProgressInitializationResult() implements AgentInitializationResult {}
-
-  record AgentResponseInitializationResult(AgentResponse agentResponse)
+  /** Gateway tools require discovery: dispatch these discovery tool calls, then await results. */
+  @NullMarked
+  record DiscoverTools(AgentContext agentContext, List<ToolCall> toolDiscoveryToolCalls)
       implements AgentInitializationResult {}
+
+  /** Discovery already dispatched; results not all present yet — no-op this turn. */
+  @NullMarked
+  record DeferConversation() implements AgentInitializationResult {}
 }

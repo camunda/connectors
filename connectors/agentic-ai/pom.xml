@@ -20,7 +20,7 @@
   <properties>
     <version.record-builder>52</version.record-builder>
     <version.groovy>5.0.6</version.groovy>
-    <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
+    <version.gmavenplus-plugin>5.0.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
   </properties>
 
@@ -258,6 +258,10 @@
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
       <artifactId>commons-collections4</artifactId>
     </dependency>
 
@@ -305,7 +309,6 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-document</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>

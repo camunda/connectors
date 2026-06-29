@@ -8,6 +8,7 @@ package io.camunda.connector.email.config;
 
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.hostvalidator.VerifiedHost;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -22,6 +23,7 @@ public record SmtpConfig(
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpConfig.smtpHost"))
         @Valid
         @NotNull
+        @VerifiedHost
         String smtpHost,
     @TemplateProperty(
             label = "SMTP Port",

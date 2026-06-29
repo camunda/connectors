@@ -346,7 +346,7 @@ class ToolCallRequestTest {
   }
 
   private static McpSchema.CallToolResult callToolResult(Object structuredContent) {
-    return new McpSchema.CallToolResult(null, false, structuredContent, null);
+    return new McpSchema.CallToolResult(List.of(), false, structuredContent, null);
   }
 
   private static McpSchema.CallToolResult callToolResultWithEmbeddedTextResource(

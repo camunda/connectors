@@ -7,13 +7,35 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.ClientHttpException;
-import io.camunda.connector.agenticai.util.retry.ErrorClassifier;
-import io.camunda.connector.agenticai.util.retry.ErrorClassifier.Decision;
+import io.camunda.connector.agenticai.common.util.retry.ErrorClassifier;
 import java.io.IOException;
 
 public final class AgentInstanceErrorClassifier implements ErrorClassifier {
 
-  public static final AgentInstanceErrorClassifier INSTANCE = new AgentInstanceErrorClassifier();
+  /** For create: 404 is retryable (idempotent re-create against a transient lookup race). */
+  public static final AgentInstanceErrorClassifier FOR_CREATE =
+      new AgentInstanceErrorClassifier(true);
+
+  /**
+   * For update: 404 is retryable. A just-created agent instance may not yet be visible to follow-up
+   * API calls due to eventual consistency, so a transient 404 should be retried rather than failing
+   * the job.
+   */
+  public static final AgentInstanceErrorClassifier FOR_UPDATE =
+      new AgentInstanceErrorClassifier(true);
+
+  /**
+   * For history item creation: 404 is retryable for the same eventual-consistency reason as {@link
+   * #FOR_UPDATE}.
+   */
+  public static final AgentInstanceErrorClassifier FOR_HISTORY_ITEM =
+      new AgentInstanceErrorClassifier(true);
+
+  private final boolean notFoundIsRetryable;
+
+  private AgentInstanceErrorClassifier(boolean notFoundIsRetryable) {
+    this.notFoundIsRetryable = notFoundIsRetryable;
+  }
 
   @Override
   public Decision classify(Throwable t) {
@@ -22,7 +44,7 @@ public final class AgentInstanceErrorClassifier implements ErrorClassifier {
       if (current instanceof ClientHttpException httpEx) {
         int status = httpEx.code();
         if (status == 404) {
-          return Decision.RETRYABLE;
+          return notFoundIsRetryable ? Decision.RETRYABLE : Decision.PERMANENT;
         }
         if (status >= 400 && status < 500) {
           return Decision.PERMANENT;
@@ -45,6 +67,4 @@ public final class AgentInstanceErrorClassifier implements ErrorClassifier {
 
     return Decision.PERMANENT;
   }
-
-  private AgentInstanceErrorClassifier() {}
 }

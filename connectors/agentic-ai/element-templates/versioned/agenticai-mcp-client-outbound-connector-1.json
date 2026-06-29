@@ -8,8 +8,8 @@
   },
   "version" : 1,
   "category" : {
-    "id" : "connectors",
-    "name" : "Connectors"
+    "id" : "aiTools",
+    "name" : "AI Tools"
   },
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {

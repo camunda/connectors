@@ -51,4 +51,11 @@ public @interface Operation {
    * @return description of the operation
    */
   String description() default "";
+
+  /**
+   * Search aliases for the operation. Required on every {@link Operation}-annotated method
+   *
+   * @return search keywords for the operation
+   */
+  String[] keywords() default {};
 }

@@ -1,0 +1,208 @@
+# description: Streak detector for the "Merge queue Helm test" pipeline. Reacts
+# to completion of that pipeline on a protected branch (main / stable/*) and
+# maintains ONE live Slack message per base branch in the connectors support
+# channel — same find-and-update pattern as camunda/camunda's
+# alwaysgreen-streak-detector.yml.
+#
+# Behaviour:
+#   - First failure that crosses STREAK_THRESHOLD on a base ref: chat.postMessage
+#     (medic notified once).
+#   - Subsequent failed runs while the streak is active: chat.update on the same
+#     message (silent — Slack does not re-notify on edits).
+#   - First successful run after a streak: chat.update flips the message to
+#     resolved. No new notification.
+#
+# Medic routing (derived from the failing job names in the triggering run):
+#   - Connectors image build            -> connectors medic (secret)
+#   - Helm chart setup / integration     -> distro medic
+#   - SaaS / AI Agent E2E tests          -> test-automation medic
+#
+# NOTE: workflow_run workflows run from the repository default branch only, so a
+# single copy on `main` handles main + every stable/* branch (it normalises the
+# triggering run's head_branch). Copies on stable branches are inert.
+# type: CI
+# owner: @camunda/connectors
+---
+name: Merge Queue Helm Test Streak Detector
+
+on:
+  workflow_run:
+    workflows: ["Merge queue Helm test"]
+    types:
+      - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+env:
+  STREAK_THRESHOLD: '3'
+  LOOKBACK_RUNS: '10'
+  PARENT_WORKFLOW_FILE: 'MERGE_QUEUE_HELM_TEST.yaml'
+  # Marker embedded in the Slack message text so later runs can find and update
+  # their own message. Base-ref scoped so main / stable/* streaks don't collide.
+  STREAK_MARKER_ACTIVE: 'Merge queue Helm test streak (active)'
+  STREAK_MARKER_RESOLVED: 'Merge queue Helm test streak (resolved)'
+  # Subteam IDs are workspace identifiers, not secrets (same convention as
+  # camunda/camunda). The connectors medic is referenced via the existing repo
+  # secret, consistent with the other connectors Slack notifications.
+  MEDIC_DISTRO: '<!subteam^S053K7C7QKU>'
+  MEDIC_TEST_AUTOMATION: '<!subteam^S09UF0EV0HG>'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  detect-streak:
+    name: Detect failure streak
+    # Only protected-branch push runs accumulate streaks; success runs can
+    # resolve an existing live message.
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      (github.event.workflow_run.head_branch == 'main' ||
+      startsWith(github.event.workflow_run.head_branch, 'stable/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Detect failure streak on this base branch
+        id: streak
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          # Count leading consecutive non-green push runs on this branch.
+          RUNS_JSON=$(gh run list \
+            --repo "${GITHUB_REPOSITORY}" \
+            --workflow "${PARENT_WORKFLOW_FILE}" \
+            --branch "${BASE_REF}" \
+            --limit "${LOOKBACK_RUNS}" \
+            --json conclusion,status,event,createdAt 2>/dev/null || echo '[]')
+          STREAK=$(jq '
+            [ .[] | select(.status == "completed") | select(.event == "push") ]
+            | sort_by(.createdAt) | reverse
+            | (reduce .[] as $r ({count:0, broken:false};
+                if .broken then .
+                elif ($r.conclusion == "failure"
+                      or $r.conclusion == "timed_out"
+                      or $r.conclusion == "cancelled") then
+                  .count = (.count + 1)
+                else .broken = true end))
+            | .count
+          ' <<<"$RUNS_JSON")
+          STREAK=${STREAK:-0}
+          LATEST_CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+          IS_STREAK=$([[ ${STREAK} -ge ${STREAK_THRESHOLD} ]] && echo true || echo false)
+          LATEST_SUCCESS=$([[ "${LATEST_CONCLUSION}" == "success" ]] && echo true || echo false)
+          {
+            echo "streak_count=${STREAK}"
+            echo "base_ref=${BASE_REF}"
+            echo "is_streak=${IS_STREAK}"
+            echo "latest_success=${LATEST_SUCCESS}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Streak on ${BASE_REF}: ${STREAK}/${STREAK_THRESHOLD} (latest run: ${LATEST_CONCLUSION})"
+
+      - name: Resolve medics for this run's failed jobs
+        id: medics
+        if: steps.streak.outputs.is_streak == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PARENT_RUN_ID: ${{ github.event.workflow_run.id }}
+          CONNECTORS_MEDIC: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }}
+        run: |
+          set -euo pipefail
+          FAILED=$(gh api --paginate \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${PARENT_RUN_ID}/jobs" \
+            --jq '.jobs[] | select(.conclusion == "failure") | .name' || true)
+          echo "Failed jobs:"; echo "${FAILED}"
+          mentions=()
+          while IFS= read -r name; do
+            [[ -z "$name" ]] && continue
+            case "$name" in
+              *"SaaS E2E"*|*"AI Agent"*)
+                mentions+=("${MEDIC_TEST_AUTOMATION}") ;;
+              *"SM E2E"*|*"Helm chart"*|*"Integration"*)
+                mentions+=("${MEDIC_DISTRO}") ;;
+              *)
+                mentions+=("${CONNECTORS_MEDIC}") ;;
+            esac
+          done <<<"${FAILED}"
+          # Nothing attributable (e.g. run died before jobs ran) -> connectors
+          # medic owns the pipeline plumbing.
+          if (( ${#mentions[@]} == 0 )); then mentions+=("${CONNECTORS_MEDIC}"); fi
+          pings=$(printf '%s\n' "${mentions[@]}" | awk 'NF && !seen[$0]++' | paste -sd ' ' -)
+          echo "pings=${pings}" >> "$GITHUB_OUTPUT"
+          echo "Will ping: ${pings}"
+
+      - name: Find existing Slack streak message for this base
+        id: find-message
+        if: steps.streak.outputs.is_streak == 'true' || steps.streak.outputs.latest_success == 'true'
+        continue-on-error: true
+        env:
+          SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          CHANNEL_ID: C0AK0AVKRL0
+          BASE_REF: ${{ steps.streak.outputs.base_ref }}
+        run: |
+          set -euo pipefail
+          ACTIVE_MARKER="${STREAK_MARKER_ACTIVE} on ${BASE_REF}"
+          echo "active_marker=${ACTIVE_MARKER}" >> "$GITHUB_OUTPUT"
+          RESPONSE=$(curl -sS -X GET \
+            -H "Authorization: Bearer ${SLACK_TOKEN}" \
+            "https://slack.com/api/conversations.history?channel=${CHANNEL_ID}&limit=100")
+          if [[ "$(jq -r '.ok // false' <<<"$RESPONSE")" != "true" ]]; then
+            echo "conversations.history failed: $(jq -r '.error // "unknown"' <<<"$RESPONSE") — will post fresh"
+            echo "existing_ts=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          MATCH=$(jq -c --arg m "$ACTIVE_MARKER" '
+            [ .messages[]? | select((.text // "") | contains($m)) ]
+            | sort_by(.ts) | reverse | .[0] // null
+          ' <<<"$RESPONSE")
+          if [[ "$MATCH" == "null" || -z "$MATCH" ]]; then
+            echo "existing_ts=" >> "$GITHUB_OUTPUT"
+          else
+            echo "existing_ts=$(jq -r '.ts' <<<"$MATCH")" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post new streak alert to Slack (notifies medic)
+        if: steps.streak.outputs.is_streak == 'true' && steps.find-message.outputs.existing_ts == ''
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "C0AK0AVKRL0",
+              "text": ":rotating_light: ${{ steps.find-message.outputs.active_marker }} (${{ steps.streak.outputs.streak_count }} consecutive failures)\n${{ steps.medics.outputs.pings }} — please triage.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}> on `${{ steps.streak.outputs.base_ref }}`\nLatest failing run: ${{ github.event.workflow_run.html_url }}"
+            }
+
+      - name: Update existing streak alert in Slack (silent edit)
+        if: steps.streak.outputs.is_streak == 'true' && steps.find-message.outputs.existing_ts != ''
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          method: chat.update
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "C0AK0AVKRL0",
+              "ts": "${{ steps.find-message.outputs.existing_ts }}",
+              "text": ":rotating_light: ${{ steps.find-message.outputs.active_marker }} (${{ steps.streak.outputs.streak_count }} consecutive failures, ongoing)\n${{ steps.medics.outputs.pings }} — still triaging.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}> on `${{ steps.streak.outputs.base_ref }}`\nLatest failing run: ${{ github.event.workflow_run.html_url }}"
+            }
+
+      - name: Mark streak as resolved in Slack (silent edit)
+        if: steps.streak.outputs.latest_success == 'true' && steps.find-message.outputs.existing_ts != ''
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          method: chat.update
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "C0AK0AVKRL0",
+              "ts": "${{ steps.find-message.outputs.existing_ts }}",
+              "text": ":white_check_mark: ${{ env.STREAK_MARKER_RESOLVED }} on ${{ steps.streak.outputs.base_ref }} — first green run after the streak.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}>\nFirst green run: ${{ github.event.workflow_run.html_url }}"
+            }
+

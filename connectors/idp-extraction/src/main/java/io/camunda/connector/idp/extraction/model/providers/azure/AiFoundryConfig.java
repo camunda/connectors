@@ -12,6 +12,13 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * @deprecated Legacy IDP extraction provider model, used only by {@link
+ *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction} via {@code AzureProvider}.
+ *     The structured / unstructured / classification connectors use the {@code request.common}
+ *     model instead. Retained for backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 public class AiFoundryConfig {
 
   @TemplateProperty(

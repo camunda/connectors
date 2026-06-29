@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -35,13 +36,21 @@ public class InstanceAwareHealthListReducerTest {
     List<InstanceAwareModel.InstanceAwareHealth> health1 =
         List.of(
             new InstanceAwareModel.InstanceAwareHealth(
-                up.getStatus(), up.getError(), up.getDetails(), "hostname"));
+                up.getStatus(),
+                up.getError(),
+                up.getDetails(),
+                up.getLastUpdatedAt().atOffset(ZoneOffset.UTC),
+                "hostname"));
 
     Health down = Health.down();
     List<InstanceAwareModel.InstanceAwareHealth> health2 =
         List.of(
             new InstanceAwareModel.InstanceAwareHealth(
-                down.getStatus(), down.getError(), down.getDetails(), "hostname2"));
+                down.getStatus(),
+                down.getError(),
+                down.getDetails(),
+                down.getLastUpdatedAt().atOffset(ZoneOffset.UTC),
+                "hostname2"));
 
     List<InstanceAwareModel.InstanceAwareHealth> result = reducer.reduce(health1, health2);
 
@@ -57,7 +66,11 @@ public class InstanceAwareHealthListReducerTest {
     List<InstanceAwareModel.InstanceAwareHealth> health2 =
         List.of(
             new InstanceAwareModel.InstanceAwareHealth(
-                down.getStatus(), down.getError(), down.getDetails(), "hostname2"));
+                down.getStatus(),
+                down.getError(),
+                down.getDetails(),
+                down.getLastUpdatedAt().atOffset(ZoneOffset.UTC),
+                "hostname2"));
 
     List<InstanceAwareModel.InstanceAwareHealth> result = reducer.reduce(health1, health2);
 

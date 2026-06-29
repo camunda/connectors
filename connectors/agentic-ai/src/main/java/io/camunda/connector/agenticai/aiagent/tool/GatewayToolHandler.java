@@ -7,10 +7,12 @@
 package io.camunda.connector.agenticai.aiagent.tool;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.agent.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.api.document.Document;
 import java.util.List;
 
 /**
@@ -30,6 +32,14 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
    * @return true if this handler manages the tool definition, false otherwise
    */
   boolean isGatewayManaged(String toolName);
+
+  /**
+   * Resolves the BPMN element id handling the given gateway tool from its (namespaced) tool name.
+   *
+   * @param toolName the namespaced gateway tool name (e.g. {@code MCP_myElement___myTool})
+   * @return the BPMN element id (e.g. {@code myElement})
+   */
+  String resolveElementId(String toolName);
 
   GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
@@ -54,4 +64,22 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
   /** Handles tool discovery results matching the handlesToolDiscoveryResult() predicate. */
   List<ToolDefinition> handleToolDiscoveryResults(
       AgentContext agentContext, List<ToolCallResult> toolCallResults);
+
+  /**
+   * Extracts {@link Document} instances from a tool call result managed by this handler. Called
+   * after {@link #transformToolCallResults} so the {@code toolCallResult.content()} carries this
+   * handler's transformed shape (typically a typed domain object).
+   *
+   * <p>The default implementation delegates to {@link ContentTreeDocumentWalker}, which walks
+   * {@link java.util.Map}, {@link java.util.Collection}, {@code Object[]} and {@link Document}
+   * nodes. This is sufficient for handlers whose transformed content remains a raw tree.
+   *
+   * <p>Handlers that return typed records or POJOs as content must override this method and walk
+   * their own structure (typically via a sealed-type switch). For mixed shapes — typed wrappers
+   * around nested raw subtrees — call {@link
+   * ContentTreeDocumentWalker#extractDocumentsFromContent(Object)} on the raw parts.
+   */
+  default List<Document> extractDocuments(ToolCallResult toolCallResult) {
+    return ContentTreeDocumentWalker.extractDocumentsFromContent(toolCallResult.content());
+  }
 }

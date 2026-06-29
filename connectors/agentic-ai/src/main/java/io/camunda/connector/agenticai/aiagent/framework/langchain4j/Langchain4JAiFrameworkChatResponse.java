@@ -8,9 +8,17 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import dev.langchain4j.model.chat.response.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import java.time.Duration;
 
 public record Langchain4JAiFrameworkChatResponse(
-    AgentContext agentContext, AssistantMessage assistantMessage, ChatResponse rawChatResponse)
-    implements AiFrameworkChatResponse<ChatResponse> {}
+    AssistantMessage assistantMessage, AgentMetrics metrics, ChatResponse rawChatResponse)
+    implements AiFrameworkChatResponse<ChatResponse> {
+
+  @Override
+  public Langchain4JAiFrameworkChatResponse withExecutionTimeMetrics(Duration executionTime) {
+    return new Langchain4JAiFrameworkChatResponse(
+        assistantMessage, metrics.withExecutionTime(executionTime), rawChatResponse);
+  }
+}

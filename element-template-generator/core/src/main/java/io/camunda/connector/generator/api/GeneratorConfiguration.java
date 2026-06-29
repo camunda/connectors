@@ -26,7 +26,7 @@ public record GeneratorConfiguration(
     ConnectorMode connectorMode,
     String templateId,
     String templateName,
-    Integer templateVersion,
+    Long templateVersion,
     Set<ConnectorElementType> elementTypes,
     Map<GenerationFeature, Boolean> features) {
 

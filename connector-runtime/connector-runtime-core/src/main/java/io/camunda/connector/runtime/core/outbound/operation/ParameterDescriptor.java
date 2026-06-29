@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.outbound.operation;
 
 import com.fasterxml.jackson.core.JsonPointer;
+import java.lang.reflect.Type;
 
 public sealed interface ParameterDescriptor {
 
@@ -26,10 +27,10 @@ public sealed interface ParameterDescriptor {
 
     private final JsonPointer jsonPointer;
     private final String name;
-    private final Class<T> type;
+    private final Type type;
     private final boolean required;
 
-    public Variable(String name, Class<T> type, boolean required) {
+    public Variable(String name, Type type, boolean required) {
       this.name = name;
       this.type = type;
       this.required = required;
@@ -48,7 +49,7 @@ public sealed interface ParameterDescriptor {
       return name;
     }
 
-    public Class<T> getType() {
+    public Type getType() {
       return type;
     }
 

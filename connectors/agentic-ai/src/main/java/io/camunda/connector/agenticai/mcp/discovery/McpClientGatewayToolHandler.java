@@ -11,22 +11,28 @@ import static io.camunda.connector.agenticai.mcp.discovery.McpToolCallIdentifier
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.common.util.CollectionUtils;
+import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationDefinitions;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpDocumentContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent.BlobDocumentResource;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.util.CollectionUtils;
-import io.camunda.connector.agenticai.util.ObjectMapperConstants;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -59,6 +65,11 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   @Override
   public boolean isGatewayManaged(String toolName) {
     return McpToolCallIdentifier.isMcpToolCallIdentifier(toolName);
+  }
+
+  @Override
+  public String resolveElementId(String toolName) {
+    return McpToolCallIdentifier.fromToolCallName(toolName).elementId();
   }
 
   @Override
@@ -206,7 +217,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
                 final var toolCallIdentifier = McpToolCallIdentifier.fromToolCallName(toolCallName);
                 return new ToolCall(
                     toolCall.id(),
-                    toolCallIdentifier.elementName(),
+                    toolCallIdentifier.elementId(),
                     mcpClientOperationAsMap(
                         McpClientOperationDefinitions.callTool(
                             toolCallIdentifier.mcpToolName(), toolCall.arguments())));
@@ -263,6 +274,48 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
     }
 
     return toolCallResultBuilder.build();
+  }
+
+  @Override
+  public List<Document> extractDocuments(ToolCallResult toolCallResult) {
+    if (!(toolCallResult.content() instanceof List<?> contents)) {
+      // string-content optimization or unmanaged shape — nothing to walk
+      LOGGER.debug(
+          "MCP tool call result content is not a List ({}), skipping document extraction. toolCallId={}, toolName={}",
+          toolCallResult.content() != null
+              ? toolCallResult.content().getClass().getSimpleName()
+              : null,
+          toolCallResult.id(),
+          toolCallResult.name());
+      return List.of();
+    }
+
+    final var documents = new ArrayList<Document>();
+    for (var entry : contents) {
+      if (!(entry instanceof McpContent content)) {
+        continue;
+      }
+      switch (content) {
+        case McpDocumentContent documentContent ->
+            addIfNotNull(documents, documentContent.document());
+        case McpEmbeddedResourceContent embeddedResourceContent -> {
+          if (embeddedResourceContent.resource()
+              instanceof BlobDocumentResource blobDocumentResource) {
+            addIfNotNull(documents, blobDocumentResource.document());
+          }
+        }
+        default -> {
+          // text/object/blob/resourceLink — no documents
+        }
+      }
+    }
+    return documents;
+  }
+
+  private static void addIfNotNull(List<Document> documents, Document document) {
+    if (document != null) {
+      documents.add(document);
+    }
   }
 
   private Map<String, Object> mcpClientOperationAsMap(McpClientOperation mcpClientOperation) {

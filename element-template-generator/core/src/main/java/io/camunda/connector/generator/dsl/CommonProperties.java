@@ -70,7 +70,7 @@ public class CommonProperties {
     return builder;
   }
 
-  public static PropertyBuilder version(Integer version) {
+  public static PropertyBuilder version(Long version) {
     return HiddenProperty.builder()
         .id("version")
         .group("connector")
@@ -114,7 +114,7 @@ public class CommonProperties {
         .feel(FeelMode.disabled)
         .description("ISO-8601 duration to wait between retries")
         .group("retries")
-        .value("PT0S");
+        .value("PT30S");
   }
 
   public static PropertyBuilder activationCondition() {

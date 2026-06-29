@@ -43,6 +43,8 @@ import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
+import io.camunda.connector.runtime.instances.InstanceAwareModel;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,6 +69,8 @@ class InboundInstancesRestControllerTest {
   private static final ExecutableId RANDOM_ID_2 = ExecutableId.fromDeduplicationId("theid2");
   private static final ExecutableId RANDOM_ID_3 = ExecutableId.fromDeduplicationId("theid3");
   private static final String TYPE_2 = "anotherType";
+
+  private final Health health1 = Health.up();
 
   static class AnotherExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
 
@@ -106,7 +110,7 @@ class InboundInstancesRestControllerTest {
                                   new StandaloneMessageCorrelationPoint(
                                       "myPath", "=expression", "=myPath", null),
                                   new ProcessElementWithRuntimeData("ProcessA", 1, 1, "", ""))),
-                          Health.up(),
+                          health1,
                           Collections.emptyList(),
                           System.currentTimeMillis()),
                       new ActiveExecutableResponse(
@@ -382,6 +386,30 @@ class InboundInstancesRestControllerTest {
                 .string(
                     containsString(
                         "Data of type 'ActiveInboundConnectorResponse' with id 'UNKNOWN-ID' not found")));
+  }
+
+  @Test
+  public void shouldReturnHealth() throws Exception {
+    var response =
+        mockMvc
+            .perform(
+                get(
+                    "/inbound-instances/"
+                        + TYPE_1
+                        + "/executables/"
+                        + RANDOM_ID_1.getId()
+                        + "/health"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<InstanceAwareModel.InstanceAwareHealth> health =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    assertEquals(1, health.size());
+    assertEquals(Health.Status.UP, health.getFirst().status());
+    assertEquals(
+        health1.getLastUpdatedAt().atOffset(ZoneOffset.UTC), health.getFirst().lastUpdatedAt());
   }
 
   private boolean matchesQuery(ActiveExecutableResponse response, ActiveExecutableQuery query) {

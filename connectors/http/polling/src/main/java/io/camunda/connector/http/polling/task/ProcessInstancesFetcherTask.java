@@ -59,8 +59,9 @@ public class ProcessInstancesFetcherTask implements Runnable {
   }
 
   private void removeInactiveTasks(final List<ProcessInstanceContext> processInstanceContexts) {
+    String prefix = context.getDefinition().deduplicationId();
     List<String> activeTasks =
-        processInstanceContexts.stream().map(this::getRequestTaskKey).toList();
+        processInstanceContexts.stream().map(p -> p.taskKey(prefix)).toList();
 
     List<Map.Entry<String, ScheduledFuture<?>>> inactiveTasks =
         runningHttpRequestTaskIds.entrySet().stream()
@@ -75,7 +76,7 @@ public class ProcessInstancesFetcherTask implements Runnable {
   }
 
   private void scheduleRequest(ProcessInstanceContext processInstanceContext) {
-    String taskKey = getRequestTaskKey(processInstanceContext);
+    String taskKey = processInstanceContext.taskKey(context.getDefinition().deduplicationId());
     runningHttpRequestTaskIds.computeIfAbsent(
         taskKey,
         (key) -> {
@@ -85,10 +86,6 @@ public class ProcessInstancesFetcherTask implements Runnable {
               .scheduleWithFixedDelay(
                   task, 0, config.getHttpRequestInterval().toMillis(), TimeUnit.MILLISECONDS);
         });
-  }
-
-  private String getRequestTaskKey(final ProcessInstanceContext processInstanceContext) {
-    return context.getDefinition().deduplicationId() + processInstanceContext.getKey();
   }
 
   public void start() {

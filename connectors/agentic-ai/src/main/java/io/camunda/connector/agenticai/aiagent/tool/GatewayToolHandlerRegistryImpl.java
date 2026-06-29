@@ -7,10 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -161,6 +161,13 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
           gatewayToolHandler.transformToolCallResults(agentContext, transformedToolCallResults);
     }
 
-    return transformedToolCallResults;
+    return transformedToolCallResults.stream().map(this::withElementId).toList();
+  }
+
+  private ToolCallResult withElementId(ToolCallResult result) {
+    if (result.elementId() != null || result.name() == null) {
+      return result;
+    }
+    return result.withElementId(resolveElementId(result.name()).orElse(result.name()));
   }
 }

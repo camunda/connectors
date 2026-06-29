@@ -1,354 +1,283 @@
-# Agentic AI Module – Agent Instructions
+# Agentic AI Module: Agent Instructions
 
-## Module Overview
+The `agentic-ai` module implements Camunda's AI Agent connectors: an agentic orchestration system that
+runs LLM tool-calling loops inside BPMN processes. It ships in two flavors, an AI Agent Task (on a
+service task) and an AI Agent Sub-process (on an ad-hoc sub-process), plus supporting infrastructure
+for tool calling, conversation memory, gateway tools (MCP, A2A), and event handling.
 
-The `agentic-ai` module implements Camunda's AI Agent connectors — a distributed agentic orchestration system that
-integrates LLMs with BPMN processes via ad-hoc sub-processes. The module provides two connector flavors and supporting
-infrastructure for tool calling, conversation memory, and event handling.
+## How to use this document
 
-**This document is a concise orientation and reference guide.** For detailed code-level analysis, see the reference docs:
+This file is a router and operating-rules layer. It is not the architecture reference. It orients an
+agent working in the module (new to it or returning) and routes it to the right resource:
 
-- [`docs/adr/`](docs/adr/) — architecture decision records
-- [`docs/reference/ai-agent.md`](docs/reference/ai-agent.md) — core AI Agent architecture
-- [`docs/reference/mcp.md`](docs/reference/mcp.md) — MCP integration
-- [`docs/reference/a2a.md`](docs/reference/a2a.md) — A2A integration
+1. Build the minimal [mental model](#mental-model) below.
+2. Use [Start here, navigation](#start-here-navigation) to jump to the exact reference section for
+   your task. Read that section by anchor or `Read` offset rather than the whole file.
+3. Follow the [operating rules](#working-in-this-module), especially the e2e-vs-unit decision rule
+   and the Definition of Done, before declaring a change complete.
 
-## Key Concepts
+Deep architecture lives in the reference docs, linked instead of copied:
 
-### Connector vs Job Worker
+- [`docs/reference/ai-agent.md`](docs/reference/ai-agent.md): core AI Agent architecture (sections cited as
+  `ai-agent.md §N`)
+- [`docs/reference/mcp.md`](docs/reference/mcp.md): MCP integration
+- [`docs/reference/a2a.md`](docs/reference/a2a.md): A2A integration
+- [`docs/adr/`](docs/adr/): architecture decision records
+- Repo-root [`AGENTS.md`](../../AGENTS.md): repo-wide build, commit, PR, CI, spotless, license, and
+  element-template conventions. These are not duplicated here.
 
-|                      | AI Agent Task (Connector)            | AI Agent Sub-process (Job Worker)              |
-|----------------------|--------------------------------------|------------------------------------------------|
-| BPMN element         | Service task                         | Ad-hoc sub-process                             |
-| Entry class          | `AiAgentFunction`                    | `AiAgentJobWorker`                             |
-| Type                 | `io.camunda.agenticai:aiagent:1`     | `io.camunda.agenticai:aiagent-job-worker:1`    |
-| Feedback loop        | Explicit (modeled in BPMN)           | Implicit (engine-managed)                      |
-| Tool source          | Camunda API (fetches BPMN XML)       | `adHocSubProcessElements` variable (Zeebe)     |
-| Agent context        | Wired via process variables by modeler | Scoped within sub-process                    |
-| Event support        | No                                   | Yes (non-interrupting only)                    |
-| Config per iteration | Yes (input mappings re-evaluated)    | No (frozen on AHSP entry)                      |
-| Job completion       | Auto (connector runtime)             | Custom (`AdHocSubProcessConnectorResponse`)    |
+## Start here, navigation
 
-### Ad-Hoc Sub-Process (AHSP)
+> **`ai-agent.md` is a long reference.** Use the table below to locate the exact section, then read it by anchor or `Read` with `offset`/`limit`. Do not ingest the whole file.
 
-An ad-hoc sub-process has inner elements not connected to start/end events. With a job worker implementation:
+| Working on…                                                              | Read                                                                                    |
+|--------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| The distributed agent loop / execution model                             | [§3](docs/reference/ai-agent.md#3-the-agentic-loop)                                     |
+| Agent state machine & initialization (INITIALIZING/TOOL_DISCOVERY/READY) | [§4](docs/reference/ai-agent.md#4-agent-state-machine)                                  |
+| Data model (`AgentContext`, `AgentResponse`, `ToolCallProcessVariable`)  | [§5](docs/reference/ai-agent.md#5-data-model)                                           |
+| Conversation memory, storage backends, write-ahead store contract        | [§6](docs/reference/ai-agent.md#6-conversation-memory)                                  |
+| Tool resolution, FEEL `fromAi()` extraction, JSON-schema generation      | [§7](docs/reference/ai-agent.md#7-tool-resolution)                                      |
+| Job completion / ad-hoc sub-process directives                           | [§8](docs/reference/ai-agent.md#8-job-completion)                                       |
+| Tool completion, partial results, no-op completion                       | [§9](docs/reference/ai-agent.md#9-tool-completion)                                      |
+| Concurrency & race conditions (supersession, store-ahead-of-Zeebe)       | [§10](docs/reference/ai-agent.md#10-concurrency)                                        |
+| Event handling (sub-process only)                                        | [§11](docs/reference/ai-agent.md#11-event-handling)                                     |
+| Framework abstraction & LangChain4J converter chain                      | [§12](docs/reference/ai-agent.md#12-framework-abstraction)                              |
+| System prompt composition / contributors                                 | [§13](docs/reference/ai-agent.md#13-system-prompt-composition)                          |
+| Response handling (text / JSON / full message)                           | [§14](docs/reference/ai-agent.md#14-response-handling)                                  |
+| Error codes                                                              | [§15](docs/reference/ai-agent.md#15-error-codes)                                        |
+| Spring auto-configuration, feature toggles, config defaults              | [§16](docs/reference/ai-agent.md#16-spring-auto-configuration)                          |
+| Process instance migration (what's allowed / blocked)                    | [§17](docs/reference/ai-agent.md#17-migration)                                          |
+| Code paths & class diagram                                               | [§18](docs/reference/ai-agent.md#18-code-paths)                                         |
+| Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [§19](docs/reference/ai-agent.md#19-gateway-tool-pattern)                               |
+| MCP integration                                                          | [§20](docs/reference/ai-agent.md#20-mcp-integration), [`mcp.md`](docs/reference/mcp.md) |
+| A2A integration                                                          | [§21](docs/reference/ai-agent.md#21-a2a-integration), [`a2a.md`](docs/reference/a2a.md) |
+| Example BPMN processes & configurations                                  | [§22](docs/reference/ai-agent.md#22-examples), [`examples/`](examples/)                 |
+| Agent instance API (status, metrics, history reporting)                  | [§23](docs/reference/ai-agent.md#23-agent-instance-integration)                         |
+| **Architectural invariants (what you must not break)**                   | [§24](docs/reference/ai-agent.md#24-architectural-invariants)                           |
+| **Extension points** (add provider / contributor / store)                | [§25](docs/reference/ai-agent.md#25-extension-playbooks)                                |
 
-1. Zeebe creates a job when entering the AHSP and when any inner flow completes
-2. The job worker decides which elements to activate and when the AHSP is complete
-3. **Only one active job exists at a time** — a new inner flow completion supersedes the current job
-4. Job completion can result in `NOT_FOUND` if the job was superseded
-5. The `adHocSubProcessElements` variable provides metadata about activatable elements
-6. `outputCollection`/`outputElement` collect inner flow results into a list
+## Mental model
 
-### The Distributed Agent Loop (Sub-process Flavor)
+Two flavors share one orchestration core (`BaseAgentRequestHandler`):
 
-```
-Zeebe creates job → Worker picks up → Initialize agent → Load memory →
-Add messages (user prompt OR tool results + events) → Call LLM →
-Store memory → Complete job with:
-  - If tool calls: activate elements in AHSP, continue loop
-  - If no tool calls: completionConditionFulfilled=true, AHSP completes
-```
+- **AI Agent Task** (`AiAgentFunction`): a service-task connector whose tool-calling loop is modeled
+  explicitly in BPMN.
+- **AI Agent Sub-process** (`AiAgentJobWorker`): a job worker on an ad-hoc sub-process (AHSP) whose
+  loop is implicit (engine-driven) and supports events. This is the recommended flavor.
 
-When tools complete, Zeebe adds results to `toolCallResults` (via `outputElement`) and creates a new job.
-If not all expected results are present, the worker completes as a no-op and waits for the next job.
+The loop (sub-process flavor): each job initializes the agent, loads memory, adds input (user prompt or
+tool results plus events), calls the LLM, stores memory, and completes; tool calls activate AHSP
+elements and continue the loop, no tool calls finishes it. Zeebe appends each tool result to
+`toolCallResults` and creates a new job; if results are still incomplete the worker no-ops and waits.
 
-## Architecture
+Full flavor comparison (tool source, config-per-iteration, completion) and the loop diagram:
+`ai-agent.md` §2 and §3 (mechanics in §8, §9).
 
-### Core Components
+## Glossary
 
-```
-agent/
-├── AgentInitializerImpl        # State machine: INITIALIZING → TOOL_DISCOVERY → READY
-├── BaseAgentRequestHandler     # Core orchestrator: init → memory → messages → LLM → response → complete
-├── JobWorkerAgentRequestHandler    # Job worker completion logic
-├── OutboundConnectorAgentRequestHandler  # Connector completion logic
-├── AgentMessagesHandlerImpl    # Message assembly (prompts, tool results, events)
-├── AgentResponseHandlerImpl    # Response formatting (text/JSON/full message)
-├── AgentToolsResolverImpl      # Tool definition loading & migration updates
-└── AgentLimitsValidatorImpl    # Safety limits (max model calls)
+These terms are overloaded; the three `*Context` types are the usual confusion. Full definitions:
+[§5](docs/reference/ai-agent.md#5-data-model) for the data-model types (`AgentContext`,
+`AgentExecutionContext`) and [§6](docs/reference/ai-agent.md#6-conversation-memory) for the
+conversation and turn types (everything else below).
 
-framework/
-├── AiFrameworkAdapter          # Abstract LLM interface (RuntimeMemory → response)
-└── langchain4j/                # LangChain4J implementation
+| Term                                  | One-line meaning                                                                                                         |
+|---------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| **Turn** (`AgentConversationTurn`)    | one LLM call (input messages, assistant response, per-turn metrics); pending when `assistantMessage == null`             |
+| **Iteration** / `iterationKey`        | 1-based counter across the agent's lifetime identifying a turn                                                           |
+| **AgentContext**                      | durable persisted state (state, metrics, tool definitions, conversation pointer); the `agentContext` process variable    |
+| **ConversationContext**               | pointer inside `AgentContext` to where messages live (in-process holds the messages, other stores hold only the pointer) |
+| **AgentExecutionContext**             | transient per-invocation request context (job metadata, provider config, prompts, limits); not persisted                 |
+| **AgentConversation**                 | immutable in-process turn aggregate, built per invocation                                                                |
+| **Snapshot** (`ConversationSnapshot`) | transient windowed read-only view sent to the LLM                                                                        |
+| **Window**                            | sliding message limit (`MessageWindowFilter`) applied to the snapshot; full history is always persisted                  |
 
-memory/
-├── conversation/
-│   ├── ConversationStore       # Pluggable storage: createSession() factory pattern
-│   ├── ConversationSession     # Per-invocation: loadMessages/storeMessages (AutoCloseable)
-│   ├── ConversationContext     # Persistent reference (conversationId)
-│   ├── inprocess/              # In-process store (messages in agentContext variable)
-│   └── document/               # Camunda Document Storage backend
-└── runtime/
-    ├── RuntimeMemory           # Transient working memory for single execution
-    └── MessageWindowRuntimeMemory  # Sliding window filter (keeps last N messages)
+## Gotchas
 
-tool/
-├── GatewayToolHandler          # Interface for gateway tools (MCP, A2A)
-└── GatewayToolHandlerRegistry  # Registry of gateway tool handlers
-```
+High-frequency traps (detail behind each link):
 
-### Data Model
+- **Job supersession / `NOT_FOUND`**: a completing tool creates a new job; the stale in-flight job may be rejected.
+  `ai-agent.md` §10.
+- **Partial tool results → no-op**: incomplete results make the composer return `Deferred` and the worker complete
+  without an LLM call. Expected, not a bug. `ai-agent.md` §9.
+- **Write-ahead, pointer-based store contract**: `storeMessages` writes a new location; `loadMessages` follows the
+  `AgentContext` pointer. Never overwrite what the current pointer references. `ai-agent.md` §6.
+- **Sub-process config frozen at AHSP entry**: input mappings evaluate once, so config/migration changes don't reach a
+  running instance (Task flavor re-evaluates per iteration). `ai-agent.md` §17.
+- **Migration blocked cases**: removing/renaming tools or adding/removing gateway tools fails; adding tools or changing
+  descriptions is allowed. `ai-agent.md` §17.
+- **`toolCallResult = ""` scoping trick**: the empty default keeps the variable local to the tool element so it doesn't
+  bubble up to the AHSP scope. `ai-agent.md` §8.
+- **Events have `id = null`**: tool-call results without an id are event results, partitioned from real tool results.
+  `ai-agent.md` §11.
 
-**`AgentContext`** — persistent state across iterations:
-- `state`: `INITIALIZING` | `TOOL_DISCOVERY` | `READY`
-- `metadata`: `{processDefinitionKey, processInstanceKey}` (migration detection)
-- `metrics`: `{modelCalls, tokenUsage}`
-- `toolDefinitions`: resolved tool definitions for LLM
-- `conversation`: storage-specific reference (in-process messages OR document reference)
-- `properties`: extensible map (used by gateway tools for discovery state)
+## Architectural invariants
 
-**`AgentResponse`** — output: updated `AgentContext` + tool calls + LLM response (text/JSON/full message).
+Do not break these (full statement and rationale in
+[§24](docs/reference/ai-agent.md#24-architectural-invariants)). They are the rules a future ArchUnit
+suite will enforce (epic #7537):
 
-**`ToolCallProcessVariable`** — flattened tool call for process variables: `{_meta: {id, name}, ...args}`.
+- **Framework-agnostic core.** Only `aiagent/framework/langchain4j/**` may import `dev.langchain4j.*`.
+  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
+  framework-neutral.
+- **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
+  (`io.camunda.connector.agenticai.model.*`) is translated to/from LangChain4J only through the
+  converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
+  [§12](docs/reference/ai-agent.md#12-framework-abstraction).
+- **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
+  (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others) with a single
+  `*Impl`. Wire impls as Spring beans, depend on the interface.
+- **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
+  gateway tool by implementing the SPI and registering a bean. See
+  [§25](docs/reference/ai-agent.md#25-extension-playbooks).
 
-**`AiAgentSubProcessConnectorResponse`** — job completion directives: AHSP done/continue, cancel flags, element activations, variables. Implements `AdHocSubProcessConnectorResponse` — the runtime translates it into the Zeebe complete command with ad-hoc sub-process result configuration.
+## Working in this module
 
-**`AiAgentTaskConnectorResponse`** — wraps `AgentResponse` as a `StandardConnectorResponse` for the task connector flavor. The runtime evaluates result expressions against the wrapped response value.
+General coding behavior (think before coding, simplicity, surgical changes, goal-driven execution)
+lives in [`docs/coding-guidelines.md`](docs/coding-guidelines.md). The rules below are the module
+specifics.
 
-For full record definitions, see [ai-agent.md §5](docs/reference/ai-agent.md#5-data-model).
-
-### Variable Flow (Sub-process)
-
-**Variables set on job completion:**
-- `agentContext` → updated agent context (always)
-- `toolCallResults` → `[]` (cleared when tool calls present)
-- `agent` → response variable (only on final completion)
-
-**Variables set per activated tool element:**
-- `toolCall` → the tool call data (`{_meta: {id, name}, ...args}`)
-- `toolCallResult` → `""` (empty default to scope locally, prevents bubble-up)
-
-**Output collection:**
-- `outputCollection` = `toolCallResults`
-- `outputElement` = `={id: toolCall._meta.id, name: toolCall._meta.name, content: toolCallResult}`
-
-## Critical Behaviors
-
-Partial tool results trigger no-op completions until all expected results arrive. Jobs may be superseded when tools
-complete — handled via `CommandWrapper` retries. For detailed mechanics, see
-[ai-agent.md §9 (tool completion)](docs/reference/ai-agent.md#9-tool-completion) and
-[§10 (concurrency)](docs/reference/ai-agent.md#10-concurrency).
-
-### Conversation Session Lifecycle
-
-`ConversationStore.createSession()` returns an `AutoCloseable` session used via try-with-resources:
-
-```
-try (var session = store.createSession(ctx, agentContext)) {
-    var loaded = session.loadMessages(agentContext)
-    [add messages to runtime memory, call LLM, etc.]
-    var cursor = session.storeMessages(agentContext, request)
-    agentContext = agentContext.withConversation(cursor)
-} → buildConnectorResponse
-```
-
-For backend-specific behavior and failure handling, see [ai-agent.md §6](docs/reference/ai-agent.md#6-conversation-memory).
-
-### Event Handling (Sub-process Only)
-
-Events from non-interrupting event sub-processes produce `ToolCallResult` entries with `id = null` (no tool call ID).
-These are partitioned from actual tool results. Two behaviors:
-
-- **WAIT_FOR_TOOL_CALL_RESULTS**: Wait for all tools to finish, then add event messages as user messages
-- **INTERRUPT_TOOL_CALLS**: Cancel missing tools (synthetic cancelled results), cancel remaining instances
-
-### Process Migration
-
-Migration detection: `AgentMetadata.processDefinitionKey` vs current job's key.
-- Allowed: adding tools, changing descriptions/parameters, changing implementations
-- Blocked: removing tools (`MIGRATION_MISSING_TOOLS`), changing gateway tools (`MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`)
-- Task flavor: config changes picked up per iteration. Sub-process flavor: config frozen at AHSP entry
-
-## Memory Storage Backends
-
-| Backend          | Type               | Storage                                          | Notes                                                                                                         |
-|------------------|--------------------|--------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| In-process       | `in-process`       | Messages inside `agentContext` process variable  | Durable (engine-persisted). Variable size limits for large conversations                                      |
-| Camunda Document | `camunda-document` | JSON document in document storage                | Conversation stored externally; only a reference in `agentContext`                                             |
-| Custom           | `custom`           | User-provided implementation                     | Implement `ConversationStore`, `ConversationSession`, `ConversationContext`; register custom `ConversationContext` subtypes with the runtime `ObjectMapper` |
-
-`MessageWindowRuntimeMemory` limits messages sent to LLM (default: 20). Full history is always persisted.
-For eviction rules and architecture details, see [ai-agent.md §6](docs/reference/ai-agent.md#6-conversation-memory).
-
-## Building & Testing
+### Building & testing
 
 ```bash
-# Build agentic-ai module only
-mvn clean install -pl connectors/agentic-ai
-
-# Generate element templates
-mvn clean compile -pl connectors/agentic-ai
-
-# Run unit tests
-mvn test -pl connectors/agentic-ai
+mvn clean install -pl connectors/agentic-ai               # build the module, including tests
+mvn clean install -DskipTests -pl connectors/agentic-ai   # build the module, skipping tests
+mvn test -pl connectors/agentic-ai                        # unit / integration tests
 ```
 
-In the agentic-ai module, only use unit testing apart from the few existing Spring Boot tests.
+**Prerequisite**: the e2e tests require `element-templates-cli` on your PATH. The e2e harness shells out
+to it (`BpmnFile.apply`) to apply templates, so it must be installed even though no pom declares it.
+Template generation itself uses the `element-template-generator-maven-plugin` and needs no CLI. When it
+is missing, e2e tests fail with errors that can look unrelated to your change. Install it once with
+`npm i -g element-templates-cli`.
 
-### E2E Tests
+Unit tests use JUnit 5, Mockito, and AssertJ. In this module use unit tests only, apart from the few
+existing Spring Boot tests and the e2e suite. For repo-wide build/commit/PR/CI/spotless/license rules,
+see the repo-root [`AGENTS.md`](../../AGENTS.md). Do not duplicate them here.
 
-E2E tests are in `connectors-e2e-test/connectors-e2e-test-agentic-ai/`. They use Spring Boot test with an embedded
-Zeebe engine and mock LLM responses.
+E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/` (Camunda Process Test scenarios plus WireMock
+LLM stubs). Extend `BaseAiAgentJobWorkerTest` (sub-process flavor) or `BaseAiAgentConnectorTest` (task
+flavor).
 
 ```bash
-# Run a specific e2e test class
 mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Dtest=<TestClassName>
-
-# Run all e2e tests (slow — will take a long time)
-mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai
 ```
 
-When verifying changes, search the e2e test directory for test cases relevant to the change and run those selectively
-rather than running the full suite. Running all e2e tests takes a long time.
+Running the full e2e suite is slow. Search the e2e directory for tests relevant to your change and run
+those selectively. Ensure that all e2e tests pass after completing a major work item.
 
-## Gateway Tool Pattern
+**Test approach**: follow TDD (red, green, refactor) wherever possible. E2e tests can be written
+implementation-independently first: express the behavior, watch it fail, implement, then confirm it
+passes. Tests should be usecase- and behavior-driven, asserting real behavior. Avoid tests that exist
+only to close coverage gaps in a per-class equivalence suite.
 
-The Gateway Tool Pattern is the extensibility mechanism for integrating external tool providers (MCP, A2A) that expose
-**multiple tools behind a single BPMN element**.
+### Choosing e2e vs unit tests (mandatory decision)
 
-- MCP: one element = **many tools** (discrete operations from an MCP server)
-- A2A: one element = **one tool** (an entire remote agent)
+For every code change, explicitly decide whether an e2e test is warranted, using this rule. If you add
+none for a change that touches the element template or behavioral characteristics, say why. If you are unsure, ask before
+starting a change. The examples below are illustrative, not exhaustive; when a case is not
+listed, reason from the principle (does correctness depend on the engine and BPMN wiring?).
 
-### How it works
+- **E2E test required** when the change touches the distributed / BPMN contract:
+    - job completion semantics or ad-hoc sub-process directives
+    - element activation from tool calls
+    - variable flow to/from Zeebe (`toolCallResults`, `agentContext`, `toolCall`, `toolCallResult`)
+    - conversation memory persistence across job boundaries
+    - event handling (interrupt / wait behaviors)
+    - the full request → LLM → response cycle
+    - element-template behavior
+- **Unit-test-only is sufficient** when the change is internal to a single class/converter and provable
+  without the engine:
+    - prompt composition, schema generation, content/tool conversion
+    - response formatting, error messages, pure transformations
 
-1. Gateway elements are identified via `io.camunda.agenticai.gateway.type` extension property (set by element template)
-2. `GatewayToolDefinitionResolver` implementations detect and separate gateway elements from regular tools
-3. `GatewayToolHandler` implementations manage the two-phase lifecycle:
-   - **Discovery phase**: creates tool calls that activate gateway connectors to list their tools
-   - **Registration phase**: converts discovery results into `ToolDefinition`s with namespaced names
-4. `GatewayToolCallTransformer` interface handles bidirectional name mapping between LLM and BPMN
+### Definition of Done
 
-### Discovery integrates with the agent state machine
+Before claiming a change is complete:
 
-```
-INITIALIZING → (gateway elements found?) → discovery tool calls → TOOL_DISCOVERY
-TOOL_DISCOVERY → (all results received?) → merge tools → READY
-```
+- [ ] Module builds (`mvn clean install -pl connectors/agentic-ai`).
+   - [ ] If deviating from the `mvn install` command, ensure `mvn spotless:apply` and `mvn license:format` run clean (pre-commit hooks enforce these).
+- [ ] Unit tests added/updated and passing.
+- [ ] E2E test decision made per the rule above (test added, or reason stated, or question asked).
+- [ ] Element templates regenerated (`mvn clean compile -pl connectors/agentic-ai`) if template properties changed;
+  check the JSON diff.
+- [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 
-For implementation details, see [ai-agent.md §19](docs/reference/ai-agent.md#19-gateway-tool-pattern).
+## Extension points
 
-### Key files
+Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, or a gateway tool by
+implementing the SPI and registering a Spring bean. Where to start (SPI + reference implementation per
+type): `ai-agent.md` §25 (gateway tools: §19).
 
-| File                                                    | Purpose                                              |
-|---------------------------------------------------------|------------------------------------------------------|
-| `GatewayToolHandler.java`                               | Core interface: discovery, result handling, tool management |
-| `GatewayToolCallTransformer.java`                       | Name transformation (LLM ↔ BPMN)                   |
-| `GatewayToolHandlerRegistryImpl.java`                   | Registry wrapping multiple handlers                  |
-| `TypePropertyBasedGatewayToolDefinitionResolver.java`   | Base class for extension property detection          |
-| `AdHocToolsSchemaResolverImpl.java`                     | Separates gateway from regular tools                 |
+## Element templates
 
-## MCP Integration
+The JSON element templates are **generated**, not hand-edited. They are produced from the
+`@ElementTemplate`-annotated connector functions and their bound data models (`@TemplateProperty`
+fields), so the source of truth is the Java, not the JSON. The template version comes from the
+annotation's `version` attribute on the connector function; bumping it there bumps the generated
+template. The AI Agent Sub-process template is in turn derived from the AI Agent Task
+template via `bin/transform-ai-agent-job-worker-template.groovy` (gmavenplus-plugin, `process-classes`
+phase).
 
-MCP (Model Context Protocol) integration enables the AI Agent to discover and call tools from MCP servers.
-Two connector types:
+To regenerate, run `mvn clean compile -pl connectors/agentic-ai` and commit the JSON diff; never edit
+the generated JSON by hand. For the generation mechanism and annotation reference, see the
+[element template generator documentation](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-sdk/#element-template-generation).
+When a version is bumped, a template moves into `versioned/`, or a connector is added, also update
+[`element-templates/README.md`](element-templates/README.md) following these rules:
 
-- **MCP Client** (`McpClientFunction`, type `io.camunda.agenticai:mcpclient:1`): Pre-configured MCP connections on runtime
-- **MCP Remote Client** (`McpRemoteClientFunction`, type `io.camunda.agenticai:mcpremoteclient:1`): On-demand remote connections
+1. **Identify the new minimum Camunda version** by checking the `engines.camunda` field of the new
+   template (e.g. `^8.10`).
+2. **Same minimum as the current top row**: bump the top row's template version and keep its link
+   pointing to the latest `./<file>.json` in this folder. The superseded version moves into `versioned/`
+   but is not listed (the table shows only the latest template per minimum Camunda version).
+3. **Higher minimum than the current top row**: insert a new top row with the new minimum Camunda
+   version and template version, and move the previous top row's link under `versioned/`.
+4. **AI Agent has two tables** (Task and Sub-process) sharing the same version numbers. Update both.
+5. **New connector**: add a section in the same order as the existing ones (AI Agent, MCP Client, A2A,
+   Ad-hoc tools schema) with an intro paragraph linking to the `docs.camunda.io` overview page.
 
-For the complete MCP reference, see [`docs/reference/mcp.md`](docs/reference/mcp.md).
+Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
-### Gateway tool naming
+## Key entry points
 
-Tool naming: `MCP_<elementName>___<mcpToolName>` — one MCP server = many tools, triple-underscore separates gateway
-element from tool name.
+| File                                        | Purpose                                    |
+|---------------------------------------------|--------------------------------------------|
+| `AiAgentFunction.java`                      | Connector (Task) entry point               |
+| `AiAgentJobWorker.java`                     | Job worker (Sub-process) entry point       |
+| `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
+| `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                         |
 
-## A2A Integration
+Full code-path reference and class diagram: `ai-agent.md` §18.
 
-A2A (Agent-to-Agent) integration enables the AI Agent to interact with remote autonomous agents.
-`A2aSystemPromptContributor` injects protocol instructions (from `a2a/a2a-system-prompt.md`) when A2A tools are
-detected.
+## Architecture decision records
 
-For the complete A2A reference, see [`docs/reference/a2a.md`](docs/reference/a2a.md).
+ADRs in [`docs/adr/`](docs/adr/) capture significant technical decisions (context, alternatives,
+rationale). Write an ADR when a change chooses between meaningful alternatives, such as replacing a
+framework, restructuring a core subsystem, or changing a storage strategy. Routine bug fixes,
+refactors, and pattern-following feature additions do not need one.
 
-### Gateway tool naming
+**Write the ADR before implementation.** It is the primary artifact of the planning phase and the
+major context for it: capture the decision and its drivers up front, so review happens on the decision
+rather than after the code exists.
 
-Tool naming: `A2A_<elementName>` — one A2A element = one tool (an entire remote agent).
+**An ADR is immutable once merged.** It may still be revised within the scope of the PR that
+introduces it. After it lands on `main`, leave it as-is: supersede or extend it with a new ADR, marking
+the old one's Status as `Superseded` and linking the replacement.
 
-## Element Templates
+Follow the structure of existing ADRs (see [ADR 001](docs/adr/001-replace-mcp-client-framework.md)):
+Title, Deciders/Date, Status, Context & Problem, Decision Drivers, Considered Options, Decision
+Outcome.
 
-- `agenticai-aiagent-outbound-connector.json` — AI Agent Task (service task)
-- `agenticai-aiagent-job-worker.json` — AI Agent Sub-process (ad-hoc sub-process)
+## Keeping documentation up to date
 
-The job worker template is auto-generated from the outbound template via
-`bin/transform-ai-agent-job-worker-template.groovy` (gmavenplus-plugin, `process-classes` phase).
+When a change touches documented structure (classes, interfaces, data-model records, config
+properties, error codes, behavioral contracts), update the matching doc in the same change:
 
-### Version index README
+- **`AGENTS.md`** (this file): high-level orientation (mental model, navigation, glossary, gotchas,
+  invariants, build/test commands, entry points).
+- **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
+  config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`.
+- **`element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
+  (maintenance rules are in the Element templates section above).
 
-[`element-templates/README.md`](element-templates/README.md) is a user-facing
-index (linked from the Camunda Marketplace) that maps each connector to the
-latest template version per Camunda minor release. It must stay in sync with the
-JSON files every time a template version is bumped or a new connector is added.
-
-When `versionHistoryEnabled` moves a superseded template into
-`element-templates/versioned/`, update the README as follows:
-
-1. **Identify the new minimum Camunda version** — check the `engines.camunda`
-   field of the new template (e.g. `^8.10`).
-2. **Same minimum as the current top row** → replace the top row: update the
-   template version and the file link (the link now points at the file in
-   `versioned/`, since the newest template in the main folder replaced it).
-3. **Higher minimum than the current top row** → insert a new row at the top
-   with the new minimum Camunda version and template version, and move the
-   previous top row's link under `versioned/`.
-4. **AI Agent has two tables** (Task + Sub-process). They share the same
-   template version numbers, so update both.
-5. **New connector** → add a new section in the same order as the existing
-   ones (AI Agent, MCP Client, A2A, Ad-hoc tools schema) with an intro
-   paragraph linking to the `docs.camunda.io` overview page for that connector.
-
-Do not list `element-templates/hybrid/` templates in the README — they are
-intentionally omitted.
-
-## Key Entry Points
-
-| File                                          | Purpose                                      |
-|-----------------------------------------------|----------------------------------------------|
-| `AiAgentFunction.java`                        | Connector (Task) entry point                 |
-| `AiAgentJobWorker.java`                       | Job worker (Sub-process) entry point         |
-| `BaseAgentRequestHandler.java`                | Core orchestrator (shared by both flavors)   |
-| `AgenticAiConnectorsAutoConfiguration.java`   | Spring Boot wiring                           |
-
-For the full code path reference, see [ai-agent.md §18](docs/reference/ai-agent.md#18-code-paths).
-
-## Architecture Decision Records
-
-Architecture Decision Records (ADRs) capture significant technical decisions with their context, alternatives considered,
-and rationale. They live in [`docs/adr/`](docs/adr/) and serve as a historical log of why the architecture looks the
-way it does.
-
-**When to write an ADR:** When a change involves choosing between meaningful alternatives — e.g., replacing a framework,
-restructuring a core subsystem, or changing a storage strategy. Routine bug fixes, refactors, and feature additions that
-follow established patterns do not need ADRs.
-
-**Format:** Follow the structure used in existing ADRs (see
-[ADR 001](docs/adr/001-replace-mcp-client-framework.md) as an example):
-
-- **Title** — short description of the decision
-- **Deciders / Date** — who decided and when
-- **Status** — Proposed, Accepted, Implemented, Superseded
-- **Context and Problem Statement** — what problem triggered the decision
-- **Decision Drivers** — key factors that influenced the choice
-- **Considered Options** — alternatives evaluated
-- **Decision Outcome** — chosen option with justification
-
-Additional sections (e.g., trade-offs, migration notes, backward compatibility) can be added as needed.
-
-## Keeping Documentation Up to Date
-
-When making code changes to this module, update the relevant documentation to reflect those changes:
-
-- **This file (`AGENTS.md`)**: Update if the change affects high-level architecture, key concepts, build commands, or
-  entry points.
-- **`element-templates/README.md`**: Update whenever an element template version is bumped, a template is moved into
-  `versioned/`, or a new connector is added. See [Version index README](#version-index-readme) for the update rules.
-- **`docs/reference/ai-agent.md`**: Update for changes to the core agent framework — orchestration, memory, tool
-  resolution, converters, configuration, error handling.
-- **`docs/reference/mcp.md`**: Update for changes to MCP client integration — data model, client lifecycle, transport,
-  discovery, Spring configuration.
-- **`docs/reference/a2a.md`**: Update for changes to A2A integration — data model, SDK client layer, async patterns,
-  connectors, Spring configuration.
-
-Documentation should stay accurate with the code. If a change adds, removes, or modifies classes, interfaces, data
-model records, configuration properties, error codes, or behavioral contracts documented in the reference files, update
-the corresponding sections.
+> `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
+> Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.

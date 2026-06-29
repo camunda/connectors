@@ -18,10 +18,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -460,16 +460,19 @@ class GatewayToolHandlerRegistryTest {
               ToolCallResult.builder()
                   .id("GatewayA1_AFirstTool_123456")
                   .name("GatewayA1_AFirstTool")
+                  .elementId("GatewayA1_AFirstTool")
                   .content(Map.of("result1", "value1"))
                   .build(),
               ToolCallResult.builder()
                   .id("GatewayA2_ASecondTool_123456")
                   .name("GatewayA2_ASecondTool")
+                  .elementId("GatewayA2_ASecondTool")
                   .content(Map.of("result2", "value2"))
                   .build(),
               ToolCallResult.builder()
                   .id("GatewayB_BFirstTool_123456")
                   .name("GatewayB_BFirstTool")
+                  .elementId("GatewayB_BFirstTool")
                   .content(Map.of("contentB", Map.of("result3", "value3")))
                   .build());
 
@@ -532,9 +535,32 @@ class GatewayToolHandlerRegistryTest {
 
         final var expectedToolCallResults =
             new ArrayList<>(EXPECTED_TRANSFORMED_GATEWAY_TOOL_CALL_RESULTS);
-        expectedToolCallResults.addAll(nonGatewayToolCallResults);
+        expectedToolCallResults.addAll(
+            nonGatewayToolCallResults.stream()
+                .map(r -> r.name() != null ? r.withElementId(r.name()) : r)
+                .toList());
 
         assertThat(transformed).containsExactlyInAnyOrderElementsOf(expectedToolCallResults);
+      }
+    }
+
+    @Nested
+    class ResolveElementId {
+
+      @Test
+      void resolvesElementIdViaManagingHandler() {
+        when(handlerA.isGatewayManaged("GW_myElement")).thenReturn(true);
+        when(handlerA.resolveElementId("GW_myElement")).thenReturn("myElement");
+
+        assertThat(registry.resolveElementId("GW_myElement")).contains("myElement");
+      }
+
+      @Test
+      void returnsEmpty_whenNotGatewayManaged() {
+        when(handlerA.isGatewayManaged("plainTool")).thenReturn(false);
+        when(handlerB.isGatewayManaged("plainTool")).thenReturn(false);
+
+        assertThat(registry.resolveElementId("plainTool")).isEmpty();
       }
     }
   }

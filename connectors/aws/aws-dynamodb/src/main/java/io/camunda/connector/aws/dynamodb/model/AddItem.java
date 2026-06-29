@@ -12,7 +12,10 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = OperationTypes.ADD_ITEM)
+@TemplateSubType(
+    id = OperationTypes.ADD_ITEM,
+    description = "Add a single item to a DynamoDB table",
+    keywords = {"add item", "put item", "insert item"})
 public record AddItem(
     @TemplateProperty(
             label = "Table name",

@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ProcessDefinition;
+import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
@@ -32,6 +33,7 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +41,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -49,7 +52,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=true"
+      "camunda.connector.polling.enabled=true",
+      "camunda.connector.validation.hosts.enabled=true",
+      "camunda.connector.validation.hosts.unsafe-allow-loopback=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -111,5 +116,16 @@ public class InboundEmailTests extends BaseEmailTest {
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
     when(processDef.getVersion()).thenReturn(1);
     lenient().when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
+
+    // Stub queryProcessDefinitions so the periodic import scheduler keeps re-registering the
+    // process definition. Without this, the scheduler calls queryProcessDefinitions() every 5s,
+    // gets null (unstubbed mock), produces an empty ImportResult, and deactivates the connector.
+    @SuppressWarnings("unchecked")
+    SearchResponse<ProcessDefinition> processDefSearchResponse =
+        Mockito.mock(SearchResponse.class, Mockito.RETURNS_DEEP_STUBS);
+    when(processDefSearchResponse.items()).thenReturn(List.of(processDef));
+    lenient()
+        .when(searchQueryClient.queryProcessDefinitions(Mockito.nullable(String.class)))
+        .thenReturn(processDefSearchResponse);
   }
 }

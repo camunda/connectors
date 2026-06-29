@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
@@ -87,8 +88,9 @@ class ConversationStoreRegistryTest {
 
   @Test
   void createsInProcessConversationStore() {
-    when(executionContext.memory())
-        .thenReturn(memoryConfiguration(new InProcessMemoryStorageConfiguration()));
+    when(executionContext.configuration())
+        .thenReturn(
+            configWithMemory(memoryConfiguration(new InProcessMemoryStorageConfiguration())));
 
     final var store = registry.getConversationStore(executionContext, agentContext);
 
@@ -97,7 +99,7 @@ class ConversationStoreRegistryTest {
 
   @Test
   void fallsBackToInProcessConversationStoreWhenNotConfigured() {
-    when(executionContext.memory()).thenReturn(null);
+    when(executionContext.configuration()).thenReturn(configWithMemory(null));
 
     final var store = registry.getConversationStore(executionContext, agentContext);
 
@@ -106,11 +108,12 @@ class ConversationStoreRegistryTest {
 
   @Test
   void createsCamundaDocumentConversationStore() {
-    when(executionContext.memory())
+    when(executionContext.configuration())
         .thenReturn(
-            memoryConfiguration(
-                new CamundaDocumentMemoryStorageConfiguration(
-                    Duration.ofHours(1), Map.of("customKey", "customValue"))));
+            configWithMemory(
+                memoryConfiguration(
+                    new CamundaDocumentMemoryStorageConfiguration(
+                        Duration.ofHours(1), Map.of("customKey", "customValue")))));
 
     final var store = registry.getConversationStore(executionContext, agentContext);
 
@@ -119,8 +122,9 @@ class ConversationStoreRegistryTest {
 
   @Test
   void throwsExceptionWhenNoStoreRegisteredForStorageType() {
-    when(executionContext.memory())
-        .thenReturn(memoryConfiguration(new InProcessMemoryStorageConfiguration()));
+    when(executionContext.configuration())
+        .thenReturn(
+            configWithMemory(memoryConfiguration(new InProcessMemoryStorageConfiguration())));
 
     final var registry = new ConversationStoreRegistryImpl();
     assertThatThrownBy(() -> registry.getConversationStore(executionContext, agentContext))
@@ -131,5 +135,9 @@ class ConversationStoreRegistryTest {
 
   private MemoryConfiguration memoryConfiguration(MemoryStorageConfiguration storageConfig) {
     return new MemoryConfiguration(storageConfig, 10);
+  }
+
+  private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {
+    return new AgentConfiguration(null, null, null, memory, null, null, null);
   }
 }

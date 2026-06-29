@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
-import static io.camunda.connector.agenticai.util.retry.ErrorClassifier.Decision.PERMANENT;
-import static io.camunda.connector.agenticai.util.retry.ErrorClassifier.Decision.RETRYABLE;
+import static io.camunda.connector.agenticai.common.util.retry.ErrorClassifier.Decision.PERMANENT;
+import static io.camunda.connector.agenticai.common.util.retry.ErrorClassifier.Decision.RETRYABLE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.client.api.command.ClientHttpException;
@@ -21,14 +21,40 @@ class AgentInstanceErrorClassifierTest {
 
   @ParameterizedTest
   @MethodSource("retryableExceptions")
-  void shouldClassifyAsRetryable(Throwable exception) {
-    assertThat(AgentInstanceErrorClassifier.INSTANCE.classify(exception)).isEqualTo(RETRYABLE);
+  void forCreate_shouldClassifyAsRetryable(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.FOR_CREATE.classify(exception)).isEqualTo(RETRYABLE);
   }
 
   @ParameterizedTest
   @MethodSource("permanentExceptions")
-  void shouldClassifyAsPermanent(Throwable exception) {
-    assertThat(AgentInstanceErrorClassifier.INSTANCE.classify(exception)).isEqualTo(PERMANENT);
+  void forCreate_shouldClassifyAsPermanent(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.FOR_CREATE.classify(exception)).isEqualTo(PERMANENT);
+  }
+
+  @ParameterizedTest
+  @MethodSource("retryableExceptions")
+  void forUpdate_shouldClassifyAsRetryable(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.FOR_UPDATE.classify(exception)).isEqualTo(RETRYABLE);
+  }
+
+  @ParameterizedTest
+  @MethodSource("permanentExceptions")
+  void forUpdate_shouldClassifyAsPermanent(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.FOR_UPDATE.classify(exception)).isEqualTo(PERMANENT);
+  }
+
+  @ParameterizedTest
+  @MethodSource("retryableExceptions")
+  void forHistoryItem_shouldClassifyAsRetryable(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.FOR_HISTORY_ITEM.classify(exception))
+        .isEqualTo(RETRYABLE);
+  }
+
+  @ParameterizedTest
+  @MethodSource("permanentExceptions")
+  void forHistoryItem_shouldClassifyAsPermanent(Throwable exception) {
+    assertThat(AgentInstanceErrorClassifier.FOR_HISTORY_ITEM.classify(exception))
+        .isEqualTo(PERMANENT);
   }
 
   static Stream<Throwable> retryableExceptions() {

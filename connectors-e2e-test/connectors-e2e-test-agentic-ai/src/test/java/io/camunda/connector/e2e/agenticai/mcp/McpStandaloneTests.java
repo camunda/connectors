@@ -373,7 +373,7 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
       BpmnModelInstance model,
       Map<String, Object> variables,
       Consumer<ProcessInstanceEvent> assertion) {
-    ZeebeTest zeebeTest = createProcessInstance(model, variables).waitForProcessCompletion();
+    ZeebeTest zeebeTest = awaitProcessCompletion(createProcessInstance(model, variables));
 
     assertion.accept(zeebeTest.getProcessInstanceEvent());
   }

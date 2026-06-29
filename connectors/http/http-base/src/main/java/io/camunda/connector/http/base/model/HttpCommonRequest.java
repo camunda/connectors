@@ -11,6 +11,7 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
+import io.camunda.connector.hostvalidator.VerifiedHost;
 import io.camunda.connector.http.base.model.auth.Authentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -33,10 +34,13 @@ public class HttpCommonRequest {
   @FEEL
   @NotBlank
   @Pattern(regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)", message = "Must be a http(s) URL")
+  @VerifiedHost(isUri = true)
   @TemplateProperty(group = "endpoint", label = "URL", feel = FeelMode.optional)
   private String url;
 
   @Valid private Authentication authentication;
+
+  @Valid private ClientTls clientTls;
 
   @TemplateProperty(
       group = "timeout",
@@ -155,6 +159,14 @@ public class HttpCommonRequest {
 
   public void setAuthentication(final Authentication authentication) {
     this.authentication = authentication;
+  }
+
+  public ClientTls getClientTls() {
+    return clientTls;
+  }
+
+  public void setClientTls(final ClientTls clientTls) {
+    this.clientTls = clientTls;
   }
 
   public Integer getConnectionTimeoutInSeconds() {

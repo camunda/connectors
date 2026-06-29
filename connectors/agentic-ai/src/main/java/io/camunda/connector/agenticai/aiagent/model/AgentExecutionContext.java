@@ -7,14 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 
@@ -30,17 +24,9 @@ public interface AgentExecutionContext {
 
   List<AdHocToolElement> toolElements();
 
-  ProviderConfiguration provider();
-
-  SystemPromptConfiguration systemPrompt();
-
+  /** Per-invocation user prompt (invocation input, not static configuration). */
   UserPromptConfiguration userPrompt();
 
-  MemoryConfiguration memory();
-
-  LimitsConfiguration limits();
-
-  EventHandlingConfiguration events();
-
-  ResponseConfiguration response();
+  /** Static per-invocation configuration (provider, prompts, memory, limits, events, response). */
+  AgentConfiguration configuration();
 }

@@ -19,9 +19,8 @@ package io.camunda.connector.runtime.inbound.importer;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import io.camunda.client.api.search.response.SearchResponse;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,30 +34,25 @@ final class PaginatedSearchUtil {
   private PaginatedSearchUtil() {}
 
   /**
-   * Executes a paginated query until an empty page is returned.
+   * Executes a paginated query lazily, fetching the next page only when the current page's items
+   * have been consumed. Iteration stops when a page is empty or its {@code endCursor} is blank.
    *
-   * @param pageFetcher function fetching a single page (input = pagination index, output = page)
+   * @param pageFetcher function fetching a single page (input = pagination cursor, output = page)
    * @param <T> item type
-   * @return all items from all pages
+   * @return a lazy stream of all items across all pages
    */
-  static <T> List<T> queryAllPages(Function<String, SearchResponse<T>> pageFetcher) {
-    List<T> items = new ArrayList<>();
-    SearchResponse<T> page;
-
-    String paginationIndex = null;
-    do {
-      page = pageFetcher.apply(paginationIndex);
-      String newPaginationIdx = page.page().endCursor();
-
-      LOG.trace("A page of size {} has been fetched, continuing...", page.items().size());
-
-      if (isNotBlank(newPaginationIdx)) {
-        paginationIndex = newPaginationIdx;
-      }
-
-      items.addAll(page.items());
-    } while (page.items() != null && !page.items().isEmpty());
-
-    return items;
+  static <T> Stream<T> queryAllPages(Function<String, SearchResponse<T>> pageFetcher) {
+    SearchResponse<T> firstPage = pageFetcher.apply(null);
+    return Stream.iterate(
+            firstPage,
+            page -> page != null && page.items() != null && !page.items().isEmpty(),
+            page -> {
+              String cursor = page.page().endCursor();
+              return isNotBlank(cursor) ? pageFetcher.apply(cursor) : null;
+            })
+        .peek(
+            page ->
+                LOG.trace("A page of size {} has been fetched, continuing...", page.items().size()))
+        .flatMap(page -> page.items().stream());
   }
 }

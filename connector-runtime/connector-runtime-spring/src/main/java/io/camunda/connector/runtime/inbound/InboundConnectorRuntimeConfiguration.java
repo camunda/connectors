@@ -100,14 +100,16 @@ public class InboundConnectorRuntimeConfiguration {
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
       ProcessInstanceClient processInstanceClient,
-      DocumentFactory documentFactory) {
+      DocumentFactory documentFactory,
+      CamundaClient camundaClient) {
     return new DefaultInboundConnectorContextFactory(
         mapper,
         correlationHandler,
         secretProviderAggregator,
         validationProvider,
         processInstanceClient,
-        documentFactory);
+        documentFactory,
+        camundaClient);
   }
 
   @Bean

@@ -16,7 +16,10 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 public record OutboundConnectorAgentRequest(
     @Valid @NotNull ProviderConfiguration provider,
     @Valid @NotNull OutboundConnectorAgentRequestData data) {
@@ -43,8 +46,8 @@ public record OutboundConnectorAgentRequest(
           AgentContext context,
       @Valid @NotNull SystemPromptConfiguration systemPrompt,
       @Valid @NotNull UserPromptConfiguration userPrompt,
-      @Valid ToolsConfiguration tools,
-      @Valid MemoryConfiguration memory,
-      @Valid LimitsConfiguration limits,
-      @Valid OutboundConnectorResponseConfiguration response) {}
+      @Valid @Nullable ToolsConfiguration tools,
+      @Valid @Nullable MemoryConfiguration memory,
+      @Valid @Nullable LimitsConfiguration limits,
+      @Valid @Nullable OutboundConnectorResponseConfiguration response) {}
 }

@@ -13,7 +13,10 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonDeserialize()
-@TemplateSubType(label = "Table", id = "tableOperation")
+@TemplateSubType(
+    label = "Table",
+    id = "tableOperation",
+    description = "Create, delete or scan DynamoDB tables")
 @TemplateDiscriminatorProperty(
     name = "tableOperation",
     group = "operation",
