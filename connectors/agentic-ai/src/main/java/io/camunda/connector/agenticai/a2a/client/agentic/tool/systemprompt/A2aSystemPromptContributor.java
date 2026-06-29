@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContribut
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -38,7 +39,8 @@ public class A2aSystemPromptContributor implements SystemPromptContributor {
   }
 
   @Override
-  public String contribute(AgentExecutionContext executionContext, AgentContext agentContext) {
+  public @Nullable String contribute(
+      AgentExecutionContext executionContext, AgentContext agentContext) {
 
     // Only contribute if A2A tools are present in the agent context
     boolean hasA2aTools =

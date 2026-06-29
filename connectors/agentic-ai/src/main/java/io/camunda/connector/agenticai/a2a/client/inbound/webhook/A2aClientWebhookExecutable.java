@@ -31,6 +31,8 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,10 +76,10 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
   private final A2aSdkObjectConverter a2aSdkObjectConverter;
   private final ObjectMapper objectMapper;
 
-  private A2aWebhookProperties props;
-  private WebhookAuthorizationHandler<?> authChecker;
-  private InboundConnectorContext context;
-  private HMACVerifier hmacVerifier;
+  @Nullable private A2aWebhookProperties props;
+  @Nullable private WebhookAuthorizationHandler<?> authChecker;
+  @Nullable private InboundConnectorContext context;
+  @Nullable private HMACVerifier hmacVerifier;
 
   public A2aClientWebhookExecutable(
       A2aSdkObjectConverter a2aSdkObjectConverter, ObjectMapper objectMapper) {
@@ -99,26 +101,32 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
 
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload) {
-    LOGGER.debug("Triggered A2A webhook with context {}", props.context());
+    final var activeProps = Objects.requireNonNull(props);
+    final var activeAuthChecker = Objects.requireNonNull(authChecker);
+    final var activeContext = Objects.requireNonNull(context);
+    final var activeHmacVerifier = Objects.requireNonNull(hmacVerifier);
 
-    verifyHmac(payload);
+    LOGGER.debug("Triggered A2A webhook with context {}", activeProps.context());
 
-    final var authResult = authChecker.checkAuthorization(payload);
+    verifyHmac(payload, activeProps, activeHmacVerifier);
+
+    final var authResult = activeAuthChecker.checkAuthorization(payload);
     if (authResult instanceof Failure failureResult) {
       throw failureResult.toException();
     }
 
-    final var mappedRequest = mapRequest(payload);
+    final var mappedRequest = mapRequest(payload, activeContext);
     return new A2aWebhookResult(mappedRequest);
   }
 
-  private MappedHttpRequest mapRequest(WebhookProcessingPayload payload) {
+  private MappedHttpRequest mapRequest(
+      WebhookProcessingPayload payload, InboundConnectorContext ctx) {
     try {
       Task task = objectMapper.readValue(payload.rawBody(), Task.TYPE_REFERENCE);
       A2aTask a2aTask = a2aSdkObjectConverter.convert(task);
       return new MappedHttpRequest(a2aTask, payload.headers(), payload.params());
     } catch (IOException e) {
-      this.context.log(
+      ctx.log(
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
@@ -128,15 +136,20 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
     }
   }
 
-  private void verifyHmac(WebhookProcessingPayload payload) {
-    if (enabled.equals(props.shouldValidateHmac())) {
-      hmacVerifier.verifySignature(payload);
+  private void verifyHmac(
+      WebhookProcessingPayload payload,
+      A2aWebhookProperties activeProps,
+      HMACVerifier activeHmacVerifier) {
+    if (enabled.equals(activeProps.shouldValidateHmac())) {
+      activeHmacVerifier.verifySignature(payload);
     }
   }
 
   @Override
   public void deactivate() {
     LOGGER.debug("Deactivating A2A Webhook Connector");
-    context.reportHealth(Health.down());
+    if (context != null) {
+      context.reportHealth(Health.down());
+    }
   }
 }

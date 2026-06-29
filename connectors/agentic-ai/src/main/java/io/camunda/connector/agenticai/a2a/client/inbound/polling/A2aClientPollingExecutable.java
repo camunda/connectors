@@ -18,6 +18,7 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import org.jspecify.annotations.Nullable;
 
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.polling.v0",
@@ -61,7 +62,7 @@ public class A2aClientPollingExecutable
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
-  private A2aPollingProcessInstancesFetcherTask processInstancesFetcherTask;
+  private @Nullable A2aPollingProcessInstancesFetcherTask processInstancesFetcherTask;
 
   public A2aClientPollingExecutable(
       final A2aPollingExecutorService executorService,
@@ -91,6 +92,8 @@ public class A2aClientPollingExecutable
 
   @Override
   public void deactivate() {
-    processInstancesFetcherTask.stop();
+    if (processInstancesFetcherTask != null) {
+      processInstancesFetcherTask.stop();
+    }
   }
 }
