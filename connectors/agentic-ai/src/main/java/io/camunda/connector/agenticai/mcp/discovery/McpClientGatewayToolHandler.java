@@ -35,6 +35,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -198,7 +199,10 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
   private String fullyQualifiedToolName(
       ToolCallResult toolCallResult, McpToolDefinition toolDefinition) {
-    final var identifier = new McpToolCallIdentifier(toolCallResult.name(), toolDefinition.name());
+    final var identifier =
+        new McpToolCallIdentifier(
+            Objects.requireNonNull(toolCallResult.name(), "Tool call result name is required"),
+            toolDefinition.name());
     return identifier.fullyQualifiedName();
   }
 
@@ -260,7 +264,10 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   private ToolCallResult toolCallResultFromMcpToolCall(ToolCallResult toolCallResult) {
     final var callToolResult =
         objectMapper.convertValue(toolCallResult.content(), McpClientCallToolResult.class);
-    final var identifier = new McpToolCallIdentifier(toolCallResult.name(), callToolResult.name());
+    final var identifier =
+        new McpToolCallIdentifier(
+            Objects.requireNonNull(toolCallResult.name(), "Tool call result name is required"),
+            callToolResult.name());
 
     final var toolCallResultBuilder =
         ToolCallResult.builder().id(toolCallResult.id()).name(identifier.fullyQualifiedName());

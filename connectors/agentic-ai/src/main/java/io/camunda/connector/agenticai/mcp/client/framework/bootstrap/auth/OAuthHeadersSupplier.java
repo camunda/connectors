@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,7 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
   private final OAuthAuthentication config;
   private final Clock clock;
 
-  private TokenResponse tokenResponse;
+  private @Nullable TokenResponse tokenResponse;
 
   public OAuthHeadersSupplier(
       OAuthService oAuthService,
@@ -64,14 +65,16 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
 
   @Override
   public synchronized Map<String, String> get() {
-    if (tokenResponse == null || tokenResponse.isExpired(clock)) {
+    var current = tokenResponse;
+    if (current == null || current.isExpired(clock)) {
       LOGGER.debug(
           "Fetching MCP client OAuth token from token endpoint: {}", config.oauthTokenEndpoint());
-      tokenResponse = fetchOAuthToken();
+      current = fetchOAuthToken();
+      tokenResponse = current;
       LOGGER.debug("Successfully fetched MCP client OAuth token");
     }
 
-    return Map.of("Authorization", "Bearer " + tokenResponse.accessToken());
+    return Map.of("Authorization", "Bearer " + current.accessToken());
   }
 
   private TokenResponse fetchOAuthToken() {
@@ -130,7 +133,7 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
     return new TokenResponse(accessToken, clock.instant().plus(expiresIn));
   }
 
-  private Object getErrorResponseBody(ConnectorException exception) {
+  private @Nullable Object getErrorResponseBody(ConnectorException exception) {
     final var errorVariables = exception.getErrorVariables();
     if (errorVariables == null) {
       return null;
