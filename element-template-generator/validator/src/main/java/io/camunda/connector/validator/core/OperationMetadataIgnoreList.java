@@ -64,6 +64,7 @@ public final class OperationMetadataIgnoreList {
           "microsoft",
           "openai",
           "operate",
+          "orchestration",
           "power-automate",
           "rabbitmq",
           "rpa",
