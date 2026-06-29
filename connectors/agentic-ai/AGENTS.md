@@ -192,21 +192,12 @@ listed, reason from the principle (does correctness depend on the engine and BPM
 
 ### Null safety
 
-This module enforces nullability via JSpecify annotations and NullAway (ErrorProne plugin) at compile time.
-All packages under `io.camunda.connector.agenticai` are annotated with `@NullMarked` via `package-info.java`,
-making every reference type non-null by default.
+All production code is `@NullMarked`: every reference type is non-null by default.
 
-**Rules:**
-
-- Every reference type is non-null by default. Add `@Nullable` (from `org.jspecify.annotations`) on fields,
-  method parameters, and return types that may be absent.
-- Fix null-safety errors by handling the null. Never suppress with `@SuppressWarnings("NullAway")` or
-  `NullabilityUtil.castToNonNull()`.
-- `@NullUnmarked` is allowed as a named deferral only. Every use requires a comment on the line above explaining why
-  (typically: lifecycle fields initialized outside the constructor). File a follow-up issue; reference it in the comment.
-- When calling third-party APIs (LangChain4J, MCP SDK, etc.), inspect their source to determine the actual null
-  contract. Do not assume `@NonNull` for unannotated return values.
-- NullAway runs on `src/main/java` only; test sources are excluded.
+- Add `@Nullable` (from `org.jspecify.annotations`) on fields, parameters, and return types that may be absent.
+- Fix null-safety errors by handling the null. Never suppress them.
+- `@NullUnmarked` is a named deferral only. Add a comment explaining why; file a follow-up issue.
+- For third-party APIs without nullability annotations, inspect their source to determine the actual contract.
 
 ### Definition of Done
 
