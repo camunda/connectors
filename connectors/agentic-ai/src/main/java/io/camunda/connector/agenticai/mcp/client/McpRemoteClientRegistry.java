@@ -28,7 +28,6 @@ import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +54,9 @@ public class McpRemoteClientRegistry implements AutoCloseable {
             (key, value, cause) -> {
               LOGGER.info(
                   "MCP({}): Removing cached remote HTTP client (removal cause: {})", key, cause);
-              this.closeClient(key, value);
+              if (key != null && value != null) {
+                this.closeClient(key, value);
+              }
             })
         .build();
   }
@@ -154,7 +155,7 @@ public class McpRemoteClientRegistry implements AutoCloseable {
     this.cache.asMap().forEach(this::closeClient);
   }
 
-  public void closeClient(@Nullable Object clientId, @Nullable Object client) {
+  public void closeClient(McpRemoteClientIdentifier clientId, McpClientDelegate client) {
     LOGGER.info("MCP({}): Closing remote HTTP client", clientId);
     if (client instanceof AutoCloseable autoCloseable) {
       try {

@@ -65,6 +65,7 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
 
   @Override
   public synchronized Map<String, String> get() {
+    // local copy: NullAway cannot narrow @Nullable field nullability through a null check
     var current = tokenResponse;
     if (current == null || current.isExpired(clock)) {
       LOGGER.debug(
