@@ -6,19 +6,22 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
-import static io.camunda.connector.agenticai.model.message.content.ObjectContent.objectContent;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
-import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
@@ -35,8 +38,10 @@ class ContentConverterTest {
   private final InMemoryDocumentStore documentStore = InMemoryDocumentStore.INSTANCE;
   private final DocumentFactory documentFactory = new DocumentFactoryImpl(documentStore);
 
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
   private final ContentConverter contentConverter =
-      new ContentConverterImpl(new ObjectMapper(), new DocumentToContentConverterImpl());
+      new ContentConverterImpl(objectMapper, new DocumentToContentConverterImpl());
 
   @BeforeEach
   void setUp() {
@@ -120,30 +125,59 @@ class ContentConverterTest {
     }
 
     @Test
-    void supportsObjectContentContainingCamundaDocuments()
+    void serializesDocumentsAsReferencesInObjectContent()
         throws JsonProcessingException, JSONException {
+      final var doc1 = createDocument("Hello, world!", "text/plain", "test.txt");
+      final var doc2 = createDocument("<PDF CONTENT>", "application/pdf", "test.pdf");
+      final var doc1Ref = (CamundaDocumentReference) doc1.reference();
+      final var doc2Ref = (CamundaDocumentReference) doc2.reference();
+
       final var content = new LinkedHashMap<String, Object>();
       content.put("hello", "world");
-      content.put("document1", createDocument("Hello, world!", "text/plain", "test.txt"));
-      content.put("document2", createDocument("<PDF CONTENT>", "application/pdf", "test.pdf"));
+      content.put("document1", doc1);
+      content.put("document2", doc2);
+      content.put(
+          "document3",
+          new ExternalDocument("https://example.com/report.pdf", "Quarterly Report", url -> null));
 
       final var stringResult = contentConverter.convertToString(content);
+
       JSONAssert.assertEquals(
           """
           {
             "hello": "world",
             "document1": {
-              "type": "text",
-              "media_type": "text/plain",
-              "data": "Hello, world!"
+              "camunda.document.type": "camunda",
+              "storeId": "in-memory",
+              "documentId": "%s",
+              "contentHash": "%s",
+              "metadata": {
+                "contentType": "text/plain",
+                "fileName": "test.txt"
+              }
             },
             "document2": {
-              "type": "base64",
-              "media_type": "application/pdf",
-              "data": "PFBERiBDT05URU5UPg=="
+              "camunda.document.type": "camunda",
+              "storeId": "in-memory",
+              "documentId": "%s",
+              "contentHash": "%s",
+              "metadata": {
+                "contentType": "application/pdf",
+                "fileName": "test.pdf"
+              }
+            },
+            "document3": {
+              "camunda.document.type": "external",
+              "url": "https://example.com/report.pdf",
+              "name": "Quarterly Report"
             }
           }
-          """,
+          """
+              .formatted(
+                  doc1Ref.getDocumentId(),
+                  doc1Ref.getContentHash(),
+                  doc2Ref.getDocumentId(),
+                  doc2Ref.getContentHash()),
           stringResult,
           true);
     }

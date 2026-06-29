@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.common.convert;
 
 import io.a2a.spec.Part;
-import io.camunda.connector.agenticai.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
 

@@ -18,15 +18,13 @@ package io.camunda.connector.runtime.core.inbound;
 
 import io.camunda.client.api.search.response.ElementInstance;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Provides a proxy interface to interact with Camunda Operate's APIs for retrieving information
- * related to active process instances and their variables.
+ * Provides a proxy interface for retrieving information related to active process instances.
  *
- * <p>This interface defines methods to fetch information about active process instances and their
- * associated variables. These methods facilitate communication with Camunda Operate's APIs and help
- * in obtaining relevant data for inbound connectors.
+ * <p>This interface defines methods to fetch information about active process instances. These
+ * methods facilitate communication with Camunda's APIs and help in obtaining relevant data for
+ * inbound connectors.
  */
 public interface ProcessInstanceClient {
 
@@ -43,14 +41,4 @@ public interface ProcessInstanceClient {
    */
   List<ElementInstance> fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
       final Long processDefinitionKey, final String elementId);
-
-  /**
-   * Fetches the variables associated with a given active process instance identified by its key.
-   *
-   * @param processInstanceKey The unique identifier for the active process instance.
-   * @param elementInstanceKey The unique identifier for the active element instance.
-   * @return A {@link Map} containing the variables associated with the active process instance.
-   */
-  Map<String, Object> fetchVariablesByProcessInstanceKey(
-      final Long processInstanceKey, final Long elementInstanceKey);
 }

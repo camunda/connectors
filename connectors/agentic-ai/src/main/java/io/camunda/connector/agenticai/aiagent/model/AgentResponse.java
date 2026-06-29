@@ -6,15 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
+import static io.camunda.connector.agenticai.aiagent.model.message.MessageUtil.singleTextContent;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.model.AgenticAiRecord;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.camunda.connector.generator.java.annotation.DataExample;
 import java.util.List;
 import java.util.Map;

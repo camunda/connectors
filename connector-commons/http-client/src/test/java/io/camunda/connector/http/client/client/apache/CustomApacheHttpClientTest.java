@@ -43,6 +43,7 @@ import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.model.auth.OAuthRefreshTokenAuthentication;
 import io.camunda.connector.test.utils.DockerImages;
 import java.io.IOException;
 import java.util.HashMap;
@@ -1232,6 +1233,215 @@ public class CustomApacheHttpClientTest {
       // Second request — should fetch a new token after invalidation
       httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
       verify(2, postRequestedFor(urlEqualTo("/oauth")));
+    }
+
+    @Test
+    public void shouldReturn200WithBody_whenGetWithOAuthRefreshToken(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      createRefreshTokenAuthServer();
+      stubFor(
+          get("/path")
+              .withHeader("Authorization", equalTo("Bearer refreshed-token"))
+              .willReturn(
+                  ok().withJsonBody(JsonNodeFactory.instance.objectNode().put("result", "ok"))));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setMethod(HttpMethod.GET);
+      request.setAuthentication(
+          new OAuthRefreshTokenAuthentication(
+              wmRuntimeInfo.getHttpBaseUrl() + "/oauth",
+              "clientId",
+              "clientSecret",
+              "theRefreshToken",
+              "read:resource"));
+
+      var result =
+          httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper)).entity();
+      assertThat(result.get("result").asText()).isEqualTo("ok");
+      verify(1, postRequestedFor(urlEqualTo("/oauth")));
+    }
+
+    @Test
+    public void shouldThrowRefreshTokenExpired_whenAuthServerReturnsInvalidGrantBody(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      // Non-RFC-compliant but observed: IdP returns 200 with an OAuth error body.
+      // RFC-compliant 4xx responses are already covered by the generic HTTP-error path.
+      stubFor(
+          post("/oauth")
+              .willReturn(
+                  ok().withHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                      .withBody(
+                          "{\"error\":\"invalid_grant\",\"error_description\":\"AADSTS70008: Refresh token expired.\"}")));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setMethod(HttpMethod.GET);
+      request.setAuthentication(
+          new OAuthRefreshTokenAuthentication(
+              wmRuntimeInfo.getHttpBaseUrl() + "/oauth",
+              "clientId",
+              "clientSecret",
+              "theRefreshToken",
+              null));
+
+      var e =
+          assertThrows(
+              ConnectorException.class,
+              () -> httpClient.execute(request, ResponseMappers.asVoid()));
+      assertThat(e.getErrorCode()).isEqualTo("OAUTH_REFRESH_TOKEN_EXPIRED");
+      assertThat(e.getMessage()).contains("re-authorization is required");
+      assertThat(e.getMessage()).contains("AADSTS70008");
+    }
+
+    @Test
+    public void shouldThrowInteractionRequired_whenAuthServerReturnsInteractionRequiredBody(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          post("/oauth")
+              .willReturn(
+                  ok().withHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                      .withBody(
+                          "{\"error\":\"interaction_required\",\"error_description\":\"User must re-authenticate.\"}")));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setMethod(HttpMethod.GET);
+      request.setAuthentication(
+          new OAuthRefreshTokenAuthentication(
+              wmRuntimeInfo.getHttpBaseUrl() + "/oauth",
+              "clientId",
+              "clientSecret",
+              "theRefreshToken",
+              null));
+
+      var e =
+          assertThrows(
+              ConnectorException.class,
+              () -> httpClient.execute(request, ResponseMappers.asVoid()));
+      assertThat(e.getErrorCode()).isEqualTo("OAUTH_INTERACTION_REQUIRED");
+      assertThat(e.getMessage()).contains("User must re-authenticate");
+    }
+
+    @Test
+    public void shouldCacheOAuthRefreshToken_andReuseOnSecondRequest(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      createRefreshTokenAuthServer();
+      stubFor(
+          get("/path")
+              .withHeader("Authorization", equalTo("Bearer refreshed-token"))
+              .willReturn(
+                  ok().withJsonBody(JsonNodeFactory.instance.objectNode().put("result", "ok"))));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setMethod(HttpMethod.GET);
+      request.setAuthentication(
+          new OAuthRefreshTokenAuthentication(
+              wmRuntimeInfo.getHttpBaseUrl() + "/oauth",
+              "clientId",
+              "clientSecret",
+              "theRefreshToken",
+              "read:resource"));
+
+      httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
+      httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
+
+      verify(1, postRequestedFor(urlEqualTo("/oauth")));
+    }
+
+    @Test
+    public void shouldFetchNewToken_afterRefreshTokenCacheInvalidation(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      createRefreshTokenAuthServer();
+      stubFor(
+          get("/path")
+              .withHeader("Authorization", equalTo("Bearer refreshed-token"))
+              .willReturn(
+                  ok().withJsonBody(JsonNodeFactory.instance.objectNode().put("result", "ok"))));
+
+      var refreshAuth =
+          new OAuthRefreshTokenAuthentication(
+              wmRuntimeInfo.getHttpBaseUrl() + "/oauth",
+              "clientId",
+              "clientSecret",
+              "theRefreshToken",
+              "read:resource");
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setMethod(HttpMethod.GET);
+      request.setAuthentication(refreshAuth);
+
+      httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
+      verify(1, postRequestedFor(urlEqualTo("/oauth")));
+
+      OAuthTokenCacheHolder.get().invalidate(refreshAuth);
+
+      httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
+      verify(2, postRequestedFor(urlEqualTo("/oauth")));
+    }
+
+    @Test
+    public void shouldOmitClientSecretAndScopes_whenBlank(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          post("/oauth")
+              .withHeader(
+                  HttpHeaders.CONTENT_TYPE,
+                  equalTo(ContentType.APPLICATION_FORM_URLENCODED.getMimeType()))
+              .withFormParam("grant_type", equalTo("refresh_token"))
+              .withFormParam("client_id", equalTo("clientId"))
+              .withFormParam("refresh_token", equalTo("theRefreshToken"))
+              .willReturn(
+                  ok().withJsonBody(
+                          JsonNodeFactory.instance
+                              .objectNode()
+                              .put("access_token", "refreshed-token")
+                              .put("token_type", "Bearer")
+                              .put("expires_in", 3600))));
+      stubFor(
+          get("/path")
+              .withHeader("Authorization", equalTo("Bearer refreshed-token"))
+              .willReturn(ok().withBody("ok")));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setMethod(HttpMethod.GET);
+      request.setAuthentication(
+          new OAuthRefreshTokenAuthentication(
+              wmRuntimeInfo.getHttpBaseUrl() + "/oauth",
+              "clientId",
+              null,
+              "theRefreshToken",
+              null));
+
+      httpClient.execute(request, ResponseMappers.asString());
+
+      verify(
+          1,
+          postRequestedFor(urlEqualTo("/oauth"))
+              .withRequestBody(notMatching(".*client_secret.*"))
+              .withRequestBody(notMatching(".*scope.*")));
+    }
+
+    private void createRefreshTokenAuthServer() {
+      stubFor(
+          post("/oauth")
+              .withHeader(
+                  HttpHeaders.CONTENT_TYPE,
+                  equalTo(ContentType.APPLICATION_FORM_URLENCODED.getMimeType()))
+              .withFormParam("grant_type", equalTo("refresh_token"))
+              .withFormParam("client_id", equalTo("clientId"))
+              .withFormParam("client_secret", equalTo("clientSecret"))
+              .withFormParam("refresh_token", equalTo("theRefreshToken"))
+              .withFormParam("scope", equalTo("read:resource"))
+              .willReturn(
+                  ok().withJsonBody(
+                          JsonNodeFactory.instance
+                              .objectNode()
+                              .put("access_token", "refreshed-token")
+                              .put("token_type", "Bearer")
+                              .put("expires_in", 3600))));
     }
 
     private void createAuthServer(String credentialsLocation) {

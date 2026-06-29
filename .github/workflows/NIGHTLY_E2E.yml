@@ -9,19 +9,19 @@ on:
 
 jobs:
 
-  get-branches:
+  setup:
     runs-on: ubuntu-latest
     # Only run if scheduled/manual OR if the 'e2e-tests' label exists on a non-fork PR
     if: |
-      github.event_name != 'pull_request' || 
-      (github.event.pull_request.head.repo.fork == false && 
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.fork == false &&
        (github.event.action == 'labeled' && github.event.label.name == 'e2e-tests') ||
        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'e2e-tests')))
     outputs:
-      branches: ${{ steps.set-matrix.outputs.branches }}
+      branches: ${{ steps.set-branches.outputs.branches }}
     steps:
       - name: Fetch stable branches
-        id: set-matrix
+        id: set-branches
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             # For PR, only test the PR's head ref
@@ -37,96 +37,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   run-e2e-tests:
-    name: (${{ matrix.branch }}) Nightly E2E test run
-    needs: get-branches
-    runs-on: ubuntu-latest
+    name: (${{ matrix.branch }})
+    needs: setup
     strategy:
       fail-fast: false
       matrix:
-        branch: ${{ fromJson(needs.get-branches.outputs.branches) }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ matrix.branch }}
-
-      - name: Import Secrets
-        id: secrets
-        uses: hashicorp/vault-action@v4.0.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false # we rely on step outputs, no need for environment variables
-          secrets: |
-            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
-            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
-
-      - name: Restore cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '21.0.9'
-
-      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
-
-      - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
-        with:
-          githubServer: false
-          servers: |
-            [{
-               "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
-               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
-             }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-
-      - name: Install element templates CLI
-        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
-
-      - name: Build Connectors
-        run: ./mvnw --batch-mode -U clean test -PcheckFormat
-
-      - name: Publish Test Report
-        if: always()
-        uses: scacap/action-surefire-report@v1
-
-      - name: Sanitize branch name for artifact
-        if: always()
-        id: sanitize
-        run: |
-          SANITIZED="${BRANCH//\//-}"
-          echo "branch=$SANITIZED" >> $GITHUB_OUTPUT
-        env:
-          BRANCH: ${{ matrix.branch }}
-
-      - name: Upload detailed surefire reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: surefire-reports-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: '**/target/surefire-reports/*.xml'
-
-      - name: Send Slack notification on failure
-        if: failure() && (matrix.branch == 'main' || startsWith(matrix.branch, 'stable/'))
-        uses: slackapi/slack-github-action@v3.0.3
-        with:
-          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
-          method: chat.postMessage
-          payload: |
-            {
-              "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
-              "text": ":alarm: E2E test run failed on branch `${{ matrix.branch}}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            }
+        branch: ${{ fromJson(needs.setup.outputs.branches) }}
+    uses: ./.github/workflows/E2E_BRANCH_RUN.yml
+    with:
+      branch: ${{ matrix.branch }}
+    secrets: inherit

@@ -79,6 +79,15 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
+      version = 1750631399060L, // Long version value like Web Modeler OpenAPI templates
+      inputDataClass = MyConnectorInput.class)
+  public static class WithLongVersion extends MyConnectorFunction {}
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
       inputDataClass = PredefinedGroupInput.class,
       propertyGroups = {
         @PropertyGroup(id = "predefinedGroup1", label = "Predefined Group One"),
@@ -174,6 +183,24 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
+      category = @ElementTemplate.Category(id = "test-category", name = "Test Category"))
+  public static class MinimallyAnnotatedWithCustomCategory extends MyConnectorFunction {}
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
+      category = @ElementTemplate.Category(id = "test-category", name = ""))
+  public static class MinimallyAnnotatedWithPartialCategory extends MyConnectorFunction {}
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
       elementTypes = {
         @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SERVICE_TASK),
         @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SCRIPT_TASK),
@@ -189,4 +216,18 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       },
       icon = "my-connector-icon.png")
   public static class WithMultipleElementTypes extends MyConnectorFunction {}
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = WithLanguageProperty.LanguageInput.class)
+  public static class WithLanguageProperty extends MyConnectorFunction {
+
+    record LanguageInput(
+        @TemplateProperty(id = "jsonField", label = "JSON field", language = "json")
+            String jsonField,
+        @TemplateProperty(id = "normalField", label = "Normal field") String normalField) {}
+  }
 }

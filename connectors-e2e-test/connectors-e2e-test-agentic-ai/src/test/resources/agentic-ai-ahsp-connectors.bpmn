@@ -75,6 +75,16 @@
           </zeebe:taskHeaders>
         </bpmn:extensionElements>
       </bpmn:serviceTask>
+      <bpmn:scriptTask id="External_File_Reference" name="External file reference">
+        <bpmn:documentation>Returns a reference to an externally hosted file (URL + display name) without downloading it.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="={&#10;  summary: &#34;Referenced &#34; + name,&#10;  document: {&#10;    &#34;camunda.document.type&#34;: &#34;external&#34;,&#10;    url: url,&#10;    name: name&#10;  }&#10;}" resultVariable="toolCallResult" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=fromAi(toolCall.url, &#34;The URL of the externally hosted file&#34;)" target="url" />
+            <zeebe:input source="=fromAi(toolCall.name, &#34;A display name for the file&#34;)" target="name" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
       <bpmn:subProcess id="Event_Subprocess" triggeredByEvent="true">
         <bpmn:scriptTask id="Handle_Message" name="Handle message">
           <bpmn:extensionElements>
@@ -241,6 +251,9 @@
         <dc:Bounds x="830" y="320" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0zm24e8_di" bpmnElement="Download_A_File">
+        <dc:Bounds x="830" y="520" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_External_File_Reference" bpmnElement="External_File_Reference">
         <dc:Bounds x="970" y="520" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_0rjolnk" bpmnElement="Event_Subprocess" isExpanded="true">

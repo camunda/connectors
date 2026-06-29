@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
-import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_DESCRIPTION;
-import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_PROPERTIES;
-import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_REQUIRED;
-import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_TYPE;
-import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_OBJECT;
-import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_STRING;
+import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_DESCRIPTION;
+import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_PROPERTIES;
+import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_REQUIRED;
+import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_TYPE;
+import static io.camunda.connector.agenticai.common.JsonSchemaConstants.TYPE_OBJECT;
+import static io.camunda.connector.agenticai.common.JsonSchemaConstants.TYPE_STRING;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;

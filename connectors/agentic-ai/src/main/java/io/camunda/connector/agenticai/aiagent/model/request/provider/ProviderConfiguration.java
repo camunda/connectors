@@ -44,4 +44,6 @@ public sealed interface ProviderConfiguration
 
   /** Type of the provider implementation used to resolve the backing chat model. */
   String providerType();
+
+  String model();
 }

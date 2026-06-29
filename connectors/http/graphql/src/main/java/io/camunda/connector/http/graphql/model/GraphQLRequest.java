@@ -9,6 +9,7 @@ package io.camunda.connector.http.graphql.model;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.hostvalidator.VerifiedHost;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.Authentication;
 import jakarta.validation.Valid;
@@ -64,6 +65,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)",
               message = "Must be a http(s) URL")
           @TemplateProperty(id = "url", group = "endpoint", label = "URL")
+          @VerifiedHost(isUri = true)
           String url,
       @FEEL
           @TemplateProperty(

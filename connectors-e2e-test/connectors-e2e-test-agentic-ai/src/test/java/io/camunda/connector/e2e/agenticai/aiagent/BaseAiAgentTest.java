@@ -20,37 +20,81 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import io.camunda.client.api.worker.JobWorker;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
 
-@WireMockTest
 @Import(CamundaDocumentTestConfiguration.class)
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
-  private JobWorker userFeedbackJobWorker;
+  // Programmatic registration (not @WireMockTest) so we can set a verbose notifier that logs the
+  // request journal. We use ConsoleNotifier (stdout) because wiremock-standalone's Slf4jNotifier
+  // is bound to its shaded SLF4J and never reaches our logback.
+  @RegisterExtension
+  static WireMockExtension wireMockExtension =
+      WireMockExtension.newInstance()
+          .options(options().dynamicPort().notifier(new ConsoleNotifier(true)))
+          .configureStaticDsl(true)
+          .build();
+
+  @Autowired private CamundaProcessTestContext processTestContext;
+
+  protected final LinkedList<Map<String, Object>> userFeedback = new LinkedList<>();
+
   protected final AtomicInteger userFeedbackJobWorkerCounter = new AtomicInteger(0);
-  protected final AtomicReference<Map<String, Object>> userFeedbackVariables =
-      new AtomicReference<>(Collections.emptyMap());
+
+  protected WireMockRuntimeInfo wireMock;
+
+  @BeforeAll
+  static void setCamundaAssertDefaultTimeout() {
+    CamundaAssert.setAssertionTimeout(Duration.ofSeconds(30));
+  }
+
+  @BeforeEach
+  void mockUserFeedbackJobWorker() {
+    processTestContext
+        .mockJobWorker("user_feedback")
+        .withHandler(
+            (client, job) -> {
+              var nextFeedback =
+                  userFeedback.isEmpty() ? Collections.emptyMap() : userFeedback.poll();
+              userFeedbackJobWorkerCounter.incrementAndGet();
+              client.newCompleteCommand(job.getKey()).variables(nextFeedback).execute();
+            });
+  }
 
   @BeforeEach
   void clearDocumentStore() {
@@ -59,10 +103,14 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   @BeforeEach
   void setupWireMock() {
+    wireMock = wireMockExtension.getRuntimeInfo();
     // WireMock returns the content type for the YAML file as application/json, so
     // we need to override the stub manually
+    WireMock.resetAllScenarios();
+    WireMock.reset();
     stubFor(
         get(urlPathEqualTo("/test.yaml"))
+            .atPriority(1)
             .willReturn(
                 aResponse()
                     .withBodyFile("test.yaml")
@@ -70,30 +118,9 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   }
 
   @BeforeEach
-  void openUserFeedbackJobWorker() {
-    userFeedbackVariables.set(Collections.emptyMap());
+  void resetFeedbackState() {
+    currentProcess = null;
     userFeedbackJobWorkerCounter.set(0);
-    userFeedbackJobWorker =
-        camundaClient
-            .newWorker()
-            .jobType("user_feedback")
-            .handler(
-                (client, job) -> {
-                  userFeedbackJobWorkerCounter.incrementAndGet();
-                  client
-                      .newCompleteCommand(job.getKey())
-                      .variables(userFeedbackVariables.get())
-                      .send()
-                      .join();
-                })
-            .open();
-  }
-
-  @AfterEach
-  void closeUserFeedbackJobWorker() {
-    if (userFeedbackJobWorker != null) {
-      userFeedbackJobWorker.close();
-    }
   }
 
   protected abstract Resource testProcess();
@@ -104,6 +131,11 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   protected ZeebeTest createProcessInstance(Map<String, Object> variables) throws IOException {
     return createProcessInstance(e -> e, variables);
+  }
+
+  protected ZeebeTest createProcessInstance(Resource process, Map<String, Object> variables)
+      throws IOException {
+    return createProcessInstance(process, e -> e, variables);
   }
 
   protected ZeebeTest createProcessInstance(
@@ -124,7 +156,16 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
         updatedElementTemplate.writeTo(new File(tempDir, "template.json"));
     final var updatedModel = modelWithModifications(process.getFile(), updatedElementTemplateFile);
 
-    return deployModel(updatedModel).createInstance(variables);
+    return createProcessInstance(customizeModel(updatedModel), variables);
+  }
+
+  /**
+   * Hook to mutate the built process model just before deployment. Default is a no-op; overridden
+   * by tests that need a per-test model tweak (e.g. a unique inbound webhook context to avoid
+   * cross-test "context already in use" collisions in the shared per-class runtime).
+   */
+  protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
+    return model;
   }
 
   protected ElementTemplate elementTemplateWithModifications(
@@ -140,11 +181,119 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
         .apply(elementTemplate, AI_AGENT_TASK_ID, new File(tempDir, "updated.bpmn"));
   }
 
+  /**
+   * Registers a conditional behavior that completes {@code user_feedback} jobs in the order given.
+   * The last entry repeats indefinitely once all preceding entries are consumed. Behaviors are
+   * cleared automatically after each test by CPT.
+   */
+  @SafeVarargs
+  protected final void enqueueUserFeedback(Map<String, Object>... feedback) {
+    if (feedback.length == 0) {
+      return;
+    }
+    userFeedback.addAll(List.of(feedback));
+  }
+
   protected Map<String, Object> userSatisfiedFeedback() {
     return Map.of("userSatisfied", true);
   }
 
   protected Map<String, Object> userFollowUpFeedback(String followUp) {
     return Map.of("userSatisfied", false, "followUpUserPrompt", followUp);
+  }
+
+  protected List<ToolDefinition> expectedTools() {
+    return EXPECTED_TOOL_SPECIFICATIONS;
+  }
+
+  protected void assertToolSpecifications(
+      OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
+    assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expectedTools());
+  }
+
+  protected void assertConversationMessages(
+      OpenAiCompletionsRecordedConversation.RecordedChatRequest request,
+      ExpectedMessage... expectedMessages) {
+    final var messages = request.messages();
+    assertThat(messages)
+        .as("number of messages sent to the model")
+        .hasSize(expectedMessages.length);
+
+    for (int i = 0; i < expectedMessages.length; i++) {
+      expectedMessages[i].assertMatches(i, messages.get(i));
+    }
+  }
+
+  /**
+   * Verifies on the engine that the agent instance is retrievable by key from secondary storage
+   * (RDBMS, eventually consistent) with its create-time definition, proving the {@code create}
+   * command landed on the broker and was indexed. Accumulated metrics / final status are verified
+   * via the {@code agentInstanceClient} spy, not here.
+   */
+  protected void assertAgentInstanceCreatedOnEngine(long agentInstanceKey, String expectedModel) {
+    await()
+        .alias("agent instance via REST get-by-key")
+        .atMost(Duration.ofSeconds(30))
+        .untilAsserted(
+            () -> {
+              final var agentInstance =
+                  camundaClient.newAgentInstanceGetRequest(agentInstanceKey).execute();
+              assertThat(agentInstance.getAgentInstanceKey()).isEqualTo(agentInstanceKey);
+              assertThat(agentInstance.getDefinition().getModel()).isEqualTo(expectedModel);
+              assertThat(agentInstance.getStatus()).isNotNull();
+            });
+  }
+
+  // ---------------------------------------------------------------------------
+  // ExpectedMessage inner record
+  // ---------------------------------------------------------------------------
+
+  protected record ExpectedMessage(
+      String role, String text, List<String> toolCallNames, String toolCallId) {
+
+    public static ExpectedMessage system(String text) {
+      return new ExpectedMessage("system", text, null, null);
+    }
+
+    public static ExpectedMessage user(String text) {
+      return new ExpectedMessage("user", text, null, null);
+    }
+
+    public static ExpectedMessage assistant(String text) {
+      return new ExpectedMessage("assistant", text, null, null);
+    }
+
+    public static ExpectedMessage assistantWithToolCalls(String text, String... toolCallNames) {
+      return new ExpectedMessage("assistant", text, List.of(toolCallNames), null);
+    }
+
+    public static ExpectedMessage toolCallResult(String toolCallId, String text) {
+      return new ExpectedMessage("tool", text, null, toolCallId);
+    }
+
+    public void assertMatches(
+        int index, OpenAiCompletionsRecordedConversation.RecordedMessage message) {
+      assertThat(message.role()).as("role of message %d", index).isEqualTo(role);
+
+      if (text != null) {
+        assertThat(message.textContent()).as("text content of message %d", index).isEqualTo(text);
+      }
+
+      if (toolCallNames != null) {
+        final var actualNames =
+            message.toolCalls().stream()
+                .map(OpenAiCompletionsRecordedConversation.RecordedMessage.RecordedToolCall::name)
+                .toList();
+        assertThat(actualNames)
+            .as("tool call names of message %d", index)
+            .containsExactlyElementsOf(toolCallNames);
+      }
+
+      if (toolCallId != null) {
+        assertThat(message.toolCallId())
+            .as("tool_call_id of message %d", index)
+            .isEqualTo(toolCallId);
+      }
+    }
   }
 }

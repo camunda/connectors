@@ -29,6 +29,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
         "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-connector/",
     engineVersion = "^8.9",
     version = 0,
+    category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = A2aClientRequest.class,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(

@@ -21,19 +21,21 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
-import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.model.message.UserMessage;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.util.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,12 +90,18 @@ class AwsAgentCoreConversationStoreTest {
     config =
         new AwsAgentCoreMemoryStorageConfiguration(
             "us-east-1", null, authentication, MEMORY_ID, ACTOR_ID);
-    lenient().when(executionContext.memory()).thenReturn(new MemoryConfiguration(config, 20));
+    lenient()
+        .when(executionContext.configuration())
+        .thenReturn(configWithMemory(new MemoryConfiguration(config, 20)));
     lenient().when(clientFactory.createClient(config)).thenReturn(bedrockClient);
 
     var conversationMapper = new AwsAgentCoreConversationMapper(TestObjectMapperSupplier.INSTANCE);
 
     store = new AwsAgentCoreConversationStore(clientFactory, conversationMapper);
+  }
+
+  private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {
+    return new AgentConfiguration(null, null, null, memory, null, null, null);
   }
 
   @Test
@@ -104,7 +112,8 @@ class AwsAgentCoreConversationStoreTest {
   @Test
   void throwsExceptionForMissingConfiguration() {
     final var agentContext = AgentContext.empty();
-    when(executionContext.memory()).thenReturn(new MemoryConfiguration(null, 20));
+    when(executionContext.configuration())
+        .thenReturn(configWithMemory(new MemoryConfiguration(null, 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
@@ -115,8 +124,10 @@ class AwsAgentCoreConversationStoreTest {
   @Test
   void throwsExceptionForUnsupportedConfiguration() {
     final var agentContext = AgentContext.empty();
-    when(executionContext.memory())
-        .thenReturn(new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 20));
+    when(executionContext.configuration())
+        .thenReturn(
+            configWithMemory(
+                new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
@@ -573,10 +584,7 @@ class AwsAgentCoreConversationStoreTest {
       final var assistantMessage = (AssistantMessage) loadResult.messages().get(0);
 
       assertThat(assistantMessage.content()).hasSize(1);
-      assertThat(
-              ((io.camunda.connector.agenticai.model.message.content.TextContent)
-                      assistantMessage.content().get(0))
-                  .text())
+      assertThat(((TextContent) assistantMessage.content().get(0)).text())
           .isEqualTo("Let me check the weather for you.");
 
       assertThat(assistantMessage.hasToolCalls()).isTrue();
@@ -779,7 +787,8 @@ class AwsAgentCoreConversationStoreTest {
     var changedConfig =
         new AwsAgentCoreMemoryStorageConfiguration(
             "us-east-1", null, config.authentication(), "different-memory-id", ACTOR_ID);
-    when(executionContext.memory()).thenReturn(new MemoryConfiguration(changedConfig, 20));
+    when(executionContext.configuration())
+        .thenReturn(configWithMemory(new MemoryConfiguration(changedConfig, 20)));
     when(clientFactory.createClient(changedConfig)).thenReturn(bedrockClient);
 
     var changedStore =
@@ -813,7 +822,8 @@ class AwsAgentCoreConversationStoreTest {
     var changedConfig =
         new AwsAgentCoreMemoryStorageConfiguration(
             "us-east-1", null, config.authentication(), MEMORY_ID, "different-actor-id");
-    when(executionContext.memory()).thenReturn(new MemoryConfiguration(changedConfig, 20));
+    when(executionContext.configuration())
+        .thenReturn(configWithMemory(new MemoryConfiguration(changedConfig, 20)));
     when(clientFactory.createClient(changedConfig)).thenReturn(bedrockClient);
 
     var changedStore =
@@ -896,7 +906,7 @@ class AwsAgentCoreConversationStoreTest {
 
   private void mockListEventsResponse(List<Event> events) {
     // Create an SdkIterable for the events
-    final SdkIterable<Event> eventsIterable = () -> events.iterator();
+    final SdkIterable<Event> eventsIterable = events::iterator;
 
     when(listEventsIterable.events()).thenReturn(eventsIterable);
     when(bedrockClient.listEventsPaginator(any(ListEventsRequest.class)))

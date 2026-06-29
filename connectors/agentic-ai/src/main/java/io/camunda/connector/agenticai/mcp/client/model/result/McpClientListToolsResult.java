@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
-import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import java.util.List;
 
 @AgenticAiRecord

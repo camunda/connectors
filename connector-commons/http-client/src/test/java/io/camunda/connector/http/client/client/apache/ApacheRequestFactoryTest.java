@@ -35,6 +35,7 @@ import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.model.auth.OAuthRefreshTokenAuthentication;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -129,6 +130,29 @@ public class ApacheRequestFactoryTest {
         // then
         assertThat(httpRequest.getHeader(HttpHeaders.AUTHORIZATION).getValue())
             .isEqualTo("Bearer token");
+      }
+    }
+
+    @Test
+    public void shouldSetOAuthRefreshTokenAuthentication_whenProvided() throws Exception {
+      var tokenResponse = new TokenResponse("refreshed-token", 300);
+      var response = new HttpResponse<>(200, null, Map.of(), tokenResponse);
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl("theurl");
+      request.setAuthentication(
+          new OAuthRefreshTokenAuthentication(
+              "https://idp/token", "clientId", "secret", "the-refresh-token", "scopes"));
+      try (MockedConstruction<CustomApacheHttpClient> mocked =
+          mockConstruction(
+              CustomApacheHttpClient.class,
+              (mock, context) ->
+                  when(mock.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+                      .thenReturn(response))) {
+        ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
+
+        assertThat(httpRequest.getHeader(HttpHeaders.AUTHORIZATION).getValue())
+            .isEqualTo("Bearer refreshed-token");
       }
     }
 

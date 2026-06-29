@@ -48,6 +48,12 @@ public class ActivityLogRegistry implements ActivityLogWriter {
     }
   }
 
+  public void remove(ExecutableId executableId) {
+    synchronized (activityLogs) {
+      activityLogs.remove(executableId);
+    }
+  }
+
   @Override
   public void log(ActivityLogEntry logEntry) {
     String message = logEntry.activity().toString();

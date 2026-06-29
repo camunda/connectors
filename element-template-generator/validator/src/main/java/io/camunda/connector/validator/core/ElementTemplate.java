@@ -39,4 +39,8 @@ public final class ElementTemplate {
 
   public static final String PRESETS = "presets";
   public static final String BINDING = "binding";
+
+  public static final String STEPS = "steps";
+  public static final String PRESET_ID = "presetId";
+  public static final String KEYWORDS = "keywords";
 }

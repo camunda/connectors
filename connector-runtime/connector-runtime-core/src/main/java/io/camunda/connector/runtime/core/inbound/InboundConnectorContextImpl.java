@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -36,6 +37,9 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
+import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -44,6 +48,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,16 +61,16 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     implements InboundConnectorContext, InboundConnectorManagementContext {
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
-  private ValidInboundConnectorDetails connectorDetails;
+  private final FeelExpressionEvaluator evaluator;
   private final Map<String, Object> properties;
-
   private final InboundCorrelationHandler correlationHandler;
   private final ObjectMapper objectMapper;
-
   private final Consumer<Throwable> cancellationCallback;
   private final ActivityLogWriter activityLogWriter;
   private final DocumentFactory documentFactory;
   private final Long activationTimestamp;
+  private final CamundaClient camundaClient;
+  private ValidInboundConnectorDetails connectorDetails;
   private Health health = Health.unknown();
   private Map<String, Object> propertiesWithSecrets;
 
@@ -77,7 +82,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      ActivityLogWriter activityLogWriter) {
+      ActivityLogWriter activityLogWriter,
+      CamundaClient camundaClient) {
     super(secretProvider, validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
@@ -89,6 +95,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.cancellationCallback = cancellationCallback;
     this.activityLogWriter = activityLogWriter;
     this.activationTimestamp = System.currentTimeMillis();
+    this.camundaClient = Objects.requireNonNull(camundaClient, "camundaClient must not be null");
+    this.evaluator =
+        FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
+            .tenantId(connectorDetails.tenantId())
+            .objectMapper(objectMapper)
+            .build();
   }
 
   public InboundConnectorContextImpl(
@@ -98,7 +110,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      ActivityLogWriter logs) {
+      ActivityLogWriter logs,
+      CamundaClient camundaClient) {
     this(
         secretProvider,
         validationProvider,
@@ -107,7 +120,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         correlationHandler,
         cancellationCallback,
         objectMapper,
-        logs);
+        logs,
+        camundaClient);
   }
 
   @Override
@@ -275,9 +289,24 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public <T> T bindProperties(Class<T> cls) {
-    var mappedObject = objectMapper.convertValue(getPropertiesWithSecrets(properties), cls);
-    getValidationProvider().validate(mappedObject);
-    return mappedObject;
+    try {
+      var propertiesJson = objectMapper.valueToTree(getPropertiesWithSecrets(properties));
+      var result =
+          FeelContextAwareObjectReader.of(objectMapper)
+              .withEvaluator(evaluator)
+              .readValue(propertiesJson, cls);
+      getValidationProvider().validate(result);
+      return result;
+    } catch (IOException | FeelEngineWrapperException e) {
+      throw new RuntimeException(
+          "Failed to bind process instance properties to "
+              + cls.getName()
+              + " using FEEL evaluation/deserialization"
+              + " (tenantId="
+              + connectorDetails.tenantId()
+              + ")",
+          e);
+    }
   }
 
   @Override

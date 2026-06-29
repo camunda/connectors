@@ -26,7 +26,8 @@ configuration, the result will contain the following fields:
       "tokenUsage" : {
         "inputTokenCount" : 10,
         "outputTokenCount" : 20
-      }
+      },
+      "toolCalls" : 0
     },
     "state" : "READY",
     "toolDefinitions" : [ {
@@ -70,7 +71,8 @@ leading to the following result
       "tokenUsage" : {
         "inputTokenCount" : 10,
         "outputTokenCount" : 20
-      }
+      },
+      "toolCalls" : 0
     },
     "state" : "READY",
     "toolDefinitions" : [ {
@@ -118,7 +120,8 @@ leading to the following result
       "tokenUsage" : {
         "inputTokenCount" : 10,
         "outputTokenCount" : 20
-      }
+      },
+      "toolCalls" : 0
     },
     "state" : "READY",
     "toolDefinitions" : [ {
@@ -179,7 +182,8 @@ leading to the following result
       "tokenUsage" : {
         "inputTokenCount" : 10,
         "outputTokenCount" : 20
-      }
+      },
+      "toolCalls" : 0
     },
     "state" : "READY",
     "toolDefinitions" : [ {

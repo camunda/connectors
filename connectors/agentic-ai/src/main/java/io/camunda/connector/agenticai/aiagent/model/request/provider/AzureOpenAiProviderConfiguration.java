@@ -34,6 +34,11 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
     return AZURE_OPENAI_ID;
   }
 
+  @Override
+  public String model() {
+    return azureOpenAi.model.deploymentName();
+  }
+
   public record AzureOpenAiConnection(
       @NotBlank
           @HttpUrl

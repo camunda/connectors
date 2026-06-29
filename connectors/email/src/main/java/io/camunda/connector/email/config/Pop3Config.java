@@ -8,6 +8,7 @@ package io.camunda.connector.email.config;
 
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.hostvalidator.VerifiedHost;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -22,6 +23,7 @@ public record Pop3Config(
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Config.pop3Host"))
         @Valid
         @NotNull
+        @VerifiedHost
         String pop3Host,
     @TemplateProperty(
             label = "POP3 Port",

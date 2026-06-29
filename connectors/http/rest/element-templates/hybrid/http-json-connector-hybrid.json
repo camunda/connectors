@@ -5,7 +5,7 @@
   "description" : "Invoke REST API",
   "keywords" : [ "HTTP", "REST", "API call", "web request", "GET", "POST", "PUT", "PATCH", "DELETE", "fetch data", "send request", "invoke API" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 13,
+  "version" : 15,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -23,6 +23,9 @@
   }, {
     "id" : "authentication",
     "label" : "Authentication"
+  }, {
+    "id" : "tls",
+    "label" : "Client certificate (mTLS)"
   }, {
     "id" : "endpoint",
     "label" : "HTTP endpoint"
@@ -80,6 +83,9 @@
     }, {
       "name" : "OAuth 2.0",
       "value" : "oauth-client-credentials-flow"
+    }, {
+      "name" : "OAuth 2.0 Refresh Token",
+      "value" : "oauth-refresh-token"
     } ]
   }, {
     "id" : "authentication.apiKeyLocation",
@@ -328,6 +334,152 @@
     },
     "type" : "String"
   }, {
+    "id" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "description" : "The OAuth token endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.oauthTokenEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-refresh-token",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.oauthRefreshToken.clientId",
+    "label" : "Client ID",
+    "description" : "Your application's client ID from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-refresh-token",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.oauthRefreshToken.clientSecret",
+    "label" : "Client secret",
+    "description" : "Your application's client secret from the OAuth client",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-refresh-token",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.oauthRefreshToken.refreshToken",
+    "label" : "Refresh token",
+    "description" : "The refresh token used to obtain a new access token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.refreshToken",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-refresh-token",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.oauthRefreshToken.scopes",
+    "label" : "Scopes",
+    "description" : "The scopes to request authorization for (space-separated)",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.scopes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-refresh-token",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "clientTls.clientCertificate",
+    "label" : "Client certificate (PEM)",
+    "description" : "PEM-encoded client certificate chain presented to the server for mTLS. Provide together with the private key.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.clientCertificate",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "clientTls.clientPrivateKey",
+    "label" : "Client private key (PEM)",
+    "description" : "PEM-encoded private key (PKCS#1, PKCS#8 or EC), optionally encrypted.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.clientPrivateKey",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "clientTls.privateKeyPassword",
+    "label" : "Private key password",
+    "description" : "Password protecting the private key. Leave empty if it is not encrypted.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.privateKeyPassword",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "clientTls.trustedCertificate",
+    "label" : "Trusted CA certificate (PEM)",
+    "description" : "Optional PEM-encoded CA certificate(s) used to validate the server. If empty, the JVM's default trust store is used.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tls",
+    "binding" : {
+      "name" : "clientTls.trustedCertificate",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
     "id" : "method",
     "label" : "Method",
     "optional" : false,
@@ -515,7 +667,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "13",
+    "value" : "15",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -582,7 +734,7 @@
     "id" : "retryBackoff",
     "label" : "Retry backoff",
     "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT0S",
+    "value" : "PT30S",
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",

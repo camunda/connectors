@@ -27,7 +27,6 @@ import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
-import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,7 +85,7 @@ public class GraphQLFunctionTest extends BaseTest {
     final var context =
         OutboundConnectorContextBuilder.create()
             .variables(input)
-            .validation(new DefaultValidationProvider())
+            .includeAllValidators()
             .secrets(new StaticSecretProvider("foo"))
             .build();
 
@@ -106,6 +105,7 @@ public class GraphQLFunctionTest extends BaseTest {
     final var context =
         OutboundConnectorContextBuilder.create()
             .variables(input)
+            .includeAllValidators()
             .secrets(new StaticSecretProvider("foo"))
             .build();
     final var expectedTimeInSeconds =
@@ -138,6 +138,7 @@ public class GraphQLFunctionTest extends BaseTest {
     final var context =
         OutboundConnectorContextBuilder.create()
             .variables(input)
+            .includeAllValidators()
             .secrets(new StaticSecretProvider("foo"))
             .build();
 
@@ -170,6 +171,7 @@ public class GraphQLFunctionTest extends BaseTest {
     final var context =
         OutboundConnectorContextBuilder.create()
             .variables(input)
+            .includeAllValidators()
             .secrets(new StaticSecretProvider("foo"))
             .build();
 
@@ -181,6 +183,7 @@ public class GraphQLFunctionTest extends BaseTest {
     final var context =
         OutboundConnectorContextBuilder.create()
             .variables(input)
+            .includeAllValidators()
             .secrets(new StaticSecretProvider("foo"))
             .build();
     return (HttpCommonResult) functionUnderTest.execute(context);

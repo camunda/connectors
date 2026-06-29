@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.TokenResponse;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.model.auth.OAuthRefreshTokenAuthentication;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Nested;
@@ -245,6 +246,110 @@ public class CaffeineOAuthTokenCacheTest {
 
       assertThat(result2).isEqualTo("token-2");
       assertThat(fetchCount.get()).isEqualTo(0);
+    }
+  }
+
+  @Nested
+  class RefreshTokenCacheTests {
+
+    private static OAuthRefreshTokenAuthentication createRefreshAuth(
+        String endpoint, String clientId, String refreshToken) {
+      return new OAuthRefreshTokenAuthentication(endpoint, clientId, null, refreshToken, null);
+    }
+
+    @Test
+    void shouldProduceSameKey_forSameRefreshTokenAuthentication() {
+      var auth1 = createRefreshAuth("https://token.example.com", "id1", "rt1");
+      var auth2 = createRefreshAuth("https://token.example.com", "id1", "rt1");
+
+      assertThat(CaffeineOAuthTokenCache.computeCacheKey(auth1))
+          .isEqualTo(CaffeineOAuthTokenCache.computeCacheKey(auth2));
+    }
+
+    @Test
+    void shouldProduceDifferentKey_forDifferentRefreshToken() {
+      var auth1 = createRefreshAuth("https://token.example.com", "id1", "rt1");
+      var auth2 = createRefreshAuth("https://token.example.com", "id1", "rt2");
+
+      assertThat(CaffeineOAuthTokenCache.computeCacheKey(auth1))
+          .isNotEqualTo(CaffeineOAuthTokenCache.computeCacheKey(auth2));
+    }
+
+    @Test
+    void shouldReturnCachedToken_onSecondCall() {
+      var cache = new CaffeineOAuthTokenCache();
+      var auth = createRefreshAuth("https://token.example.com", "id1", "rt1");
+      var fetchCount = new AtomicInteger(0);
+
+      var result1 =
+          cache.getOrFetch(
+              auth,
+              () -> {
+                fetchCount.incrementAndGet();
+                return new TokenResponse("access-token-1", 300);
+              });
+      var result2 =
+          cache.getOrFetch(
+              auth,
+              () -> {
+                fetchCount.incrementAndGet();
+                return new TokenResponse("access-token-2", 300);
+              });
+
+      assertThat(result1).isEqualTo("access-token-1");
+      assertThat(result2).isEqualTo("access-token-1");
+      assertThat(fetchCount.get()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldFetchNewToken_afterInvalidation() {
+      var cache = new CaffeineOAuthTokenCache();
+      var auth = createRefreshAuth("https://token.example.com", "id1", "rt1");
+      var fetchCount = new AtomicInteger(0);
+
+      cache.getOrFetch(
+          auth,
+          () -> {
+            fetchCount.incrementAndGet();
+            return new TokenResponse("access-token-1", 300);
+          });
+      cache.invalidate(auth);
+      var result =
+          cache.getOrFetch(
+              auth,
+              () -> {
+                fetchCount.incrementAndGet();
+                return new TokenResponse("access-token-2", 300);
+              });
+
+      assertThat(result).isEqualTo("access-token-2");
+      assertThat(fetchCount.get()).isEqualTo(2);
+    }
+
+    @Test
+    void shouldNotCacheToken_whenExpiresInIsAbsent() {
+      var cache = new CaffeineOAuthTokenCache();
+      var auth = createRefreshAuth("https://token.example.com", "id1", "rt1");
+      var fetchCount = new AtomicInteger(0);
+
+      var result1 =
+          cache.getOrFetch(
+              auth,
+              () -> {
+                fetchCount.incrementAndGet();
+                return new TokenResponse("token-no-expiry-1");
+              });
+      var result2 =
+          cache.getOrFetch(
+              auth,
+              () -> {
+                fetchCount.incrementAndGet();
+                return new TokenResponse("token-no-expiry-2");
+              });
+
+      assertThat(result1).isEqualTo("token-no-expiry-1");
+      assertThat(result2).isEqualTo("token-no-expiry-2");
+      assertThat(fetchCount.get()).isEqualTo(2);
     }
   }
 

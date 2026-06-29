@@ -136,10 +136,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   void validate_shouldValidateWithoutException(String input) {
     // Given request without one required field
     OutboundConnectorContext context =
-        getContextBuilderWithSecrets()
-            .variables(input)
-            .validation(new DefaultValidationProvider())
-            .build();
+        getContextBuilderWithSecrets().variables(input).includeAllValidators().build();
     // When context.validate(request);
     // Then expect normal validate without exception
     context.bindVariables(HttpJsonRequest.class);

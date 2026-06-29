@@ -18,13 +18,12 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -54,32 +53,32 @@ public class Langchain4JAiFrameworkAdapter
 
   @Override
   public Langchain4JAiFrameworkChatResponse executeChatRequest(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      RuntimeMemory runtimeMemory) {
-    final var messages = chatMessageConverter.map(runtimeMemory.filteredMessages());
+      AgentExecutionContext executionContext, ConversationSnapshot snapshot) {
+    final var messages = chatMessageConverter.map(snapshot.messages());
     final var toolSpecifications =
-        toolSpecificationConverter.asToolSpecifications(agentContext.toolDefinitions());
+        toolSpecificationConverter.asToolSpecifications(snapshot.toolDefinitions());
 
+    final var configuration = executionContext.configuration();
     final var chatRequestBuilder =
         ChatRequest.builder().messages(messages).toolSpecifications(toolSpecifications);
-    configureResponseFormat(chatRequestBuilder, executionContext.response());
+    configureResponseFormat(chatRequestBuilder, configuration.response());
 
-    try (final var chatModel = chatModelFactory.createChatModel(executionContext.provider())) {
+    try (final var chatModel = chatModelFactory.createChatModel(configuration.provider())) {
       final ChatResponse chatResponse = doChat(chatModel, chatRequestBuilder);
       final AssistantMessage assistantMessage =
           chatMessageConverter.toAssistantMessage(chatResponse);
 
-      final var updatedAgentContext =
-          agentContext.withMetrics(
-              agentContext
-                  .metrics()
-                  .incrementModelCalls(1)
-                  .incrementTokenUsage(tokenUsage(chatResponse.tokenUsage())));
-
-      return new Langchain4JAiFrameworkChatResponse(
-          updatedAgentContext, assistantMessage, chatResponse);
+      final var metrics = buildMetrics(chatResponse, assistantMessage);
+      return new Langchain4JAiFrameworkChatResponse(assistantMessage, metrics, chatResponse);
     }
+  }
+
+  private AgentMetrics buildMetrics(ChatResponse chatResponse, AssistantMessage assistantMessage) {
+    return AgentMetrics.builder()
+        .modelCalls(1)
+        .tokenUsage(tokenUsage(chatResponse.tokenUsage()))
+        .toolCalls(assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size())
+        .build();
   }
 
   private void configureResponseFormat(

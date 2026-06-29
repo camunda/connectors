@@ -74,14 +74,51 @@ class AgentMetricsTest {
     assertThat(updatedMetrics.tokenUsage().totalTokenCount()).isEqualTo(33);
   }
 
+  @Test
+  void withToolCalls() {
+    final var initialMetrics = AgentMetrics.empty();
+    final var updatedMetrics = initialMetrics.withToolCalls(5);
+
+    assertThat(updatedMetrics).isNotEqualTo(initialMetrics);
+    assertThat(initialMetrics.toolCalls()).isEqualTo(0);
+
+    assertThat(updatedMetrics.toolCalls()).isEqualTo(5);
+  }
+
+  @Test
+  void incrementToolCalls() {
+    final var initialMetrics = AgentMetrics.empty().withToolCalls(3);
+    final var updatedMetrics = initialMetrics.incrementToolCalls(4);
+
+    assertThat(updatedMetrics).isNotEqualTo(initialMetrics);
+    assertThat(initialMetrics.toolCalls()).isEqualTo(3);
+
+    assertThat(updatedMetrics.toolCalls()).isEqualTo(7);
+  }
+
+  @Test
+  void addAgentMetrics() {
+    final var a = new AgentMetrics(2, new TokenUsage(30, 70), 1);
+    final var b = new AgentMetrics(3, new TokenUsage(100, 200), 2);
+
+    final var sum = a.add(b);
+
+    assertThat(sum.modelCalls()).isEqualTo(5);
+    assertThat(sum.tokenUsage()).isEqualTo(new TokenUsage(130, 270));
+    assertThat(sum.toolCalls()).isEqualTo(3);
+    // operands are left untouched
+    assertThat(a).isEqualTo(new AgentMetrics(2, new TokenUsage(30, 70), 1));
+  }
+
   @ParameterizedTest
   @MethodSource("invalidConstructorParameters")
   void throwsExceptionOnInvalidConstructorParameters(
       int modelCalls,
       TokenUsage tokenUsage,
+      int toolCalls,
       Class<? extends Throwable> exceptionClass,
       String exceptionMessage) {
-    assertThatThrownBy(() -> new AgentMetrics(modelCalls, tokenUsage))
+    assertThatThrownBy(() -> new AgentMetrics(modelCalls, tokenUsage, toolCalls))
         .isInstanceOf(exceptionClass)
         .hasMessage(exceptionMessage);
   }
@@ -91,8 +128,15 @@ class AgentMetricsTest {
         arguments(
             -10,
             TokenUsage.empty(),
+            0,
             IllegalArgumentException.class,
             "Model calls must be non-negative"),
-        arguments(10, null, NullPointerException.class, "Token usage must not be null"));
+        arguments(10, null, 0, NullPointerException.class, "Token usage must not be null"),
+        arguments(
+            0,
+            TokenUsage.empty(),
+            -5,
+            IllegalArgumentException.class,
+            "Tool calls must be non-negative"));
   }
 }

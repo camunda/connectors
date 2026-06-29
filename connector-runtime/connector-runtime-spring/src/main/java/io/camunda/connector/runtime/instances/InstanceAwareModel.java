@@ -28,6 +28,10 @@ public sealed interface InstanceAwareModel
       implements InstanceAwareModel {}
 
   record InstanceAwareHealth(
-      Health.Status status, Health.Error error, Map<String, Object> details, String runtimeId)
+      Health.Status status,
+      Health.Error error,
+      Map<String, Object> details,
+      OffsetDateTime lastUpdatedAt,
+      String runtimeId)
       implements InstanceAwareModel {}
 }

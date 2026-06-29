@@ -15,6 +15,9 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
   @JsonSubTypes.Type(value = BasicAuthentication.class, name = BasicAuthentication.TYPE),
   @JsonSubTypes.Type(value = NoAuthentication.class, name = NoAuthentication.TYPE),
   @JsonSubTypes.Type(value = OAuthAuthentication.class, name = OAuthAuthentication.TYPE),
+  @JsonSubTypes.Type(
+      value = OAuthRefreshTokenAuthentication.class,
+      name = OAuthRefreshTokenAuthentication.TYPE),
   @JsonSubTypes.Type(value = BearerAuthentication.class, name = BearerAuthentication.TYPE),
   @JsonSubTypes.Type(value = ApiKeyAuthentication.class, name = ApiKeyAuthentication.TYPE)
 })
@@ -29,4 +32,5 @@ public sealed interface Authentication
         BasicAuthentication,
         BearerAuthentication,
         NoAuthentication,
-        OAuthAuthentication {}
+        OAuthAuthentication,
+        OAuthRefreshTokenAuthentication {}

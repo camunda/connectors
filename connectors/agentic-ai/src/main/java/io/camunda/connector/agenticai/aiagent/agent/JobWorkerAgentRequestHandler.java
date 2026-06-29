@@ -9,23 +9,20 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse.ToolCallElementActivation;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 public class JobWorkerAgentRequestHandler
     extends BaseAgentRequestHandler<
@@ -36,55 +33,43 @@ public class JobWorkerAgentRequestHandler
   public JobWorkerAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
-      AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
-      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentConversationTurnInputComposer agentInputComposer,
       AiFrameworkAdapter<?> framework,
-      AgentResponseHandler responseHandler) {
+      SystemPromptComposer systemPromptComposer,
+      AgentResponseHandler responseHandler,
+      AgentInstanceClient agentInstanceClient) {
     super(
         agentInitializer,
         conversationStoreRegistry,
-        limitsValidator,
-        messagesHandler,
-        gatewayToolHandlers,
+        agentInputComposer,
         framework,
-        responseHandler);
+        systemPromptComposer,
+        responseHandler,
+        agentInstanceClient);
   }
 
   @Override
-  protected boolean modelCallPrerequisitesFulfilled(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentContext agentContext,
-      List<Message> addedUserMessages) {
-    return !CollectionUtils.isEmpty(addedUserMessages);
+  protected boolean shouldUpdateAgentInstanceBeforeJobCompletion(AgentConversation conversation) {
+    // When the current turn requested tool calls, the subprocess stays open (tool elements are
+    // activated) and survives job completion, so the agent-instance update can be deferred to the
+    // completion listener. Otherwise (final turn, no tool calls) the subprocess completes and the
+    // update must be sent synchronously before the job completion command.
+    return !conversation.currentTurn().hasToolCalls();
   }
 
   @Override
-  protected void handleAddedUserMessages(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentContext agentContext,
-      List<Message> addedUserMessages) {
-    final boolean hasInterruptedToolCalls =
-        addedUserMessages.stream()
-            .filter(ToolCallResultMessage.class::isInstance)
-            .map(ToolCallResultMessage.class::cast)
-            .flatMap(msg -> msg.results().stream())
-            .anyMatch(
-                result ->
-                    Boolean.TRUE.equals(
-                        result
-                            .properties()
-                            .getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
-
-    // cancel remaining instances if any tool call was interrupted
-    if (hasInterruptedToolCalls) {
-      executionContext.setCancelRemainingInstances(true);
-    }
+  protected AiAgentSubProcessConnectorResponse handleNoInput(
+      JobWorkerAgentExecutionContext executionContext) {
+    LOGGER.warn(
+        "No input to process; completing job {} without response.",
+        executionContext.jobContext().getJobKey());
+    return buildConnectorResponse(executionContext, null, null, null);
   }
 
   @Override
   public AiAgentSubProcessConnectorResponse buildConnectorResponse(
       JobWorkerAgentExecutionContext executionContext,
+      AgentConversation conversation,
       AgentResponse agentResponse,
       AgentJobCompletionListener completionListener) {
     if (agentResponse == null) {
@@ -106,16 +91,19 @@ public class JobWorkerAgentRequestHandler
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
-      return buildResponse(executionContext, agentResponse, completionListener);
+      return buildResponse(executionContext, conversation, agentResponse, completionListener);
     }
   }
 
   private AiAgentSubProcessConnectorResponse buildResponse(
       JobWorkerAgentExecutionContext executionContext,
+      AgentConversation conversation,
       AgentResponse agentResponse,
       AgentJobCompletionListener completionListener) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
-    boolean cancelRemainingInstances = executionContext.cancelRemainingInstances();
+    // cancel remaining instances if any tool call in this turn's input was interrupted
+    boolean cancelRemainingInstances =
+        conversation != null && conversation.currentTurn().hasInterruptedToolCallResults();
 
     LOGGER.debug(
         "completionConditionFulfilled: {}, cancelRemainingInstances: {}",

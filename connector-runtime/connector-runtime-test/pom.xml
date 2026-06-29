@@ -20,17 +20,35 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-core</artifactId>
     </dependency>
+
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-test</artifactId>
     </dependency>
+
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-core</artifactId>
     </dependency>
+
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>host-ip-validator</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.hibernate.validator</groupId>
+      <artifactId>hibernate-validator</artifactId>
     </dependency>
 
     <dependency>
