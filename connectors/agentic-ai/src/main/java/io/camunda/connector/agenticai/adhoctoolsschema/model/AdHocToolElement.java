@@ -14,10 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-@NullMarked
 @AgenticAiRecord
 @JsonDeserialize(builder = AdHocToolElement.AdHocToolElementJacksonProxyBuilder.class)
 public record AdHocToolElement(
