@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockagentcore.model.Conversational;
 import software.amazon.awssdk.services.bedrockagentcore.model.Event;
@@ -317,7 +318,7 @@ public class AwsAgentCoreConversationMapper {
   }
 
   private PayloadType createMetadataBlobPayload(
-      Map<String, Object> metadata, Map<String, Object> properties) {
+      Map<String, Object> metadata, @Nullable Map<String, Object> properties) {
     try {
       BlobEnvelope envelope = BlobEnvelope.forMetadata(metadata, properties, objectMapper);
       Document document = envelope.toDocument(objectMapper);
@@ -328,7 +329,7 @@ public class AwsAgentCoreConversationMapper {
     }
   }
 
-  private String extractTextFromConversational(Conversational conversational) {
+  private @Nullable String extractTextFromConversational(Conversational conversational) {
     if (conversational.content() == null) {
       return null;
     }
@@ -348,7 +349,8 @@ public class AwsAgentCoreConversationMapper {
     return envelope.parseData(TOOL_CALL_RESULTS_TYPE, objectMapper);
   }
 
-  private static Role resolveRoleFromProperties(Map<String, Object> properties) {
+  private static @Nullable Role resolveRoleFromProperties(
+      @Nullable Map<String, Object> properties) {
     if (properties == null) {
       return null;
     }
@@ -375,7 +377,7 @@ public class AwsAgentCoreConversationMapper {
    * properties section. The role is always included as the canonical source for message
    * reconstruction during deserialization.
    */
-  private Map<String, Object> extractProperties(Message message) {
+  private @Nullable Map<String, Object> extractProperties(Message message) {
     // role is the canonical source for deserialization — must always be present
     String role =
         switch (message) {
@@ -402,7 +404,7 @@ public class AwsAgentCoreConversationMapper {
    * non-recoverable errors that should be handled at the session level.
    */
   public static class AgentCoreMapperException extends RuntimeException {
-    public AgentCoreMapperException(String message, Throwable cause) {
+    public AgentCoreMapperException(String message, @Nullable Throwable cause) {
       super(message, cause);
     }
   }

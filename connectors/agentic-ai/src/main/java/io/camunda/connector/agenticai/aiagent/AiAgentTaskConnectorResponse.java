@@ -10,7 +10,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentJobCompletionListener;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Response type for the AI Agent task flavor (outbound connector on a service task). Carries an
@@ -22,7 +22,7 @@ public record AiAgentTaskConnectorResponse(
     implements StandardConnectorResponse, AgentJobCompletionListener {
 
   @Override
-  public Object responseValue() {
+  public @Nullable Object responseValue() {
     return agentResponse;
   }
 

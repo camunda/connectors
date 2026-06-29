@@ -20,6 +20,7 @@ import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Google Vertex AI")
 public record GoogleVertexAiProviderConfiguration(
@@ -130,7 +131,7 @@ public record GoogleVertexAiProviderConfiguration(
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Integer maxOutputTokens,
+            @Nullable Integer maxOutputTokens,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -140,7 +141,7 @@ public record GoogleVertexAiProviderConfiguration(
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Float temperature,
+            @Nullable Float temperature,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -150,7 +151,7 @@ public record GoogleVertexAiProviderConfiguration(
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Float topP,
+            @Nullable Float topP,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -160,6 +161,6 @@ public record GoogleVertexAiProviderConfiguration(
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Integer topK) {}
+            @Nullable Integer topK) {}
   }
 }

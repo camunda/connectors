@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import org.jspecify.annotations.Nullable;
 
 public interface ContentConverter {
   /** Converts a {@link Content} to a LangChain4j {@link dev.langchain4j.data.message.Content}. */
@@ -15,5 +16,5 @@ public interface ContentConverter {
       throws JsonProcessingException;
 
   /** Converts a result to a string representation. */
-  String convertToString(Object content) throws JsonProcessingException;
+  @Nullable String convertToString(@Nullable Object content) throws JsonProcessingException;
 }

@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,7 +47,8 @@ class ToolCallResultDocumentExtractorTest {
   void setUp() {
     documentStore.clear();
     when(handler.type()).thenReturn("typed");
-    when(handler.isGatewayManaged(any()))
+    lenient()
+        .when(handler.isGatewayManaged(any()))
         .thenAnswer(inv -> MANAGED_TOOL.equals(inv.getArgument(0)));
     extractor =
         new ToolCallResultDocumentExtractor(new GatewayToolHandlerRegistryImpl(List.of(handler)));

@@ -30,7 +30,8 @@ public interface AgentJobCompletionListener {
    * Chains an arbitrary number of listeners, skipping nulls. Each listener is called regardless of
    * whether a previous one threw; exceptions are logged and swallowed.
    */
-  static @Nullable AgentJobCompletionListener compose(AgentJobCompletionListener... listeners) {
+  static @Nullable AgentJobCompletionListener compose(
+      @Nullable AgentJobCompletionListener... listeners) {
     final var nonNull = Arrays.stream(listeners).filter(Objects::nonNull).toList();
     return switch (nonNull.size()) {
       case 0 -> null;

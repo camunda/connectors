@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -49,13 +50,15 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
   public AgentResponse createResponse(AgentConversation conversation) {
     final var agentContext = conversation.toAgentContext();
     final var assistantMessage =
-        conversation
-            .lastTurn()
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "Cannot create an agent response: the conversation has no completed turn"))
-            .assistantMessage();
+        Objects.requireNonNull(
+            conversation
+                .lastTurn()
+                .orElseThrow(
+                    () ->
+                        new IllegalStateException(
+                            "Cannot create an agent response: the conversation has no completed turn"))
+                .assistantMessage(),
+            "Cannot create an agent response: the last turn has no assistant message");
     final var rawToolCalls = Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of());
     final var toolCalls =
         gatewayToolHandlers.transformToolCalls(agentContext, rawToolCalls).stream()
@@ -144,7 +147,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       throws JsonProcessingException {
     // Strip markdown code blocks before parsing to handle AI models (like Anthropic Claude)
     // that wrap JSON responses in ```json ... ``` code fences
-    String cleanedText = stripMarkdownCodeBlocks(responseText);
+    String cleanedText = Objects.requireNonNull(stripMarkdownCodeBlocks(responseText));
     Object responseJson = objectMapper.readValue(cleanedText, Object.class);
     responseBuilder.responseJson(responseJson);
   }

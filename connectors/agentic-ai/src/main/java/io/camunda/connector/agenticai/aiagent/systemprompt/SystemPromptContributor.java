@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.systemprompt;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Contributes additional instructions to the AI agent's system prompt. Implementations can provide
@@ -26,7 +27,7 @@ public interface SystemPromptContributor {
    * @param agentContext the current durable agent context
    * @return The system prompt contribution, or null/empty if no contribution needed
    */
-  String contribute(AgentExecutionContext executionContext, AgentContext agentContext);
+  @Nullable String contribute(AgentExecutionContext executionContext, AgentContext agentContext);
 
   /**
    * Determines the order in which this contributor's content is appended. Lower values are appended

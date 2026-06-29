@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.Time
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.time.Duration;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 public final class ChatModelProviderSupport {
@@ -27,7 +28,7 @@ public final class ChatModelProviderSupport {
   public static Duration deriveTimeoutSetting(
       String timeoutType,
       ChatModelProperties chatModelConfig,
-      TimeoutConfiguration timeoutConfiguration,
+      @Nullable TimeoutConfiguration timeoutConfiguration,
       Logger logger) {
     var derivedTimeout =
         Optional.ofNullable(timeoutConfiguration)

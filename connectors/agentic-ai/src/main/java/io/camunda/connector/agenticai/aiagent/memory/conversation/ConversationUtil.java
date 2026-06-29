@@ -8,10 +8,11 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 public class ConversationUtil {
 
-  public static <C extends ConversationContext> C loadConversationContext(
+  public static <C extends ConversationContext> @Nullable C loadConversationContext(
       AgentContext agentContext, Class<C> contextClass) {
     final var conversationContext =
         Optional.ofNullable(agentContext).map(AgentContext::conversation).orElse(null);

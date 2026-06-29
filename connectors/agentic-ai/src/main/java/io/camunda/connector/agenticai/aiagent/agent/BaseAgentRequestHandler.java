@@ -376,7 +376,7 @@ public abstract class BaseAgentRequestHandler<
   }
 
   private static <C extends AgentExecutionContext>
-      AgentJobCompletionListener createStoreCompletionListener(
+      @Nullable AgentJobCompletionListener createStoreCompletionListener(
           C executionContext, ConversationStore store, @Nullable AgentResponse agentResponse) {
     if (agentResponse == null) {
       return null;

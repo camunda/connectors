@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Stateless utility that recursively walks an arbitrary content tree and collects {@link Document}
@@ -28,7 +29,7 @@ public final class ContentTreeDocumentWalker {
 
   private ContentTreeDocumentWalker() {}
 
-  public static List<Document> extractDocumentsFromContent(Object content) {
+  public static List<Document> extractDocumentsFromContent(@Nullable Object content) {
     if (content == null) {
       return List.of();
     }
