@@ -147,7 +147,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       throws JsonProcessingException {
     // Strip markdown code blocks before parsing to handle AI models (like Anthropic Claude)
     // that wrap JSON responses in ```json ... ``` code fences
-    String cleanedText = stripMarkdownCodeBlocks(responseText);
+    String cleanedText = Objects.requireNonNull(stripMarkdownCodeBlocks(responseText));
     Object responseJson = objectMapper.readValue(cleanedText, Object.class);
     responseBuilder.responseJson(responseJson);
   }
