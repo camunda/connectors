@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData data) {
   public record McpRemoteClientRequestData(

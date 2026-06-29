@@ -4,15 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
+@NullMarked
 package io.camunda.connector.agenticai.mcp.client.model;
 
-import io.camunda.connector.agenticai.common.AgenticAiRecord;
-import java.util.Map;
-import org.jspecify.annotations.Nullable;
-
-@AgenticAiRecord
-public record McpToolDefinition(
-    String name,
-    @Nullable String title,
-    @Nullable String description,
-    Map<String, Object> inputSchema) {}
+import org.jspecify.annotations.NullMarked;

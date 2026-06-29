@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,7 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
   private final OAuthAuthentication config;
   private final Clock clock;
 
-  private TokenResponse tokenResponse;
+  private @Nullable TokenResponse tokenResponse;
 
   public OAuthHeadersSupplier(
       OAuthService oAuthService,
@@ -130,7 +131,7 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
     return new TokenResponse(accessToken, clock.instant().plus(expiresIn));
   }
 
-  private Object getErrorResponseBody(ConnectorException exception) {
+  private @Nullable Object getErrorResponseBody(ConnectorException exception) {
     final var errorVariables = exception.getErrorVariables();
     if (errorVariables == null) {
       return null;
