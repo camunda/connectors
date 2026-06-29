@@ -28,9 +28,10 @@ public record AdHocToolElement(
 
   /**
    * Returns the documentation if it is non-null, non-blank, and not only whitespace. Otherwise, it
-   * falls back to returning the elementName.
+   * falls back to returning the elementName, which may itself be null.
    *
-   * @return the documentation if available and valid; otherwise, the elementName.
+   * @return the documentation if available and valid; otherwise, the elementName, or {@code null}
+   *     if both are null.
    */
   public @Nullable String documentationWithNameFallback() {
     return Optional.ofNullable(documentation)
