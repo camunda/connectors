@@ -14,8 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 @AgenticAiRecord
 @JsonDeserialize(builder = AdHocToolElement.AdHocToolElementJacksonProxyBuilder.class)
 public record AdHocToolElement(
@@ -32,7 +34,7 @@ public record AdHocToolElement(
    *
    * @return the documentation if available and valid; otherwise, the elementName.
    */
-  public String documentationWithNameFallback() {
+  public @Nullable String documentationWithNameFallback() {
     return Optional.ofNullable(documentation)
         .map(String::trim)
         .filter(StringUtils::isNotBlank)
