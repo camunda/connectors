@@ -53,8 +53,8 @@ public final class AgentInput {
         new UserPrompt(
             userPrompt.prompt(),
             userPrompt.documents() == null ? List.of() : userPrompt.documents()),
-        partitioned.get(true),
-        partitioned.get(false));
+        partitioned.getOrDefault(true, List.of()),
+        partitioned.getOrDefault(false, List.of()));
   }
 
   public UserPrompt userPrompt() {
