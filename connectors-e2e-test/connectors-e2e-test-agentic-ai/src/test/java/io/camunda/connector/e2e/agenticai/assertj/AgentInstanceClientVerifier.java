@@ -119,9 +119,6 @@ public class AgentInstanceClientVerifier {
                     request != null
                         && request.status() == endStatus
                         && Objects.equals(request.delta(), delta)
-                        // No tools on the metrics update (only THINKING carries them).
-                        // AgentInstanceUpdateRequest uses immutable collections, so an unset tools
-                        // list is normalized to an empty list rather than null.
                         && (request.tools() == null || request.tools().isEmpty())));
 
     final var expectedIterationKey = ++turnCount;
