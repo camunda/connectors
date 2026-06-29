@@ -59,7 +59,7 @@ jobs:
   setup:
     needs: create-release
     name: Prepare the repository
-    runs-on: gcp-core-2-release
+    runs-on: gcp-core-8-release
     permissions:
       contents: write
       checks: write
