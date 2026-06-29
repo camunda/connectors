@@ -183,6 +183,42 @@ class SpringConnectorJobHandlerTest {
         // then
         assertThat(result.getVariables()).isEqualTo(Map.of("result", 1));
       }
+
+      @Test
+      void shouldFailJobWhenResultVariableExceedsZeebeLimit() throws Exception {
+        // given
+        String largeValue =
+            "x"
+                .repeat(
+                    (int) io.camunda.connector.api.document.InlineSizeGuard.MAX_INLINE_BYTES + 1);
+        var jobHandler = newConnectorJobHandler((ctx) -> largeValue);
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withRetries(3)
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler, false);
+
+        // then - oversized payload is a deterministic input error: immediate incident, no retries
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage()).contains("Create document");
+      }
+
+      @Test
+      void shouldCompleteJobWhenResultVariableBelowZeebeLimit() throws Exception {
+        // given
+        var jobHandler = newConnectorJobHandler((ctx) -> "small value");
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler);
+
+        // then
+        assertThat(result.getVariables()).containsKey("result");
+      }
     }
 
     @Nested
