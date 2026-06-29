@@ -32,7 +32,6 @@ import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
 import java.util.Objects;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +69,6 @@ import org.slf4j.LoggerFactory;
           templateNameOverride = "A2A Client Webhook Receive Task Connector (early access)"),
     })
 @InboundConnector(name = "A2A Webhook Connector", type = "io.camunda.agenticai:a2aclient:webhook:0")
-@NullMarked
 public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aClientWebhookExecutable.class);
