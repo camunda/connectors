@@ -20,6 +20,7 @@ package io.camunda.connector.runtime.core.outbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.InlineSizeGuard;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -142,7 +143,7 @@ public class ConnectorJobHandler implements JobHandler {
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
       if (!responseVariables.isEmpty()) {
-        InlineSizeGuard.check(objectMapper.writeValueAsBytes(responseVariables).length);
+        InlineSizeGuard.check(sizeCheckMapper().writeValueAsBytes(responseVariables).length);
       }
       return new SuccessResult(response, responseVariables);
     } catch (Exception e) {
@@ -221,10 +222,14 @@ public class ConnectorJobHandler implements JobHandler {
   private void checkVariablesSize(Map<String, Object> variables) {
     if (variables == null || variables.isEmpty()) return;
     try {
-      InlineSizeGuard.check(objectMapper.writeValueAsBytes(variables).length);
+      InlineSizeGuard.check(sizeCheckMapper().writeValueAsBytes(variables).length);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize variables for size check", e);
     }
+  }
+
+  private ObjectMapper sizeCheckMapper() {
+    return objectMapper != null ? objectMapper : ConnectorsObjectMapperSupplier.getCopy();
   }
 
   protected SecretProvider getSecretProvider() {
