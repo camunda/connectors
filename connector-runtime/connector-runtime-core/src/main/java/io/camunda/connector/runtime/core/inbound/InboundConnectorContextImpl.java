@@ -56,6 +56,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +75,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final CamundaClient camundaClient;
   private ValidInboundConnectorDetails connectorDetails;
   private Health health = Health.unknown();
-  private Map<String, Object> propertiesWithSecrets;
+  private @Nullable Map<String, Object> propertiesWithSecrets;
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,

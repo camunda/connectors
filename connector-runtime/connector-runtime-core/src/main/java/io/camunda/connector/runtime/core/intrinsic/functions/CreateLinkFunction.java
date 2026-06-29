@@ -20,8 +20,8 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunction;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionProvider;
-import jakarta.annotation.Nullable;
 import java.time.Duration;
+import org.jspecify.annotations.Nullable;
 
 public class CreateLinkFunction implements IntrinsicFunctionProvider {
 

@@ -35,7 +35,7 @@ public class SecretHandler {
                 .orElseThrow(
                     () ->
                         new ConnectorInputException(
-                            String.format("Secret with name '%s' is not available", name), null));
+                            String.format("Secret with name '%s' is not available", name)));
   }
 
   public String replaceSecrets(String input, SecretContext context) {

@@ -22,6 +22,8 @@ import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,10 +65,10 @@ public class ActivationConditionEvaluator {
       var compatibilityResult = checkMessageElementCompatibility(matchingElements);
       if (compatibilityResult.compatible()) {
         return new ActivationCheckResult.Success.CanActivate(
-            compatibilityResult.element().element());
+            Objects.requireNonNull(compatibilityResult.element()).element());
       }
       return new ActivationCheckResult.Failure.TooManyMatchingElements(
-          compatibilityResult.reason());
+          Objects.requireNonNull(compatibilityResult.reason()));
     }
 
     return new ActivationCheckResult.Success.CanActivate(matchingElements.getFirst().element());
@@ -230,7 +232,7 @@ public class ActivationConditionEvaluator {
   }
 
   private record CompatibilityResult(
-      boolean compatible, InboundConnectorElement element, String reason) {
+      boolean compatible, @Nullable InboundConnectorElement element, @Nullable String reason) {
     static CompatibilityResult compatible(InboundConnectorElement element) {
       return new CompatibilityResult(true, element, null);
     }

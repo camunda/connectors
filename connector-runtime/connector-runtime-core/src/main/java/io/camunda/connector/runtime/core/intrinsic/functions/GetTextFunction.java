@@ -19,8 +19,8 @@ package io.camunda.connector.runtime.core.intrinsic.functions;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunction;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionProvider;
-import jakarta.annotation.Nullable;
 import java.nio.charset.Charset;
+import org.jspecify.annotations.Nullable;
 
 public class GetTextFunction implements IntrinsicFunctionProvider {
 

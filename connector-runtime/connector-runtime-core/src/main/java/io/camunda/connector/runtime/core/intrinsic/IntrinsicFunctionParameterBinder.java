@@ -18,11 +18,11 @@ package io.camunda.connector.runtime.core.intrinsic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.document.jackson.IntrinsicFunctionParams;
-import jakarta.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 public class IntrinsicFunctionParameterBinder {
 
@@ -48,7 +48,7 @@ public class IntrinsicFunctionParameterBinder {
     return parameterValues;
   }
 
-  private Object bindParameter(
+  private @Nullable Object bindParameter(
       Parameter parameter,
       Class<?> type,
       List<Annotation> annotations,

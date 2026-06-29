@@ -34,6 +34,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +52,7 @@ public class JobHandlerContext extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
   private final JobContext jobContext;
   private final DocumentFactory documentFactory;
-  private String jsonWithSecrets = null;
+  private @Nullable String jsonWithSecrets = null;
 
   public JobHandlerContext(
       final ActivatedJob job,

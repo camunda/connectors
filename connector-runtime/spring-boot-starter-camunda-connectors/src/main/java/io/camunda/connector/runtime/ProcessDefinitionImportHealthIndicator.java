@@ -17,8 +17,8 @@
 package io.camunda.connector.runtime;
 
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
-import jakarta.annotation.Nullable;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.health.contributor.AbstractHealthIndicator;

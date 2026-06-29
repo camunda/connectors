@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import java.time.Duration;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 public sealed interface ConnectorResult {
 
@@ -28,7 +29,8 @@ public sealed interface ConnectorResult {
     return this instanceof SuccessResult;
   }
 
-  record ErrorResult(Object responseValue, Exception exception, int retries, Duration retryBackoff)
+  record ErrorResult(
+      Object responseValue, Exception exception, int retries, @Nullable Duration retryBackoff)
       implements ConnectorResult {
     public ErrorResult(Object responseValue, Exception exception, int retries) {
       this(responseValue, exception, retries, null);

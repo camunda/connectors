@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.error;
 
 import java.io.Serial;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents an unchecked exception indicating an invalid definition for an inbound connector.
@@ -26,9 +27,9 @@ public class InvalidInboundConnectorDefinitionException extends RuntimeException
 
   @Serial private static final long serialVersionUID = 1L;
 
-  private final String processDefinitionName;
-  private final Long processDefinitionKey;
-  private final Long processDefinitionVersion;
+  private final @Nullable String processDefinitionName;
+  private final @Nullable Long processDefinitionKey;
+  private final @Nullable Long processDefinitionVersion;
 
   /**
    * Constructor for exception without process definition context.
@@ -45,7 +46,7 @@ public class InvalidInboundConnectorDefinitionException extends RuntimeException
    * @param message Detailed message about the invalid connector definition.
    * @param cause The cause of this exception.
    */
-  public InvalidInboundConnectorDefinitionException(String message, Throwable cause) {
+  public InvalidInboundConnectorDefinitionException(String message, @Nullable Throwable cause) {
     this(message, null, null, null, cause);
   }
 
@@ -59,9 +60,9 @@ public class InvalidInboundConnectorDefinitionException extends RuntimeException
    */
   public InvalidInboundConnectorDefinitionException(
       String message,
-      String processDefinitionName,
-      Long processDefinitionKey,
-      Long processDefinitionVersion) {
+      @Nullable String processDefinitionName,
+      @Nullable Long processDefinitionKey,
+      @Nullable Long processDefinitionVersion) {
     this(message, processDefinitionName, processDefinitionKey, processDefinitionVersion, null);
   }
 
@@ -76,10 +77,10 @@ public class InvalidInboundConnectorDefinitionException extends RuntimeException
    */
   public InvalidInboundConnectorDefinitionException(
       String message,
-      String processDefinitionName,
-      Long processDefinitionKey,
-      Long processDefinitionVersion,
-      Throwable cause) {
+      @Nullable String processDefinitionName,
+      @Nullable Long processDefinitionKey,
+      @Nullable Long processDefinitionVersion,
+      @Nullable Throwable cause) {
     super(message, cause);
     this.processDefinitionName = processDefinitionName;
     this.processDefinitionKey = processDefinitionKey;
@@ -108,15 +109,15 @@ public class InvalidInboundConnectorDefinitionException extends RuntimeException
     return sb.toString();
   }
 
-  public String getProcessDefinitionName() {
+  public @Nullable String getProcessDefinitionName() {
     return processDefinitionName;
   }
 
-  public Long getProcessDefinitionKey() {
+  public @Nullable Long getProcessDefinitionKey() {
     return processDefinitionKey;
   }
 
-  public Long getProcessDefinitionVersion() {
+  public @Nullable Long getProcessDefinitionVersion() {
     return processDefinitionVersion;
   }
 
