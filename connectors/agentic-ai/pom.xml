@@ -396,6 +396,7 @@
               <compilerArgs>
                 <arg>-XDcompilePolicy=simple</arg>
                 <arg>-XDshould-stop.ifError=FLOW</arg>
+                <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
                 <arg>-Xplugin:ErrorProne -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:TreatGeneratedAsUnannotated=true</arg>
               </compilerArgs>
             </configuration>
