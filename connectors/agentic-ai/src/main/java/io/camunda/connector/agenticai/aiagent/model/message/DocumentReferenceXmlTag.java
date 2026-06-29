@@ -14,7 +14,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents a self-closing XML tag used to label a document in the synthetic user message, e.g.:
@@ -33,13 +34,12 @@ import org.springframework.lang.Nullable;
  * learn their content type or filename — the tag deliberately omits the metadata block for those to
  * avoid a download just to render a label.
  */
+@NullMarked
 public sealed interface DocumentReferenceXmlTag {
 
-  @Nullable
-  String toolCallId();
+  @Nullable String toolCallId();
 
-  @Nullable
-  String toolName();
+  @Nullable String toolName();
 
   String toXml();
 

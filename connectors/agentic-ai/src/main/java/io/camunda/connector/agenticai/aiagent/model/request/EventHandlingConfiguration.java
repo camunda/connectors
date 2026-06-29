@@ -8,7 +8,9 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public record EventHandlingConfiguration(
     @TemplateProperty(
             label = "Event handling behavior",

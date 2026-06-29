@@ -21,7 +21,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 @TemplateSubType(id = AZURE_OPENAI_ID, label = "Azure OpenAI")
 public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnection azureOpenAi)
     implements ProviderConfiguration {
@@ -50,7 +53,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String endpoint,
       @Valid @NotNull AzureAuthentication authentication,
-      @Valid TimeoutConfiguration timeouts,
+      @Valid @Nullable TimeoutConfiguration timeouts,
       @Valid @NotNull AzureOpenAiModel model) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -124,7 +127,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 type = TemplateProperty.PropertyType.String,
                 feel = FeelMode.optional,
                 optional = true)
-            String authorityHost)
+            @Nullable String authorityHost)
         implements AzureAuthentication {
 
       @Override
@@ -158,7 +161,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Integer maxTokens,
+            @Nullable Integer maxTokens,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -168,7 +171,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Double temperature,
+            @Nullable Double temperature,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -178,6 +181,6 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Double topP) {}
+            @Nullable Double topP) {}
   }
 }

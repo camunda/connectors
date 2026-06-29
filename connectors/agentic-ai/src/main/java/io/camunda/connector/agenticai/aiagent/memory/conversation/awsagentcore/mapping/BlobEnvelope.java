@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import software.amazon.awssdk.core.document.Document;
 
 /**
@@ -107,7 +108,9 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * @return the envelope
    */
   public static BlobEnvelope forMetadata(
-      Map<String, Object> metadata, Map<String, Object> properties, ObjectMapper objectMapper) {
+      Map<String, Object> metadata,
+      @Nullable Map<String, Object> properties,
+      ObjectMapper objectMapper) {
     ObjectNode envelope = objectMapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.MESSAGE_METADATA.getBlobType());
     envelope.put(FIELD_VERSION, CURRENT_VERSION);
@@ -191,7 +194,7 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * @return the properties map, or null if not present
    * @throws IOException if deserialization fails
    */
-  public <T> T parseProperties(TypeReference<T> typeRef, ObjectMapper objectMapper)
+  public <T> @Nullable T parseProperties(TypeReference<T> typeRef, ObjectMapper objectMapper)
       throws IOException {
     if (!data.has(FIELD_PROPERTIES)) {
       return null;

@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -110,7 +111,10 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
         .filter(entry -> !entry.getKey().equals(DEFAULT_TYPE))
         .forEach(
             entry -> {
-              final var handler = handlers.get(entry.getKey());
+              final var handler =
+                  Objects.requireNonNull(
+                      handlers.get(entry.getKey()),
+                      "No handler registered for gateway type: " + entry.getKey());
               final var gatewayToolDefinitions =
                   handler.handleToolDiscoveryResults(agentContext, entry.getValue());
               mergedToolDefinitions.addAll(gatewayToolDefinitions);

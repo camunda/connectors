@@ -21,6 +21,7 @@ import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnec
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,9 +70,9 @@ public class JobWorkerAgentRequestHandler
   @Override
   public AiAgentSubProcessConnectorResponse buildConnectorResponse(
       JobWorkerAgentExecutionContext executionContext,
-      AgentConversation conversation,
-      AgentResponse agentResponse,
-      AgentJobCompletionListener completionListener) {
+      @Nullable AgentConversation conversation,
+      @Nullable AgentResponse agentResponse,
+      @Nullable AgentJobCompletionListener completionListener) {
     if (agentResponse == null) {
       LOGGER.debug(
           "No agent response provided, completing job {} without response",
@@ -97,9 +98,9 @@ public class JobWorkerAgentRequestHandler
 
   private AiAgentSubProcessConnectorResponse buildResponse(
       JobWorkerAgentExecutionContext executionContext,
-      AgentConversation conversation,
+      @Nullable AgentConversation conversation,
       AgentResponse agentResponse,
-      AgentJobCompletionListener completionListener) {
+      @Nullable AgentJobCompletionListener completionListener) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
     // cancel remaining instances if any tool call in this turn's input was interrupted
     boolean cancelRemainingInstances =

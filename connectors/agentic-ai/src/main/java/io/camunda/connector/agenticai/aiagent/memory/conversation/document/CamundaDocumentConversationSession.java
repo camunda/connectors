@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ public class CamundaDocumentConversationSession implements ConversationSession {
   private final AgentExecutionContext executionContext;
   private final int previousDocumentsRetentionSize;
 
-  private CamundaDocumentConversationContext previousConversationContext;
+  private @Nullable CamundaDocumentConversationContext previousConversationContext;
 
   public CamundaDocumentConversationSession(
       CamundaDocumentMemoryStorageConfiguration config,

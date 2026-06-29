@@ -10,10 +10,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.camunda.connector.api.document.Document;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DocumentContent(
-    Document document, @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
+    Document document,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements Content {
   public DocumentContent {
     if (document == null) {

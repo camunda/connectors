@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
@@ -59,10 +60,10 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   private final BedrockAgentCoreClient client;
   private final AwsAgentCoreConversationMapper conversationMapper;
 
-  private AwsAgentCoreConversationContext previousConversationContext;
-  private String sessionId;
-  private String branchName;
-  private String lastEventId;
+  @Nullable private AwsAgentCoreConversationContext previousConversationContext;
+  @Nullable private String sessionId;
+  @Nullable private String branchName;
+  @Nullable private String lastEventId;
   private int initialMessageCount = 0;
 
   public AwsAgentCoreConversationSession(
@@ -110,6 +111,10 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   @Override
   public ConversationContext storeMessages(
       AgentContext agentContext, ConversationStoreRequest request) {
+    final String currentSessionId = sessionId;
+    if (currentSessionId == null) {
+      throw new IllegalStateException("loadMessages() must be called before storeMessages()");
+    }
     final List<Message> allMessages = request.messages();
 
     // extract system message — needs to be preserved in context since AgentCore doesn't support it
@@ -140,7 +145,8 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       if (lastEventId != null) {
         branchName = UUID.randomUUID().toString();
       }
-      lastEventId = storeMessagesToAgentCore(sessionId, newMessages, branchName, lastEventId);
+      lastEventId =
+          storeMessagesToAgentCore(currentSessionId, newMessages, branchName, lastEventId);
       if (Objects.equals(lastEventId, previousLastEventId)) {
         // no events were actually written (all messages produced empty payloads) —
         // revert to the previous branch to avoid saving a phantom branch in context
@@ -149,14 +155,14 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       LOGGER.debug(
           "Stored {} new messages to AgentCore Memory for session '{}' on branch '{}'",
           newMessages.size(),
-          sessionId,
+          currentSessionId,
           branchName != null ? branchName : "<main>");
     }
 
     final var conversationContextBuilder =
         previousConversationContext != null
             ? previousConversationContext.with()
-            : AwsAgentCoreConversationContext.builder(sessionId)
+            : AwsAgentCoreConversationContext.builder(currentSessionId)
                 .memoryId(config.memoryId())
                 .actorId(config.actorId());
 
@@ -208,7 +214,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     }
   }
 
-  private List<Message> loadMessagesFromAgentCore(String sessionId, String branchName) {
+  private List<Message> loadMessagesFromAgentCore(String sessionId, @Nullable String branchName) {
     final var requestBuilder =
         ListEventsRequest.builder()
             .memoryId(config.memoryId())
@@ -275,8 +281,11 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
    * @param rootEventId the event ID to fork from (null on first turn)
    * @return the event ID of the last written event
    */
-  private String storeMessagesToAgentCore(
-      String sessionId, List<Message> messages, String branchName, String rootEventId) {
+  private @Nullable String storeMessagesToAgentCore(
+      String sessionId,
+      List<Message> messages,
+      @Nullable String branchName,
+      @Nullable String rootEventId) {
     String lastEventId = rootEventId;
     final Branch branch =
         rootEventId != null
@@ -325,7 +334,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     return lastEventId;
   }
 
-  private static Integer extractSeq(Event event) {
+  private static @Nullable Integer extractSeq(Event event) {
     if (event.metadata() == null) {
       return null;
     }

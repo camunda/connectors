@@ -17,7 +17,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
 public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection anthropic)
     implements ProviderConfiguration {
@@ -43,9 +46,9 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               optional = true)
-          String endpoint,
+          @Nullable String endpoint,
       @Valid @NotNull AnthropicAuthentication authentication,
-      @Valid TimeoutConfiguration timeouts,
+      @Valid @Nullable TimeoutConfiguration timeouts,
       @Valid @NotNull AnthropicModel model) {}
 
   public record AnthropicAuthentication(
@@ -90,7 +93,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Integer maxTokens,
+            @Nullable Integer maxTokens,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -100,7 +103,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Double temperature,
+            @Nullable Double temperature,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -110,7 +113,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Double topP,
+            @Nullable Double topP,
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -120,6 +123,6 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            Integer topK) {}
+            @Nullable Integer topK) {}
   }
 }

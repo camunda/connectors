@@ -23,6 +23,8 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
+import org.jspecify.annotations.NullUnmarked;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
@@ -65,6 +67,9 @@ public class ChatModelHttpProxySupport {
    * actual client. {@link CapturingBridge#build()} captures the resulting instance for {@link
    * #close()}.
    */
+  // @NullUnmarked: builtClient is set via the CapturingBridge callback during build(), not in the
+  // constructor.
+  @NullUnmarked
   public static final class CloseableJdkHttpClientBuilder extends JdkHttpClientBuilder
       implements AutoCloseable {
 
@@ -158,7 +163,7 @@ public class ChatModelHttpProxySupport {
     }
   }
 
-  public ApacheHttpClient.Builder createAwsHttpClientBuilder(URI endpointOverride) {
+  public ApacheHttpClient.Builder createAwsHttpClientBuilder(@Nullable URI endpointOverride) {
     String schemeName =
         endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
     return ApacheHttpClient.builder().proxyConfiguration(createAwsProxyConfiguration(schemeName));

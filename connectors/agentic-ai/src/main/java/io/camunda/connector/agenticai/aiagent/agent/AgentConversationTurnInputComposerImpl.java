@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,7 +130,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return new CompositionResult.NextTurn(messages);
   }
 
-  private UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {
+  private @Nullable UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {
 
     final var content = new ArrayList<Content>();
 
@@ -196,7 +197,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             .build());
   }
 
-  private UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
+  private @Nullable UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
     final var toolCallDocuments = documentExtractor.extractDocuments(results);
     if (toolCallDocuments.isEmpty()) {
       return null;
@@ -217,7 +218,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     Object eventContent = eventResult.content();
 
     List<Content> userMessageContent = new ArrayList<>();
-    if (isEventContentEmpty(eventContent)) {
+    if (eventContent == null || isEventContentEmpty(eventContent)) {
       userMessageContent.add(
           textContent(
               interruptToolCallsOnEventResults
@@ -260,7 +261,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return content;
   }
 
-  private boolean isEventContentEmpty(Object eventContent) {
+  private boolean isEventContentEmpty(@Nullable Object eventContent) {
     return switch (eventContent) {
       case null -> true;
       case String textContent -> StringUtils.isBlank(textContent);
