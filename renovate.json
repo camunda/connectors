@@ -151,7 +151,14 @@
       "matchPackageNames": [
         "com.networknt:json-schema-validator"
       ],
-      "enabled": false,
+      "enabled": false
+    },
+    {
+        "description": "kafka-clients: stay on the Apache versioning track. The Confluent Platform builds (-ce/-ccs/-cp suffixes, e.g. 8.2.1-ce) are republished under the same org.apache.kafka coordinates via artifacts.camunda.com and must not be treated as upgrades to the Apache releases (x.y.z).",
+        "matchPackageNames": [
+          "org.apache.kafka:kafka-clients"
+        ],
+        "allowedVersions": "!/-(ce|ccs|cp\\d*)$/"
       }
   ],
   "baseBranchPatterns": [
