@@ -52,7 +52,7 @@ public record PropertyGroup(
                       .build())
               .build();
 
-  public static BiFunction<String, Integer, PropertyGroup> ADD_CONNECTORS_DETAILS_OUTPUT =
+  public static BiFunction<String, Long, PropertyGroup> ADD_CONNECTORS_DETAILS_OUTPUT =
       (id, version) ->
           PropertyGroup.builder()
               .id("connector")

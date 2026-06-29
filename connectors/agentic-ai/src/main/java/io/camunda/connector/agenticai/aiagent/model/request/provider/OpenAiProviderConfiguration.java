@@ -16,8 +16,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
+@NullMarked
 public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection openai)
     implements ProviderConfiguration {
 
@@ -29,9 +32,14 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
     return OPENAI_ID;
   }
 
+  @Override
+  public String model() {
+    return openai.model.model();
+  }
+
   public record OpenAiConnection(
       @Valid @NotNull OpenAiAuthentication authentication,
-      @Valid TimeoutConfiguration timeouts,
+      @Valid @Nullable TimeoutConfiguration timeouts,
       @Valid @NotNull OpenAiModel model) {}
 
   public record OpenAiAuthentication(

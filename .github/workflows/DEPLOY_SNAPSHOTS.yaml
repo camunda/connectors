@@ -25,7 +25,7 @@ jobs:
       docker_version: ${{ steps.maven_version.outputs.docker_version }}
       branch: ${{ steps.version.outputs.branch }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Determine branch and version
         id: version
         run: |
@@ -63,7 +63,7 @@ jobs:
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         continue-on-error: true  # Cache failures should not fail the build
         with:
           path: ~/.m2/repository

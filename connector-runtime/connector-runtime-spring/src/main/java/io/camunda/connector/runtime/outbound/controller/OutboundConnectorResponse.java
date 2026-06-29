@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.outbound.controller;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
-import io.camunda.connector.runtime.outbound.jobstream.GatewayConnectivityState;
 import java.util.List;
 
 /**
@@ -31,12 +30,11 @@ import java.util.List;
  * @param timeout job timeout in milliseconds, or {@code null} if not configured
  * @param enabled whether the connector is enabled or not
  * @param runtimeId hostname of the runtime node that reported this entry
- * @param gatewayConnectivityState whether the gateway monitoring endpoint is reachable and the
- *     connector has a registered client stream; {@code null} when not configured
- * @param brokerConnectivityState how many brokers have the connector's stream as a consumer; {@code
- *     null} unless {@code gatewayConnectivityState} is {@code CONNECTED}
- * @param streamIds server-side stream IDs for the matched client streams; useful for debugging;
- *     {@code null} unless {@code gatewayConnectivityState} is {@code CONNECTED}
+ * @param brokerConnectivityState whether the connector's stream appears as a consumer on all
+ *     brokers; {@link BrokerConnectivityState#UNKNOWN} when broker monitoring is not configured or
+ *     unreachable
+ * @param streamIds consumer IDs observed across all brokers for this job type; {@code null} when
+ *     broker monitoring is unavailable or no consumers were found
  */
 @JsonInclude(Include.NON_NULL)
 public record OutboundConnectorResponse(
@@ -46,7 +44,6 @@ public record OutboundConnectorResponse(
     Long timeout,
     boolean enabled,
     String runtimeId,
-    GatewayConnectivityState gatewayConnectivityState,
     BrokerConnectivityState brokerConnectivityState,
     List<String> streamIds) {
 
@@ -58,6 +55,6 @@ public record OutboundConnectorResponse(
       Long timeout,
       boolean enabled,
       String runtimeId) {
-    this(name, type, inputVariables, timeout, enabled, runtimeId, null, null, null);
+    this(name, type, inputVariables, timeout, enabled, runtimeId, null, null);
   }
 }

@@ -17,7 +17,9 @@
 package io.camunda.connector.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
@@ -33,6 +35,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import java.net.URI;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -90,7 +93,10 @@ class OutboundConnectorsAutoConfigurationTest {
 
     @Bean
     CamundaClient camundaClient() {
-      return mock(CamundaClient.class);
+      CamundaClient client = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+      when(client.getConfiguration().getRestAddress())
+          .thenReturn(URI.create("http://localhost:26500"));
+      return client;
     }
 
     @Bean

@@ -18,15 +18,18 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
 import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
-import java.util.Map;
-import java.util.function.Supplier;
+import java.io.IOException;
 
 public final class DefaultProcessInstanceContext implements ProcessInstanceContext {
 
@@ -34,8 +37,8 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   private final ElementInstance elementInstance;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
-  private final Supplier<Map<String, Object>> operatePropertiesSupplier;
   private final InboundCorrelationHandler correlationHandler;
+  private final FeelExpressionEvaluator evaluator;
 
   private final JsonNode processDefinitionProperties;
 
@@ -45,7 +48,7 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
       final ValidationProvider validationProvider,
       final InboundCorrelationHandler correlationHandler,
       final ObjectMapper objectMapper,
-      final Supplier<Map<String, Object>> operateVariables) {
+      final CamundaClient camundaClient) {
     this.context = context;
     this.elementInstance = elementInstance;
     this.validationProvider =
@@ -54,9 +57,13 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
             : validationProvider;
     this.correlationHandler = correlationHandler;
     this.objectMapper = objectMapper;
-    this.operatePropertiesSupplier = operateVariables;
-
-    processDefinitionProperties = objectMapper.valueToTree(context.getProperties());
+    this.evaluator =
+        FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
+            .tenantId(context.getDefinition().tenantId())
+            .scopeKey(elementInstance.getElementInstanceKey())
+            .objectMapper(objectMapper)
+            .build();
+    this.processDefinitionProperties = objectMapper.valueToTree(context.getProperties());
   }
 
   @Override
@@ -65,16 +72,30 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   }
 
   @Override
+  public Long getElementInstanceKey() {
+    return elementInstance.getElementInstanceKey();
+  }
+
+  @Override
   public <T> T bind(final Class<T> cls) {
     try {
       T mappedObject =
           FeelContextAwareObjectReader.of(objectMapper)
-              .withContextSupplier(operatePropertiesSupplier)
+              .withEvaluator(evaluator)
               .readValue(processDefinitionProperties, cls);
       validationProvider.validate(mappedObject);
       return mappedObject;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (IOException | FeelEngineWrapperException e) {
+      throw new RuntimeException(
+          "Failed to bind process instance properties to "
+              + cls.getName()
+              + " using FEEL evaluation/deserialization"
+              + " (tenantId="
+              + context.getDefinition().tenantId()
+              + ", scopeKey="
+              + elementInstance.getElementInstanceKey()
+              + ")",
+          e);
     }
   }
 

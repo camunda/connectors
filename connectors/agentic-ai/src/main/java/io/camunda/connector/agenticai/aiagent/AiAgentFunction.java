@@ -39,6 +39,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
         "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
     engineVersion = "^8.10",
     version = 10,
+    category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = OutboundConnectorAgentRequest.class,
     outputDataClass = AgentResponse.class,
     defaultResultVariable = "agent",

@@ -6,8 +6,8 @@
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-remote-client-connector/",
   "version" : 2,
   "category" : {
-    "id" : "connectors",
-    "name" : "Connectors"
+    "id" : "aiTools",
+    "name" : "AI Tools"
   },
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
@@ -1207,7 +1207,7 @@
     "id" : "retryBackoff",
     "label" : "Retry backoff",
     "description" : "ISO-8601 duration to wait between retries",
-    "value" : "PT0S",
+    "value" : "PT30S",
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",

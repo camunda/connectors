@@ -41,7 +41,7 @@ public class PostmanCollectionsGeneratorDryRunExampleTest {
     var templates =
         gen.generate(
             source,
-            new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, 1, null, Map.of()));
+            new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, 1L, null, Map.of()));
     var resultString =
         ObjectMapperProvider.getInstance()
             .writerWithDefaultPrettyPrinter()

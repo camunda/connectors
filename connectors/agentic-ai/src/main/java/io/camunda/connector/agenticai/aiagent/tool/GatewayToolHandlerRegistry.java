@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +27,18 @@ public interface GatewayToolHandlerRegistry extends GatewayToolCallTransformer {
    */
   default boolean isGatewayManaged(String toolName) {
     return handlerForToolDefinition(toolName).isPresent();
+  }
+
+  /**
+   * Resolves the BPMN element id for a gateway-managed tool name by delegating to the handler that
+   * manages it.
+   *
+   * @param toolName the (namespaced) tool name
+   * @return the resolved element id, or empty if the tool is not gateway-managed (callers default
+   *     to the tool name, which equals the element id for ad-hoc tools)
+   */
+  default Optional<String> resolveElementId(String toolName) {
+    return handlerForToolDefinition(toolName).map(handler -> handler.resolveElementId(toolName));
   }
 
   Optional<GatewayToolHandler> handlerForToolDefinition(String toolName);

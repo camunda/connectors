@@ -6,6 +6,13 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
+/**
+ * @deprecated Legacy IDP extraction model, used only by {@link
+ *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. The structured /
+ *     unstructured / classification connectors are split by connector type instead. Retained for
+ *     backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 public enum ExtractionType {
   STRUCTURED,
   UNSTRUCTURED

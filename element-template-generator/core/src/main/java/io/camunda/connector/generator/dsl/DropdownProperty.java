@@ -55,6 +55,7 @@ public final class DropdownProperty extends Property {
         tooltip,
         null,
         exampleValue,
+        null,
         TYPE);
     this.choices = choices;
   }

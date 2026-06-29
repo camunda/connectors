@@ -6,13 +6,13 @@
  */
 package io.camunda.connector.agenticai.mcp.client.configuration;
 
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.camunda.connector.agenticai.mcp.client.configuration.validation.ValidMcpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.auth.Authentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BasicAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
-import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

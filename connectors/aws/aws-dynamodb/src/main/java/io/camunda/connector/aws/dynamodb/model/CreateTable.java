@@ -13,7 +13,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@TemplateSubType(id = OperationTypes.CREATE_TABLE)
+@TemplateSubType(
+    id = OperationTypes.CREATE_TABLE,
+    description = "Create a new DynamoDB table",
+    keywords = {"create table", "new table", "provision table"})
 public record CreateTable(
     @TemplateProperty(
             label = "Table name",

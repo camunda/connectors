@@ -30,8 +30,10 @@ import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTra
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService.TargetState;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Cancelled;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -49,8 +51,14 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final InboundExecutableStateTransitionService stateTransitionService;
   private final InboundExecutableQueryService queryService;
   private final BatchExecutableProcessor batchExecutableProcessor;
+  private final ActivityLogRegistry activityLogRegistry;
 
   private final BlockingQueue<InboundExecutableEvent> eventQueue = new LinkedBlockingQueue<>();
+  // Per-(tenantId,bpmnProcessId) lock objects to serialize state transitions within this registry
+  // instance.
+  // Intentionally never evicted to avoid handing out different locks for the same key under race;
+  // size grows with distinct (tenantId,bpmnProcessId) pairs observed during runtime.
+  private final ConcurrentHashMap<String, Object> processLocks = new ConcurrentHashMap<>();
 
   public InboundExecutableRegistryImpl(
       InboundConnectorFactory connectorFactory,
@@ -70,6 +78,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     this.queryService =
         new InboundExecutableQueryService(stateStore, connectorFactory, activityLogRegistry);
     this.batchExecutableProcessor = batchExecutableProcessor;
+    this.activityLogRegistry = activityLogRegistry;
   }
 
   // Constructor for testing with injected dependencies
@@ -77,11 +86,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
       InboundExecutableStateStore stateStore,
       InboundExecutableStateTransitionService stateTransitionService,
       InboundExecutableQueryService queryService,
-      BatchExecutableProcessor batchExecutableProcessor) {
+      BatchExecutableProcessor batchExecutableProcessor,
+      ActivityLogRegistry activityLogRegistry) {
     this.stateStore = stateStore;
     this.stateTransitionService = stateTransitionService;
     this.queryService = queryService;
     this.batchExecutableProcessor = batchExecutableProcessor;
+    this.activityLogRegistry = activityLogRegistry;
   }
 
   @Override
@@ -118,7 +129,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
     var processLockKey = processLockKey(event.tenantId(), event.bpmnProcessId());
 
-    synchronized (processLockKey.intern()) {
+    synchronized (processLocks.computeIfAbsent(processLockKey, k -> new Object())) {
       try {
         List<InboundConnectorElement> allElements =
             event.elementsByProcessDefinitionKey().values().stream().flatMap(List::stream).toList();
@@ -142,8 +153,10 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     // Process actions in order: deactivate first, then updates, then activate
     // This ensures we free resources before allocating new ones
 
-    // 1. Deactivate executables no longer needed
-    deactivateExecutables(plan.getExecutableIds(ActionType.DEACTIVATE));
+    // 1. Deactivate executables no longer needed and purge their logs
+    var toDeactivatePermanently = plan.getExecutableIds(ActionType.DEACTIVATE);
+    deactivateExecutables(toDeactivatePermanently);
+    toDeactivatePermanently.forEach(activityLogRegistry::remove);
 
     // 2. Restart executables (deactivate + activate)
     var toRestart = plan.getExecutableIds(ActionType.RESTART);
@@ -209,9 +222,17 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         batchExecutableProcessor.deactivateBatch(List.of(activated));
       }
       var invalid = target.invalid().get(id);
+      var reason =
+          invalid.error().getMessage() != null
+              ? invalid.error().getMessage()
+              : invalid.error().getClass().getSimpleName();
       stateStore.put(
           id,
-          new RegisteredExecutable.InvalidDefinition(invalid, invalid.error().getMessage(), id));
+          new RegisteredExecutable.InvalidDefinition(
+              invalid,
+              reason,
+              id,
+              Health.down(new RuntimeException("Invalid connector definition: " + reason))));
     }
   }
 
@@ -306,7 +327,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     // could run during restart, leaving the newly-activated executable invisible to the state
     // machine (zombie connector).
     var processLockKey = extractProcessLockKey(validateResettable(id));
-    synchronized (processLockKey.intern()) {
+    synchronized (processLocks.computeIfAbsent(processLockKey, k -> new Object())) {
       // Re-validate inside the lock; state may have changed since the peek
       var current = validateResettable(id);
 
@@ -314,7 +335,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
       // elements and issue a RESTART plan. On activation failure, activateBatch stores a
       // FailedToActivate entry so the executable remains visible and retryable by operators.
       var targetState =
-          stateTransitionService.computeTargetState(extractContext(current).connectorElements());
+          stateTransitionService.computeTargetState(extractConnectorElements(current));
       executeStateTransition(
           new StateTransitionPlan(List.of(new PlannedAction(id, ActionType.RESTART))), targetState);
 
@@ -332,14 +353,27 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     if (current == null) {
       throw new IllegalArgumentException("No executable found with ID: " + id);
     }
-    if (!(current instanceof Activated) && !(current instanceof Cancelled)) {
+    if (!(current instanceof Activated)
+        && !(current instanceof Cancelled)
+        && !(current instanceof FailedToActivate)) {
       throw new IllegalStateException(
           "Cannot reset executable '"
               + id
-              + "': must be in Activated or Cancelled state, but was: "
+              + "': not in a resettable state, was: "
               + current.getClass().getSimpleName());
     }
     return current;
+  }
+
+  private List<InboundConnectorElement> extractConnectorElements(RegisteredExecutable executable) {
+    return switch (executable) {
+      case Activated a -> a.context().connectorElements();
+      case Cancelled c -> c.context().connectorElements();
+      case FailedToActivate f -> f.data().connectorElements();
+      default ->
+          throw new IllegalArgumentException(
+              "Cannot extract connector elements from: " + executable.getClass().getSimpleName());
+    };
   }
 
   /**
@@ -347,22 +381,12 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
    * {@link #handleProcessStateChanged} to synchronize state transitions.
    */
   private String extractProcessLockKey(RegisteredExecutable executable) {
-    var element = extractContext(executable).connectorElements().getFirst();
+    var element = extractConnectorElements(executable).getFirst();
     return processLockKey(element.tenantId(), element.element().bpmnProcessId());
   }
 
   private String processLockKey(String tenantId, String bpmnProcessId) {
     return tenantId + bpmnProcessId;
-  }
-
-  private InboundConnectorManagementContext extractContext(RegisteredExecutable executable) {
-    return switch (executable) {
-      case Activated a -> a.context();
-      case Cancelled c -> c.context();
-      default ->
-          throw new IllegalArgumentException(
-              "Cannot extract context from: " + executable.getClass().getSimpleName());
-    };
   }
 
   @Scheduled(fixedDelay = 30000)

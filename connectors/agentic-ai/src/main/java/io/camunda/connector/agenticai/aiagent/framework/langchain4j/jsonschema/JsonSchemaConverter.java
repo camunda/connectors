@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
-import io.camunda.connector.agenticai.util.ObjectMapperConstants;
+import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
 import java.util.Map;
 
 public class JsonSchemaConverter {

@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.a2a.client.common.convert;
 import io.a2a.spec.DataPart;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.model.message.content.Content;
-import io.camunda.connector.agenticai.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 
 public class A2aPartToContentConverterImpl implements A2aPartToContentConverter {
 

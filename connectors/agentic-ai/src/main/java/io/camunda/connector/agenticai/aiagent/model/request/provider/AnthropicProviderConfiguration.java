@@ -30,6 +30,11 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
     return ANTHROPIC_ID;
   }
 
+  @Override
+  public String model() {
+    return anthropic.model.model();
+  }
+
   public record AnthropicConnection(
       @HttpUrl
           @TemplateProperty(

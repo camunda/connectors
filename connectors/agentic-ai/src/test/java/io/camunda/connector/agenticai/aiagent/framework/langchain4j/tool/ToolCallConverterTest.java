@@ -12,15 +12,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverterImpl;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
@@ -38,11 +39,9 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 class ToolCallConverterTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-  private final ToolCallConverter toolCallConverter =
-      new ToolCallConverterImpl(
-          objectMapper,
-          new ContentConverterImpl(objectMapper, new DocumentToContentConverterImpl()));
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
+  private final ToolCallConverter toolCallConverter = new ToolCallConverterImpl(objectMapper);
 
   @Test
   void convertsToolCallToToolExecutionRequest() throws JSONException {
@@ -162,26 +161,66 @@ class ToolCallConverterTest {
     }
 
     @Test
-    void supportsResultsContainingCamundaDocuments() {
+    void serializesDocumentsAsReferencesInResults() throws JSONException {
+      final var doc1 = createDocument("Hello, world!", "text/plain", "test.txt");
+      final var doc2 = createDocument("<PDF CONTENT>", "application/pdf", "test.pdf");
+      final var doc1Ref = (CamundaDocumentReference) doc1.reference();
+      final var doc2Ref = (CamundaDocumentReference) doc2.reference();
+
       final var content = new LinkedHashMap<String, Object>();
       content.put("hello", "world");
-      content.put("document1", createDocument("Hello, world!", "text/plain", "test.txt"));
-      content.put("document2", createDocument("<PDF CONTENT>", "application/pdf", "test.pdf"));
+      content.put("document1", doc1);
+      content.put("document2", doc2);
+      content.put(
+          "document3",
+          new ExternalDocument("https://example.com/report.pdf", "Quarterly Report", url -> null));
 
       final ToolCallResult toolCallResult =
           ToolCallResult.builder().id("toolId").name("toolName").content(content).build();
 
       final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
 
-      assertThat(resultMessage)
-          .extracting(
-              ToolExecutionResultMessage::id,
-              ToolExecutionResultMessage::toolName,
-              ToolExecutionResultMessage::text)
-          .containsExactly(
-              "toolId",
-              "toolName",
-              "{\"hello\":\"world\",\"document1\":{\"type\":\"text\",\"media_type\":\"text/plain\",\"data\":\"Hello, world!\"},\"document2\":{\"type\":\"base64\",\"media_type\":\"application/pdf\",\"data\":\"PFBERiBDT05URU5UPg==\"}}");
+      assertThat(resultMessage.id()).isEqualTo("toolId");
+      assertThat(resultMessage.toolName()).isEqualTo("toolName");
+
+      JSONAssert.assertEquals(
+          """
+          {
+            "hello": "world",
+            "document1": {
+              "camunda.document.type": "camunda",
+              "storeId": "in-memory",
+              "documentId": "%s",
+              "contentHash": "%s",
+              "metadata": {
+                "contentType": "text/plain",
+                "fileName": "test.txt"
+              }
+            },
+            "document2": {
+              "camunda.document.type": "camunda",
+              "storeId": "in-memory",
+              "documentId": "%s",
+              "contentHash": "%s",
+              "metadata": {
+                "contentType": "application/pdf",
+                "fileName": "test.pdf"
+              }
+            },
+            "document3": {
+              "camunda.document.type": "external",
+              "url": "https://example.com/report.pdf",
+              "name": "Quarterly Report"
+            }
+          }
+          """
+              .formatted(
+                  doc1Ref.getDocumentId(),
+                  doc1Ref.getContentHash(),
+                  doc2Ref.getDocumentId(),
+                  doc2Ref.getContentHash()),
+          resultMessage.text(),
+          true);
     }
 
     @Test

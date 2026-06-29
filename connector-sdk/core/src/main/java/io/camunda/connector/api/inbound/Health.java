@@ -172,6 +172,24 @@ public class Health {
     this.lastUpdatedAt = Instant.now();
   }
 
+  private Health(Status status, Error error, Map<String, Object> details, Instant lastUpdatedAt) {
+    this.status = status;
+    this.error = error;
+    this.details = details;
+    this.lastUpdatedAt = lastUpdatedAt;
+  }
+
+  /**
+   * Returns a new {@link Health} with the given details, preserving the original {@link
+   * #getLastUpdatedAt() lastUpdatedAt} timestamp.
+   *
+   * @param details the details map for the new instance
+   * @return a new Health with the same status, error, and timestamp but the supplied details
+   */
+  public Health withDetails(Map<String, Object> details) {
+    return new Health(this.status, this.error, details, this.lastUpdatedAt);
+  }
+
   private Health() {
     this(Status.UNKNOWN, null, null);
   }

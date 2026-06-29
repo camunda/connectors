@@ -7,22 +7,22 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT;
-import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
-import static io.camunda.connector.agenticai.util.ResponseTextUtil.stripMarkdownCodeBlocks;
+import static io.camunda.connector.agenticai.aiagent.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+import static io.camunda.connector.agenticai.aiagent.util.ResponseTextUtil.stripMarkdownCodeBlocks;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponseBuilder;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
-import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Optional;
@@ -37,21 +37,35 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       new OutboundConnectorResponseConfiguration(new TextResponseFormatConfiguration(false), false);
 
   private final ObjectMapper objectMapper;
+  private final GatewayToolHandlerRegistry gatewayToolHandlers;
 
-  public AgentResponseHandlerImpl(ObjectMapper objectMapper) {
+  public AgentResponseHandlerImpl(
+      ObjectMapper objectMapper, GatewayToolHandlerRegistry gatewayToolHandlers) {
     this.objectMapper = objectMapper;
+    this.gatewayToolHandlers = gatewayToolHandlers;
   }
 
   @Override
-  public AgentResponse createResponse(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      AssistantMessage assistantMessage,
-      List<ToolCallProcessVariable> toolCalls) {
+  public AgentResponse createResponse(AgentConversation conversation) {
+    final var agentContext = conversation.toAgentContext();
+    final var assistantMessage =
+        conversation
+            .lastTurn()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Cannot create an agent response: the conversation has no completed turn"))
+            .assistantMessage();
+    final var rawToolCalls = Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of());
+    final var toolCalls =
+        gatewayToolHandlers.transformToolCalls(agentContext, rawToolCalls).stream()
+            .map(ToolCallProcessVariable::from)
+            .toList();
 
     // default to text content only if not configured
     final var responseConfiguration =
-        Optional.ofNullable(executionContext.response()).orElse(DEFAULT_RESPONSE_CONFIGURATION);
+        Optional.ofNullable(conversation.configuration().response())
+            .orElse(DEFAULT_RESPONSE_CONFIGURATION);
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
     if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {

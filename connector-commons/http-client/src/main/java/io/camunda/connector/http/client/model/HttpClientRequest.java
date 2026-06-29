@@ -47,6 +47,8 @@ public class HttpClientRequest {
 
   private boolean followRedirects;
 
+  private ClientTls clientTls;
+
   public Object getBody() {
     return body;
   }
@@ -211,5 +213,17 @@ public class HttpClientRequest {
 
   public void setFollowRedirects(boolean followRedirects) {
     this.followRedirects = followRedirects;
+  }
+
+  public ClientTls getClientTls() {
+    return clientTls;
+  }
+
+  public void setClientTls(ClientTls clientTls) {
+    this.clientTls = clientTls;
+  }
+
+  public boolean hasClientTls() {
+    return clientTls != null && clientTls.isConfigured();
   }
 }

@@ -19,8 +19,10 @@ package io.camunda.connector.feel.jackson;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
@@ -210,6 +212,28 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
+  void feelFunctionDeserialization_withEvaluatorOverride_usesFunctionEvaluator()
+      throws IOException {
+    // given
+    var json =
+        """
+        { "function": "= { result: a + b }" }
+        """;
+    var contextualReader =
+        FeelContextAwareObjectReader.of(mapper)
+            .withEvaluator(new ThrowingFeelExpressionEvaluator());
+
+    // when
+    TargetTypeObject targetType = contextualReader.readValue(json, TargetTypeObject.class);
+
+    // then
+    InputContextString inputContext = new InputContextString("foo", "bar");
+    OutputContext result = targetType.function().apply(inputContext);
+    assertThat(result).isInstanceOf(OutputContext.class);
+    assertThat(result.result).isEqualTo("foobar");
+  }
+
+  @Test
   void feelFunctionDeserialization_contextAware_knowsJava8Time() throws IOException {
     // given
     var json =
@@ -249,4 +273,27 @@ public class FeelFunctionDeserializerTest {
   private record TargetTypeFoldedMap(Function<InputContextInteger, Map<String, Object>> function) {}
 
   private record TargetTypeJava8Time(Function<InputContextInteger, LocalDate> function) {}
+
+  private static class ThrowingFeelExpressionEvaluator implements FeelExpressionEvaluator {
+
+    @Override
+    public <T> T evaluate(String expression, Object... variables) {
+      throw new AssertionError("Function deserialization must use the module's function evaluator");
+    }
+
+    @Override
+    public <T> T evaluate(String expression, Class<T> targetType, Object... variables) {
+      throw new AssertionError("Function deserialization must use the module's function evaluator");
+    }
+
+    @Override
+    public <T> T evaluate(String expression, JavaType targetType, Object... variables) {
+      throw new AssertionError("Function deserialization must use the module's function evaluator");
+    }
+
+    @Override
+    public String evaluateToJson(String expression, Object... variables) {
+      throw new AssertionError("Function deserialization must use the module's function evaluator");
+    }
+  }
 }

@@ -8,11 +8,11 @@ package io.camunda.connector.agenticai.a2a.client.agentic.tool;
 
 import org.apache.commons.lang3.StringUtils;
 
-public record A2aToolCallIdentifier(String elementName) {
+public record A2aToolCallIdentifier(String elementId) {
   public static final String A2A_PREFIX = "A2A_";
 
   public String fullyQualifiedName() {
-    return A2A_PREFIX + elementName;
+    return A2A_PREFIX + elementId;
   }
 
   public static boolean isA2aToolCallIdentifier(String toolCallName) {

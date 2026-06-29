@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -42,8 +43,13 @@ public class ProcessInstancesFetcherTaskTest {
   @Mock private HttpService mockHttpService;
   @Mock private SharedExecutorService mockExecutorService;
   @Mock private ScheduledExecutorService mockScheduledExecutorService;
-  @Mock private ProcessInstanceContext mockProcessInstanceContext1;
-  @Mock private ProcessInstanceContext mockProcessInstanceContext2;
+
+  @Mock(answer = Answers.CALLS_REAL_METHODS)
+  private ProcessInstanceContext mockProcessInstanceContext1;
+
+  @Mock(answer = Answers.CALLS_REAL_METHODS)
+  private ProcessInstanceContext mockProcessInstanceContext2;
+
   @Mock private ScheduledFuture<?> mockScheduledFuture;
   @Mock private InboundConnectorDefinition mockInboundConnectorDefinition;
 
@@ -94,6 +100,55 @@ public class ProcessInstancesFetcherTaskTest {
     // then schedule only once
     verify(mockScheduledExecutorService, times(1))
         .scheduleWithFixedDelay(any(Runnable.class), eq(0L), eq(1000L), eq(TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  public void shouldScheduleSeparateTasksForMultipleTokensOfSameProcessInstance() {
+    // given: two element instances belonging to the same process instance (e.g. two tokens
+    // of a multi-instance subprocess reaching the same intermediate catch event)
+    when(mockProcessInstanceContext1.getKey()).thenReturn(1L);
+    when(mockProcessInstanceContext1.getElementInstanceKey()).thenReturn(10L);
+    when(mockProcessInstanceContext2.getKey()).thenReturn(1L);
+    when(mockProcessInstanceContext2.getElementInstanceKey()).thenReturn(20L);
+
+    doReturn((ScheduledFuture<?>) mockScheduledFuture)
+        .when(mockScheduledExecutorService)
+        .scheduleWithFixedDelay(any(), anyLong(), anyLong(), any());
+
+    when(mockContext.getProcessInstanceContexts())
+        .thenReturn(List.of(mockProcessInstanceContext1, mockProcessInstanceContext2));
+
+    // when
+    task.run();
+
+    // then: a distinct HTTP request task is scheduled per element instance
+    verify(mockScheduledExecutorService, times(2))
+        .scheduleWithFixedDelay(any(Runnable.class), eq(0L), eq(1000L), eq(TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  public void shouldCancelTaskWhenOneTokenCompletesEvenIfSiblingTokenSurvives() {
+    // given: two tokens at the same intermediate catch event in one process instance
+    when(mockProcessInstanceContext1.getKey()).thenReturn(1L);
+    when(mockProcessInstanceContext1.getElementInstanceKey()).thenReturn(10L);
+    when(mockProcessInstanceContext2.getKey()).thenReturn(1L);
+    when(mockProcessInstanceContext2.getElementInstanceKey()).thenReturn(20L);
+
+    doReturn((ScheduledFuture<?>) mockScheduledFuture)
+        .when(mockScheduledExecutorService)
+        .scheduleWithFixedDelay(any(), anyLong(), anyLong(), any());
+
+    // First tick has both tokens; second tick has only the surviving one
+    when(mockContext.getProcessInstanceContexts())
+        .thenReturn(List.of(mockProcessInstanceContext1, mockProcessInstanceContext2))
+        .thenReturn(List.of(mockProcessInstanceContext2));
+
+    // when
+    task.run();
+    task.run();
+
+    // then: the completed token's task is cancelled exactly once
+    verify(mockScheduledFuture, times(1)).cancel(true);
   }
 
   @Test

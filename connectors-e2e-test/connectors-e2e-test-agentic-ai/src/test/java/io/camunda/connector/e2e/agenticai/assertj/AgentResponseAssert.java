@@ -16,12 +16,12 @@
  */
 package io.camunda.connector.e2e.agenticai.assertj;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
@@ -112,6 +112,14 @@ public class AgentResponseAssert extends AbstractAssert<AgentResponseAssert, Age
   public AgentResponseAssert hasResponseJsonSatisfying(ThrowingConsumer<Object> assertions) {
     isNotNull();
     Assertions.assertThat(actual.responseJson()).isNotNull().satisfies(assertions);
+    return this;
+  }
+
+  public AgentResponseAssert hasAgentInstanceKey() {
+    isNotNull();
+    Assertions.assertThat(actual.context()).isNotNull();
+    Assertions.assertThat(actual.context().metadata()).isNotNull();
+    Assertions.assertThat(actual.context().metadata().agentInstanceKey()).isNotNull().isPositive();
     return this;
   }
 }

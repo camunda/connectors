@@ -32,6 +32,11 @@ public record OpenAiCompatibleProviderConfiguration(
     return OPENAI_COMPATIBLE_ID;
   }
 
+  @Override
+  public String model() {
+    return openaiCompatible.model.model();
+  }
+
   public record OpenAiCompatibleConnection(
       @NotBlank
           @HttpUrl

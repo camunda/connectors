@@ -38,10 +38,9 @@ public class A2aSystemPromptContributor implements SystemPromptContributor {
   }
 
   @Override
-  public String contributeSystemPrompt(
-      AgentExecutionContext executionContext, AgentContext agentContext) {
+  public String contribute(AgentExecutionContext executionContext, AgentContext agentContext) {
 
-    // Only contribute if A2A tools are present in the execution context
+    // Only contribute if A2A tools are present in the agent context
     boolean hasA2aTools =
         agentContext.properties().getOrDefault(PROPERTY_A2A_CLIENTS, List.of())
                 instanceof List<?> a2aClients

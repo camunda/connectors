@@ -189,6 +189,11 @@ public class OutboundConnectorContextBuilder {
     return this;
   }
 
+  public OutboundConnectorContextBuilder includeAllValidators() {
+    this.validationProvider = new TestValidationProvider();
+    return this;
+  }
+
   /**
    * Sets a custom {@link ObjectMapper} that is used to serialize and deserialize the variables. If
    * not provided, default mapper will be used.

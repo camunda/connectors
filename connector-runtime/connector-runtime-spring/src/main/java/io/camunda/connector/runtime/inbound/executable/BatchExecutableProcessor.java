@@ -91,9 +91,17 @@ public class BatchExecutableProcessor {
       final ValidInboundConnectorDetails data;
 
       if (maybeValidData instanceof InvalidInboundConnectorDetails invalid) {
+        var reason =
+            invalid.error().getMessage() != null
+                ? invalid.error().getMessage()
+                : invalid.error().getClass().getSimpleName();
         alreadyActivated.put(
             id,
-            new RegisteredExecutable.InvalidDefinition(invalid, invalid.error().getMessage(), id));
+            new RegisteredExecutable.InvalidDefinition(
+                invalid,
+                reason,
+                id,
+                Health.down(new RuntimeException("Invalid connector definition: " + reason))));
         continue;
       } else {
         data = (ValidInboundConnectorDetails) maybeValidData;
@@ -134,7 +142,11 @@ public class BatchExecutableProcessor {
             if (!failedEntry.getKey().equals(id)) {
               notActivated.put(
                   failedEntry.getKey(),
-                  new FailedToActivate(failedEntry.getValue(), failureReasonForOthers, id));
+                  new FailedToActivate(
+                      failedEntry.getValue(),
+                      failureReasonForOthers,
+                      failedEntry.getKey(),
+                      Health.down(new RuntimeException(failureReasonForOthers))));
             }
           }
           notActivated.put(id, failed);
@@ -150,7 +162,15 @@ public class BatchExecutableProcessor {
 
     final ExecutableId id = ExecutableId.fromDeduplicationId(data.deduplicationId());
     if (data instanceof InvalidInboundConnectorDetails invalid) {
-      return new InvalidDefinition(invalid, invalid.error().getMessage(), id);
+      var reason =
+          invalid.error().getMessage() != null
+              ? invalid.error().getMessage()
+              : invalid.error().getClass().getSimpleName();
+      return new InvalidDefinition(
+          invalid,
+          reason,
+          id,
+          Health.down(new RuntimeException("Invalid connector definition: " + reason)));
     }
     var validData = (ValidInboundConnectorDetails) data;
 
@@ -165,7 +185,10 @@ public class BatchExecutableProcessor {
                   validData, cancellationCallback, executable.getClass(), activityLogWriter);
     } catch (NoSuchElementException e) {
       LOG.warn("Failed to create executable", e);
-      return new ConnectorNotRegistered(validData, id);
+      return new ConnectorNotRegistered(
+          validData,
+          id,
+          Health.down(new RuntimeException("Connector " + validData.type() + " not registered")));
     }
 
     if (webhookConnectorRegistry == null && executable instanceof WebhookConnectorExecutable) {
@@ -174,7 +197,10 @@ public class BatchExecutableProcessor {
           Health.down(
               new UnsupportedOperationException(
                   "Webhook connectors are not supported in this environment")));
-      return new ConnectorNotRegistered(validData, id);
+      return new ConnectorNotRegistered(
+          validData,
+          id,
+          Health.down(new RuntimeException("Connector " + validData.type() + " not registered")));
     }
     final Activated activated;
     try {
@@ -182,7 +208,8 @@ public class BatchExecutableProcessor {
     } catch (Exception e) {
       LOG.error("Failed to activate connector", e);
       connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());
-      return new FailedToActivate(data, e.getMessage(), id);
+      var reason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+      return new FailedToActivate(data, reason, id, Health.down(new RuntimeException(reason)));
     }
     log(
         id,
@@ -341,6 +368,7 @@ public class BatchExecutableProcessor {
   public RegisteredExecutable.Cancelled cancelExecutable(Activated activated, Throwable throwable) {
     try {
       activated.executable().deactivate();
+      activated.context().reportHealth(throwable != null ? Health.down(throwable) : Health.down());
       return new RegisteredExecutable.Cancelled(
           activated.executable(), activated.context(), throwable, activated.id());
     } catch (Exception e) {

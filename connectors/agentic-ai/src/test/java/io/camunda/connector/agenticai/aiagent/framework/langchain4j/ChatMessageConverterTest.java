@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
@@ -30,15 +30,15 @@ import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
-import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.model.message.UserMessage;
-import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
@@ -204,6 +204,7 @@ class ChatMessageConverterTest {
     final var chatResponseMetadata =
         ChatResponseMetadata.builder()
             .id("chatcmpl-123")
+            .modelName("my-model")
             .finishReason(FinishReason.STOP)
             .tokenUsage(new TokenUsage(10, 20))
             .build();
@@ -217,13 +218,8 @@ class ChatMessageConverterTest {
         .hasSize(1)
         .satisfiesExactly(
             content -> {
-              assertThat(content)
-                  .isInstanceOf(
-                      io.camunda.connector.agenticai.model.message.content.TextContent.class);
-              assertThat(
-                      ((io.camunda.connector.agenticai.model.message.content.TextContent) content)
-                          .text())
-                  .isEqualTo("AI response");
+              assertThat(content).isInstanceOf(TextContent.class);
+              assertThat(((TextContent) content).text()).isEqualTo("AI response");
             });
 
     assertThat(result.metadata()).containsKey("timestamp");
@@ -234,6 +230,7 @@ class ChatMessageConverterTest {
         .asInstanceOf(InstanceOfAssertFactories.MAP)
         .containsExactly(
             entry("id", "chatcmpl-123"),
+            entry("model", "my-model"),
             entry("finishReason", "STOP"),
             entry(
                 "tokenUsage",
@@ -247,6 +244,7 @@ class ChatMessageConverterTest {
     final var chatResponseMetadata =
         OpenAiChatResponseMetadata.builder()
             .id("chatcmpl-123")
+            .modelName("gpt-4o")
             .finishReason(FinishReason.TOOL_EXECUTION)
             .tokenUsage(
                 OpenAiTokenUsage.builder()
@@ -281,9 +279,36 @@ class ChatMessageConverterTest {
         .asInstanceOf(InstanceOfAssertFactories.MAP)
         .containsExactly(
             entry("id", "chatcmpl-123"),
+            entry("model", "gpt-4o"),
             entry("finishReason", "TOOL_EXECUTION"),
             entry("tokenUsage", expectedTokenUsage))
         .doesNotContainKeys("serviceTier", "rawHttpResponse");
+  }
+
+  @Test
+  void toAssistantMessage_omitsModelFromFrameworkMetadata_whenNotSet() {
+    final var aiMessage = AiMessage.builder().text("AI response").build();
+
+    final var chatResponseMetadata =
+        ChatResponseMetadata.builder()
+            .id("chatcmpl-123")
+            .finishReason(FinishReason.STOP)
+            .tokenUsage(new TokenUsage(10, 20))
+            .build();
+
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.metadata().get("framework"))
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .containsExactly(
+            entry("id", "chatcmpl-123"),
+            entry("finishReason", "STOP"),
+            entry(
+                "tokenUsage",
+                Map.of("inputTokenCount", 10, "outputTokenCount", 20, "totalTokenCount", 30)));
   }
 
   @Test
@@ -293,6 +318,7 @@ class ChatMessageConverterTest {
     final var chatResponseMetadata =
         ChatResponseMetadata.builder()
             .id("chatcmpl-123")
+            .modelName("my-model")
             .finishReason(FinishReason.CONTENT_FILTER)
             .tokenUsage(new TokenUsage(10, 0))
             .build();
@@ -309,6 +335,7 @@ class ChatMessageConverterTest {
         .asInstanceOf(InstanceOfAssertFactories.MAP)
         .containsExactly(
             entry("id", "chatcmpl-123"),
+            entry("model", "my-model"),
             entry("finishReason", "CONTENT_FILTER"),
             entry(
                 "tokenUsage",

@@ -31,7 +31,7 @@ public class UnstructuredExtractionRequestData extends DocumentRequestData {
       group = "input",
       type = TemplateProperty.PropertyType.Text,
       description = "Specify the parameters for the ai conversation",
-      defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
+      defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5\n}",
       binding = @TemplateProperty.PropertyBinding(name = "converseData"),
       feel = FeelMode.optional)
   ConverseData converseData;

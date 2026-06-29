@@ -30,6 +30,29 @@ public interface ProcessInstanceContext {
   Long getKey();
 
   /**
+   * Retrieves the key of the specific element instance this context represents. A single process
+   * instance may have multiple concurrent element instances at the same connector element (e.g. a
+   * multi-instance subprocess containing an intermediate catch event), so this key — not {@link
+   * #getKey()} — is what uniquely identifies a token at the connector element.
+   *
+   * @return The unique identifier for the element instance.
+   */
+  Long getElementInstanceKey();
+
+  /**
+   * Builds a stable key that uniquely identifies this element instance, composed of the provided
+   * prefix and this context's process instance key and element instance key. Useful for
+   * deduplicating per-token work (e.g. scheduled polling tasks) when multiple element instances of
+   * the same connector element may coexist.
+   *
+   * @param prefix A caller-provided prefix (typically the inbound connector's deduplication id).
+   * @return A key of the form {@code prefix + processInstanceKey + ":" + elementInstanceKey}.
+   */
+  default String taskKey(final String prefix) {
+    return prefix + getKey() + ":" + getElementInstanceKey();
+  }
+
+  /**
    * Binds the stored properties to a specified class type. It facilitates the deserialization and
    * conversion of these properties into a desired data structure or object. In cases where binding
    * the properties to the specified class isn't possible, this method will throw a runtime

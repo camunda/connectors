@@ -83,7 +83,8 @@ abstract class BaseOutboundMultiInstancesTest {
                 "server.port=" + port1,
                 "spring.application.name=instance1",
                 "camunda.connector.hostname=instance1",
-                "camunda.connector.headless.serviceurl=http://whatever:8080")
+                "camunda.connector.headless.serviceurl=http://whatever:8080",
+                "camunda.connector.broker.monitoring.enabled=false")
             .initializers(
                 ctx -> {
                   ((GenericApplicationContext) ctx)
@@ -106,7 +107,8 @@ abstract class BaseOutboundMultiInstancesTest {
                 "server.port=" + port2,
                 "spring.application.name=instance2",
                 "camunda.connector.hostname=instance2",
-                "camunda.connector.headless.serviceurl=http://whatever:8080")
+                "camunda.connector.headless.serviceurl=http://whatever:8080",
+                "camunda.connector.broker.monitoring.enabled=false")
             .initializers(
                 ctx -> {
                   ((GenericApplicationContext) ctx)

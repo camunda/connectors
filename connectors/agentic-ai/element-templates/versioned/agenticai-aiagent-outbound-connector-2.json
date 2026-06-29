@@ -10,8 +10,8 @@
   "version" : 2,
   "deprecated": true,
   "category" : {
-    "id" : "connectors",
-    "name" : "Connectors"
+    "id" : "aiTools",
+    "name" : "AI Tools"
   },
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {

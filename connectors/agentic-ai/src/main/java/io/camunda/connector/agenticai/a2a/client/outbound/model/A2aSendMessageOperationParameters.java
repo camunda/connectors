@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.a2a.client.outbound.model;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;

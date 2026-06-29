@@ -7,27 +7,33 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   private final JobContext jobContext;
   private final JobWorkerAgentRequest request;
-  private boolean cancelRemainingInstances;
+  private final AgentConfiguration configuration;
 
   public JobWorkerAgentExecutionContext(
       final JobContext jobContext, final JobWorkerAgentRequest request) {
     this.jobContext = jobContext;
     this.request = request;
+    this.configuration =
+        new AgentConfiguration(
+            request.provider(),
+            request.data().systemPrompt(),
+            request.data().userPrompt(),
+            request.data().memory(),
+            request.data().limits(),
+            request.data().events(),
+            request.data().response());
   }
 
   @Override
@@ -51,45 +57,21 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   }
 
   @Override
-  public ProviderConfiguration provider() {
-    return request.provider();
-  }
-
-  @Override
-  public SystemPromptConfiguration systemPrompt() {
-    return request.data().systemPrompt();
-  }
-
-  @Override
   public UserPromptConfiguration userPrompt() {
     return request.data().userPrompt();
   }
 
   @Override
-  public MemoryConfiguration memory() {
-    return request.data().memory();
+  public AgentConfiguration configuration() {
+    return configuration;
   }
 
-  @Override
-  public LimitsConfiguration limits() {
-    return request.data().limits();
-  }
-
-  @Override
-  public EventHandlingConfiguration events() {
-    return request.data().events();
-  }
-
-  @Override
+  /**
+   * Job-worker-specific response configuration. Exposes {@code includeAgentContext}, which is not
+   * part of the generic {@link
+   * io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration}.
+   */
   public JobWorkerResponseConfiguration response() {
     return request.data().response();
-  }
-
-  public boolean cancelRemainingInstances() {
-    return cancelRemainingInstances;
-  }
-
-  public void setCancelRemainingInstances(boolean cancelRemainingInstances) {
-    this.cancelRemainingInstances = cancelRemainingInstances;
   }
 }

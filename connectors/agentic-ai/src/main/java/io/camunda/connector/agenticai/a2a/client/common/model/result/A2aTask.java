@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.List;
 import java.util.Map;
 

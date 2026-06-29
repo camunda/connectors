@@ -63,6 +63,14 @@ limitations under the License.</license.inlineheader>
       <artifactId>httpclient5</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.github.hakky54</groupId>
+      <artifactId>ayza</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.hakky54</groupId>
+      <artifactId>ayza-for-pem</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
     </dependency>

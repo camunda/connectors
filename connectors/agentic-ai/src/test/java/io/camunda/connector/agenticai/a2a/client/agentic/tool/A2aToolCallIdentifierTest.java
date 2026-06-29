@@ -86,7 +86,7 @@ class A2aToolCallIdentifierTest {
     void parsesCorrectlyWhenValidToolCallName(String toolCallName, String expectedElementName) {
       var result = A2aToolCallIdentifier.fromToolCallName(toolCallName);
 
-      assertThat(result.elementName()).isEqualTo(expectedElementName);
+      assertThat(result.elementId()).isEqualTo(expectedElementName);
     }
 
     static Stream<Arguments> parseCases() {
@@ -122,7 +122,7 @@ class A2aToolCallIdentifierTest {
       var parsed = A2aToolCallIdentifier.fromToolCallName(fullyQualifiedName);
 
       assertThat(parsed).isEqualTo(original);
-      assertThat(parsed.elementName()).isEqualTo(elementName);
+      assertThat(parsed.elementId()).isEqualTo(elementName);
     }
 
     static Stream<Arguments> roundTripScenarios() {

@@ -14,7 +14,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -51,7 +51,7 @@ class AgentContextTest {
 
   @Test
   void withMetrics() {
-    final var updatedMetrics = new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20));
+    final var updatedMetrics = new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0);
 
     final var initialContext = AgentContext.empty();
     final var updatedContext = initialContext.withMetrics(updatedMetrics);
@@ -137,7 +137,7 @@ class AgentContextTest {
   void canBeSerializedAndDeserialized() throws JsonProcessingException {
     final var agentContext =
         AgentContext.builder()
-            .metrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+            .metrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
             .toolDefinitions(
                 List.of(
                     ToolDefinition.builder()

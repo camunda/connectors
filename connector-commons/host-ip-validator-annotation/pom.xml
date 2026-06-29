@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-commons</artifactId>
+    <version>8.10.0-alpha2</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>host-ip-validator-annotation</artifactId>
+  <name>Connector Host IP Validator Annotation</name>
+  <description>
+    Resolves hostnames and validates the resulting IP addresses against allow/deny
+    CIDR ranges. Inspired by Stripe's smokescreen, intended for defending outbound
+    HTTP calls against SSRF and access to private/loopback ranges.
+  </description>
+  <packaging>jar</packaging>
+
+  <dependencies>
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+    </dependency>
+  </dependencies>
+
+</project>

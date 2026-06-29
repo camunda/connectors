@@ -24,6 +24,7 @@ import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -31,6 +32,8 @@ import java.util.function.Function;
 public class AnnotatedOperationConnector implements OutboundConnectorProvider {
 
   record MyObjectParam(String name, int value) {}
+
+  record Span(int start, int end) {}
 
   @Operation(id = "myOperation")
   public String myOperation(
@@ -78,5 +81,10 @@ public class AnnotatedOperationConnector implements OutboundConnectorProvider {
         .errorCode("RETRY_ERROR")
         .message("Please retry")
         .build();
+  }
+
+  @Operation(id = "myOperation7")
+  public Object handleGenericListVariable(@Variable("spans") List<Span> spans) {
+    return spans.stream().mapToInt(Span::start).sum();
   }
 }

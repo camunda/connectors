@@ -31,6 +31,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
       "url",
       "method",
       "authentication",
+      "clientTls",
       "headers",
       "queryParameters",
       "skipEncoding",
@@ -44,7 +45,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     },
     type = HttpJsonFunction.TYPE)
 @ElementTemplate(
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.HttpJson.v2",
     name = "REST Outbound Connector",
     description = "Invoke REST API",
@@ -64,7 +65,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     },
     inputDataClass = HttpJsonRequest.class,
     outputDataClass = HttpCommonResult.class,
-    version = 13,
+    version = 15,
     defaultResultExpression =
         "{\n"
             + "  myResponseBody: response.body\n"
@@ -73,6 +74,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
             + "}",
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
+      @PropertyGroup(id = "tls", label = "Client certificate (mTLS)"),
       @PropertyGroup(id = "endpoint", label = "HTTP endpoint"),
       @PropertyGroup(id = "timeout", label = "Connection timeout"),
       @PropertyGroup(id = "payload", label = "Payload")

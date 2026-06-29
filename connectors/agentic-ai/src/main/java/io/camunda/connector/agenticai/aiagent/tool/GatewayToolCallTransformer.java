@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
 
 /**

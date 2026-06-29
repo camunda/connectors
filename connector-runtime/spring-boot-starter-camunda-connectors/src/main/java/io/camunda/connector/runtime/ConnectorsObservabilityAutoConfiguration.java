@@ -47,4 +47,9 @@ public class ConnectorsObservabilityAutoConfiguration {
       @Autowired(required = false) ImportSchedulers importSchedulers) {
     return new ProcessDefinitionImportHealthIndicator(importSchedulers);
   }
+
+  @Bean(name = "startupCheck")
+  public StartupHealthIndicator startupHealthIndicator() {
+    return new StartupHealthIndicator();
+  }
 }

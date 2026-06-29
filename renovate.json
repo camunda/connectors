@@ -138,6 +138,22 @@
       "enabled": false
     },
     {
+      "description": "Pin Box SDK to v5 line; v10 drops the legacy com.box.sdk package and the auto-paginating iterators.",
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["com.box:box-java-sdk"],
+      "enabled": false
+    },
+    {
+      "description": "Disable major version updates for json-schema-validator — v3 is a complete API rewrite requiring a dedicated migration.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "matchPackageNames": [
+        "com.networknt:json-schema-validator"
+      ],
+      "enabled": false
+    },
+    {
       "description": "kafka-clients: stay on the Apache versioning track. The Confluent Platform builds (-ce/-ccs/-cp suffixes, e.g. 8.2.1-ce) are republished under the same org.apache.kafka coordinates via artifacts.camunda.com and must not be treated as upgrades to the Apache releases (x.y.z).",
       "matchPackageNames": [
         "org.apache.kafka:kafka-clients"

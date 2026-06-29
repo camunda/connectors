@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.validator.core.ElementTemplate;
 import io.camunda.connector.validator.core.Finding;
 import io.camunda.connector.validator.core.JsonPointers;
+import io.camunda.connector.validator.core.OperationMetadataIgnoreList;
 import io.camunda.connector.validator.core.Rule;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -30,26 +31,74 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Each entry in any {@code presets} object must reference a property {@code id} that exists in the
- * template's top-level {@code properties[]}, and the value must be one of the property's declared
- * {@code choices} (when choices are declared).
- *
- * <p>The {@code presets} field is an object keyed by property id, e.g.
- *
- * <pre>{@code
- * "presets": { "operationGroup": "actions", "eventOperationType": "createWorkflowDispatchEvent" }
- * }</pre>
- *
- * <p>The rule scans for {@code presets} objects anywhere in the tree, so it covers the typical
- * {@code template.steps[].steps[].presets} nesting as well as any other location.
+ * For every entry of the top-level {@code presets[]} array, each key inside {@code properties} must
+ * reference a property declared in the template's top-level {@code properties[]}, and the value
+ * must be one of the property's declared {@code choices} (when choices are declared).
  */
 public class PresetTargetExistsRule implements Rule {
 
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
+    if (OperationMetadataIgnoreList.isIgnored(file)) {
+      return List.of();
+    }
+    JsonNode presets = template.path(ElementTemplate.PRESETS);
+    if (!presets.isArray()) {
+      return List.of();
+    }
     Map<String, Set<String>> propertyChoices = collectPropertyChoices(template);
     List<Finding> findings = new ArrayList<>();
-    walk(template, "", file, propertyChoices, findings);
+    for (int i = 0; i < presets.size(); i++) {
+      JsonNode preset = presets.get(i);
+      JsonNode properties = preset.path(ElementTemplate.PROPERTIES);
+      if (!properties.isObject()) {
+        continue;
+      }
+      String pointer = "/presets/" + i + "/properties";
+      for (Map.Entry<String, JsonNode> entry : properties.properties()) {
+        String key = entry.getKey();
+        JsonNode value = entry.getValue();
+        String entryPointer = pointer + "/" + JsonPointers.escape(key);
+
+        if (!propertyChoices.containsKey(key)) {
+          findings.add(
+              Finding.error(
+                  file,
+                  entryPointer,
+                  id(),
+                  "Preset references property \""
+                      + key
+                      + "\" which does not exist in this template."));
+          continue;
+        }
+        if (!value.isTextual()) {
+          findings.add(
+              Finding.error(
+                  file,
+                  entryPointer,
+                  id(),
+                  "Preset value for property \""
+                      + key
+                      + "\" must be a string (got "
+                      + value.getNodeType().toString().toLowerCase()
+                      + ")."));
+          continue;
+        }
+        Set<String> choices = propertyChoices.get(key);
+        if (!choices.isEmpty() && !choices.contains(value.asText())) {
+          findings.add(
+              Finding.error(
+                  file,
+                  entryPointer,
+                  id(),
+                  "Preset value \""
+                      + value.asText()
+                      + "\" is not one of the declared choices for property \""
+                      + key
+                      + "\"."));
+        }
+      }
+    }
     return findings;
   }
 
@@ -64,8 +113,6 @@ public class PresetTargetExistsRule implements Rule {
       if (!idNode.isTextual()) {
         continue;
       }
-      // Union choice sets across duplicate ids so the mutually-exclusive switching pattern
-      // (same id, different conditions, possibly different choices) does not lose values.
       Set<String> choices = result.computeIfAbsent(idNode.asText(), k -> new HashSet<>());
       JsonNode choicesNode = prop.path(ElementTemplate.CHOICES);
       if (choicesNode.isArray()) {
@@ -78,68 +125,5 @@ public class PresetTargetExistsRule implements Rule {
       }
     }
     return result;
-  }
-
-  private void walk(
-      JsonNode node,
-      String pointer,
-      Path file,
-      Map<String, Set<String>> propertyChoices,
-      List<Finding> findings) {
-    if (node.isObject()) {
-      for (Map.Entry<String, JsonNode> entry : node.properties()) {
-        String childPointer = pointer + "/" + JsonPointers.escape(entry.getKey());
-        if (ElementTemplate.PRESETS.equals(entry.getKey()) && entry.getValue().isObject()) {
-          checkPresets(entry.getValue(), childPointer, file, propertyChoices, findings);
-        }
-        walk(entry.getValue(), childPointer, file, propertyChoices, findings);
-      }
-    } else if (node.isArray()) {
-      for (int i = 0; i < node.size(); i++) {
-        walk(node.get(i), pointer + "/" + i, file, propertyChoices, findings);
-      }
-    }
-  }
-
-  private void checkPresets(
-      JsonNode presets,
-      String presetsPointer,
-      Path file,
-      Map<String, Set<String>> propertyChoices,
-      List<Finding> findings) {
-    for (Map.Entry<String, JsonNode> entry : presets.properties()) {
-      String propertyId = entry.getKey();
-      JsonNode value = entry.getValue();
-      String entryPointer = presetsPointer + "/" + JsonPointers.escape(propertyId);
-
-      if (!propertyChoices.containsKey(propertyId)) {
-        findings.add(
-            Finding.error(
-                file,
-                entryPointer,
-                id(),
-                "Preset references property \""
-                    + propertyId
-                    + "\" which does not exist in this template."));
-        continue;
-      }
-
-      if (!value.isTextual()) {
-        continue;
-      }
-      Set<String> choices = propertyChoices.get(propertyId);
-      if (!choices.isEmpty() && !choices.contains(value.asText())) {
-        findings.add(
-            Finding.error(
-                file,
-                entryPointer,
-                id(),
-                "Preset value \""
-                    + value.asText()
-                    + "\" is not one of the declared choices for property \""
-                    + propertyId
-                    + "\"."));
-      }
-    }
   }
 }

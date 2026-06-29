@@ -18,6 +18,7 @@ package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.util.function.Supplier;
 
 /**
@@ -29,6 +30,12 @@ public class FeelContextAwareObjectReader {
 
   /** Attribute name that is used to pass the FEEL context supplier object to the deserializer */
   public static final String FEEL_CONTEXT_ATTRIBUTE = "FEEL_CONTEXT";
+
+  /**
+   * Attribute name used to inject a {@link FeelExpressionEvaluator} that overrides the evaluator
+   * baked into the deserializer for the scope of a single {@link ObjectReader} call.
+   */
+  public static final String FEEL_EVALUATOR_ATTRIBUTE = "FEEL_EVALUATOR";
 
   private final ObjectMapper mapper;
 
@@ -55,5 +62,16 @@ public class FeelContextAwareObjectReader {
   public ObjectReader withStaticContext(Object context) {
     Supplier<?> supplier = () -> context;
     return withContextSupplier(supplier);
+  }
+
+  /**
+   * Returns a new {@link ObjectReader} carrying the given FEEL expression evaluator as an
+   * attribute. The {@code AbstractFeelDeserializer} picks it up and uses it instead of the
+   * evaluator baked in at module-registration time. Jackson's {@link ObjectReader#withAttribute}
+   * returns a new reader with the attribute added, so callers can chain with other {@code
+   * withAttribute}/{@code withContextSupplier} calls.
+   */
+  public ObjectReader withEvaluator(FeelExpressionEvaluator evaluator) {
+    return mapper.reader().withAttribute(FEEL_EVALUATOR_ATTRIBUTE, evaluator);
   }
 }
