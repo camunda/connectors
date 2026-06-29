@@ -191,7 +191,11 @@ class ListResourcesRequestTest {
 
   private McpSchema.Resource createMcpResource(
       String uri, String name, String title, String description, String mimeType) {
-    return new McpSchema.Resource(uri, name, title, description, mimeType, null, null, null);
+    return McpSchema.Resource.builder(uri, name)
+        .title(title)
+        .description(description)
+        .mimeType(mimeType)
+        .build();
   }
 
   private ResourceDescription createResourceDescription(

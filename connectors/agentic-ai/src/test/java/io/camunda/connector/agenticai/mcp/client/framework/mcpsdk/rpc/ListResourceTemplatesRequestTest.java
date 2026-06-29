@@ -201,9 +201,7 @@ class ListResourceTemplatesRequestTest {
 
   private McpSchema.ResourceTemplate createMcpResourceTemplate(
       String uriTemplate, String name, String title, String description, String mimeType) {
-    return McpSchema.ResourceTemplate.builder()
-        .uriTemplate(uriTemplate)
-        .name(name)
+    return McpSchema.ResourceTemplate.builder(uriTemplate, name)
         .title(title)
         .description(description)
         .mimeType(mimeType)
