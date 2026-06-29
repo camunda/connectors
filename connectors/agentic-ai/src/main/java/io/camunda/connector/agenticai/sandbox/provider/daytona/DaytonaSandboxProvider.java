@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.sandbox.provider.daytona;
 
+import io.camunda.connector.agenticai.sandbox.spi.ExecRequest;
+import io.camunda.connector.agenticai.sandbox.spi.ExecResult;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxCapability;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxException;
 import io.camunda.connector.agenticai.sandbox.spi.SandboxHandle;
@@ -33,6 +35,9 @@ import org.slf4j.LoggerFactory;
 public class DaytonaSandboxProvider implements SandboxProvider {
 
   public static final String PROVIDER_ID = "daytona";
+
+  /** Timeout for the optional startup script run at sandbox creation. */
+  private static final int STARTUP_SCRIPT_TIMEOUT_SECONDS = 300;
 
   private static final Logger log = LoggerFactory.getLogger(DaytonaSandboxProvider.class);
 
@@ -69,7 +74,9 @@ public class DaytonaSandboxProvider implements SandboxProvider {
       Sandbox sandbox = createSandbox(daytona, spec);
       applyIntervals(sandbox, spec);
       log.debug("Created Daytona sandbox id={}", sandbox.getId());
-      return new DaytonaSandboxSession(daytona, sandbox);
+      DaytonaSandboxSession session = new DaytonaSandboxSession(daytona, sandbox);
+      runStartupScript(session, spec);
+      return session;
     } catch (DaytonaException e) {
       closeQuietly(daytona);
       throw new SandboxException("Failed to create Daytona sandbox: " + e.getMessage(), e);
@@ -130,6 +137,31 @@ public class DaytonaSandboxProvider implements SandboxProvider {
     }
     if (spec.autoDeleteMinutes() != null) {
       sandbox.setAutoDeleteInterval(spec.autoDeleteMinutes());
+    }
+  }
+
+  /**
+   * Runs the optional startup script once at sandbox creation, in the sandbox working directory. A
+   * non-zero exit code is logged as a warning but does not fail sandbox creation — the script is a
+   * best-effort provisioning hook (e.g. installing tools or skill dependencies).
+   */
+  private static void runStartupScript(SandboxSession session, SandboxSpec spec) {
+    String startupScript = spec.startupScript();
+    if (startupScript == null || startupScript.isBlank()) {
+      return;
+    }
+    log.debug("Running sandbox startup script ({} chars)", startupScript.length());
+    ExecResult result =
+        session.exec(
+            new ExecRequest(
+                startupScript,
+                session.workDir(),
+                null,
+                STARTUP_SCRIPT_TIMEOUT_SECONDS,
+                ExecRequest.DEFAULT_MAX_OUTPUT_BYTES));
+    if (result.exitCode() != 0) {
+      log.warn(
+          "Sandbox startup script exited with code {}: {}", result.exitCode(), result.stdout());
     }
   }
 

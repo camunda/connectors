@@ -36,7 +36,7 @@ class SandboxConfigurationTest {
       AutoStopConfiguration autoStop,
       AutoArchiveConfiguration autoArchive,
       AutoDeleteConfiguration autoDelete) {
-    return new DaytonaConnection("k", null, null, autoStop, autoArchive, autoDelete);
+    return new DaytonaConnection("k", null, null, null, autoStop, autoArchive, autoDelete);
   }
 
   // -------------------------------------------------------------------------
@@ -109,6 +109,7 @@ class SandboxConfigurationTest {
                 "my-api-key",
                 null,
                 "snap-v1",
+                null,
                 new AutoStopConfiguration(AutoStopMode.DURATION, "PT15M"),
                 null,
                 null));
@@ -139,6 +140,7 @@ class SandboxConfigurationTest {
         new DaytonaConnection(
             "super-secret",
             "https://api.example.com",
+            null,
             null,
             new AutoStopConfiguration(AutoStopMode.DURATION, "PT15M"),
             null,

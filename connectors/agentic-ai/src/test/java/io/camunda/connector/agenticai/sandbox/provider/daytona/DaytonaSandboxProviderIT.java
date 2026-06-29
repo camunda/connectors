@@ -55,6 +55,7 @@ class DaytonaSandboxProviderIT {
                 apiKey,
                 apiUrl,
                 null,
+                null,
                 new AutoStopConfiguration(AutoStopMode.DURATION, "PT15M"),
                 null,
                 null));

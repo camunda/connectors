@@ -37,7 +37,7 @@ class SandboxSessionFactoryImplTest {
 
   private static final DaytonaSandboxConfiguration SANDBOX_CONFIG =
       new DaytonaSandboxConfiguration(
-          new DaytonaConnection("api-key", null, null, null, null, null));
+          new DaytonaConnection("api-key", null, null, null, null, null, null));
 
   @Mock private SandboxProviderRegistry providerRegistry;
   @Mock private SandboxProvider provider;

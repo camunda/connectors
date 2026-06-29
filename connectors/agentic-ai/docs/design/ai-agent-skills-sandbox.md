@@ -572,6 +572,7 @@ record DaytonaSandboxConfiguration(@Valid @NotNull DaytonaConnection daytona)
       String apiKey,                          // @NotBlank, redacted in toString
       @Nullable String apiUrl,                // self-hosted base URL
       @Nullable String snapshot,              // optional pre-loaded workspace image
+      @Nullable String startupScript,         // optional shell script run once at sandbox creation (provisioning hook)
       // Each lifecycle setting is its own object: a dropdown `mode` + an ISO-8601 `duration` string
       // shown only when mode = DURATION (e.g. `data.sandbox.daytona.autoStop.mode` +
       // `.../autoStop.duration`). Helper methods on DaytonaConnection
@@ -590,6 +591,15 @@ record DaytonaSandboxConfiguration(@Valid @NotNull DaytonaConnection daytona)
 > **ISO-8601 gotcha:** days precede the `T` — `P7D` (7 days) and `PT15M` (15 minutes) are valid;
 > `PT7D` is **not** (`Duration.parse` rejects it). Auto-archive is validated to not exceed 30 days.
 > When auto-delete mode is DURATION but no duration is given, it defaults to `PT5M` (5 minutes).
+
+> **Startup script:** `startupScript` is an optional shell script run once at sandbox creation,
+> propagated through `SandboxSpec.startupScript()` and executed by the provider in the sandbox
+> working directory right after the sandbox is created (and after lifecycle intervals are applied).
+> It is a best-effort provisioning hook for installing tools or skill dependencies — a non-zero exit
+> code is logged as a warning but does **not** fail sandbox creation. It complements (does not
+> replace) the `skills` field: skills are materialized lazily on demand via `sandbox_load_skill`,
+> whereas the startup script runs eagerly once per sandbox. It only runs on a fresh `create()`, not
+> on `connect()` reconnects to an existing sandbox.
 
 Future providers (AgentCore, Vercel, E2B, DockerSandbox for local testing) drop in behind the same
 SPI. Added to `AgentConfiguration` as `@Nullable SandboxConfiguration sandbox`;

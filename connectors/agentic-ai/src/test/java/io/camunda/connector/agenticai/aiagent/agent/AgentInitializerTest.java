@@ -698,7 +698,7 @@ class AgentInitializerTest {
           .thenReturn(
               Optional.of(
                   new DaytonaSandboxConfiguration(
-                      new DaytonaConnection("key", null, null, null, null, null))));
+                      new DaytonaConnection("key", null, null, null, null, null, null))));
       when(internalToolRegistry.toolDefinitions(anyList()))
           .thenReturn(List.of(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF));
       when(toolsResolver.loadAdHocToolsSchema(any(), any()))
@@ -722,7 +722,7 @@ class AgentInitializerTest {
           .thenReturn(
               Optional.of(
                   new DaytonaSandboxConfiguration(
-                      new DaytonaConnection("key", null, null, null, null, null))));
+                      new DaytonaConnection("key", null, null, null, null, null, null))));
       when(internalToolRegistry.toolDefinitions(anyList()))
           .thenReturn(List.of(BASH_DEF, FS_READ_DEF, FS_WRITE_DEF));
       when(toolsResolver.loadAdHocToolsSchema(any(), any()))

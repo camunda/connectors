@@ -1676,6 +1676,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.sandbox.daytona.startupScript",
+    "label" : "Startup script",
+    "description" : "Optional shell script run once when the sandbox is provisioned (e.g. to install tools or skill dependencies). Runs in the sandbox working directory after the sandbox is created.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sandbox",
+    "binding" : {
+      "name" : "data.sandbox.daytona.startupScript",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.sandbox.type",
+      "equals" : "daytona",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
     "id" : "data.sandbox.daytona.autoStop.mode",
     "label" : "Auto-stop",
     "description" : "Controls how long a running sandbox stays up before stopping. DISABLED means it never auto-stops (Daytona default: 15 min).",

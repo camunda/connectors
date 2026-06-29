@@ -43,6 +43,7 @@ public class DaytonaSandboxProviderFactory implements SandboxProviderFactory {
         null,
         daytona.autoStopMinutes(),
         daytona.autoArchiveMinutes(),
-        daytona.autoDeleteMinutes());
+        daytona.autoDeleteMinutes(),
+        daytona.startupScript());
   }
 }

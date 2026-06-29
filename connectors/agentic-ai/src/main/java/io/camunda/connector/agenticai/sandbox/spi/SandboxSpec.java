@@ -16,10 +16,14 @@ public record SandboxSpec(
     @Nullable Map<String, String> env,
     @Nullable Integer autoStopMinutes,
     @Nullable Integer autoArchiveMinutes,
-    @Nullable Integer autoDeleteMinutes) {
+    @Nullable Integer autoDeleteMinutes,
+    @Nullable String startupScript) {
 
-  /** Sensible defaults: no snapshot, no template, no env overrides, provider defaults for TTL. */
+  /**
+   * Sensible defaults: no snapshot, no template, no env overrides, provider defaults for TTL, no
+   * startup script.
+   */
   public static SandboxSpec defaults() {
-    return new SandboxSpec(null, null, null, null, null, null);
+    return new SandboxSpec(null, null, null, null, null, null, null);
   }
 }

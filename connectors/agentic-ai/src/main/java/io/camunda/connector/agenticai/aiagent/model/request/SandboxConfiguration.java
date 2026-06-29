@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
@@ -100,6 +101,8 @@ public sealed interface SandboxConfiguration
      * @param apiKey Daytona API key (always redacted in toString).
      * @param apiUrl Optional base URL for self-hosted Daytona deployments.
      * @param snapshot Optional pre-loaded workspace image/snapshot reference.
+     * @param startupScript Optional shell script run once when the sandbox is provisioned (e.g. to
+     *     install tools or skill dependencies).
      * @param autoStop Auto-stop lifecycle settings (mode + duration).
      * @param autoArchive Auto-archive lifecycle settings (mode + duration).
      * @param autoDelete Auto-delete lifecycle settings (mode + duration).
@@ -120,6 +123,15 @@ public sealed interface SandboxConfiguration
             @Nullable String apiUrl,
         @TemplateProperty(group = "sandbox", label = "Snapshot", optional = true)
             @Nullable String snapshot,
+        @TemplateProperty(
+                group = "sandbox",
+                label = "Startup script",
+                description =
+                    "Optional shell script run once when the sandbox is provisioned (e.g. to install tools or skill dependencies). Runs in the sandbox working directory after the sandbox is created.",
+                type = TemplateProperty.PropertyType.Text,
+                feel = FeelMode.optional,
+                optional = true)
+            @Nullable String startupScript,
         @Valid @Nullable AutoStopConfiguration autoStop,
         @Valid @Nullable AutoArchiveConfiguration autoArchive,
         @Valid @Nullable AutoDeleteConfiguration autoDelete) {
@@ -236,6 +248,8 @@ public sealed interface SandboxConfiguration
             + apiUrl
             + ", snapshot="
             + snapshot
+            + ", startupScript="
+            + (startupScript != null ? "[" + startupScript.length() + " chars]" : "null")
             + ", autoStop="
             + autoStop
             + ", autoArchive="

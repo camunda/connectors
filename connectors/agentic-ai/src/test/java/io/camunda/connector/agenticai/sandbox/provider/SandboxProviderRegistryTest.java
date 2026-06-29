@@ -25,7 +25,7 @@ class SandboxProviderRegistryTest {
 
   private static final DaytonaSandboxConfiguration DAYTONA_CONFIG =
       new DaytonaSandboxConfiguration(
-          new DaytonaConnection("api-key", null, null, null, null, null));
+          new DaytonaConnection("api-key", null, null, null, null, null, null));
 
   /** Stub provider — does not perform real I/O. */
   private static class StubSandboxProvider implements SandboxProvider {

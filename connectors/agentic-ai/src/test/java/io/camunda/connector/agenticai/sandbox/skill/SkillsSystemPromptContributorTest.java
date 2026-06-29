@@ -37,7 +37,7 @@ class SkillsSystemPromptContributorTest {
   /** A non-disabled sandbox configuration used to signal "sandbox is present". */
   private static final DaytonaSandboxConfiguration SANDBOX =
       new DaytonaSandboxConfiguration(
-          new DaytonaConnection("dummy-api-key", null, null, null, null, null));
+          new DaytonaConnection("dummy-api-key", null, null, null, null, null, null));
 
   @BeforeEach
   void setUp() {
