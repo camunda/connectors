@@ -197,7 +197,7 @@ public class SpringConnectorJobHandler implements JobHandler {
           "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
       throwBpmnError(client, job, bpmnError);
     } else if (error instanceof JobError jobError) {
-      checkVariablesSize(jobError.variablesWithErrorMessage());
+      checkVariablesSize(jobError.variables());
       LOGGER.debug("Throwing incident for job {}", job.getKey());
       failJob(
           client,
