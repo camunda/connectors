@@ -6,15 +6,9 @@
  */
 
 /**
- * Generates @NullMarked package-info.java files directly into src/main/java for every
- * package that contains source files but does not already have a package-info.java.
- *
- * This gives IntelliJ the per-package @NullMarked signal it needs for null analysis (JSpecify does
- * not cascade from a parent package), while NullAway continues to use AnnotatedPackages for
- * build-time enforcement. Generated files are committed — the script is idempotent and skips
- * packages that already have a package-info.java.
- *
- * Run mvn generate-sources after adding a new package to keep coverage up to date.
+ * Generates @NullMarked package-info.java into src/main/java for every package that contains
+ * source files but does not already have one. Idempotent; commit the generated files.
+ * Run after adding a new package to keep coverage complete.
  */
 def srcRoot = project.basedir.toPath().resolve('src/main/java').toFile()
 
