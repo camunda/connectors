@@ -192,7 +192,7 @@ listed, reason from the principle (does correctness depend on the engine and BPM
 
 ### Null safety
 
-All production code is `@NullMarked`: every reference type is non-null by default.
+All production code is `@NullMarked` via per-package `package-info.java`: every reference type is non-null by default.
 
 - Add `@Nullable` (from `org.jspecify.annotations`) on fields, parameters, and return types that may be absent.
 - Fix null-safety errors by handling the null. Never suppress them.
