@@ -14,10 +14,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-@NullMarked
 @AgenticAiRecord
 @JsonDeserialize(builder = AssistantMessage.AssistantMessageJacksonProxyBuilder.class)
 public record AssistantMessage(

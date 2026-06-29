@@ -19,10 +19,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-@NullMarked
 public record JobWorkerAgentRequest(
     @JsonProperty("adHocSubProcessElements") List<AdHocToolElement> toolElements,
     @FEEL

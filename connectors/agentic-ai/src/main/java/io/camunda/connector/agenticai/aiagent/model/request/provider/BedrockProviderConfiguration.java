@@ -23,10 +23,8 @@ import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-@NullMarked
 @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock")
 public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bedrock)
     implements ProviderConfiguration {

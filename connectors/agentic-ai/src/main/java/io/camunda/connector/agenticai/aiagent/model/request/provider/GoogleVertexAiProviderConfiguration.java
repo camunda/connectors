@@ -20,10 +20,8 @@ import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-@NullMarked
 @TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Google Vertex AI")
 public record GoogleVertexAiProviderConfiguration(
     @Valid @NotNull GoogleVertexAiConnection googleVertexAi) implements ProviderConfiguration {

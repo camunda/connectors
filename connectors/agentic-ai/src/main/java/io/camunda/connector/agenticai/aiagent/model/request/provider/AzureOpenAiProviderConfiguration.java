@@ -21,10 +21,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-@NullMarked
 @TemplateSubType(id = AZURE_OPENAI_ID, label = "Azure OpenAI")
 public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnection azureOpenAi)
     implements ProviderConfiguration {

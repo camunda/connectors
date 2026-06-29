@@ -14,10 +14,8 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.HashMap;
 import java.util.Map;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-@NullMarked
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolCallResult.ToolCallResultJacksonProxyBuilder.class)
 public record ToolCallResult(

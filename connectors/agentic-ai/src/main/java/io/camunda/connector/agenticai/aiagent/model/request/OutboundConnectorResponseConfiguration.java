@@ -10,10 +10,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-@NullMarked
 public record OutboundConnectorResponseConfiguration(
     @Valid @NotNull ResponseFormatConfiguration format,
     @TemplateProperty(

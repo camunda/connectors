@@ -14,7 +14,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -34,7 +33,6 @@ import org.jspecify.annotations.Nullable;
  * learn their content type or filename — the tag deliberately omits the metadata block for those to
  * avoid a download just to render a label.
  */
-@NullMarked
 public sealed interface DocumentReferenceXmlTag {
 
   @Nullable String toolCallId();
