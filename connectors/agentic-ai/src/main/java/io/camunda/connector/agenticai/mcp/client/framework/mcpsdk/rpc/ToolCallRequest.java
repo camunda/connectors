@@ -116,6 +116,9 @@ final class ToolCallRequest {
           fromBlob(imageContent.data(), imageContent.mimeType(), imageContent.meta());
       case McpSchema.ResourceLink resourceLink -> mapResourceLink(resourceLink);
       case McpSchema.TextContent textContent -> McpTextContent.textContent(textContent.text());
+      default ->
+          throw new UnsupportedOperationException(
+              "Unsupported content type: " + responseContent.getClass().getSimpleName());
     };
   }
 
@@ -131,6 +134,10 @@ final class ToolCallRequest {
                   blobResource.uri(),
                   blobResource.mimeType(),
                   Base64.getDecoder().decode(blobResource.blob()));
+          default ->
+              throw new UnsupportedOperationException(
+                  "Unsupported resource type: "
+                      + embeddedResource.resource().getClass().getSimpleName());
         };
     return new McpEmbeddedResourceContent(resource, embeddedResource.meta());
   }
@@ -176,7 +183,7 @@ final class ToolCallRequest {
 
     final var arguments = Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
 
-    return McpSchema.CallToolRequest.builder().name(params.name()).arguments(arguments).build();
+    return McpSchema.CallToolRequest.builder(params.name()).arguments(arguments).build();
   }
 
   record ToolExecutionParameters(String name, Map<String, Object> arguments) {}

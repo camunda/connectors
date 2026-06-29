@@ -48,7 +48,8 @@ public class McpSdkClientFactory implements McpClientFactory {
       String clientId, McpClientConfigurationProperties.McpClientConfiguration config) {
     var clientBuilder =
         McpClient.sync(createTransport(config))
-            .clientInfo(new McpSchema.Implementation("Camunda 8 MCP Connector", "1.0.0"))
+            .clientInfo(
+                McpSchema.Implementation.builder("Camunda 8 MCP Connector", "1.0.0").build())
             .capabilities(McpSchema.ClientCapabilities.builder().roots(false).build());
 
     Optional.ofNullable(config.initializationTimeout()).map(clientBuilder::initializationTimeout);
@@ -97,9 +98,10 @@ public class McpSdkClientFactory implements McpClientFactory {
             List.of(
                 ProtocolVersions.MCP_2024_11_05,
                 ProtocolVersions.MCP_2025_03_26,
-                ProtocolVersions.MCP_2025_06_18))
-        .customizeRequest(
-            request -> {
+                ProtocolVersions.MCP_2025_06_18,
+                ProtocolVersions.MCP_2025_11_25))
+        .httpRequestCustomizer(
+            (request, method, uri, protocolVersion, context) -> {
               var headers = headerSupplier.get();
               headers.forEach(request::header);
             })
@@ -114,8 +116,8 @@ public class McpSdkClientFactory implements McpClientFactory {
         .sseEndpoint(sseConfig.url()) // see https://github.com/camunda/connectors/issues/6393
         .customizeClient(proxyConfigurator::configure)
         .connectTimeout(timeout(sseConfig.timeout()))
-        .customizeRequest(
-            request -> {
+        .httpRequestCustomizer(
+            (request, method, uri, protocolVersion, context) -> {
               var headers = headerSuppliers.get();
               headers.forEach(request::header);
             })
