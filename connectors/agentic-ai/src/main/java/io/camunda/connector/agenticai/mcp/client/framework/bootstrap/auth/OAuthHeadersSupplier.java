@@ -65,17 +65,14 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
 
   @Override
   public synchronized Map<String, String> get() {
-    // local copy: NullAway cannot narrow @Nullable field nullability through a null check
-    var current = tokenResponse;
-    if (current == null || current.isExpired(clock)) {
+    if (tokenResponse == null || tokenResponse.isExpired(clock)) {
       LOGGER.debug(
           "Fetching MCP client OAuth token from token endpoint: {}", config.oauthTokenEndpoint());
-      current = fetchOAuthToken();
-      tokenResponse = current;
+      tokenResponse = fetchOAuthToken();
       LOGGER.debug("Successfully fetched MCP client OAuth token");
     }
 
-    return Map.of("Authorization", "Bearer " + current.accessToken());
+    return Map.of("Authorization", "Bearer " + tokenResponse.accessToken());
   }
 
   private TokenResponse fetchOAuthToken() {
