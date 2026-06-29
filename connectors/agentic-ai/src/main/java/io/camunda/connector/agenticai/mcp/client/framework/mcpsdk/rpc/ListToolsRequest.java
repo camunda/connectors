@@ -6,16 +6,12 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinitionBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
-import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.modelcontextprotocol.client.McpSyncClient;
-import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Collections;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,11 +20,9 @@ final class ListToolsRequest {
   private static final Logger LOGGER = LoggerFactory.getLogger(ListToolsRequest.class);
 
   private final String clientId;
-  private final ObjectMapper objectMapper;
 
-  ListToolsRequest(String clientId, ObjectMapper objectMapper) {
+  ListToolsRequest(String clientId) {
     this.clientId = clientId;
-    this.objectMapper = objectMapper;
   }
 
   public McpClientListToolsResult execute(McpSyncClient client, AllowDenyList toolNameFilter) {
@@ -52,7 +46,7 @@ final class ListToolsRequest {
                         .name(tool.name())
                         .title(tool.title())
                         .description(tool.description())
-                        .inputSchema(parseToolParameters(tool.inputSchema()))
+                        .inputSchema(tool.inputSchema())
                         .build())
             .toList();
 
@@ -68,10 +62,5 @@ final class ListToolsRequest {
         filteredToolDefinitions.stream().map(McpToolDefinition::name).toList());
 
     return new McpClientListToolsResult(filteredToolDefinitions);
-  }
-
-  private Map<String, Object> parseToolParameters(McpSchema.JsonSchema inputSchema) {
-    return objectMapper.convertValue(
-        inputSchema, ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
   }
 }
