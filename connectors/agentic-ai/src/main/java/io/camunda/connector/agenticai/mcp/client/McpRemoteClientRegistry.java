@@ -55,7 +55,7 @@ public class McpRemoteClientRegistry implements AutoCloseable {
               LOGGER.info(
                   "MCP({}): Removing cached remote HTTP client (removal cause: {})", key, cause);
               if (key != null && value != null) {
-                this.closeClient(key, value);
+                this.closeClient((McpRemoteClientIdentifier) key, (McpClientDelegate) value);
               }
             })
         .build();
