@@ -113,7 +113,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-client>2.9.0</version.google-api-client>
 
-    <version.google-http-client>2.1.0</version.google-http-client>
+    <version.google-http-client>2.1.1</version.google-http-client>
 
     <version.google-api-services-drive>v3-rev20260624-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
@@ -127,7 +127,7 @@ limitations under the License.</license.inlineheader>
 
     <version.httpcore>4.4.16</version.httpcore>
     <version.httpcore5>5.4.3</version.httpcore5>
-    <version.httpclient5>5.6.1</version.httpclient5>
+    <version.httpclient5>5.6.2</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
     <version.ayza>10.0.5</version.ayza>
     <version.pdfbox>3.0.7</version.pdfbox>
@@ -244,7 +244,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <version>42.7.11</version>
+        <version>42.7.12</version>
       </dependency>
 
       <!-- gRPC BOM - the version has to be equal or greater than the one from the Camunda client -->
