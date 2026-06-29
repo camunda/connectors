@@ -16,11 +16,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
-@NullMarked
 public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection openai)
     implements ProviderConfiguration {
 

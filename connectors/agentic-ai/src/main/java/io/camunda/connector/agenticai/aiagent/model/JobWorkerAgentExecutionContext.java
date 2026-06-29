@@ -13,9 +13,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
-import org.jspecify.annotations.NullMarked;
 
-@NullMarked
 public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   private final JobContext jobContext;
   private final JobWorkerAgentRequest request;
