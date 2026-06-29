@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -166,7 +167,10 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
           "Tool call result content for A2A client tool discovery is not a map.");
     }
 
-    String toolName = new A2aToolCallIdentifier(toolCallResult.name()).fullyQualifiedName();
+    String toolName =
+        new A2aToolCallIdentifier(
+                Objects.requireNonNull(toolCallResult.name(), "Tool call result name is required"))
+            .fullyQualifiedName();
     return ToolDefinition.builder()
         .name(toolName)
         .description(createToolDefinitionDescription(toolCallResult))
@@ -234,7 +238,9 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   private ToolCallResult toolCallResultFromA2aSendMessage(ToolCallResult toolCallResult) {
     final var sendMessageResult =
         objectMapper.convertValue(toolCallResult.content(), A2aSendMessageResult.class);
-    final var identifier = new A2aToolCallIdentifier(toolCallResult.name());
+    final var identifier =
+        new A2aToolCallIdentifier(
+            Objects.requireNonNull(toolCallResult.name(), "Tool call result name is required"));
 
     final var toolCallResultBuilder =
         ToolCallResult.builder().id(toolCallResult.id()).name(identifier.fullyQualifiedName());
