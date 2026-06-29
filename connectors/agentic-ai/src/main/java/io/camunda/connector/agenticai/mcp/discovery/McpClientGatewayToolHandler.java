@@ -35,7 +35,6 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -199,11 +198,12 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
   private String fullyQualifiedToolName(
       ToolCallResult toolCallResult, McpToolDefinition toolDefinition) {
-    final var identifier =
-        new McpToolCallIdentifier(
-            Objects.requireNonNull(toolCallResult.name(), "Tool call result name is required"),
-            toolDefinition.name());
-    return identifier.fullyQualifiedName();
+    final var name = toolCallResult.name();
+    if (name == null) {
+      throw new ConnectorException(
+          ERROR_CODE_MCP_GATEWAY_INVALID_TOOL_DEFINITIONS, "Tool call result is missing name");
+    }
+    return new McpToolCallIdentifier(name, toolDefinition.name()).fullyQualifiedName();
   }
 
   /**
@@ -262,12 +262,14 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   }
 
   private ToolCallResult toolCallResultFromMcpToolCall(ToolCallResult toolCallResult) {
+    final var name = toolCallResult.name();
+    if (name == null) {
+      throw new ConnectorException(
+          ERROR_CODE_MCP_GATEWAY_INVALID_TOOL_DEFINITIONS, "Tool call result is missing name");
+    }
     final var callToolResult =
         objectMapper.convertValue(toolCallResult.content(), McpClientCallToolResult.class);
-    final var identifier =
-        new McpToolCallIdentifier(
-            Objects.requireNonNull(toolCallResult.name(), "Tool call result name is required"),
-            callToolResult.name());
+    final var identifier = new McpToolCallIdentifier(name, callToolResult.name());
 
     final var toolCallResultBuilder =
         ToolCallResult.builder().id(toolCallResult.id()).name(identifier.fullyQualifiedName());
