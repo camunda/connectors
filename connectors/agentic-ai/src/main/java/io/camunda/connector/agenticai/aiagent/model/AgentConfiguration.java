@@ -14,14 +14,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import java.util.Optional;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 /**
  * Static per-invocation configuration. Built once from AgentExecutionContext at the start of each
  * handler invocation; does not change mid-conversation.
  */
-@NullMarked
 public record AgentConfiguration(
     ProviderConfiguration provider,
     SystemPromptConfiguration systemPrompt,

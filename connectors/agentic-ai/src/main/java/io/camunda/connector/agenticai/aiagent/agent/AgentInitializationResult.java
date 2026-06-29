@@ -10,21 +10,17 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
-import org.jspecify.annotations.NullMarked;
 
 public sealed interface AgentInitializationResult {
 
   /** Agent provisioned and tools resolved: proceed to the conversation phase. */
-  @NullMarked
   record ReadyToConverse(AgentContext agentContext, List<ToolCallResult> toolCallResults)
       implements AgentInitializationResult {}
 
   /** Gateway tools require discovery: dispatch these discovery tool calls, then await results. */
-  @NullMarked
   record DiscoverTools(AgentContext agentContext, List<ToolCall> toolDiscoveryToolCalls)
       implements AgentInitializationResult {}
 
   /** Discovery already dispatched; results not all present yet — no-op this turn. */
-  @NullMarked
   record DeferConversation() implements AgentInitializationResult {}
 }
