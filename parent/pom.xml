@@ -114,7 +114,7 @@ limitations under the License.</license.inlineheader>
 
     <version.httpcore>4.4.16</version.httpcore>
     <version.httpcore5>5.4.3</version.httpcore5>
-    <version.httpclient5>5.6.1</version.httpclient5>
+    <version.httpclient5>5.6.2</version.httpclient5>
     <version.pdfbox>3.0.7</version.pdfbox>
     <version.collections4>4.5.0</version.collections4>
 
@@ -200,7 +200,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <version>42.7.11</version>
+        <version>42.7.12</version>
       </dependency>
 
       <dependency>
