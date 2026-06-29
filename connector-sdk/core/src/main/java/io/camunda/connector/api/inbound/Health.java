@@ -188,6 +188,7 @@ public class Health {
    */
   public Health withDetails(Map<String, Object> details) {
     return new Health(this.status, this.error, details, this.lastUpdatedAt);
+
   }
 
   private Health() {
