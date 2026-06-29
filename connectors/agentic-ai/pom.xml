@@ -22,6 +22,8 @@
     <version.groovy>5.0.6</version.groovy>
     <version.gmavenplus-plugin>5.0.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
+    <version.errorprone>2.50.0</version.errorprone>
+    <version.nullaway>0.13.7</version.nullaway>
   </properties>
 
   <licenses>
@@ -276,11 +278,6 @@
     </dependency>
 
     <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>org.jspecify</groupId>
       <artifactId>jspecify</artifactId>
     </dependency>
@@ -374,8 +371,37 @@
               <artifactId>record-builder-processor</artifactId>
               <version>${version.record-builder}</version>
             </path>
+            <path>
+              <groupId>com.uber.nullaway</groupId>
+              <artifactId>nullaway</artifactId>
+              <version>${version.nullaway}</version>
+            </path>
+            <path>
+              <groupId>com.google.errorprone</groupId>
+              <artifactId>error_prone_core</artifactId>
+              <version>${version.errorprone}</version>
+              <classifier>with-dependencies</classifier>
+            </path>
           </annotationProcessorPaths>
         </configuration>
+        <executions>
+          <execution>
+            <id>default-compile</id>
+            <configuration>
+              <compilerArgs>
+                <arg>-XDcompilePolicy=simple</arg>
+                <arg>-XDshould-stop.ifError=FLOW</arg>
+                <arg>-Xplugin:ErrorProne -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:TreatGeneratedAsUnannotated=true</arg>
+              </compilerArgs>
+            </configuration>
+          </execution>
+          <execution>
+            <id>default-testCompile</id>
+            <configuration>
+              <compilerArgs/>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
