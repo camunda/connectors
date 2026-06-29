@@ -123,7 +123,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
           }
         }
       }
-      stepTree = StepTreeWalker.walk(connectorInput);
+      stepTree = walkInputStepTree(connectorInput);
     } else if (OutboundConnectorProvider.class.isAssignableFrom(connectorDefinition)) {
       List<MethodWithAnnotation<Operation>> methods =
           ReflectionUtil.getMethodsAnnotatedWith(connectorDefinition, Operation.class);
@@ -239,6 +239,25 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .build();
             })
         .toList();
+  }
+
+  /**
+   * Produces the operation-metadata step tree for a connector that may declare multiple input data
+   * classes ({@code @ElementTemplate.inputDataClass} is an array). Walks each input class in
+   * declaration order and returns the first non-empty result; only sealed-type/operation connectors
+   * produce a non-empty tree, so for connectors that merge several plain models (e.g. the webhook)
+   * this is empty.
+   */
+  private static StepTreeResult walkInputStepTree(Class<?>[] inputClasses) {
+    for (Class<?> inputClass : inputClasses) {
+      if (inputClass != Void.class) {
+        StepTreeResult result = StepTreeWalker.walk(inputClass);
+        if (!result.isEmpty()) {
+          return result;
+        }
+      }
+    }
+    return StepTreeResult.empty();
   }
 
   private List<PropertyGroup> addServiceProperties(
