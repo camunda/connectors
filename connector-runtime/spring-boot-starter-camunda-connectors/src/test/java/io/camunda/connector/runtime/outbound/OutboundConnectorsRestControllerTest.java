@@ -44,14 +44,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(
     classes = TestConnectorRuntimeApplication.class,
-<<<<<<< reb-alpha-onto-main
     properties = {
       "camunda.connector.hostname=localhost",
       "camunda.connector.broker.monitoring.enabled=false",
     })
-=======
-    properties = "camunda.connector.hostname=localhost")
->>>>>>> alpha/8.10
 @AutoConfigureMockMvc
 class OutboundConnectorsRestControllerTest {
 
