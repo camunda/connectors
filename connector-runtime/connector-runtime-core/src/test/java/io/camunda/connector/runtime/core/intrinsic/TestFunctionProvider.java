@@ -23,7 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import java.nio.charset.Charset;
 import java.util.ServiceLoader;
-import org.jspecify.annotations.Nullable;
+
+import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.Test;
 
 /** Some test operations that show possible serialization and deserialization use cases. */
