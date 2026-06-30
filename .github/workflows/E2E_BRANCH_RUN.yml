@@ -213,14 +213,30 @@ jobs:
             **/target/surefire-reports/*.xml
             **/target/surefire-reports/*-output.txt
 
-  # Post a single Slack message per branch listing all failed test modules.
+  # Post a single Slack message per branch when the build OR the test phase fails.
+  # A build failure skips the test job (result == 'skipped', not 'failure'), so it must
+  # be checked explicitly or the notification is silent on broken builds.
   # Only fires for main and stable branches (not PR runs).
   notify:
     name: Notify
-    needs: test
-    if: always() && needs.test.result == 'failure' && (inputs.branch == 'main' || startsWith(inputs.branch, 'stable/'))
+    needs: [ build, test ]
+    if: |
+      always()
+      && (needs.build.result == 'failure' || needs.test.result == 'failure')
+      && (inputs.branch == 'main' || startsWith(inputs.branch, 'stable/'))
     runs-on: ubuntu-latest
     steps:
+      # Build failure short-circuits the matrix, so there are no per-module failures to list;
+      # tailor the headline to the phase that actually failed.
+      - name: Compose headline
+        id: phase
+        run: |
+          if [ "${{ needs.build.result }}" == "failure" ]; then
+            echo "headline=E2E build failed" >> "$GITHUB_OUTPUT"
+          else
+            echo "headline=E2E tests failed" >> "$GITHUB_OUTPUT"
+          fi
+
       # Reusable workflow sub-jobs appear as "{calling_job} / {sub_job}" in the API.
       # The calling job for this branch is "($BRANCH)", so filter by that prefix.
       - name: Fetch failed modules
@@ -251,5 +267,5 @@ jobs:
           payload: |
             {
               "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
-              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} E2E tests failed on `${{ inputs.branch }}`\n${{ steps.modules.outputs.failed_modules }}\nCheck: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} ${{ steps.phase.outputs.headline }} on `${{ inputs.branch }}`\n${{ steps.modules.outputs.failed_modules }}\nCheck: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
