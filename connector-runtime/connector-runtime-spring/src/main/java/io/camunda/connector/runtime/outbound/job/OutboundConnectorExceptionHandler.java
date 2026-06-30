@@ -26,6 +26,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.time.Duration;
 import java.util.*;
@@ -37,9 +38,11 @@ public class OutboundConnectorExceptionHandler {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(OutboundConnectorExceptionHandler.class);
   private final SecretProvider secretProvider;
+  private final SecretResolverMode mode;
 
-  public OutboundConnectorExceptionHandler(SecretProvider secretProvider) {
+  public OutboundConnectorExceptionHandler(SecretProvider secretProvider, SecretResolverMode mode) {
     this.secretProvider = secretProvider;
+    this.mode = mode;
   }
 
   private static Map<String, Object> exceptionToMap(Exception wrappedException) {
@@ -72,7 +75,7 @@ public class OutboundConnectorExceptionHandler {
     try {
       secrets =
           this.secretProvider.fetchAll(
-              SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
+              SecretUtil.retrieveSecretKeysInInput(job.getVariables(), mode),
               new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
     } catch (Exception ex) {
       LOGGER.error(
@@ -169,7 +172,7 @@ public class OutboundConnectorExceptionHandler {
   public ConnectorResult.ErrorResult handleFinalResultException(Exception ex, ActivatedJob job) {
     List<String> secrets =
         this.secretProvider.fetchAll(
-            SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
+            SecretUtil.retrieveSecretKeysInInput(job.getVariables(), mode),
             new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
     Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(

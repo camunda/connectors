@@ -33,6 +33,7 @@ import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
@@ -142,7 +143,8 @@ public class OutboundConnectorRuntimeConfiguration {
       ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
       DocumentFactory documentFactory,
-      @OutboundConnectorObjectMapper ObjectMapper objectMapper) {
+      @OutboundConnectorObjectMapper ObjectMapper objectMapper,
+      SecretResolverMode secretResolverMode) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -151,6 +153,7 @@ public class OutboundConnectorRuntimeConfiguration {
         validationProvider,
         documentFactory,
         objectMapper,
-        metricsRecorder);
+        metricsRecorder,
+        secretResolverMode);
   }
 }

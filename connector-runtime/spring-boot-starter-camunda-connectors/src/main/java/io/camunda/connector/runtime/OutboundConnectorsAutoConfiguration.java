@@ -20,11 +20,13 @@ import io.camunda.client.jobhandling.CamundaClientExecutorService;
 import io.camunda.client.metrics.MeteredCamundaClientExecutorService;
 import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.configuration.ExecutorServiceConfiguration;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -37,6 +39,15 @@ import org.springframework.context.annotation.Import;
 @AutoConfigureBefore({CamundaAutoConfiguration.class, ExecutorServiceConfiguration.class})
 @Import({OutboundConnectorRuntimeConfiguration.class, InstanceForwardingConfiguration.class})
 public class OutboundConnectorsAutoConfiguration {
+
+  @Bean
+  @ConditionalOnMissingBean(SecretResolverMode.class)
+  public SecretResolverMode secretResolverMode(
+      ObjectProvider<ConnectorProperties> connectorProperties) {
+    var props = connectorProperties.getIfAvailable();
+    var secrets = props != null ? props.secrets() : null;
+    return secrets != null ? secrets.resolverMode() : SecretResolverMode.ALL;
+  }
 
   @Bean(name = {"connectorCamundaClientExecutorService", "camundaClientExecutorService"})
   @ConditionalOnMissingBean

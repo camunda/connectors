@@ -61,6 +61,7 @@ import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.secret.SecretResolverMode;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -126,7 +127,8 @@ class SpringConnectorJobHandlerTest {
         new DefaultValidationProvider(),
         mock(DocumentFactory.class),
         TestObjectMapperSupplier.INSTANCE,
-        call);
+        call,
+        SecretResolverMode.ALL);
   }
 
   private SpringConnectorJobHandler newConnectorJobHandler(
@@ -140,7 +142,8 @@ class SpringConnectorJobHandlerTest {
         new DefaultValidationProvider(),
         mock(DocumentFactory.class),
         TestObjectMapperSupplier.INSTANCE,
-        call);
+        call,
+        SecretResolverMode.ALL);
   }
 
   @Nested
