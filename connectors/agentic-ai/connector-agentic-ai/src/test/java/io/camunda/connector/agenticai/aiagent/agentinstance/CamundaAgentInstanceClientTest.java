@@ -522,7 +522,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Map.of());
+          Optional.empty());
 
       // then
       verify(historyCommand).elementInstanceKey(ELEMENT_INSTANCE_KEY);
@@ -570,23 +570,30 @@ class CamundaAgentInstanceClientTest {
               null,
               AgentMetrics.empty());
 
-      // and: the originating tool calls keyed by id. Result "a" matches a call carrying arguments;
-      // result "b" has no matching entry, so its arguments fall back to empty.
-      final var toolCallsById =
-          Map.of(
-              "a",
-              ToolCall.builder()
-                  .id("a")
-                  .name("getWeather")
-                  .arguments(Map.of("city", "Berlin"))
-                  .build());
+      // and: the previous turn whose assistant message requested both tools. Call "a" carries
+      // arguments; call "b" has none, so result "b" yields empty arguments.
+      final var previousTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder()
+                  .toolCalls(
+                      List.of(
+                          ToolCall.builder()
+                              .id("a")
+                              .name("getWeather")
+                              .arguments(Map.of("city", "Berlin"))
+                              .build(),
+                          ToolCall.builder().id("b").name("getTime").build()))
+                  .build(),
+              AgentMetrics.empty());
 
       // when
       client.createHistoryForInputMessages(
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          toolCallsById);
+          Optional.of(previousTurn));
 
       // then: one TOOL_RESULT item per result, each with a single-entry toolCalls array correlating
       // it to the originating tool call. The first result carries its content block; the second has
@@ -628,6 +635,40 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
+    void shouldThrowWhenToolResultHasNoOriginatingToolCall() {
+      // a tool result with a (non-null) id that does not correlate to any tool call in the previous
+      // turn is an invariant violation and must fail rather than silently emit empty arguments
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(
+                  ToolCallResultMessage.builder()
+                      .results(
+                          List.of(
+                              ToolCallResult.builder()
+                                  .id("orphan")
+                                  .name("getWeather")
+                                  .elementId("getWeather")
+                                  .content("sunny")
+                                  .build()))
+                      .build()),
+              null,
+              AgentMetrics.empty());
+
+      // when / then: no matching originating tool call in the previous turn
+      assertThatThrownBy(
+              () ->
+                  client.createHistoryForInputMessages(
+                      TestAgentExecutionContext.withLimits(),
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      turn,
+                      Optional.empty()))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("No originating tool call found")
+          .hasMessageContaining("orphan");
+    }
+
+    @Test
     void shouldDefaultNullToolResultIdAndNameToEmptyStrings() {
       givenHistoryCommand();
 
@@ -653,7 +694,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Map.of());
+          Optional.empty());
 
       final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
           ArgumentCaptor.forClass(List.class);
@@ -690,7 +731,7 @@ class CamundaAgentInstanceClientTest {
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn,
-                      Map.of()))
+                      Optional.empty()))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("Cannot resolve element id");
     }
@@ -715,7 +756,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Map.of());
+          Optional.empty());
 
       // then
       verify(historyCommand).content(contentCaptor.capture());
@@ -870,7 +911,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Map.of());
+          Optional.empty());
 
       // then: document reference is built via the client library without throwing
       verify(historyCommand).content(contentCaptor.capture());
@@ -903,7 +944,7 @@ class CamundaAgentInstanceClientTest {
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn,
-                      Map.of()))
+                      Optional.empty()))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("Unsupported document reference type");
     }
@@ -933,7 +974,7 @@ class CamundaAgentInstanceClientTest {
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn,
-                      Map.of()))
+                      Optional.empty()))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("External document reference requires both url and name");
     }
@@ -980,7 +1021,7 @@ class CamundaAgentInstanceClientTest {
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn,
-                      Map.of()))
+                      Optional.empty()))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e ->
@@ -1000,7 +1041,7 @@ class CamundaAgentInstanceClientTest {
               AgentMetrics.empty());
 
       client.createHistoryForInputMessages(
-          TestAgentExecutionContext.withLimits(), null, turn, Map.of());
+          TestAgentExecutionContext.withLimits(), null, turn, Optional.empty());
 
       verifyNoInteractions(historyCommand);
       verify(camundaClient, never()).newCreateAgentHistoryItemCommand(anyLong());

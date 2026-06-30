@@ -13,13 +13,9 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -185,22 +181,6 @@ public final class AgentConversation {
    */
   public Optional<AgentConversationTurn> previousTurn() {
     return previousTurns.isEmpty() ? Optional.empty() : Optional.of(previousTurns.getLast());
-  }
-
-  /**
-   * Returns the tool calls of the {@link #previousTurn() previous turn}'s assistant message, keyed
-   * by tool-call id. A tool-call result in the current turn originates from one of these, so this
-   * lookup is used by agent-instance history mapping to attach the originating arguments to each
-   * tool-result history item.
-   *
-   * <p>Returns an empty map when there is no previous turn, it is still pending / carries no
-   * assistant message, or the assistant message has no tool calls. Tool calls with a {@code null}
-   * id (e.g. event results) are skipped, so unmatched results fall back to empty arguments.
-   */
-  public Map<String, ToolCall> previousTurnToolCallsById() {
-    return previousTurn().map(AgentConversationTurn::toolCalls).orElse(List.of()).stream()
-        .filter(toolCall -> toolCall.id() != null)
-        .collect(Collectors.toMap(ToolCall::id, Function.identity(), (a, b) -> a));
   }
 
   private List<AgentConversationTurn> allCompletedTurns() {

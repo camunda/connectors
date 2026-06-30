@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED;
+import static java.util.Objects.requireNonNullElse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,6 +39,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
@@ -90,12 +92,6 @@ public class AgentInstanceHistoryMapper {
       ToolCallResult result, Map<String, ToolCall> toolCallsById) {
     // tool-call result id/name are nullable on the model (and partial/malformed results may omit
     // them); default to empty strings, which the client model accepts
-    final ToolCall originatingToolCall =
-        result.id() != null ? toolCallsById.get(result.id()) : null;
-    final Map<String, Object> arguments =
-        originatingToolCall != null && originatingToolCall.arguments() != null
-            ? originatingToolCall.arguments()
-            : Map.of();
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
         toolResultContent(result.content()),
@@ -104,7 +100,27 @@ public class AgentInstanceHistoryMapper {
                 .toolCallId(StringUtils.defaultString(result.id()))
                 .toolName(StringUtils.defaultString(result.name()))
                 .elementId(elementIdFor(result.elementId(), result.name()))
-                .arguments(arguments)));
+                .arguments(argumentsForResult(result, toolCallsById))));
+  }
+
+  /**
+   * Resolves the originating request arguments for a tool-call result. Event results (no id) have
+   * no originating tool call and carry empty arguments; a result with an id is expected to
+   * correlate to a tool call in the previous turn, so a missing correlation is treated as an
+   * invariant violation.
+   */
+  private Map<String, Object> argumentsForResult(
+      ToolCallResult result, Map<String, ToolCall> toolCallsById) {
+    if (result.id() == null) {
+      return Map.of();
+    }
+    return Optional.ofNullable(toolCallsById.get(result.id()))
+        .map(toolCall -> requireNonNullElse(toolCall.arguments(), Map.<String, Object>of()))
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "No originating tool call found for tool call result with id '%s'"
+                        .formatted(result.id())));
   }
 
   public List<AgentInstanceHistoryContent> assistantContent(AssistantMessage assistantMessage) {

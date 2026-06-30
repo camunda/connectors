@@ -150,7 +150,7 @@ public abstract class BaseAgentRequestHandler<
         executionContext,
         agentInstanceKey,
         conversation.currentTurn(),
-        conversation.previousTurnToolCallsById());
+        conversation.previousTurn());
 
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =

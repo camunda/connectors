@@ -1541,10 +1541,11 @@ call (`POST /v2/agent-instances/{key}/history` via `newCreateAgentHistoryItemCom
   item per result**, each with that result's content block(s) and a single-entry `toolCalls` array
   `{toolCallId: result.id(), toolName: result.name(), elementId, arguments}` correlating it back to
   the originating tool call. The `arguments` are the originating request arguments, looked up by
-  tool-call id from the previous turn's assistant message via
-  `AgentConversation.previousTurnToolCallsById()` (so each `TOOL_RESULT` item is self-contained for
-  the paginated history API and need not be joined back to the `ASSISTANT` item); they fall back to
-  `{}` for events (`id == null`), unmatched ids, or calls without arguments.
+  tool-call id from the previous turn's assistant tool calls
+  (`AgentConversation.previousTurn()` → `AgentConversationTurn.toolCallsById()`), so each
+  `TOOL_RESULT` item is self-contained for the paginated history API and need not be joined back to
+  the `ASSISTANT` item. Event results (`id == null`) have no originating call and carry `{}`; a
+  result with a non-null id and no matching tool call is an invariant violation and fails the turn.
 - **After the chat request** — `createHistoryForAssistantMessage(turn)` emits one `ASSISTANT` item with
   the assistant text, the assistant's `toolCalls`, and per-call `metrics` (input/output tokens +
   `durationMs`, measured via `AiFrameworkAdapter.executeMeasuringTime` and carried on the turn's
