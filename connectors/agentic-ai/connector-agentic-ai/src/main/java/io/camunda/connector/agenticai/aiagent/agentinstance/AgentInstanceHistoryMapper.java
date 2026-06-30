@@ -68,14 +68,17 @@ public class AgentInstanceHistoryMapper {
       List<AgentInstanceHistoryContent> content,
       @Nullable List<AgentInstanceHistoryToolCall> toolCalls) {}
 
-  public List<InputHistoryItem> inputHistoryItems(Message message) {
+  public List<InputHistoryItem> inputHistoryItems(
+      Message message, Map<String, ToolCall> toolCallsById) {
     return switch (message) {
       case UserMessage userMessage ->
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER, contentBlocks(userMessage.content()), null));
       case ToolCallResultMessage toolCallResultMessage ->
-          toolCallResultMessage.results().stream().map(this::toolResultHistoryItem).toList();
+          toolCallResultMessage.results().stream()
+              .map(result -> toolResultHistoryItem(result, toolCallsById))
+              .toList();
       default ->
           throw new IllegalArgumentException(
               "Unsupported input message type for history item: "
@@ -83,9 +86,16 @@ public class AgentInstanceHistoryMapper {
     };
   }
 
-  private InputHistoryItem toolResultHistoryItem(ToolCallResult result) {
+  private InputHistoryItem toolResultHistoryItem(
+      ToolCallResult result, Map<String, ToolCall> toolCallsById) {
     // tool-call result id/name are nullable on the model (and partial/malformed results may omit
     // them); default to empty strings, which the client model accepts
+    final ToolCall originatingToolCall =
+        result.id() != null ? toolCallsById.get(result.id()) : null;
+    final Map<String, Object> arguments =
+        originatingToolCall != null && originatingToolCall.arguments() != null
+            ? originatingToolCall.arguments()
+            : Map.of();
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
         toolResultContent(result.content()),
@@ -94,7 +104,7 @@ public class AgentInstanceHistoryMapper {
                 .toolCallId(StringUtils.defaultString(result.id()))
                 .toolName(StringUtils.defaultString(result.name()))
                 .elementId(elementIdFor(result.elementId(), result.name()))
-                .arguments(Map.of())));
+                .arguments(arguments)));
   }
 
   public List<AgentInstanceHistoryContent> assistantContent(AssistantMessage assistantMessage) {

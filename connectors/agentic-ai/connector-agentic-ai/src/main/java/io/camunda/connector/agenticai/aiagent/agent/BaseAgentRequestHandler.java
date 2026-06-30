@@ -147,7 +147,10 @@ public abstract class BaseAgentRequestHandler<
 
     final var agentInstanceKey = conversation.agentInstanceKey();
     agentInstanceClient.createHistoryForInputMessages(
-        executionContext, agentInstanceKey, conversation.currentTurn());
+        executionContext,
+        agentInstanceKey,
+        conversation.currentTurn(),
+        conversation.previousTurnToolCallsById());
 
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =

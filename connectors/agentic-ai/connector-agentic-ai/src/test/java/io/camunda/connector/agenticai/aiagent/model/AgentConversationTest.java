@@ -148,4 +148,35 @@ class AgentConversationTest {
     assertThat(conv.turns()).allSatisfy(t -> assertThat(t.metrics().modelCalls()).isZero());
     assertThat(conv.totalMetrics().modelCalls()).isEqualTo(9);
   }
+
+  @Test
+  void previousTurn_emptyWhenNoHistory() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+    assertThat(conv.previousTurn()).isEmpty();
+    assertThat(conv.previousTurnToolCallsById()).isEmpty();
+  }
+
+  @Test
+  void previousTurnToolCallsById_keysOriginatingToolCallsOfPrecedingTurn() {
+    // the preceding turn's assistant message requested the tools; the pending current turn carries
+    // the results
+    var conv =
+        rehydrate(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)),
+            List.of(toolCallResultMessage(TOOL_CALL_RESULTS)));
+
+    assertThat(conv.previousTurn()).isPresent();
+    var toolCallsById = conv.previousTurnToolCallsById();
+    assertThat(toolCallsById).containsOnlyKeys("abcdef", "fedcba");
+    assertThat(toolCallsById.get("abcdef").arguments()).containsEntry("location", "MUC");
+  }
+
+  @Test
+  void previousTurnToolCallsById_emptyWhenPrecedingTurnHasNoToolCalls() {
+    var conv =
+        rehydrate(
+            List.of(userMessage("hi"), assistantMessage("done")), List.of(userMessage("next")));
+    assertThat(conv.previousTurn()).isPresent();
+    assertThat(conv.previousTurnToolCallsById()).isEmpty();
+  }
 }
