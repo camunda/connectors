@@ -43,9 +43,9 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Maps agentic-ai conversation messages ({@link Message}/{@link AssistantMessage}) into the Camunda
- * client agent-instance history item components ({@code AgentHistory*}). Pure transformation logic:
- * no API calls, retries or logging — those remain the responsibility of {@link
- * CamundaAgentInstanceClient}.
+ * client agent-instance history item components ({@code AgentInstanceHistory*}). Pure
+ * transformation logic: no API calls, retries or logging — those remain the responsibility of
+ * {@link CamundaAgentInstanceClient}.
  */
 public class AgentInstanceHistoryMapper {
 
