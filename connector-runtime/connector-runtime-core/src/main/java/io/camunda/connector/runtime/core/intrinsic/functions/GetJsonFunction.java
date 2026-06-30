@@ -21,12 +21,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunction;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionProvider;
+import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.util.Map;
 import org.camunda.feel.FeelEngine;
 import org.camunda.feel.FeelEngine.Failure;
 import org.camunda.feel.impl.JavaValueMapper;
-import org.jspecify.annotations.Nullable;
 import scala.util.Either;
 
 public class GetJsonFunction implements IntrinsicFunctionProvider {

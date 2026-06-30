@@ -21,10 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
+import jakarta.annotation.Nullable;
 import java.nio.charset.Charset;
 import java.util.ServiceLoader;
-
-import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.Test;
 
 /** Some test operations that show possible serialization and deserialization use cases. */

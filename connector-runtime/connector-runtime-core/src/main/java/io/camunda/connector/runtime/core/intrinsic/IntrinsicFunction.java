@@ -27,7 +27,7 @@ import java.lang.annotation.Target;
  * parameters in the method signature must match the order of parameters in the operation payload.
  *
  * <p>By default, all arguments are required. If an argument is nullable, it must be annotated with
- * {@link org.jspecify.annotations.Nullable}.
+ * {@link jakarta.annotation.Nullable}.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
