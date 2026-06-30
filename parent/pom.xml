@@ -100,7 +100,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.37</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.46.17</version.aws-sdk2>
+    <version.aws-sdk2>2.46.18</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -186,7 +186,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.7.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.8.0</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
 
     <plugin.version.maven-dependency-plugin>3.11.0</plugin.version.maven-dependency-plugin>
