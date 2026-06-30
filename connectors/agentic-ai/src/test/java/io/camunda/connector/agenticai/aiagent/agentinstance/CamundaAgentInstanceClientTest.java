@@ -23,18 +23,18 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.AgentInstanceHistoryContent;
+import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
+import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.client.api.command.ClientHttpException;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryContent;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryMetrics;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryRole;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryToolCall;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep5;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.AgentTool;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
+import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.impl.command.CreateAgentHistoryItemCommandImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -500,7 +500,7 @@ class CamundaAgentInstanceClientTest {
   @Nested
   class HistoryItems {
 
-    @Captor private ArgumentCaptor<List<AgentHistoryContent>> contentCaptor;
+    @Captor private ArgumentCaptor<List<AgentInstanceHistoryContent>> contentCaptor;
 
     @Test
     void shouldCreateUserHistoryItemBeforeChat() {
@@ -524,7 +524,7 @@ class CamundaAgentInstanceClientTest {
       // then
       verify(historyCommand).elementInstanceKey(ELEMENT_INSTANCE_KEY);
       verify(historyCommand).jobKey(JOB_KEY);
-      verify(historyCommand).role(AgentHistoryRole.USER);
+      verify(historyCommand).role(AgentInstanceHistoryRole.USER);
       verify(historyCommand).iteration(3);
       verify(historyCommand).producedAt(any());
       verify(historyCommand).content(contentCaptor.capture());
@@ -535,7 +535,7 @@ class CamundaAgentInstanceClientTest {
       assertThat(contentCaptor.getValue())
           .singleElement()
           .isInstanceOfSatisfying(
-              AgentHistoryContent.TextContent.class,
+              AgentInstanceHistoryContent.TextContent.class,
               text -> assertThat(text.getText()).isEqualTo("Hello there"));
     }
 
@@ -574,7 +574,7 @@ class CamundaAgentInstanceClientTest {
       // then: one TOOL_RESULT item per result, each with a single-entry toolCalls array correlating
       // it to the originating tool call. The first result carries its content block; the second has
       // no content, yielding an empty (now valid) content list rather than a placeholder block.
-      verify(historyCommand, times(2)).role(AgentHistoryRole.TOOL_RESULT);
+      verify(historyCommand, times(2)).role(AgentInstanceHistoryRole.TOOL_RESULT);
       verify(historyCommand, times(2)).iteration(1);
       verify(historyCommand, times(2)).execute();
 
@@ -582,11 +582,11 @@ class CamundaAgentInstanceClientTest {
       final var contents = contentCaptor.getAllValues();
       assertThat(contents).hasSize(2);
       assertThat(contents.get(0)).singleElement();
-      assertThat(((AgentHistoryContent.TextContent) contents.get(0).get(0)).getText())
+      assertThat(((AgentInstanceHistoryContent.TextContent) contents.get(0).get(0)).getText())
           .isEqualTo("sunny");
       assertThat(contents.get(1)).isEmpty();
 
-      final ArgumentCaptor<List<AgentHistoryToolCall>> toolCallsCaptor =
+      final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
           ArgumentCaptor.forClass(List.class);
       verify(historyCommand, times(2)).toolCalls(toolCallsCaptor.capture());
       final var toolCalls = toolCallsCaptor.getAllValues();
@@ -635,7 +635,7 @@ class CamundaAgentInstanceClientTest {
       client.createHistoryForInputMessages(
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
-      final ArgumentCaptor<List<AgentHistoryToolCall>> toolCallsCaptor =
+      final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
           ArgumentCaptor.forClass(List.class);
       verify(historyCommand).toolCalls(toolCallsCaptor.capture());
       assertThat(toolCallsCaptor.getValue())
@@ -697,7 +697,7 @@ class CamundaAgentInstanceClientTest {
       assertThat(contentCaptor.getValue())
           .singleElement()
           .isInstanceOfSatisfying(
-              AgentHistoryContent.ObjectContent.class,
+              AgentInstanceHistoryContent.ObjectContent.class,
               object -> assertThat(object.getObject()).containsEntry("key", "value"));
     }
 
@@ -725,10 +725,10 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
       // then
-      verify(historyCommand).role(AgentHistoryRole.ASSISTANT);
+      verify(historyCommand).role(AgentInstanceHistoryRole.ASSISTANT);
       verify(historyCommand).iteration(2);
 
-      final ArgumentCaptor<List<AgentHistoryToolCall>> toolCallsCaptor =
+      final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
           ArgumentCaptor.forClass(List.class);
       verify(historyCommand).toolCalls(toolCallsCaptor.capture());
       assertThat(toolCallsCaptor.getValue())
@@ -741,8 +741,8 @@ class CamundaAgentInstanceClientTest {
                 assertThat(tc.getElementId()).isEqualTo("getWeather");
               });
 
-      final ArgumentCaptor<AgentHistoryMetrics> metricsCaptor =
-          ArgumentCaptor.forClass(AgentHistoryMetrics.class);
+      final ArgumentCaptor<AgentInstanceHistoryMetrics> metricsCaptor =
+          ArgumentCaptor.forClass(AgentInstanceHistoryMetrics.class);
       verify(historyCommand).metrics(metricsCaptor.capture());
       assertThat(metricsCaptor.getValue().getInputTokens()).isEqualTo(11L);
       assertThat(metricsCaptor.getValue().getOutputTokens()).isEqualTo(22L);
@@ -780,7 +780,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
 
       // then
-      final ArgumentCaptor<List<AgentHistoryToolCall>> toolCallsCaptor =
+      final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
           ArgumentCaptor.forClass(List.class);
       verify(historyCommand).toolCalls(toolCallsCaptor.capture());
       assertThat(toolCallsCaptor.getValue())
@@ -849,7 +849,7 @@ class CamundaAgentInstanceClientTest {
       assertThat(contentCaptor.getValue())
           .singleElement()
           .isInstanceOfSatisfying(
-              AgentHistoryContent.DocumentContent.class,
+              AgentInstanceHistoryContent.DocumentContent.class,
               doc -> assertThat(doc.getDocumentReference().getDocumentId()).isEqualTo("doc-1"));
     }
 
