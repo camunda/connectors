@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.Min;
+import org.jspecify.annotations.Nullable;
 
 public record LimitsConfiguration(
     // TODO think of other limits (max tool calls, max tokens, ...)
@@ -20,4 +21,4 @@ public record LimitsConfiguration(
             defaultValue = "10",
             defaultValueType = TemplateProperty.DefaultValueType.Number)
         @Min(1)
-        Integer maxModelCalls) {}
+        @Nullable Integer maxModelCalls) {}

@@ -24,26 +24,34 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorE
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
+import io.camunda.connector.inbound.model.DynamicWebhookProperties.DynamicWebhookPropertiesWrapper;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
-import jakarta.annotation.Nullable;
 import java.util.Map;
-import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@InboundConnector(name = "Webhook", type = "io.camunda:webhook:1")
+@InboundConnector(
+    name = "Webhook",
+    type = "io.camunda:webhook:1",
+    // Deduplicate on the connector-scoped properties only; the element-scoped response expressions
+    // (DynamicWebhookProperties) are intentionally excluded so elements differing only in their
+    // response still deduplicate into a single executable.
+    deduplicationClasses = {WebhookConnectorPropertiesWrapper.class})
 @ElementTemplate(
     engineVersion = "^8.3",
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 14,
-    inputDataClass = WebhookConnectorPropertiesWrapper.class,
+    version = 15,
+    inputDataClass = {
+      WebhookConnectorPropertiesWrapper.class,
+      DynamicWebhookPropertiesWrapper.class
+    },
     description = "Configure webhook to receive callbacks",
     keywords = {
       "receive webhook",
@@ -101,7 +109,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private WebhookConnectorProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
   private InboundConnectorContext context;
-  private Function<WebhookResultContext, WebhookHttpResponse> responseExpression;
   private HMACVerifier hmacVerifier;
 
   @Override
@@ -110,7 +117,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
-    responseExpression = mapResponseExpression();
     hmacVerifier =
         new HMACVerifier(
             props.hmacScopes(), props.hmacHeader(), props.hmacSecret(), props.hmacAlgorithm());
@@ -130,7 +136,31 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     }
 
     var mappedRequest = mapRequest(payload);
-    return new WebhookProcessingResultImpl(mappedRequest, responseExpression, null);
+    // The response is resolved per request from the element that actually matched (element-scoped),
+    // via the function below. The runtime evaluates it after correlation, so webhook elements
+    // deduplicated into one executable each produce their own response.
+    return new WebhookProcessingResultImpl(
+        mappedRequest, HttpWebhookExecutable::resolveResponse, null);
+  }
+
+  @SuppressWarnings("deprecation") // intentionally honors the legacy responseBodyExpression
+  private static WebhookHttpResponse resolveResponse(WebhookResultContext result) {
+    if (result.correlation() == null) {
+      return null;
+    }
+    var expressions =
+        result.correlation().bindProperties(DynamicWebhookPropertiesWrapper.class).inbound();
+    if (expressions == null) {
+      return null;
+    }
+    if (expressions.responseExpression() != null) {
+      return expressions.responseExpression().apply(result);
+    }
+    if (expressions.responseBodyExpression() != null) {
+      // Backwards compatibility: wrap the legacy body-only expression into a full response.
+      return WebhookHttpResponse.ok(expressions.responseBodyExpression().apply(result));
+    }
+    return null;
   }
 
   private void validateHttpMethod(WebhookProcessingPayload payload) {
@@ -146,24 +176,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
             payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
         payload.headers(),
         payload.params());
-  }
-
-  @Nullable
-  private Function<WebhookResultContext, WebhookHttpResponse> mapResponseExpression() {
-    Function<WebhookResultContext, WebhookHttpResponse> responseExpression = null;
-    if (props.responseExpression() != null) {
-      responseExpression = props.responseExpression();
-    } else if (props.responseBodyExpression() != null) {
-      // To be backwards compatible we need to wrap the responseBodyExpression into a
-      // responseExpression
-      // and only use the body in the final response
-      responseExpression =
-          (context) -> {
-            Object responseBody = props.responseBodyExpression().apply(context);
-            return WebhookHttpResponse.ok(responseBody);
-          };
-    }
-    return responseExpression;
   }
 
   private void verifyHmac(WebhookProcessingPayload payload) {

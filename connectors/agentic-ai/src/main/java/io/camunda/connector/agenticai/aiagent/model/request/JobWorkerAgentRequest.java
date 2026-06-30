@@ -19,6 +19,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 public record JobWorkerAgentRequest(
     @JsonProperty("adHocSubProcessElements") List<AdHocToolElement> toolElements,
@@ -46,8 +47,8 @@ public record JobWorkerAgentRequest(
   public record JobWorkerAgentRequestData(
       @Valid @NotNull SystemPromptConfiguration systemPrompt,
       @Valid @NotNull UserPromptConfiguration userPrompt,
-      @Valid MemoryConfiguration memory,
-      @Valid LimitsConfiguration limits,
-      @Valid EventHandlingConfiguration events,
+      @Valid @Nullable MemoryConfiguration memory,
+      @Valid @Nullable LimitsConfiguration limits,
+      @Valid @Nullable EventHandlingConfiguration events,
       @Valid JobWorkerResponseConfiguration response) {}
 }

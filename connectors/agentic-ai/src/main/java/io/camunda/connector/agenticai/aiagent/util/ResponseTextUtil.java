@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.util;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Utility class for cleaning and preparing response text from AI models before JSON parsing.
  *
@@ -47,7 +49,7 @@ public final class ResponseTextUtil {
    * @return the response with markdown code blocks stripped, or the original response if no code
    *     blocks are found
    */
-  public static String stripMarkdownCodeBlocks(String response) {
+  public static @Nullable String stripMarkdownCodeBlocks(@Nullable String response) {
     if (response == null) {
       return null;
     }

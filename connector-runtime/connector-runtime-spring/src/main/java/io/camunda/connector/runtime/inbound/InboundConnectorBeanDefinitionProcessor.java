@@ -20,11 +20,11 @@ import static org.springframework.beans.factory.config.BeanDefinition.*;
 
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +92,8 @@ public class InboundConnectorBeanDefinitionProcessor
       InboundConnector inboundConnector, String beanName, BeanFactory beanFactory) {
     final var configurationOverrides =
         new ConnectorConfigurationOverrides(inboundConnector.name(), environment::getProperty);
-    var deduplicationProperties = Arrays.asList(inboundConnector.deduplicationProperties());
+    var deduplicationProperties =
+        ConnectorConfigurationUtil.resolveDeduplicationScope(inboundConnector);
 
     var configuration =
         new InboundConnectorConfiguration(

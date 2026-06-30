@@ -202,11 +202,16 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
       model.put("exampleData", exampleDataModels);
     }
 
-    // Extract properties from element template metadata
-    var connectorInput = elementTemplate.inputDataClass();
+    // Extract properties from element template metadata (merged across all input data classes)
     var propertyBuilders =
-        TemplatePropertiesUtil.extractTemplatePropertiesFromType(
-            connectorInput, templateGenerationContext);
+        java.util.Arrays.stream(elementTemplate.inputDataClass())
+            .filter(inputClass -> inputClass != Void.class)
+            .flatMap(
+                inputClass ->
+                    TemplatePropertiesUtil.extractTemplatePropertiesFromType(
+                        inputClass, templateGenerationContext)
+                        .stream())
+            .toList();
 
     // Map to docs compatible property representation
     Map<String, DocsProperty> properties =

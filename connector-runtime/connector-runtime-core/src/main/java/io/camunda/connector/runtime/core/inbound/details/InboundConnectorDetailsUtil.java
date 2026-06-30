@@ -32,7 +32,9 @@ import org.apache.commons.collections4.CollectionUtils;
 public class InboundConnectorDetailsUtil {
 
   static InboundConnectorDetails create(
-      String deduplicationId, List<InboundConnectorElement> groupedElements) {
+      String deduplicationId,
+      List<InboundConnectorElement> groupedElements,
+      List<String> deduplicationProperties) {
     if (CollectionUtils.isEmpty(groupedElements)) {
       throw new IllegalArgumentException("At least one element must be provided");
     }
@@ -41,7 +43,7 @@ public class InboundConnectorDetailsUtil {
           extractType(groupedElements),
           extractTenantId(groupedElements),
           deduplicationId,
-          extractRawProperties(groupedElements),
+          extractRawProperties(groupedElements, deduplicationProperties),
           groupedElements,
           extractProcessDefinitionId(groupedElements));
     } catch (Exception e) {
@@ -86,11 +88,14 @@ public class InboundConnectorDetailsUtil {
     return elements.getFirst().element().tenantId();
   }
 
-  private static Map<String, String> extractRawProperties(List<InboundConnectorElement> elements) {
+  private static Map<String, String> extractRawProperties(
+      List<InboundConnectorElement> elements, List<String> deduplicationProperties) {
 
     var distinctPropertySets =
         elements.stream()
-            .collect(Collectors.groupingBy(InboundConnectorElement::propertiesForDeduplication));
+            .collect(
+                Collectors.groupingBy(
+                    element -> element.propertiesForDeduplication(deduplicationProperties)));
     if (distinctPropertySets.size() > 1) {
       Set<String> divergingProperties = getDivergingProperties(distinctPropertySets);
 

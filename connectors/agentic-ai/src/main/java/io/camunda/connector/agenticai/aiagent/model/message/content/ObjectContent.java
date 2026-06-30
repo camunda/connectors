@@ -9,10 +9,12 @@ package io.camunda.connector.agenticai.aiagent.model.message.content;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ObjectContent(
-    Object content, @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
+    Object content,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements Content {
   public ObjectContent {
     if (content == null) {

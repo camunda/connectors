@@ -33,10 +33,16 @@ public @interface ElementTemplate {
   String name();
 
   /**
-   * Reference to the connector input data class. Element template is generated based on the
-   * properties of this class.
+   * References to the connector input data classes. The element template is generated from the
+   * properties of these classes, merged in declaration order. A single class may be supplied
+   * without braces ({@code inputDataClass = Foo.class}).
+   *
+   * <p>Multiple classes let a connector compose its template model from several sources (for
+   * example, a connector-scoped class plus an element-scoped class). This is purely a
+   * template-generation concern: runtime semantics such as the deduplication scope are declared
+   * separately on {@code @InboundConnector} ({@code deduplicationClasses}).
    */
-  Class<?> inputDataClass() default Void.class;
+  Class<?>[] inputDataClass() default {};
 
   Class<?> outputDataClass() default Void.class;
 

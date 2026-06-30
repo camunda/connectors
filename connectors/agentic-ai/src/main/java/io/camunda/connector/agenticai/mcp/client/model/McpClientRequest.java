@@ -14,7 +14,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public record McpClientRequest(@Valid @NotNull McpClientRequestData data) {
   public record McpClientRequestData(

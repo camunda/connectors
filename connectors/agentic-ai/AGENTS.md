@@ -190,6 +190,15 @@ listed, reason from the principle (does correctness depend on the engine and BPM
     - prompt composition, schema generation, content/tool conversion
     - response formatting, error messages, pure transformations
 
+### Null safety
+
+All production code is `@NullMarked` via per-package `package-info.java`: every reference type is non-null by default.
+
+- Add `@Nullable` (from `org.jspecify.annotations`) on fields, parameters, and return types that may be absent.
+- Fix null-safety errors by handling the null. Never suppress them.
+- `@NullUnmarked` is a named deferral only. Add a comment explaining why; file a follow-up issue.
+- For third-party APIs without nullability annotations, inspect their source to determine the actual contract.
+
 ### Definition of Done
 
 Before claiming a change is complete:

@@ -12,14 +12,12 @@ import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.jspecify.annotations.NullMarked;
 
 /**
  * Per-invocation input: pre-partitioned from the raw engine data. {@link #toolCallResults} holds
  * results with a non-null ID; {@link #eventMessages} holds results with a null ID (from
  * non-interrupting events).
  */
-@NullMarked
 public final class AgentInput {
 
   private final UserPrompt userPrompt;
@@ -55,8 +53,8 @@ public final class AgentInput {
         new UserPrompt(
             userPrompt.prompt(),
             userPrompt.documents() == null ? List.of() : userPrompt.documents()),
-        partitioned.get(true),
-        partitioned.get(false));
+        partitioned.getOrDefault(true, List.of()),
+        partitioned.getOrDefault(false, List.of()));
   }
 
   public UserPrompt userPrompt() {

@@ -198,8 +198,12 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
   private String fullyQualifiedToolName(
       ToolCallResult toolCallResult, McpToolDefinition toolDefinition) {
-    final var identifier = new McpToolCallIdentifier(toolCallResult.name(), toolDefinition.name());
-    return identifier.fullyQualifiedName();
+    final var name = toolCallResult.name();
+    if (name == null) {
+      throw new ConnectorException(
+          ERROR_CODE_MCP_GATEWAY_INVALID_TOOL_DEFINITIONS, "Tool call result is missing name");
+    }
+    return new McpToolCallIdentifier(name, toolDefinition.name()).fullyQualifiedName();
   }
 
   /**
@@ -258,9 +262,14 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   }
 
   private ToolCallResult toolCallResultFromMcpToolCall(ToolCallResult toolCallResult) {
+    final var name = toolCallResult.name();
+    if (name == null) {
+      throw new ConnectorException(
+          ERROR_CODE_MCP_GATEWAY_INVALID_TOOL_DEFINITIONS, "Tool call result is missing name");
+    }
     final var callToolResult =
         objectMapper.convertValue(toolCallResult.content(), McpClientCallToolResult.class);
-    final var identifier = new McpToolCallIdentifier(toolCallResult.name(), callToolResult.name());
+    final var identifier = new McpToolCallIdentifier(name, callToolResult.name());
 
     final var toolCallResultBuilder =
         ToolCallResult.builder().id(toolCallResult.id()).name(identifier.fullyQualifiedName());

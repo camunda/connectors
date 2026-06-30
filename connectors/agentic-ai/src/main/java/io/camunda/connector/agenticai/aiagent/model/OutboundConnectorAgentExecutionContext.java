@@ -16,10 +16,8 @@ import io.camunda.connector.api.outbound.JobContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-@NullMarked
 public class OutboundConnectorAgentExecutionContext implements AgentExecutionContext {
 
   private final JobContext jobContext;

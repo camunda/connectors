@@ -17,8 +17,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.*;
+import io.camunda.connector.inbound.model.DynamicWebhookProperties;
+import io.camunda.connector.inbound.model.DynamicWebhookProperties.DynamicWebhookPropertiesWrapper;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
@@ -36,6 +40,61 @@ class HttpWebhookExecutableTest {
   @BeforeEach
   void beforeEach() {
     testObject = new HttpWebhookExecutable();
+  }
+
+  private WebhookResult triggerSimpleWebhook() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of("type", "NONE"))))
+            .build();
+    testObject.activate(ctx);
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
+    Mockito.when(payload.rawBody()).thenReturn("{}".getBytes(StandardCharsets.UTF_8));
+    return testObject.triggerWebhook(payload);
+  }
+
+  @Test
+  void response_resolvesResponseExpressionFromActivatedElement() {
+    // the response function (applied by the runtime after correlation) resolves from the element
+    // that actually matched, via its element-scoped properties
+    var result = triggerSimpleWebhook();
+    var wrapper =
+        new DynamicWebhookPropertiesWrapper(
+            new DynamicWebhookProperties(
+                c -> WebhookHttpResponse.ok("response-from-element"), null));
+    var activatedElement = Mockito.mock(ProcessElement.class);
+    Mockito.when(activatedElement.bindProperties(DynamicWebhookPropertiesWrapper.class))
+        .thenReturn(wrapper);
+    var success =
+        new CorrelationResult.Success.ProcessInstanceCreated(activatedElement, 1L, "<default>");
+    var resultContext =
+        new WebhookResultContext(
+            new MappedHttpRequest(Map.of(), Map.of(), Map.of()), Map.of(), success);
+
+    var response = result.response().apply(resultContext);
+
+    assertNotNull(response);
+    assertEquals("response-from-element", response.body());
+  }
+
+  @Test
+  void response_returnsNullWhenNoCorrelation() {
+    var result = triggerSimpleWebhook();
+    var resultContext =
+        new WebhookResultContext(
+            new MappedHttpRequest(Map.of(), Map.of(), Map.of()), Map.of(), null);
+    assertNull(result.response().apply(resultContext));
   }
 
   @Test
@@ -59,8 +118,6 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
-
-    assertNull(result.response());
     assertThat((Map) result.request().body()).containsEntry("key", "value");
   }
 
@@ -91,13 +148,7 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    assertNotNull(result.response());
     assertThat((Map) result.request().body()).containsEntry("key", "value");
-
-    var request = new MappedHttpRequest(Map.of("key", "value"), null, null);
-    var context = new WebhookResultContext(request, null, null);
-    var response = result.response().apply(context);
-    assertEquals("value", response.body());
   }
 
   @Test
@@ -126,14 +177,7 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
-
-    assertNotNull(result.response());
     assertThat((List<String>) result.request().body()).contains("test1", "test2");
-
-    var request = new MappedHttpRequest(Map.of("key", "value"), null, null);
-    var context = new WebhookResultContext(request, null, null);
-    var response = result.response().apply(context);
-    assertEquals("value", response.body());
   }
 
   @Test
@@ -163,15 +207,8 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
-
-    assertNotNull(result.response());
     assertThat((List<Map>) result.request().body())
         .contains(Map.of("key", "value"), Map.of("key", "value"));
-
-    var request = new MappedHttpRequest(Map.of("key", "value"), null, null);
-    var context = new WebhookResultContext(request, null, null);
-    var response = result.response().apply(context);
-    assertEquals("value", response.body());
   }
 
   @Test
@@ -608,8 +645,6 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
-
-    assertNull(result.response());
     // XML is stored as string
     assertThat(result.request().body()).isInstanceOf(String.class);
     assertThat((String) result.request().body()).contains("<id>123</id>");
@@ -636,8 +671,6 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
-
-    assertNull(result.response());
     assertThat(result.request().body()).isInstanceOf(String.class);
   }
 }

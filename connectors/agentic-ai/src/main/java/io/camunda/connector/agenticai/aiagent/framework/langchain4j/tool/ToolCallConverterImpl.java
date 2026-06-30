@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 
 public class ToolCallConverterImpl implements ToolCallConverter {
 
@@ -91,7 +92,7 @@ public class ToolCallConverterImpl implements ToolCallConverter {
     return toolExecutionResultMessage(id, name, content);
   }
 
-  private String contentAsString(String toolName, Object result) {
+  private @Nullable String contentAsString(String toolName, @Nullable Object result) {
     try {
       if (result == null) {
         return null;

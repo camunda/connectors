@@ -11,6 +11,7 @@ import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 public record ToolsConfiguration(
     @TemplateProperty(
@@ -23,7 +24,7 @@ public record ToolsConfiguration(
                     + "<a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
                     + "for details.",
             optional = true)
-        String containerElementId,
+        @Nullable String containerElementId,
     @FEEL
         @TemplateProperty(
             group = "tools",
@@ -37,4 +38,4 @@ public record ToolsConfiguration(
             type = TemplateProperty.PropertyType.Text,
             feel = FeelMode.required,
             optional = true)
-        List<ToolCallResult> toolCallResults) {}
+        @Nullable List<ToolCallResult> toolCallResults) {}

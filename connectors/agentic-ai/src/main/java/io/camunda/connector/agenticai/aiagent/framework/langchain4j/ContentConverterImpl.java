@@ -13,6 +13,8 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 public class ContentConverterImpl implements ContentConverter {
   private final DocumentToContentConverter documentToContentConverter;
@@ -33,12 +35,13 @@ public class ContentConverterImpl implements ContentConverter {
       case DocumentContent documentContent ->
           documentToContentConverter.convert(documentContent.document());
       case ObjectContent objectContent ->
-          new dev.langchain4j.data.message.TextContent(convertToString(objectContent.content()));
+          new dev.langchain4j.data.message.TextContent(
+              Objects.requireNonNull(convertToString(objectContent.content())));
     };
   }
 
   @Override
-  public String convertToString(Object content) throws JsonProcessingException {
+  public @Nullable String convertToString(@Nullable Object content) throws JsonProcessingException {
     if (content == null) {
       return null;
     }

@@ -27,6 +27,7 @@ import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
 import java.util.Objects;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
-  private A2aSdkClient client;
+  private @Nullable A2aSdkClient client;
 
   public A2aPollingTask(
       final InboundIntermediateConnectorContext context,
@@ -152,7 +153,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     }
   }
 
-  private A2aPollingRuntimeProperties bindRuntimeProperties() {
+  private @Nullable A2aPollingRuntimeProperties bindRuntimeProperties() {
     try {
       return processInstanceContext.bind(A2aPollingRuntimeProperties.class);
     } catch (Exception e) {
@@ -168,7 +169,8 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     return null;
   }
 
-  private A2aClientResponse getClientResponse(final A2aPollingRuntimeProperties runtimeProperties) {
+  private @Nullable A2aClientResponse getClientResponse(
+      final A2aPollingRuntimeProperties runtimeProperties) {
     try {
       final var clientResponseJson = runtimeProperties.data().clientResponse();
       return objectMapper.readValue(clientResponseJson, A2aClientResponse.class);
@@ -185,7 +187,8 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     return null;
   }
 
-  private synchronized A2aSdkClient getClient(final A2aPollingRuntimeProperties runtimeProperties) {
+  private synchronized @Nullable A2aSdkClient getClient(
+      final A2aPollingRuntimeProperties runtimeProperties) {
     if (this.client == null) {
       try {
         final var agentCard =

@@ -13,7 +13,7 @@ import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnec
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.util.List;
 import java.util.Map;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
 public record AiAgentSubProcessConnectorResponse(

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +53,7 @@ public class SystemPromptComposerImpl implements SystemPromptComposer {
 
     contributors.forEach(
         contributor -> {
-          String contribution = contributor.contribute(executionContext, agentContext);
+          @Nullable String contribution = contributor.contribute(executionContext, agentContext);
           if (StringUtils.isNotBlank(contribution)) {
             composed.add(contribution);
             LOGGER.debug(

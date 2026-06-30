@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,7 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
 
   private final ConcurrentHashMap<String, ScheduledPoll> runningPollTasks =
       new ConcurrentHashMap<>();
-  private ScheduledFuture<?> mainTaskFuture;
+  @Nullable private ScheduledFuture<?> mainTaskFuture;
 
   public A2aPollingProcessInstancesFetcherTask(
       final InboundIntermediateConnectorContext context,

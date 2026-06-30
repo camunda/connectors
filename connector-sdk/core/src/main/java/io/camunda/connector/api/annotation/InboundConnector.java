@@ -33,6 +33,21 @@ public @interface InboundConnector {
   /**
    * Names of the properties that are taken into account for connector deduplication. If empty, all
    * properties are taken into account.
+   *
+   * @deprecated use {@link #deduplicationClasses()} instead — it derives the deduplication scope
+   *     from a data class rather than an error-prone, hand-maintained list of property names.
    */
+  @Deprecated
   String[] deduplicationProperties() default {};
+
+  /**
+   * Data classes whose properties define the connector's deduplication scope. When non-empty, only
+   * the properties contributed by these classes are taken into account for deduplication; any other
+   * bound properties (for example, element-scoped ones that a connector merges into the same
+   * element template via {@code @ElementTemplate(inputDataClass = ...)}) are excluded.
+   *
+   * <p>If empty, all properties are taken into account (the default). This is the class-based
+   * counterpart of {@link #deduplicationProperties()} and is preferred over it.
+   */
+  Class<?>[] deduplicationClasses() default {};
 }
