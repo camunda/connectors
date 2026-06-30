@@ -31,8 +31,10 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ZeebeClientStatus;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageCorrelated;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreatedWithResult;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -145,7 +147,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       var result =
           correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest);
       logCorrelationResult(result);
-      return result;
+      return attachElementBinder(result);
     } catch (ConnectorInputException connectorInputException) {
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);
@@ -167,6 +169,31 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       LOG.error("Failed to correlate inbound event", exception);
       return new CorrelationResult.Failure.Other(exception);
     }
+  }
+
+  /**
+   * Wraps the activated element of a successful correlation in a {@link BindableProcessElement} so
+   * callers can resolve element-scoped properties via {@link
+   * CorrelationResult.Success#bindProperties(Class)} using this context's secret + FEEL pipeline,
+   * without handling raw property maps.
+   */
+  private CorrelationResult attachElementBinder(CorrelationResult result) {
+    if (!(result instanceof Success success)) {
+      return result;
+    }
+    var element =
+        new BindableProcessElement(success.activatedElement(), this::bindElementProperties);
+    return switch (success) {
+      case ProcessInstanceCreated s ->
+          new ProcessInstanceCreated(element, s.processInstanceKey(), s.tenantId());
+      case ProcessInstanceCreatedWithResult s ->
+          new ProcessInstanceCreatedWithResult(
+              element, s.processInstanceKey(), s.tenantId(), s.variables());
+      case MessagePublished s -> new MessagePublished(element, s.messageKey(), s.tenantId());
+      case MessageCorrelated s ->
+          new MessageCorrelated(element, s.processInstanceKey(), s.messageKey(), s.tenantId());
+      case MessageAlreadyCorrelated s -> new MessageAlreadyCorrelated(element);
+    };
   }
 
   private void logCorrelationResult(CorrelationResult correlationResult) {
@@ -303,6 +330,34 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               + cls.getName()
               + " using FEEL evaluation/deserialization"
               + " (tenantId="
+              + connectorDetails.tenantId()
+              + ")",
+          e);
+    }
+  }
+
+  private <T> T bindElementProperties(Map<String, String> rawProperties, Class<T> cls) {
+    try {
+      var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
+      var withSecrets =
+          InboundPropertyHandler.getPropertiesWithSecrets(
+              getSecretHandler(),
+              objectMapper,
+              wrapped,
+              new SecretContext(
+                  connectorDetails.tenantId(), connectorDetails.processDefinitionId()));
+      var propertiesJson = objectMapper.valueToTree(withSecrets);
+      var result =
+          FeelContextAwareObjectReader.of(objectMapper)
+              .withEvaluator(evaluator)
+              .readValue(propertiesJson, cls);
+      getValidationProvider().validate(result);
+      return result;
+    } catch (IOException | FeelEngineWrapperException e) {
+      throw new RuntimeException(
+          "Failed to bind element properties to "
+              + cls.getName()
+              + " using FEEL evaluation/deserialization (tenantId="
               + connectorDetails.tenantId()
               + ")",
           e);

@@ -31,7 +31,20 @@ public sealed interface InboundConnectorDetails {
 
   static InboundConnectorDetails of(
       String deduplicationId, List<InboundConnectorElement> groupedElements) {
-    return InboundConnectorDetailsUtil.create(deduplicationId, groupedElements);
+    return of(deduplicationId, groupedElements, List.of());
+  }
+
+  /**
+   * @param deduplicationProperties the connector's deduplication scope (prefixes). It must match
+   *     the scope used to compute {@code deduplicationId} so the divergence guard tolerates exactly
+   *     the properties that are excluded from deduplication (for example element-scoped ones).
+   */
+  static InboundConnectorDetails of(
+      String deduplicationId,
+      List<InboundConnectorElement> groupedElements,
+      List<String> deduplicationProperties) {
+    return InboundConnectorDetailsUtil.create(
+        deduplicationId, groupedElements, deduplicationProperties);
   }
 
   List<InboundConnectorElement> connectorElements();

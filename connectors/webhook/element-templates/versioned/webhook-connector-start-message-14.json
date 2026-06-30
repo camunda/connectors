@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Webhook Message Start Event Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1-hybrid",
+  "name" : "Webhook Message Start Event Connector",
+  "id" : "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1",
   "description" : "Configure webhook to receive callbacks",
   "keywords" : [ "receive webhook", "HTTP trigger", "event received", "inbound event", "webhook trigger", "HTTP callback", "listen for event" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 15,
+  "version" : 14,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -19,9 +19,6 @@
     "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "connectorType",
-    "label" : "Connector type"
-  }, {
     "id" : "endpoint",
     "label" : "Webhook configuration"
   }, {
@@ -52,14 +49,12 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
     "value" : "io.camunda:webhook:1",
-    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "inbound.method",
     "label" : "Webhook method",

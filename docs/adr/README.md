@@ -82,3 +82,4 @@ When asked to create an ADR:
 |-----|-------|--------|
 | [ADR-0001](ADR-0001-annotation-driven-element-template-generation.md) | Annotation-Driven Element Template Generation | Accepted |
 | [ADR-0002](ADR-0002-annotation-based-operations-for-outbound-connectors.md) | Annotation-Based Operations for Outbound Connectors | Accepted |
+| [ADR-0003](ADR-0003-element-scoped-inbound-connector-properties.md) | Element-Scoped Properties for Inbound Connectors | Accepted |
