@@ -11,12 +11,12 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryContent;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryMetrics;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryRole;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryToolCall;
+import io.camunda.client.api.command.AgentInstanceHistoryContent;
+import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
+import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
 import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.CreateAgentHistoryItemFinalCommandStep;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
+import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -203,7 +203,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     createHistoryItem(
         executionContext,
         agentInstanceKey.value(),
-        AgentHistoryRole.ASSISTANT,
+        AgentInstanceHistoryRole.ASSISTANT,
         content,
         turn.iterationKey(),
         toolCalls,
@@ -213,11 +213,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   private void createHistoryItem(
       AgentExecutionContext executionContext,
       long agentInstanceKey,
-      AgentHistoryRole role,
-      List<AgentHistoryContent> content,
+      AgentInstanceHistoryRole role,
+      List<AgentInstanceHistoryContent> content,
       int iteration,
-      @Nullable List<AgentHistoryToolCall> toolCalls,
-      @Nullable AgentHistoryMetrics metrics) {
+      @Nullable List<AgentInstanceHistoryToolCall> toolCalls,
+      @Nullable AgentInstanceHistoryMetrics metrics) {
     CamundaApiRetry.execute(
         () -> {
           executeCreateHistoryItem(
@@ -234,11 +234,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   private void executeCreateHistoryItem(
       AgentExecutionContext executionContext,
       long agentInstanceKey,
-      AgentHistoryRole role,
-      List<AgentHistoryContent> content,
+      AgentInstanceHistoryRole role,
+      List<AgentInstanceHistoryContent> content,
       int iteration,
-      @Nullable List<AgentHistoryToolCall> toolCalls,
-      @Nullable AgentHistoryMetrics metrics) {
+      @Nullable List<AgentInstanceHistoryToolCall> toolCalls,
+      @Nullable AgentInstanceHistoryMetrics metrics) {
     LOGGER.debug(
         "Creating agent instance {} history item: role={}, iteration={}, contentBlocks={}",
         agentInstanceKey,
