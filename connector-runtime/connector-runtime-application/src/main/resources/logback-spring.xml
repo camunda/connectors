@@ -3,7 +3,11 @@
     <springProperty name="connectorsLogAppender" source="connectors.log.appender"
                     defaultValue="default"/>
     <springProfile name="!test">
-        <if condition='property("connectorsLogAppender").equalsIgnoreCase("stackdriver")'>
+        <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+            <key>connectorsLogAppender</key>
+            <value>stackdriver</value>
+        </condition>
+        <if>
             <then>
                 <springProperty name="serviceName" source="log.stackdriver.serviceName"
                                 defaultValue="connectors"/>
