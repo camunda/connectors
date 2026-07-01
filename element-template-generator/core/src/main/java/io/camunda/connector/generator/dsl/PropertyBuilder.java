@@ -65,8 +65,21 @@ public abstract class PropertyBuilder {
     return this;
   }
 
+  /**
+   * Sets the property help text.
+   *
+   * <p>As of <a href="https://github.com/camunda/connectors/issues/7470">#7470</a> the generator
+   * emits property help text as a {@code tooltip} (shown on hover) instead of an always-visible
+   * {@code description}. Any value passed here is therefore mapped to {@link #tooltip(String)},
+   * unless an explicit tooltip has already been set (an explicit tooltip always wins). To keep an
+   * always-visible description for a specific property, edit the generated template manually.
+   */
   public PropertyBuilder description(String description) {
-    this.description = description;
+    if (description != null
+        && !description.isBlank()
+        && (this.tooltip == null || this.tooltip.isBlank())) {
+      this.tooltip = description;
+    }
     return this;
   }
 

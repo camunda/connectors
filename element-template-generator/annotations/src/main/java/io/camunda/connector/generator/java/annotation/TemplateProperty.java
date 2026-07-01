@@ -48,7 +48,15 @@ public @interface TemplateProperty {
   /** Custom binding name of the property */
   PropertyBinding binding() default @PropertyBinding(name = "");
 
-  /** Description of the property */
+  /**
+   * Help text for the property.
+   *
+   * <p>As of <a href="https://github.com/camunda/connectors/issues/7470">#7470</a> the generator
+   * emits this value as a {@link #tooltip()} (shown on hover) rather than an always-visible
+   * description. Set {@link #tooltip()} explicitly to override; an explicit tooltip always wins. To
+   * keep an always-visible description for a specific property, edit the generated template
+   * manually.
+   */
   String description() default "";
 
   /** Whether the property should be marked as optional in the element template */

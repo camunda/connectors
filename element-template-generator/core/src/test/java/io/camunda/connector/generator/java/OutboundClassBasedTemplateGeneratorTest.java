@@ -496,7 +496,9 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(property.isOptional()).isFalse();
       assertThat(property.getLabel()).isEqualTo("Annotated and renamed string property");
       assertThat(property.getGroup()).isEqualTo("group1");
-      assertThat(property.getDescription()).isEqualTo("description");
+      // #7470: description= is emitted as a tooltip; an explicit tooltip= wins over description=
+      assertThat(property.getDescription()).isNull();
+      assertThat(property.getTooltip()).isEqualTo("tooltip");
       assertThat(property.getFeel()).isEqualTo(FeelMode.optional);
       assertThat(property.getBinding()).isEqualTo(new PropertyBinding.ZeebeInput("customBinding"));
       assertThat(property.getConstraints().notEmpty()).isTrue();
@@ -1164,7 +1166,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
       assertThat(resourceId).isInstanceOf(StringProperty.class);
       assertThat(resourceId.getLabel()).isEqualTo("Form ID");
-      assertThat(resourceId.getDescription())
+      // #7470: annotation description= is emitted as a tooltip
+      assertThat(resourceId.getTooltip())
           .isEqualTo("Select a form to render as an adaptive card");
       assertThat(resourceId.getGroup()).isEqualTo("form");
       assertThat(((ZeebeLinkedResource) resourceId.getBinding()).linkName())
@@ -1391,7 +1394,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
       assertThat(resourceId).isInstanceOf(StringProperty.class);
       assertThat(resourceId.getLabel()).isEqualTo("Form ID");
-      assertThat(resourceId.getDescription())
+      // #7470: annotation description= is emitted as a tooltip
+      assertThat(resourceId.getTooltip())
           .isEqualTo("Select a form to render as an adaptive card");
       assertThat(resourceId.getGroup()).isEqualTo("form");
       assertThat(resourceId.getCondition()).isNull();
