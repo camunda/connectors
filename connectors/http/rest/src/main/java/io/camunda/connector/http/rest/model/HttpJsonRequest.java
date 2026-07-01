@@ -16,6 +16,30 @@
  */
 package io.camunda.connector.http.rest.model;
 
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 
-public class HttpJsonRequest extends HttpCommonRequest {}
+public class HttpJsonRequest extends HttpCommonRequest {
+
+  @TemplateProperty(
+      id = "authenticationConfiguration",
+      label = "Authentication credential",
+      group = "authentication",
+      type = PropertyType.Configuration,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "authenticationConfiguration"),
+      description =
+          "Choose a reusable REST authentication credential. When set, it is bound as a whole to"
+              + " the connector's 'authenticationConfiguration' input.")
+  private RestAuthenticationConfiguration authenticationConfiguration;
+
+  public RestAuthenticationConfiguration getAuthenticationConfiguration() {
+    return authenticationConfiguration;
+  }
+
+  public void setAuthenticationConfiguration(
+      RestAuthenticationConfiguration authenticationConfiguration) {
+    this.authenticationConfiguration = authenticationConfiguration;
+  }
+}
