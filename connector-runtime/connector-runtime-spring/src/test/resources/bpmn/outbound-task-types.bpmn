@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_task_types"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="outbound-task-types" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="send-task"/>
+    <bpmn:sendTask id="send-task" name="Send Task"
+                   zeebe:modelerTemplate="io.camunda.connectors.SendTask">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:input source="{{secrets.SEND_SECRET}}" target="key"/>
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="send-task" targetRef="script-task"/>
+    <bpmn:scriptTask id="script-task" name="Script Task"
+                     zeebe:modelerTemplate="io.camunda.connectors.ScriptTask">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:input source="{{secrets.SCRIPT_SECRET}}" target="key"/>
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="script-task" targetRef="business-rule-task"/>
+    <bpmn:businessRuleTask id="business-rule-task" name="Business Rule Task"
+                           zeebe:modelerTemplate="io.camunda.connectors.BusinessRuleTask">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:input source="{{secrets.BRT_SECRET}}" target="key"/>
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="business-rule-task" targetRef="EndEvent_1"/>
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+</bpmn:definitions>

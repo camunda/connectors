@@ -27,6 +27,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -51,8 +52,9 @@ public class JobHandlerContext extends AbstractConnectorContext
       final ActivatedJob job,
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
-      final ObjectMapper objectMapper) {
-    super(secretProvider, validationProvider);
+      final ObjectMapper objectMapper,
+      final SecretFilter secretFilter) {
+    super(secretProvider, secretFilter, validationProvider);
     this.job = job;
     this.objectMapper = objectMapper;
     this.jobContext = new ActivatedJobContext(job, this::getJsonReplacedWithSecrets);

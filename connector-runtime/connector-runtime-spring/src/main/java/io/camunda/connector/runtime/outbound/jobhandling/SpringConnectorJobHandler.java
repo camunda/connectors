@@ -23,6 +23,7 @@ import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.outbound.ConnectorJobHandler;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Outbound;
@@ -54,8 +55,14 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
       ValidationProvider validationProvider,
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
-      OutboundConnectorConfiguration connectorConfiguration) {
-    super(connectorFunction, secretProviderAggregator, validationProvider, objectMapper);
+      OutboundConnectorConfiguration connectorConfiguration,
+      SecretFilterFactory secretFilterFactory) {
+    super(
+        connectorFunction,
+        secretProviderAggregator,
+        validationProvider,
+        objectMapper,
+        secretFilterFactory);
     this.metricsRecorder = metricsRecorder;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.connectorConfiguration = connectorConfiguration;

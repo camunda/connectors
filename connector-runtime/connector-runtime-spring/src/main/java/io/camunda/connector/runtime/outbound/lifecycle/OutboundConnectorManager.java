@@ -21,6 +21,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
 import io.camunda.zeebe.client.ZeebeClient;
@@ -46,6 +47,7 @@ public class OutboundConnectorManager {
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
   private final MetricsRecorder metricsRecorder;
+  private final SecretFilterFactory secretFilterFactory;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
@@ -54,7 +56,8 @@ public class OutboundConnectorManager {
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
       ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
+      MetricsRecorder metricsRecorder,
+      SecretFilterFactory secretFilterFactory) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
@@ -62,6 +65,7 @@ public class OutboundConnectorManager {
     this.validationProvider = validationProvider;
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
+    this.secretFilterFactory = secretFilterFactory;
   }
 
   public void start(final ZeebeClient client) {
@@ -101,7 +105,8 @@ public class OutboundConnectorManager {
             validationProvider,
             objectMapper,
             connectorFunction,
-            connector);
+            connector,
+            secretFilterFactory);
 
     jobWorkerManager.openWorker(client, zeebeWorkerValue, connectorJobHandler);
   }

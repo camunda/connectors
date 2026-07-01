@@ -31,6 +31,7 @@ import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -64,7 +65,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
       EvictingQueue logs) {
-    super(secretProvider, validationProvider);
+    super(secretProvider, SecretFilter.allowAll(), validationProvider);
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
     this.properties =

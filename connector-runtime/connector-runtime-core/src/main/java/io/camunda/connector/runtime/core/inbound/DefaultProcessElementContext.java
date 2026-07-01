@@ -22,6 +22,7 @@ import io.camunda.connector.api.inbound.ProcessElementContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.util.Map;
 
 public class DefaultProcessElementContext extends AbstractConnectorContext
@@ -39,7 +40,7 @@ public class DefaultProcessElementContext extends AbstractConnectorContext
       ValidationProvider validationProvider,
       SecretProvider secretProvider,
       ObjectMapper objectMapper) {
-    super(secretProvider, validationProvider);
+    super(secretProvider, SecretFilter.allowAll(), validationProvider);
     this.connectorElement = connectorElement;
     this.objectMapper = objectMapper;
     this.properties =

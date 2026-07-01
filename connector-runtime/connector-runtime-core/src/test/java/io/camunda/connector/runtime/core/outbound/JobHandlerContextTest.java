@@ -25,13 +25,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,10 +39,22 @@ class JobHandlerContextTest {
 
   @Mock private ActivatedJob activatedJob;
   @Mock private SecretProvider secretProvider;
-  @Spy private ObjectMapper objectMapper = new ObjectMapper();
   @Mock private ValidationProvider validationProvider;
 
-  @InjectMocks private JobHandlerContext jobHandlerContext;
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private JobHandlerContext jobHandlerContext;
+
+  @BeforeEach
+  void setUp() {
+    jobHandlerContext =
+        new JobHandlerContext(
+            activatedJob,
+            secretProvider,
+            validationProvider,
+            null,
+            objectMapper,
+            SecretFilter.allowAll());
+  }
 
   @Test
   void getVariables() {
