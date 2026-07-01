@@ -19,18 +19,19 @@ package io.camunda.connector.generator.dsl;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 
 /**
- * A credential chooser property. The Camunda Modeler renders this as a picker filtered to
- * credential instances compatible with {@link #schemaRef} / {@link #version}. On selection, the
- * Modeler writes the whole-credential FEEL expression to the single bound {@code zeebe:input}.
+ * A configuration chooser property. The Camunda Modeler renders this as a picker filtered to
+ * configuration instances compatible with the given {@link #configurationTemplate}. On selection,
+ * the Modeler writes the whole-configuration FEEL expression ({@code =camunda.vars.env.<name>}) to
+ * the single bound {@code zeebe:input} (outbound) / {@code zeebe:property} (inbound); the connector
+ * reads that object as a whole.
  */
-public final class CredentialProperty extends Property {
+public final class ConfigurationProperty extends Property {
 
-  public static final String TYPE = "Credential";
+  public static final String TYPE = "Configuration";
 
-  private final String schemaRef;
-  private final long version;
+  private final String configurationTemplate;
 
-  public CredentialProperty(
+  public ConfigurationProperty(
       String name,
       String label,
       String description,
@@ -43,8 +44,7 @@ public final class CredentialProperty extends Property {
       PropertyBinding binding,
       PropertyCondition condition,
       String tooltip,
-      String schemaRef,
-      long version) {
+      String configurationTemplate) {
     super(
         name,
         label,
@@ -61,46 +61,36 @@ public final class CredentialProperty extends Property {
         null,
         null,
         null,
-        TYPE);
-    this.schemaRef = schemaRef;
-    this.version = version;
+        TYPE,
+        null);
+    this.configurationTemplate = configurationTemplate;
   }
 
-  public String getSchemaRef() {
-    return schemaRef;
+  public String getConfigurationTemplate() {
+    return configurationTemplate;
   }
 
-  public long getVersion() {
-    return version;
+  public static ConfigurationPropertyBuilder builder() {
+    return new ConfigurationPropertyBuilder();
   }
 
-  public static CredentialPropertyBuilder builder() {
-    return new CredentialPropertyBuilder();
-  }
+  public static class ConfigurationPropertyBuilder extends PropertyBuilder {
 
-  public static class CredentialPropertyBuilder extends PropertyBuilder {
+    private String configurationTemplate;
 
-    private String schemaRef;
-    private long version = 1;
+    private ConfigurationPropertyBuilder() {}
 
-    private CredentialPropertyBuilder() {}
-
-    public CredentialPropertyBuilder schemaRef(String schemaRef) {
-      this.schemaRef = schemaRef;
-      return this;
-    }
-
-    public CredentialPropertyBuilder version(long version) {
-      this.version = version;
+    public ConfigurationPropertyBuilder configurationTemplate(String configurationTemplate) {
+      this.configurationTemplate = configurationTemplate;
       return this;
     }
 
     @Override
-    public CredentialProperty build() {
+    public ConfigurationProperty build() {
       if (value != null && !(value instanceof String)) {
-        throw new IllegalStateException("Value of a credential property must be a string");
+        throw new IllegalStateException("Value of a configuration property must be a string");
       }
-      return new CredentialProperty(
+      return new ConfigurationProperty(
           id,
           label,
           description,
@@ -113,8 +103,7 @@ public final class CredentialProperty extends Property {
           binding,
           condition,
           tooltip,
-          schemaRef,
-          version);
+          configurationTemplate);
     }
   }
 }

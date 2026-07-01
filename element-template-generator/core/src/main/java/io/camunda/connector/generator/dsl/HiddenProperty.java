@@ -33,7 +33,8 @@ public final class HiddenProperty extends Property {
       FeelMode feel,
       String group,
       PropertyBinding binding,
-      PropertyCondition condition) {
+      PropertyCondition condition,
+      Boolean secret) {
     super(
         name,
         label,
@@ -50,7 +51,8 @@ public final class HiddenProperty extends Property {
         null,
         null,
         null,
-        TYPE);
+        TYPE,
+        secret);
   }
 
   public static HiddenPropertyBuilder builder() {
@@ -77,7 +79,8 @@ public final class HiddenProperty extends Property {
           feel,
           group,
           binding,
-          condition);
+          condition,
+          secret);
     }
   }
 }
