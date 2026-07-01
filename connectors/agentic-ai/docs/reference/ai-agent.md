@@ -1542,7 +1542,8 @@ call (`POST /v2/agent-instances/{key}/history` via `newCreateAgentHistoryItemCom
   `{toolCallId: result.id(), toolName: result.name(), elementId, arguments}` correlating it back to
   the originating tool call. The `arguments` are the originating request arguments, looked up by
   tool-call id from the previous turn's assistant tool calls
-  (`AgentConversation.previousTurn()` → `AgentConversationTurn.toolCallsById()`), so each
+  (`AgentConversation.lastTurn()` — the previous turn while the current one is still pending —
+  → `AgentConversationTurn.toolCallsById()`), so each
   `TOOL_RESULT` item is self-contained for the paginated history API and need not be joined back to
   the `ASSISTANT` item. Event results (`id == null`) have no originating call and carry `{}`; a
   result with a non-null id and no matching tool call is an invariant violation and fails the turn.
