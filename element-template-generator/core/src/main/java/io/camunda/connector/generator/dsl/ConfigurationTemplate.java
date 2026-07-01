@@ -21,8 +21,14 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.List;
 
 /**
- * A credential schema embedded in an element template. Describes the field definitions a credential
- * editor uses to render and validate a credential of a given type.
+ * A configuration template embedded in an element template under the {@code configurationTemplates}
+ * key. Describes the field definitions a configuration editor (Hub / Modeler) uses to render and
+ * validate a configuration of a given type. Properties use {@code property} bindings (not {@code
+ * zeebe:input}) and carry no {@code feel}.
+ *
+ * <p>{@code kind} declares the class of configuration produced (e.g. {@code CREDENTIAL}); it is the
+ * discriminator written into the created instance's metadata bag.
  */
 @JsonInclude(Include.NON_NULL)
-public record CredentialSchema(String id, long version, String label, List<Property> properties) {}
+public record ConfigurationTemplate(
+    String id, String kind, long version, String name, List<Property> properties) {}

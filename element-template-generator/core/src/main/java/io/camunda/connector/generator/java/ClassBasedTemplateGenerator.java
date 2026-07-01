@@ -203,7 +203,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
           template.engineVersion() + " is not a valid semantic version");
     }
 
-    var credentialSchemas = buildCredentialSchemas(template, context);
+    var configurationTemplates = buildConfigurationTemplates(template, context);
 
     return context.elementTypes().stream()
         .map(
@@ -238,7 +238,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                           mergedGroups, context, elementType, configuration, template))
                   .steps(stepTree.steps())
                   .presets(stepTree.presets())
-                  .credentialSchemas(credentialSchemas)
+                  .configurationTemplates(configurationTemplates)
                   .build();
             })
         .toList();
@@ -313,31 +313,33 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     return newGroups;
   }
 
-  private List<CredentialSchema> buildCredentialSchemas(
+  private List<ConfigurationTemplate> buildConfigurationTemplates(
       ElementTemplate template, TemplateGenerationContext context) {
-    return Arrays.stream(template.credentialSchemas())
+    return Arrays.stream(template.configurationTemplates())
         .map(
-            schemaClass -> {
-              var schemaAnnotation =
-                  schemaClass.getAnnotation(
-                      io.camunda.connector.generator.java.annotation.CredentialSchema.class);
-              if (schemaAnnotation == null) {
+            templateClass -> {
+              var configurationAnnotation =
+                  templateClass.getAnnotation(
+                      io.camunda.connector.generator.java.annotation.ConfigurationTemplate.class);
+              if (configurationAnnotation == null) {
                 throw new IllegalArgumentException(
                     "Class "
-                        + schemaClass.getName()
-                        + " referenced in @ElementTemplate.credentialSchemas() must be annotated"
-                        + " with @CredentialSchema");
+                        + templateClass.getName()
+                        + " referenced in @ElementTemplate.configurationTemplates() must be"
+                        + " annotated with @ConfigurationTemplate");
               }
-              var schemaProperties =
-                  TemplatePropertiesUtil.extractTemplatePropertiesFromType(schemaClass, context)
+              var templateProperties =
+                  TemplatePropertiesUtil.extractConfigurationTemplatePropertiesFromType(
+                          templateClass, context)
                       .stream()
                       .map(PropertyBuilder::build)
                       .toList();
-              return new CredentialSchema(
-                  schemaAnnotation.id(),
-                  schemaAnnotation.version(),
-                  schemaAnnotation.label().isBlank() ? null : schemaAnnotation.label(),
-                  schemaProperties);
+              return new ConfigurationTemplate(
+                  configurationAnnotation.id(),
+                  configurationAnnotation.kind(),
+                  configurationAnnotation.version(),
+                  configurationAnnotation.name().isBlank() ? null : configurationAnnotation.name(),
+                  templateProperties);
             })
         .toList();
   }
