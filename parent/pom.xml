@@ -100,7 +100,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.37</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.46.18</version.aws-sdk2>
+    <version.aws-sdk2>2.46.19</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -172,9 +172,10 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.2</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
-    <version.langchain4j>1.17.0</version.langchain4j>
+    <version.langchain4j>1.17.1</version.langchain4j>
     <version.mcp-sdk>2.0.0</version.mcp-sdk>
-    <version.elasticsearch-java-client>8.19.17</version.elasticsearch-java-client>
+    <version.elasticsearch-java>8.19.17</version.elasticsearch-java>
+    <version.elasticsearch-rest-client>8.19.17</version.elasticsearch-rest-client>
 
     <version.scala>3.8.4</version.scala>
 
@@ -735,12 +736,12 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>co.elastic.clients</groupId>
         <artifactId>elasticsearch-java</artifactId>
-        <version>${version.elasticsearch-java-client}</version>
+        <version>${version.elasticsearch-java}</version>
       </dependency>
       <dependency>
         <groupId>org.elasticsearch.client</groupId>
         <artifactId>elasticsearch-rest-client</artifactId>
-        <version>${version.elasticsearch-java-client}</version>
+        <version>${version.elasticsearch-rest-client}</version>
       </dependency>
 
       <dependency>
