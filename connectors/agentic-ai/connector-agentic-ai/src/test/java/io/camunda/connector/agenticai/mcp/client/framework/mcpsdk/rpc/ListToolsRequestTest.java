@@ -7,6 +7,9 @@
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
@@ -34,10 +37,10 @@ class ListToolsRequestTest {
 
   @Test
   void returnsEmptyList_whenNoToolsAvailable() {
-    when(mcpClient.listTools())
+    when(mcpClient.listTools(null, null))
         .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null));
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -49,10 +52,10 @@ class ListToolsRequestTest {
     final var toolSpec1 = createTool("tool1", "First Tool", "Tool 1 description");
     final var toolSpec2 = createTool("tool2", "Second Tool", "Tool 2 description");
 
-    when(mcpClient.listTools())
+    when(mcpClient.listTools(null, null))
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -78,10 +81,10 @@ class ListToolsRequestTest {
     final var filter =
         AllowDenyListBuilder.builder().allowed(List.of("allowed-tool")).denied(List.of()).build();
 
-    when(mcpClient.listTools())
+    when(mcpClient.listTools(null, null))
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
 
-    final var result = testee.execute(mcpClient, filter);
+    final var result = testee.execute(mcpClient, filter, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -99,14 +102,35 @@ class ListToolsRequestTest {
     final var filter =
         AllowDenyListBuilder.builder().allowed(List.of("allowed-tool")).denied(List.of()).build();
 
-    when(mcpClient.listTools())
+    when(mcpClient.listTools(null, null))
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
 
-    final var result = testee.execute(mcpClient, filter);
+    final var result = testee.execute(mcpClient, filter, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientListToolsResult.class, res -> assertThat(res.toolDefinitions()).isEmpty());
+  }
+
+  @Test
+  void forwardsMetaUnmodified_whenMetaConfigured() {
+    final var meta = Map.<String, Object>of("source_group_ids_include", List.of("version-uuid"));
+    when(mcpClient.listTools(isNull(), eq(meta)))
+        .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null));
+
+    testee.execute(mcpClient, EMPTY_FILTER, meta);
+
+    verify(mcpClient).listTools(isNull(), eq(meta));
+  }
+
+  @Test
+  void doesNotSendMeta_whenMetaNotConfigured() {
+    when(mcpClient.listTools(isNull(), isNull()))
+        .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null));
+
+    testee.execute(mcpClient, EMPTY_FILTER, null);
+
+    verify(mcpClient).listTools(isNull(), isNull());
   }
 
   private McpSchema.Tool createTool(String name, String title, String description) {

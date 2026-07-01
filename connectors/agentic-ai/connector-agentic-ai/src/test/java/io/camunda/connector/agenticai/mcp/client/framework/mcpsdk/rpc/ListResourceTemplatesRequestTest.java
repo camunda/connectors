@@ -7,6 +7,9 @@
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
@@ -17,6 +20,7 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -34,10 +38,10 @@ class ListResourceTemplatesRequestTest {
 
   @Test
   void returnsEmptyList_whenNoResourcesAvailable() {
-    when(mcpClient.listResourceTemplates())
+    when(mcpClient.listResourceTemplates(null, null))
         .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -77,12 +81,12 @@ class ListResourceTemplatesRequestTest {
             "A second resource",
             "text/markdown");
 
-    when(mcpClient.listResourceTemplates())
+    when(mcpClient.listResourceTemplates(null, null))
         .thenReturn(
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -125,12 +129,12 @@ class ListResourceTemplatesRequestTest {
             .denied(List.of())
             .build();
 
-    when(mcpClient.listResourceTemplates())
+    when(mcpClient.listResourceTemplates(null, null))
         .thenReturn(
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
 
-    final var result = testee.execute(mcpClient, filter);
+    final var result = testee.execute(mcpClient, filter, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -160,12 +164,12 @@ class ListResourceTemplatesRequestTest {
             .denied(List.of())
             .build();
 
-    when(mcpClient.listResourceTemplates())
+    when(mcpClient.listResourceTemplates(null, null))
         .thenReturn(
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
 
-    final var result = testee.execute(mcpClient, filter);
+    final var result = testee.execute(mcpClient, filter, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -188,15 +192,36 @@ class ListResourceTemplatesRequestTest {
             .denied(List.of("file://allowed-template.txt"))
             .build();
 
-    when(mcpClient.listResourceTemplates())
+    when(mcpClient.listResourceTemplates(null, null))
         .thenReturn(new McpSchema.ListResourceTemplatesResult(List.of(mcpResourceTemplate1), null));
 
-    final var result = testee.execute(mcpClient, filter);
+    final var result = testee.execute(mcpClient, filter, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientListResourceTemplatesResult.class,
             res -> assertThat(res.resourceTemplates()).isEmpty());
+  }
+
+  @Test
+  void forwardsMetaUnmodified_whenMetaConfigured() {
+    final var meta = Map.<String, Object>of("source_group_ids_include", List.of("version-uuid"));
+    when(mcpClient.listResourceTemplates(isNull(), eq(meta)))
+        .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
+
+    testee.execute(mcpClient, EMPTY_FILTER, meta);
+
+    verify(mcpClient).listResourceTemplates(isNull(), eq(meta));
+  }
+
+  @Test
+  void doesNotSendMeta_whenMetaNotConfigured() {
+    when(mcpClient.listResourceTemplates(isNull(), isNull()))
+        .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
+
+    testee.execute(mcpClient, EMPTY_FILTER, null);
+
+    verify(mcpClient).listResourceTemplates(isNull(), isNull());
   }
 
   private McpSchema.ResourceTemplate createMcpResourceTemplate(

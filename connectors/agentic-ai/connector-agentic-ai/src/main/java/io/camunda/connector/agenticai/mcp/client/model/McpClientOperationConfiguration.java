@@ -36,4 +36,14 @@ public record McpClientOperationConfiguration(
             defaultValue = "=toolCall.params",
             feel = FeelMode.required,
             optional = true)
-        Map<String, Object> params) {}
+        Map<String, Object> params,
+    @FEEL
+        @TemplateProperty(
+            group = "operation",
+            label = "Meta",
+            description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
+            tooltip =
+                "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
+            feel = FeelMode.required,
+            optional = true)
+        Map<String, Object> meta) {}

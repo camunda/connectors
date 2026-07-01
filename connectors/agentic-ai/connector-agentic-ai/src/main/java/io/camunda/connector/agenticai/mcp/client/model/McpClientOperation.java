@@ -20,13 +20,20 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
 
   Map<String, Object> params();
 
+  Map<String, Object> meta();
+
   static McpClientOperation of(String method) {
     return of(method, Collections.emptyMap());
   }
 
   static McpClientOperation of(String method, Map<String, Object> params) {
+    return of(method, params, Collections.emptyMap());
+  }
+
+  static McpClientOperation of(
+      String method, Map<String, Object> params, Map<String, Object> meta) {
     McpMethod operation = McpMethod.valueFrom(method);
-    return new McpClientOperationImpl(operation, params);
+    return new McpClientOperationImpl(operation, params, meta);
   }
 
   enum McpMethod {
@@ -70,6 +77,8 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
   }
 
   record McpClientOperationImpl(
-      McpMethod method, @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> params)
+      McpMethod method,
+      @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> params,
+      @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> meta)
       implements McpClientOperation {}
 }

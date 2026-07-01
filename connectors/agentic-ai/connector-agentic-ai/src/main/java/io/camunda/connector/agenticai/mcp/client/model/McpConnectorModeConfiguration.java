@@ -57,9 +57,10 @@ public sealed interface McpConnectorModeConfiguration
 
     @Override
     public McpClientOperation toMcpClientOperation() {
-      return MapUtils.isEmpty(toolOperation.params())
-          ? McpClientOperation.of(toolOperation.method())
-          : McpClientOperation.of(toolOperation.method(), toolOperation.params());
+      return McpClientOperation.of(
+          toolOperation.method(),
+          MapUtils.emptyIfNull(toolOperation.params()),
+          MapUtils.emptyIfNull(toolOperation.meta()));
     }
 
     @Override
@@ -89,7 +90,10 @@ public sealed interface McpConnectorModeConfiguration
 
     @Override
     public McpClientOperation toMcpClientOperation() {
-      return McpClientOperation.of(operation.method(), operation.params().orElseGet(Map::of));
+      return McpClientOperation.of(
+          operation.method(),
+          operation.params().orElseGet(Map::of),
+          operation.meta().orElseGet(Map::of));
     }
 
     @Override

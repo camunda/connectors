@@ -7,6 +7,9 @@
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
@@ -17,6 +20,7 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -33,10 +37,10 @@ class ListPromptsRequestTest {
 
   @Test
   void returnsEmptyList_whenNoPromptsAvailable() {
-    when(mcpClient.listPrompts())
+    when(mcpClient.listPrompts(null, null))
         .thenReturn(new McpSchema.ListPromptsResult(Collections.emptyList(), null));
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -66,10 +70,10 @@ class ListPromptsRequestTest {
         createPrompt(
             "four_eyes_review", "Four Eyes Review", "Asks the LLM to judge something", List.of());
 
-    when(mcpClient.listPrompts())
+    when(mcpClient.listPrompts(null, null))
         .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2), null));
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -93,10 +97,10 @@ class ListPromptsRequestTest {
     final var filter =
         AllowDenyListBuilder.builder().allowed(List.of("allowed-prompt")).denied(List.of()).build();
 
-    when(mcpClient.listPrompts())
+    when(mcpClient.listPrompts(null, null))
         .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2), null));
 
-    final var result = testee.execute(mcpClient, filter);
+    final var result = testee.execute(mcpClient, filter, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -118,11 +122,11 @@ class ListPromptsRequestTest {
             .denied(List.of("blocked-prompt3"))
             .build();
 
-    when(mcpClient.listPrompts())
+    when(mcpClient.listPrompts(null, null))
         .thenReturn(
             new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2, mcpPrompt3), null));
 
-    final var result = testee.execute(mcpClient, filter);
+    final var result = testee.execute(mcpClient, filter, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -140,15 +144,36 @@ class ListPromptsRequestTest {
             .denied(List.of("allowed-prompt"))
             .build();
 
-    when(mcpClient.listPrompts())
+    when(mcpClient.listPrompts(null, null))
         .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1), null));
 
-    final var result = testee.execute(mcpClient, filter);
+    final var result = testee.execute(mcpClient, filter, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientListPromptsResult.class,
             res -> assertThat(res.promptDescriptions()).isEmpty());
+  }
+
+  @Test
+  void forwardsMetaUnmodified_whenMetaConfigured() {
+    final var meta = Map.<String, Object>of("source_group_ids_include", List.of("version-uuid"));
+    when(mcpClient.listPrompts(isNull(), eq(meta)))
+        .thenReturn(new McpSchema.ListPromptsResult(Collections.emptyList(), null));
+
+    testee.execute(mcpClient, EMPTY_FILTER, meta);
+
+    verify(mcpClient).listPrompts(isNull(), eq(meta));
+  }
+
+  @Test
+  void doesNotSendMeta_whenMetaNotConfigured() {
+    when(mcpClient.listPrompts(isNull(), isNull()))
+        .thenReturn(new McpSchema.ListPromptsResult(Collections.emptyList(), null));
+
+    testee.execute(mcpClient, EMPTY_FILTER, null);
+
+    verify(mcpClient).listPrompts(isNull(), isNull());
   }
 
   private McpSchema.Prompt createMcpPrompt(

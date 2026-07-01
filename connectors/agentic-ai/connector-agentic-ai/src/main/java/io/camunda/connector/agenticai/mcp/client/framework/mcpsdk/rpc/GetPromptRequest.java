@@ -29,7 +29,10 @@ final class GetPromptRequest {
   }
 
   public McpClientGetPromptResult execute(
-      McpSyncClient client, AllowDenyList promptNameFilter, Map<String, Object> params) {
+      McpSyncClient client,
+      AllowDenyList promptNameFilter,
+      Map<String, Object> params,
+      Map<String, Object> meta) {
     final var getPromptParams = parseParams(params);
 
     if (!promptNameFilter.isPassing(getPromptParams.name())) {
@@ -55,7 +58,8 @@ final class GetPromptRequest {
           Optional.ofNullable(getPromptParams.arguments()).orElseGet(Collections::emptyMap);
 
       final var result =
-          client.getPrompt(new McpSchema.GetPromptRequest(getPromptParams.name(), promptArguments));
+          client.getPrompt(
+              new McpSchema.GetPromptRequest(getPromptParams.name(), promptArguments, meta));
 
       LOGGER.debug(
           "MCP({}): Successfully retrieved prompt '{}' with {} messages",
