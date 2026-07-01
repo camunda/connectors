@@ -173,7 +173,8 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.17.1</version.langchain4j>
     <version.mcp-sdk>1.1.3</version.mcp-sdk>
-    <version.elasticsearch-java-client>8.19.18</version.elasticsearch-java-client>
+    <version.elasticsearch-java>8.19.17</version.elasticsearch-java>
+    <version.elasticsearch-rest-client>8.19.17</version.elasticsearch-rest-client>
 
     <version.scala>3.8.4</version.scala>
 
@@ -693,12 +694,12 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>co.elastic.clients</groupId>
         <artifactId>elasticsearch-java</artifactId>
-        <version>${version.elasticsearch-java-client}</version>
+        <version>${version.elasticsearch-java}</version>
       </dependency>
       <dependency>
         <groupId>org.elasticsearch.client</groupId>
         <artifactId>elasticsearch-rest-client</artifactId>
-        <version>${version.elasticsearch-java-client}</version>
+        <version>${version.elasticsearch-rest-client}</version>
       </dependency>
 
       <dependency>
