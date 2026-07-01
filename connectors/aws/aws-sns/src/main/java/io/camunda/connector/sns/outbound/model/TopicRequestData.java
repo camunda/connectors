@@ -24,7 +24,7 @@ public class TopicRequestData {
   @TemplateProperty(
       group = "configuration",
       label = "Topic ARN",
-      description = "Specify the topic you want to publish to")
+      tooltip = "ARN of the SNS topic to publish to.")
   @NotBlank
   private String topicArn;
 
@@ -41,8 +41,7 @@ public class TopicRequestData {
         @TemplateProperty.DropdownPropertyChoice(value = "standard", label = "Standard"),
         @TemplateProperty.DropdownPropertyChoice(value = "fifo", label = "FIFO")
       },
-      description =
-          "Select SNS topic type. Details at <a href=\"https://aws.amazon.com/sns/features/\">AWS SNS Features</a>")
+      tooltip = "Details at <a href=\"https://aws.amazon.com/sns/features/\">AWS SNS features</a>")
   @NotNull
   private TopicType type = TopicType.standard;
 
@@ -50,8 +49,8 @@ public class TopicRequestData {
       group = "input",
       label = "Message group ID",
       condition = @TemplateProperty.PropertyCondition(property = "topic.type", equals = "fifo"),
-      description =
-          "Message group ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-grouping.html\">message grouping for FIFO topics</a> in the Amazon SNS developer guide")
+      tooltip =
+          "Required for FIFO topics. See <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-grouping.html\">message grouping for FIFO topics</a> in the Amazon SNS developer guide")
   private String messageGroupId;
 
   @TemplateProperty(
@@ -59,15 +58,15 @@ public class TopicRequestData {
       label = "Message deduplication ID",
       condition = @TemplateProperty.PropertyCondition(property = "topic.type", equals = "fifo"),
       optional = true,
-      description =
-          "Message deduplication ID. See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\">Message deduplication for FIFO topics</a> in the Amazon SNS developer guide")
+      tooltip =
+          "See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\">Message deduplication for FIFO topics</a> in the Amazon SNS developer guide")
   private String messageDeduplicationId;
 
   @TemplateProperty(
       group = "input",
       label = "Subject",
       optional = true,
-      description = "Specify the subject of the message you want to publish in the SNS topic")
+      tooltip = "Subject of the message to publish in the SNS topic.")
   private String subject;
 
   // we don't need to know the customer message as we will pass it as-is
@@ -75,7 +74,7 @@ public class TopicRequestData {
       group = "input",
       label = "Message",
       type = TemplateProperty.PropertyType.Text,
-      description = "Data to publish in the SNS topic")
+      tooltip = "Data to publish in the SNS topic")
   @NotNull
   private Object message;
 
@@ -84,8 +83,7 @@ public class TopicRequestData {
       group = "input",
       feel = FeelMode.required,
       label = "messageAttributes",
-      optional = true,
-      description = "Message attributes metadata")
+      optional = true)
   private Map<String, SnsMessageAttribute> messageAttributes;
 
   @AssertTrue

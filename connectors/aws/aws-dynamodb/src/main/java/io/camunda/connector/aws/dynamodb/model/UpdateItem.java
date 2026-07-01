@@ -22,7 +22,7 @@ public record UpdateItem(
             label = "Table name",
             id = "updateTable.tableName",
             group = "input",
-            description = "Name of DynamoDB table")
+            tooltip = "Name of DynamoDB table")
         @NotBlank
         String tableName,
     @TemplateProperty(
@@ -30,15 +30,15 @@ public record UpdateItem(
             id = "updateItem.primaryKeyComponents",
             group = "input",
             feel = FeelMode.required,
-            description = "Simple or composite primary key")
+            tooltip = "Simple or composite primary key")
         @NotNull
         Map<String, Object> primaryKeyComponents,
     @TemplateProperty(
             label = "Key attributes",
             group = "input",
             feel = FeelMode.required,
-            description =
-                "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
+            tooltip =
+                "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         @NotNull
         Map<String, Object> keyAttributes,
     @TemplateProperty(
@@ -49,7 +49,7 @@ public record UpdateItem(
               @TemplateProperty.DropdownPropertyChoice(value = "put", label = "PUT"),
               @TemplateProperty.DropdownPropertyChoice(value = "delete", label = "DELETE")
             },
-            description = "Specifies how to perform the update")
+            tooltip = "Specifies how to perform the update")
         @NotBlank
         String attributeAction)
     implements ItemInput {}

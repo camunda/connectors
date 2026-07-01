@@ -19,7 +19,7 @@ public record DeleteTable(
             label = "Table name",
             id = "deleteTable.tableName",
             group = "input",
-            description = "Name of DynamoDB table")
+            tooltip = "Name of DynamoDB table")
         @NotBlank
         String tableName)
     implements TableInput {}

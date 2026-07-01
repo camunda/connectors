@@ -139,7 +139,6 @@
   }, {
     "id" : "queue.queue.url",
     "label" : "Queue URL",
-    "description" : "Specify the URL of the SQS queue where you would like to subscribe to",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -149,11 +148,11 @@
       "name" : "queue.url",
       "type" : "zeebe:property"
     },
+    "tooltip" : "URL of the SQS queue to subscribe to.",
     "type" : "String"
   }, {
     "id" : "queue.queue.pollingWaitTime",
     "label" : "Polling wait time",
-    "description" : "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details. A value of 0 will automatically be overridden to 1",
     "optional" : false,
     "value" : "20",
     "constraints" : {
@@ -167,11 +166,11 @@
       "name" : "queue.pollingWaitTime",
       "type" : "zeebe:property"
     },
+    "tooltip" : "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">Amazon SQS connector guide</a>. A value of 0 will automatically be overridden to 1.",
     "type" : "String"
   }, {
     "id" : "queue.queue.attributeNames",
     "label" : "Attribute names",
-    "description" : "Array of queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
     "optional" : false,
     "feel" : "optional",
     "group" : "input",
@@ -179,11 +178,11 @@
       "name" : "queue.attributeNames",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Array of queue attribute names. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">Amazon SQS connector guide</a>.",
     "type" : "String"
   }, {
     "id" : "queue.queue.messageAttributeNames",
     "label" : "Message attribute names",
-    "description" : "Array of message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
     "optional" : false,
     "feel" : "optional",
     "group" : "input",
@@ -191,6 +190,7 @@
       "name" : "queue.messageAttributeNames",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Array of message attribute names. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">Amazon SQS connector guide</a>.",
     "type" : "String"
   }, {
     "id" : "activationCondition",

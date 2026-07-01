@@ -19,7 +19,7 @@ public record DescribeTable(
             label = "Table name",
             id = "describeTable.tableName",
             group = "input",
-            description = "Name of DynamoDB table")
+            tooltip = "Name of DynamoDB table")
         @NotBlank
         String tableName)
     implements TableInput {}

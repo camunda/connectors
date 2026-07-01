@@ -22,7 +22,7 @@ public record SnsWebhookConnectorProperties(
             id = "context",
             label = "Subscription ID",
             group = "subscription",
-            description = "The subscription ID is a part of the URL endpoint",
+            tooltip = "The subscription ID is a part of the URL endpoint",
             feel = FeelMode.disabled)
         @NotBlank
         String context,
@@ -30,7 +30,7 @@ public record SnsWebhookConnectorProperties(
             id = "securitySubscriptionAllowedFor",
             label = "Allow to receive messages from topic(s)",
             group = "subscription",
-            description = "Control which topic(s) is allowed to start a process",
+            tooltip = "Control which topic(s) are allowed to start a process",
             defaultValue = "any",
             type = PropertyType.Dropdown,
             choices = {
@@ -42,7 +42,7 @@ public record SnsWebhookConnectorProperties(
             id = "topicsAllowList",
             label = "Topic ARN(s)",
             group = "subscription",
-            description = "Topics that allow to publish messages",
+            tooltip = "Comma-separated topic ARNs that are allowed to trigger the process",
             optional = true,
             condition =
                 @PropertyCondition(

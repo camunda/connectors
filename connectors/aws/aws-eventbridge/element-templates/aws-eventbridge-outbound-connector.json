@@ -136,7 +136,6 @@
   }, {
     "id" : "input.source",
     "label" : "Source",
-    "description" : "Enter the event source value. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -147,11 +146,11 @@
       "name" : "input.source",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Value that identifies the service that generated the event. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.",
     "type" : "String"
   }, {
     "id" : "input.detailType",
     "label" : "Detail type",
-    "description" : "Enter the event detail type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -162,11 +161,11 @@
       "name" : "input.detailType",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Type of event being sent. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.",
     "type" : "String"
   }, {
     "id" : "input.eventBusName",
     "label" : "Event bus name",
-    "description" : "Enter the event bus name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -177,11 +176,11 @@
       "name" : "input.eventBusName",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Name of the destination event bus. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.",
     "type" : "Text"
   }, {
     "id" : "input.detail",
     "label" : "Event payload",
-    "description" : "Provide the payload for the event as JSON. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -192,6 +191,7 @@
       "name" : "input.detail",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Payload must be provided as JSON. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge event payload</a>",
     "type" : "String"
   }, {
     "id" : "version",

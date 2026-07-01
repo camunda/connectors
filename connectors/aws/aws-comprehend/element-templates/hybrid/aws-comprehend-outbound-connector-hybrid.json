@@ -154,7 +154,6 @@
   }, {
     "id" : "input.text",
     "label" : "Text",
-    "description" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-Text\">Text</a> to be analyzed.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -170,11 +169,11 @@
       "equals" : "sync",
       "type" : "simple"
     },
+    "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-Text\">Text</a> to be analyzed.",
     "type" : "String"
   }, {
     "id" : "input.endpointArn",
     "label" : "Endpoint's ARN",
-    "description" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-EndpointArn\">ARN of Endpoint.</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -190,11 +189,11 @@
       "equals" : "sync",
       "type" : "simple"
     },
+    "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-EndpointArn\">ARN of Endpoint.</a>",
     "type" : "String"
   }, {
     "id" : "input.async.documentReadMode",
     "label" : "Document read mode",
-    "description" : "Determines <a href=\"https://docs.aws.amazon.com/comprehend/latest/dg/idp-set-textract-options.html\">text extraction actions</a> for PDF files.",
     "optional" : false,
     "value" : "SERVICE_DEFAULT",
     "constraints" : {
@@ -210,6 +209,7 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "Determines <a href=\"https://docs.aws.amazon.com/comprehend/latest/dg/idp-set-textract-options.html\">text extraction actions</a> for PDF files.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Service default",
@@ -224,7 +224,6 @@
   }, {
     "id" : "input.async.documentReadAction",
     "label" : "Document read action",
-    "description" : "Textract API operation that uses to extract text from PDF files and image files.",
     "optional" : false,
     "value" : "TEXTRACT_DETECT_DOCUMENT_TEXT",
     "constraints" : {
@@ -240,7 +239,7 @@
       "equals" : "async",
       "type" : "simple"
     },
-    "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/dg/idp-set-textract-options.html\"target=\"_blank\">more info</a>",
+    "tooltip" : "The Amazon Textract API operation that Amazon Comprehend uses to extract text from PDF files and image files.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Detect document text",
@@ -301,7 +300,6 @@
   }, {
     "id" : "input.inputS3Uri",
     "label" : "Inputs' S3 URI",
-    "description" : "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-InputDataConfig-S3Uri\">S3Uri</a> for input data.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -317,11 +315,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-InputDataConfig-S3Uri\">S3Uri</a> for input data.",
     "type" : "String"
   }, {
     "id" : "input.comprehendInputFormat",
     "label" : "Input file processing mode",
-    "description" : "Specifies how to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-InputDataConfig-InputFormat\">process input data</a>.",
     "optional" : false,
     "value" : "ONE_DOC_PER_FILE",
     "group" : "input",
@@ -334,6 +332,7 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "Specifies how to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-InputDataConfig-InputFormat\">process input data</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Each file is considered a separate document",
@@ -348,7 +347,6 @@
   }, {
     "id" : "input.clientRequestToken",
     "label" : "Client request token",
-    "description" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-ClientRequestToken\">Unique identifier</a> for the processing.",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -361,11 +359,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-ClientRequestToken\">Unique identifier</a> for the processing.",
     "type" : "String"
   }, {
     "id" : "input.dataAccessRoleArn",
     "label" : "Data Access Role's ARN",
-    "description" : "ARN of IAM role that grants <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-DataAccessRoleArn\">Amazon Comprehend read access</a> to input data.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -381,11 +379,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "ARN of IAM role that grants <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-DataAccessRoleArn\">Amazon Comprehend read access</a> to input data.",
     "type" : "String"
   }, {
     "id" : "input.documentClassifierArn",
     "label" : "Document Classifier's ARN",
-    "description" : "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-DocumentClassifierArn\">ARN of document classifier</a> to process input data.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -401,11 +399,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-DocumentClassifierArn\">ARN of document classifier</a> to process input data.",
     "type" : "String"
   }, {
     "id" : "input.flywheelArn",
     "label" : "Flywheel's ARN",
-    "description" : "ARN of <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-FlywheelArn\">Flywheel</a> for processing model.",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -418,11 +416,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "ARN of <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-FlywheelArn\">Flywheel</a> for processing model.",
     "type" : "String"
   }, {
     "id" : "input.jobName",
     "label" : "Job name",
-    "description" : "The identifier of the job. <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-JobName\">More info.</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -435,11 +433,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-JobName\">identifier of the job</a>.",
     "type" : "String"
   }, {
     "id" : "input.outputS3Uri",
     "label" : "Output's S3 URI",
-    "description" : "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-OutputDataConfig-S3Uri\">S3Uri</a> for output data.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -455,11 +453,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-OutputDataConfig-S3Uri\">S3Uri</a> for output data.",
     "type" : "String"
   }, {
     "id" : "input.outputKmsKeyId",
     "label" : "Outputs KMS Key Id",
-    "description" : "KMS' key Id used to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_OutputDataConfig.html#comprehend-Type-OutputDataConfig-KmsKeyId\">encrypt output data</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -472,11 +470,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "KMS' key Id used to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_OutputDataConfig.html#comprehend-Type-OutputDataConfig-KmsKeyId\">encrypt output data</a>.",
     "type" : "String"
   }, {
     "id" : "input.tags",
     "label" : "Tags",
-    "description" : "Tags to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-Tags\">associate progressing with a document classification</a>.",
     "optional" : true,
     "feel" : "required",
     "group" : "input",
@@ -489,11 +487,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "Tags to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-Tags\">associate with the document classification job</a>.",
     "type" : "String"
   }, {
     "id" : "input.volumeKmsKeyId",
     "label" : "VolumeKmsKeyId",
-    "description" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-VolumeKmsKeyId\">KMS to encrypt data on storage</a> attached to compute instance.",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -506,11 +504,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-VolumeKmsKeyId\">KMS to encrypt data on storage</a> attached to compute instance.",
     "type" : "String"
   }, {
     "id" : "input.securityGroupIds",
     "label" : "Security group Ids",
-    "description" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_VpcConfig.html#comprehend-Type-VpcConfig-SecurityGroupIds\">ID for security group</a> on instance of private VPC.",
     "optional" : true,
     "feel" : "required",
     "group" : "input",
@@ -523,11 +521,11 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_VpcConfig.html#comprehend-Type-VpcConfig-SecurityGroupIds\">ID for security group</a> on instance of private VPC.",
     "type" : "String"
   }, {
     "id" : "input.subnets",
     "label" : "Subnets",
-    "description" : "ID for each <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_VpcConfig.html#comprehend-Type-VpcConfig-Subnets\">subnet used in VPC</a>.",
     "optional" : true,
     "feel" : "required",
     "group" : "input",
@@ -540,6 +538,7 @@
       "equals" : "async",
       "type" : "simple"
     },
+    "tooltip" : "ID for each <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_VpcConfig.html#comprehend-Type-VpcConfig-Subnets\">subnet used in VPC</a>.",
     "type" : "String"
   }, {
     "id" : "version",
