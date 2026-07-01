@@ -91,7 +91,7 @@ public record SmtpSendEmail(
             id = "contentType",
             defaultValue = "PLAIN",
             type = TemplateProperty.PropertyType.Dropdown,
-            tooltip = "Email's contentType",
+            tooltip = "The content type of the email.",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.contentType"))
         @Valid
         @NotNull
@@ -116,7 +116,7 @@ public record SmtpSendEmail(
             group = "sendEmailSmtp",
             id = "smtpHtmlBody",
             type = TemplateProperty.PropertyType.Text,
-            tooltip = "Email's Html content",
+            tooltip = "Email's HTML content",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.htmlBody"),
             feel = FeelMode.optional,
             condition =
@@ -128,9 +128,8 @@ public record SmtpSendEmail(
     @TemplateDocumentProperty(
             group = "sendEmailSmtp",
             id = "attachmentsSmtp",
-            tooltip = "Email's attachments, should be set as a list ",
+            tooltip = "Email attachments, set as a list, e.g. =[document1, document2]",
             optional = true,
-            description = "Email's attachment. e.g., =[ document1, document2]",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.attachments"))
         List<Document> attachments)
     implements SmtpAction {

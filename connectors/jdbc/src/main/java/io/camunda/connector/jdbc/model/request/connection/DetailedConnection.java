@@ -30,8 +30,8 @@ public record DetailedConnection(
             label = "Properties",
             optional = true,
             feel = FeelMode.required,
-            description =
-                "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.")
+            tooltip =
+                "Additional properties for the connection. See the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">SQL connection properties</a> reference.")
         @FEEL
         Map<String, String> properties)
     implements JdbcConnection {

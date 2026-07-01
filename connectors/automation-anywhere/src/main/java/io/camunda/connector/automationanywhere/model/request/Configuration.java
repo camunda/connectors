@@ -17,6 +17,6 @@ public record Configuration(
             defaultValueType = TemplateProperty.DefaultValueType.Number,
             defaultValue = "20",
             optional = true,
-            description =
+            tooltip =
                 "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout")
         Integer connectionTimeoutInSeconds) {}

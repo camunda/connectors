@@ -42,7 +42,7 @@ public record SendMessageRequest(
         @TemplateProperty(
                 optional = true,
                 label = "Time to live (as ISO 8601)",
-                description = "Duration for which the message remains buffered")
+                tooltip = "Duration for which the message remains buffered")
             Duration timeToLive,
         @TemplateProperty(optional = true, label = "Message id (optional)") String messageId)
         implements CorrelationType {}

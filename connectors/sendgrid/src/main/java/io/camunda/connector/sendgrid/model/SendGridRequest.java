@@ -107,7 +107,7 @@ public class SendGridRequest {
       id = "attachments",
       group = "content",
       optional = true,
-      description =
+      tooltip =
           "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>")
   private List<Document> attachments;
 

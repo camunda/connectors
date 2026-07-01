@@ -18,10 +18,10 @@ public record JdbcRequest(
         @TemplateProperty(
             id = "database",
             label = "Select a database",
-            description =
+            tooltip =
                 "Select the database you want to connect to. "
                     + "If you choose Oracle, make sure the Oracle JDBC driver is included. "
-                    + "<a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Learn how to set it up.</a>",
+                    + "<a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Oracle JDBC driver setup</a>.",
             group = "database",
             type = Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),

@@ -17,9 +17,7 @@ public record ImapSearchEmails(
             group = "searchEmailsImap",
             id = "searchStringEmailImap",
             tooltip =
-                "Define the search criteria using supported keywords and syntax to filter emails.",
-            description =
-                "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+                "Define the search criteria using supported keywords and syntax to filter emails. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/\">Email connector search syntax</a>.",
             type = TemplateProperty.PropertyType.Text,
             feel = FeelMode.required,
             optional = true,
