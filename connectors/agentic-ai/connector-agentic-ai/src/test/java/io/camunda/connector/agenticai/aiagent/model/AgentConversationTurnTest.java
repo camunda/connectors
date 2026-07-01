@@ -38,4 +38,31 @@ class AgentConversationTurnTest {
     var turn = new AgentConversationTurn(1, List.of(userMessage("hi")), null, AgentMetrics.empty());
     assertThat(turn.hasToolCalls()).isFalse();
   }
+
+  @Test
+  void toolCallsById_keysAssistantToolCallsById() {
+    var turn =
+        new AgentConversationTurn(
+            1,
+            List.of(userMessage("hi")),
+            assistantMessage("thinking", TOOL_CALLS),
+            AgentMetrics.empty());
+    var byId = turn.toolCallsById();
+    assertThat(byId).containsOnlyKeys("abcdef", "fedcba");
+    assertThat(byId.get("abcdef").arguments()).containsEntry("location", "MUC");
+  }
+
+  @Test
+  void toolCallsById_emptyWhenNoToolCalls() {
+    var turn =
+        new AgentConversationTurn(
+            1, List.of(userMessage("hi")), assistantMessage("done"), AgentMetrics.empty());
+    assertThat(turn.toolCallsById()).isEmpty();
+  }
+
+  @Test
+  void toolCallsById_emptyWhenPending() {
+    var turn = new AgentConversationTurn(1, List.of(userMessage("hi")), null, AgentMetrics.empty());
+    assertThat(turn.toolCallsById()).isEmpty();
+  }
 }
