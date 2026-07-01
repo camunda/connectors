@@ -72,6 +72,7 @@ import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import io.camunda.connector.runtime.outbound.SecretFilterFactoryConfiguration;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
@@ -95,7 +96,8 @@ import org.springframework.core.env.Environment;
   A2aClientOutboundConnectorConfiguration.class,
   A2aClientAgenticToolConfiguration.class,
   A2aClientPollingConfiguration.class,
-  A2aClientWebhookConfiguration.class
+  A2aClientWebhookConfiguration.class,
+  SecretFilterFactoryConfiguration.class
 })
 public class AgenticAiConnectorsAutoConfiguration {
 
