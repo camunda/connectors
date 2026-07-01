@@ -1,403 +1,1166 @@
-name: Merge queue Helm test
-
 on:
   push:
+    # Trigger the workflow on push to main, self-managed and feature branches.
     branches:
-      - stable/8.9
-  workflow_dispatch:
-  merge_group:
+      - "main"
+      - "feature/**"
+      - "self-managed/**"
+  pull_request:
+    # Trigger the workflow on pull requests
+    branches:
+      - "**"
 
-# Limit workflow to 1 concurrent run per ref (branch) and trigger event: new commit -> old runs are canceled to save costs.
-# Exception for main + stable/* branches: complete builds for every commit needed for confidence.
+# Will limit the workflow to 1 concurrent run per ref (branch)
+# If a new commits occurs, the current run will be canceled
+# Exception for the main branch to run concurrently per commit, meaning every commit runs through
+# reasoning is that canceling main hinders the release process
 concurrency:
-  group: ${{ format('{0}-{1}-{2}', github.workflow, github.event_name, (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/stable/')) && github.sha || github.ref) }}
+  group: ${{ github.ref == 'refs/heads/main' && github.sha || format('{0}-{1}', github.workflow, github.ref) }}
   cancel-in-progress: true
 
+name: build-and-test
 jobs:
-  build-image:
-    name: Build and Publish Connectors Docker Image
-    runs-on: ubuntu-latest
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
+  filter-changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
     outputs:
-      connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
+      needs-restapi-build: 'true'
+      needs-webapp-build: 'true'
+      needs-e2e-build: 'true'
+      needs-restapi-tests: ${{ steps.filter.outputs.restapi }}
+      needs-webapp-tests: ${{ steps.filter.outputs.webapp }}
+      needs-e2e-tests: ${{ steps.filter.outputs.restapi == 'true' || steps.filter.outputs.webapp == 'true' || steps.filter.outputs.e2e == 'true' }}
+      needs-asset-refresh-test: ${{ steps.filter.outputs.webapp == 'true' && ((github.event_name == 'push' && !startsWith(github.ref_name, 'self-managed/')) || (github.event_name == 'pull_request' && !startsWith(github.base_ref, 'self-managed/'))) }}
+      needs-saas-build: ${{ (github.event_name == 'push' && !startsWith(github.ref_name, 'self-managed/')) || (github.event_name == 'pull_request' && !startsWith(github.base_ref, 'self-managed/')) }}
     steps:
-      - uses: actions/checkout@v6
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Import Secrets
+      - name: Detect changed files
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          filters: |
+            restapi:
+              - 'restapi/**'
+            webapp:
+              - 'webapp/**'
+            e2e:
+              - 'e2e/**'
+              - 'docker-compose.*'
+
+  build:
+    name: build-${{ matrix.build.name }}-${{ matrix.product_context }}
+    needs:
+      - filter-changes
+    runs-on: gcp-core-4-default
+    permissions:
+      id-token: write # ID Token to authenticate with GCP
+      contents: read
+    strategy:
+      fail-fast: false # in case a self-hosted runner is preempted not the whole workflow has to be rerun
+      matrix:
+        product_context:
+          - saas
+          - self-managed
+        build:
+          - name: restapi
+            make_targets: restapi-package${{ (github.ref_name != 'main' && !startsWith(github.ref, 'refs/tags/')) && '-dev' || '' }}
+            java_version: 21.0.10
+            directory: restapi
+          - name: webapp
+            make_targets: prepare-ci-webapp-build webapp-lint webapp-tsc webapp-build install-webapp-production
+            node_version: 22.23.1
+            directory: webapp
+          - name: webapp-e2e
+            make_targets: prepare-ci-webapp-build webapp-build-e2e install-webapp-production
+            node_version: 22.23.1
+            directory: webapp
+        exclude:
+          - build:
+              name: ${{ needs.filter-changes.outputs.needs-restapi-build == 'true' && 'dummy' || 'restapi' }}
+          - build:
+              name: ${{ needs.filter-changes.outputs.needs-webapp-build == 'true' && 'dummy' || 'webapp' }}
+          - build:
+              name: ${{ needs.filter-changes.outputs.needs-e2e-build == 'true' && 'dummy' || 'webapp-e2e' }}
+          - product_context: ${{ needs.filter-changes.outputs.needs-saas-build == 'true' && '-' || 'saas' }}
+    timeout-minutes: 25
+    steps:
+      #########################################################################
+      # Setup: import secrets from vault
+      - name: Import secrets
         id: secrets
-        uses: hashicorp/vault-action@v3.4.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false # we rely on step outputs, no need for environment variables
           secrets: |
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
-            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
-
-      - name: Restore cache
-        uses: actions/cache@v5
+            secret/data/products/web-modeler/ci/common CAMUNDA_CONTAINER_REGISTRY_PASSWORD;
+            secret/data/products/web-modeler/ci/common CAMUNDA_CONTAINER_REGISTRY_USER;
+            secret/data/products/web-modeler/ci/common CAMUNDA_NEXUS_PASSWORD;
+            secret/data/products/web-modeler/ci/common CAMUNDA_NEXUS_USER;
+            secret/data/products/web-modeler/ci/common CAMUNDA_GITHUB_TOKEN;
+            secret/data/products/web-modeler/ci/common REGISTRY_MINIMUS_PSW;
+            secret/data/products/web-modeler/ci/web-modeler REGISTRY_HUB_DOCKER_COM_USR;
+            secret/data/products/web-modeler/ci/web-modeler REGISTRY_HUB_DOCKER_COM_PSW;
+      #########################################################################
+      # Setup: checkout code
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      # Setup: Authenticate to Docker Hub and Camunda Docker registry
+      - name: Log in to Docker Hub registry
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
         with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - uses: actions/setup-java@v5
+          action: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+          attempt_limit: 5
+          attempt_delay: 15000
+          with: |
+            username: ${{ steps.secrets.outputs.REGISTRY_HUB_DOCKER_COM_USR }}
+            password: ${{ steps.secrets.outputs.REGISTRY_HUB_DOCKER_COM_PSW }}
+      - name: Log in to Camunda Docker registry
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
         with:
-          distribution: 'temurin'
-          java-version: '21.0.9'
-
+          action: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+          attempt_limit: 5
+          attempt_delay: 15000
+          with: |
+            registry: registry.camunda.cloud
+            username: ${{ steps.secrets.outputs.CAMUNDA_CONTAINER_REGISTRY_USER }}
+            password: ${{ steps.secrets.outputs.CAMUNDA_CONTAINER_REGISTRY_PASSWORD }}
+      - name: Log in to Minimus Docker registry
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        with:
+          action: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+          attempt_limit: 5
+          attempt_delay: 15000
+          with: |
+            registry: reg.mini.dev
+            username: minimus
+            password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
+      #########################################################################
+      # Detect changes to enable skipping workflow
+      - name: Detect cached image from previous builds
+        id: docker-cache
+        uses: ./.github/actions/check-docker-cache
+        with:
+          detect_changes_in: ${{ matrix.build.directory }}
+          image_name: modeler-${{ matrix.build.name }}-${{ matrix.product_context }}
+          commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      #########################################################################
+      # Setup: Java environment (conditionally)
+      - uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        name: Setup Java environment
+        if: ${{ matrix.build.java_version && steps.docker-cache.outputs.result == 'miss' }}
+        with:
+          cache: maven
+          cache-dependency-path: |
+            restapi/pom.xml
+            restapi/build-tools/pom.xml
+            restapi/common/pom.xml
+            restapi/publicapi/pom.xml
+            restapi/${{ matrix.product_context }}/pom.xml
+          distribution: temurin
+          java-version: ${{ matrix.build.java_version }}
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
+        if: ${{ matrix.build.java_version }}
+        with:
+          maven-version: 3.9.6
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        if: ${{ matrix.build.java_version }}
         with:
           githubServer: false
           servers: |
             [{
-               "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
-               "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
-             }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-
-      - name: Install element templates CLI
-        run: npm install --global element-templates-cli
-
-      - name: Package Connectors
-        env:
-          PROJECTS: bundle/default-bundle,bundle/camunda-saas-bundle
-        run: ./mvnw --batch-mode compile generate-sources package -DskipTests --projects "${PROJECTS}" --also-make
-
-      - name: Check default-bundle jar exists
-        run: ls -lh bundle/default-bundle/target/
-
-      - name: Check saas-bundle jar exists
-        run: ls -lh bundle/camunda-saas-bundle/target/
-
-      - name: Set up Docker Build
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to Harbor
-        uses: docker/login-action@v4
-        with:
-          registry: registry.camunda.cloud
-          username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
-          password: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
-
-      - name: Set connectors version
-        id: connectors-version
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_REF: ${{ github.event.merge_group.head_ref }}
+              "id": "camunda-nexus",
+              "username": "${{ steps.secrets.outputs.CAMUNDA_NEXUS_USER }}",
+              "password": "${{ steps.secrets.outputs.CAMUNDA_NEXUS_PASSWORD }}"
+            }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
+      #########################################################################
+      # Install build tooling
+      - name: Install build tooling
         run: |
-          set -euo pipefail
+          sudo apt update && sudo apt install -y make
+      #########################################################################
+      # Check dependencies licenses
+      - name: Check dependencies licenses
+        uses: ./.github/actions/check-webapp-dependencies
+        if: ${{ matrix.build.node_version && steps.docker-cache.outputs.result == 'miss' }}
+      #########################################################################
+      # Setup: Node.js environment (conditionally)
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        name: Setup Node.js environment
+        if: ${{ matrix.build.node_version && steps.docker-cache.outputs.result == 'miss' }}
+        with:
+          node-version: ${{ matrix.build.node_version }}
+          cache: 'npm'
+          cache-dependency-path: 'webapp/package-lock.json'
+      #########################################################################
+      # Perform build
+      - name: Perform ${{ matrix.build.name }} build
+        run: PRODUCT_CONTEXT=${{ matrix.product_context }} make ${{ matrix.build.make_targets }}
+        env:
+          CAMUNDA_NEXUS_PASSWORD: ${{ steps.secrets.outputs.CAMUNDA_NEXUS_PASSWORD }}
+          CAMUNDA_NEXUS_USER: ${{ steps.secrets.outputs.CAMUNDA_NEXUS_USER }}
+        if: ${{ steps.docker-cache.outputs.result == 'miss' }}
+      #########################################################################
+      # Build and push Docker image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+        if: ${{ steps.docker-cache.outputs.result == 'miss' }}
+        with:
+          platforms: linux/amd64,linux/arm64
+      - name: Cache Docker layers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ steps.docker-cache.outputs.result == 'miss' }}
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ matrix.build.name }}-${{ matrix.product_context }}-${{ github.event.pull_request.head.sha || github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-${{ matrix.build.name }}-${{ matrix.product_context }}-
+      - name: Build Docker image
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        if: ${{ steps.docker-cache.outputs.result == 'miss' }}
+        with:
+          action: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+          attempt_limit: 5
+          attempt_delay: 15000
+          with: |
+            build-args: PRODUCT_CONTEXT=${{ matrix.product_context }}
+            cache-from: type=local,src=/tmp/.buildx-cache
+            cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
+            context: .
+            file: ${{ matrix.build.directory }}/Dockerfile
+            platforms: linux/amd64,linux/arm64
+            provenance: false
+            push: true
+            tags: |
+              ${{ env.DOCKER_HARBOR_CI_TAG }}
+              ${{ env.DOCKER_HARBOR_PR_TAG }}
+              ${{ env.DOCKER_HARBOR_CACHE_TAG }}
+              ${{ github.ref_name == 'main' && env.DOCKER_HARBOR_LATEST_TAG || '' }}
+              ${{ github.ref_name == 'main' && matrix.product_context == 'self-managed' && env.DOCKER_HARBOR_SNAPSHOT_TAG || '' }}
+              ${{ github.ref_name == 'main' && matrix.product_context == 'self-managed' && env.DOCKER_HUB_SNAPSHOT_TAG || '' }}
+              ${{ startsWith(github.ref_name, 'self-managed/') && matrix.product_context == 'self-managed' && env.DOCKER_HARBOR_SELF_MANAGED_BRANCH_SNAPSHOT_TAG || '' }}
+              ${{ startsWith(github.ref_name, 'self-managed/') && matrix.product_context == 'self-managed' && env.DOCKER_HUB_SELF_MANAGED_BRANCH_SNAPSHOT_TAG || '' }}
+      - name: Move cache
+        if: ${{ steps.docker-cache.outputs.result == 'miss' }}
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-          MAVEN_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
-          BASE_VERSION="${MAVEN_VERSION%-SNAPSHOT}"
-
-          if [[ "${{ github.event_name }}" == "merge_group" ]]; then
-            # merge_group.head_ref looks like refs/heads/gh-readonly-queue/<base>/pr-<N>-<sha>
-            PR_NUMBER=$(printf '%s' "$HEAD_REF" | sed -nE 's|.*/pr-([0-9]+)-.*|\1|p')
-            if [[ -z "$PR_NUMBER" ]]; then
-              echo "::notice::No PR number could be extracted from merge_group head_ref: $HEAD_REF"
-              echo "should-push=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            # For manual dispatch: <base>-dispatch-run<run_id>-a<run_attempt>
-            TAG="${BASE_VERSION}-dispatch-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+      #########################################################################
+      # GCR specific for Camunda Cloud
+      # kubectl is not needed but required by the action by SRE
+      - uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
+        if: ${{ matrix.product_context == 'saas' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/prerelease/') || startsWith(github.ref, 'refs/heads/release/')) }}
+      - name: Authenticate to GAR
+        uses: camunda/action-google-auth@ce81e4e8ba79b3330d8a4277e517cb65daa68de2 # v2.3.2
+        id: auth
+        if: ${{ matrix.product_context == 'saas' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/prerelease/') || startsWith(github.ref, 'refs/heads/release/')) }}
+        with:
+          account-alias: registry
+      - name: Get Docker image tag prefix
+        id: get-tag-prefix
+        if: ${{ matrix.product_context == 'saas' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/prerelease/') || startsWith(github.ref, 'refs/heads/release/')) }}
+        run: |
+          if [[ "${{ github.ref }}" =~ ^refs/heads/release/.*$ ]]; then
+            prefix="release"
+          elif [[ "${{ github.ref }}" =~ ^refs/heads/prerelease/.*$ ]]; then
+            prefix="prerelease"
           else
-            # For push to stable/8.9: <base>-stable-8.9-run<run_id>-a<run_attempt>
-            TAG="${BASE_VERSION}-stable-8.9-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+            prefix="ci"
           fi
-
-          echo "::notice::Tag: ${TAG}"
-          echo "connectors-version=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "should-push=true" >> "$GITHUB_OUTPUT"
-
-      - name: Login to Minimus
-        uses: docker/login-action@v4
+          echo "prefix=$prefix" >> $GITHUB_OUTPUT
+      - name: Tag and push to GCR
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        if: ${{ matrix.product_context == 'saas' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/prerelease/') || startsWith(github.ref, 'refs/heads/release/')) }}
         with:
-          registry: reg.mini.dev
-          username: minimus
-          password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
-
-      # Publish Docker images for Preview environments
-      - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-default
-        if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
+          attempt_limit: 5
+          attempt_delay: 15000
+          command: |
+            docker pull ${DOCKER_HARBOR_CI_TAG}
+            docker tag ${DOCKER_HARBOR_CI_TAG} ${DOCKER_GCR_TAG}
+            docker push ${DOCKER_GCR_TAG}
         env:
-          TAG: ${{ steps.connectors-version.outputs.connectors-version }}
-        uses: docker/build-push-action@v7
-        with:
-          context: bundle/default-bundle/
-          provenance: false
-          push: true
-          tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
-
-      - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-saas
-        if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
-        env:
-          TAG: ${{ steps.connectors-version.outputs.connectors-version }}
-        uses: docker/build-push-action@v7
-        with:
-          context: bundle/camunda-saas-bundle/
-          provenance: false
-          push: true
-          tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ env.TAG }}
-
-  trigger-sm-e2e:
-    name: Trigger SM E2E tests
-    needs: [ build-image ]
-    if: needs.build-image.outputs.connectors-version != ''
-    uses: ./.github/workflows/INTEGRATION_TEST.yml
-    secrets: inherit
-    with:
-      image-source: artifactory
-      connectors-version: ${{ needs.build-image.outputs.connectors-version }}
-      release-branch: main
-      # Route to the dedicated AlwaysGreen GKE namespace/node pool that finance tracks for cost.
-      scenario: alwaysgreen
-      shortname: agrn
-  sm-e2e-debug-summary:
-    name: AlwaysGreen failure feedback (SM E2E)
-    needs: trigger-sm-e2e
-    if: always() && needs.trigger-sm-e2e.result == 'failure'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
-    permissions:
-      pull-requests: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-      - name: Generate GitHub App Token
-        id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
-        with:
-          github-app-id-vault-key: GITHUB_APP_ID
-          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          github-app-private-key-vault-key: GITHUB_APP_SECRET
-          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
-          vault-url: ${{ secrets.VAULT_ADDR }}
-          owner: camunda
-          repositories: connectors
-      # Standardised AlwaysGreen feedback → job summary + PR comment (+ Slack once
-      # the channel is set below and the bot is invited to it). Best-effort.
-      - name: Post AlwaysGreen failure feedback
-        continue-on-error: true
-        uses: ./.github/actions/post-failure-feedback
-        with:
-          failure_category: unknown
-          stage: sm-e2e-helm
-          owner_team: "@camunda/connectors"
-          run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          status: failure
-          evidence: "SM E2E / Helm Integration Tests failed."
-          pr: ${{ github.event.merge_group.head_ref }}
-          # Shared AlwaysGreen channel (#alwaysgreen-reliability) — consistent
-          # across all AlwaysGreen repos. The connectors bot must be a member.
-          slack_channel: "C0AK0AVKRL0"
-          slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
-          github_token: ${{ steps.app-token.outputs.token }}
-
-  trigger-saas-e2e:
-    name: Trigger SaaS E2E tests
-    runs-on: ubuntu-latest
-    needs: [ build-image ]
-    if: needs.build-image.outputs.connectors-version != ''
-    timeout-minutes: 25
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
-    permissions: { }
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - name: Generate GitHub App Token (for dispatch)
-        id: github-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
-        with:
-          github-app-id-vault-key: GITHUB_APP_ID
-          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          github-app-private-key-vault-key: GITHUB_APP_SECRET
-          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
-          vault-url: ${{ secrets.VAULT_ADDR }}
-          owner: camunda
-          repositories: connectors,c8-cross-component-e2e-tests
-
-      - name: Trigger repository_dispatch for SaaS Connectors
-        env:
-          GITHUB_TOKEN: ${{ steps.github-token.outputs.token }}
-          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
-          IMAGE_TAG: ${{ needs.build-image.outputs.connectors-version }}
-        run: |
-          # Use the image tag as the generation name to match filter patterns
-          # e.g., "8.9.0-stable-8.9-run12345678-a1" matches "**-stable-8.9-run**-a**"
-          GEN_NAME="${IMAGE_TAG}"
-
-          curl -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            https://api.github.com/repos/camunda/c8-cross-component-e2e-tests/dispatches \
-            -d '{
-                  "event_type": "run-saas-generation-smoke-connectors",
-                  "client_payload": {
-                      "correlation_id": "'"$CORRELATION_ID"'",
-                      "source_repo": "${{ github.repository }}",
-                      "source_sha": "${{ github.sha }}",
-                      "gen_name": "'"${GEN_NAME}"'",
-                      "c8Version": "8.9",
-                      "zeebeVersion": "8.9-SNAPSHOT",
-                      "operateVersion": "8.9-SNAPSHOT",
-                      "tasklistVersion": "8.9-SNAPSHOT",
-                      "connectorsVersion": "${{ needs.build-image.outputs.connectors-version }}",
-                      "optimizeVersion": "8.9-SNAPSHOT"
-                  }
-                }'
+          DOCKER_GCR_TAG: ${{ steps.auth.outputs.registry }}/modeler/modeler-${{ matrix.build.name }}:${{ steps.get-tag-prefix.outputs.prefix }}-${{ github.sha }}
       - name: Observe build status
         if: always()
         continue-on-error: true
         uses: ./.github/actions/observe-build-status
         with:
           build_status: ${{ job.status }}
-          job_name: trigger-saas-e2e
+          job_name: build-${{ matrix.build.name }}-${{ matrix.product_context }}
+          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+
+  e2e-test:
+    name: e2e-test-${{ matrix.product_context }}-${{ matrix.containers }}
+    runs-on: gcp-core-4-longrunning
+    if: ${{ needs.filter-changes.outputs.needs-e2e-tests == 'true' }}
+    needs:
+      - build
+      - filter-changes
+    strategy:
+      fail-fast: false
+      matrix:
+        product_context:
+          - saas
+          - self-managed
+        containers:
+          - 0
+          - 1
+          - 2
+          - 3
+        exclude:
+          - product_context: ${{ needs.filter-changes.outputs.needs-saas-build == 'true' && '-' || 'saas' }}
+    timeout-minutes: 40
+    steps:
+      #########################################################################
+      # Install build tooling (make + netcat + xvfb requirements)
+      - name: Install build tooling
+        run: |
+          sudo apt update && sudo apt install -y make netcat-openbsd libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libnss3 libxss1 libasound2t64 libxtst6 xauth xvfb
+      #########################################################################
+      # Setup: import secrets from vault
+      - name: Import secrets
+        id: secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/web-modeler/ci/common CAMUNDA_CONTAINER_REGISTRY_PASSWORD;
+            secret/data/products/web-modeler/ci/common CAMUNDA_CONTAINER_REGISTRY_USER;
+            secret/data/products/web-modeler/ci/web-modeler REGISTRY_HUB_DOCKER_COM_PSW_READ_ONLY;
+            secret/data/products/web-modeler/ci/web-modeler REGISTRY_HUB_DOCKER_COM_USR;
+      #########################################################################
+      # Setup: Check out code
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      #########################################################################
+      # Setup: Authenticate to Docker Hub and Camunda Docker registry
+      - name: Log in to Docker Hub registry
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        with:
+          action: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+          attempt_limit: 5
+          attempt_delay: 15000
+          with: |
+            username: ${{ steps.secrets.outputs.REGISTRY_HUB_DOCKER_COM_USR }}
+            password: ${{ steps.secrets.outputs.REGISTRY_HUB_DOCKER_COM_PSW_READ_ONLY }}
+      - name: Log in to Camunda Docker registry
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        with:
+          action: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+          attempt_limit: 5
+          attempt_delay: 15000
+          with: |
+            registry: registry.camunda.cloud
+            username: ${{ steps.secrets.outputs.CAMUNDA_CONTAINER_REGISTRY_USER }}
+            password: ${{ steps.secrets.outputs.CAMUNDA_CONTAINER_REGISTRY_PASSWORD }}
+      #########################################################################
+      # Setup: Node.js environment
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        name: Setup Node.js environment
+        with:
+          node-version: 22.23.1
+          cache: 'npm'
+          cache-dependency-path: 'e2e/package-lock.json'
+      #########################################################################
+      # Spin up docker-compose with all containers to run the app
+      - uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        name: Start Web Modeler with docker-compose
+        with:
+          attempt_limit: 5
+          attempt_delay: 15000
+          command: make -C e2e docker-compose-e2e-${{ matrix.product_context }}
+        env:
+          COMMIT_SHA: ci-${{ github.event.pull_request.head.sha || github.sha }}
+      #########################################################################
+      # Wait for the app to be up and running
+      - name: Wait until host and port are available
+        run: timeout 120 sh -c 'until nc -z $0 $1; do sleep 2; done' localhost 8070
+      - name: Check Docker
+        run: docker ps -a
+      #########################################################################
+      # Execute the Cypress tests
+      - name: Run cypress
+        uses: cypress-io/github-action@948d67d3074f1bbb6379c8bdbb04e95d2f8e593f # v7.4.0
+        env:
+          SPLIT: 4
+          SPLIT_INDEX: ${{ matrix.containers }}
+          SPLIT_FILE: 'cypress/timings-${{ matrix.product_context }}.json'
+        with:
+          working-directory: ./e2e
+          browser: chrome
+          headed: false
+          command: make e2e-test-${{ matrix.product_context }}
+          # we don't need Cypress own runner summary
+          publish-summary: false
+      #########################################################################
+      # Upload cypress split timings file
+      - name: Upload cypress split timings file
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: success()
+        with:
+          name: e2e-timings-${{ matrix.product_context }}-${{ matrix.containers }}
+          path: ./e2e/cypress/timings-${{ matrix.product_context }}.json
+          retention-days: 1
+      #########################################################################
+      # Collect and upload logs from docker and cypress
+      - name: Collect docker logs on failure
+        if: failure()
+        uses: jwalton/gh-docker-logs@2741064ab9d7af54b0b1ffb6076cf64c16f0220e # v2.2.2
+        with:
+          dest: "./logs/e2e-test"
+      - name: Upload logs to GitHub
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-test-docker-compose-logs-${{ matrix.product_context }}-${{ matrix.containers }}
+          path: ./logs
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ failure() }}
+        with:
+          name: e2e-test-screenshots-${{ matrix.product_context }}-${{ matrix.containers }}
+          path: ./e2e/cypress/screenshots
+      - name: Upload Videos
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ failure() }}
+        with:
+          name: e2e-test-videos-${{ matrix.product_context }}-${{ matrix.containers }}
+          path: ./e2e/cypress/videos
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          job_name: e2e-test-${{ matrix.product_context }}-${{ matrix.containers }}
+          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+
+  e2e-merge-split-timings:
+    name: e2e-merge-split-timings-${{ matrix.product_context }}
+    needs:
+      - filter-changes
+      - e2e-test
+    strategy:
+      matrix:
+        product_context:
+          - saas
+          - self-managed
+        exclude:
+          - product_context: ${{ needs.filter-changes.outputs.needs-saas-build == 'true' && '-' || 'saas' }}
+    outputs:
+      timings: ${{ steps.merge.outputs.merged-timings }}
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    if: success()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install dependencies
+        uses: cypress-io/github-action@948d67d3074f1bbb6379c8bdbb04e95d2f8e593f # v7.4.0
+        with:
+          runTests: false
+          working-directory: ./e2e
+      - name: Download artifacts
+        id: download
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          path: split-results
+      - name: Display structure of downloaded files
+        run: ls -R split-results
+      - name: Merge split timings
+        id: merge
+        run: |
+          npm exec --prefix=e2e -- cypress-split-merge \
+            --parent-folder split-results \
+            --split-file timings-${{ matrix.product_context }}.json \
+            --output ./e2e/cypress/timings-${{ matrix.product_context }}.json \
+            --set-gha-output merged-timings
+      - name: Print timings
+        run: |
+          echo off
+          echo Merged timings
+          echo '${{ steps.merge.outputs.merged-timings }}'
+      - name: Upload cypress merged timings file
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: success()
+        with:
+          name: e2e-merged-timings-${{ matrix.product_context }}
+          path: ./e2e/cypress/timings-${{ matrix.product_context }}.json
+          retention-days: 7
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          job_name: e2e-merge-split-timings-${{ matrix.product_context }}
+          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+
+  e2e-test-dummy:
+    name: e2e-test-${{ matrix.product_context }}-${{ matrix.containers }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    if: ${{ needs.filter-changes.outputs.needs-e2e-tests == 'false' }}
+    needs: filter-changes
+    strategy:
+      matrix:
+        product_context:
+          - saas
+          - self-managed
+        containers:
+          - 0
+          - 1
+          - 2
+          - 3
+        exclude:
+          - product_context: ${{ needs.filter-changes.outputs.needs-saas-build == 'true' && '-' || 'saas' }}
+    steps:
+      - name: Dummy step
+        run: echo "This is a dummy step to avoid a job failure due to missing required check"
+
+  webapp-test:
+    name: webapp-test-${{ matrix.product_context }}
+    runs-on: gcp-core-8-default
+    if: ${{ needs.filter-changes.outputs.needs-webapp-tests == 'true' }}
+    needs: filter-changes
+    strategy:
+      matrix:
+        product_context:
+          - saas
+          - self-managed
+        exclude:
+          - product_context: ${{ needs.filter-changes.outputs.needs-saas-build == 'true' && '-' || 'saas' }}
+    timeout-minutes: 20
+    steps:
+      #########################################################################
+      # Setup: import secrets from vault
+      - name: Import secrets
+        id: secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/web-modeler/ci/common CAMUNDA_GITHUB_TOKEN;
+      #########################################################################
+      # Install build tooling
+      - name: Install build tooling
+        run: |
+          sudo apt update && sudo apt install -y make
+      #########################################################################
+      # Setup: Check out code
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      #########################################################################
+      # Setup: Node.js environment
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        name: Setup Node.js environment
+        with:
+          node-version: 22.23.1
+          cache: 'npm'
+          cache-dependency-path: 'webapp/package-lock.json'
+      #########################################################################
+      # Prepare and run webapp tests in all product contexts
+      - name: Run webapp tests
+        run: |
+          make prepare-ci-webapp-build
+          make webapp-test-${{ matrix.product_context }}
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          job_name: webapp-test-${{ matrix.product_context }}
+          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+
+  webapp-test-dummy:
+    name: webapp-test-${{ matrix.product_context }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    if: ${{ needs.filter-changes.outputs.needs-webapp-tests == 'false' }}
+    needs: filter-changes
+    strategy:
+      matrix:
+        product_context:
+          - saas
+          - self-managed
+        exclude:
+          - product_context: ${{ needs.filter-changes.outputs.needs-saas-build == 'true' && '-' || 'saas' }}
+    steps:
+      - name: Dummy step
+        run: echo "This is a dummy step to avoid a job failure due to missing required check"
+
+  restapi-test:
+    name: restapi-test-${{ matrix.product_context }}
+    runs-on: gcp-core-8-default
+    if: ${{ needs.filter-changes.outputs.needs-restapi-tests == 'true' }}
+    needs: filter-changes
+    strategy:
+      matrix:
+        product_context:
+          - saas
+          - self-managed
+        exclude:
+          - product_context: ${{ needs.filter-changes.outputs.needs-saas-build == 'true' && '-' || 'saas' }}
+    timeout-minutes: 45
+    steps:
+      #########################################################################
+      # Install build tooling
+      - name: Install build tooling
+        run: |
+          sudo apt update && sudo apt install -y make
+      #########################################################################
+      # Setup: import secrets from vault
+      - name: Import secrets
+        id: secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/web-modeler/ci/common CAMUNDA_NEXUS_PASSWORD;
+            secret/data/products/web-modeler/ci/common CAMUNDA_NEXUS_USER;
+      #########################################################################
+      # Setup: Check out code
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      #########################################################################
+      # Setup: Java environment (nexus credentials needed for the license checker)
+      - uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        name: Setup Java with NEXUS credentials
+        with:
+          cache: maven
+          cache-dependency-path: |
+            restapi/pom.xml
+            restapi/build-tools/pom.xml
+            restapi/common/pom.xml
+            restapi/publicapi/pom.xml
+            restapi/${{ matrix.product_context }}/pom.xml
+          distribution: temurin
+          java-version: 21.0.10
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
+        with:
+          maven-version: 3.9.6
+      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+              "id": "camunda-nexus",
+              "username": "${{ steps.secrets.outputs.CAMUNDA_NEXUS_USER }}",
+              "password": "${{ steps.secrets.outputs.CAMUNDA_NEXUS_PASSWORD }}"
+            }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
+      #########################################################################
+      # Run restapi tests
+      - name: Run restapi tests
+        run: TEST_SPRING_PROFILES_ACTIVE=test-postgresql make restapi-test-${{ matrix.product_context }}
+        env:
+          CAMUNDA_NEXUS_PASSWORD: ${{ steps.secrets.outputs.CAMUNDA_NEXUS_PASSWORD }}
+          CAMUNDA_NEXUS_USER: ${{ steps.secrets.outputs.CAMUNDA_NEXUS_USER }}
+      #########################################################################
+      # Collect and upload logs from unit and integration tests
+      - name: Upload restapi test reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ failure() }}
+        with:
+          name: restapi-test-reports-${{ matrix.product_context }}
+          path: |
+            ./restapi/*/target/surefire-reports
+            ./restapi/*/target/failsafe-reports
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          job_name: restapi-test-${{ matrix.product_context }}
+          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+
+  restapi-test-dummy:
+    name: restapi-test-${{ matrix.product_context }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    if: ${{ needs.filter-changes.outputs.needs-restapi-tests == 'false' }}
+    needs: filter-changes
+    strategy:
+      matrix:
+        product_context:
+          - saas
+          - self-managed
+        exclude:
+          - product_context: ${{ needs.filter-changes.outputs.needs-saas-build == 'true' && '-' || 'saas' }}
+    steps:
+      - name: Dummy step
+        run: echo "This is a dummy step to avoid a job failure due to missing required check"
+
+  asset-refresh-test:
+    name: asset-refresh-test (from ${{ matrix.migrations.from}} to ${{matrix.migrations.to}})
+    runs-on: gcp-core-4-default
+    if: ${{ needs.filter-changes.outputs.needs-asset-refresh-test == 'true' }}
+    needs:
+      - build
+      - filter-changes
+    strategy:
+      matrix:
+        migrations:
+          - from: ci-${{ github.event.pull_request.head.sha || github.sha }}
+            to: prod
+          - from: prod
+            to: ci-${{ github.event.pull_request.head.sha || github.sha }}
+    timeout-minutes: 20
+    steps:
+      #########################################################################
+      # Install build tooling
+      - name: Install build tooling
+        run: |
+          sudo apt update && sudo apt install -y make
+      #########################################################################
+      # Setup: import secrets from vault
+      - name: Import secrets
+        id: secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/web-modeler/ci/common CAMUNDA_CONTAINER_REGISTRY_USER;
+            secret/data/products/web-modeler/ci/common CAMUNDA_CONTAINER_REGISTRY_PASSWORD;
+            secret/data/products/web-modeler/ci/common PLAYWRIGHT_SAAS_USER_NAME;
+            secret/data/products/web-modeler/ci/common PLAYWRIGHT_SAAS_USER_PASSWORD;
+      #########################################################################
+      # Setup: Check out code and authenticate to docker and GitHub package registry
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        with:
+          action: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+          attempt_limit: 5
+          attempt_delay: 15000
+          with: |
+            registry: registry.camunda.cloud
+            username: ${{ steps.secrets.outputs.CAMUNDA_CONTAINER_REGISTRY_USER }}
+            password: ${{ steps.secrets.outputs.CAMUNDA_CONTAINER_REGISTRY_PASSWORD }}
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        name: Setup Node.js environment
+        with:
+          node-version: 22.23.1
+          cache: 'npm'
+          cache-dependency-path: 'e2e-playwright/package-lock.json'
+      - name: Install npm dependencies
+        run: ( cd e2e-playwright; npm ci )
+      - name: Install Playwright dependencies
+        run: ( cd e2e-playwright; npx playwright install --with-deps --only-shell )
+      - name: Run asset-refresh-test
+        run: make -C e2e-playwright asset-refresh-test VERSION_FROM=${{ matrix.migrations.from }} VERSION_TO=${{ matrix.migrations.to }}
+        env:
+          PLAYWRIGHT_SAAS_USER_NAME: ${{ steps.secrets.outputs.PLAYWRIGHT_SAAS_USER_NAME }}
+          PLAYWRIGHT_SAAS_USER_PASSWORD: ${{ steps.secrets.outputs.PLAYWRIGHT_SAAS_USER_PASSWORD }}
+      #########################################################################
+      # Collect and upload logs from docker and cypress
+      - name: Collect Docker logs on failure
+        if: failure()
+        uses: jwalton/gh-docker-logs@2741064ab9d7af54b0b1ffb6076cf64c16f0220e # v2.2.2
+        with:
+          dest: "./logs/asset-refresh-test-${{matrix.migrations.from}}"
+      - name: Upload Docker logs to GitHub
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: asset-refresh-test-docker-logs-${{matrix.migrations.from}}
+          path: ./logs
+      - name: Upload Playwright artifacts to GitHub
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: asset-refresh-test-playwright-report-${{matrix.migrations.from}}
+          path: ./e2e-playwright/playwright-report/
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          job_name: asset-refresh-test (from ${{ matrix.migrations.from}} to ${{matrix.migrations.to}})
+          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+
+
+  # Tests that the Docker images for Self-Managed
+  #   - are multi-arch images that can be started successfully on both amd64 and arm64 architectures
+  #   - can be started with a random non-root user (to ensure OpenShift compatibility)
+  docker-images-self-managed-test:
+    strategy:
+      matrix:
+        include:
+          - architecture: amd64
+            runs-on: gcp-core-2-default
+          - architecture: arm64
+            runs-on: aws-arm-core-2-default
+    name: docker-images-self-managed-test-${{ matrix.architecture }}
+    runs-on: ${{ matrix.runs-on }}
+    needs:
+      - build
+    timeout-minutes: 8
+    env:
+      COMMIT_SHA: ci-${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install make
+        run: sudo apt update && sudo apt install -y make
+      - name: Import secrets from Vault
+        id: secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/web-modeler/ci/common CAMUNDA_CONTAINER_REGISTRY_PASSWORD;
+            secret/data/products/web-modeler/ci/common CAMUNDA_CONTAINER_REGISTRY_USER;
+            secret/data/products/web-modeler/ci/web-modeler REGISTRY_HUB_DOCKER_COM_PSW_READ_ONLY;
+            secret/data/products/web-modeler/ci/web-modeler REGISTRY_HUB_DOCKER_COM_USR;
+      - name: Log in to Docker Hub registry
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        with:
+          action: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+          attempt_limit: 5
+          attempt_delay: 15000
+          with: |
+            username: ${{ steps.secrets.outputs.REGISTRY_HUB_DOCKER_COM_USR }}
+            password: ${{ steps.secrets.outputs.REGISTRY_HUB_DOCKER_COM_PSW_READ_ONLY }}
+      - name: Log in to Camunda Docker registry
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        with:
+          action: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+          attempt_limit: 5
+          attempt_delay: 15000
+          with: |
+            registry: registry.camunda.cloud
+            username: ${{ steps.secrets.outputs.CAMUNDA_CONTAINER_REGISTRY_USER }}
+            password: ${{ steps.secrets.outputs.CAMUNDA_CONTAINER_REGISTRY_PASSWORD }}
+      - name: Pull Docker images
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        with:
+          attempt_limit: 5
+          attempt_delay: 15000
+          command: |
+            docker pull registry.camunda.cloud/web-modeler/modeler-restapi-self-managed:$COMMIT_SHA
+            docker pull registry.camunda.cloud/web-modeler/modeler-webapp-self-managed:$COMMIT_SHA
+      - name: Check Docker image architecture
+        env:
+          EXPECTED_ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          fail=false
+          for component in restapi webapp; do
+            actualArchitecture=$(docker inspect --format="{{.Architecture}}" registry.camunda.cloud/web-modeler/modeler-$component-self-managed:$COMMIT_SHA)
+            if [[ "$actualArchitecture" != "$EXPECTED_ARCHITECTURE" ]]; then
+              echo "$component Docker image has wrong architecture (expected: $EXPECTED_ARCHITECTURE, actual: $actualArchitecture)"
+              fail=true
+            fi
+          done
+          if $fail; then
+            exit 1
+          fi
+      - name: Generate random user ID
+        id: generate-id
+        run: echo "uid=10000$RANDOM" >> $GITHUB_OUTPUT
+      - uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        name: Start Web Modeler with docker-compose
+        with:
+          attempt_limit: 5
+          attempt_delay: 15000
+          # will wait until all containers are healthy
+          command: make -C e2e docker-compose-e2e-self-managed
+        env:
+          # random user ID + root group ID (0)
+          CONTAINER_USER: ${{ steps.generate-id.outputs.uid }}:0
+      - name: Verify Docker container user IDs
+        env:
+          EXPECTED_UID: ${{ steps.generate-id.outputs.uid }}
+        run: |
+          for container_name in "modeler-restapi" "modeler-webapp"; do
+            container_uid=$(docker exec $container_name /usr/bin/id -u)
+            echo "$container_name: $container_uid"
+            if [[ "$container_uid" != "$EXPECTED_UID" ]]; then
+              echo "UID of container $container_name is $container_uid but should be $EXPECTED_UID"
+              exit 1
+            fi
+          done
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          job_name: docker-images-self-managed-test-${{ matrix.architecture }}
+          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+
+  format-identifier:
+    name: Format Identifier
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions: {}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      identifier: ${{ steps.format.outputs.identifier }}
+    steps:
+      - name: Format identifier
+        id: format
+        shell: bash
+        run: |
+          SHA_SHORT="${GITHUB_SHA::7}"
+          IDENTIFIER="web-modeler-helm-${{ github.run_id }}-${SHA_SHORT}"
+          IDENTIFIER="${IDENTIFIER:0:40}"
+          echo "identifier=${IDENTIFIER}" >> "$GITHUB_OUTPUT"
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          job_name: build-and-test-format-identifier
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
 
-      - name: Wait for downstream workflow to finish
-        id: wait-downstream
-        env:
-          GH_TOKEN: ${{ steps.github-token.outputs.token }}
-          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
-        run: |
-          set -euo pipefail
-          echo "Waiting for downstream E2E workflow run in camunda/c8-cross-component-e2e-tests for correlation id: $CORRELATION_ID"
-
-          TARGET_REPO="camunda/c8-cross-component-e2e-tests"
-          WORKFLOW_FILE="playwright_saas_pr_trigger_connectors.yml"
-
-          gh_api_with_retry() {
-            local endpoint="$1"
-            local max_attempts="${2:-6}"
-            local sleep_s="${3:-2}"
-            local attempt=1
-            local out
-
-            while true; do
-              if out="$(gh api "$endpoint" 2>&1)"; then
-                printf '%s' "$out"
-                return 0
-              fi
-
-              if echo "$out" | grep -Eq 'HTTP 502|HTTP 503|HTTP 504|TLS handshake timeout|timeout|temporarily unavailable|connection reset by peer|EOF'; then
-                if (( attempt >= max_attempts )); then
-                  echo "gh api failed after ${attempt}/${max_attempts} attempts for $endpoint" >&2
-                  echo "$out" >&2
-                  return 1
-                fi
-                echo "Transient gh/api error (attempt ${attempt}/${max_attempts}) for $endpoint:" >&2
-                echo "$out" >&2
-                sleep "$sleep_s"
-                attempt=$((attempt + 1))
-                sleep_s=$((sleep_s * 2))
-                continue
-              fi
-
-              echo "Non-retryable gh/api error for $endpoint:" >&2
-              echo "$out" >&2
-              return 1
-            done
-          }
-
-          RUN_ID=""
-
-          for _ in {1..80}; do
-            if [[ -z "$RUN_ID" ]]; then
-              RUN_ID=$(
-                gh_api_with_retry "/repos/$TARGET_REPO/actions/workflows/$WORKFLOW_FILE/runs?event=repository_dispatch&per_page=50" \
-                | jq -r --arg c "$CORRELATION_ID" '
-                    .workflow_runs
-                    | map(select(.display_title != null and (.display_title | contains($c))))
-                    | sort_by(.created_at)
-                    | last
-                    | .id // empty
-                  '
-              )
-
-              if [[ -z "$RUN_ID" ]]; then
-                echo "No downstream run found yet for correlation id. Sleeping..."
-                sleep 30
-                continue
-              fi
-
-              echo "Locked onto downstream run id: $RUN_ID"
-              echo "downstream_run_url=https://github.com/$TARGET_REPO/actions/runs/$RUN_ID" >> "$GITHUB_OUTPUT"
-            fi
-
-            RUN_JSON="$(gh_api_with_retry "/repos/$TARGET_REPO/actions/runs/$RUN_ID")"
-            STATUS="$(jq -r .status <<<"$RUN_JSON")"
-            CONCLUSION="$(jq -r .conclusion <<<"$RUN_JSON")"
-            echo "Workflow run $RUN_ID status: $STATUS ($CONCLUSION)"
-
-            if [[ "$STATUS" == "completed" ]]; then
-              if [[ "$CONCLUSION" == "success" ]]; then
-                echo "Downstream workflow succeeded!"
-                exit 0
-              else
-                echo "Downstream workflow failed: $CONCLUSION"
-                exit 1
-              fi
-            fi
-
-            sleep 30
-          done
-
-          echo "Timed out waiting for downstream workflow to complete."
-          exit 1
-
-      - name: Add SaaS downstream workflow link to Job Summary
+  helm-e2e-tests:
+    name: Helm Chart Integration & E2E Tests
+    if: ${{ github.event_name == 'pull_request' }}
+    needs:
+      - build
+      - filter-changes
+      - docker-images-self-managed-test
+      - format-identifier
+    uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
+    secrets: inherit
+    with:
+      identifier: ${{ needs.format-identifier.outputs.identifier }}
+      platforms: gke
+      camunda-helm-git-ref: main
+      camunda-helm-dir: camunda-platform-8.7
+      namespace-prefix: webmodeler
+      test-enabled: true
+      e2e-enabled: true
+      always-delete-namespace: true
+      flows: install
+      scenario: keycloak-original
+      shortname: kcor
+      extra-values: |
+        webModeler:
+          restapi:
+            image:
+              registry: registry.camunda.cloud
+              repository: web-modeler/modeler-restapi-self-managed
+              digest: ""
+              tag: ci-${{ github.event.pull_request.head.sha || github.sha }}
+          webapp:
+            image:
+              registry: registry.camunda.cloud
+              repository: web-modeler/modeler-webapp-self-managed
+              digest: ""
+              tag: ci-${{ github.event.pull_request.head.sha || github.sha }}
+          websockets:
+            image:
+              registry: registry.camunda.cloud
+              repository: web-modeler/modeler-websockets
+              digest: ""
+              tag: latest
+      vault-secret-mapping: |
+        secret/data/products/zeebe/ci/zeebe REGISTRY_HUB_DOCKER_COM_USR | TEST_DOCKER_USERNAME;
+        secret/data/products/zeebe/ci/zeebe REGISTRY_HUB_DOCKER_COM_PSW | TEST_DOCKER_PASSWORD;
+        secret/data/github.com/organizations/camunda NEXUS_USR | TEST_DOCKER_USERNAME_CAMUNDA_CLOUD;
+        secret/data/github.com/organizations/camunda NEXUS_PSW | TEST_DOCKER_PASSWORD_CAMUNDA_CLOUD;
+ 
+  helm-tests-debug-summary:
+    name: AlwaysGreen failure feedback (Helm)
+    needs: helm-e2e-tests
+    if: ${{ always() && needs.helm-e2e-tests.result == 'failure' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - name: Import Slack token
+        id: slack-secrets
+        continue-on-error: true
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/web-modeler/ci/web-modeler WEB_MODELER_SLACK_BOT_USER_TOKEN;
+      # Standardised AlwaysGreen feedback → job summary + PR comment + the existing
+      # AlwaysGreen alerting channel (#alwaysgreen-reliability, same as the streak
+      # detector). PR-based, so the in-repo GITHUB_TOKEN comments directly. Best-effort.
+      - name: Post AlwaysGreen failure feedback
+        continue-on-error: true
+        uses: camunda/c8-cross-component-e2e-tests/.github/actions/post-failure-feedback@main
+        with:
+          failure_category: unknown
+          stage: helm-integration
+          owner_team: "@camunda/web-modeler"
+          run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          status: failure
+          evidence: "Helm Chart Integration & E2E Tests failed."
+          pr: ${{ github.event.pull_request.number }}
+          slack_channel: "C0AK0AVKRL0"
+          slack_bot_token: ${{ steps.slack-secrets.outputs.WEB_MODELER_SLACK_BOT_USER_TOKEN }}
+          github_token: ${{ github.token }}
+      - name: Observe build status
         if: always()
-        run: |
-          if [ -n "${{ steps.wait-downstream.outputs.downstream_run_url }}" ]; then
-            {
-              echo "### SaaS Downstream Workflow Run"
-              echo ""
-              echo "**Correlation ID:** \`${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}\`"
-              echo ""
-              echo "[Open the triggered SaaS E2E workflow run in camunda/c8-cross-component-e2e-tests](${{ steps.wait-downstream.outputs.downstream_run_url }})"
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "No downstream workflow run URL found." >> "$GITHUB_STEP_SUMMARY"
-          fi
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+  deploy-camunda-cloud-dev:
+    name: "Deploy: dev"
+    uses: ./.github/workflows/template-deploy.yml
+    needs:
+      # Deploy to dev early, without SQL database backups.
+      - build
+    if: ${{ github.ref == 'refs/heads/main' }}
+    with:
+      alias: dev/main
+      docker_tag: ci-${{ github.sha }}
+      vault_secret_key: secret/data/products/web-modeler/ci/web-modeler
+      cloudflare_zone_id: e7cd453e07e4fb80bf27f71599f408f7 # ultrawombat.com
+    secrets:
+      vault_addr: ${{ secrets.VAULT_ADDR }}
+      vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+      vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
 
-      - name: Add debugging guidance on failure
-        if: steps.wait-downstream.outcome == 'failure'
-        run: |
-          DOWNSTREAM_URL="${{ steps.wait-downstream.outputs.downstream_run_url }}"
-          COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
-          {
-            echo ""
-            echo "### Debugging the SaaS E2E Failure"
-            echo ""
-            if [ -n "$DOWNSTREAM_URL" ]; then
-              echo "**Downstream run:** [$DOWNSTREAM_URL]($DOWNSTREAM_URL)"
-              echo ""
-            fi
-            echo "**Full guide:** [CI Debugging Cookbook — SaaS E2E section](${COOKBOOK_URL}#failure-type-5--saas-e2e-tests)"
-          } >> "$GITHUB_STEP_SUMMARY"
+  backup-database-int:
+    name: "Backup database: int"
+    uses: ./.github/workflows/backup-database.yml
+    needs:
+      # Do the backup only if the tests are passing.
+      - e2e-test
+      - webapp-test
+      - restapi-test
+      - asset-refresh-test
+    if: ${{ github.ref == 'refs/heads/main' && !failure() && !cancelled() }}
+    with:
+      instance: modeler
+      account_alias: int
+      vault_secret_key: secret/data/products/web-modeler/ci/web-modeler
+
+      # Backups are rate-limited. If the project is deployed to integration
+      # "too often" in a row, don't fail the deployment because a backup
+      # failed, and continue instead.
+      # A backup will be missing, but there were probably several available just before.
+      # See: https://cloud.google.com/sql/docs/postgres/backup-recovery/backups#backup_rate_limitations
+      allow_failure: true
+    secrets:
+      vault_addr: ${{ secrets.VAULT_ADDR }}
+      vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+      vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
+
+  deploy-camunda-cloud-int:
+    name: "Deploy: int"
+    uses: ./.github/workflows/template-deploy.yml
+    needs:
+      # Deploy only once the backup has been completed
+      - backup-database-int
+    if: ${{ github.ref == 'refs/heads/main' && !failure() && !cancelled() }}
+    with:
+      alias: int/main
+      docker_tag: ci-${{ github.sha }}
+      vault_secret_key: secret/data/products/web-modeler/ci/web-modeler
+      cloudflare_zone_id: e7cd453e07e4fb80bf27f71599f408f7 # ultrawombat.com
+      environment: int
+    secrets:
+      vault_addr: ${{ secrets.VAULT_ADDR }}
+      vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+      vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
+
+  # Rerun failed jobs running on self-hosted runners in case of network issues or node preemption
+  rerun-failed-jobs:
+    needs:
+      - build
+      - e2e-test
+      - webapp-test
+      - restapi-test
+      - asset-refresh-test
+      - docker-images-self-managed-test
+      - helm-e2e-tests
+    if: failure() && fromJSON(github.run_attempt) < 3
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Retrigger job
+        uses: camunda/infra-global-github-actions/rerun-failed-run@main
+        with:
+          error-messages: |
+            lost communication with the server
+            The runner has received a shutdown signal
+          run-id: ${{ github.run_id }}
+          repository: ${{ github.repository }}
+          vault-addr: ${{ secrets.VAULT_ADDR }}
+          vault-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+
+  # Check jobs running on self-hosted runners for cancellations and submit
+  # CI Analytics data in case of network issues or node preemption
+  check-results:
+    # New test jobs must be added to the `needs` lists!
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    needs:
+      - build
+      - e2e-test
+      - webapp-test
+      - restapi-test
+      - asset-refresh-test
+      - docker-images-self-managed-test
+      - helm-e2e-tests
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Check for aborted jobs
+        continue-on-error: true
+        uses: ./.github/actions/observe-aborted-jobs
+        with:
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
