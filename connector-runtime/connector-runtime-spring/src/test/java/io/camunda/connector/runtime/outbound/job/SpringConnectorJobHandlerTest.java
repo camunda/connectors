@@ -82,40 +82,20 @@ class SpringConnectorJobHandlerTest {
     @Nested
     class ResultVariableTests {
 
-  private SpringConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
-    return newConnectorJobHandler(
-        call, new SecretProviderAggregator(List.of(new FooBarSecretProvider())));
-  }
-
-  private SpringConnectorJobHandler newConnectorJobHandler(
-      OutboundConnectorFunction call, SecretProviderAggregator secretProviderAggregator) {
-    var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
-    return new SpringConnectorJobHandler(
-        metricsRecorder,
-        new JobCallbackCommandWrapperFactory(
-            BackoffSupplier.newBackoffBuilder().build(), commandScheduler, metricsRecorder),
-        secretProviderAggregator,
-        new DefaultValidationProvider(),
-        mock(DocumentFactory.class),
-        TestObjectMapperSupplier.INSTANCE,
-        call,
-        job -> SecretFilter.allowAll());
-  }
-
-  private SpringConnectorJobHandler newConnectorJobHandler(
-      OutboundConnectorFunction call, CompletableFuture<CommandOutcome> outcome) {
-    var factory = mock(JobCallbackCommandWrapperFactory.class, RETURNS_DEEP_STUBS);
-    when(factory.create(any(), anyLong(), any(), anyInt()).executeAsync()).thenReturn(outcome);
-    return new SpringConnectorJobHandler(
-        new MicrometerMetricsRecorder(new SimpleMeterRegistry()),
-        factory,
-        new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
-        new DefaultValidationProvider(),
-        mock(DocumentFactory.class),
-        TestObjectMapperSupplier.INSTANCE,
-        call,
-        job -> SecretFilter.allowAll());
-  }
+      protected static SpringConnectorJobHandler newConnectorJobHandler(
+          OutboundConnectorFunction call, SecretProviderAggregator secretProviderAggregator) {
+        return new SpringConnectorJobHandler(
+            new MicrometerMetricsRecorder(new SimpleMeterRegistry()),
+            new DefaultCommandExceptionHandlingStrategy(
+                BackoffSupplier.newBackoffBuilder().build(),
+                Executors.newSingleThreadScheduledExecutor()),
+            secretProviderAggregator,
+            new DefaultValidationProvider(),
+            mock(DocumentFactory.class),
+            TestObjectMapperSupplier.INSTANCE,
+            call,
+            job -> SecretFilter.allowAll());
+      }
 
       protected static SpringConnectorJobHandler newConnectorJobHandler(
           OutboundConnectorFunction call) {

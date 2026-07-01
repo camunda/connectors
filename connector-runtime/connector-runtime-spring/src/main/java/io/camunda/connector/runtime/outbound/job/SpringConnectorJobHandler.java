@@ -171,7 +171,10 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void executeJob(
       JobClient client, ActivatedJob job, CounterMetricsContext counterMetricsContext) {
     try {
-      internalHandle(client, job, counterMetricsContext);
+      SecretFilter secretFilter =
+          secretFilterFactory.create(
+              new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+      internalHandle(client, job, counterMetricsContext, secretFilter);
     } catch (Exception e) {
       connectorsOutboundMetrics.increaseFailed(counterMetricsContext);
       LOGGER.warn("Failed to handle job: {} of type: {}", job.getKey(), job.getType());
@@ -181,41 +184,30 @@ public class SpringConnectorJobHandler implements JobHandler {
   public void internalHandle(
       final JobClient client,
       final ActivatedJob job,
-      final CounterMetricsContext counterMetricsContext) {
+      final CounterMetricsContext counterMetricsContext,
+      final SecretFilter secretFilter) {
     LOGGER.info(
         "Received job: {} of type: {} for tenant: {}",
         job.getKey(),
         job.getType(),
         job.getTenantId());
-    var secretFilter =
-        secretFilterFactory.create(
-            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
-    var context =
-        new JobHandlerContext(
-            job,
-            getSecretProvider(),
-            validationProvider,
-            documentFactory,
-            objectMapper,
-            secretFilter);
-    ConnectorResult result = getConnectorResult(job, context, secretFilter);
-    processFinalResult(client, job, context, result, counterMetricsContext, secretFilter);
+    ConnectorResult result = getConnectorResult(job, secretFilter);
+    processFinalResult(client, job, result, counterMetricsContext, secretFilter);
   }
 
-  private ConnectorResult getConnectorResult(
-      ActivatedJob job, OutboundConnectorContext context, SecretFilter secretFilter) {
+  private ConnectorResult getConnectorResult(ActivatedJob job, SecretFilter secretFilter) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
-
-      var connectorResponse = getConnectorResponse(context);
-
-      if (connectorResponse instanceof AdHocSubProcessConnectorResponse ahsp) {
-        InlineSizeGuard.check(objectMapper.writeValueAsBytes(ahsp.variables()).length);
-        // AHSP responses provide their own variables; skip result expression evaluation
-        return new ConnectorResult.SuccessResult(connectorResponse, Map.of());
-      }
-
+      var context =
+          new JobHandlerContext(
+              job,
+              getSecretProvider(),
+              validationProvider,
+              documentFactory,
+              objectMapper,
+              secretFilter);
+      var response = call.execute(context);
       var responseVariables =
           connectorResultHandler.createOutputVariables(
               response,
@@ -251,8 +243,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       failJob(
           client,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(
-                  ex, job, secretFilter),
+          this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job, secretFilter),
           counterMetricsContext);
     }
   }

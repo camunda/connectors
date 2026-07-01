@@ -29,6 +29,9 @@ import io.camunda.connector.runtime.core.error.*;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
@@ -49,6 +52,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
   private final ConnectorResultHandler connectorResultHandler;
   private final CommandExceptionHandlingStrategy exceptionHandlingStrategy;
   private final MetricsRecorder metricsRecorder;
+  private final SecretFilterFactory secretFilterFactory;
 
   public AiAgentJobWorkerHandlerImpl(
       final JobWorkerAgentExecutionContextFactory executionContextFactory,
@@ -56,13 +60,15 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       final CommandExceptionHandlingStrategy exceptionHandlingStrategy,
       final OutboundConnectorExceptionHandler outboundConnectorExceptionHandler,
       final ConnectorResultHandler connectorResultHandler,
-      final MetricsRecorder metricsRecorder) {
+      final MetricsRecorder metricsRecorder,
+      SecretFilterFactory secretFilterFactory) {
     this.executionContextFactory = executionContextFactory;
     this.agentRequestHandler = agentRequestHandler;
     this.exceptionHandlingStrategy = exceptionHandlingStrategy;
     this.outboundConnectorExceptionHandler = outboundConnectorExceptionHandler;
     this.connectorResultHandler = connectorResultHandler;
     this.metricsRecorder = metricsRecorder;
+    this.secretFilterFactory = secretFilterFactory;
   }
 
   @Override
@@ -82,7 +88,10 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       final JobClient jobClient,
       final ActivatedJob job,
       final CounterMetricsContext counterMetricsContext) {
-    final var agentResult = getAgentResult(jobClient, job);
+    final SecretFilter secretFilter =
+        secretFilterFactory.create(
+            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
+    final var agentResult = getAgentResult(jobClient, job, secretFilter);
 
     try {
       Optional<ConnectorError> optionalConnectorError =
@@ -106,12 +115,13 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       failJob(
           jobClient,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(e, job),
+          this.outboundConnectorExceptionHandler.handleFinalResultException(e, job, secretFilter),
           counterMetricsContext);
     }
   }
 
-  private JobWorkerAgentResult getAgentResult(final JobClient jobClient, final ActivatedJob job) {
+  private JobWorkerAgentResult getAgentResult(
+      final JobClient jobClient, final ActivatedJob job, final SecretFilter secretFilter) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
@@ -123,7 +133,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
     } catch (Exception e) {
       final var errorResult =
           outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-              e, job, retryBackoff);
+              e, job, retryBackoff, secretFilter);
       return new AgentErrorResult(errorResult);
     }
   }

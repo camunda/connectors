@@ -69,6 +69,7 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
@@ -314,13 +315,14 @@ public class AgenticAiConnectorsAutoConfiguration {
       SecretProviderAggregator secretProvider,
       @Autowired(required = false) ValidationProvider validationProvider,
       DocumentFactory documentFactory,
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      SecretFilterFactory secretFilterFactory) {
     if (validationProvider == null) {
       validationProvider = ValidationUtil.discoverDefaultValidationProviderImplementation();
     }
 
     return new JobWorkerAgentExecutionContextFactoryImpl(
-        secretProvider, validationProvider, documentFactory, objectMapper);
+        secretProvider, validationProvider, documentFactory, objectMapper, secretFilterFactory);
   }
 
   @Bean
@@ -334,14 +336,16 @@ public class AgenticAiConnectorsAutoConfiguration {
       CommandExceptionHandlingStrategy exceptionHandlingStrategy,
       SecretProviderAggregator secretProvider,
       @ConnectorsObjectMapper ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
+      MetricsRecorder metricsRecorder,
+      SecretFilterFactory secretFilterFactory) {
     return new AiAgentJobWorkerHandlerImpl(
         executionContextFactory,
         agentRequestHandler,
         exceptionHandlingStrategy,
         new OutboundConnectorExceptionHandler(secretProvider),
         new ConnectorResultHandler(objectMapper),
-        metricsRecorder);
+        metricsRecorder,
+        secretFilterFactory);
   }
 
   @Bean
