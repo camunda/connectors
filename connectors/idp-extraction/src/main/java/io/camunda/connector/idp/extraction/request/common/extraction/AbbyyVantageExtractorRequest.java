@@ -18,8 +18,8 @@ public record AbbyyVantageExtractorRequest(
             label = "ABBYY Vantage Base URL",
             group = "extractor",
             type = TemplateProperty.PropertyType.Text,
-            description =
-                "Base URL of the ABBYY Vantage instance (e.g., https://vantage-us.abbyy.com)",
+            tooltip = "Base URL of the ABBYY Vantage instance",
+            placeholder = "https://vantage-us.abbyy.com",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
@@ -29,7 +29,7 @@ public record AbbyyVantageExtractorRequest(
             label = "Client ID",
             group = "extractor",
             type = TemplateProperty.PropertyType.Text,
-            description = "OAuth2 Client ID from ABBYY Vantage Public API Client settings",
+            tooltip = "OAuth2 Client ID from ABBYY Vantage Public API Client settings",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
@@ -39,7 +39,7 @@ public record AbbyyVantageExtractorRequest(
             label = "Client Secret",
             group = "extractor",
             type = TemplateProperty.PropertyType.Text,
-            description = "OAuth2 Client Secret from ABBYY Vantage Public API Client settings",
+            tooltip = "OAuth2 Client Secret from ABBYY Vantage Public API Client settings",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
@@ -49,7 +49,7 @@ public record AbbyyVantageExtractorRequest(
             label = "Skill ID",
             group = "extractor",
             type = TemplateProperty.PropertyType.Text,
-            description =
+            tooltip =
                 "The ABBYY Vantage OCR skill ID (skill must be configured to output Text format)",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

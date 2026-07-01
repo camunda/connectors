@@ -28,8 +28,8 @@ public final class OpenAiProvider implements ProviderConfig {
       id = "openAiEndpoint",
       label = "OpenAI Spec Endpoint",
       group = "configuration",
+      tooltip = "The OpenAI-compatible specification endpoint.",
       type = TemplateProperty.PropertyType.Text,
-      description = "Specify the OpenAI compatible specification endpoint.",
       binding = @TemplateProperty.PropertyBinding(name = "openAiEndpoint"),
       feel = FeelMode.disabled,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -41,7 +41,7 @@ public final class OpenAiProvider implements ProviderConfig {
       id = "openAiHeaders",
       label = "Headers",
       group = "configuration",
-      description = "Map of HTTP headers to add to the request.",
+      tooltip = "Map of HTTP headers to add to the request.",
       feel = FeelMode.disabled,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
   @NotNull

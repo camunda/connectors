@@ -13,7 +13,7 @@ public record TaxonomyItem(
     @TemplateProperty(
             label = "Name",
             id = "name",
-            description = "The name of the taxonomy item",
+            tooltip = "The name of the taxonomy item.",
             binding = @TemplateProperty.PropertyBinding(name = "name"),
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
@@ -21,7 +21,7 @@ public record TaxonomyItem(
     @TemplateProperty(
             label = "Prompt",
             id = "prompt",
-            description = "The prompt for the taxonomy item",
+            tooltip = "The prompt for the taxonomy item.",
             binding = @TemplateProperty.PropertyBinding(name = "prompt"),
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull

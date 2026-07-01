@@ -20,8 +20,8 @@ public record OpenAiRequest(
             id = "openAiEndpoint",
             label = "OpenAI Spec Endpoint",
             group = "ai",
+            tooltip = "The OpenAI-compatible specification endpoint.",
             type = TemplateProperty.PropertyType.Text,
-            description = "Specify the OpenAI compatible specification endpoint.",
             binding = @TemplateProperty.PropertyBinding(name = "openAiEndpoint"),
             feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -32,7 +32,7 @@ public record OpenAiRequest(
             id = "openAiHeaders",
             label = "Headers",
             group = "ai",
-            description = "Map of HTTP headers to add to the request.",
+            tooltip = "Map of HTTP headers to add to the request.",
             feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
