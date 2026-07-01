@@ -9,11 +9,34 @@ package io.camunda.connector.aws.s3.model.request;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public class S3Request extends AwsBaseRequest {
+
+  @TemplateProperty(
+      id = "awsCredential",
+      label = "AWS credential",
+      group = "authentication",
+      type = PropertyType.Configuration,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "awsCredential"),
+      description =
+          "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's"
+              + " 'awsCredential' input.")
+  private AwsCredentialConfiguration awsCredential;
+
+  public AwsCredentialConfiguration getAwsCredential() {
+    return awsCredential;
+  }
+
+  public void setAwsCredential(AwsCredentialConfiguration awsCredential) {
+    this.awsCredential = awsCredential;
+  }
 
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,
