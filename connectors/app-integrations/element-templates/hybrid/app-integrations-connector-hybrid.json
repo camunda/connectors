@@ -1,0 +1,918 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid App Integrations Connector",
+  "id" : "io.camunda.connectors.AppIntegrations.v1-hybrid",
+  "description" : "Send notifications and manage channels via Microsoft Teams",
+  "keywords" : [ "teams", "microsoft teams", "send message", "notification", "channel", "adaptive card" ],
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.8"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "configuration",
+    "label" : "Configuration"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "message",
+    "label" : "Message"
+  }, {
+    "id" : "form",
+    "label" : "Form"
+  }, {
+    "id" : "channel",
+    "label" : "Channel"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:app-integrations",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation",
+    "label" : "Operation",
+    "description" : "The operation to execute",
+    "value" : "createChannel",
+    "group" : "operation",
+    "binding" : {
+      "key" : "operation",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Create Channel",
+      "value" : "createChannel"
+    }, {
+      "name" : "Send Message",
+      "value" : "sendMessage"
+    } ]
+  }, {
+    "id" : "createChannel:configuration.baseUrl",
+    "label" : "Base URL",
+    "description" : "App Integrations backend URL.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.baseUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:configuration.baseUrl",
+    "label" : "Base URL",
+    "description" : "App Integrations backend URL.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.baseUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.",
+    "type" : "String"
+  }, {
+    "id" : "createChannel:configuration.authentication.type",
+    "label" : "Authentication type",
+    "description" : "Choose how the connector authenticates to the App Integrations backend",
+    "value" : "oauth-client-credentials-flow",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "API key",
+      "value" : "apikey"
+    }, {
+      "name" : "OAuth 2.0 (client credentials)",
+      "value" : "oauth-client-credentials-flow"
+    } ]
+  }, {
+    "id" : "createChannel:configuration.authentication.apiKey",
+    "label" : "API key",
+    "description" : "Shared API key for authenticating to the App Integrations backend (self-managed).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:configuration.authentication.type",
+        "equals" : "apikey",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Tip: store the API key as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_API_KEY</code>.",
+    "type" : "String"
+  }, {
+    "id" : "createChannel:configuration.authentication.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "description" : "The OAuth token endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.oauthTokenEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:configuration.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "Your application's client ID from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:configuration.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Your application's client secret from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:configuration.authentication.audience",
+    "label" : "Audience",
+    "description" : "The unique identifier of the target API you want to access",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.audience",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:configuration.authentication.clientAuthentication",
+    "label" : "Client authentication",
+    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+    "optional" : false,
+    "value" : "credentialsBody",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.clientAuthentication",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send client credentials in body",
+      "value" : "credentialsBody"
+    }, {
+      "name" : "Send as Basic Auth header",
+      "value" : "basicAuthHeader"
+    } ]
+  }, {
+    "id" : "createChannel:configuration.authentication.scopes",
+    "label" : "Scopes",
+    "description" : "The scopes which you want to request authorization for (e.g. read:contacts)",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.scopes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      }, {
+        "property" : "createChannel:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:configuration.authentication.type",
+    "label" : "Authentication type",
+    "description" : "Choose how the connector authenticates to the App Integrations backend",
+    "value" : "oauth-client-credentials-flow",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "API key",
+      "value" : "apikey"
+    }, {
+      "name" : "OAuth 2.0 (client credentials)",
+      "value" : "oauth-client-credentials-flow"
+    } ]
+  }, {
+    "id" : "sendMessage:configuration.authentication.apiKey",
+    "label" : "API key",
+    "description" : "Shared API key for authenticating to the App Integrations backend (self-managed).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:configuration.authentication.type",
+        "equals" : "apikey",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Tip: store the API key as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_API_KEY</code>.",
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:configuration.authentication.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "description" : "The OAuth token endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.oauthTokenEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:configuration.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "Your application's client ID from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:configuration.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Your application's client secret from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:configuration.authentication.audience",
+    "label" : "Audience",
+    "description" : "The unique identifier of the target API you want to access",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.audience",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:configuration.authentication.clientAuthentication",
+    "label" : "Client authentication",
+    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+    "optional" : false,
+    "value" : "credentialsBody",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.clientAuthentication",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send client credentials in body",
+      "value" : "credentialsBody"
+    }, {
+      "name" : "Send as Basic Auth header",
+      "value" : "basicAuthHeader"
+    } ]
+  }, {
+    "id" : "sendMessage:configuration.authentication.scopes",
+    "label" : "Scopes",
+    "description" : "The scopes which you want to request authorization for (e.g. read:contacts)",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "configuration.authentication.scopes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:configuration.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:email",
+    "label" : "User Email",
+    "description" : "Email address of the recipient. Use a FEEL expression to reference a process variable, e.g. =assigneeEmail.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "email",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:channelId",
+    "label" : "Channel ID",
+    "description" : "Microsoft Teams channel ID to send to directly, e.g. 19:xxx@thread.tacv2. Use when sending to a channel rather than a user.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "channelId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:message",
+    "label" : "Message",
+    "description" : "Plain text content to send. Provide either this, an adaptive card, or link a form.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "message",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "id" : "sendMessage:adaptiveCardJson",
+    "label" : "Adaptive card",
+    "description" : "JSON payload for a custom Teams adaptive card. Provide either this, a plain text message, or link a form.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "adaptiveCardJson",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "id" : "sendMessage:formDefinition.include",
+    "label" : "Include form?",
+    "value" : "false",
+    "group" : "form",
+    "binding" : {
+      "key" : "sendMessage:formDefinition.include",
+      "type" : "zeebe:taskHeader"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "No",
+      "value" : "false"
+    }, {
+      "name" : "Yes",
+      "value" : "true"
+    } ]
+  }, {
+    "value" : "form",
+    "group" : "form",
+    "binding" : {
+      "linkName" : "formDefinition",
+      "property" : "resourceType",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "sendMessage:formDefinition.bindingType",
+    "label" : "Form binding",
+    "value" : "latest",
+    "group" : "form",
+    "binding" : {
+      "linkName" : "formDefinition",
+      "property" : "bindingType",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Latest",
+      "value" : "latest"
+    }, {
+      "name" : "Deployment",
+      "value" : "deployment"
+    }, {
+      "name" : "Version tag",
+      "value" : "versionTag"
+    } ]
+  }, {
+    "id" : "sendMessage:formDefinition.resourceId",
+    "label" : "Form ID",
+    "description" : "Optional. ID of the Camunda form to render as an adaptive card in the Teams message. Leave blank to send a plain text message or adaptive card.",
+    "feel" : "optional",
+    "group" : "form",
+    "binding" : {
+      "linkName" : "formDefinition",
+      "property" : "resourceId",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:formDefinition.versionTag",
+    "label" : "Version tag",
+    "group" : "form",
+    "binding" : {
+      "linkName" : "formDefinition",
+      "property" : "versionTag",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.include",
+        "equals" : "true",
+        "type" : "simple"
+      }, {
+        "property" : "sendMessage:formDefinition.bindingType",
+        "equals" : "versionTag",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:teamId",
+    "label" : "Team ID",
+    "description" : "ID of the Microsoft Teams team, or a full Teams URL (the groupId query parameter will be extracted automatically).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "teamId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:displayName",
+    "label" : "Channel name",
+    "description" : "Display name for the new channel (max 50 characters).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "minLength" : 0,
+      "maxLength" : 50
+    },
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "displayName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:description",
+    "label" : "Description",
+    "description" : "Optional description for the channel.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "description",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "createChannel:membershipType",
+    "label" : "Channel type",
+    "description" : "Membership type: standard (visible to all), private (invite-only), or shared.",
+    "optional" : false,
+    "value" : "standard",
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "membershipType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "createChannel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.AppIntegrations.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cGF0aCBkPSJNMiAxLjVoMTJhMSAxIDAgMCAxIDEgMXY4YTEgMSAwIDAgMS0xIDFINi41TDQuNSAxNC41di0zSDJhMSAxIDAgMCAxLTEtMXYtOGExIDEgMCAwIDEgMS0xeiIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI1LjUiIHI9IjEuNCIgZmlsbD0iIzAwMDAwMCIvPgogIDxwYXRoIGQ9Ik01LjUgOS41YzAtMi4yIDUtMi4yIDUgMHoiIGZpbGw9IiMwMDAwMDAiLz4KPC9zdmc+Cg=="
+  }
+}

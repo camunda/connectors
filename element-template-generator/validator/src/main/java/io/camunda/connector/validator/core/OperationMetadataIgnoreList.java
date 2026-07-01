@@ -30,6 +30,7 @@ public final class OperationMetadataIgnoreList {
   public static final Set<String> ENTRIES =
       Set.of(
           "agentic-ai",
+          "app-integrations",
           "asana",
           "automation-anywhere",
           "aws-base",
