@@ -19,7 +19,6 @@ package io.camunda.connector.runtime;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.connector.runtime.metrics.ContextAwareLogbackMetrics;
-import io.camunda.connector.runtime.metrics.MetricsRestController;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -27,11 +26,9 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.micrometer.metrics.autoconfigure.logging.logback.LogbackMetricsAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 
 @AutoConfiguration
 @AutoConfigureBefore(LogbackMetricsAutoConfiguration.class)
-@Import(MetricsRestController.class)
 public class ConnectorsObservabilityAutoConfiguration {
 
   @Bean

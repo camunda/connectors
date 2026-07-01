@@ -22,6 +22,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
 import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
+import io.camunda.connector.runtime.metrics.ConnectorMetrics;
+import io.camunda.connector.runtime.metrics.MetricResponse;
+import io.camunda.connector.runtime.metrics.MetricsQueryHelper;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
@@ -30,23 +34,32 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/outbound")
 public class OutboundConnectorsRestController {
 
+  private static final List<String> CURATED_METRICS =
+      List.of(
+          ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
+          ConnectorMetrics.Outbound.METRIC_NAME_TIME);
+
   private final InstanceForwardingRouter instanceForwardingRouter;
   private final OutboundConnectorsService outboundConnectorsService;
+  private final MeterRegistry meterRegistry;
 
   @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
   private String hostname;
 
   public OutboundConnectorsRestController(
       InstanceForwardingRouter instanceForwardingRouter,
-      OutboundConnectorsService outboundConnectorsService) {
+      OutboundConnectorsService outboundConnectorsService,
+      MeterRegistry meterRegistry) {
     this.instanceForwardingRouter = instanceForwardingRouter;
     this.outboundConnectorsService = outboundConnectorsService;
+    this.meterRegistry = meterRegistry;
   }
 
   @GetMapping
@@ -72,5 +85,23 @@ public class OutboundConnectorsRestController {
                 () -> outboundConnectorsService.findByType(type, hostname),
                 new TypeReference<>() {}))
         .orElseThrow(() -> new DataNotFoundException(OutboundConnectorResponse.class, type));
+  }
+
+  /**
+   * Returns outbound connector metrics, optionally filtered by name and tags.
+   *
+   * <p>When no {@code name} is provided, a curated set of outbound metrics is returned: invocations
+   * and execution-time. Tags are provided as {@code key:value} pairs and applied to every requested
+   * metric.
+   *
+   * @param names optional metric names to query (e.g. {@code
+   *     camunda.connector.outbound.invocations})
+   * @param tags optional {@code key:value} tag filters
+   */
+  @GetMapping("/metrics")
+  public List<MetricResponse> getMetrics(
+      @RequestParam(name = "name", required = false) List<String> names,
+      @RequestParam(name = "tag", required = false) List<String> tags) {
+    return MetricsQueryHelper.queryMetrics(meterRegistry, names, tags, CURATED_METRICS);
   }
 }

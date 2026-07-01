@@ -31,8 +31,12 @@ import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.common.AbstractConnectorFactory.ConnectorRuntimeConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.metrics.ConnectorMetrics;
+import io.camunda.connector.runtime.metrics.MetricResponse;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +56,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class OutboundConnectorsRestControllerTest {
 
   @Autowired private MockMvc mockMvc;
+  @Autowired private MeterRegistry meterRegistry;
 
   @MockitoBean private OutboundConnectorFactory connectorFactory;
 
@@ -162,5 +167,108 @@ class OutboundConnectorsRestControllerTest {
                 .string(
                     containsString(
                         "Data of type 'OutboundConnectorResponse' with id 'unknown-type' not found")));
+  }
+
+  @Test
+  void shouldReturnCuratedMetrics_whenNoNameProvided() throws Exception {
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+        .tag("type", "http-json")
+        .register(meterRegistry)
+        .increment(5.0);
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<MetricResponse> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    var names = metrics.stream().map(MetricResponse::name).toList();
+    assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS));
+    // execution-time not registered yet → skipped
+    assertFalse(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_TIME));
+  }
+
+  @Test
+  void shouldReturnRequestedMetric_byName() throws Exception {
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+        .tag("type", "http-json")
+        .register(meterRegistry)
+        .increment(3.0);
+
+    var response =
+        mockMvc
+            .perform(
+                get("/outbound/metrics")
+                    .param("name", ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<MetricResponse> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(1, metrics.size());
+    assertEquals(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS, metrics.getFirst().name());
+    assertFalse(metrics.getFirst().meters().isEmpty());
+  }
+
+  @Test
+  void shouldFilterMetrics_byTag() throws Exception {
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+        .tag("type", "http-json")
+        .register(meterRegistry)
+        .increment(4.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+        .tag("type", "slack")
+        .register(meterRegistry)
+        .increment(1.0);
+
+    var response =
+        mockMvc
+            .perform(
+                get("/outbound/metrics")
+                    .param("name", ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+                    .param("tag", "type:http-json"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<MetricResponse> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(1, metrics.size());
+    var m = metrics.getFirst();
+    assertEquals(1, m.meters().size());
+    assertEquals(4.0, m.meters().getFirst().measurements().getFirst().value());
+  }
+
+  @Test
+  void shouldReturnEmptyList_whenRequestedMetricNotRegistered() throws Exception {
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics").param("name", "camunda.connector.outbound.unknown"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<MetricResponse> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertTrue(metrics.isEmpty());
+  }
+
+  @Test
+  void shouldReturn400_whenInvalidTagFormat() throws Exception {
+    mockMvc
+        .perform(get("/outbound/metrics").param("tag", "no-colon-here"))
+        .andExpect(status().isBadRequest());
   }
 }

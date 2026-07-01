@@ -16,86 +16,73 @@
  */
 package io.camunda.connector.runtime.metrics;
 
-import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-@RequestMapping("/metrics")
-public class MetricsRestController {
+/** Shared helpers for querying metrics and building {@link MetricResponse} objects. */
+public final class MetricsQueryHelper {
 
-  private final MeterRegistry meterRegistry;
-
-  public MetricsRestController(MeterRegistry meterRegistry) {
-    this.meterRegistry = meterRegistry;
-  }
+  private MetricsQueryHelper() {}
 
   /**
-   * Returns all registered metrics with their current values, sorted by name.
-   *
-   * @return all metrics with measurements
+   * Queries the registry for the given metric names, applying optional tag filters. When {@code
+   * names} is empty, {@code curatedNames} is used instead. Metrics with no registered meters are
+   * silently skipped.
    */
-  @GetMapping
-  public List<MetricResponse> getAllMetrics() {
-    return meterRegistry.getMeters().stream()
-        .collect(Collectors.groupingBy(m -> m.getId().getName()))
-        .entrySet()
-        .stream()
-        .sorted(Map.Entry.comparingByKey())
-        .map(e -> buildMetricResponse(e.getKey(), e.getValue()))
+  public static List<MetricResponse> queryMetrics(
+      MeterRegistry meterRegistry,
+      List<String> names,
+      List<String> tagParams,
+      List<String> curatedNames) {
+
+    List<Tag> filterTags = parseTags(tagParams);
+    List<String> effectiveNames = (names == null || names.isEmpty()) ? curatedNames : names;
+
+    return effectiveNames.stream()
+        .map(name -> buildMetricResponseOrNull(meterRegistry, name, filterTags))
+        .filter(Objects::nonNull)
         .toList();
   }
 
   /**
-   * Returns measurements for the named metric, optionally filtered by tags.
+   * Parses {@code key:value} tag strings into Micrometer {@link Tag} objects.
    *
-   * <p>Tags are provided as {@code key:value} pairs, e.g. {@code ?tag=type:io.camunda:http-json:1}.
-   * Multiple {@code tag} parameters can be supplied to narrow the match.
-   *
-   * @param name metric name (e.g. {@code camunda.connector.outbound.invocations})
-   * @param tags optional list of {@code key:value} tag filters
-   * @throws DataNotFoundException when no meter with the given name (and tags) is registered
+   * @throws IllegalArgumentException if a tag string does not contain {@code :}
    */
-  @GetMapping("/{name}")
-  public MetricResponse getMetric(
-      @PathVariable("name") String name,
-      @RequestParam(name = "tag", required = false) List<String> tags) {
-
-    List<Tag> filterTags =
-        tags == null
-            ? List.of()
-            : tags.stream()
-                .map(
-                    t -> {
-                      int colon = t.indexOf(':');
-                      if (colon < 0)
-                        throw new IllegalArgumentException(
-                            "Invalid tag (expected key:value): " + t);
-                      return Tag.of(t.substring(0, colon), t.substring(colon + 1));
-                    })
-                .toList();
-
-    Collection<Meter> matched = meterRegistry.find(name).tags(filterTags).meters();
-
-    if (matched.isEmpty()) {
-      throw new DataNotFoundException(MetricResponse.class, name);
+  public static List<Tag> parseTags(List<String> tagParams) {
+    if (tagParams == null) {
+      return List.of();
     }
+    return tagParams.stream()
+        .map(
+            t -> {
+              int colon = t.indexOf(':');
+              if (colon < 0) {
+                throw new IllegalArgumentException("Invalid tag (expected key:value): " + t);
+              }
+              return Tag.of(t.substring(0, colon), t.substring(colon + 1));
+            })
+        .toList();
+  }
 
+  private static MetricResponse buildMetricResponseOrNull(
+      MeterRegistry meterRegistry, String name, List<Tag> filterTags) {
+    Collection<Meter> matched = meterRegistry.find(name).tags(filterTags).meters();
+    if (matched.isEmpty()) {
+      return null;
+    }
     return buildMetricResponse(name, matched);
   }
 
-  private MetricResponse buildMetricResponse(String name, Collection<Meter> matched) {
+  /** Builds a {@link MetricResponse} from a collection of meters sharing the same metric name. */
+  public static MetricResponse buildMetricResponse(String name, Collection<Meter> matched) {
     List<MetricResponse.Meter> meters =
         matched.stream()
             .map(
