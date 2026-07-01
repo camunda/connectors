@@ -28,9 +28,9 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     name = "MCP Remote Client",
     description = "MCP (Model Context Protocol) client, operating on temporary remote connections.",
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-remote-client-connector/",
-    engineVersion = "^8.9",
-    version = 2,
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-remote-client-connector/",
+    engineVersion = "^8.10",
+    version = 3,
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = McpRemoteClientRequest.class,
     defaultResultVariable = "toolCallResult",
