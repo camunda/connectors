@@ -1,0 +1,578 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "http://camunda.org/schema/zeebe-configuration-templates/1.0",
+  "title": "Configuration Template Schema",
+  "definitions": {
+    "template": {
+      "type": "object",
+      "allOf": [
+        {
+          "required": [
+            "name",
+            "id",
+            "kind",
+            "version",
+            "properties"
+          ],
+          "properties": {
+            "$schema": {
+              "type": "string",
+              "description": "Reference to the Configuration Template JSON schema this document follows."
+            },
+            "name": {
+              "type": "string",
+              "description": "Configuration template name. Shown in the configuration editor and used as the primary chooser label. Required."
+            },
+            "id": {
+              "type": "string",
+              "description": "Configuration template identifier. Matches the `configurationTemplate` referenced from element templates. Required."
+            },
+            "kind": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The class of configuration this template produces, e.g. \"CREDENTIAL\". Internal identifier, never shown to users. Required."
+            },
+            "version": {
+              "type": "integer",
+              "description": "Version of the configuration template. Considered unique based on its id and version. Required."
+            },
+            "description": {
+              "type": "string",
+              "description": "Configuration template description. Shown in the configuration editor."
+            },
+            "documentationRef": {
+              "type": "string",
+              "pattern": "^(https|http)://.*",
+              "description": "URL pointing to external documentation. Must be a valid http(s) URL."
+            },
+            "keywords": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of keywords to help users discover the configuration template. Used in search and filtering, but not displayed in the UI.",
+              "default": []
+            }
+          }
+        }
+      ],
+      "properties": {
+        "properties": {
+          "allOf": [
+            {
+              "type": "array",
+              "description": "List of the template's properties.",
+              "allOf": [
+                {
+                  "examples": [
+                    [
+                      {
+                        "label": "Name",
+                        "type": "String",
+                        "binding": {
+                          "type": "property",
+                          "name": "name"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              ],
+              "items": {
+                "type": "object",
+                "default": {},
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "Dropdown"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "choices"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "not": {
+                            "const": "Number"
+                          }
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "value": {
+                          "type": [
+                            "string",
+                            "boolean"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "oneOf": [
+                        {
+                          "properties": {
+                            "type": {
+                              "enum": [
+                                "String",
+                                "Text"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        {
+                          "not": {
+                            "required": [
+                              "type"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "placeholder": {
+                          "type": "string",
+                          "description": "Placeholder text shown in the property input field when it is empty. Can be used to show example input."
+                        }
+                      }
+                    },
+                    "else": {
+                      "not": {
+                        "required": [
+                          "placeholder"
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "properties": {
+                  "value": {
+                    "$id": "#/properties/property/value",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ],
+                    "description": "Default value to be used if the user does not provide a value or if the type is Hidden."
+                  },
+                  "description": {
+                    "$id": "#/properties/property/description",
+                    "type": "string",
+                    "description": "Hint text shown below the property input field."
+                  },
+                  "label": {
+                    "$id": "#/properties/property/label",
+                    "type": "string",
+                    "description": "Label text shown above the property input field."
+                  },
+                  "type": {
+                    "$id": "#/properties/property/type",
+                    "type": "string",
+                    "description": "The type of a control field."
+                  },
+                  "editable": {
+                    "$id": "#/properties/property/editable",
+                    "type": "boolean",
+                    "description": "Defines whether users can edit the property in the properties panel. By default, all non-hidden properties are editable."
+                  },
+                  "choices": {
+                    "$id": "#/properties/property/choices",
+                    "type": "array",
+                    "description": "List of choices for a dropdown field.",
+                    "default": [],
+                    "items": {
+                      "$id": "#/properties/property/choices/item",
+                      "type": "object",
+                      "default": {},
+                      "properties": {
+                        "name": {
+                          "$id": "#/properties/property/choices/item/name",
+                          "type": "string",
+                          "description": "Display name for a choice in a dropdown field. Shown to the user."
+                        },
+                        "value": {
+                          "$id": "#/properties/property/choices/item/value",
+                          "type": "string",
+                          "description": "Value for a choice in a dropdown field. Stored in the XML."
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "name"
+                      ]
+                    }
+                  },
+                  "constraints": {
+                    "$id": "#/properties/property/constraints",
+                    "type": "object",
+                    "description": "Object that contains rules to validate user input to the template.",
+                    "allOf": [
+                      {
+                        "examples": [
+                          {
+                            "notEmpty": true
+                          }
+                        ]
+                      }
+                    ],
+                    "properties": {
+                      "notEmpty": {
+                        "$id": "#/properties/property/constraints/notEmpty",
+                        "type": "boolean",
+                        "description": "The control field must not be empty."
+                      },
+                      "minLength": {
+                        "$id": "#/properties/property/constraints/minLength",
+                        "type": "number",
+                        "description": "The minimal length of a control field value."
+                      },
+                      "maxLength": {
+                        "$id": "#/properties/property/constraints/maxLength",
+                        "type": "number",
+                        "description": "The maximal length for a control field value."
+                      },
+                      "pattern": {
+                        "$id": "#/properties/property/constraints/pattern",
+                        "description": "String or object that defines a regular expression that the user's input must match.",
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "default": {},
+                            "properties": {
+                              "value": {
+                                "$id": "#/properties/property/constraints/pattern/value",
+                                "type": "string",
+                                "description": "The value of the regular expression."
+                              },
+                              "message": {
+                                "$id": "#/properties/property/constraints/pattern/message",
+                                "type": "string",
+                                "description": "Custom error message to show when the user's input does not match the regular expression."
+                              }
+                            }
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "group": {
+                    "$id": "#/properties/property/group",
+                    "type": "string",
+                    "description": "Group in the properties panel that the property belongs to."
+                  }
+                }
+              }
+            },
+            {
+              "$schema": "http://json-schema.org/draft-07/schema",
+              "type": "array",
+              "description": "List of properties of the configuration template.",
+              "items": {
+                "type": "object",
+                "default": {},
+                "required": [
+                  "binding"
+                ],
+                "allOf": [
+                  {
+                    "$comment": "Only atomic property types are supported; `Configuration` is forbidden.",
+                    "properties": {
+                      "type": {
+                        "enum": [
+                          "String",
+                          "Text",
+                          "Hidden",
+                          "Dropdown",
+                          "Boolean",
+                          "Number"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "$comment": "Configuration field values are atomic literals or secret references, never FEEL expressions.",
+                    "not": {
+                      "required": [
+                        "feel"
+                      ]
+                    }
+                  },
+                  {
+                    "$comment": "`optional` is not supported in configuration templates.",
+                    "not": {
+                      "required": [
+                        "optional"
+                      ]
+                    }
+                  }
+                ],
+                "properties": {
+                  "binding": {
+                    "type": "object",
+                    "description": "Specifying how the property is mapped to the configuration value. Only the `property` binding is supported.",
+                    "required": [
+                      "type",
+                      "name"
+                    ],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "description": "The type of a property binding. Always \"property\" for configuration templates.",
+                        "const": "property"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "The key of the property in the configuration's value object."
+                      }
+                    }
+                  },
+                  "secret": {
+                    "type": "boolean",
+                    "description": "Marks the property as a field that typically holds a secret reference. Used by the configuration editor as a rendering hint (e.g. obfuscated input or secret picker); not enforced."
+                  },
+                  "tooltip": {
+                    "type": "string",
+                    "description": "Hints for the control field."
+                  }
+                }
+              }
+            },
+            {
+              "items": {
+                "allOf": [
+                  {
+                    "definitions": {
+                      "condition": {
+                        "type": "object",
+                        "required": [
+                          "property"
+                        ],
+                        "properties": {
+                          "type": {
+                            "const": "simple",
+                            "description": "Defines the type of the condition (always \"simple\").",
+                            "default": "simple"
+                          },
+                          "property": {
+                            "type": "string",
+                            "description": "Reference to the property used to evaluate the condition."
+                          }
+                        },
+                        "oneOf": [
+                          {
+                            "description": "Checks if the referenced property's value is equal to the value defined in the condition.",
+                            "properties": {
+                              "equals": {
+                                "description": "Checks if the referenced property's value is equal to the value defined in the condition.",
+                                "type": [
+                                  "string",
+                                  "number",
+                                  "boolean"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "equals"
+                            ]
+                          },
+                          {
+                            "properties": {
+                              "oneOf": {
+                                "type": "array",
+                                "items": {
+                                  "type": [
+                                    "string",
+                                    "number"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "oneOf"
+                            ]
+                          },
+                          {
+                            "properties": {
+                              "isActive": {
+                                "type": "boolean",
+                                "description": "Checks if the referenced property is currently active and not hidden by other conditions."
+                              }
+                            },
+                            "required": [
+                              "isActive"
+                            ]
+                          },
+                          {
+                            "properties": {
+                              "isEmpty": {
+                                "type": "boolean",
+                                "description": "Checks if the referenced property's value is empty (true) or not empty (false)."
+                              }
+                            },
+                            "required": [
+                              "isEmpty"
+                            ]
+                          }
+                        ]
+                      },
+                      "conditionDependingOnId": {
+                        "required": [
+                          "property"
+                        ],
+                        "properties": {
+                          "property": {
+                            "const": {
+                              "$data": "2/id"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "$comment": "property#condition should not depend on property#id",
+                        "if": {
+                          "required": [
+                            "id",
+                            "condition"
+                          ],
+                          "properties": {
+                            "condition": {
+                              "$ref": "#/definitions/template/properties/properties/allOf/2/items/allOf/0/definitions/conditionDependingOnId"
+                            }
+                          }
+                        },
+                        "then": {
+                          "not": {
+                            "required": [
+                              "condition"
+                            ]
+                          }
+                        }
+                      }
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Unique identifier of the property. Can be used to, for example, reference the property in conditions."
+                      },
+                      "condition": {
+                        "type": "object",
+                        "description": "Object that defines when a property should be displayed in the configuration editor and its value should be included in the configuration value.",
+                        "oneOf": [
+                          {
+                            "$ref": "#/definitions/template/properties/properties/allOf/2/items/allOf/0/definitions/condition"
+                          },
+                          {
+                            "properties": {
+                              "allMatch": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/definitions/template/properties/properties/allOf/2/items/allOf/0/definitions/condition"
+                                },
+                                "minItems": 1,
+                                "description": "List of conditions that must all be met for the property to be active."
+                              }
+                            },
+                            "required": [
+                              "allMatch"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "properties": {
+                  "choices": {
+                    "items": {
+                      "properties": {
+                        "condition": {
+                          "$ref": "#/definitions/template/properties/properties/allOf/2/items/allOf/0/properties/condition"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "groups": {
+          "$id": "#/groups",
+          "type": "array",
+          "description": "List of custom groups to organize related fields in the properties panel.",
+          "allOf": [
+            {
+              "examples": [
+                [
+                  {
+                    "id": "group-1",
+                    "label": "My Group"
+                  }
+                ]
+              ]
+            }
+          ],
+          "items": {
+            "$id": "#/groups/group",
+            "type": "object",
+            "default": {},
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$id": "#/groups/group/id",
+                "type": "string",
+                "description": "Uniquely identifies a group object. Required if using groups."
+              },
+              "label": {
+                "$id": "#/groups/group/label",
+                "type": "string",
+                "description": "The label of the group, shown as a section header in the properties panel. Required if using groups."
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "description": "A configuration template.",
+      "$ref": "#/definitions/template"
+    },
+    {
+      "type": "array",
+      "description": "A list of configuration templates.",
+      "items": {
+        "$ref": "#/definitions/template"
+      }
+    }
+  ]
+}

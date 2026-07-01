@@ -506,6 +506,9 @@ public class TemplatePropertiesUtil {
       builder.binding(new PropertyBinding.ConfigurationTemplateProperty(builder.getId()));
       // No feel on configuration-template properties (values are atomic literals / secret refs)
       builder.feel(FeelMode.disabled);
+      // The configuration-template schema forbids `optional`; optionality is expressed via
+      // conditions, not this flag. Clear it so it is omitted from the embedded template.
+      builder.optional(null);
     }
     return builders;
   }

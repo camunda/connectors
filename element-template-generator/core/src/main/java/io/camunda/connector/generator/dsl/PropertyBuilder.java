@@ -71,7 +71,7 @@ public abstract class PropertyBuilder {
     return this;
   }
 
-  public PropertyBuilder optional(boolean optional) {
+  public PropertyBuilder optional(Boolean optional) {
     this.optional = optional;
     return this;
   }
