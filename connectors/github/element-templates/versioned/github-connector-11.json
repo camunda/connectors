@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHub Outbound Connector",
   "id": "io.camunda.connectors.GitHub.v1",
-  "version": 12,
+  "version": 11,
   "engines": {
     "camunda": "^8.7"
   },
@@ -395,10 +395,6 @@
         {
           "name": "Create a pull request",
           "value": "createPullRequest"
-        },
-        {
-          "name": "Get a pull request",
-          "value": "getPullRequest"
         }
       ],
       "condition": {
@@ -710,22 +706,6 @@
         "property": "pullRequestOperationType",
         "oneOf": [
           "createPullRequest"
-        ]
-      }
-    },
-    {
-      "id": "pullRequestMethodGet",
-      "group": "configuration",
-      "type": "Hidden",
-      "value": "get",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "method"
-      },
-      "condition": {
-        "property": "pullRequestOperationType",
-        "oneOf": [
-          "getPullRequest"
         ]
       }
     },
@@ -1192,8 +1172,7 @@
       "condition": {
         "property": "pullRequestOperationType",
         "oneOf": [
-          "createPullRequest",
-          "getPullRequest"
+          "createPullRequest"
         ]
       }
     },
@@ -1421,28 +1400,7 @@
       "condition": {
         "property": "pullRequestOperationType",
         "oneOf": [
-          "createPullRequest",
-          "getPullRequest"
-        ]
-      }
-    },
-    {
-      "label": "Pull request number",
-      "description": "The number that identifies the pull request",
-      "feel": "optional",
-      "group": "input",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "pullNumber"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "pullRequestOperationType",
-        "oneOf": [
-          "getPullRequest"
+          "createPullRequest"
         ]
       }
     },
@@ -1562,7 +1520,7 @@
       "description": "The number that identifies the issue",
       "feel": "optional",
       "group": "input",
-      "type": "Number",
+      "type": "String",
       "binding": {
         "type": "zeebe:input",
         "name": "issueNumber"
@@ -3405,25 +3363,6 @@
     },
     {
       "label": "Result expression",
-      "id": "resultGetPullRequest",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
-      "group": "output",
-      "type": "String",
-      "feel": "required",
-      "value": "={pullRequest: {number: response.body.number, title: response.body.title, body: response.body.body, state: response.body.state, merged: response.body.merged, labels: for l in response.body.labels return l.name, baseBranch: response.body.base.ref, url: response.body.html_url}}",
-      "binding": {
-        "type": "zeebe:taskHeader",
-        "key": "resultExpression"
-      },
-      "condition": {
-        "property": "pullRequestOperationType",
-        "oneOf": [
-          "getPullRequest"
-        ]
-      }
-    },
-    {
-      "label": "Result expression",
       "id": "resultExpressionListCollaborators",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -3870,20 +3809,6 @@
     },
     {
       "type": "Hidden",
-      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/pulls/\" + string(pullNumber)",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "url"
-      },
-      "condition": {
-        "property": "pullRequestOperationType",
-        "oneOf": [
-          "getPullRequest"
-        ]
-      }
-    },
-    {
-      "type": "Hidden",
       "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/collaborators\"",
       "binding": {
         "type": "zeebe:input",
@@ -3957,7 +3882,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "12",
+      "value": "11",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
