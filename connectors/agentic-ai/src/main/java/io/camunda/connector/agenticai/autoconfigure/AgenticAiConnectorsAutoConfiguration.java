@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agentcoreharness.AgentCoreHarnessSubProcess;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
@@ -346,5 +347,26 @@ public class AgenticAiConnectorsAutoConfiguration {
       matchIfMissing = true)
   public AiAgentJobWorker aiAgentJobWorker(JobWorkerAgentRequestHandler agentRequestHandler) {
     return new AiAgentJobWorker(agentRequestHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.agentcore-harness.enabled",
+      matchIfMissing = true)
+  public AgentCoreHarnessSubProcess agentCoreHarnessSubProcess(
+      AgentInitializer agentInitializer,
+      ConversationStoreRegistry conversationStoreRegistry,
+      AgentLimitsValidator limitsValidator,
+      AgentMessagesHandler messagesHandler,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentResponseHandler responseHandler) {
+    return new AgentCoreHarnessSubProcess(
+        agentInitializer,
+        conversationStoreRegistry,
+        limitsValidator,
+        messagesHandler,
+        gatewayToolHandlers,
+        responseHandler);
   }
 }
