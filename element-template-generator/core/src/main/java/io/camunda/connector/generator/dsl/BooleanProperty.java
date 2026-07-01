@@ -35,7 +35,8 @@ public final class BooleanProperty extends Property {
       PropertyBinding binding,
       PropertyCondition condition,
       String tooltip,
-      Object exampleValue) {
+      Object exampleValue,
+      Boolean secret) {
     super(
         name,
         label,
@@ -52,7 +53,8 @@ public final class BooleanProperty extends Property {
         null,
         exampleValue,
         null,
-        TYPE);
+        TYPE,
+        secret);
   }
 
   public static BooleanPropertyBuilder builder() {
@@ -82,7 +84,8 @@ public final class BooleanProperty extends Property {
           binding,
           condition,
           tooltip,
-          exampleValue);
+          exampleValue,
+          secret);
     }
   }
 }

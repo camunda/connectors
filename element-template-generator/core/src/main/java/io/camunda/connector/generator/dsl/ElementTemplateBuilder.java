@@ -35,7 +35,7 @@ public class ElementTemplateBuilder {
   protected final List<Property> properties = new ArrayList<>();
   protected final List<Step> steps = new ArrayList<>();
   protected final List<Preset> presets = new ArrayList<>();
-  protected final List<CredentialSchema> credentialSchemas = new ArrayList<>();
+  protected final List<ConfigurationTemplate> configurationTemplates = new ArrayList<>();
   private final Mode mode;
   protected String id;
   protected String name;
@@ -213,8 +213,9 @@ public class ElementTemplateBuilder {
     return this;
   }
 
-  public ElementTemplateBuilder credentialSchemas(Collection<CredentialSchema> credentialSchemas) {
-    this.credentialSchemas.addAll(credentialSchemas);
+  public ElementTemplateBuilder configurationTemplates(
+      Collection<ConfigurationTemplate> configurationTemplates) {
+    this.configurationTemplates.addAll(configurationTemplates);
     return this;
   }
 
@@ -238,7 +239,7 @@ public class ElementTemplateBuilder {
         icon,
         steps.isEmpty() ? null : steps,
         presets.isEmpty() ? null : presets,
-        credentialSchemas);
+        configurationTemplates);
   }
 
   private enum Mode {

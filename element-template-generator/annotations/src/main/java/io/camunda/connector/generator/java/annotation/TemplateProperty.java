@@ -125,6 +125,13 @@ public @interface TemplateProperty {
    */
   String language() default "";
 
+  /**
+   * Marks this property as a secret-bearing field. Used only within configuration templates. When
+   * {@code true}, the configuration editor renders an obfuscated input or secret picker. Has no
+   * effect on host element-template properties.
+   */
+  boolean secret() default false;
+
   enum PropertyType {
     Boolean,
     Number,
@@ -132,7 +139,7 @@ public @interface TemplateProperty {
     Hidden,
     String,
     Text,
-    Credential,
+    Configuration,
     Unknown
   }
 

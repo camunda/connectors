@@ -37,7 +37,8 @@ public final class StringProperty extends Property {
       String tooltip,
       String placeholder,
       Object exampleValue,
-      String language) {
+      String language,
+      Boolean secret) {
     super(
         name,
         label,
@@ -54,7 +55,8 @@ public final class StringProperty extends Property {
         placeholder,
         exampleValue,
         language,
-        TYPE);
+        TYPE,
+        secret);
   }
 
   public static StringPropertyBuilder builder() {
@@ -88,7 +90,8 @@ public final class StringProperty extends Property {
           tooltip,
           placeholder,
           exampleValue,
-          language);
+          language,
+          secret);
     }
   }
 }
