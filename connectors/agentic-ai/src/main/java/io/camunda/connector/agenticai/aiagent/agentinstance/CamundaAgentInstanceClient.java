@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureReason;
@@ -28,6 +29,8 @@ import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,13 +164,16 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   public void createHistoryForInputMessages(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      AgentConversationTurn turn) {
+      AgentConversationTurn turn,
+      Optional<AgentConversationTurn> previousTurn) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance history items (before chat): no agent instance key");
       return;
     }
+    final Map<String, ToolCall> toolCallsById =
+        previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     for (final Message message : turn.inputMessages()) {
-      for (final var item : historyMapper.inputHistoryItems(message)) {
+      for (final var item : historyMapper.inputHistoryItems(message, toolCallsById)) {
         createHistoryItem(
             executionContext,
             agentInstanceKey.value(),
