@@ -167,23 +167,48 @@ jobs:
       scenario: alwaysgreen
       shortname: agrn
   sm-e2e-debug-summary:
-    name: Add SM E2E debugging guidance on failure
+    name: AlwaysGreen failure feedback (SM E2E)
     needs: trigger-sm-e2e
     if: always() && needs.trigger-sm-e2e.result == 'failure'
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     continue-on-error: ${{ github.event_name == 'merge_group' }}
-    permissions: {}
+    permissions:
+      pull-requests: write
+      contents: read
     steps:
-      - name: Add Helm debugging guidance on failure
-        run: |
-          COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
-          {
-            echo "## SM E2E / Helm Integration Tests Failed"
-            echo ""
-            echo "### Full debugging guide"
-            echo "[CI Debugging Cookbook — Helm Chart Setup/Integration failures](${COOKBOOK_URL}#failure-type-3--helm-chart-setup--integration-tests) · [Helm Chart E2E failures](${COOKBOOK_URL}#failure-type-4--helm-chart-e2e-tests)"
-          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: connectors
+      - name: Post AlwaysGreen failure feedback
+        continue-on-error: true
+        uses: camunda/c8-cross-component-e2e-tests/.github/actions/post-failure-feedback@main
+        with:
+          failure_category: unknown
+          stage: sm-e2e-helm
+          owner_team: "@camunda/connectors"
+          run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          status: failure
+          evidence: "SM E2E / Helm Integration Tests failed."
+          pr: ${{ github.event.merge_group.head_ref }}
+          slack_channel: "C0AK0AVKRL0"
+          slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
   trigger-saas-e2e:
     name: Trigger SaaS E2E tests
     runs-on: ubuntu-latest
