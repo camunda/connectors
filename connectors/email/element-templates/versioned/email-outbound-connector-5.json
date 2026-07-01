@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Email Connector",
-  "id" : "io.camunda.connectors.email.v1-hybrid",
+  "name" : "Email Connector",
+  "id" : "io.camunda.connectors.email.v1",
   "description" : "Execute email requests",
   "keywords" : [ "send emails", "list emails", "search emails", "delete emails", "read emails", "move emails", "send email", "delete email", "read email", "move email", "IMAP", "SMTP", "POP3", "inbox" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
-  "version" : 6,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,14 +18,20 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
-    "id" : "operation",
-    "label" : "Operation"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
+  }, {
+    "id" : "protocol",
+    "label" : "Protocol"
+  }, {
+    "id" : "smtpAction",
+    "label" : "SMTP Action"
+  }, {
+    "id" : "pop3Action",
+    "label" : "POP3 Action"
+  }, {
+    "id" : "imapAction",
+    "label" : "IMAP Action"
   }, {
     "id" : "sendEmailSmtp",
     "label" : "Send Email"
@@ -43,7 +49,7 @@
     "label" : "Read Email"
   }, {
     "id" : "listEmailsImap",
-    "label" : "List Emails"
+    "label" : "List Email"
   }, {
     "id" : "searchEmailsImap",
     "label" : "Search Emails"
@@ -52,13 +58,10 @@
     "label" : "Read Email"
   }, {
     "id" : "deleteEmailImap",
-    "label" : "Delete Email"
+    "label" : "Read Email"
   }, {
     "id" : "moveEmailImap",
     "label" : "Move Emails"
-  }, {
-    "id" : "protocol",
-    "label" : "Protocol"
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -73,112 +76,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:email:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
-  }, {
-    "id" : "protocol",
-    "label" : "Email Protocol",
-    "value" : "smtp",
-    "group" : "operation",
-    "binding" : {
-      "name" : "protocol",
-      "type" : "zeebe:input"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "IMAP",
-      "value" : "imap"
-    }, {
-      "name" : "POP3",
-      "value" : "pop3"
-    }, {
-      "name" : "SMTP",
-      "value" : "smtp"
-    } ]
-  }, {
-    "id" : "data.imapActionDiscriminator",
-    "label" : "IMAP action",
-    "value" : "listEmailsImap",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.imapActionDiscriminator",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "imap",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Delete an email",
-      "value" : "deleteEmailImap"
-    }, {
-      "name" : "List emails",
-      "value" : "listEmailsImap"
-    }, {
-      "name" : "Move email",
-      "value" : "moveEmailImap"
-    }, {
-      "name" : "Read an email",
-      "value" : "readEmailImap"
-    }, {
-      "name" : "Search emails",
-      "value" : "searchEmailsImap"
-    } ]
-  }, {
-    "id" : "data.pop3ActionDiscriminator",
-    "label" : "POP3 action",
-    "value" : "listEmailsPop3",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.pop3ActionDiscriminator",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "pop3",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Delete Email",
-      "value" : "deleteEmailPop3"
-    }, {
-      "name" : "List Emails",
-      "value" : "listEmailsPop3"
-    }, {
-      "name" : "Read Email",
-      "value" : "readEmailPop3"
-    }, {
-      "name" : "Search emails",
-      "value" : "searchEmailsPop3"
-    } ]
-  }, {
-    "id" : "data.smtpActionDiscriminator",
-    "label" : "SMTP action",
-    "value" : "sendEmailSmtp",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.smtpActionDiscriminator",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "smtp",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Send Email",
-      "value" : "sendEmailSmtp"
-    } ]
+    "type" : "Hidden"
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
@@ -237,6 +140,317 @@
     },
     "tooltip" : "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
     "type" : "String"
+  }, {
+    "id" : "protocol",
+    "label" : "Email Protocol",
+    "value" : "smtp",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "protocol",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "IMAP",
+      "value" : "imap"
+    }, {
+      "name" : "POP3",
+      "value" : "pop3"
+    }, {
+      "name" : "SMTP",
+      "value" : "smtp"
+    } ]
+  }, {
+    "id" : "data.imapHost",
+    "label" : "IMAP Host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.imapConfig.imapHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "imap",
+      "type" : "simple"
+    },
+    "tooltip" : "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
+    "type" : "String"
+  }, {
+    "id" : "data.imapPort",
+    "label" : "IMAP Port",
+    "optional" : false,
+    "value" : 993,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.imapConfig.imapPort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "imap",
+      "type" : "simple"
+    },
+    "tooltip" : "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
+    "type" : "Number"
+  }, {
+    "id" : "imapCryptographicProtocol",
+    "label" : "Encryption protocol",
+    "optional" : false,
+    "value" : "TLS",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.imapConfig.imapCryptographicProtocol",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "imap",
+      "type" : "simple"
+    },
+    "tooltip" : "Select the encryption protocol for email security.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "TLS",
+      "value" : "TLS"
+    }, {
+      "name" : "SSL",
+      "value" : "SSL"
+    }, {
+      "name" : "None",
+      "value" : "NONE"
+    } ]
+  }, {
+    "id" : "data.pop3Host",
+    "label" : "POP3 Host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.pop3Config.pop3Host",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "pop3",
+      "type" : "simple"
+    },
+    "tooltip" : "Enter the address of the POP3 server if you want to download your emails to a single device. This server is typically used for retrieving emails without syncing. (e.g., pop.example.com)",
+    "type" : "String"
+  }, {
+    "id" : "data.pop3Port",
+    "label" : "POP3 Port",
+    "optional" : false,
+    "value" : 995,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.pop3Config.pop3Port",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "pop3",
+      "type" : "simple"
+    },
+    "tooltip" : "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
+    "type" : "Number"
+  }, {
+    "id" : "pop3CryptographicProtocol",
+    "label" : "Cryptographic protocol",
+    "optional" : false,
+    "value" : "TLS",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.pop3Config.pop3CryptographicProtocol",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "pop3",
+      "type" : "simple"
+    },
+    "tooltip" : "Select the encryption protocol for email security.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "TLS",
+      "value" : "TLS"
+    }, {
+      "name" : "SSL",
+      "value" : "SSL"
+    }, {
+      "name" : "None",
+      "value" : "NONE"
+    } ]
+  }, {
+    "id" : "data.smtpHost",
+    "label" : "SMTP Host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.smtpConfig.smtpHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "smtp",
+      "type" : "simple"
+    },
+    "tooltip" : "Provide the address of the SMTP server used for sending emails. This server handles the delivery of your outgoing messages. (e.g., smtp.example.com)",
+    "type" : "String"
+  }, {
+    "id" : "data.smtpPort",
+    "label" : "SMTP Port",
+    "optional" : false,
+    "value" : 587,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.smtpConfig.smtpPort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "smtp",
+      "type" : "simple"
+    },
+    "tooltip" : "Enter the port number for connecting to the SMTP server. Typically, port 587 is used for secure connections with STARTTLS, port 465 for secure connections using SSL/TLS, and port 25 for non-secure connections.",
+    "type" : "Number"
+  }, {
+    "id" : "smtpCryptographicProtocol",
+    "label" : "Cryptographic protocol",
+    "optional" : false,
+    "value" : "TLS",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.smtpConfig.smtpCryptographicProtocol",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "smtp",
+      "type" : "simple"
+    },
+    "tooltip" : "Select the encryption protocol for email security.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "TLS",
+      "value" : "TLS"
+    }, {
+      "name" : "SSL",
+      "value" : "SSL"
+    }, {
+      "name" : "None",
+      "value" : "NONE"
+    } ]
+  }, {
+    "id" : "data.smtpActionDiscriminator",
+    "label" : "SMTP action",
+    "value" : "sendEmailSmtp",
+    "group" : "smtpAction",
+    "binding" : {
+      "name" : "data.smtpActionDiscriminator",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "smtp",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send Email",
+      "value" : "sendEmailSmtp"
+    } ]
+  }, {
+    "id" : "data.pop3ActionDiscriminator",
+    "label" : "POP3 action",
+    "value" : "listEmailsPop3",
+    "group" : "pop3Action",
+    "binding" : {
+      "name" : "data.pop3ActionDiscriminator",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "pop3",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Delete Email",
+      "value" : "deleteEmailPop3"
+    }, {
+      "name" : "List Emails",
+      "value" : "listEmailsPop3"
+    }, {
+      "name" : "Read Email",
+      "value" : "readEmailPop3"
+    }, {
+      "name" : "Search emails",
+      "value" : "searchEmailsPop3"
+    } ]
+  }, {
+    "id" : "data.imapActionDiscriminator",
+    "label" : "IMAP action",
+    "value" : "listEmailsImap",
+    "group" : "imapAction",
+    "binding" : {
+      "name" : "data.imapActionDiscriminator",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "imap",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Delete an email",
+      "value" : "deleteEmailImap"
+    }, {
+      "name" : "List emails",
+      "value" : "listEmailsImap"
+    }, {
+      "name" : "Move email",
+      "value" : "moveEmailImap"
+    }, {
+      "name" : "Read an email",
+      "value" : "readEmailImap"
+    }, {
+      "name" : "Search emails",
+      "value" : "searchEmailsImap"
+    } ]
   }, {
     "id" : "smtpFrom",
     "label" : "From",
@@ -1285,223 +1499,10 @@
     "tooltip" : "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
     "type" : "String"
   }, {
-    "id" : "data.imapHost",
-    "label" : "IMAP Host",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "protocol",
-    "binding" : {
-      "name" : "data.imapConfig.imapHost",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "imap",
-      "type" : "simple"
-    },
-    "tooltip" : "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
-    "type" : "String"
-  }, {
-    "id" : "data.imapPort",
-    "label" : "IMAP Port",
-    "optional" : false,
-    "value" : 993,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "protocol",
-    "binding" : {
-      "name" : "data.imapConfig.imapPort",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "imap",
-      "type" : "simple"
-    },
-    "tooltip" : "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
-    "type" : "Number"
-  }, {
-    "id" : "imapCryptographicProtocol",
-    "label" : "Encryption protocol",
-    "optional" : false,
-    "value" : "TLS",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "protocol",
-    "binding" : {
-      "name" : "data.imapConfig.imapCryptographicProtocol",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "imap",
-      "type" : "simple"
-    },
-    "tooltip" : "Select the encryption protocol for email security.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "TLS",
-      "value" : "TLS"
-    }, {
-      "name" : "SSL",
-      "value" : "SSL"
-    }, {
-      "name" : "None",
-      "value" : "NONE"
-    } ]
-  }, {
-    "id" : "data.pop3Host",
-    "label" : "POP3 Host",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "protocol",
-    "binding" : {
-      "name" : "data.pop3Config.pop3Host",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "pop3",
-      "type" : "simple"
-    },
-    "tooltip" : "Enter the address of the POP3 server if you want to download your emails to a single device. This server is typically used for retrieving emails without syncing. (e.g., pop.example.com)",
-    "type" : "String"
-  }, {
-    "id" : "data.pop3Port",
-    "label" : "POP3 Port",
-    "optional" : false,
-    "value" : 995,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "protocol",
-    "binding" : {
-      "name" : "data.pop3Config.pop3Port",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "pop3",
-      "type" : "simple"
-    },
-    "tooltip" : "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
-    "type" : "Number"
-  }, {
-    "id" : "pop3CryptographicProtocol",
-    "label" : "Cryptographic protocol",
-    "optional" : false,
-    "value" : "TLS",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "protocol",
-    "binding" : {
-      "name" : "data.pop3Config.pop3CryptographicProtocol",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "pop3",
-      "type" : "simple"
-    },
-    "tooltip" : "Select the encryption protocol for email security.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "TLS",
-      "value" : "TLS"
-    }, {
-      "name" : "SSL",
-      "value" : "SSL"
-    }, {
-      "name" : "None",
-      "value" : "NONE"
-    } ]
-  }, {
-    "id" : "data.smtpHost",
-    "label" : "SMTP Host",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "protocol",
-    "binding" : {
-      "name" : "data.smtpConfig.smtpHost",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "smtp",
-      "type" : "simple"
-    },
-    "tooltip" : "Provide the address of the SMTP server used for sending emails. This server handles the delivery of your outgoing messages. (e.g., smtp.example.com)",
-    "type" : "String"
-  }, {
-    "id" : "data.smtpPort",
-    "label" : "SMTP Port",
-    "optional" : false,
-    "value" : 587,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "protocol",
-    "binding" : {
-      "name" : "data.smtpConfig.smtpPort",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "smtp",
-      "type" : "simple"
-    },
-    "tooltip" : "Enter the port number for connecting to the SMTP server. Typically, port 587 is used for secure connections with STARTTLS, port 465 for secure connections using SSL/TLS, and port 25 for non-secure connections.",
-    "type" : "Number"
-  }, {
-    "id" : "smtpCryptographicProtocol",
-    "label" : "Cryptographic protocol",
-    "optional" : false,
-    "value" : "TLS",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "protocol",
-    "binding" : {
-      "name" : "data.smtpConfig.smtpCryptographicProtocol",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "smtp",
-      "type" : "simple"
-    },
-    "tooltip" : "Select the encryption protocol for email security.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "TLS",
-      "value" : "TLS"
-    }, {
-      "name" : "SSL",
-      "value" : "SSL"
-    }, {
-      "name" : "None",
-      "value" : "NONE"
-    } ]
-  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "6",
+    "value" : "5",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -1574,130 +1575,6 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
-  } ],
-  "steps" : [ {
-    "name" : "IMAP",
-    "description" : "Read and manage emails using the IMAP protocol",
-    "steps" : [ {
-      "name" : "Delete an email",
-      "description" : "Delete an email from an IMAP mailbox",
-      "keywords" : [ "delete email", "imap delete", "remove email", "trash email", "purge message" ],
-      "presetId" : "protocol_imap_data.imapActionDiscriminator_deleteEmailImap"
-    }, {
-      "name" : "List emails",
-      "description" : "List emails in an IMAP folder",
-      "keywords" : [ "list emails", "imap list", "fetch emails", "get emails", "browse inbox", "retrieve messages" ],
-      "presetId" : "protocol_imap_data.imapActionDiscriminator_listEmailsImap"
-    }, {
-      "name" : "Move email",
-      "description" : "Move an email to a different folder in an IMAP mailbox",
-      "keywords" : [ "move email", "imap move", "relocate email", "transfer email", "move to folder" ],
-      "presetId" : "protocol_imap_data.imapActionDiscriminator_moveEmailImap"
-    }, {
-      "name" : "Read an email",
-      "description" : "Read the content of a specific email via IMAP",
-      "keywords" : [ "read email", "imap read", "fetch email", "get email content", "retrieve email", "open message" ],
-      "presetId" : "protocol_imap_data.imapActionDiscriminator_readEmailImap"
-    }, {
-      "name" : "Search emails",
-      "description" : "Search for emails in an IMAP mailbox using criteria",
-      "keywords" : [ "search emails", "imap search", "find emails", "filter messages", "query inbox", "look up emails" ],
-      "presetId" : "protocol_imap_data.imapActionDiscriminator_searchEmailsImap"
-    } ]
-  }, {
-    "name" : "POP3",
-    "description" : "Read emails using the POP3 protocol",
-    "steps" : [ {
-      "name" : "Delete Email",
-      "description" : "Delete an email from a POP3 mailbox",
-      "keywords" : [ "delete email", "pop3 delete", "remove email", "trash email", "purge message" ],
-      "presetId" : "protocol_pop3_data.pop3ActionDiscriminator_deleteEmailPop3"
-    }, {
-      "name" : "List Emails",
-      "description" : "List emails available in a POP3 mailbox",
-      "keywords" : [ "list emails", "pop3 list", "fetch emails", "get emails", "browse inbox", "retrieve messages" ],
-      "presetId" : "protocol_pop3_data.pop3ActionDiscriminator_listEmailsPop3"
-    }, {
-      "name" : "Read Email",
-      "description" : "Read the content of a specific email via POP3",
-      "keywords" : [ "read email", "pop3 read", "fetch email", "get email content", "retrieve email", "open message" ],
-      "presetId" : "protocol_pop3_data.pop3ActionDiscriminator_readEmailPop3"
-    }, {
-      "name" : "Search emails",
-      "description" : "Search for emails in a POP3 mailbox using criteria",
-      "keywords" : [ "search emails", "pop3 search", "find emails", "filter messages", "query inbox", "look up emails" ],
-      "presetId" : "protocol_pop3_data.pop3ActionDiscriminator_searchEmailsPop3"
-    } ]
-  }, {
-    "name" : "SMTP",
-    "description" : "Send emails using the SMTP protocol",
-    "steps" : [ {
-      "name" : "Send Email",
-      "description" : "Compose and send an email via SMTP",
-      "keywords" : [ "send email", "smtp email", "compose email", "email notification", "notify by email", "outbound email" ],
-      "presetId" : "protocol_smtp_data.smtpActionDiscriminator_sendEmailSmtp"
-    } ]
-  } ],
-  "presets" : [ {
-    "id" : "protocol_imap_data.imapActionDiscriminator_deleteEmailImap",
-    "properties" : {
-      "protocol" : "imap",
-      "data.imapActionDiscriminator" : "deleteEmailImap"
-    }
-  }, {
-    "id" : "protocol_imap_data.imapActionDiscriminator_listEmailsImap",
-    "properties" : {
-      "protocol" : "imap",
-      "data.imapActionDiscriminator" : "listEmailsImap"
-    }
-  }, {
-    "id" : "protocol_imap_data.imapActionDiscriminator_moveEmailImap",
-    "properties" : {
-      "protocol" : "imap",
-      "data.imapActionDiscriminator" : "moveEmailImap"
-    }
-  }, {
-    "id" : "protocol_imap_data.imapActionDiscriminator_readEmailImap",
-    "properties" : {
-      "protocol" : "imap",
-      "data.imapActionDiscriminator" : "readEmailImap"
-    }
-  }, {
-    "id" : "protocol_imap_data.imapActionDiscriminator_searchEmailsImap",
-    "properties" : {
-      "protocol" : "imap",
-      "data.imapActionDiscriminator" : "searchEmailsImap"
-    }
-  }, {
-    "id" : "protocol_pop3_data.pop3ActionDiscriminator_deleteEmailPop3",
-    "properties" : {
-      "protocol" : "pop3",
-      "data.pop3ActionDiscriminator" : "deleteEmailPop3"
-    }
-  }, {
-    "id" : "protocol_pop3_data.pop3ActionDiscriminator_listEmailsPop3",
-    "properties" : {
-      "protocol" : "pop3",
-      "data.pop3ActionDiscriminator" : "listEmailsPop3"
-    }
-  }, {
-    "id" : "protocol_pop3_data.pop3ActionDiscriminator_readEmailPop3",
-    "properties" : {
-      "protocol" : "pop3",
-      "data.pop3ActionDiscriminator" : "readEmailPop3"
-    }
-  }, {
-    "id" : "protocol_pop3_data.pop3ActionDiscriminator_searchEmailsPop3",
-    "properties" : {
-      "protocol" : "pop3",
-      "data.pop3ActionDiscriminator" : "searchEmailsPop3"
-    }
-  }, {
-    "id" : "protocol_smtp_data.smtpActionDiscriminator_sendEmailSmtp",
-    "properties" : {
-      "protocol" : "smtp",
-      "data.smtpActionDiscriminator" : "sendEmailSmtp"
-    }
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzkwXzI0MjApIj4KPHBhdGggZD0iTTguMzM4MzUgOS45NTM2NUwxMC4zODk0IDEyLjAxMDRMOC4zMzI2MiAxNC4wNjcyTDkuMTQ2MTYgMTQuODc1TDEyLjAxMDcgMTIuMDEwNEw5LjE0NjE2IDkuMTQ1ODNMOC4zMzgzNSA5Ljk1MzY1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTEyLjM0ODggOS45NTM2NUwxNC4zOTk4IDEyLjAxMDRMMTIuMzQzIDE0LjA2NzJMMTMuMTU2NiAxNC44NzVMMTYuMDIxMiAxMi4wMTA0TDEzLjE1NjYgOS4xNDU4M0wxMi4zNDg4IDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMy45NzIgMTEuNDM3NUgxLjEyNTMzVjIuNzkyMTlMNy42NzM3NiA3LjMyMzk2QzcuNzY5NjcgNy4zOTA0OSA3Ljg4MzYgNy40MjYxNCA4LjAwMDMyIDcuNDI2MTRDOC4xMTcwNSA3LjQyNjE0IDguMjMwOTggNy4zOTA0OSA4LjMyNjg5IDcuMzIzOTZMMTQuODc1MyAyLjc5MjE5VjhIMTYuMDIxMlYyLjI3MDgzQzE2LjAyMTIgMS45NjY5NCAxNS45MDA0IDEuNjc1NDkgMTUuNjg1NiAxLjQ2MDYxQzE1LjQ3MDcgMS4yNDU3MiAxNS4xNzkyIDEuMTI1IDE0Ljg3NTMgMS4xMjVIMS4xMjUzM0MwLjgyMTQzMiAxLjEyNSAwLjUyOTk4NCAxLjI0NTcyIDAuMzE1MDk5IDEuNDYwNjFDMC4xMDAyMTQgMS42NzU0OSAtMC4wMjA1MDc4IDEuOTY2OTQgLTAuMDIwNTA3OCAyLjI3MDgzVjExLjQzNzVDLTAuMDIwNTA3OCAxMS43NDE0IDAuMTAwMjE0IDEyLjAzMjggMC4zMTUwOTkgMTIuMjQ3N0MwLjUyOTk4NCAxMi40NjI2IDAuODIxNDMyIDEyLjU4MzMgMS4xMjUzMyAxMi41ODMzSDMuOTcyVjExLjQzNzVaTTEzLjYxNDkgMi4yNzA4M0w4LjAwMDMyIDYuMTU1MjFMMi4zODU3NCAyLjI3MDgzSDEzLjYxNDlaIiBmaWxsPSIjRkM1RDBEIi8+CjxwYXRoIGQ9Ik00LjI4MjEgOS45NTM2NUw2LjMzMzE0IDEyLjAxMDRMNC4yNzYzNyAxNC4wNjcyTDUuMDg5OTEgMTQuODc1TDcuOTU0NDkgMTIuMDEwNEw1LjA4OTkxIDkuMTQ1ODNMNC4yODIxIDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzkwXzI0MjAiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg=="

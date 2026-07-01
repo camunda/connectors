@@ -5,7 +5,7 @@
   "description" : "Create, update, and send a message to your Microsoft Teams",
   "keywords" : [ "create chat", "get chat by ID", "list chats", "list chat members", "send message in chat", "list messages in chat", "create channel", "get channel", "list channels", "send message to channel", "list channel messages", "list message replies", "list members", "chat", "messaging", "team", "channel", "notification" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
-  "version" : 8,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,11 +18,11 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "operation",
-    "label" : "Operation"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
+  }, {
+    "id" : "operation",
+    "label" : "Operation"
   }, {
     "id" : "data",
     "label" : "Data"
@@ -46,103 +46,6 @@
       "type" : "zeebe:taskDefinition"
     },
     "type" : "Hidden"
-  }, {
-    "id" : "data.type",
-    "label" : "Conversation type",
-    "description" : "Choose conversation type",
-    "value" : "chat",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.type",
-      "type" : "zeebe:input"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Chat",
-      "value" : "chat"
-    }, {
-      "name" : "Channel",
-      "value" : "channel"
-    } ]
-  }, {
-    "id" : "data.chatMethod",
-    "label" : "Method",
-    "description" : "Select method for chat interaction",
-    "value" : "sendMessageToChat",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.method",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "data.type",
-      "equals" : "chat",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Create a new chat",
-      "value" : "createChat"
-    }, {
-      "name" : "Get chat by ID",
-      "value" : "getChat"
-    }, {
-      "name" : "List chats",
-      "value" : "listChats"
-    }, {
-      "name" : "List chat members",
-      "value" : "listMembersOfChat"
-    }, {
-      "name" : "Send message in chat",
-      "value" : "sendMessageToChat"
-    }, {
-      "name" : "List messages in chat",
-      "value" : "listMessagesInChat"
-    }, {
-      "name" : "Get message in chat",
-      "value" : "getMessageFromChat"
-    } ]
-  }, {
-    "id" : "data.channelMethod",
-    "label" : "Method",
-    "description" : "Select method for channel interaction",
-    "value" : "sendMessageToChannel",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.method",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "data.type",
-      "equals" : "channel",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Create channel",
-      "value" : "createChannel"
-    }, {
-      "name" : "Get channel",
-      "value" : "getChannel"
-    }, {
-      "name" : "List channels",
-      "value" : "listAllChannels"
-    }, {
-      "name" : "Send message to channel",
-      "value" : "sendMessageToChannel"
-    }, {
-      "name" : "Get channel message",
-      "value" : "getMessageFromChannel"
-    }, {
-      "name" : "List channel messages",
-      "value" : "listChannelMessages"
-    }, {
-      "name" : "List message replies",
-      "value" : "listMessageRepliesInChannel"
-    }, {
-      "name" : "List members",
-      "value" : "listMembersInChannel"
-    } ]
   }, {
     "id" : "authentication.type",
     "label" : "Type",
@@ -319,6 +222,103 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "data.type",
+    "label" : "Conversation type",
+    "description" : "Choose conversation type",
+    "value" : "chat",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Chat",
+      "value" : "chat"
+    }, {
+      "name" : "Channel",
+      "value" : "channel"
+    } ]
+  }, {
+    "id" : "data.chatMethod",
+    "label" : "Method",
+    "description" : "Select method for chat interaction",
+    "value" : "sendMessageToChat",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.method",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.type",
+      "equals" : "chat",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Create a new chat",
+      "value" : "createChat"
+    }, {
+      "name" : "Get chat by ID",
+      "value" : "getChat"
+    }, {
+      "name" : "List chats",
+      "value" : "listChats"
+    }, {
+      "name" : "List chat members",
+      "value" : "listMembersOfChat"
+    }, {
+      "name" : "Send message in chat",
+      "value" : "sendMessageToChat"
+    }, {
+      "name" : "List messages in chat",
+      "value" : "listMessagesInChat"
+    }, {
+      "name" : "Get message in chat",
+      "value" : "getMessageFromChat"
+    } ]
+  }, {
+    "id" : "data.channelMethod",
+    "label" : "Method",
+    "description" : "Select method for channel interaction",
+    "value" : "sendMessageToChannel",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.method",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.type",
+      "equals" : "channel",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Create channel",
+      "value" : "createChannel"
+    }, {
+      "name" : "Get channel",
+      "value" : "getChannel"
+    }, {
+      "name" : "List channels",
+      "value" : "listAllChannels"
+    }, {
+      "name" : "Send message to channel",
+      "value" : "sendMessageToChannel"
+    }, {
+      "name" : "Get channel message",
+      "value" : "getMessageFromChannel"
+    }, {
+      "name" : "List channel messages",
+      "value" : "listChannelMessages"
+    }, {
+      "name" : "List message replies",
+      "value" : "listMessageRepliesInChannel"
+    }, {
+      "name" : "List members",
+      "value" : "listMembersInChannel"
+    } ]
   }, {
     "id" : "data.createChat.chatType",
     "label" : "Chat type",
@@ -1761,7 +1761,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "8",
+    "value" : "7",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -1834,181 +1834,6 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
-  } ],
-  "steps" : [ {
-    "name" : "Chat",
-    "description" : "Manage chats and chat messages in Microsoft Teams",
-    "steps" : [ {
-      "name" : "Create a new chat",
-      "description" : "Create a new chat in Microsoft Teams",
-      "keywords" : [ "create chat", "new chat", "start conversation", "open chat", "group chat" ],
-      "presetId" : "type_chat_chatMethod_createChat"
-    }, {
-      "name" : "Get chat by ID",
-      "description" : "Retrieve details of a specific Microsoft Teams chat",
-      "keywords" : [ "get chat", "chat info", "fetch chat", "retrieve chat", "chat details" ],
-      "presetId" : "type_chat_chatMethod_getChat"
-    }, {
-      "name" : "List chats",
-      "description" : "List all chats available in Microsoft Teams",
-      "keywords" : [ "list chats", "chat list", "get chats", "fetch conversations", "browse chats" ],
-      "presetId" : "type_chat_chatMethod_listChats"
-    }, {
-      "name" : "List chat members",
-      "description" : "List members of a Microsoft Teams chat",
-      "keywords" : [ "list chat members", "chat members", "get chat members", "fetch participants", "conversation members" ],
-      "presetId" : "type_chat_chatMethod_listMembersOfChat"
-    }, {
-      "name" : "Send message in chat",
-      "description" : "Send a message to a Microsoft Teams chat",
-      "keywords" : [ "send message in chat", "chat message", "direct message", "post in chat", "notify via chat" ],
-      "presetId" : "type_chat_chatMethod_sendMessageToChat"
-    }, {
-      "name" : "List messages in chat",
-      "description" : "List messages in a Microsoft Teams chat",
-      "keywords" : [ "list chat messages", "chat messages", "get chat messages", "fetch dm history", "read chat history" ],
-      "presetId" : "type_chat_chatMethod_listMessagesInChat"
-    }, {
-      "name" : "Get message in chat",
-      "description" : "Retrieve a specific message from a Microsoft Teams chat",
-      "keywords" : [ "get chat message", "fetch message", "retrieve chat message", "read message", "direct message" ],
-      "presetId" : "type_chat_chatMethod_getMessageFromChat"
-    } ]
-  }, {
-    "name" : "Channel",
-    "description" : "Manage channels and channel messages in Microsoft Teams",
-    "steps" : [ {
-      "name" : "Create channel",
-      "description" : "Create a new channel in a Microsoft Teams team",
-      "keywords" : [ "create channel", "new channel", "add channel", "setup channel", "open channel" ],
-      "presetId" : "type_channel_channelMethod_createChannel"
-    }, {
-      "name" : "Get channel",
-      "description" : "Get details of a specific Microsoft Teams channel",
-      "keywords" : [ "get channel", "channel info", "fetch channel", "retrieve channel", "channel details" ],
-      "presetId" : "type_channel_channelMethod_getChannel"
-    }, {
-      "name" : "List channels",
-      "description" : "List all channels in a Microsoft Teams team",
-      "keywords" : [ "list channels", "channel list", "get channels", "fetch channels", "browse channels" ],
-      "presetId" : "type_channel_channelMethod_listAllChannels"
-    }, {
-      "name" : "Send message to channel",
-      "description" : "Send a message to a Microsoft Teams channel",
-      "keywords" : [ "send message", "post to channel", "channel notification", "broadcast message", "post message" ],
-      "presetId" : "type_channel_channelMethod_sendMessageToChannel"
-    }, {
-      "name" : "Get channel message",
-      "description" : "Retrieve a specific message from a Microsoft Teams channel",
-      "keywords" : [ "get channel message", "fetch message", "retrieve message", "read channel post", "message details" ],
-      "presetId" : "type_channel_channelMethod_getMessageFromChannel"
-    }, {
-      "name" : "List channel messages",
-      "description" : "List messages in a Microsoft Teams channel",
-      "keywords" : [ "list messages", "channel messages", "get messages", "fetch channel posts", "read channel messages" ],
-      "presetId" : "type_channel_channelMethod_listChannelMessages"
-    }, {
-      "name" : "List message replies",
-      "description" : "List replies to a message in a Microsoft Teams channel",
-      "keywords" : [ "list replies", "message replies", "get replies", "fetch thread replies", "conversation thread" ],
-      "presetId" : "type_channel_channelMethod_listMessageRepliesInChannel"
-    }, {
-      "name" : "List members",
-      "description" : "List members of a Microsoft Teams channel",
-      "keywords" : [ "list members", "channel members", "get channel members", "fetch members", "member roster" ],
-      "presetId" : "type_channel_channelMethod_listMembersInChannel"
-    } ]
-  } ],
-  "presets" : [ {
-    "id" : "type_chat_chatMethod_createChat",
-    "properties" : {
-      "data.type" : "chat",
-      "data.chatMethod" : "createChat"
-    }
-  }, {
-    "id" : "type_chat_chatMethod_getChat",
-    "properties" : {
-      "data.type" : "chat",
-      "data.chatMethod" : "getChat"
-    }
-  }, {
-    "id" : "type_chat_chatMethod_listChats",
-    "properties" : {
-      "data.type" : "chat",
-      "data.chatMethod" : "listChats"
-    }
-  }, {
-    "id" : "type_chat_chatMethod_listMembersOfChat",
-    "properties" : {
-      "data.type" : "chat",
-      "data.chatMethod" : "listMembersOfChat"
-    }
-  }, {
-    "id" : "type_chat_chatMethod_sendMessageToChat",
-    "properties" : {
-      "data.type" : "chat",
-      "data.chatMethod" : "sendMessageToChat"
-    }
-  }, {
-    "id" : "type_chat_chatMethod_listMessagesInChat",
-    "properties" : {
-      "data.type" : "chat",
-      "data.chatMethod" : "listMessagesInChat"
-    }
-  }, {
-    "id" : "type_chat_chatMethod_getMessageFromChat",
-    "properties" : {
-      "data.type" : "chat",
-      "data.chatMethod" : "getMessageFromChat"
-    }
-  }, {
-    "id" : "type_channel_channelMethod_createChannel",
-    "properties" : {
-      "data.type" : "channel",
-      "data.channelMethod" : "createChannel"
-    }
-  }, {
-    "id" : "type_channel_channelMethod_getChannel",
-    "properties" : {
-      "data.type" : "channel",
-      "data.channelMethod" : "getChannel"
-    }
-  }, {
-    "id" : "type_channel_channelMethod_listAllChannels",
-    "properties" : {
-      "data.type" : "channel",
-      "data.channelMethod" : "listAllChannels"
-    }
-  }, {
-    "id" : "type_channel_channelMethod_sendMessageToChannel",
-    "properties" : {
-      "data.type" : "channel",
-      "data.channelMethod" : "sendMessageToChannel"
-    }
-  }, {
-    "id" : "type_channel_channelMethod_getMessageFromChannel",
-    "properties" : {
-      "data.type" : "channel",
-      "data.channelMethod" : "getMessageFromChannel"
-    }
-  }, {
-    "id" : "type_channel_channelMethod_listChannelMessages",
-    "properties" : {
-      "data.type" : "channel",
-      "data.channelMethod" : "listChannelMessages"
-    }
-  }, {
-    "id" : "type_channel_channelMethod_listMessageRepliesInChannel",
-    "properties" : {
-      "data.type" : "channel",
-      "data.channelMethod" : "listMessageRepliesInChannel"
-    }
-  }, {
-    "id" : "type_channel_channelMethod_listMembersInChannel",
-    "properties" : {
-      "data.type" : "channel",
-      "data.channelMethod" : "listMembersInChannel"
-    }
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIGhlaWdodD0nMTgnIHdpZHRoPScxOCcgdmlld0JveD0nLTMzNC4zMjQ5NSAtNTE4LjMzMzUgMjg5Ny40ODI5IDMxMTAuMDAxJz4KICAgIDxwYXRoIGQ9J00xNTU0LjYzNyA3NzcuNWg1NzUuNzEzYzU0LjM5MSAwIDk4LjQ4MyA0NC4wOTIgOTguNDgzIDk4LjQ4M3Y1MjQuMzk4YzAgMTk5LjkwMS0xNjIuMDUxIDM2MS45NTItMzYxLjk1MiAzNjEuOTUyaC0xLjcxMWMtMTk5LjkwMS4wMjgtMzYxLjk3NS0xNjItMzYyLjAwNC0zNjEuOTAxVjgyOC45NzFjLjAwMS0yOC40MjcgMjMuMDQ1LTUxLjQ3MSA1MS40NzEtNTEuNDcxeicKICAgICAgICAgIGZpbGw9JyM1MDU5QzknLz4KICAgIDxjaXJjbGUgcj0nMjMzLjI1JyBjeT0nNDQwLjU4MycgY3g9JzE5NDMuNzUnIGZpbGw9JyM1MDU5QzknLz4KICAgIDxjaXJjbGUgcj0nMzM2LjkxNycgY3k9JzMzNi45MTcnIGN4PScxMjE4LjA4MycgZmlsbD0nIzdCODNFQicvPgogICAgPHBhdGggZD0nTTE2NjcuMzIzIDc3Ny41SDcxNy4wMWMtNTMuNzQzIDEuMzMtOTYuMjU3IDQ1LjkzMS05NS4wMSA5OS42NzZ2NTk4LjEwNWMtNy41MDUgMzIyLjUxOSAyNDcuNjU3IDU5MC4xNiA1NzAuMTY3IDU5OC4wNTMgMzIyLjUxLTcuODkzIDU3Ny42NzEtMjc1LjUzNCA1NzAuMTY3LTU5OC4wNTNWODc3LjE3NmMxLjI0NS01My43NDUtNDEuMjY4LTk4LjM0Ni05NS4wMTEtOTkuNjc2eicKICAgICAgICAgIGZpbGw9JyM3QjgzRUInLz4KICAgIDxwYXRoIGQ9J00xMjQ0IDc3Ny41djgzOC4xNDVjLS4yNTggMzguNDM1LTIzLjU0OSA3Mi45NjQtNTkuMDkgODcuNTk4YTkxLjg1NiA5MS44NTYgMCAwMS0zNS43NjUgNy4yNTdINjY3LjYxM2MtNi43MzgtMTcuMTA1LTEyLjk1OC0zNC4yMS0xOC4xNDItNTEuODMzYTYzMS4yODcgNjMxLjI4NyAwIDAxLTI3LjQ3Mi0xODMuNDlWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMScvPgogICAgPHBhdGggZD0nTTExOTIuMTY3IDc3Ny41djg4OS45NzhhOTEuODAyIDkxLjgwMiAwIDAxLTcuMjU3IDM1Ljc2NWMtMTQuNjM0IDM1LjU0MS00OS4xNjMgNTguODMzLTg3LjU5OCA1OS4wOUg2OTEuOTc1Yy04LjgxMi0xNy4xMDUtMTcuMTA1LTM0LjIxLTI0LjM2Mi01MS44MzMtNy4yNTctMTcuNjIzLTEyLjk1OC0zNC4yMS0xOC4xNDItNTEuODMzYTYzMS4yODIgNjMxLjI4MiAwIDAxLTI3LjQ3Mi0xODMuNDlWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMicvPgogICAgPHBhdGggZD0nTTExOTIuMTY3IDc3Ny41djc4Ni4zMTJjLS4zOTUgNTIuMjIzLTQyLjYzMiA5NC40Ni05NC44NTUgOTQuODU1aC00NDcuODRBNjMxLjI4MiA2MzEuMjgyIDAgMDE2MjIgMTQ3NS4xNzdWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMicvPgogICAgPHBhdGggZD0nTTExNDAuMzMzIDc3Ny41djc4Ni4zMTJjLS4zOTUgNTIuMjIzLTQyLjYzMiA5NC40Ni05NC44NTUgOTQuODU1SDY0OS40NzJBNjMxLjI4MiA2MzEuMjgyIDAgMDE2MjIgMTQ3NS4xNzdWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMicvPgogICAgPHBhdGggZD0nTTEyNDQgNTA5LjUyMnYxNjMuMjc1Yy04LjgxMi41MTgtMTcuMTA1IDEuMDM3LTI1LjkxNyAxLjAzNy04LjgxMiAwLTE3LjEwNS0uNTE4LTI1LjkxNy0xLjAzN2EyODQuNDcyIDI4NC40NzIgMCAwMS01MS44MzMtOC4yOTNjLTEwNC45NjMtMjQuODU3LTE5MS42NzktOTguNDY5LTIzMy4yNS0xOTguMDAzYTI4OC4wMiAyODguMDIgMCAwMS0xNi41ODctNTEuODMzaDI1OC42NDhjNTIuMzA1LjE5OCA5NC42NTcgNDIuNTQ5IDk0Ljg1NiA5NC44NTR6JwogICAgICAgICAgb3BhY2l0eT0nLjEnLz4KICAgIDxwYXRoIGQ9J00xMTkyLjE2NyA1NjEuMzU1djExMS40NDJhMjg0LjQ3MiAyODQuNDcyIDAgMDEtNTEuODMzLTguMjkzYy0xMDQuOTYzLTI0Ljg1Ny0xOTEuNjc5LTk4LjQ2OS0yMzMuMjUtMTk4LjAwM2gxOTAuMjI4YzUyLjMwNC4xOTggOTQuNjU2IDQyLjU1IDk0Ljg1NSA5NC44NTR6JwogICAgICAgICAgb3BhY2l0eT0nLjInLz4KICAgIDxwYXRoIGQ9J00xMTkyLjE2NyA1NjEuMzU1djExMS40NDJhMjg0LjQ3MiAyODQuNDcyIDAgMDEtNTEuODMzLTguMjkzYy0xMDQuOTYzLTI0Ljg1Ny0xOTEuNjc5LTk4LjQ2OS0yMzMuMjUtMTk4LjAwM2gxOTAuMjI4YzUyLjMwNC4xOTggOTQuNjU2IDQyLjU1IDk0Ljg1NSA5NC44NTR6JwogICAgICAgICAgb3BhY2l0eT0nLjInLz4KICAgIDxwYXRoIGQ9J00xMTQwLjMzMyA1NjEuMzU1djEwMy4xNDhjLTEwNC45NjMtMjQuODU3LTE5MS42NzktOTguNDY5LTIzMy4yNS0xOTguMDAzaDEzOC4zOTVjNTIuMzA1LjE5OSA5NC42NTYgNDIuNTUxIDk0Ljg1NSA5NC44NTV6JwogICAgICAgICAgb3BhY2l0eT0nLjInLz4KICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFRyYW5zZm9ybT0nbWF0cml4KDEgMCAwIC0xIDAgMjA3NS4zMzMpJyB5Mj0nMzk0LjI2MScgeDI9Jzk0Mi4yMzQnIHkxPScxNjgzLjA3MycgeDE9JzE5OC4wOTknCiAgICAgICAgICAgICAgICAgICAgZ3JhZGllbnRVbml0cz0ndXNlclNwYWNlT25Vc2UnIGlkPSdhJz4KICAgICAgICA8c3RvcCBvZmZzZXQ9JzAnIHN0b3AtY29sb3I9JyM1YTYyYzMnLz4KICAgICAgICA8c3RvcCBvZmZzZXQ9Jy41JyBzdG9wLWNvbG9yPScjNGQ1NWJkJy8+CiAgICAgICAgPHN0b3Agb2Zmc2V0PScxJyBzdG9wLWNvbG9yPScjMzk0MGFiJy8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHBhdGggZD0nTTk1LjAxIDQ2Ni41aDk1MC4zMTJjNTIuNDczIDAgOTUuMDEgNDIuNTM4IDk1LjAxIDk1LjAxdjk1MC4zMTJjMCA1Mi40NzMtNDIuNTM4IDk1LjAxLTk1LjAxIDk1LjAxSDk1LjAxYy01Mi40NzMgMC05NS4wMS00Mi41MzgtOTUuMDEtOTUuMDFWNTYxLjUxYzAtNTIuNDcyIDQyLjUzOC05NS4wMSA5NS4wMS05NS4wMXonCiAgICAgICAgICBmaWxsPSd1cmwoI2EpJy8+CiAgICA8cGF0aCBkPSdNODIwLjIxMSA4MjguMTkzaC0xODkuOTd2NTE3LjI5N2gtMTIxLjAzVjgyOC4xOTNIMzIwLjEyM1Y3MjcuODQ0aDUwMC4wODh6JyBmaWxsPScjRkZGJy8+Cjwvc3ZnPg=="

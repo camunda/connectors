@@ -5,7 +5,7 @@
   "description" : "Upload and download files from Google Cloud Storage.",
   "keywords" : [ "download file from google cloud storage", "upload file to google cloud storage", "download file from gcs", "upload file to gcs", "gcs", "download file", "upload file", "download object", "upload object", "cloud storage", "object storage", "file storage" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage",
-  "version" : 2,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,11 +18,11 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "authentication",
-    "label" : "Authentication"
-  }, {
     "id" : "operation",
     "label" : "Operation"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
   }, {
     "id" : "additionalProperties",
     "label" : "Additional properties"
@@ -46,21 +46,6 @@
       "type" : "zeebe:taskDefinition"
     },
     "type" : "Hidden"
-  }, {
-    "id" : "authentication.jsonKey",
-    "label" : "JSON key of the service account",
-    "description" : "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.jsonKey",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
   }, {
     "id" : "operationDiscriminator",
     "label" : "Operation",
@@ -372,6 +357,21 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "authentication.jsonKey",
+    "label" : "JSON key of the service account",
+    "description" : "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.jsonKey",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
     "id" : "uploadOperationFileName",
     "label" : "Document file name",
     "optional" : true,
@@ -392,7 +392,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -465,6 +465,28 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
+  } ],
+  "steps" : [ {
+    "name" : "Download object",
+    "description" : "Download an object from a Google Cloud Storage bucket",
+    "keywords" : [ "download", "get object", "fetch file", "retrieve object", "export from bucket" ],
+    "presetId" : "operationDiscriminator_downloadObject"
+  }, {
+    "name" : "Upload object",
+    "description" : "Upload an object to a Google Cloud Storage bucket",
+    "keywords" : [ "upload", "store object", "save file", "put object", "publish to bucket" ],
+    "presetId" : "operationDiscriminator_uploadObject"
+  } ],
+  "presets" : [ {
+    "id" : "operationDiscriminator_downloadObject",
+    "properties" : {
+      "operationDiscriminator" : "downloadObject"
+    }
+  }, {
+    "id" : "operationDiscriminator_uploadObject",
+    "properties" : {
+      "operationDiscriminator" : "uploadObject"
+    }
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMntmaWxsOiM2NjlkZjY7fS5jbHMtM3tmaWxsOiM0Mjg1ZjQ7fS5jbHMtNHtmaWxsOiNmZmY7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ2xvdWRTdG9yYWdlX0NvbG9yPC90aXRsZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxyZWN0IGNsYXNzPSJjbHMtMSIgeD0iMiIgeT0iNCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjciLz48cmVjdCBjbGFzcz0iY2xzLTIiIHg9IjIwIiB5PSI0IiB3aWR0aD0iMiIgaGVpZ2h0PSI3Ii8+PHBvbHlnb24gY2xhc3M9ImNscy0zIiBwb2ludHM9IjIyIDQgMjAgNCAyMCAxMSAyMiA0Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIyIiB5PSI0IiB3aWR0aD0iMiIgaGVpZ2h0PSI3Ii8+PHJlY3QgY2xhc3M9ImNscy00IiB4PSI2IiB5PSI3IiB3aWR0aD0iNiIgaGVpZ2h0PSIxIi8+PHJlY3QgY2xhc3M9ImNscy00IiB4PSIxNSIgeT0iNiIgd2lkdGg9IjMiIGhlaWdodD0iMyIgcng9IjEuNSIvPjxyZWN0IGNsYXNzPSJjbHMtMSIgeD0iMiIgeT0iMTMiIHdpZHRoPSIyMCIgaGVpZ2h0PSI3Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIyMCIgeT0iMTMiIHdpZHRoPSIyIiBoZWlnaHQ9IjciLz48cG9seWdvbiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iMjIgMTMgMjAgMTMgMjAgMjAgMjIgMTMiLz48cmVjdCBjbGFzcz0iY2xzLTIiIHg9IjIiIHk9IjEzIiB3aWR0aD0iMiIgaGVpZ2h0PSI3Ii8+PHJlY3QgY2xhc3M9ImNscy00IiB4PSI2IiB5PSIxNiIgd2lkdGg9IjYiIGhlaWdodD0iMSIvPjxyZWN0IGNsYXNzPSJjbHMtNCIgeD0iMTUiIHk9IjE1IiB3aWR0aD0iMyIgaGVpZ2h0PSIzIiByeD0iMS41Ii8+PC9nPjwvc3ZnPg=="
