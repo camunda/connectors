@@ -209,7 +209,7 @@ public class ParameterUtilTest {
     }
 
     @Test
-    void transformToProperty_internalParameterRef_missingKey_throwsWithMessage() {
+    void transformToProperty_internalParameterRef_missingKey_throwsDistinctMessage() {
       // given – $ref points to a key that does not exist in components
       var stub = new Parameter();
       stub.set$ref("#/components/parameters/missingParam");
@@ -221,7 +221,36 @@ public class ParameterUtilTest {
       assertThatThrownBy(() -> ParameterUtil.transformToProperty(stub, components))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("missingParam")
-          .hasMessageContaining("components.parameters");
+          .hasMessageContaining("is not defined in components.parameters");
+    }
+
+    @Test
+    void transformToProperty_internalParameterRef_noParametersSection_throwsDistinctMessage() {
+      // given – components exists but has no parameters map
+      var stub = new Parameter();
+      stub.set$ref("#/components/parameters/myParam");
+
+      var components = new Components();
+
+      // when / then
+      assertThatThrownBy(() -> ParameterUtil.transformToProperty(stub, components))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("no components.parameters section");
+    }
+
+    @Test
+    void transformToProperty_internalRefOutsideParameters_throwsWithMessage() {
+      // given – internal ref that points to a schema, not a parameter
+      var stub = new Parameter();
+      stub.set$ref("#/components/schemas/MySchema");
+
+      var components = new Components();
+
+      // when / then
+      assertThatThrownBy(() -> ParameterUtil.transformToProperty(stub, components))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("#/components/schemas/MySchema")
+          .hasMessageContaining("only '#/components/parameters/...' references are supported");
     }
 
     @Test

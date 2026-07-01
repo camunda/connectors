@@ -48,10 +48,21 @@ public class ParameterUtil {
                 + "parser can follow the reference, or replace the external $ref with an inline "
                 + "parameter definition.");
       }
-      var paramName = ref.replace("#/components/parameters/", "");
-      if (components == null
-          || components.getParameters() == null
-          || !components.getParameters().containsKey(paramName)) {
+      var prefix = "#/components/parameters/";
+      if (!ref.startsWith(prefix)) {
+        throw new IllegalArgumentException(
+            "Parameter $ref '"
+                + ref
+                + "' cannot be resolved: only '#/components/parameters/...' references are supported.");
+      }
+      var paramName = ref.substring(prefix.length());
+      if (components == null || components.getParameters() == null) {
+        throw new IllegalArgumentException(
+            "Parameter $ref '"
+                + ref
+                + "' cannot be resolved: the spec has no components.parameters section.");
+      }
+      if (!components.getParameters().containsKey(paramName)) {
         throw new IllegalArgumentException(
             "Parameter $ref '"
                 + ref
