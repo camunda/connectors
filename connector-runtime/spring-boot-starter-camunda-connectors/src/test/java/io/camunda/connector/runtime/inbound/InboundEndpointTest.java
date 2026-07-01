@@ -35,6 +35,7 @@ import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestContr
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.instances.service.LocalInstanceForwardingRouter;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +85,8 @@ public class InboundEndpointTest {
                     System.currentTimeMillis())));
 
     InboundConnectorRestController statusController =
-        new InboundConnectorRestController(executableRegistry, new LocalInstanceForwardingRouter());
+        new InboundConnectorRestController(
+            executableRegistry, new LocalInstanceForwardingRouter(), new SimpleMeterRegistry());
 
     var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());
@@ -111,7 +113,8 @@ public class InboundEndpointTest {
                     System.currentTimeMillis())));
 
     InboundConnectorRestController statusController =
-        new InboundConnectorRestController(executableRegistry, new LocalInstanceForwardingRouter());
+        new InboundConnectorRestController(
+            executableRegistry, new LocalInstanceForwardingRouter(), new SimpleMeterRegistry());
 
     var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());

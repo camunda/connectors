@@ -35,6 +35,20 @@ public class ConnectorMetrics {
 
     public static final String METRIC_NAME_INVOCATIONS = "camunda.connector.outbound.invocations";
     public static final String METRIC_NAME_TIME = "camunda.connector.outbound.execution-time";
+
+    /** Jobs pulled from the Zeebe broker queue, tagged by connector {@code type}. */
+    public static final String METRIC_NAME_WORKER_JOB_ACTIVATED =
+        "camunda.client.worker.job.activated";
+
+    /** Jobs acknowledged back to the Zeebe broker, tagged by connector {@code type}. */
+    public static final String METRIC_NAME_WORKER_JOB_HANDLED = "camunda.client.worker.job.handled";
+
+    /**
+     * Number of times a job-stream was recreated due to inactivity, tagged by connector {@code
+     * type}. Spikes indicate broker connectivity instability.
+     */
+    public static final String METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED =
+        "camunda.client.worker.stream.inactivity.recreated";
   }
 
   public static class Inbound {
