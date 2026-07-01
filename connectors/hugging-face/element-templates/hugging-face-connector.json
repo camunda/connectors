@@ -74,7 +74,7 @@
       "label": "Hugging Face API key",
       "group": "authentication",
       "feel": "optional",
-      "description": "Your Hugging Face API key. Get one at <a href=\"https://huggingface.co/settings/tokens\" target=\"_blank\">huggingface.co/settings/tokens</a>",
+      "tooltip": "Get your API key at <a href=\"https://huggingface.co/settings/tokens\" target=\"_blank\">Hugging Face API tokens</a>",
       "type": "String",
       "binding": {
         "type": "zeebe:input",
@@ -88,7 +88,8 @@
       "label": "Model ID",
       "group": "input",
       "feel": "optional",
-      "description": "Full model repository ID (e.g., meta-llama/Llama-3.2-3B-Instruct, mistralai/Mistral-7B-Instruct-v0.3). Browse models at <a href=\"https://huggingface.co/models\" target=\"_blank\">huggingface.co/models</a>",
+      "placeholder": "meta-llama/Llama-3.2-3B-Instruct",
+      "tooltip": "Full model repository ID. Browse models on <a href=\"https://huggingface.co/models\" target=\"_blank\">Hugging Face</a>.",
       "type": "String",
       "binding": {
         "type": "zeebe:input",
@@ -102,7 +103,7 @@
       "label": "Messages",
       "group": "input",
       "feel": "required",
-      "description": "Chat messages array in format: [{\"role\": \"user\", \"content\": \"Your message\"}]. Use 'system' role for instructions and 'user' role for queries. <a href=\"https://huggingface.co/docs/inference-providers/index#http--curl\" target=\"_blank\">See documentation</a>",
+      "description": "Chat messages array in format: [{\"role\": \"user\", \"content\": \"Your message\"}]. Use 'system' role for instructions and 'user' role for queries. <a href=\"https://huggingface.co/docs/inference-providers/index#http--curl\" target=\"_blank\">Hugging Face inference API documentation</a>",
       "type": "Text",
       "binding": {
         "type": "zeebe:input",
@@ -140,7 +141,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">Result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -150,7 +151,7 @@
     },
     {
       "label": "Result expression",
-      "description": "Expression to map the response into process variables. For chat completion, use: =response.body.choices[1].message.content to get the AI response. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "description": "Expression to map the response into process variables. For chat completion, use: =response.body.choices[1].message.content to get the AI response. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "Text",
       "feel": "required",
@@ -161,7 +162,7 @@
     },
     {
       "label": "Connection timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "tooltip": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "errors",
       "type": "String",
       "value": "30",
@@ -181,7 +182,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

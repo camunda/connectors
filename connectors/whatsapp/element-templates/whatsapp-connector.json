@@ -63,7 +63,7 @@
     },
     {
       "label": "Access token",
-      "description": "Temporary or permanent WhatsApp application access token. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>See documentation</a>",
+      "tooltip": "Temporary or permanent WhatsApp application access token. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>WhatsApp connector documentation</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -77,7 +77,7 @@
     },
     {
       "label": "Sender phone number ID",
-      "description": "A phone number ID registered in your WhatsApp application. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>See documentation</a>",
+      "tooltip": "A phone number ID registered in your WhatsApp application. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>WhatsApp connector documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -91,7 +91,7 @@
     },
     {
       "label": "Recipient phone number",
-      "description": "A phone number that should receive a message. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>See documentation</a>",
+      "tooltip": "A phone number that should receive a message. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>WhatsApp connector documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -105,7 +105,7 @@
     },
     {
       "label": "Message type",
-      "description": "Choose message type you wish to send.  <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>See documentation</a>",
+      "tooltip": "Choose whether to send arbitrary plain text or an approved WhatsApp message template. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>WhatsApp connector documentation</a>",
       "group": "input",
       "id": "messageType",
       "type": "Dropdown",
@@ -127,7 +127,7 @@
     },
     {
       "label": "Message text",
-      "description": "Plain text message to be sent to the recipient",
+      "tooltip": "Plain text message to be sent to the recipient",
       "group": "input",
       "type": "Text",
       "feel": "optional",
@@ -145,7 +145,7 @@
     },
     {
       "label": "Template name",
-      "description": "An approved WhatsApp template name",
+      "tooltip": "An approved WhatsApp template name",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -163,7 +163,8 @@
     },
     {
       "label": "Template language code",
-      "description": "An approved WhatsApp template language code, e.g. en_US",
+      "placeholder": "en_US",
+      "tooltip": "An approved WhatsApp template language code",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -181,7 +182,7 @@
     },
     {
       "label": "Header variables",
-      "description": "Header variables if supported by template",
+      "tooltip": "Values for the header variables, only if the template header uses any",
       "value": "=[]",
       "group": "input",
       "type": "Text",
@@ -201,7 +202,7 @@
     },
     {
       "label": "Body variables",
-      "description": "Body variables if supported by template",
+      "tooltip": "Values for the body variables, only if the template body uses any",
       "value": "=[]",
       "group": "input",
       "type": "Text",
@@ -269,7 +270,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -279,7 +280,7 @@
     },
     {
       "label": "Result expression",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "Text",
       "feel": "required",
@@ -290,7 +291,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

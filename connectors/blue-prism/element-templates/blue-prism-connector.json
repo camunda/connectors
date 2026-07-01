@@ -90,7 +90,6 @@
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
-      "description": "Choose the authentication type",
       "type": "Dropdown",
       "choices": [
         {
@@ -143,7 +142,7 @@
     },
     {
       "label": "Client ID",
-      "description": "Blue Prism OAuth 2.0 client ID",
+      "tooltip": "Blue Prism OAuth 2.0 client ID",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -161,7 +160,7 @@
     },
     {
       "label": "Client secret",
-      "description": "Blue Prism OAuth 2.0 client secret",
+      "tooltip": "Blue Prism OAuth 2.0 client secret",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -264,7 +263,6 @@
     {
       "label": "Work queue ID",
       "group": "input",
-      "description": "The queue ID of the item",
       "type": "String",
       "optional": false,
       "feel": "optional",
@@ -278,7 +276,6 @@
     },
     {
       "label": "Queue item ID",
-      "description": "The queue item identifier to be fetched from queue",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -296,7 +293,7 @@
     },
     {
       "label": "Item type",
-      "description": "Represents a Blue Prism item type",
+      "tooltip": "Data type of the value submitted to the work queue item.",
       "group": "input",
       "type": "Dropdown",
       "value": "Text",
@@ -340,7 +337,7 @@
     },
     {
       "label": "Item value",
-      "description": "Represents a Blue Prism item value",
+      "tooltip": "Data value submitted to the work queue item.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -376,7 +373,6 @@
     },
     {
       "label": "Priority",
-      "description": "The priority value assigned to the item",
       "group": "input",
       "type": "String",
       "value": "3",
@@ -401,7 +397,6 @@
     },
     {
       "label": "Status",
-      "description": "Status value",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -455,7 +450,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">Result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -466,7 +461,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetItemState",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">Result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -485,7 +480,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetItemId",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">Result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -527,7 +522,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

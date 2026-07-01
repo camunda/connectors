@@ -195,7 +195,7 @@
     {
       "label": "Name",
       "id": "body.address.name",
-      "description": "Name of the person. Both name and company can be included",
+      "tooltip": "Name of the person. Both name and company can be included.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -217,7 +217,7 @@
     {
       "label": "Company",
       "id": "body.address.company",
-      "description": "Name of the organization. Both name and company can be included",
+      "tooltip": "Name of the organization. Both name and company can be included.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -239,7 +239,7 @@
     {
       "label": "Phone",
       "id": "body.address.phone",
-      "description": "Phone number to reach the person or organization",
+      "tooltip": "Phone number to reach the person or organization",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -261,7 +261,6 @@
     {
       "label": "Address line 1",
       "id": "body.address.street1",
-      "description": "First line of the address",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -283,7 +282,6 @@
     {
       "label": "Address line 2",
       "id": "body.address.street2",
-      "description": "Second line of the address",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -305,7 +303,6 @@
     {
       "label": "City",
       "id": "body.address.city",
-      "description": "City the address is located in",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -327,7 +324,6 @@
     {
       "label": "State or province",
       "id": "body.address.state",
-      "description": "State or province the address is located in",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -370,7 +366,6 @@
     {
       "label": "ZIP or postal code",
       "id": "body.address.zip",
-      "description": "The ZIP or postal code where the address is located",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -392,7 +387,7 @@
     {
       "label": "Country",
       "id": "body.address.country",
-      "description": "The country code of the address location",
+      "tooltip": "The country code of the address location",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -414,7 +409,7 @@
     {
       "label": "Federal tax ID",
       "id": "body.address.federal_tax_id",
-      "description": "Federal tax identifier of the person or organization",
+      "tooltip": "Federal tax identifier of the person or organization",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -436,7 +431,7 @@
     {
       "label": "State tax ID",
       "id": "body.address.state_tax_id",
-      "description": "State tax identifier of the person or organization",
+      "tooltip": "State tax identifier of the person or organization",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -458,7 +453,7 @@
     {
       "label": "Weight",
       "id": "body.parcel.weight",
-      "description": "Weight of parcel in oz",
+      "tooltip": "Weight of parcel in oz",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -546,7 +541,7 @@
     {
       "label": "Predefined package",
       "id": "body.parcel.predefined_package",
-      "description": "Optional, one of <a href=\"https://www.easypost.com/service-levels-and-parcels\" target=\"_blank\">predefined packages</a>",
+      "tooltip": "Optional, one of <a href=\"https://www.easypost.com/service-levels-and-parcels\" target=\"_blank\">predefined packages</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -568,7 +563,7 @@
     {
       "label": "To address",
       "id": "body.shipment.to_address.id",
-      "description": "ID of the destination address",
+      "tooltip": "ID of the destination address",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -590,7 +585,7 @@
     {
       "label": "From address",
       "id": "body.shipment.from_address.id",
-      "description": "ID of the origin address",
+      "tooltip": "ID of the origin address",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -612,7 +607,7 @@
     {
       "label": "Parcel",
       "id": "body.shipment.parcel.id",
-      "description": "ID of the parcel",
+      "tooltip": "ID of the parcel",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -634,7 +629,6 @@
     {
       "label": "Shipment ID",
       "id": "shipmentIdValue",
-      "description": "ID of the shipment",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -656,7 +650,7 @@
     {
       "label": "Rate ID",
       "id": "body.rate.id",
-      "description": "ID of the actual rate quote for this service",
+      "tooltip": "ID of the actual rate quote for this service",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -678,7 +672,7 @@
     {
       "label": "Address ID",
       "id": "addressIdValue",
-      "description": "The ID of the address that has already been created",
+      "tooltip": "The ID of the address that has already been created",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -700,7 +694,6 @@
     {
       "label": "Tracker ID",
       "id": "trackerIdValue",
-      "description": "ID of tracker",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -868,7 +861,8 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "Name of variable to store the response in.",
+      "description": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -879,7 +873,8 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetAddressId",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables.",
+      "description": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -898,7 +893,8 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetPlaceId",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables.",
+      "description": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -917,7 +913,8 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetShipment",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables.",
+      "description": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -936,7 +933,8 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetTracker",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables.",
+      "description": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -955,7 +953,8 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetTrackerStatus",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables.",
+      "description": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -974,7 +973,8 @@
     {
       "label": "Result expression",
       "id": "resultExpression",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables.",
+      "description": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -992,7 +992,8 @@
     {
       "id": "errorExpression",
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "tooltip": "Expression to handle errors.",
+      "description": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">error expression documentation</a>.",
       "feel": "required",
       "group": "error",
       "binding": {
