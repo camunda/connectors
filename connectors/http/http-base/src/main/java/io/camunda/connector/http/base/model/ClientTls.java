@@ -21,7 +21,7 @@ public record ClientTls(
             label = "Client certificate (PEM)",
             optional = true,
             type = PropertyType.Text,
-            description =
+            tooltip =
                 "PEM-encoded client certificate chain presented to the server for mTLS. "
                     + "Provide together with the private key.")
         String clientCertificate,
@@ -31,15 +31,14 @@ public record ClientTls(
             label = "Client private key (PEM)",
             optional = true,
             type = PropertyType.Text,
-            description = "PEM-encoded private key (PKCS#1, PKCS#8 or EC), optionally encrypted.")
+            tooltip = "PEM-encoded private key (PKCS#1, PKCS#8 or EC), optionally encrypted.")
         String clientPrivateKey,
     @FEEL
         @TemplateProperty(
             group = "tls",
             label = "Private key password",
             optional = true,
-            description =
-                "Password protecting the private key. Leave empty if it is not encrypted.")
+            tooltip = "Password protecting the private key. Leave empty if it is not encrypted.")
         String privateKeyPassword,
     @FEEL
         @TemplateProperty(
@@ -47,7 +46,7 @@ public record ClientTls(
             label = "Trusted CA certificate (PEM)",
             optional = true,
             type = PropertyType.Text,
-            description =
+            tooltip =
                 "Optional PEM-encoded CA certificate(s) used to validate the server. "
                     + "If empty, the JVM's default trust store is used.")
         String trustedCertificate) {}

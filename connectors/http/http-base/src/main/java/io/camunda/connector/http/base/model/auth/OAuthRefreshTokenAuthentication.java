@@ -24,7 +24,6 @@ public record OAuthRefreshTokenAuthentication(
         @TemplateProperty(
             id = "oauthRefreshToken.oauthTokenEndpoint",
             group = "authentication",
-            description = "The OAuth token endpoint",
             label = "OAuth 2.0 token endpoint")
         String oauthTokenEndpoint,
     @FEEL
@@ -32,14 +31,14 @@ public record OAuthRefreshTokenAuthentication(
         @TemplateProperty(
             id = "oauthRefreshToken.clientId",
             group = "authentication",
-            description = "Your application's client ID from the OAuth client",
+            tooltip = "Your application's client ID from the OAuth client",
             label = "Client ID")
         String clientId,
     @FEEL
         @TemplateProperty(
             id = "oauthRefreshToken.clientSecret",
             group = "authentication",
-            description = "Your application's client secret from the OAuth client",
+            tooltip = "Your application's client secret from the OAuth client",
             label = "Client secret",
             optional = true)
         String clientSecret,
@@ -48,13 +47,13 @@ public record OAuthRefreshTokenAuthentication(
         @TemplateProperty(
             id = "oauthRefreshToken.refreshToken",
             group = "authentication",
-            description = "The refresh token used to obtain a new access token",
+            tooltip = "The refresh token used to obtain a new access token",
             label = "Refresh token")
         String refreshToken,
     @TemplateProperty(
             id = "oauthRefreshToken.scopes",
             group = "authentication",
-            description = "The scopes to request authorization for (space-separated)",
+            tooltip = "The scopes to request authorization for (space-separated)",
             label = "Scopes",
             optional = true)
         String scopes)
