@@ -40,6 +40,7 @@ public class DefaultMcpRemoteClientHandler implements McpRemoteClientHandler {
             .map(McpRemoteClientOptionsConfiguration::clientCache)
             .orElse(false);
     final var operation = request.data().connectorMode().toMcpClientOperation();
+    final var meta = request.data().meta();
 
     LOGGER.debug("MCP({}): Handling operation '{}' on remote client", clientId, operation.method());
 
@@ -54,7 +55,7 @@ public class DefaultMcpRemoteClientHandler implements McpRemoteClientHandler {
               .orElseGet(FilterOptions::defaultOptions);
 
       client = remoteClientRegistry.getClient(clientId, request.data().transport(), cacheable);
-      return clientExecutor.execute(client, operation, filterOptions);
+      return clientExecutor.execute(client, operation, filterOptions, meta);
     } finally {
       if (!cacheable && client != null) {
         remoteClientRegistry.closeClient(clientId, client);

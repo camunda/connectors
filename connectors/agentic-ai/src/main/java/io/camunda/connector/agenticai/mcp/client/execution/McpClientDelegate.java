@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResou
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 public interface McpClientDelegate extends AutoCloseable {
 
@@ -22,7 +23,8 @@ public interface McpClientDelegate extends AutoCloseable {
 
   McpClientListToolsResult listTools(AllowDenyList filter);
 
-  McpClientCallToolResult callTool(Map<String, Object> params, AllowDenyList filter);
+  McpClientCallToolResult callTool(
+      Map<String, Object> params, AllowDenyList filter, @Nullable Map<String, Object> meta);
 
   McpClientListResourcesResult listResources(AllowDenyList filter);
 

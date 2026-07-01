@@ -103,10 +103,10 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
     when(aSseRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
-    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, aMcpClient, objectMapper, null))
+    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, aMcpClient, objectMapper))
         .when(mcpClientRegistry)
         .getClient(MCP_CLIENT_ID);
-    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, filesystemMcpClient, objectMapper, null))
+    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, filesystemMcpClient, objectMapper))
         .when(mcpClientRegistry)
         .getClient("filesystem");
 
@@ -126,7 +126,7 @@ public class AiAgentJobWorkerMcpIntegrationTests extends BaseAiAgentJobWorkerTes
                             "Unexpected remote MCP client ID: " + clientId.elementId());
                   };
 
-              return new McpSdkMcpClientDelegate(MCP_CLIENT_ID, internalClient, objectMapper, null);
+              return new McpSdkMcpClientDelegate(MCP_CLIENT_ID, internalClient, objectMapper);
             })
         .when(remoteMcpClientRegistry)
         .getClient(

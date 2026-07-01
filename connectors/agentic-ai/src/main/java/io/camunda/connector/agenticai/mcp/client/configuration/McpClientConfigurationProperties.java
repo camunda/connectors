@@ -41,8 +41,7 @@ public record McpClientConfigurationProperties(
       @Nullable SseHttpMcpClientTransportConfiguration sse,
       @Nullable Duration initializationTimeout,
       @Nullable Duration toolExecutionTimeout,
-      @Nullable Duration reconnectInterval,
-      @Nullable Map<String, Object> meta)
+      @Nullable Duration reconnectInterval)
       implements McpClientConfigurationPropertiesMcpClientConfigurationBuilder.With {
 
     public enum McpClientType {

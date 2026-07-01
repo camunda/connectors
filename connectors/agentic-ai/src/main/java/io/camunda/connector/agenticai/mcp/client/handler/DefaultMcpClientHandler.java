@@ -31,6 +31,7 @@ public class DefaultMcpClientHandler implements McpClientHandler {
   public McpClientResult handle(OutboundConnectorContext context, McpClientRequest request) {
     final var clientId = request.data().client().clientId();
     final var operation = request.data().connectorMode().toMcpClientOperation();
+    final var meta = request.data().meta();
 
     LOGGER.debug(
         "MCP({}): Handling operation '{}' on runtime-configured client",
@@ -46,6 +47,6 @@ public class DefaultMcpClientHandler implements McpClientHandler {
             .createFilterOptions()
             .orElseGet(FilterOptions::defaultOptions);
 
-    return clientExecutor.execute(client, operation, filterOptions);
+    return clientExecutor.execute(client, operation, filterOptions, meta);
   }
 }

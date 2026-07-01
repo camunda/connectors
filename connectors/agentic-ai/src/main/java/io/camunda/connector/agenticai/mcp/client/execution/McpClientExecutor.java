@@ -10,7 +10,9 @@ import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
+import java.util.Map;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 public class McpClientExecutor {
   private final McpClientResultDocumentHandler clientResultDocumentHandler;
@@ -20,17 +22,24 @@ public class McpClientExecutor {
   }
 
   public McpClientResult execute(
-      McpClientDelegate clientDelegate, McpClientOperation operation, FilterOptions filterOptions) {
-    var result = executeRequest(clientDelegate, operation, filterOptions);
+      McpClientDelegate clientDelegate,
+      McpClientOperation operation,
+      FilterOptions filterOptions,
+      @Nullable Map<String, Object> meta) {
+    var result = executeRequest(clientDelegate, operation, filterOptions, meta);
 
     return clientResultDocumentHandler.convertBinariesToDocumentsIfPresent(result);
   }
 
   private @NonNull McpClientResult executeRequest(
-      McpClientDelegate clientDelegate, McpClientOperation operation, FilterOptions filterOptions) {
+      McpClientDelegate clientDelegate,
+      McpClientOperation operation,
+      FilterOptions filterOptions,
+      @Nullable Map<String, Object> meta) {
     return switch (operation.method()) {
       case LIST_TOOLS -> clientDelegate.listTools(filterOptions.toolFilters());
-      case CALL_TOOL -> clientDelegate.callTool(operation.params(), filterOptions.toolFilters());
+      case CALL_TOOL ->
+          clientDelegate.callTool(operation.params(), filterOptions.toolFilters(), meta);
       case LIST_RESOURCES -> clientDelegate.listResources(filterOptions.resourceFilters());
       case LIST_RESOURCE_TEMPLATES ->
           clientDelegate.listResourceTemplates(filterOptions.resourceFilters());

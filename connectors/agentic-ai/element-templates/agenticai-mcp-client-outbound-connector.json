@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.agenticai.mcp.client.v0",
   "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime.",
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client-connector/",
-  "version" : 2,
+  "version" : 3,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -29,6 +29,10 @@
   }, {
     "id" : "filters",
     "label" : "Filters",
+    "openByDefault" : false
+  }, {
+    "id" : "meta",
+    "label" : "Metadata",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -471,10 +475,22 @@
     },
     "type" : "Text"
   }, {
+    "id" : "data.meta",
+    "label" : "Metadata (_meta)",
+    "description" : "Optional metadata passed with tool calls as the MCP _meta field. Supports FEEL expressions for dynamic values.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "meta",
+    "binding" : {
+      "name" : "data.meta",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

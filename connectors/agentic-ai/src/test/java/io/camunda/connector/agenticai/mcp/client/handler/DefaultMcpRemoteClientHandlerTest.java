@@ -16,6 +16,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -129,7 +130,8 @@ class DefaultMcpRemoteClientHandlerTest {
     final var exception = new IllegalArgumentException("Execution error");
 
     when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
-    when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+    when(clientExecutor.execute(
+            eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER), isNull()))
         .thenThrow(exception);
 
     assertThatThrownBy(
@@ -146,10 +148,12 @@ class DefaultMcpRemoteClientHandlerTest {
             new McpRemoteClientRequestData(
                 null,
                 new McpRemoteClientOptionsConfiguration(false),
-                new ToolModeConfiguration(LIST_TOOLS_OPERATION, null)));
+                new ToolModeConfiguration(LIST_TOOLS_OPERATION, null),
+                null));
 
     when(remoteClientRegistry.getClient(CLIENT_ID, null, false)).thenReturn(mcpClient);
-    when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+    when(clientExecutor.execute(
+            eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER), isNull()))
         .thenReturn(new McpClientListToolsResult(List.of()));
 
     handler.handle(context, request);
@@ -173,7 +177,8 @@ class DefaultMcpRemoteClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_TOOLS, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -212,7 +217,8 @@ class DefaultMcpRemoteClientHandlerTest {
                                               assertThat(args)
                                                   .asInstanceOf(InstanceOfAssertFactories.MAP)
                                                   .containsExactlyEntriesOf(arguments)))),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -240,7 +246,8 @@ class DefaultMcpRemoteClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_TOOLS, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -278,7 +285,8 @@ class DefaultMcpRemoteClientHandlerTest {
                                                 .asInstanceOf(InstanceOfAssertFactories.MAP)
                                                 .containsExactlyEntriesOf(arguments));
                               })),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -308,7 +316,8 @@ class DefaultMcpRemoteClientHandlerTest {
                                   assertThat(op.params())
                                       .containsEntry("name", "test-tool")
                                       .doesNotContainKey("arguments"))),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -335,7 +344,8 @@ class DefaultMcpRemoteClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_RESOURCES, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -363,7 +373,8 @@ class DefaultMcpRemoteClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -399,7 +410,8 @@ class DefaultMcpRemoteClientHandlerTest {
                                       .returns(
                                           Map.of("uri", "resource-1"),
                                           McpClientOperation::params))),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -426,7 +438,8 @@ class DefaultMcpRemoteClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_PROMPTS, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -472,7 +485,8 @@ class DefaultMcpRemoteClientHandlerTest {
                                                 .asInstanceOf(InstanceOfAssertFactories.MAP)
                                                 .containsExactlyEntriesOf(arguments));
                               })),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -493,7 +507,8 @@ class DefaultMcpRemoteClientHandlerTest {
       final var expectedResult = new McpClientListToolsResult(List.of());
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, true)).thenReturn(mcpClient);
-      when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+      when(clientExecutor.execute(
+              eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER), isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -510,7 +525,8 @@ class DefaultMcpRemoteClientHandlerTest {
       final var expectedResult = new McpClientListToolsResult(List.of());
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
-      when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+      when(clientExecutor.execute(
+              eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER), isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -531,12 +547,14 @@ class DefaultMcpRemoteClientHandlerTest {
                   null,
                   new ToolModeConfiguration(
                       LIST_TOOLS_OPERATION,
-                      new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
+                      new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION)),
+                  null));
 
       final var expectedResult = new McpClientListToolsResult(List.of());
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
-      when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+      when(clientExecutor.execute(
+              eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER), isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -557,12 +575,14 @@ class DefaultMcpRemoteClientHandlerTest {
                   new McpRemoteClientOptionsConfiguration(null),
                   new ToolModeConfiguration(
                       LIST_TOOLS_OPERATION,
-                      new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
+                      new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION)),
+                  null));
 
       final var expectedResult = new McpClientListToolsResult(List.of());
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
-      when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+      when(clientExecutor.execute(
+              eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER), isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -579,7 +599,8 @@ class DefaultMcpRemoteClientHandlerTest {
       final var request = createToolModeRequest(transport, false, LIST_TOOLS_OPERATION);
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
-      when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+      when(clientExecutor.execute(
+              eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER), isNull()))
           .thenThrow(new RuntimeException("Execution failed"));
 
       assertThatThrownBy(() -> handler.handle(context, request))
@@ -599,7 +620,8 @@ class DefaultMcpRemoteClientHandlerTest {
             transport,
             new McpRemoteClientOptionsConfiguration(clientCache),
             new ToolModeConfiguration(
-                operation, new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
+                operation, new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION)),
+            null));
   }
 
   private McpRemoteClientRequest createStandaloneModeRequest(
@@ -613,7 +635,8 @@ class DefaultMcpRemoteClientHandlerTest {
             new StandaloneModeConfiguration(
                 operation,
                 new McpClientStandaloneFiltersConfiguration(
-                    EMPTY_FILTER_CONFIGURATION, null, null))));
+                    EMPTY_FILTER_CONFIGURATION, null, null)),
+            null));
   }
 
   static List<McpRemoteClientTransportConfiguration> transports() {
