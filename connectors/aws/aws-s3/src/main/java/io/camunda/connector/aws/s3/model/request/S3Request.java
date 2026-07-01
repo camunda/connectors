@@ -8,6 +8,8 @@ package io.camunda.connector.aws.s3.model.request;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.aws.model.impl.AwsAuthentication;
+import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
@@ -36,6 +38,29 @@ public class S3Request extends AwsBaseRequest {
 
   public void setAwsCredential(AwsCredentialConfiguration awsCredential) {
     this.awsCredential = awsCredential;
+  }
+
+  /**
+   * Per-connector consumption of the bound AWS credential: when a credential (configuration) is
+   * bound, its authentication takes precedence over the inline authentication; inline is the
+   * fallback.
+   */
+  @Override
+  public AwsAuthentication getAuthentication() {
+    return awsCredential != null ? awsCredential.authentication() : super.getAuthentication();
+  }
+
+  /**
+   * When a credential is bound, its region drives the configuration; the inline endpoint (if any)
+   * is preserved.
+   */
+  @Override
+  public AwsBaseConfiguration getConfiguration() {
+    if (awsCredential == null) {
+      return super.getConfiguration();
+    }
+    String endpoint = super.getConfiguration() != null ? super.getConfiguration().endpoint() : null;
+    return new AwsBaseConfiguration(awsCredential.region(), endpoint);
   }
 
   @JsonTypeInfo(
