@@ -11,6 +11,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.aws.s3.core.S3Executor;
 import io.camunda.connector.aws.s3.model.request.S3Request;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -18,7 +19,13 @@ import java.util.function.Function;
 
 @OutboundConnector(
     name = "AWS S3",
-    inputVariables = {"authentication", "configuration", "actionDiscriminator", "action"},
+    inputVariables = {
+      "authentication",
+      "configuration",
+      "actionDiscriminator",
+      "action",
+      "awsCredential"
+    },
     type = "io.camunda:aws-s3:1")
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -37,6 +44,7 @@ import java.util.function.Function;
       "file storage"
     },
     inputDataClass = S3Request.class,
+    configurationTemplates = {AwsCredentialConfiguration.class},
     version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Action"),
