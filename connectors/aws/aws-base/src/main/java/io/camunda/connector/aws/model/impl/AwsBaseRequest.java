@@ -6,17 +6,20 @@
  */
 package io.camunda.connector.aws.model.impl;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.AssertTrue;
 import java.util.Objects;
 
 public class AwsBaseRequest {
 
+  // Not @NotNull on the field: a subclass may supply authentication from a bound credential by
+  // overriding getAuthentication(). Requiredness is enforced via getter-based validation below,
+  // which respects that override; for subclasses without a credential the behaviour is unchanged.
   @TemplateProperty(group = "authentication", id = "type")
   @Valid
-  @NotNull
   private AwsAuthentication authentication;
 
   @TemplateProperty(group = "configuration")
@@ -28,6 +31,17 @@ public class AwsBaseRequest {
 
   public void setAuthentication(final AwsAuthentication authentication) {
     this.authentication = authentication;
+  }
+
+  /**
+   * Authentication is required, but may come from a bound credential in subclasses that override
+   * {@link #getAuthentication()}. Validating the getter (not the field) respects that override
+   * while preserving the original requirement for subclasses without a credential.
+   */
+  @AssertTrue(message = "Authentication is required")
+  @JsonIgnore
+  public boolean isAuthenticationPresent() {
+    return getAuthentication() != null;
   }
 
   public AwsBaseConfiguration getConfiguration() {
