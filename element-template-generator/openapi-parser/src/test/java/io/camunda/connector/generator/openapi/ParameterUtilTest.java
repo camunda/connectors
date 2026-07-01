@@ -209,6 +209,22 @@ public class ParameterUtilTest {
     }
 
     @Test
+    void transformToProperty_internalParameterRef_missingKey_throwsWithMessage() {
+      // given – $ref points to a key that does not exist in components
+      var stub = new Parameter();
+      stub.set$ref("#/components/parameters/missingParam");
+
+      var components = new Components();
+      components.setParameters(Map.of("otherParam", new Parameter()));
+
+      // when / then
+      assertThatThrownBy(() -> ParameterUtil.transformToProperty(stub, components))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("missingParam")
+          .hasMessageContaining("components.parameters");
+    }
+
+    @Test
     void transformToProperty_externalParameterRef_throwsWithMessage() {
       // given – parameter with an unresolved external $ref
       var stub = new Parameter();

@@ -48,7 +48,18 @@ public class ParameterUtil {
                 + "parser can follow the reference, or replace the external $ref with an inline "
                 + "parameter definition.");
       }
-      parameter = components.getParameters().get(ref.replace("#/components/parameters/", ""));
+      var paramName = ref.replace("#/components/parameters/", "");
+      if (components == null
+          || components.getParameters() == null
+          || !components.getParameters().containsKey(paramName)) {
+        throw new IllegalArgumentException(
+            "Parameter $ref '"
+                + ref
+                + "' cannot be resolved: '"
+                + paramName
+                + "' is not defined in components.parameters.");
+      }
+      parameter = components.getParameters().get(paramName);
     }
     if (parameter.getSchema() != null) {
       return fromSchema(parameter, components);
