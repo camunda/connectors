@@ -1562,7 +1562,7 @@
       "description": "The number that identifies the issue",
       "feel": "optional",
       "group": "input",
-      "type": "String",
+      "type": "Number",
       "binding": {
         "type": "zeebe:input",
         "name": "issueNumber"
