@@ -627,7 +627,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's contentType",
+    "tooltip" : "The content type of the email.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "PLAIN",
@@ -691,12 +691,11 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's Html content",
+    "tooltip" : "Email's HTML content",
     "type" : "Text"
   }, {
     "id" : "data_smtpAction_attachments_documentMode",
     "label" : "Number of documents",
-    "description" : "Email's attachment. e.g., =[ document1, document2]",
     "value" : "none",
     "group" : "sendEmailSmtp",
     "binding" : {
@@ -714,7 +713,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's attachments, should be set as a list ",
+    "tooltip" : "Email attachments, set as a list, e.g. =[document1, document2]",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",
@@ -1088,7 +1087,6 @@
   }, {
     "id" : "searchStringEmailPop3",
     "label" : "Search criteria",
-    "description" : "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
     "optional" : true,
     "feel" : "required",
     "group" : "searchEmailsPop3",
@@ -1107,7 +1105,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails.",
+    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/\">Email connector search syntax</a>.",
     "type" : "Text"
   }, {
     "id" : "pop3MessageIdDelete",
@@ -1159,7 +1157,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it",
+    "tooltip" : "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it.",
     "type" : "String"
   }, {
     "id" : "imapMaxToBeRead",
@@ -1283,7 +1281,6 @@
   }, {
     "id" : "searchStringEmailImap",
     "label" : "Search criteria",
-    "description" : "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
     "optional" : true,
     "feel" : "required",
     "group" : "searchEmailsImap",
@@ -1302,7 +1299,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails.",
+    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/\">Email connector search syntax</a>.",
     "type" : "Text"
   }, {
     "id" : "searchEmailFolder",

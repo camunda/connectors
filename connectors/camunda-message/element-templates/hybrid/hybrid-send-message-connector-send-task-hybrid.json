@@ -99,7 +99,6 @@
   }, {
     "id" : "correlationType.timeToLive",
     "label" : "Time to live (as ISO 8601)",
-    "description" : "Duration for which the message remains buffered",
     "optional" : true,
     "feel" : "optional",
     "group" : "default",
@@ -112,6 +111,7 @@
       "equals" : "publish",
       "type" : "simple"
     },
+    "tooltip" : "Duration for which the message remains buffered",
     "type" : "String"
   }, {
     "id" : "correlationType.messageId",
