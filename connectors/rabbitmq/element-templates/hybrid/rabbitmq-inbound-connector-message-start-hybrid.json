@@ -74,7 +74,6 @@
   }, {
     "id" : "authentication.uri",
     "label" : "URI",
-    "description" : "URI should contain username, password, host name, port number, and virtual host",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -93,6 +92,7 @@
       "equals" : "uri",
       "type" : "simple"
     },
+    "tooltip" : "URI should contain username, password, host name, port number, and virtual host",
     "type" : "String"
   }, {
     "id" : "authentication.userName",
@@ -133,7 +133,6 @@
   }, {
     "id" : "routing.virtualHost",
     "label" : "Virtual host",
-    "description" : "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -148,11 +147,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "Virtual host: get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
     "type" : "String"
   }, {
     "id" : "routing.hostName",
     "label" : "Host name",
-    "description" : "Host name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -167,11 +166,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "Host name: get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
     "type" : "String"
   }, {
     "id" : "routing.port",
     "label" : "Port",
-    "description" : "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -186,11 +185,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "Port: get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
     "type" : "String"
   }, {
     "id" : "queueName",
     "label" : "Queue name",
-    "description" : "Name of the queue to subscribe to",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -200,22 +199,22 @@
       "name" : "queueName",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Name of the queue to subscribe to",
     "type" : "String"
   }, {
     "id" : "consumerTag",
     "label" : "Consumer tag",
-    "description" : "Consumer tag to use for the subscription",
     "optional" : false,
     "group" : "subscription",
     "binding" : {
       "name" : "consumerTag",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Consumer tag to use for the subscription",
     "type" : "String"
   }, {
     "id" : "arguments",
     "label" : "Arguments",
-    "description" : "Arguments to use for the subscription",
     "optional" : true,
     "feel" : "required",
     "group" : "subscription",
@@ -223,6 +222,7 @@
       "name" : "arguments",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Arguments to use for the subscription",
     "type" : "String"
   }, {
     "id" : "exclusive",

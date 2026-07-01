@@ -56,7 +56,6 @@
   }, {
     "id" : "authenticationType",
     "label" : "Authentication type",
-    "description" : "Username/password or custom",
     "optional" : false,
     "value" : "credentials",
     "constraints" : {
@@ -67,6 +66,7 @@
       "name" : "authenticationType",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Username/password or custom.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Credentials",
@@ -78,18 +78,17 @@
   }, {
     "id" : "authentication.username",
     "label" : "Username",
-    "description" : "Provide the username (must have permissions to produce message to the topic)",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.username",
       "type" : "zeebe:property"
     },
+    "tooltip" : "The user must have permissions to produce messages to the topic.",
     "type" : "String"
   }, {
     "id" : "authentication.password",
     "label" : "Password",
-    "description" : "Provide a password for the user",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
@@ -100,7 +99,6 @@
   }, {
     "id" : "topic.bootstrapServers",
     "label" : "Bootstrap servers",
-    "description" : "Provide bootstrap server(s), comma-delimited if there are multiple",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -110,11 +108,11 @@
       "name" : "topic.bootstrapServers",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Bootstrap server(s), comma-delimited if there are multiple.",
     "type" : "String"
   }, {
     "id" : "topic.topicName",
     "label" : "Topic",
-    "description" : "Provide topic name",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -128,7 +126,6 @@
   }, {
     "id" : "groupId",
     "label" : "Consumer group ID",
-    "description" : "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one",
     "optional" : false,
     "group" : "kafka",
     "binding" : {
@@ -140,7 +137,6 @@
   }, {
     "id" : "additionalProperties",
     "label" : "Additional properties",
-    "description" : "Provide additional Kafka consumer properties in JSON",
     "optional" : true,
     "feel" : "required",
     "group" : "kafka",
@@ -148,11 +144,11 @@
       "name" : "additionalProperties",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Additional Kafka consumer properties in JSON.",
     "type" : "String"
   }, {
     "id" : "offsets",
     "label" : "Offsets",
-    "description" : "List of offsets, e.g. '10' or '=[10, 23]'. If specified, it has to have the same number of values as the number of partitions",
     "optional" : true,
     "feel" : "optional",
     "group" : "kafka",
@@ -160,11 +156,11 @@
       "name" : "offsets",
       "type" : "zeebe:property"
     },
+    "tooltip" : "List of offsets, e.g. '10' or '=[10, 23]'. If specified, it has to have the same number of values as the number of partitions.",
     "type" : "String"
   }, {
     "id" : "autoOffsetReset",
     "label" : "Auto offset reset",
-    "description" : "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets",
     "optional" : false,
     "value" : "latest",
     "constraints" : {
@@ -175,6 +171,7 @@
       "name" : "autoOffsetReset",
       "type" : "zeebe:property"
     },
+    "tooltip" : "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",
@@ -209,7 +206,6 @@
   }, {
     "id" : "schemaStrategy.avro.schema",
     "label" : "Schema",
-    "description" : "Avro inline schema for the message value",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -225,11 +221,11 @@
       "equals" : "inlineSchema",
       "type" : "simple"
     },
+    "tooltip" : "Avro inline schema for the message value",
     "type" : "Text"
   }, {
     "id" : "schemaStrategy.schemaType",
     "label" : "Schema type",
-    "description" : "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "value" : "avro",
     "group" : "schema",
@@ -242,6 +238,7 @@
       "equals" : "schemaRegistry",
       "type" : "simple"
     },
+    "tooltip" : "For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">Kafka connector documentation</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "JSON",
@@ -253,7 +250,6 @@
   }, {
     "id" : "schemaStrategy.schemaRegistryUrl",
     "label" : "Schema registry URL",
-    "description" : "Provide the schema registry URL",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

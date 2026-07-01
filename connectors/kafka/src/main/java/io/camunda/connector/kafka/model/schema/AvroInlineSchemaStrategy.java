@@ -24,7 +24,7 @@ public record AvroInlineSchemaStrategy(
             type = TemplateProperty.PropertyType.Text,
             label = "Schema",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            description = "Avro inline schema for the message value")
+            tooltip = "Avro inline schema for the message value")
         String schema)
     implements InboundSchemaStrategy, OutboundSchemaStrategy {
 

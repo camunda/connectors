@@ -166,7 +166,6 @@
   }, {
     "id" : "data.blockContent",
     "label" : "Message block",
-    "description" : "An array of rich message content blocks. Learn more at the <a href=\"https://api.slack.com/reference/surfaces/formatting#stack_of_blocks\" target=\"_blank\">official Slack documentation page</a>",
     "optional" : false,
     "value" : "=[\n\t{\n\t\t\"type\": \"header\",\n\t\t\"text\": {\n\t\t\t\"type\": \"plain_text\",\n\t\t\t\"text\": \"New request\"\n\t\t}\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Type:*\\nPaid Time Off\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Created by:*\\n<example.com|John Doe>\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*When:*\\nAug 10 - Aug 13\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"text\": {\n\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\"text\": \"<https://example.com|View request>\"\n\t\t}\n\t}\n]",
     "constraints" : {
@@ -189,11 +188,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "An array of rich message content blocks. See the <a href=\"https://api.slack.com/reference/surfaces/formatting#stack_of_blocks\" target=\"_blank\">Slack Block Kit reference</a>",
     "type" : "String"
   }, {
     "id" : "data_documents_documentMode",
     "label" : "Number of documents",
-    "description" : "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments",
     "value" : "none",
     "group" : "message",
     "binding" : {
@@ -205,6 +204,7 @@
       "equals" : "chat.postMessage",
       "type" : "simple"
     },
+    "tooltip" : "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",
@@ -618,7 +618,6 @@
   }, {
     "id" : "data.users",
     "label" : "Users",
-    "description" : "Comma-separated list of users, e.g., '@user1,@user2' or '=[ \"@user1\", \"user2@company.com\"]'",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -634,11 +633,12 @@
       "equals" : "conversations.invite",
       "type" : "simple"
     },
+    "tooltip" : "Comma-separated list of users.",
+    "placeholder" : "@user1,@user2",
     "type" : "String"
   }, {
     "id" : "reaction.channel",
     "label" : "Channel",
-    "description" : "Channel ID of the message to react to",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -654,11 +654,11 @@
       "equals" : "reactions.add",
       "type" : "simple"
     },
+    "tooltip" : "Channel ID of the message to react to",
     "type" : "String"
   }, {
     "id" : "data.emoji",
     "label" : "Emoji name",
-    "description" : "Emoji name (e.g. eyes)",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -674,11 +674,11 @@
       "equals" : "reactions.add",
       "type" : "simple"
     },
+    "placeholder" : "eyes",
     "type" : "String"
   }, {
     "id" : "data.timestamp",
     "label" : "Message timestamp",
-    "description" : "Timestamp of the Slack message to react to",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -694,11 +694,11 @@
       "equals" : "reactions.add",
       "type" : "simple"
     },
+    "tooltip" : "Timestamp of the Slack message to react to",
     "type" : "String"
   }, {
     "id" : "pinMessage.channel",
     "label" : "Channel",
-    "description" : "Channel ID of the message to pin",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -714,11 +714,11 @@
       "equals" : "pins.add",
       "type" : "simple"
     },
+    "tooltip" : "Channel ID of the message to pin",
     "type" : "String"
   }, {
     "id" : "pinMessage.timestamp",
     "label" : "Message timestamp",
-    "description" : "Timestamp of the Slack message to pin",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -734,11 +734,11 @@
       "equals" : "pins.add",
       "type" : "simple"
     },
+    "tooltip" : "Timestamp of the Slack message to pin",
     "type" : "String"
   }, {
     "id" : "unpinMessage.channel",
     "label" : "Channel",
-    "description" : "Channel ID of the message to unpin",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -754,11 +754,11 @@
       "equals" : "pins.remove",
       "type" : "simple"
     },
+    "tooltip" : "Channel ID of the message to unpin",
     "type" : "String"
   }, {
     "id" : "unpinMessage.timestamp",
     "label" : "Message timestamp",
-    "description" : "Timestamp of the Slack message to unpin",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -774,6 +774,7 @@
       "equals" : "pins.remove",
       "type" : "simple"
     },
+    "tooltip" : "Timestamp of the Slack message to unpin",
     "type" : "String"
   }, {
     "id" : "version",

@@ -23,7 +23,7 @@ import java.io.IOException;
 public record PinsRemoveData(
     @TemplateProperty(
             label = "Channel",
-            description = "Channel ID of the message to unpin",
+            tooltip = "Channel ID of the message to unpin",
             id = "unpinMessage.channel",
             group = "unpinMessage",
             binding = @PropertyBinding(name = "data.channel"),
@@ -32,7 +32,7 @@ public record PinsRemoveData(
         String channel,
     @TemplateProperty(
             label = "Message timestamp",
-            description = "Timestamp of the Slack message to unpin",
+            tooltip = "Timestamp of the Slack message to unpin",
             id = "unpinMessage.timestamp",
             group = "unpinMessage",
             feel = FeelMode.required,

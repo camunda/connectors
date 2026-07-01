@@ -29,15 +29,15 @@ public record RabbitMqOutboundRouting(
     @NotBlank
         @TemplateProperty(
             group = "routing",
-            description =
-                "Topic exchange: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
+            tooltip =
+                "Topic exchange: get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
         String exchange,
     @NotBlank
         @TemplateProperty(
             group = "routing",
             label = "Routing key",
-            description =
-                "Routing key: a binding is a \"link\" that was set up to bind a queue to an exchange. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
+            tooltip =
+                "Routing key: a binding is a \"link\" that was set up to bind a queue to an exchange. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
         String routingKey,
     @NestedProperties(
             addNestedPath = false,

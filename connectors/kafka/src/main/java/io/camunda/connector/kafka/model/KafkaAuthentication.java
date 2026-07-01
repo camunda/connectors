@@ -13,14 +13,9 @@ public record KafkaAuthentication(
             group = "authentication",
             label = "Username",
             optional = true,
-            description =
-                "Provide the username (must have permissions to produce message to the topic)")
+            tooltip = "The user must have permissions to produce messages to the topic.")
         String username,
-    @TemplateProperty(
-            group = "authentication",
-            label = "Password",
-            optional = true,
-            description = "Provide a password for the user")
+    @TemplateProperty(group = "authentication", label = "Password", optional = true)
         String password) {
   @Override
   public String toString() {

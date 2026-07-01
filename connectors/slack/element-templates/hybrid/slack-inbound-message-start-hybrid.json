@@ -51,7 +51,6 @@
   }, {
     "id" : "inbound.context",
     "label" : "Webhook ID",
-    "description" : "The webhook ID is a part of the URL endpoint",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -61,11 +60,11 @@
       "name" : "inbound.context",
       "type" : "zeebe:property"
     },
+    "tooltip" : "The webhook ID is a part of the URL endpoint",
     "type" : "String"
   }, {
     "id" : "inbound.slackSigningSecret",
     "label" : "Slack signing secret",
-    "description" : "Slack signing secret. <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>See documentation</a> regarding the Slack signing secret",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -75,6 +74,7 @@
       "name" : "inbound.slackSigningSecret",
       "type" : "zeebe:property"
     },
+    "tooltip" : "<a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>Slack request signing documentation</a>",
     "type" : "String"
   }, {
     "id" : "inbound.verificationExpression",
