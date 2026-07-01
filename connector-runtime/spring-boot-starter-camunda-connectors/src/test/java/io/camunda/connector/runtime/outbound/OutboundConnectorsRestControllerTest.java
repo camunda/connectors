@@ -288,4 +288,35 @@ class OutboundConnectorsRestControllerTest {
         .perform(get("/outbound/metrics").param("tag", "no-colon-here"))
         .andExpect(status().isBadRequest());
   }
+
+  @Test
+  void shouldQueryMultipleMetrics_byName() throws Exception {
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+        .tag("type", "http-json")
+        .register(meterRegistry)
+        .increment(3.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag("type", "http-json")
+        .register(meterRegistry)
+        .increment(5.0);
+
+    var response =
+        mockMvc
+            .perform(
+                get("/outbound/metrics")
+                    .param("name", ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+                    .param("name", ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<MetricResponse> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(2, metrics.size());
+    var names = metrics.stream().map(MetricResponse::metricName).toList();
+    assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS));
+    assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED));
+  }
 }

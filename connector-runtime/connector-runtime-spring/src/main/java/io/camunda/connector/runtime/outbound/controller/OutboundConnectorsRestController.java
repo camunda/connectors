@@ -93,9 +93,9 @@ public class OutboundConnectorsRestController {
   /**
    * Returns outbound connector metrics, optionally filtered by name and tags.
    *
-   * <p>When no {@code name} is provided, a curated set of outbound metrics is returned: invocations
-   * and execution-time. Tags are provided as {@code key:value} pairs and applied to every requested
-   * metric.
+   * <p>When no {@code name} is provided, a curated set of outbound metrics is returned: invocations,
+   * execution-time, worker job activated, worker job handled, and worker stream inactivity
+   * recreated. Tags are provided as {@code key:value} pairs and applied to every requested metric.
    *
    * @param names optional metric names to query (e.g. {@code
    *     camunda.connector.outbound.invocations})

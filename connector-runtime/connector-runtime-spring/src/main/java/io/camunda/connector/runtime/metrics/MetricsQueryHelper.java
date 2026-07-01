@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.metrics;
 
+import io.camunda.connector.runtime.inbound.controller.exception.InvalidTagFormatException;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
@@ -55,7 +56,7 @@ public final class MetricsQueryHelper {
   /**
    * Parses {@code key:value} tag strings into Micrometer {@link Tag} objects.
    *
-   * @throws IllegalArgumentException if a tag string does not contain {@code :}
+   * @throws InvalidTagFormatException if a tag string does not contain {@code :}
    */
   public static List<Tag> parseTags(List<String> tagParams) {
     if (tagParams == null) {
@@ -66,7 +67,7 @@ public final class MetricsQueryHelper {
             t -> {
               int colon = t.indexOf(':');
               if (colon < 0) {
-                throw new IllegalArgumentException("Invalid tag (expected key:value): " + t);
+                throw new InvalidTagFormatException("Invalid tag (expected key:value): " + t);
               }
               return Tag.of(t.substring(0, colon), t.substring(colon + 1));
             })
