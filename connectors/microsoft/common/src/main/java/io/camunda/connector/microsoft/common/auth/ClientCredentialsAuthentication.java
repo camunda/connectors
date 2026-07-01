@@ -20,7 +20,6 @@ public record ClientCredentialsAuthentication(
             group = "authentication",
             id = "credentials.clientId",
             label = "Client ID",
-            description = "The client ID of the application",
             feel = FeelMode.optional)
         String clientId,
     @FEEL
@@ -29,7 +28,6 @@ public record ClientCredentialsAuthentication(
             group = "authentication",
             id = "credentials.tenantId",
             label = "Tenant ID",
-            description = "The tenant ID of the application",
             feel = FeelMode.optional)
         String tenantId,
     @FEEL
@@ -38,7 +36,7 @@ public record ClientCredentialsAuthentication(
             group = "authentication",
             id = "credentials.clientSecret",
             label = "Client secret",
-            description = "The secret value of the Azure AD application",
+            tooltip = "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
             feel = FeelMode.optional)
         String clientSecret)
     implements MicrosoftAuthentication {

@@ -13,12 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(label = "Get chat by ID", id = MSTeamsMethodTypes.GET_CHAT)
 public record GetChat(
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "getChat.chatId",
-            label = "Chat ID",
-            description = "The chat ID")
+    @NotBlank @TemplateProperty(group = "data", id = "getChat.chatId", label = "Chat ID")
         String chatId,
     @TemplateProperty(
             group = "data",
@@ -38,7 +33,7 @@ public record GetChat(
                   label = "With chat members")
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            description =
-                "Choose expand type. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#expand-response'>Learn more about expanding chat response</a>")
+            tooltip =
+                "See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#expand-response\">expand response</a> reference.")
         String expand)
     implements ChatData {}
