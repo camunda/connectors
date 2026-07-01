@@ -27,7 +27,7 @@ public record AddWorkItemOperationData(
     @TemplateProperty(
             label = "Work queue ID",
             group = "input",
-            description = "The queue ID of the item")
+            tooltip = "The queue ID of the item")
         @NotNull
         Object queueId,
     @TemplateProperty(
@@ -35,8 +35,8 @@ public record AddWorkItemOperationData(
             group = "input",
             feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Text,
-            description =
-                "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>")
+            tooltip =
+                "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">Automation Anywhere connector documentation</a>")
         @NotNull
         Object data)
     implements OperationData {}

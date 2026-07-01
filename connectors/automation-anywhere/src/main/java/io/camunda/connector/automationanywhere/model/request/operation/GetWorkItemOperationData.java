@@ -27,13 +27,13 @@ public record GetWorkItemOperationData(
             label = "Work queue ID",
             group = "input",
             id = "workQueueId",
-            description = "The queue ID of the item")
+            tooltip = "The queue ID of the item")
         @NotNull
         Object queueId,
     @TemplateProperty(
             label = "Work item ID",
             group = "input",
-            description = "The queue item identifier to be fetched from queue")
+            tooltip = "The queue item identifier to be fetched from queue")
         @NotNull
         Integer workItemId)
     implements OperationData {}

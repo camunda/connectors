@@ -19,8 +19,8 @@ public record JdbcRequestData(
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
             group = "query",
             type = TemplateProperty.PropertyType.Boolean,
-            description =
-                "Check this box if the SQL statement return results, e.g. a SELECT or any statement with a RETURNING clause")
+            tooltip =
+                "Check this box if the SQL statement returns results, e.g. a SELECT or any statement with a RETURNING clause")
         boolean returnResults,
     @NotBlank
         @TemplateProperty(
@@ -28,7 +28,7 @@ public record JdbcRequestData(
             label = "SQL Query to execute",
             group = "query",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            description =
+            tooltip =
                 "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>")
         String query,
     @TemplateProperty(
@@ -37,7 +37,7 @@ public record JdbcRequestData(
             group = "query",
             optional = true,
             feel = FeelMode.required,
-            description =
+            tooltip =
                 "The <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.")
         @FEEL
         Object variables) {

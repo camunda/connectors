@@ -235,13 +235,13 @@
   }, {
     "id" : "attachments_documentMode",
     "label" : "Number of documents",
-    "description" : "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>",
     "value" : "none",
     "group" : "content",
     "binding" : {
       "name" : "attachments_documentMode",
       "type" : "zeebe:input"
     },
+    "tooltip" : "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",

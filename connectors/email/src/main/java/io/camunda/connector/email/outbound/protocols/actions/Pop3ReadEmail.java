@@ -30,7 +30,7 @@ public record Pop3ReadEmail(
             group = "readEmailPop3",
             id = "pop3MessageIdRead",
             tooltip =
-                "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it",
+                "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it.",
             feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
         @Valid

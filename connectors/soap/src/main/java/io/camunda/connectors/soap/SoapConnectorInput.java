@@ -38,7 +38,7 @@ public record SoapConnectorInput(
     @TemplateProperty(
             group = "connection",
             label = "Service URL",
-            description = "The URL where the service runs")
+            tooltip = "The URL where the service runs")
         @NotNull
         String serviceUrl,
     @Valid Authentication authentication,
@@ -47,7 +47,7 @@ public record SoapConnectorInput(
     @Valid SoapBodyPart body,
     @TemplateProperty(
             label = "Namespaces",
-            description = "The namespaces that should be declared on the SOAP Envelope",
+            tooltip = "The namespaces that should be declared on the SOAP Envelope",
             optional = true,
             group = "soap-message",
             feel = FeelMode.required)
@@ -57,8 +57,8 @@ public record SoapConnectorInput(
             defaultValue = "20",
             defaultValueType = TemplateProperty.DefaultValueType.Number,
             optional = true,
-            description =
-                "Sets timeout in seconds to establish a connection or 0 for an infinite timeout")
+            tooltip =
+                "Time in seconds to wait when establishing a connection, or 0 to wait indefinitely")
         Integer connectionTimeoutInSeconds) {
   public enum YesNo {
     Yes,
@@ -83,13 +83,13 @@ public record SoapConnectorInput(
     record HeaderTemplate(
         @TemplateProperty(
                 label = "XML template",
-                description = "The template for the header in XML format",
+                tooltip = "The template for the header in XML format",
                 type = PropertyType.Text,
                 group = "soap-message")
             String template,
         @TemplateProperty(
                 label = "XML template context",
-                description = "The context that is used to fill the template",
+                tooltip = "The context that is used to fill the template",
                 group = "soap-message",
                 feel = FeelMode.required)
             Map<String, Object> context)
@@ -99,7 +99,7 @@ public record SoapConnectorInput(
     record HeaderJson(
         @TemplateProperty(
                 label = "JSON definition",
-                description = "Definition of the SOAP header as JSON object",
+                tooltip = "Definition of the SOAP header as JSON object",
                 group = "soap-message",
                 feel = FeelMode.required)
             Map<String, Object> json)
@@ -126,13 +126,13 @@ public record SoapConnectorInput(
     record BodyTemplate(
         @TemplateProperty(
                 label = "XML template",
-                description = "The template for the body in XML format",
+                tooltip = "The template for the body in XML format",
                 type = PropertyType.Text,
                 group = "soap-message")
             String template,
         @TemplateProperty(
                 label = "XML template context",
-                description = "The context that is used to fill the template",
+                tooltip = "The context that is used to fill the template",
                 group = "soap-message",
                 feel = FeelMode.required)
             Map<String, Object> context)
@@ -142,7 +142,7 @@ public record SoapConnectorInput(
     record BodyJson(
         @TemplateProperty(
                 label = "JSON definition",
-                description = "Definition of the SOAP body as JSON object",
+                tooltip = "Definition of the SOAP body as JSON object",
                 group = "soap-message",
                 feel = FeelMode.required)
             Map<String, Object> json)
@@ -163,7 +163,7 @@ public record SoapConnectorInput(
     record _1_1(
         @TemplateProperty(
                 label = "SOAPAction HTTP header",
-                description = "The SOAPAction HTTP header to be used in the request",
+                tooltip = "The SOAPAction HTTP header to be used in the request",
                 optional = true,
                 group = "soap-message")
             String soapAction)
@@ -218,17 +218,17 @@ public record SoapConnectorInput(
                 label = "Signature algorithm",
                 group = "authentication",
                 optional = true,
-                description = "Fully qualified name of an alternative signature algorithm")
+                tooltip = "Fully qualified name of an alternative signature algorithm")
             String signatureAlgorithm,
         @TemplateProperty(
                 label = "Digest algorithm",
                 group = "authentication",
                 optional = true,
-                description = "Fully qualified name of an alternative digest algorithm")
+                tooltip = "Fully qualified name of an alternative digest algorithm")
             String digestAlgorithm,
         @TemplateProperty(
                 label = "Timestamp timeout in seconds",
-                description = "If set, adds a timestamp header with the given timeout",
+                tooltip = "If set, adds a timestamp header with the given timeout",
                 group = "authentication",
                 optional = true)
             Integer timestamp,
@@ -237,7 +237,7 @@ public record SoapConnectorInput(
                 group = "authentication",
                 feel = FeelMode.required,
                 optional = true,
-                description = "Array of signature parts with namespace and localName")
+                tooltip = "Array of signature parts with namespace and localName")
             List<EncryptionPart> encryptionParts)
         implements Authentication {
       @JsonTypeInfo(use = Id.NAME, property = "certificateType")
@@ -257,13 +257,13 @@ public record SoapConnectorInput(
             @TemplateProperty(
                     label = "Certificate",
                     group = "authentication",
-                    description = "The X.509 certificate to use to sign the request")
+                    tooltip = "The X.509 certificate to use to sign the request")
                 @NotNull
                 String certificate,
             @TemplateProperty(
                     label = "Private key",
                     group = "authentication",
-                    description = "The private key for the certificate")
+                    tooltip = "The private key for the certificate")
                 @NotNull
                 String privateKey)
             implements Certificate {
@@ -282,25 +282,25 @@ public record SoapConnectorInput(
         record KeystoreCertificate(
             @TemplateProperty(
                     label = "Keystore location",
-                    description = "The keystore to use",
+                    tooltip = "The keystore to use",
                     group = "authentication")
                 @NotNull
                 String keystoreLocation,
             @TemplateProperty(
                     label = "Keystore password",
-                    description = "The password to access the keystore",
+                    tooltip = "The password to access the keystore",
                     group = "authentication")
                 @NotNull
                 String keystorePassword,
             @TemplateProperty(
                     label = "Certificate alias",
-                    description = "The alias for the certificate in the keystore",
+                    tooltip = "The alias for the certificate in the keystore",
                     group = "authentication")
                 @NotNull
                 String alias,
             @TemplateProperty(
                     label = "Certificate password",
-                    description = "The password to access the certificate",
+                    tooltip = "The password to access the certificate",
                     group = "authentication")
                 @NotNull
                 String password)
