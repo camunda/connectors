@@ -1884,5 +1884,40 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(accessKey.getSecret()).isTrue();
       assertThat(region.getSecret()).isNull();
     }
+
+    // --- blank name rejected (schema requires a non-blank name) ---
+
+    @io.camunda.connector.generator.java.annotation.ConfigurationTemplate(
+        id = "io.camunda:blank-name:1",
+        version = 1,
+        name = "")
+    record BlankName(String field) {}
+
+    record BlankNameRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            BlankName configuration) {}
+
+    @OutboundConnector(name = "BlankName", type = "test:blank-name")
+    @ElementTemplate(
+        id = "test-blank-name",
+        name = "BlankName",
+        version = 1,
+        inputDataClass = BlankNameRequest.class,
+        configurationTemplates = {BlankName.class})
+    static class BlankNameConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void blankName_isRejected() {
+      assertThatThrownBy(() -> generator.generate(BlankNameConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("must declare a non-blank name");
+    }
   }
 }

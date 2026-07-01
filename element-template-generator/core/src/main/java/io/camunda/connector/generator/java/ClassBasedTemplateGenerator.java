@@ -328,6 +328,13 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                         + " referenced in @ElementTemplate.configurationTemplates() must be"
                         + " annotated with @ConfigurationTemplate");
               }
+              if (configurationAnnotation.name().isBlank()) {
+                throw new IllegalArgumentException(
+                    "@ConfigurationTemplate on "
+                        + templateClass.getName()
+                        + " must declare a non-blank name (required by the configuration-template"
+                        + " schema)");
+              }
               var templateProperties =
                   TemplatePropertiesUtil.extractConfigurationTemplatePropertiesFromType(
                           templateClass, context)
@@ -338,7 +345,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   configurationAnnotation.id(),
                   configurationAnnotation.kind(),
                   configurationAnnotation.version(),
-                  configurationAnnotation.name().isBlank() ? null : configurationAnnotation.name(),
+                  configurationAnnotation.name(),
                   templateProperties);
             })
         .toList();
