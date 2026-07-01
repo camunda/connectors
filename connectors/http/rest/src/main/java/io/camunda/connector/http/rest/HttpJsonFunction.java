@@ -24,6 +24,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
+import io.camunda.connector.http.rest.model.RestAuthenticationConfiguration;
 
 @OutboundConnector(
     name = "HTTP REST",
@@ -41,7 +42,8 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
       "storeResponse",
       "groupSetCookieHeaders",
       "ignoreNullValues",
-      "followRedirects"
+      "followRedirects",
+      "authenticationConfiguration"
     },
     type = HttpJsonFunction.TYPE)
 @ElementTemplate(
@@ -64,6 +66,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
       "invoke API"
     },
     inputDataClass = HttpJsonRequest.class,
+    configurationTemplates = {RestAuthenticationConfiguration.class},
     outputDataClass = HttpCommonResult.class,
     version = 15,
     defaultResultExpression =
