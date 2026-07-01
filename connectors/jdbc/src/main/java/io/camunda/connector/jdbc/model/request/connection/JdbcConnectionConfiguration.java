@@ -25,4 +25,10 @@ public record JdbcConnectionConfiguration(
     @TemplateProperty(group = "connection", label = "Database name") String databaseName,
     @TemplateProperty(group = "authentication", label = "Username", secret = true) String username,
     @TemplateProperty(group = "authentication", label = "Password", secret = true)
-        String password) {}
+        String password) {
+
+  /** Adapts this credential to the connector's existing {@link DetailedConnection} shape. */
+  public DetailedConnection toDetailedConnection() {
+    return new DetailedConnection(host, port, username, password, databaseName, null);
+  }
+}
