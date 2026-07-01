@@ -32,7 +32,7 @@ public record Authentication(
     @TemplateProperty(
             id = "bearerToken",
             label = "Bearer token",
-            description = "Enter a valid Google API Bearer token",
+            tooltip = "Enter a valid Google API bearer token.",
             group = "authentication",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
@@ -41,7 +41,7 @@ public record Authentication(
     @TemplateProperty(
             id = "oauthClientId",
             label = "Client ID",
-            description = "Enter Google API Client ID",
+            tooltip = "Enter the Google API client ID.",
             group = "authentication",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
@@ -51,7 +51,7 @@ public record Authentication(
     @TemplateProperty(
             id = "oauthClientSecret",
             label = "Client secret",
-            description = "Enter Google API client Secret",
+            tooltip = "Enter the Google API client secret.",
             group = "authentication",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
@@ -61,7 +61,7 @@ public record Authentication(
     @TemplateProperty(
             id = "oauthRefreshToken",
             label = "Refresh token",
-            description = "Enter a valid Google API refresh token",
+            tooltip = "Enter a valid Google API refresh token.",
             group = "authentication",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),

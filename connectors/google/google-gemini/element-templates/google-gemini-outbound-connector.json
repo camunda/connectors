@@ -67,7 +67,6 @@
   }, {
     "id" : "authentication.bearerToken",
     "label" : "Bearer token",
-    "description" : "Enter a valid Google API Bearer token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -83,11 +82,11 @@
       "equals" : "bearer",
       "type" : "simple"
     },
+    "tooltip" : "Enter a valid Google API bearer token.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthClientId",
     "label" : "Client ID",
-    "description" : "Enter Google API Client ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -103,11 +102,11 @@
       "equals" : "refresh",
       "type" : "simple"
     },
+    "tooltip" : "Enter the Google API client ID.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthClientSecret",
     "label" : "Client secret",
-    "description" : "Enter Google API client Secret",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -123,11 +122,11 @@
       "equals" : "refresh",
       "type" : "simple"
     },
+    "tooltip" : "Enter the Google API client secret.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken",
     "label" : "Refresh token",
-    "description" : "Enter a valid Google API refresh token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -143,11 +142,11 @@
       "equals" : "refresh",
       "type" : "simple"
     },
+    "tooltip" : "Enter a valid Google API refresh token.",
     "type" : "String"
   }, {
     "id" : "input.projectId",
     "label" : "Project ID",
-    "description" : "Project identifier.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -161,7 +160,6 @@
   }, {
     "id" : "input.region",
     "label" : "Region",
-    "description" : "Input region.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -175,7 +173,6 @@
   }, {
     "id" : "input.model",
     "label" : "Model",
-    "description" : "Select gemini model.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -211,7 +208,6 @@
   }, {
     "id" : "input.customModelName",
     "label" : "Custom model name",
-    "description" : "Custom model name or identifier",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -227,11 +223,11 @@
       "equals" : "CUSTOM",
       "type" : "simple"
     },
+    "tooltip" : "Custom model name or identifier.",
     "type" : "String"
   }, {
     "id" : "input.prompts",
     "label" : "Prompts",
-    "description" : "Provide a list of prompts",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -246,19 +242,17 @@
   }, {
     "id" : "input.systemInstrText",
     "label" : "System instructions",
-    "description" : "System instructions inform how the model should respond.",
     "optional" : true,
     "group" : "input",
     "binding" : {
       "name" : "input.systemInstrText",
       "type" : "zeebe:input"
     },
-    "tooltip" : "System instructions inform how the model should respond. Use them to give the model context to understand the task, provide more custom responses and adhere to specific guidelines. Instructions apply each time you send a request to the model.<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompts/system-instructions?hl=en\" Learn more about system instructions </a>",
+    "tooltip" : "System instructions inform how the model should respond. Use them to give the model context to understand the task, provide more custom responses and adhere to specific guidelines. Instructions apply each time you send a request to the model. <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompts/system-instructions?hl=en\" target=\"_blank\">Learn more about system instructions</a>",
     "type" : "String"
   }, {
     "id" : "input.grounding",
     "label" : "Grounding",
-    "description" : "Customize grounding by Vertex AI Search.",
     "optional" : false,
     "value" : false,
     "feel" : "static",
@@ -267,12 +261,11 @@
       "name" : "input.grounding",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Grounding connects model output to verifiable sources of information. This is useful in situations where accuracy and reliability are important.<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview?hl=en\" Learn more about grounding </a>",
+    "tooltip" : "Grounding connects model output to verifiable sources of information. This is useful in situations where accuracy and reliability are important. <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview?hl=en\" target=\"_blank\">Learn more about grounding</a>",
     "type" : "Boolean"
   }, {
     "id" : "input.dataStorePath",
     "label" : "Vertex AI data store path",
-    "description" : "Vertex AI datastore path",
     "optional" : true,
     "constraints" : {
       "notEmpty" : false,
@@ -295,7 +288,6 @@
   }, {
     "id" : "input.safetySettings",
     "label" : "Safety Filter Settings",
-    "description" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful.<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more.</a>",
     "optional" : false,
     "value" : false,
     "feel" : "static",
@@ -304,6 +296,7 @@
       "name" : "input.safetySettings",
       "type" : "zeebe:input"
     },
+    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful. See the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai?hl=en#safety_filters_and_attributes\">safety filters and attributes</a>.",
     "type" : "Boolean"
   }, {
     "id" : "input.hateSpeech",
@@ -320,7 +313,7 @@
       "equals" : true,
       "type" : "simple"
     },
-    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful.<a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more </a>",
+    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "OFF",
@@ -350,7 +343,7 @@
       "equals" : true,
       "type" : "simple"
     },
-    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful.<a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more </a>",
+    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "OFF",
@@ -380,7 +373,7 @@
       "equals" : true,
       "type" : "simple"
     },
-    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful.<a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more </a>",
+    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "OFF",
@@ -410,7 +403,7 @@
       "equals" : true,
       "type" : "simple"
     },
-    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful.<a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more </a>",
+    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "OFF",
@@ -428,7 +421,6 @@
   }, {
     "id" : "input.stopSequences",
     "label" : "Add stop sequence",
-    "description" : "Vertex AI datastore path",
     "optional" : true,
     "feel" : "required",
     "group" : "input",
@@ -536,7 +528,6 @@
   }, {
     "id" : "input.functionCalls",
     "label" : "Function call description",
-    "description" : "Describe function calls.",
     "optional" : true,
     "feel" : "required",
     "group" : "input",

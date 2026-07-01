@@ -23,7 +23,6 @@ public record DeleteColumn(
     @TemplateProperty(
             id = "deleteColumn.spreadsheetId",
             label = "Spreadsheet ID",
-            description = "Enter the ID of the spreadsheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.spreadsheetId"))
@@ -32,7 +31,6 @@ public record DeleteColumn(
     @TemplateProperty(
             id = "deleteColumn.worksheetId",
             label = "Worksheet ID",
-            description = "Enter the ID of the worksheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
@@ -41,8 +39,8 @@ public record DeleteColumn(
         Integer worksheetId,
     @TemplateProperty(
             label = "Index format",
-            description =
-                "Choose the type of the index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+            tooltip =
+                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">column index format documentation</a>",
             group = "operationDetails",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
@@ -56,8 +54,8 @@ public record DeleteColumn(
         ColumnIndexType columnIndexType,
     @TemplateProperty(
             label = "Column numeric index",
-            description =
-                "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+            tooltip =
+                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">column index documentation</a>",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.columnNumberIndex"),
@@ -65,8 +63,8 @@ public record DeleteColumn(
         Integer columnNumberIndex,
     @TemplateProperty(
             label = "Column letter index",
-            description =
-                "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+            tooltip =
+                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">column index documentation</a>",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.columnLetterIndex"),
