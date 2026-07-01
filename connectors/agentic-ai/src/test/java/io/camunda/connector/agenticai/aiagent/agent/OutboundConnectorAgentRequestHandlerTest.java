@@ -471,7 +471,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   private void verifyHistoryItemsCreated() {
     verify(agentInstanceClient)
-        .createHistoryForInputMessages(eq(agentExecutionContext), any(), any());
+        .createHistoryForInputMessages(eq(agentExecutionContext), any(), any(), any());
     verify(agentInstanceClient)
         .createHistoryForAssistantMessage(eq(agentExecutionContext), any(), any());
   }

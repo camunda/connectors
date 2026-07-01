@@ -107,7 +107,9 @@ public class AgentInstanceClientVerifier {
                         && request.delta() == null
                         && request.tools() != null
                         && !request.tools().isEmpty()));
-    inOrder.verify(client).createHistoryForInputMessages(any(), any(), beforeChatTurns.capture());
+    inOrder
+        .verify(client)
+        .createHistoryForInputMessages(any(), any(), beforeChatTurns.capture(), any());
     inOrder.verify(client).createHistoryForAssistantMessage(any(), any(), afterChatTurns.capture());
     inOrder
         .verify(client)

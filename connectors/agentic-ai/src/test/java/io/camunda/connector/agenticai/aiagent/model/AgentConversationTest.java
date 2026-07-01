@@ -148,4 +148,17 @@ class AgentConversationTest {
     assertThat(conv.turns()).allSatisfy(t -> assertThat(t.metrics().modelCalls()).isZero());
     assertThat(conv.totalMetrics().modelCalls()).isEqualTo(9);
   }
+
+  @Test
+  void lastTurn_whileCurrentPending_isTurnPrecedingCurrent() {
+    // while the current turn is still pending, lastTurn() resolves to the turn preceding it — the
+    // one whose assistant message requested the tools answered by the current turn's results
+    var conv =
+        rehydrate(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)),
+            List.of(toolCallResultMessage(TOOL_CALL_RESULTS)));
+
+    assertThat(conv.lastTurn()).isPresent();
+    assertThat(conv.lastTurn().get().toolCalls()).isEqualTo(TOOL_CALLS);
+  }
 }
