@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
@@ -79,7 +80,8 @@ class DefaultMcpClientHandlerTest {
     final var exception = new IllegalArgumentException("Execution error");
 
     when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
-    when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+    when(clientExecutor.execute(
+            eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER), isNull()))
         .thenThrow(exception);
 
     assertThatThrownBy(() -> handler.handle(context, createToolModeRequest(LIST_TOOLS_OPERATION)))
@@ -92,10 +94,12 @@ class DefaultMcpClientHandlerTest {
         new McpClientRequest(
             new McpClientRequestData(
                 CLIENT_CONFIG,
-                new ToolModeConfiguration(LIST_TOOLS_OPERATION, null))); // No filters provided
+                new ToolModeConfiguration(LIST_TOOLS_OPERATION, null),
+                null)); // No filters provided
 
     when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
-    when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+    when(clientExecutor.execute(
+            eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER), isNull()))
         .thenReturn(new McpClientListToolsResult(List.of()));
 
     handler.handle(context, request);
@@ -117,7 +121,8 @@ class DefaultMcpClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_TOOLS, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -153,7 +158,8 @@ class DefaultMcpClientHandlerTest {
                                               assertThat(args)
                                                   .asInstanceOf(InstanceOfAssertFactories.MAP)
                                                   .containsExactlyEntriesOf(arguments)))),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -179,7 +185,8 @@ class DefaultMcpClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_TOOLS, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -215,7 +222,8 @@ class DefaultMcpClientHandlerTest {
                                               assertThat(args)
                                                   .asInstanceOf(InstanceOfAssertFactories.MAP)
                                                   .containsExactlyEntriesOf(arguments)))),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -244,7 +252,8 @@ class DefaultMcpClientHandlerTest {
                                   assertThat(op.params())
                                       .containsEntry("name", "test-tool")
                                       .doesNotContainKey("arguments"))),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -267,7 +276,8 @@ class DefaultMcpClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_RESOURCES, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -291,7 +301,8 @@ class DefaultMcpClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -323,7 +334,8 @@ class DefaultMcpClientHandlerTest {
                                       .returns(
                                           Map.of("uri", "resource-1"),
                                           McpClientOperation::params))),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -346,7 +358,8 @@ class DefaultMcpClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_PROMPTS, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
-              eq(EMPTY_FILTER)))
+              eq(EMPTY_FILTER),
+              isNull()))
           .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
@@ -390,7 +403,8 @@ class DefaultMcpClientHandlerTest {
                                               .asInstanceOf(InstanceOfAssertFactories.MAP)
                                               .containsExactlyEntriesOf(arguments));
                             })),
-            eq(EMPTY_FILTER)))
+            eq(EMPTY_FILTER),
+            isNull()))
         .thenReturn(expectedResult);
 
     final var result = handler.handle(context, request);
@@ -403,7 +417,8 @@ class DefaultMcpClientHandlerTest {
         new McpClientRequestData(
             CLIENT_CONFIG,
             new ToolModeConfiguration(
-                operation, new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
+                operation, new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION)),
+            null));
   }
 
   private McpClientRequest createStandaloneModeRequest(
@@ -414,7 +429,8 @@ class DefaultMcpClientHandlerTest {
             new StandaloneModeConfiguration(
                 operation,
                 new McpClientStandaloneFiltersConfiguration(
-                    EMPTY_FILTER_CONFIGURATION, null, null))));
+                    EMPTY_FILTER_CONFIGURATION, null, null)),
+            null));
   }
 
   static Stream<Map<String, Object>> mcpOperationArguments() {

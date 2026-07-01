@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListTools
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
 import io.modelcontextprotocol.client.McpSyncClient;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 public class McpSdkMcpClientDelegate implements McpClientDelegate {
 
@@ -45,8 +46,9 @@ public class McpSdkMcpClientDelegate implements McpClientDelegate {
   }
 
   @Override
-  public McpClientCallToolResult callTool(Map<String, Object> params, AllowDenyList filter) {
-    return new ToolCallRequest(clientId, objectMapper).execute(delegate, filter, params);
+  public McpClientCallToolResult callTool(
+      Map<String, Object> params, AllowDenyList filter, @Nullable Map<String, Object> meta) {
+    return new ToolCallRequest(clientId, objectMapper).execute(delegate, filter, params, meta);
   }
 
   @Override

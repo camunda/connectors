@@ -31,7 +31,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     documentationRef =
         "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client-connector/",
     engineVersion = "^8.9",
-    version = 2,
+    version = 3,
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = McpClientRequest.class,
     defaultResultVariable = "toolCallResult",
@@ -44,6 +44,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
               "Select how this connector is used. When the connector is used as an AI agent tool, select the AI Agent tool mode."),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "filters", label = "Filters", openByDefault = false),
+      @ElementTemplate.PropertyGroup(id = "meta", label = "Metadata", openByDefault = false),
     },
     extensionProperties = {
       @ElementTemplate.ExtensionProperty(

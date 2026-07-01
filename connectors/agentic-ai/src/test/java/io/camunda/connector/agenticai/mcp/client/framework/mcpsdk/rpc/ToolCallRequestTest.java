@@ -60,7 +60,8 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             EMPTY_FILTER,
-            Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")));
+            Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")),
+            null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -82,7 +83,8 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             EMPTY_FILTER,
-            Map.of("name", "a-name", "arguments", Map.of("arg1", "value1")));
+            Map.of("name", "a-name", "arguments", Map.of("arg1", "value1")),
+            null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -105,7 +107,7 @@ class ToolCallRequestTest {
       parameters.put("arguments", arguments);
     }
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER, parameters);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, parameters, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -124,7 +126,8 @@ class ToolCallRequestTest {
         .thenReturn(callToolResult("Successful result"));
 
     final var result =
-        testee.execute(mcpClient, EMPTY_FILTER, Map.of("name", toolName, "arguments", arguments));
+        testee.execute(
+            mcpClient, EMPTY_FILTER, Map.of("name", toolName, "arguments", arguments), null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -145,7 +148,8 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             EMPTY_FILTER,
-            Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")));
+            Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")),
+            null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -166,7 +170,7 @@ class ToolCallRequestTest {
     assertThatThrownBy(
             () ->
                 testee.execute(
-                    mcpClient, EMPTY_FILTER, Map.of("arguments", Map.of("arg1", "value1"))))
+                    mcpClient, EMPTY_FILTER, Map.of("arguments", Map.of("arg1", "value1")), null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Tool name must not be null");
   }
@@ -179,7 +183,8 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             filter,
-            Map.of("name", "blocked-tool", "arguments", Map.of("arg1", "value1")));
+            Map.of("name", "blocked-tool", "arguments", Map.of("arg1", "value1")),
+            null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -201,7 +206,8 @@ class ToolCallRequestTest {
                 testee.execute(
                     mcpClient,
                     EMPTY_FILTER,
-                    Map.of("name", List.of("foo", "bar"), "something", "else")))
+                    Map.of("name", List.of("foo", "bar"), "something", "else"),
+                    null))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             ex -> {
@@ -221,7 +227,8 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             filter,
-            Map.of("name", "blocked-tool", "arguments", Map.of("arg1", "value1")));
+            Map.of("name", "blocked-tool", "arguments", Map.of("arg1", "value1")),
+            null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -245,7 +252,8 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             EMPTY_FILTER,
-            Map.of("name", "failing-tool", "arguments", Map.of("arg1", "value1")));
+            Map.of("name", "failing-tool", "arguments", Map.of("arg1", "value1")),
+            null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
