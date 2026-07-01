@@ -139,9 +139,9 @@ specifics.
 ### Building & testing
 
 ```bash
-mvn clean install -pl connectors/agentic-ai               # build the module, including tests
-mvn clean install -DskipTests -pl connectors/agentic-ai   # build the module, skipping tests
-mvn test -pl connectors/agentic-ai                        # unit / integration tests
+mvn clean install -f connectors/agentic-ai/pom.xml               # build the module, including tests
+mvn clean install -DskipTests -f connectors/agentic-ai/pom.xml   # build the module, skipping tests
+mvn test -f connectors/agentic-ai/pom.xml                        # unit / integration tests
 ```
 
 **Prerequisite**: the e2e tests require `element-templates-cli` on your PATH. The e2e harness shells out
@@ -203,11 +203,11 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
 
 Before claiming a change is complete:
 
-- [ ] Module builds (`mvn clean install -pl connectors/agentic-ai`).
+- [ ] Module builds (`mvn clean install -f connectors/agentic-ai/pom.xml`).
    - [ ] If deviating from the `mvn install` command, ensure `mvn spotless:apply` and `mvn license:format` run clean (pre-commit hooks enforce these).
 - [ ] Unit tests added/updated and passing.
 - [ ] E2E test decision made per the rule above (test added, or reason stated, or question asked).
-- [ ] Element templates regenerated (`mvn clean compile -pl connectors/agentic-ai`) if template properties changed;
+- [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 
@@ -224,14 +224,14 @@ The JSON element templates are **generated**, not hand-edited. They are produced
 fields), so the source of truth is the Java, not the JSON. The template version comes from the
 annotation's `version` attribute on the connector function; bumping it there bumps the generated
 template. The AI Agent Sub-process template is in turn derived from the AI Agent Task
-template via `bin/transform-ai-agent-job-worker-template.groovy` (gmavenplus-plugin, `process-classes`
+template via `connector-agentic-ai/bin/transform-ai-agent-job-worker-template.groovy` (gmavenplus-plugin, `process-classes`
 phase).
 
-To regenerate, run `mvn clean compile -pl connectors/agentic-ai` and commit the JSON diff; never edit
+To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
 [element template generator documentation](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-sdk/#element-template-generation).
 When a version is bumped, a template moves into `versioned/`, or a connector is added, also update
-[`element-templates/README.md`](element-templates/README.md) following these rules:
+[`connector-agentic-ai/element-templates/README.md`](connector-agentic-ai/element-templates/README.md) following these rules:
 
 1. **Identify the new minimum Camunda version** by checking the `engines.camunda` field of the new
    template (e.g. `^8.10`).
@@ -285,7 +285,7 @@ properties, error codes, behavioral contracts), update the matching doc in the s
   invariants, build/test commands, entry points).
 - **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
   config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`.
-- **`element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
+- **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
   (maintenance rules are in the Element templates section above).
 
 > `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.

@@ -96,7 +96,7 @@ class DocumentToolCallResultsIT {
   private static final Logger LOG = LoggerFactory.getLogger(DocumentToolCallResultsIT.class);
 
   private static final String ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/element-templates/agenticai-aiagent-job-worker.json";
+      "../../connectors/agentic-ai/connector-agentic-ai/element-templates/agenticai-aiagent-job-worker.json";
 
   private static final String BPMN_RESOURCE = "classpath:document-tool-call-results.bpmn";
 
