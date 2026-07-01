@@ -107,7 +107,6 @@
   }, {
     "id" : "queue.url",
     "label" : "URL",
-    "description" : "Specify the URL of the SQS queue where you would like to send message to",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -118,11 +117,11 @@
       "name" : "queue.url",
       "type" : "zeebe:input"
     },
+    "tooltip" : "URL of the SQS queue to send the message to.",
     "type" : "String"
   }, {
     "id" : "queue.type",
     "label" : "Queue type",
-    "description" : "Specify whether the queue is a <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html\">standard</a> or <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html\">FIFO</a> queue",
     "optional" : false,
     "value" : "standard",
     "constraints" : {
@@ -133,6 +132,7 @@
       "name" : "queue.type",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Whether the queue is a <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html\">standard</a> or <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html\">FIFO</a> queue.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Standard",
@@ -170,7 +170,6 @@
   }, {
     "id" : "queue.messageBody",
     "label" : "Message body",
-    "description" : "Data to send to the SQS queue",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -181,11 +180,11 @@
       "name" : "queue.messageBody",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Data to send to the SQS queue",
     "type" : "Text"
   }, {
     "id" : "queue.messageAttributes",
     "label" : "Message attributes",
-    "description" : "Message attributes metadata",
     "optional" : true,
     "feel" : "required",
     "group" : "input",
@@ -197,7 +196,6 @@
   }, {
     "id" : "queue.messageGroupId",
     "label" : "Message group ID",
-    "description" : "Message group ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html\">using the MessageGroupId Property</a> in the Amazon SQS developer guide",
     "optional" : false,
     "feel" : "optional",
     "group" : "input",
@@ -210,11 +208,11 @@
       "equals" : "fifo",
       "type" : "simple"
     },
+    "tooltip" : "FIFO only. See <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html\">MessageGroupId property</a> in the Amazon SQS developer guide.",
     "type" : "String"
   }, {
     "id" : "queue.messageDeduplicationId",
     "label" : "Message deduplication ID",
-    "description" : "Message deduplication ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">using the MessageDeduplicationId Property</a> in the Amazon SQS developer guide",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -227,6 +225,7 @@
       "equals" : "fifo",
       "type" : "simple"
     },
+    "tooltip" : "FIFO only. See <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">MessageDeduplicationId property</a> in the Amazon SQS developer guide.",
     "type" : "String"
   }, {
     "id" : "version",

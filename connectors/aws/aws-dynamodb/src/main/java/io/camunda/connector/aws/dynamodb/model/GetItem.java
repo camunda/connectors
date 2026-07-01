@@ -21,7 +21,7 @@ public record GetItem(
             label = "Table name",
             id = "getItem.tableName",
             group = "input",
-            description = "Name of DynamoDB table")
+            tooltip = "Name of DynamoDB table")
         @NotBlank
         String tableName,
     @TemplateProperty(
@@ -29,7 +29,7 @@ public record GetItem(
             id = "getItem.primaryKeyComponents",
             group = "input",
             feel = FeelMode.required,
-            description = "Simple or composite primary key")
+            tooltip = "Simple or composite primary key")
         @NotNull
         Object primaryKeyComponents)
     implements ItemInput {}

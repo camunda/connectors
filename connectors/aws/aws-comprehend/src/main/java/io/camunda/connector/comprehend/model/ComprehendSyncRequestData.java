@@ -28,14 +28,14 @@ public record ComprehendSyncRequestData(
     @TemplateProperty(
             group = "input",
             label = "Text",
-            description =
+            tooltip =
                 "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-Text\">Text</a> to be analyzed.")
         @NotNull
         String text,
     @TemplateProperty(
             group = "input",
             label = "Endpoint's ARN",
-            description =
+            tooltip =
                 "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-EndpointArn\">ARN of Endpoint.</a>")
         @NotNull
         String endpointArn)

@@ -44,7 +44,7 @@ public final class ConverseData implements RequestData {
       label = "Message History",
       group = "converse",
       id = "data.messagesHistory",
-      description = "Specify the message history, when previous context is needed",
+      tooltip = "History of the conversation to continue. If not set, this starts a new conversation.",
       feel = FeelMode.required,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.messagesHistory"))
@@ -55,8 +55,8 @@ public final class ConverseData implements RequestData {
   @TemplateProperty(
       label = "Model ID",
       group = "converse",
-      description =
-          "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
+      tooltip =
+          "<a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">AWS Bedrock model IDs</a>",
       id = "data.modelId1",
       feel = FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.modelId"))
@@ -68,7 +68,7 @@ public final class ConverseData implements RequestData {
       label = "New Message",
       group = "converse",
       id = "data.newMessage",
-      description = "Specify the next message",
+      tooltip = "The next message to send in the conversation.",
       feel = FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.newMessage"))
   @Valid

@@ -21,14 +21,14 @@ public record AddItem(
             label = "Table name",
             id = "addItem.tableName",
             group = "input",
-            description = "Name of DynamoDB table")
+            tooltip = "Name of DynamoDB table")
         @NotBlank
         String tableName,
     @TemplateProperty(
             label = "Item",
             group = "input",
             feel = FeelMode.required,
-            description = "DynamoDB item (group of attributes)")
+            tooltip = "DynamoDB item (group of attributes)")
         @NotNull
         Object item)
     implements ItemInput {}
