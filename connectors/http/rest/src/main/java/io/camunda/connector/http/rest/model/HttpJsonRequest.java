@@ -19,6 +19,7 @@ package io.camunda.connector.http.rest.model;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.auth.Authentication;
 
 public class HttpJsonRequest extends HttpCommonRequest {
 
@@ -41,5 +42,18 @@ public class HttpJsonRequest extends HttpCommonRequest {
   public void setAuthenticationConfiguration(
       RestAuthenticationConfiguration authenticationConfiguration) {
     this.authenticationConfiguration = authenticationConfiguration;
+  }
+
+  /**
+   * Per-connector consumption of the bound authentication credential: when a credential
+   * (configuration) is bound, its authentication takes precedence; the inline authentication is the
+   * fallback. Per-field inline override is not modeled because authentication is a whole object.
+   */
+  @Override
+  public Authentication getAuthentication() {
+    if (authenticationConfiguration != null) {
+      return authenticationConfiguration.authentication();
+    }
+    return super.getAuthentication();
   }
 }
