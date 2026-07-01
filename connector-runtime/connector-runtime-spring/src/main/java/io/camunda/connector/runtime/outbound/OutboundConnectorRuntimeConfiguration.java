@@ -17,22 +17,34 @@
 package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory;
+import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
+import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.CamundaDocumentStoreImpl;
+import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.cache.support.NoOpCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -56,6 +68,38 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  public CacheManager secretKeyCacheManager(
+      @Value("${camunda.connector.secret-resolver.secret-filter.cache.enabled:true}")
+          boolean cacheEnabled,
+      @Value("${camunda.connector.secret-resolver.secret-filter.cache.max-size:1000}")
+          int cacheMaxSize) {
+    if (!cacheEnabled) {
+      return new NoOpCacheManager();
+    }
+    int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
+    CaffeineCacheManager cacheManager =
+        new CaffeineCacheManager(SecretKeyCache.SECRET_KEY_CACHE_NAME);
+    cacheManager.setCaffeine(Caffeine.newBuilder().maximumSize(boundedMaxSize));
+    return cacheManager;
+  }
+
+  @Bean
+  public SecretKeyCache secretKeyCache(
+      CamundaOperateClient camundaOperateClient,
+      @Qualifier("secretKeyCacheManager") CacheManager cacheManager) {
+    return new ProcessDefinitionSecretKeyCache(
+        camundaOperateClient, cacheManager.getCache(SecretKeyCache.SECRET_KEY_CACHE_NAME));
+  }
+
+  @Bean
+  public SecretFilterFactory secretFilterFactory(
+      @Value("${camunda.connector.secret-resolver.secret-filter.mode:DISABLED}")
+          SecretFilterMode secretFilterMode,
+      SecretKeyCache secretKeyCache) {
+    return new ConfigurableSecretFilterFactory(secretFilterMode, secretKeyCache);
+  }
+
+  @Bean
   public OutboundConnectorManager outboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
@@ -64,7 +108,8 @@ public class OutboundConnectorRuntimeConfiguration {
       @Autowired(required = false) ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
+      MetricsRecorder metricsRecorder,
+      SecretFilterFactory secretFilterFactory) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -73,7 +118,8 @@ public class OutboundConnectorRuntimeConfiguration {
         validationProvider,
         documentFactory,
         objectMapper,
-        metricsRecorder);
+        metricsRecorder,
+        secretFilterFactory);
   }
 
   @Bean
