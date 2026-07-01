@@ -146,7 +146,7 @@
     },
     {
       "label": "Account SID",
-      "description": "Your Twilio account SID. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">Camunda documentation</a>",
+      "tooltip": "Your Twilio account SID. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">Twilio outbound connector documentation</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -221,7 +221,7 @@
     },
     {
       "label": "API key",
-      "description": "Your Twilio API key. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">documentation</a> for details",
+      "tooltip": "Your Twilio API key. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">Twilio outbound connector documentation</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -239,7 +239,7 @@
     },
     {
       "label": "API secret",
-      "description": "Your Twilio API secret. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">documentation</a> for details",
+      "tooltip": "Your Twilio API secret. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">Twilio outbound connector documentation</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -274,7 +274,7 @@
     },
     {
       "label": "Authentication token",
-      "description": "Your Twilio auth token. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">Camunda documentation</a>",
+      "tooltip": "Your Twilio auth token. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">Twilio outbound connector documentation</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -292,7 +292,7 @@
     },
     {
       "label": "Message SID",
-      "description": "Obtain information regarding the message with SID",
+      "tooltip": "Unique identifier of the message to retrieve information for.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -313,7 +313,7 @@
     },
     {
       "label": "WhatsApp message text",
-      "description": "The content of the WhatsApp message that will be sent",
+      "tooltip": "The content of the WhatsApp message that will be sent.",
       "group": "input",
       "type": "Text",
       "feel": "optional",
@@ -340,7 +340,6 @@
     },
     {
       "label": "WhatsApp template ID",
-      "description": "The ID of the WhatsApp template to be used",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -473,7 +472,7 @@
     },
     {
       "label": "Message text",
-      "description": "The content of the message that will be sent",
+      "tooltip": "The content of the message that will be sent.",
       "group": "input",
       "type": "Text",
       "feel": "optional",
@@ -492,7 +491,7 @@
     },
     {
       "label": "From number",
-      "description": "The originating Twilio phone number used for sending the message",
+      "tooltip": "The originating Twilio phone number used for sending the message.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -511,7 +510,7 @@
     },
     {
       "label": "To number",
-      "description": "The recipient's phone number",
+      "tooltip": "The recipient's phone number.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -531,7 +530,7 @@
     {
       "label": "Page size",
       "id": "pageSize",
-      "description": "The maximum number of messages to retrieve per page",
+      "tooltip": "The maximum number of messages to retrieve per page.",
       "group": "filter",
       "type": "String",
       "feel": "optional",
@@ -615,7 +614,7 @@
     },
     {
       "label": "From",
-      "description": "The phone number or client identifier of the message sender",
+      "tooltip": "The phone number or client identifier of the message sender.",
       "group": "filter",
       "type": "String",
       "feel": "optional",
@@ -636,7 +635,7 @@
     },
     {
       "label": "To",
-      "description": "The phone number or client identifier of the message recipient",
+      "tooltip": "The phone number or client identifier of the message recipient.",
       "group": "filter",
       "type": "String",
       "feel": "optional",
@@ -702,7 +701,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -712,7 +711,7 @@
     },
     {
       "label": "Result expression",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "Text",
       "feel": "required",
@@ -743,7 +742,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

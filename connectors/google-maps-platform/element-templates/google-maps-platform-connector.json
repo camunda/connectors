@@ -126,7 +126,7 @@
     },
     {
       "label": "API key",
-      "description": "Google Maps Platform API key. Details in the <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/' target='_blank'>connector documentation</a>",
+      "tooltip": "Google Maps Platform API key. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/' target='_blank'>Google Maps Platform connector documentation</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -141,7 +141,7 @@
     },
     {
       "label": "Region code",
-      "description": "You can find supported regions here <a href='https://developers.google.com/maps/documentation/address-validation/coverage' target='_blank'>supported regions</a>",
+      "tooltip": "Find supported region codes in the <a href='https://developers.google.com/maps/documentation/address-validation/coverage' target='_blank'>Address Validation coverage documentation</a>.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -162,7 +162,7 @@
     },
     {
       "label": "Locality",
-      "description": "An incorporated city or town political entity",
+      "tooltip": "An incorporated city or town political entity",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -183,7 +183,7 @@
     },
     {
       "label": "Address",
-      "description": "Unstructured address. Details in a <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/' target='_blank'> connector documentation</a>",
+      "tooltip": "Unstructured address. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/' target='_blank'>Google Maps Platform connector documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -204,7 +204,7 @@
     },
     {
       "label": "Address",
-      "description": "Complete address. Details in a <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/' target='_blank'> connector documentation</a>",
+      "tooltip": "Complete address. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/' target='_blank'>Google Maps Platform connector documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -225,7 +225,7 @@
     },
     {
       "label": "Destination",
-      "description": "The place ID value that you want to use as the destination for calculating distance",
+      "tooltip": "The place ID value that you want to use as the destination for calculating distance",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -246,7 +246,7 @@
     },
     {
       "label": "Origin",
-      "description": "The place ID value that you want to use as the starting point for calculating distance",
+      "tooltip": "The place ID value that you want to use as the starting point for calculating distance",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -267,7 +267,7 @@
     },
     {
       "label": "Units",
-      "description": "Specifies the unit system to use when displaying results",
+      "tooltip": "Specifies the unit system to use when displaying results",
       "group": "input",
       "value": "metric",
       "type": "Dropdown",
@@ -294,7 +294,6 @@
     },
     {
       "label": "Mode",
-      "description": "You can specify the transportation mode to use when calculating distances and directions",
       "group": "input",
       "value": "driving",
       "type": "Dropdown",
@@ -438,7 +437,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -449,7 +448,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGet",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -468,7 +467,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGet",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -487,7 +486,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGet",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -505,7 +504,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

@@ -71,7 +71,7 @@
     {
       "id": "snInstance",
       "label": "Instance name",
-      "description": "Enter only the instance name from your ServiceNow URL",
+      "tooltip": "Enter only the instance name from your ServiceNow URL",
       "optional": false,
       "feel": "optional",
       "group": "sn",
@@ -88,7 +88,6 @@
       "id": "operationGroup",
       "label": "Operation",
       "group": "sn",
-      "description": "Choose operation type",
       "type": "Dropdown",
       "value": "create",
       "choices": [
@@ -176,6 +175,7 @@
       "id": "sysparm_query",
       "label": "Query parameters (sysparm_query)",
       "description": "Separate multiple conditions with '^' (Ex: active=true^priority=1)",
+      "placeholder": "active=true^priority=1",
       "optional": true,
       "feel": "optional",
       "group": "input",
@@ -202,6 +202,7 @@
       "id": "sysparm_fields",
       "label": "Fields to return (sysparm_fields)",
       "description": "Comma-separated field names (Ex: sys_id, number, short_description)",
+      "placeholder": "sys_id,number,short_description",
       "optional": true,
       "feel": "optional",
       "group": "input",
@@ -221,6 +222,7 @@
       "id": "sysparm_limit",
       "label": "Result limit (sysparm_limit)",
       "description": "The maximum number of records to return (Ex: 10)",
+      "placeholder": "10",
       "optional": true,
       "feel": "optional",
       "group": "input",
@@ -255,7 +257,6 @@
     {
       "id": "updateTarget",
       "label": "Sys ID of the record to update",
-      "description": "Enter the unique record identifier (sys_id) to update",
       "type": "String",
       "feel": "optional",
       "group": "sn",
@@ -271,7 +272,6 @@
     {
       "id": "deleteTarget",
       "label": "Sys ID of the record to delete",
-      "description": "Enter the unique record identifier (sys_id) to delete",
       "type": "String",
       "feel": "optional",
       "group": "sn",
@@ -542,7 +542,7 @@
     {
       "id": "authentication.apiKeyLocation",
       "label": "Api key location",
-      "description": "Choose type: Send API key in header or as query parameter.",
+      "tooltip": "Choose type: Send API key in header or as query parameter.",
       "optional": false,
       "value": "headers",
       "constraints": {
@@ -673,7 +673,6 @@
     {
       "id": "authentication.oauthTokenEndpoint",
       "label": "OAuth 2.0 token endpoint",
-      "description": "The OAuth token endpoint",
       "optional": false,
       "constraints": {
         "notEmpty": true,
@@ -698,7 +697,7 @@
     {
       "id": "authentication.clientId",
       "label": "Client ID",
-      "description": "Your application's client ID from the OAuth client",
+      "tooltip": "Your application's client ID from the OAuth client",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -719,7 +718,7 @@
     {
       "id": "authentication.clientSecret",
       "label": "Client secret",
-      "description": "Your application's client secret from the OAuth client",
+      "tooltip": "Your application's client secret from the OAuth client",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -740,7 +739,7 @@
     {
       "id": "authentication.audience",
       "label": "Audience",
-      "description": "The unique identifier of the target API you want to access",
+      "tooltip": "The unique identifier of the target API you want to access",
       "optional": true,
       "feel": "optional",
       "group": "authentication",
@@ -758,7 +757,7 @@
     {
       "id": "authentication.clientAuthentication",
       "label": "Client authentication",
-      "description": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+      "tooltip": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -788,7 +787,7 @@
     {
       "id": "authentication.scopes",
       "label": "Scopes",
-      "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+      "tooltip": "The scopes which you want to request authorization for (e.g. read:contacts)",
       "optional": true,
       "feel": "optional",
       "group": "authentication",
@@ -937,7 +936,7 @@
     {
       "id": "resultVariable",
       "label": "Result variable",
-      "description": "Name of variable to store the response in",
+      "tooltip": "Name of variable to store the response in",
       "group": "output",
       "binding": {
         "key": "resultVariable",
@@ -949,7 +948,7 @@
     {
       "id": "resultExpression",
       "label": "Result expression",
-      "description": "Expression to map the response into process variables",
+      "tooltip": "Expression to map the response into process variables",
       "feel": "required",
       "group": "output",
       "binding": {
@@ -961,7 +960,7 @@
     {
       "id": "errorExpression",
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">error handling documentation</a>",
       "feel": "required",
       "group": "error",
       "binding": {
@@ -973,7 +972,6 @@
     {
       "id": "retryCount",
       "label": "Retries",
-      "description": "Number of retries",
       "value": "3",
       "feel": "optional",
       "group": "retries",
