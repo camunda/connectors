@@ -38,39 +38,7 @@ public class ParameterUtil {
   public static HttpOperationProperty transformToProperty(
       Parameter parameter, Components components) {
     if (parameter.get$ref() != null) {
-      var ref = parameter.get$ref();
-      if (!ref.startsWith("#/")) {
-        throw new IllegalArgumentException(
-            "External $ref '"
-                + ref
-                + "' cannot be resolved: the spec contains a reference to an external file or URL "
-                + "that was not inlined during parsing. Either remove '--no-resolve-refs' so the "
-                + "parser can follow the reference, or replace the external $ref with an inline "
-                + "parameter definition.");
-      }
-      var prefix = "#/components/parameters/";
-      if (!ref.startsWith(prefix)) {
-        throw new IllegalArgumentException(
-            "Parameter $ref '"
-                + ref
-                + "' cannot be resolved: only '#/components/parameters/...' references are supported.");
-      }
-      var paramName = ref.substring(prefix.length());
-      if (components == null || components.getParameters() == null) {
-        throw new IllegalArgumentException(
-            "Parameter $ref '"
-                + ref
-                + "' cannot be resolved: the spec has no components.parameters section.");
-      }
-      if (!components.getParameters().containsKey(paramName)) {
-        throw new IllegalArgumentException(
-            "Parameter $ref '"
-                + ref
-                + "' cannot be resolved: '"
-                + paramName
-                + "' is not defined in components.parameters.");
-      }
-      parameter = components.getParameters().get(paramName);
+      parameter = resolveParameterRef(parameter.get$ref(), components);
     }
     if (parameter.getSchema() != null) {
       return fromSchema(parameter, components);
@@ -79,6 +47,42 @@ public class ParameterUtil {
     } else {
       throw new IllegalArgumentException("Parameter must have either a schema or a content");
     }
+  }
+
+  private static Parameter resolveParameterRef(String ref, Components components) {
+    if (!ref.startsWith("#/")) {
+      throw new IllegalArgumentException(
+          "External $ref '"
+              + ref
+              + "' cannot be resolved: the spec contains a reference to an external file or URL "
+              + "that was not inlined during parsing. Either remove '--no-resolve-refs' so the "
+              + "parser can follow the reference, or replace the external $ref with an inline "
+              + "parameter definition.");
+    }
+    var prefix = "#/components/parameters/";
+    if (!ref.startsWith(prefix)) {
+      throw new IllegalArgumentException(
+          "Parameter $ref '"
+              + ref
+              + "' cannot be resolved: only '#/components/parameters/...' references are supported.");
+    }
+    var paramName = ref.substring(prefix.length());
+    if (components == null || components.getParameters() == null) {
+      throw new IllegalArgumentException(
+          "Parameter $ref '"
+              + ref
+              + "' cannot be resolved: the spec has no components.parameters section.");
+    }
+    var resolved = components.getParameters().get(paramName);
+    if (resolved == null) {
+      throw new IllegalArgumentException(
+          "Parameter $ref '"
+              + ref
+              + "' cannot be resolved: '"
+              + paramName
+              + "' is not defined in components.parameters.");
+    }
+    return resolved;
   }
 
   private static HttpOperationProperty fromSchema(Parameter parameter, Components components) {
