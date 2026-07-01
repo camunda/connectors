@@ -18,7 +18,7 @@ import jakarta.validation.constraints.NotBlank;
 @TemplateDiscriminatorProperty(
     label = "Folder Identifier Type",
     description =
-        "Prefer using a folder ID if you are using a well known folder otherwise use the folder name",
+        "Prefer using a folder ID if you are using a well-known folder; otherwise, use the folder name.",
     group = "pollingConfig",
     name = "folderSpecification",
     defaultValue = Folder.FolderById.TYPE)

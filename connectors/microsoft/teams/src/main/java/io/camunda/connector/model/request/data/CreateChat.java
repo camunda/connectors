@@ -33,7 +33,7 @@ public record CreateChat(
               @TemplateProperty.DropdownPropertyChoice(value = "group", label = "Group")
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            description = "The type of a new chat")
+            tooltip = "The type of a new chat")
         String chatType,
     @TemplateProperty(
             group = "data",
@@ -43,8 +43,7 @@ public record CreateChat(
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "data.createChat.chatType",
-                    equals = "group"),
-            description = "Set topic of chat (optional)")
+                    equals = "group"))
         String topic,
     @NotNull
         @TemplateProperty(
@@ -52,7 +51,7 @@ public record CreateChat(
             id = "createChat.members",
             label = "Members",
             feel = FeelMode.required,
-            description =
-                "Set array members of chat. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#members-property'>Learn more about the required format</a>")
+            tooltip =
+                "See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#members-property\">Members property</a> reference.")
         List<Member> members)
     implements ChatData {}

@@ -30,7 +30,7 @@ public record EmailPollingConfig(
             group = "pollingConfig",
             defaultValue = "PT30S",
             tooltip =
-                "The interval between email polling requests, defined as ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+                "The interval between email polling requests, in ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
             feel = FeelMode.optional)
         @FEEL
         Duration pollingInterval,

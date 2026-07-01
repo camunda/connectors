@@ -22,22 +22,16 @@ public record CreateChannel(
             group = "data",
             id = "createChannel.groupId",
             label = "Group ID",
-            description = "The group ID for teams")
+            tooltip = "The Microsoft Teams group ID.")
         String groupId,
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "createChannel.name",
-            label = "Display name",
-            description = "Enter name of a channel")
+    @NotBlank @TemplateProperty(group = "data", id = "createChannel.name", label = "Display name")
         String name,
     @TemplateProperty(
             group = "data",
             id = "createChannel.description",
             label = "Description",
             optional = true,
-            type = TemplateProperty.PropertyType.Text,
-            description = "Enter description")
+            type = TemplateProperty.PropertyType.Text)
         String description,
     @NotBlank
         @TemplateProperty(
@@ -51,8 +45,7 @@ public record CreateChannel(
               @TemplateProperty.DropdownPropertyChoice(value = "private", label = "Private"),
               @TemplateProperty.DropdownPropertyChoice(value = "shared", label = "Shared")
             },
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            description = "Choose type")
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String channelType,
     @TemplateProperty(
             group = "data",
@@ -63,6 +56,6 @@ public record CreateChannel(
                 @TemplateProperty.PropertyCondition(
                     property = "data.createChannel.channelType",
                     oneOf = {"private", "shared"}),
-            description = "Enter ID or principal name of a user")
+            tooltip = "Enter ID or principal name of a user")
         String owner)
     implements ChannelData {}

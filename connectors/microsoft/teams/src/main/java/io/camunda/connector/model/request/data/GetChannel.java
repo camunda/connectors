@@ -28,13 +28,8 @@ public record GetChannel(
             group = "data",
             id = "getChannel.groupId",
             label = "Group ID",
-            description = "The group ID for teams")
+            tooltip = "The Microsoft Teams group ID.")
         String groupId,
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "getChannel.channelId",
-            label = "Channel ID",
-            description = "The Channel ID")
+    @NotBlank @TemplateProperty(group = "data", id = "getChannel.channelId", label = "Channel ID")
         String channelId)
     implements ChannelData {}

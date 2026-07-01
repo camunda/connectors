@@ -87,7 +87,6 @@
   }, {
     "id" : "authentication.credentials.clientId",
     "label" : "Client ID",
-    "description" : "The client ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -107,7 +106,6 @@
   }, {
     "id" : "authentication.credentials.tenantId",
     "label" : "Tenant ID",
-    "description" : "The tenant ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -127,7 +125,6 @@
   }, {
     "id" : "authentication.credentials.clientSecret",
     "label" : "Client secret",
-    "description" : "The secret value of the Azure AD application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -143,6 +140,7 @@
       "equals" : "clientCredentials",
       "type" : "simple"
     },
+    "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
     "type" : "String"
   }, {
     "id" : "authentication.refresh.token",
@@ -166,7 +164,6 @@
   }, {
     "id" : "authentication.refresh.clientId",
     "label" : "Client ID",
-    "description" : "The client ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -186,7 +183,6 @@
   }, {
     "id" : "authentication.refresh.tenantId",
     "label" : "Tenant ID",
-    "description" : "The tenant ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -206,7 +202,6 @@
   }, {
     "id" : "authentication.refresh.clientSecret",
     "label" : "Client secret",
-    "description" : "The secret value of the Azure AD application; optional, depends on whether the client is public or private",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -219,6 +214,7 @@
       "equals" : "refresh",
       "type" : "simple"
     },
+    "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application; optional, depends on whether the client is public or private",
     "type" : "String"
   }, {
     "id" : "pollingConfig.userId",
@@ -238,7 +234,7 @@
   }, {
     "id" : "pollingConfig.folder.folderSpecification",
     "label" : "Folder Identifier Type",
-    "description" : "Prefer using a folder ID if you are using a well known folder otherwise use the folder name",
+    "description" : "Prefer using a folder ID if you are using a well-known folder; otherwise, use the folder name.",
     "value" : "byId",
     "group" : "pollingConfig",
     "binding" : {
@@ -305,7 +301,7 @@
       "name" : "pollingConfig.pollingInterval",
       "type" : "zeebe:property"
     },
-    "tooltip" : "The interval between email polling requests, defined as ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+    "tooltip" : "The interval between email polling requests, in ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
     "type" : "String"
   }, {
     "id" : "pollingConfig.filterCriteria.filterSpecification",
@@ -436,7 +432,7 @@
   }, {
     "id" : "operation.targetFolder.folderSpecification",
     "label" : "Folder Identifier Type",
-    "description" : "Prefer using a folder ID if you are using a well known folder otherwise use the folder name",
+    "description" : "Prefer using a folder ID if you are using a well-known folder; otherwise, use the folder name.",
     "value" : "byId",
     "group" : "postprocessing",
     "binding" : {

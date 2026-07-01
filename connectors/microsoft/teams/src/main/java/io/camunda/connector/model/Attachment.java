@@ -10,17 +10,15 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 
 public record Attachment(
-    @NotBlank
-        @TemplateProperty(label = "Attachment ID", description = "Unique ID for the attachment")
+    @NotBlank @TemplateProperty(label = "Attachment ID", tooltip = "Unique ID for the attachment")
         String id,
     @NotBlank
         @TemplateProperty(
             label = "Content type",
-            description =
-                "The media type of the content attachment"
-                    + " (e.g. 'application/vnd.microsoft.card.adaptive')")
+            placeholder = "application/vnd.microsoft.card.adaptive",
+            tooltip = "The media type of the content attachment")
         String contentType,
     @TemplateProperty(
             label = "Content",
-            description = "The content of the attachment (e.g. an Adaptive Card JSON payload)")
+            tooltip = "The content of the attachment, e.g. an Adaptive Card JSON payload")
         String content) {}

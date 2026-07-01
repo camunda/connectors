@@ -23,11 +23,6 @@ import jakarta.validation.constraints.NotBlank;
       "conversation members"
     })
 public record ListChatMembers(
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "listChatMembers.chatId",
-            label = "Chat ID",
-            description = "The chat ID")
+    @NotBlank @TemplateProperty(group = "data", id = "listChatMembers.chatId", label = "Chat ID")
         String chatId)
     implements ChatData {}
