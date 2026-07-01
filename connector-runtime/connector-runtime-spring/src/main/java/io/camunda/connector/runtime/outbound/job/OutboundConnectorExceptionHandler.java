@@ -26,6 +26,7 @@ import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.time.Duration;
 import java.util.*;
@@ -67,13 +68,16 @@ public class OutboundConnectorExceptionHandler {
   }
 
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
-      Exception e, ActivatedJob job, Duration retryBackoffDuration) {
+      Exception e, ActivatedJob job, Duration retryBackoffDuration, SecretFilter secretFilter) {
     List<String> secrets;
     try {
+      var allowedKeys =
+          SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
+              .filter(secretFilter::isAllowed)
+              .toList();
       secrets =
           this.secretProvider.fetchAll(
-              SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
-              new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+              allowedKeys, new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
     } catch (Exception ex) {
       LOGGER.error(
           "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
@@ -166,11 +170,15 @@ public class OutboundConnectorExceptionHandler {
     return handleSDKException(job, newException, retries, errorCode, retryBackoff);
   }
 
-  public ConnectorResult.ErrorResult handleFinalResultException(Exception ex, ActivatedJob job) {
+  public ConnectorResult.ErrorResult handleFinalResultException(
+      Exception ex, ActivatedJob job, SecretFilter secretFilter) {
+    var allowedKeys =
+        SecretUtil.retrieveSecretKeysInInput(job.getVariables()).stream()
+            .filter(secretFilter::isAllowed)
+            .toList();
     List<String> secrets =
         this.secretProvider.fetchAll(
-            SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
-            new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
+            allowedKeys, new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
     Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(
         "Exception while processing job: {} for tenant: {}, message: {}",

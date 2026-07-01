@@ -32,15 +32,18 @@ import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 @Configuration
+@Import({SecretFilterFactoryConfiguration.class})
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
@@ -79,7 +82,8 @@ public class OutboundConnectorRuntimeConfiguration {
       ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
       DocumentFactory documentFactory,
-      @OutboundConnectorObjectMapper ObjectMapper objectMapper) {
+      @OutboundConnectorObjectMapper ObjectMapper objectMapper,
+      SecretFilterFactory secretFilterFactory) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -88,6 +92,7 @@ public class OutboundConnectorRuntimeConfiguration {
         validationProvider,
         documentFactory,
         objectMapper,
-        metricsRecorder);
+        metricsRecorder,
+        secretFilterFactory);
   }
 }
