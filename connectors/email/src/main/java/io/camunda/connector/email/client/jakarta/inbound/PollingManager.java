@@ -134,8 +134,9 @@ public class PollingManager {
                             .withSeverity(Severity.ERROR)
                             .withTag("document-upload")
                             .withMessage(
-                                "Failed to upload attachment '%s': %s. Attachment will be skipped."
-                                    .formatted(attachment.name(), e.getMessage())));
+                                "Failed to upload attachment '%s'. Attachment will be skipped."
+                                    .formatted(attachment.name()),
+                                e));
                 return null;
               }
             })
