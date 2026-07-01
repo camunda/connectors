@@ -52,6 +52,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cache.Cache;
@@ -69,7 +70,7 @@ import org.springframework.core.env.Environment;
   ProcessInstanceClientConfiguration.class,
   InboundConnectorRestController.class,
   InboundInstancesRestController.class,
-  GlobalExceptionHandler.class,
+  GlobalExceptionHandler.class
 })
 public class InboundConnectorRuntimeConfiguration {
   @Value("${camunda.connector.inbound.message.ttl:PT1H}")
@@ -184,7 +185,8 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Bean
   public ProcessDefinitionInspector processDefinitionInspector(
-      SearchQueryClient searchQueryClient, CacheManager cacheManager) {
+      SearchQueryClient searchQueryClient,
+      @Qualifier("processDefinitionCacheManager") CacheManager cacheManager) {
     Cache cache =
         Objects.requireNonNull(
             cacheManager.getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME),

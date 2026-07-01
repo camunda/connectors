@@ -36,6 +36,7 @@ import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.connector.test.MapSecretProvider;
@@ -227,7 +228,7 @@ public class OutboundConnectorContextBuilder {
 
     protected TestConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
-      super(secretProvider, validationProvider);
+      super(secretProvider, SecretFilter.allowAll(), validationProvider);
       try {
         var asString = objectMapper.writeValueAsString(variables);
         variablesWithSecrets = getSecretHandler().replaceSecrets(asString, null);
