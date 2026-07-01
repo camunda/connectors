@@ -186,8 +186,7 @@ final class ToolCallRequest {
 
     final var arguments = Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
 
-    final var builder =
-        McpSchema.CallToolRequest.builder(params.name()).arguments(arguments);
+    final var builder = McpSchema.CallToolRequest.builder(params.name()).arguments(arguments);
     if (meta != null) {
       builder.meta(meta);
     }

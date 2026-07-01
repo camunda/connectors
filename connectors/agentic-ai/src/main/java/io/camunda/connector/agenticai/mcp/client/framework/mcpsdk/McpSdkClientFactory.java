@@ -56,7 +56,8 @@ public class McpSdkClientFactory implements McpClientFactory {
         .ifPresent(clientBuilder::initializationTimeout);
     Optional.ofNullable(config.toolExecutionTimeout()).ifPresent(clientBuilder::requestTimeout);
 
-    return new McpSdkMcpClientDelegate(clientId, clientBuilder.build(), objectMapper, config.meta());
+    return new McpSdkMcpClientDelegate(
+        clientId, clientBuilder.build(), objectMapper, config.meta());
   }
 
   private McpClientTransport createTransport(

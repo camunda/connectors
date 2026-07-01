@@ -49,7 +49,8 @@ class ToolCallRequestTest {
 
   @Mock private McpSyncClient mcpClient;
 
-  private final ToolCallRequest testee = new ToolCallRequest("testClient", new ObjectMapper(), null);
+  private final ToolCallRequest testee =
+      new ToolCallRequest("testClient", new ObjectMapper(), null);
 
   @Test
   void executesTool_whenToolAllowedByFilter() {

@@ -396,7 +396,7 @@ class McpRemoteClientRegistryTest {
         HTTP_TIMEOUT,
         HTTP_TIMEOUT,
         null,
-        null);
+        Map.of());
   }
 
   private static SseHttpMcpRemoteClientTransportConfiguration createSseTransportConfiguration(
@@ -417,7 +417,7 @@ class McpRemoteClientRegistryTest {
         HTTP_TIMEOUT,
         HTTP_TIMEOUT,
         null,
-        null);
+        Map.of());
   }
 
   private ClientConfiguration createClientConfig() {
