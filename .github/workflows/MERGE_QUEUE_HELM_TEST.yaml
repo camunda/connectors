@@ -3,7 +3,7 @@ name: Merge queue Helm test
 on:
   push:
     branches:
-      - stable/8.8
+      - stable/8.9
   workflow_dispatch:
   merge_group:
 
@@ -82,10 +82,10 @@ jobs:
         run: ls -lh bundle/camunda-saas-bundle/target/
 
       - name: Set up Docker Build
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to Harbor
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
@@ -115,8 +115,8 @@ jobs:
             # For manual dispatch: <base>-dispatch-run<run_id>-a<run_attempt>
             TAG="${BASE_VERSION}-dispatch-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
           else
-            # For push to stable/8.8: <base>-stable-8.8-run<run_id>-a<run_attempt>
-            TAG="${BASE_VERSION}-stable-8.8-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+            # For push to stable/8.9: <base>-stable-8.9-run<run_id>-a<run_attempt>
+            TAG="${BASE_VERSION}-stable-8.9-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
           fi
 
           echo "::notice::Tag: ${TAG}"
@@ -124,7 +124,7 @@ jobs:
           echo "should-push=true" >> "$GITHUB_OUTPUT"
 
       - name: Login to Minimus
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: reg.mini.dev
           username: minimus
@@ -135,7 +135,7 @@ jobs:
         if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: bundle/default-bundle/
           provenance: false
@@ -146,7 +146,7 @@ jobs:
         if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: bundle/camunda-saas-bundle/
           provenance: false
@@ -163,29 +163,56 @@ jobs:
       image-source: artifactory
       connectors-version: ${{ needs.build-image.outputs.connectors-version }}
       release-branch: main
-      helm-dir: camunda-platform-8.8
       # Route to the dedicated AlwaysGreen GKE namespace/node pool that finance tracks for cost.
       scenario: alwaysgreen
       shortname: agrn
-
   sm-e2e-debug-summary:
-    name: Add SM E2E debugging guidance on failure
+    name: AlwaysGreen failure feedback (SM E2E)
     needs: trigger-sm-e2e
     if: always() && needs.trigger-sm-e2e.result == 'failure'
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     continue-on-error: ${{ github.event_name == 'merge_group' }}
-    permissions: {}
+    permissions:
+      pull-requests: write
+      contents: read
     steps:
-      - name: Add Helm debugging guidance on failure
-        run: |
-          COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
-          {
-            echo "## SM E2E / Helm Integration Tests Failed"
-            echo ""
-            echo "### Full debugging guide"
-            echo "[CI Debugging Cookbook — Helm Chart Setup/Integration failures](${COOKBOOK_URL}#failure-type-3--helm-chart-setup--integration-tests) · [Helm Chart E2E failures](${COOKBOOK_URL}#failure-type-4--helm-chart-e2e-tests)"
-          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: connectors
+      # Standardised AlwaysGreen feedback → job summary + PR comment (+ Slack once
+      # the channel is set below and the bot is invited to it). Best-effort.
+      - name: Post AlwaysGreen failure feedback
+        continue-on-error: true
+        uses: ./.github/actions/post-failure-feedback
+        with:
+          failure_category: unknown
+          stage: sm-e2e-helm
+          owner_team: "@camunda/connectors"
+          run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          status: failure
+          evidence: "SM E2E / Helm Integration Tests failed."
+          pr: ${{ github.event.merge_group.head_ref }}
+          # Shared AlwaysGreen channel (#alwaysgreen-reliability) — consistent
+          # across all AlwaysGreen repos. The connectors bot must be a member.
+          slack_channel: "C0AK0AVKRL0"
+          slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
 
   trigger-saas-e2e:
     name: Trigger SaaS E2E tests
@@ -197,7 +224,7 @@ jobs:
     permissions: { }
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
         uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
@@ -220,7 +247,7 @@ jobs:
           IMAGE_TAG: ${{ needs.build-image.outputs.connectors-version }}
         run: |
           # Use the image tag as the generation name to match filter patterns
-          # e.g., "8.8.0-stable-8.8-run12345678-a1" matches "**-stable-8.8-run**-a**"
+          # e.g., "8.9.0-stable-8.9-run12345678-a1" matches "**-stable-8.9-run**-a**"
           GEN_NAME="${IMAGE_TAG}"
 
           curl -X POST \
@@ -234,12 +261,12 @@ jobs:
                       "source_repo": "${{ github.repository }}",
                       "source_sha": "${{ github.sha }}",
                       "gen_name": "'"${GEN_NAME}"'",
-                      "c8Version": "8.8",
-                      "zeebeVersion": "8.8-SNAPSHOT",
-                      "operateVersion": "8.8-SNAPSHOT",
-                      "tasklistVersion": "8.8-SNAPSHOT",
+                      "c8Version": "8.9",
+                      "zeebeVersion": "8.9-SNAPSHOT",
+                      "operateVersion": "8.9-SNAPSHOT",
+                      "tasklistVersion": "8.9-SNAPSHOT",
                       "connectorsVersion": "${{ needs.build-image.outputs.connectors-version }}",
-                      "optimizeVersion": "8.8-SNAPSHOT"
+                      "optimizeVersion": "8.9-SNAPSHOT"
                   }
                 }'
       - name: Observe build status
@@ -358,6 +385,7 @@ jobs:
           else
             echo "No downstream workflow run URL found." >> "$GITHUB_STEP_SUMMARY"
           fi
+
       - name: Add debugging guidance on failure
         if: steps.wait-downstream.outcome == 'failure'
         run: |
