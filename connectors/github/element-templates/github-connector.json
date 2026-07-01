@@ -98,7 +98,6 @@
       "label": "Operation group",
       "id": "operationGroup",
       "group": "operation",
-      "description": "Choose operation group",
       "value": "issues",
       "type": "Dropdown",
       "choices": [
@@ -506,7 +505,7 @@
       "label": "GitHub personal token",
       "id": "authentication.pat",
       "group": "authentication",
-      "description": "GitHub personal token, needs repository and workflow scope",
+      "tooltip": "GitHub personal token, needs repository and workflow scope",
       "type": "String",
       "feel": "optional",
       "optional": true,
@@ -548,7 +547,7 @@
       "id": "authentication.githubAppAppId",
       "label": "App ID",
       "group": "authentication",
-      "description": "The ID of your GitHub App.",
+      "tooltip": "The ID of your GitHub App.",
       "type": "String",
       "feel": "optional",
       "value": "",
@@ -569,7 +568,7 @@
       "id": "authentication.githubAppInstallationId",
       "label": "Installation ID",
       "group": "authentication",
-      "description": "The installation ID for your GitHub App.",
+      "tooltip": "The installation ID for your GitHub App.",
       "type": "String",
       "feel": "optional",
       "value": "",
@@ -975,7 +974,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repository owner",
+      "tooltip": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -996,7 +995,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repository owner",
+      "tooltip": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1017,7 +1016,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repository owner",
+      "tooltip": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1038,7 +1037,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repository owner",
+      "tooltip": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1059,7 +1058,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repository owner",
+      "tooltip": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1085,7 +1084,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repository owner",
+      "tooltip": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1108,7 +1107,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repository owner",
+      "tooltip": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1132,7 +1131,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repository owner",
+      "tooltip": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1157,7 +1156,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repository owner",
+      "tooltip": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1178,7 +1177,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repository owner",
+      "tooltip": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1203,7 +1202,7 @@
     },
     {
       "label": "Repository",
-      "description": "Name of the repository",
+
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1224,7 +1223,7 @@
     },
     {
       "label": "Repository",
-      "description": "Name of the repository",
+
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1245,7 +1244,7 @@
     },
     {
       "label": "Repository",
-      "description": "Name of the repository",
+
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1266,7 +1265,7 @@
     },
     {
       "label": "Repository",
-      "description": "Name of the repository",
+
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1287,7 +1286,7 @@
     },
     {
       "label": "Repository",
-      "description": "Name of the repository",
+
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1313,7 +1312,7 @@
     },
     {
       "label": "Repository",
-      "description": "Name of the repository",
+
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1336,7 +1335,7 @@
     },
     {
       "label": "Repository",
-      "description": "Name of the repository",
+
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1360,7 +1359,7 @@
     },
     {
       "label": "Repository",
-      "description": "Name of the repository",
+
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1385,7 +1384,7 @@
     },
     {
       "label": "Repository",
-      "description": "Name of the repository",
+
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1406,7 +1405,7 @@
     },
     {
       "label": "Repository",
-      "description": "Name of the repository",
+
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -1431,7 +1430,7 @@
     },
     {
       "label": "Label name",
-      "description": "The name of the label",
+
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -1455,7 +1454,7 @@
     },
     {
       "label": "New label name",
-      "description": "New name for the label (only for update)",
+      "tooltip": "New name for the label (only for update)",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -1498,7 +1497,7 @@
     },
     {
       "label": "Description",
-      "description": "A short description of the label",
+      "tooltip": "A short description of the label",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -1517,7 +1516,6 @@
     },
     {
       "label": "Issue number",
-      "description": "The number that identifies the issue",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1539,7 +1537,7 @@
     },
     {
       "label": "Release ID",
-      "description": "The unique identifier of the release",
+      "tooltip": "The unique identifier of the release",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1580,7 +1578,7 @@
     },
     {
       "label": "Title",
-      "description": "The title of the issue",
+
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1600,7 +1598,7 @@
     },
     {
       "label": "Title",
-      "description": "The title of the issue",
+
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1618,7 +1616,7 @@
     },
     {
       "label": "Body",
-      "description": "The contents of the issue or release",
+      "tooltip": "The contents of the issue or release",
       "feel": "optional",
       "group": "input",
       "type": "Text",
@@ -1637,7 +1635,7 @@
     },
     {
       "label": "Body",
-      "description": "The contents of the issue or release",
+      "tooltip": "The contents of the issue or release",
       "feel": "optional",
       "group": "input",
       "type": "Text",
@@ -1656,7 +1654,7 @@
     },
     {
       "label": "Body",
-      "description": "The contents of the issue comment",
+      "tooltip": "The contents of the issue comment",
       "feel": "optional",
       "group": "input",
       "constraints": {
@@ -1714,7 +1712,7 @@
     },
     {
       "label": "Tag name",
-      "description": "Name of the tag",
+
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -1736,7 +1734,7 @@
     },
     {
       "label": "Milestone",
-      "description": "The number of the milestone to associate this issue with",
+      "tooltip": "The number of the milestone to associate this issue with",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -1756,7 +1754,7 @@
     },
     {
       "label": "Release name",
-      "description": "The name of the release",
+
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1775,7 +1773,7 @@
     },
     {
       "label": "Repository name",
-      "description": "The name of the repository",
+
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1795,7 +1793,7 @@
     },
     {
       "label": "Repository name",
-      "description": "The name of the repository",
+
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1833,7 +1831,7 @@
     },
     {
       "label": "Base",
-      "description": "The name of the base branch that the head will be merged into",
+      "tooltip": "The name of the base branch that the head will be merged into",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1915,7 +1913,7 @@
     },
     {
       "label": "Description",
-      "description": "A short description of the repository",
+      "tooltip": "A short description of the repository",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1934,7 +1932,7 @@
     },
     {
       "label": "Home page",
-      "description": "A URL with more information about the repository",
+      "tooltip": "A URL with more information about the repository",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1953,7 +1951,7 @@
     },
     {
       "label": "Visibility",
-      "description": "The visibility of the repository",
+
       "id": "repoVisibility",
       "group": "input",
       "type": "Dropdown",
@@ -1982,7 +1980,7 @@
     },
     {
       "label": "Type",
-      "description": "Specifies the types of repositories you want returned",
+      "tooltip": "Specifies the types of repositories you want returned",
       "id": "repoType",
       "group": "input",
       "type": "Dropdown",
@@ -2026,7 +2024,7 @@
     },
     {
       "label": "Sort",
-      "description": "The property to sort the results by",
+      "tooltip": "The property to sort the results by",
       "id": "repoSort",
       "group": "input",
       "type": "Dropdown",
@@ -2140,7 +2138,7 @@
     },
     {
       "label": "Invite email",
-      "description": "Email address of the person you are inviting, which can be an existing GitHub user",
+      "tooltip": "Email address of the person you are inviting, which can be an existing GitHub user",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -2160,7 +2158,7 @@
     },
     {
       "label": "Role",
-      "description": "The role for the new member",
+      "tooltip": "The role for the new member",
       "id": "orgInvitationRole",
       "group": "input",
       "type": "Dropdown",
@@ -2192,7 +2190,7 @@
     },
     {
       "label": "Issue state",
-      "description": "The open or closed state of the issue",
+      "tooltip": "The open or closed state of the issue",
       "id": "issueState",
       "group": "input",
       "type": "Dropdown",
@@ -2252,7 +2250,7 @@
     },
     {
       "label": "Git reference",
-      "description": "Branch or tag name for the workflow",
+      "tooltip": "Branch or tag name for the workflow",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2313,7 +2311,7 @@
     },
     {
       "label": "Git reference",
-      "description": "Name of the fully qualified reference",
+      "tooltip": "Name of the fully qualified reference",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2338,7 +2336,7 @@
     },
     {
       "label": "SHA",
-      "description": "The SHA1 value for this reference",
+      "tooltip": "The SHA1 value for this reference",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2363,7 +2361,7 @@
     },
     {
       "label": "Title",
-      "description": "The title of the new pull request",
+
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2384,7 +2382,7 @@
     },
     {
       "label": "Head",
-      "description": "The name of the branch where your changes are implemented",
+      "tooltip": "The name of the branch where your changes are implemented",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2405,7 +2403,7 @@
     },
     {
       "label": "Base",
-      "description": "The name of the branch you want the changes pulled into",
+      "tooltip": "The name of the branch you want the changes pulled into",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2426,7 +2424,7 @@
     },
     {
       "label": "Body",
-      "description": "The contents of the pull request",
+      "tooltip": "The contents of the pull request",
       "group": "input",
       "type": "Text",
       "feel": "optional",
@@ -2444,7 +2442,7 @@
     },
     {
       "label": "Draft",
-      "description": "Indicates whether the pull request is a draft",
+      "tooltip": "Indicates whether the pull request is a draft",
       "group": "input",
       "type": "Boolean",
       "feel": "optional",
@@ -2479,7 +2477,7 @@
     },
     {
       "label": "Page",
-      "description": "The page number of the results to fetch",
+      "tooltip": "The page number of the results to fetch",
       "group": "input",
       "type": "Number",
       "feel": "optional",
@@ -2497,7 +2495,7 @@
     },
     {
       "label": "Results per page",
-      "description": "The number of results to include per page",
+      "tooltip": "The number of results to include per page",
       "group": "input",
       "type": "Number",
       "feel": "optional",
@@ -2515,7 +2513,7 @@
     },
     {
       "label": "Path",
-      "description": "The path of the file within the repository",
+      "tooltip": "The path of the file within the repository",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2575,7 +2573,7 @@
     },
     {
       "label": "Message",
-      "description": "The commit message for the file upload",
+      "tooltip": "The commit message for the file upload",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2684,7 +2682,7 @@
       }
     },
     {
-      "label": "Comitter name",
+      "label": "Committer name",
       "description": "The name/handle of the person that made the commit, e.g. octocat. Do not include an @",
       "group": "input",
       "type": "String",
@@ -2703,8 +2701,8 @@
       }
     },
     {
-      "label": "Comitter email",
-      "description": "The email of the person that made the commit",
+      "label": "Committer email",
+      "tooltip": "The email of the person that made the commit",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2760,7 +2758,7 @@
     },
     {
       "label": "Author email",
-      "description": "The email of the author of the commit",
+      "tooltip": "The email of the author of the commit",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -3030,7 +3028,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -3041,7 +3039,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionCreateIssue",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3060,7 +3058,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionUpdateIssue",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3079,7 +3077,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionCreateRelease",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3098,7 +3096,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionUpdateRelease",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3117,7 +3115,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetIssue",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3136,7 +3134,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetBranch",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3155,7 +3153,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetRepo",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3174,7 +3172,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionUpdateRepo",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3193,7 +3191,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionCreateOrganizationRepo",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3212,7 +3210,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionListReleases",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3231,7 +3229,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionListBranches",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3250,7 +3248,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionListOrganizationRepos",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3269,7 +3267,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionListRepoContributors",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3288,7 +3286,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionListRepoCommits",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3307,7 +3305,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionSearchIssues",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3326,7 +3324,7 @@
     {
       "label": "Result expression",
       "id": "resultCreateReference",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3345,7 +3343,7 @@
     {
       "label": "Result expression",
       "id": "resultCreatePullRequest",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3364,7 +3362,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionListCollaborators",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3383,7 +3381,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetContent",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3402,7 +3400,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionUploadFile",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3421,7 +3419,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionCreateLabel",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3440,7 +3438,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetLabel",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3459,7 +3457,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionListLabels",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3478,7 +3476,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionUpdateLabel",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -3869,7 +3867,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

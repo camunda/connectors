@@ -80,7 +80,7 @@
         "type": "zeebe:property",
         "name": "inbound.context"
       },
-      "description": "The webhook ID is a part of the URL",
+      "tooltip": "The webhook ID is a part of the URL",
       "constraints": {
         "notEmpty": true
       }
@@ -95,7 +95,7 @@
     },
     {
       "label": "GitHub secret",
-      "description": "Shared secret key. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github/?github=inbound' target='_blank'>See documentation</a> regarding GitHub secret",
+      "tooltip": "Shared secret key. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github/?github=inbound' target='_blank'>GitHub webhook inbound connector documentation</a>",
       "type": "String",
       "group": "endpoint",
       "optional": true,
@@ -125,7 +125,7 @@
       "type": "String",
       "group": "activation",
       "feel": "required",
-      "description": "Sets up the correlation key from process variables",
+      "tooltip": "Sets up the correlation key from process variables",
       "binding": {
         "type": "bpmn:Message#zeebe:subscription#property",
         "name": "correlationKey"
@@ -143,7 +143,7 @@
         "type": "zeebe:property",
         "name": "correlationKeyExpression"
       },
-      "description": "Extracts the correlation key from the incoming message payload",
+      "tooltip": "Extracts the correlation key from the incoming message payload",
       "constraints": {
         "notEmpty": true
       }
@@ -158,7 +158,7 @@
         "type": "zeebe:property",
         "name": "messageIdExpression"
       },
-      "description": "Expression to extract unique identifier of a message"
+      "tooltip": "Expression to extract unique identifier of a message"
     },
     {
       "label": "Condition",
@@ -170,7 +170,7 @@
         "type": "zeebe:property",
         "name": "inbound.activationCondition"
       },
-      "description": "Condition under which the connector triggers. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github/?github=inbound' target='_blank'>See documentation</a>"
+      "tooltip": "Condition under which the connector triggers. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github/?github=inbound' target='_blank'>GitHub webhook inbound connector documentation</a>"
     },
     {
       "label": "Result variable",
@@ -181,7 +181,7 @@
         "type": "zeebe:property",
         "name": "resultVariable"
       },
-      "description": "Name of variable to store the result of the connector in"
+      "tooltip": "Name of variable to store the result of the connector in"
     },
     {
       "label": "Result expression",
@@ -193,7 +193,7 @@
         "type": "zeebe:property",
         "name": "resultExpression"
       },
-      "description": "Expression to map the inbound payload to process variables"
+      "tooltip": "Expression to map the inbound payload to process variables"
     }
   ],
   "icon": {

@@ -94,7 +94,6 @@
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
-      "description": "Choose the authentication type",
       "type": "Dropdown",
       "choices": [
         {
@@ -146,7 +145,7 @@
     },
     {
       "label": "Client ID",
-      "description": "UiPath OAuth 2.0 client ID",
+      "tooltip": "UiPath OAuth 2.0 client ID",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -164,7 +163,7 @@
     },
     {
       "label": "Client secret",
-      "description": "UiPath OAuth 2.0 client secret",
+      "tooltip": "UiPath OAuth 2.0 client secret",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -244,7 +243,6 @@
       "group": "configuration",
       "type": "String",
       "value": "cloud.uipath.com",
-      "description": "",
       "binding": {
         "type": "zeebe:input",
         "name": "cloudUrl"
@@ -255,7 +253,7 @@
     },
     {
       "label": "UiPath organization",
-      "description": "Your organization ID",
+      "tooltip": "The name of your organization",
       "group": "configuration",
       "type": "String",
       "binding": {
@@ -268,7 +266,7 @@
     },
     {
       "label": "UiPath tenant",
-      "description": "Your tenant name",
+      "tooltip": "Your tenant name",
       "group": "configuration",
       "type": "String",
       "binding": {
@@ -282,7 +280,7 @@
     {
       "label": "Organization unit ID",
       "group": "configuration",
-      "description": "UiPath folder or organization unit ID",
+      "tooltip": "UiPath folder or organization unit ID",
       "type": "String",
       "optional": false,
       "binding": {
@@ -307,7 +305,6 @@
     },
     {
       "label": "Queue name",
-      "description": "The name of the queue to which to submit the queue item",
       "group": "input",
       "type": "String",
       "binding": {
@@ -362,7 +359,6 @@
       "label": "Priority",
       "id": "priority",
       "group": "input",
-      "description": "The priority to apply to the queue item",
       "value": "Low",
       "type": "Dropdown",
       "choices": [
@@ -410,7 +406,7 @@
     },
     {
       "label": "Reference",
-      "description": "A string reference for the queue item",
+      "tooltip": "A string reference for the queue item",
       "group": "input",
       "type": "String",
       "binding": {
@@ -427,7 +423,6 @@
     },
     {
       "label": "Item ID",
-      "description": "The item ID to be fetched",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -463,7 +458,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -474,7 +469,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetBodyId",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -493,7 +488,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetStatus",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -577,7 +572,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

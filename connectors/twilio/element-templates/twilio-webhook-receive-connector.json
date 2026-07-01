@@ -62,7 +62,6 @@
       "id": "webhookMethod",
       "label": "Webhook method",
       "group": "endpoint",
-      "description": "Select HTTP method",
       "value": "any",
       "type": "Dropdown",
       "choices": [
@@ -92,7 +91,7 @@
         "type": "zeebe:property",
         "name": "inbound.context"
       },
-      "description": "The webhook ID is a part of the URL",
+      "tooltip": "The webhook ID is a part of the URL.",
       "constraints": {
         "notEmpty": true
       }
@@ -137,7 +136,7 @@
     },
     {
       "label": "HMAC secret key",
-      "description": "Shared secret key",
+      "tooltip": "Shared secret key used to verify the HMAC signature.",
       "type": "String",
       "group": "endpoint",
       "optional": true,
@@ -225,7 +224,7 @@
         "type": "zeebe:property",
         "name": "messageIdExpression"
       },
-      "description": "Expression to extract unique identifier of a message"
+      "tooltip": "Expression to extract the unique identifier of a message."
     },
     {
       "label": "Condition",
@@ -248,7 +247,7 @@
         "type": "zeebe:property",
         "name": "resultVariable"
       },
-      "description": "Name of variable to store the result of the connector in"
+      "tooltip": "Name of variable to store the result of the connector in."
     },
     {
       "label": "Result expression",
@@ -260,7 +259,7 @@
         "type": "zeebe:property",
         "name": "resultExpression"
       },
-      "description": "Expression to map the inbound payload to process variables"
+      "tooltip": "Expression to map the inbound payload to process variables."
     }
   ],
   "icon": {

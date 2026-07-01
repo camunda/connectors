@@ -110,7 +110,6 @@
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
-      "description": "Choose the authentication type",
       "type": "Dropdown",
       "choices": [
         {
@@ -130,7 +129,7 @@
     {
       "id": "salesforceOperationType",
       "label": "Salesforce operation type",
-      "description": "The kind of operation to perform with the Salesforce REST API",
+      "tooltip": "The kind of operation to perform with the Salesforce REST API",
       "type": "Dropdown",
       "group": "input",
       "binding": {
@@ -152,7 +151,6 @@
       "label": "Interaction type",
       "id": "interactionType",
       "group": "input",
-      "description": "Choose the kind of interaction you want to perform",
       "type": "Dropdown",
       "choices": [
         {
@@ -197,7 +195,7 @@
     },
     {
       "label": "Salesforce object",
-      "description": "Label Salesforce object, e.g. Account",
+      "placeholder": "Account",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -215,7 +213,7 @@
     },
     {
       "label": "Salesforce object ID",
-      "description": "Identifier of the Salesforce object",
+      "tooltip": "Identifier of the Salesforce object",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -245,7 +243,7 @@
     },
     {
       "label": "Relationship field name",
-      "description": "Name of the child relation",
+      "tooltip": "Name of the child relation",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -269,7 +267,7 @@
     },
     {
       "label": "SOQL query",
-      "description": "Salesforce SOQL Query, for more details, please refer to the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm\" target=\"_blank\">documentation</a>",
+      "tooltip": "<a href=\"https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm\" target=\"_blank\">Salesforce SOQL query documentation</a>",
       "group": "input",
       "type": "Text",
       "feel": "optional",
@@ -301,7 +299,7 @@
     },
     {
       "label": "Query parameters",
-      "description": "Map of query parameters to add to the request URL",
+      "tooltip": "Map of query parameters to add to the request URL",
       "group": "input",
       "type": "String",
       "feel": "required",
@@ -351,7 +349,7 @@
     },
     {
       "label": "Record fields",
-      "description": "Record fields to send to Salesforce",
+      "tooltip": "Record fields to send to Salesforce",
       "group": "input",
       "type": "String",
       "feel": "required",
@@ -402,7 +400,7 @@
     },
     {
       "label": "Client ID",
-      "description": "Your application's client ID from the OAuth client",
+      "tooltip": "Your application's client ID from the OAuth client",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -420,7 +418,7 @@
     },
     {
       "label": "Client secret",
-      "description": "Your application's client secret from the OAuth client",
+      "tooltip": "Your application's client secret from the OAuth client",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -472,7 +470,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">Result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -489,7 +487,7 @@
     },
     {
       "label": "Result expression",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">Result expression documentation</a>",
       "group": "output",
       "type": "Text",
       "feel": "required",
@@ -507,7 +505,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",
