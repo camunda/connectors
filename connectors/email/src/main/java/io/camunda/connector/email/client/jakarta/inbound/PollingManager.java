@@ -120,12 +120,26 @@ public class PollingManager {
   private List<Document> createDocumentList(Email email) {
     return email.body().attachments().stream()
         .map(
-            document ->
-                this.connectorContext.create(
-                    DocumentCreationRequest.from(document.inputStream())
-                        .contentType(document.contentType())
-                        .fileName(document.name())
-                        .build()))
+            attachment -> {
+              try {
+                return this.connectorContext.create(
+                    DocumentCreationRequest.from(attachment.inputStream())
+                        .contentType(attachment.contentType())
+                        .fileName(attachment.name())
+                        .build());
+              } catch (Exception e) {
+                this.connectorContext.log(
+                    activity ->
+                        activity
+                            .withSeverity(Severity.ERROR)
+                            .withTag("document-upload")
+                            .withMessage(
+                                "Failed to upload attachment '%s': %s. Attachment will be skipped."
+                                    .formatted(attachment.name(), e.getMessage())));
+                return null;
+              }
+            })
+        .filter(Objects::nonNull)
         .toList();
   }
 
