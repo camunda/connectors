@@ -15,7 +15,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
-@TemplateSubType(label = "Create a new chat", id = MSTeamsMethodTypes.CREATE_CHAT)
+@TemplateSubType(
+    label = "Create a new chat",
+    id = MSTeamsMethodTypes.CREATE_CHAT,
+    description = "Create a new chat in Microsoft Teams",
+    keywords = {"create chat", "new chat", "start conversation", "open chat", "group chat"})
 public record CreateChat(
     @NotBlank
         @TemplateProperty(

@@ -11,7 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateDiscriminatorProperty(
     label = "IMAP action",
-    group = "imapAction",
+    group = "operation",
     name = "data.imapActionDiscriminator",
     defaultValue = "listEmailsImap")
 @TemplateSubType(id = "data.imapActionDiscriminator", label = "IMAP Action")

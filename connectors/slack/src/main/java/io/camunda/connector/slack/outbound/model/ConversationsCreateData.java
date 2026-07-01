@@ -23,7 +23,17 @@ import io.camunda.connector.slack.outbound.SlackResponse;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 
-@TemplateSubType(id = "conversations.create", label = "Create channel")
+@TemplateSubType(
+    id = "conversations.create",
+    label = "Create channel",
+    description = "Create a new Slack channel",
+    keywords = {
+      "create channel",
+      "new channel",
+      "add channel",
+      "open channel",
+      "setup workspace channel"
+    })
 public record ConversationsCreateData(
     @TemplateProperty(
             label = "Channel name",

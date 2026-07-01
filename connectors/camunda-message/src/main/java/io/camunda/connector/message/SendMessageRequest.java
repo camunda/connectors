@@ -30,6 +30,7 @@ public record SendMessageRequest(
   })
   @TemplateDiscriminatorProperty(
       label = "Correlation mode",
+      group = "operation",
       name = "type",
       defaultValue = "publish",
       description =
@@ -37,17 +38,40 @@ public record SendMessageRequest(
   public sealed interface CorrelationType
       permits CorrelationType.CorrelateWithResult, CorrelationType.Publish {
 
-    @TemplateSubType(id = "publish", label = "publish message (with buffer)")
+    @TemplateSubType(
+        id = "publish",
+        label = "publish message (with buffer)",
+        description = "Publish a message to Camunda with buffering support",
+        keywords = {
+          "publish message",
+          "buffer message",
+          "send message",
+          "emit event",
+          "broadcast message",
+          "trigger message"
+        })
     record Publish(
         @TemplateProperty(
                 optional = true,
+                group = "operation",
                 label = "Time to live (as ISO 8601)",
                 description = "Duration for which the message remains buffered")
             Duration timeToLive,
-        @TemplateProperty(optional = true, label = "Message id (optional)") String messageId)
+        @TemplateProperty(optional = true, group = "operation", label = "Message id (optional)")
+            String messageId)
         implements CorrelationType {}
 
-    @TemplateSubType(id = "correlate", label = "correlate message (with result)")
+    @TemplateSubType(
+        id = "correlate",
+        label = "correlate message (with result)",
+        description = "Correlate a message to a running process instance and receive the result",
+        keywords = {
+          "correlate message",
+          "message correlation",
+          "receive result",
+          "await response",
+          "synchronous message"
+        })
     record CorrelateWithResult() implements CorrelationType {}
   }
 }

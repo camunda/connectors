@@ -19,7 +19,11 @@ import io.camunda.connector.slack.outbound.SlackResponse;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 
-@TemplateSubType(id = "pins.remove", label = "Unpin Message")
+@TemplateSubType(
+    id = "pins.remove",
+    label = "Unpin Message",
+    description = "Unpin a message from a Slack channel",
+    keywords = {"unpin message", "remove pin", "unmark message", "delete bookmark"})
 public record PinsRemoveData(
     @TemplateProperty(
             label = "Channel",

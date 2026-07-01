@@ -11,7 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateDiscriminatorProperty(
     label = "SMTP action",
-    group = "smtpAction",
+    group = "operation",
     name = "data.smtpActionDiscriminator",
     defaultValue = "sendEmailSmtp")
 @TemplateSubType(id = "data.smtpActionDiscriminator", label = "SMTP Action")

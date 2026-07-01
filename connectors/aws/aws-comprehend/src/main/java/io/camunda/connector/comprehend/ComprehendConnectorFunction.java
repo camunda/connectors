@@ -36,8 +36,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "machine learning"
     },
     inputDataClass = ComprehendRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
       @ElementTemplate.PropertyGroup(id = "input", label = "Data Configuration and Processing")

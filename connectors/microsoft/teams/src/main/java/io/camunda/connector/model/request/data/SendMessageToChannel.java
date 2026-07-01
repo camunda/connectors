@@ -16,7 +16,17 @@ import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
-@TemplateSubType(label = "Send message to channel", id = MSTeamsMethodTypes.SEND_MESSAGE_TO_CHANNEL)
+@TemplateSubType(
+    label = "Send message to channel",
+    id = MSTeamsMethodTypes.SEND_MESSAGE_TO_CHANNEL,
+    description = "Send a message to a Microsoft Teams channel",
+    keywords = {
+      "send message",
+      "post to channel",
+      "channel notification",
+      "broadcast message",
+      "post message"
+    })
 public record SendMessageToChannel(
     @NotBlank
         @TemplateProperty(

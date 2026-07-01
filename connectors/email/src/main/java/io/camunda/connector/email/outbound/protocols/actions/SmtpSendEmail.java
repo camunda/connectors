@@ -19,7 +19,18 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 
-@TemplateSubType(id = "sendEmailSmtp", label = "Send Email")
+@TemplateSubType(
+    id = "sendEmailSmtp",
+    label = "Send Email",
+    description = "Compose and send an email via SMTP",
+    keywords = {
+      "send email",
+      "smtp email",
+      "compose email",
+      "email notification",
+      "notify by email",
+      "outbound email"
+    })
 public record SmtpSendEmail(
     @TemplateProperty(
             label = "From",

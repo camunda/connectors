@@ -12,7 +12,18 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "readEmailPop3", label = "Read Email")
+@TemplateSubType(
+    id = "readEmailPop3",
+    label = "Read Email",
+    description = "Read the content of a specific email via POP3",
+    keywords = {
+      "read email",
+      "pop3 read",
+      "fetch email",
+      "get email content",
+      "retrieve email",
+      "open message"
+    })
 public record Pop3ReadEmail(
     @TemplateProperty(
             label = "Message ID",

@@ -39,7 +39,7 @@ import java.util.Map;
       "automation"
     },
     inputDataClass = AutomationAnywhereRequest.class,
-    version = 3,
+    version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

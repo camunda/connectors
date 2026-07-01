@@ -45,10 +45,10 @@ import io.camunda.connector.operation.OperationFactory;
       "notification"
     },
     inputDataClass = MSTeamsRequest.class,
-    version = 7,
+    version = 8,
     propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "data", label = "Data")
     },
     documentationRef =

@@ -12,7 +12,18 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "listEmailsImap", label = "List emails")
+@TemplateSubType(
+    id = "listEmailsImap",
+    label = "List emails",
+    description = "List emails in an IMAP folder",
+    keywords = {
+      "list emails",
+      "imap list",
+      "fetch emails",
+      "get emails",
+      "browse inbox",
+      "retrieve messages"
+    })
 public record ImapListEmails(
     @TemplateProperty(
             label = "Maximum number of emails to be read",

@@ -35,11 +35,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "generative AI"
     },
     inputDataClass = BedrockRequest.class,
-    version = 4,
+    version = 5,
     propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
-      @ElementTemplate.PropertyGroup(id = "action", label = "Action"),
       @ElementTemplate.PropertyGroup(id = "invokeModel", label = "Invoke Model"),
       @ElementTemplate.PropertyGroup(id = "converse", label = "Converse"),
     },

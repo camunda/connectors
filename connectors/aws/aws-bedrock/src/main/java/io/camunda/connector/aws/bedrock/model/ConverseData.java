@@ -26,7 +26,18 @@ import java.util.Objects;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.*;
 
-@TemplateSubType(id = "converse", label = "Converse")
+@TemplateSubType(
+    id = "converse",
+    label = "Converse",
+    description = "Have a multi-turn conversation with an Amazon Bedrock foundation model",
+    keywords = {
+      "converse",
+      "chat",
+      "multi-turn conversation",
+      "ai chat",
+      "foundation model chat",
+      "dialog"
+    })
 public final class ConverseData implements RequestData {
 
   @TemplateProperty(

@@ -113,13 +113,26 @@ public class PresetTargetExistsRule implements Rule {
       if (!idNode.isTextual()) {
         continue;
       }
-      Set<String> choices = result.computeIfAbsent(idNode.asText(), k -> new HashSet<>());
+      Set<String> byId = result.computeIfAbsent(idNode.asText(), k -> new HashSet<>());
+      // Also index by binding name: the ETG generates preset keys from binding names, not property
+      // ids. When two conditional properties share the same binding name (e.g. nested
+      // discriminators
+      // in MS Teams where chatMethod and channelMethod both bind to data.method), their choices are
+      // merged under the binding name so preset entries using that key pass validation.
+      JsonNode bindingNameNode = prop.path(ElementTemplate.BINDING).path("name");
+      Set<String> byBinding = null;
+      if (bindingNameNode.isTextual() && !bindingNameNode.asText().isEmpty()) {
+        byBinding = result.computeIfAbsent(bindingNameNode.asText(), k -> new HashSet<>());
+      }
       JsonNode choicesNode = prop.path(ElementTemplate.CHOICES);
       if (choicesNode.isArray()) {
         for (JsonNode choice : choicesNode) {
           JsonNode value = choice.path(ElementTemplate.VALUE);
           if (value.isTextual()) {
-            choices.add(value.asText());
+            byId.add(value.asText());
+            if (byBinding != null) {
+              byBinding.add(value.asText());
+            }
           }
         }
       }

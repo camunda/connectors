@@ -15,7 +15,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
-@TemplateSubType(id = "createRow", label = "Create row")
+@TemplateSubType(
+    id = "createRow",
+    label = "Create row",
+    description = "Create a new row with data in a Google Sheets spreadsheet",
+    keywords = {"create row", "add row", "insert row", "append row", "write row data"})
 public record CreateRow(
     @TemplateProperty(
             id = "createRow.spreadsheetId",

@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
     engineVersion = "^8.3",
     id = "io.camunda.connectors.message.v1",
     inputDataClass = SendMessageRequest.class,
+    version = 1,
     name = "Send Message Connector",
     icon = "send.svg",
     keywords = {
@@ -61,7 +62,8 @@ import org.slf4j.LoggerFactory;
           elementType = BpmnType.SEND_TASK,
           appliesTo = BpmnType.TASK,
           templateIdOverride = "io.camunda.connectors.message.sendtask.v1")
-    })
+    },
+    propertyGroups = {@ElementTemplate.PropertyGroup(id = "operation", label = "Operation")})
 public class SendMessageConnectorFunction implements OutboundConnectorFunction {
 
   private static final Logger LOG = LoggerFactory.getLogger(SendMessageConnectorFunction.class);

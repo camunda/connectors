@@ -14,7 +14,11 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "deleteWorksheet", label = "Delete worksheet")
+@TemplateSubType(
+    id = "deleteWorksheet",
+    label = "Delete worksheet",
+    description = "Delete a worksheet from a Google Sheets spreadsheet",
+    keywords = {"delete worksheet", "remove sheet", "drop tab", "erase worksheet"})
 public record DeleteWorksheet(
     @TemplateProperty(
             id = "deleteWorksheet.spreadsheetId",

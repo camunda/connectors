@@ -12,7 +12,18 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "listEmailsPop3", label = "List Emails")
+@TemplateSubType(
+    id = "listEmailsPop3",
+    label = "List Emails",
+    description = "List emails available in a POP3 mailbox",
+    keywords = {
+      "list emails",
+      "pop3 list",
+      "fetch emails",
+      "get emails",
+      "browse inbox",
+      "retrieve messages"
+    })
 public record Pop3ListEmails(
     @TemplateProperty(
             label = "Maximum number of emails to be read",
