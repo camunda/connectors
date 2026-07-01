@@ -26,10 +26,10 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.cache.support.NoOpCacheManager;
 
-class OutboundConnectorRuntimeConfigurationTest {
+class SecretFilterFactoryConfigurationTest {
 
-  private final OutboundConnectorRuntimeConfiguration configuration =
-      new OutboundConnectorRuntimeConfiguration();
+  private final SecretFilterFactoryConfiguration configuration =
+      new SecretFilterFactoryConfiguration();
 
   @Test
   void secretKeyCacheManager_whenEnabled_returnsCaffeineCacheManager() {
