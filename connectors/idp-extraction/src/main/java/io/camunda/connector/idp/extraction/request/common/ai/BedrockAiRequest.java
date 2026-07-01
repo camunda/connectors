@@ -34,7 +34,7 @@ public record BedrockAiRequest(
     @TemplateProperty(
             id = "accessKey",
             label = "Access key",
-            description =
+            tooltip =
                 "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
             group = "ai",
             feel = FeelMode.optional,
@@ -47,8 +47,8 @@ public record BedrockAiRequest(
     @TemplateProperty(
             id = "secretKey",
             label = "Secret key",
-            description =
-                "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
+            tooltip =
+                "Provide the AWS secret access key of a user with permissions for Amazon Bedrock",
             group = "ai",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -60,7 +60,7 @@ public record BedrockAiRequest(
     @TemplateProperty(
             id = "region",
             group = "ai",
-            description = "Specify the AWS region",
+            tooltip = "Specify the AWS region",
             type = TemplateProperty.PropertyType.Text,
             feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

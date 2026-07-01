@@ -26,7 +26,7 @@ public class AiFoundryConfig {
       label = "Model type",
       group = "configuration",
       type = Dropdown,
-      description = "Specify if the Azure AI Foundry is using OpenAI",
+      tooltip = "Specify if the Azure AI Foundry is using OpenAI",
       defaultValue = "false",
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
       choices = {
@@ -42,7 +42,6 @@ public class AiFoundryConfig {
       label = "Azure AI Foundry Endpoint",
       group = "configuration",
       type = TemplateProperty.PropertyType.Text,
-      description = "Specify the endpoint of the Azure AI Foundry",
       binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
       feel = FeelMode.disabled,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -54,7 +53,6 @@ public class AiFoundryConfig {
       label = "Azure AI Foundry API Key",
       group = "configuration",
       type = TemplateProperty.PropertyType.Text,
-      description = "Specify the API key of the Azure AI Foundry",
       binding = @TemplateProperty.PropertyBinding(name = "apiKey"),
       feel = FeelMode.disabled,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

@@ -30,7 +30,7 @@ public final class AwsProvider extends AwsBaseRequest implements ProviderConfig 
       label = "AWS S3 Bucket name",
       group = "configuration",
       type = TemplateProperty.PropertyType.Text,
-      description =
+      tooltip =
           "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
       defaultValue = "idp-extraction-connector",
       binding = @TemplateProperty.PropertyBinding(name = "s3BucketName"),
@@ -44,7 +44,6 @@ public final class AwsProvider extends AwsBaseRequest implements ProviderConfig 
       label = "Extraction engine type",
       group = "configuration",
       type = Dropdown,
-      description = "Specify extraction engine to be used",
       binding = @TemplateProperty.PropertyBinding(name = "extractionEngineType"),
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
       feel = FeelMode.disabled,
