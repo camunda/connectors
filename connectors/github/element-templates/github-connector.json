@@ -3410,7 +3410,7 @@
       "group": "output",
       "type": "String",
       "feel": "required",
-      "value": "={pullRequest: response.body}",
+      "value": "={pullRequest: {number: response.body.number, title: response.body.title, body: response.body.body, state: response.body.state, merged: response.body.merged, labels: for l in response.body.labels return l.name, baseBranch: response.body.base.ref, url: response.body.html_url}}",
       "binding": {
         "type": "zeebe:taskHeader",
         "key": "resultExpression"
