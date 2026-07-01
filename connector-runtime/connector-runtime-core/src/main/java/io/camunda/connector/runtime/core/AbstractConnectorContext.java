@@ -19,10 +19,11 @@ package io.camunda.connector.runtime.core;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
+import org.jspecify.annotations.Nullable;
 
 public abstract class AbstractConnectorContext {
 
-  protected SecretHandler secretHandler;
+  protected @Nullable SecretHandler secretHandler;
   protected final SecretProvider secretProvider;
 
   protected final ValidationProvider validationProvider;

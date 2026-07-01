@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 public class ConnectorResultHandler {
 
@@ -57,8 +58,8 @@ public class ConnectorResultHandler {
    */
   public Map<String, Object> createOutputVariables(
       final Object responseContent,
-      final String resultVariableName,
-      final String resultExpression) {
+      final @Nullable String resultVariableName,
+      final @Nullable String resultExpression) {
     final Map<String, Object> outputVariables = new HashMap<>();
 
     if (isNotBlank(resultVariableName)) {
@@ -87,12 +88,13 @@ public class ConnectorResultHandler {
       final Map<String, String> jobHeaders,
       ErrorExpressionJobContext jobContext) {
     final var errorExpression = jobHeaders.get(Keywords.ERROR_EXPRESSION_KEYWORD);
-    return Optional.ofNullable(errorExpression)
-        .filter(s -> !s.isBlank())
-        .map(
-            expression ->
-                feelExpressionEvaluator.evaluateToJson(
-                    expression, responseContent, wrapResponse(responseContent), jobContext))
+    if (errorExpression == null || errorExpression.isBlank()) {
+      return Optional.empty();
+    }
+    // errorExpression is @NonNull below (NullAway flow narrowing)
+    return Optional.ofNullable(
+            feelExpressionEvaluator.evaluateToJson(
+                errorExpression, responseContent, wrapResponse(responseContent), jobContext))
         .filter(
             json ->
                 !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression, "Error expression")

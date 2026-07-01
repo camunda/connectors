@@ -30,6 +30,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,9 +38,9 @@ public class ExternalDocument implements Document {
 
   private final String url;
   private final String name;
-  private transient DocumentMetadata metadata;
+  private transient @Nullable DocumentMetadata metadata;
   Function<String, HttpResponse<byte[]>> downloadDocument;
-  private HttpResponse<byte[]> result = null;
+  private @Nullable HttpResponse<byte[]> result = null;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExternalDocument.class);
 

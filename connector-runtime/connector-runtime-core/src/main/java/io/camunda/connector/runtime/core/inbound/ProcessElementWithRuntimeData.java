@@ -19,16 +19,17 @@ package io.camunda.connector.runtime.core.inbound;
 import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.api.inbound.ProcessElement;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 /** Represents a BPMN process element that contains an inbound connector definition. */
 public record ProcessElementWithRuntimeData(
     String bpmnProcessId,
-    String processName,
+    @Nullable String processName,
     int version,
     long processDefinitionKey,
     String elementId,
-    String elementName,
-    String elementType,
+    @Nullable String elementName,
+    @Nullable String elementType,
     String tenantId,
     ElementTemplateDetails elementTemplateDetails,
     Map<String, String> properties)

@@ -29,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * In-memory {@link Document} implementation backed by content carried directly in process
@@ -39,8 +40,8 @@ public class InlineDocument implements Document {
   private final String content;
   private final String name;
   private final String contentType;
-  private byte[] bytes;
-  private transient DocumentMetadata metadata;
+  private byte @Nullable [] bytes;
+  private transient @Nullable DocumentMetadata metadata;
 
   public InlineDocument(String content, String name, String contentType) {
     if (content == null) {

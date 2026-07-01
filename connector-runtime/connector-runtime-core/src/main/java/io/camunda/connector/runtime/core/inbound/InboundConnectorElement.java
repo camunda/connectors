@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,11 +51,11 @@ public record InboundConnectorElement(
     return element.tenantId();
   }
 
-  public String resultExpression() {
+  public @Nullable String resultExpression() {
     return rawProperties.get(Keywords.RESULT_EXPRESSION_KEYWORD);
   }
 
-  public String resultVariable() {
+  public @Nullable String resultVariable() {
     return rawProperties.get(Keywords.RESULT_VARIABLE_KEYWORD);
   }
 

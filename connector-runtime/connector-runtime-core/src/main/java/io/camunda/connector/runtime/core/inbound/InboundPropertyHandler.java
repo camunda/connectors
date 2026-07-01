@@ -98,12 +98,13 @@ public class InboundPropertyHandler {
     if (subTree == null) {
       var newSubTree = new HashMap<String, Object>();
       currentRoot.put(key, newSubTree);
+      traversePropertiesMap(path.subList(1, path.size()), newSubTree, value);
     } else if (!(subTree instanceof Map)) {
       // Terminal node already exists for this path
       throw new RuntimeException("Duplicate key: " + key);
+    } else {
+      traversePropertiesMap(path.subList(1, path.size()), (Map<String, Object>) subTree, value);
     }
-    traversePropertiesMap(
-        path.subList(1, path.size()), (Map<String, Object>) currentRoot.get(key), value);
   }
 
   public static Map<String, Object> getPropertiesWithSecrets(

@@ -32,7 +32,7 @@ public class DefaultInstancesUrlBuilder implements InstancesUrlBuilder {
   private final Integer appPort;
   private final DnsResolver dnsResolver;
   private final String headlessServiceHost;
-  private Set<String> baseUrls;
+  private Set<String> baseUrls = Set.of();
 
   public DefaultInstancesUrlBuilder(Integer appPort, String headlessServiceHost) {
     this(appPort, headlessServiceHost, new DefaultDnsResolver());
