@@ -33,6 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -153,6 +154,39 @@ class ConnectorJobHandlerTest {
 
         // then
         assertThat(result.getVariables()).isEqualTo(Map.of("result", 1));
+      }
+
+      @Test
+      void shouldFailJobWhenResultVariableExceedsZeebeLimit() {
+        // given
+        String largeValue = "x".repeat((int) InlineSizeGuard.MAX_INLINE_BYTES + 1);
+        var jobHandler = newConnectorJobHandler((ctx) -> largeValue);
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withRetries(3)
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler, false);
+
+        // then
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage()).contains("Create document");
+      }
+
+      @Test
+      void shouldCompleteJobWhenResultVariableBelowZeebeLimit() {
+        // given
+        var jobHandler = newConnectorJobHandler((ctx) -> "small value");
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler);
+
+        // then
+        assertThat(result.getVariables()).containsKey("result");
       }
     }
 
