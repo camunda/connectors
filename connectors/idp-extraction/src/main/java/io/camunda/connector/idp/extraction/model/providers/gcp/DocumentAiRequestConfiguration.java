@@ -23,7 +23,7 @@ public final class DocumentAiRequestConfiguration implements GcpRequestConfigura
       group = "configuration",
       id = "documentAiRegion",
       label = "Region",
-      description = "Can be 'eu' or 'us'")
+      tooltip = "Can be 'eu' or 'us'")
   private String region;
 
   @TemplateProperty(group = "configuration", id = "projectId", label = "Project ID")
@@ -33,7 +33,7 @@ public final class DocumentAiRequestConfiguration implements GcpRequestConfigura
       group = "configuration",
       id = "processorId",
       label = "Processor ID",
-      description = "The id of the processor used to parse the document")
+      tooltip = "The id of the processor used to parse the document")
   private String processorId;
 
   public DocumentAiRequestConfiguration() {}

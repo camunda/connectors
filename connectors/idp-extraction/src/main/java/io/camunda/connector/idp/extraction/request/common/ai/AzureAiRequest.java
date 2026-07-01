@@ -20,7 +20,7 @@ public record AzureAiRequest(
             label = "Model type",
             group = "ai",
             type = Dropdown,
-            description = "Specify if the Azure AI Foundry is using OpenAI",
+            tooltip = "Specify if the Azure AI Foundry is using OpenAI",
             defaultValue = "false",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             choices = {
@@ -35,7 +35,6 @@ public record AzureAiRequest(
             label = "Azure AI Endpoint",
             group = "ai",
             type = TemplateProperty.PropertyType.Text,
-            description = "Specify the endpoint of Azure AI",
             binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
             feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -46,7 +45,6 @@ public record AzureAiRequest(
             label = "Azure AI API Key",
             group = "ai",
             type = TemplateProperty.PropertyType.Text,
-            description = "Specify the API key of Azure AI",
             binding = @TemplateProperty.PropertyBinding(name = "apiKey"),
             feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

@@ -22,7 +22,6 @@ public class ClassificationRequestData extends DocumentRequestData {
       label = "AWS Bedrock Converse Parameters",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
-      description = "Specify the parameters for AWS Bedrock",
       defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5\n}",
       binding = @TemplateProperty.PropertyBinding(name = "converseData"),
       feel = FeelMode.optional)
@@ -33,7 +32,7 @@ public class ClassificationRequestData extends DocumentRequestData {
       label = "Document types",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
-      description = "The possible classification types considered by the model",
+      tooltip = "The possible classification types considered by the model",
       defaultValue =
           "=[\n  {\n    name: \"\",\n    classificationInstructions: \"\",\n    description: \"\",\n    outputValue: \"\"\n  }\n]",
       binding = @TemplateProperty.PropertyBinding(name = "documentTypes"),
@@ -48,7 +47,7 @@ public class ClassificationRequestData extends DocumentRequestData {
       label = "Fallback output value",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
-      description = "The value to return if the model has low confidence on all document types.",
+      tooltip = "The value to return if the model has low confidence on all document types.",
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
       binding = @TemplateProperty.PropertyBinding(name = "fallbackOutputValue"),
       feel = FeelMode.optional)

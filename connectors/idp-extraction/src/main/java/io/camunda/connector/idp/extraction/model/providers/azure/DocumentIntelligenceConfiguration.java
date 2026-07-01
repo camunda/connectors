@@ -24,7 +24,6 @@ public class DocumentIntelligenceConfiguration {
       label = "Azure Document Intelligence Endpoint",
       group = "configuration",
       type = TemplateProperty.PropertyType.Text,
-      description = "Specify the endpoint of the Azure Document Intelligence",
       binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
       feel = FeelMode.disabled,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -36,7 +35,6 @@ public class DocumentIntelligenceConfiguration {
       label = "Azure Document Intelligence API Key",
       group = "configuration",
       type = TemplateProperty.PropertyType.Text,
-      description = "Specify the API key of the Azure Document Intelligence",
       binding = @TemplateProperty.PropertyBinding(name = "apiKey"),
       feel = FeelMode.disabled,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
