@@ -10,10 +10,10 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryContent;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryMetrics;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryRole;
-import io.camunda.client.api.command.CreateAgentHistoryItemCommandStep1.AgentHistoryToolCall;
+import io.camunda.client.api.command.AgentInstanceHistoryContent;
+import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
+import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
+import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
@@ -43,9 +43,9 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Maps agentic-ai conversation messages ({@link Message}/{@link AssistantMessage}) into the Camunda
- * client agent-instance history item components ({@code AgentHistory*}). Pure transformation logic:
- * no API calls, retries or logging — those remain the responsibility of {@link
- * CamundaAgentInstanceClient}.
+ * client agent-instance history item components ({@code AgentInstanceHistory*}). Pure
+ * transformation logic: no API calls, retries or logging — those remain the responsibility of
+ * {@link CamundaAgentInstanceClient}.
  */
 public class AgentInstanceHistoryMapper {
 
@@ -64,16 +64,16 @@ public class AgentInstanceHistoryMapper {
    * carrying a single-entry {@code toolCalls} list correlating it to the originating tool call.
    */
   public record InputHistoryItem(
-      AgentHistoryRole role,
-      List<AgentHistoryContent> content,
-      @Nullable List<AgentHistoryToolCall> toolCalls) {}
+      AgentInstanceHistoryRole role,
+      List<AgentInstanceHistoryContent> content,
+      @Nullable List<AgentInstanceHistoryToolCall> toolCalls) {}
 
   public List<InputHistoryItem> inputHistoryItems(Message message) {
     return switch (message) {
       case UserMessage userMessage ->
           List.of(
               new InputHistoryItem(
-                  AgentHistoryRole.USER, contentBlocks(userMessage.content()), null));
+                  AgentInstanceHistoryRole.USER, contentBlocks(userMessage.content()), null));
       case ToolCallResultMessage toolCallResultMessage ->
           toolCallResultMessage.results().stream().map(this::toolResultHistoryItem).toList();
       default ->
@@ -87,21 +87,21 @@ public class AgentInstanceHistoryMapper {
     // tool-call result id/name are nullable on the model (and partial/malformed results may omit
     // them); default to empty strings, which the client model accepts
     return new InputHistoryItem(
-        AgentHistoryRole.TOOL_RESULT,
+        AgentInstanceHistoryRole.TOOL_RESULT,
         toolResultContent(result.content()),
         List.of(
-            new AgentHistoryToolCall()
+            new AgentInstanceHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
                 .toolName(StringUtils.defaultString(result.name()))
                 .elementId(elementIdFor(result.elementId(), result.name()))
                 .arguments(Map.of())));
   }
 
-  public List<AgentHistoryContent> assistantContent(AssistantMessage assistantMessage) {
+  public List<AgentInstanceHistoryContent> assistantContent(AssistantMessage assistantMessage) {
     return contentBlocks(assistantMessage.content());
   }
 
-  public @Nullable List<AgentHistoryToolCall> assistantToolCalls(
+  public @Nullable List<AgentInstanceHistoryToolCall> assistantToolCalls(
       AssistantMessage assistantMessage) {
     final List<ToolCall> toolCalls = assistantMessage.toolCalls();
     if (toolCalls == null || toolCalls.isEmpty()) {
@@ -110,7 +110,7 @@ public class AgentInstanceHistoryMapper {
     return toolCalls.stream()
         .map(
             toolCall ->
-                new AgentHistoryToolCall()
+                new AgentInstanceHistoryToolCall()
                     .toolCallId(toolCall.id())
                     .toolName(toolCall.name())
                     .elementId(elementIdFor(null, toolCall.name()))
@@ -134,46 +134,46 @@ public class AgentInstanceHistoryMapper {
     return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);
   }
 
-  public AgentHistoryMetrics historyMetrics(AgentMetrics metrics) {
+  public AgentInstanceHistoryMetrics historyMetrics(AgentMetrics metrics) {
     final long durationMs =
         metrics.executionTime() != null ? metrics.executionTime().toMillis() : 0;
-    return new AgentHistoryMetrics()
+    return new AgentInstanceHistoryMetrics()
         .inputTokens(metrics.tokenUsage().inputTokenCount())
         .outputTokens(metrics.tokenUsage().outputTokenCount())
         .durationMs(durationMs);
   }
 
-  private List<AgentHistoryContent> contentBlocks(List<Content> contents) {
+  private List<AgentInstanceHistoryContent> contentBlocks(List<Content> contents) {
     return contents.stream().map(this::toHistoryContent).toList();
   }
 
-  private AgentHistoryContent toHistoryContent(Content content) {
+  private AgentInstanceHistoryContent toHistoryContent(Content content) {
     return switch (content) {
-      case TextContent textContent -> AgentHistoryContent.text(textContent.text());
+      case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
       case ObjectContent objectContent -> objectOrText(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
     };
   }
 
-  private List<AgentHistoryContent> toolResultContent(@Nullable Object resultContent) {
+  private List<AgentInstanceHistoryContent> toolResultContent(@Nullable Object resultContent) {
     if (resultContent == null) {
       return List.of();
     }
     if (resultContent instanceof String s) {
-      return StringUtils.isBlank(s) ? List.of() : List.of(AgentHistoryContent.text(s));
+      return StringUtils.isBlank(s) ? List.of() : List.of(AgentInstanceHistoryContent.text(s));
     }
     return List.of(objectOrText(resultContent));
   }
 
   @SuppressWarnings("unchecked")
-  private AgentHistoryContent objectOrText(Object value) {
+  private AgentInstanceHistoryContent objectOrText(Object value) {
     if (value instanceof Map<?, ?> map) {
-      return AgentHistoryContent.object((Map<String, Object>) map);
+      return AgentInstanceHistoryContent.object((Map<String, Object>) map);
     }
     try {
-      return AgentHistoryContent.object(objectMapper.convertValue(value, Map.class));
+      return AgentInstanceHistoryContent.object(objectMapper.convertValue(value, Map.class));
     } catch (IllegalArgumentException e) {
-      return AgentHistoryContent.text(toJson(value));
+      return AgentInstanceHistoryContent.text(toJson(value));
     }
   }
 
@@ -191,11 +191,12 @@ public class AgentInstanceHistoryMapper {
     }
   }
 
-  private AgentHistoryContent documentHistoryContent(DocumentContent documentContent) {
+  private AgentInstanceHistoryContent documentHistoryContent(DocumentContent documentContent) {
     final Document document = documentContent.document();
     return switch (document.reference()) {
       case CamundaDocumentReference ref ->
-          AgentHistoryContent.document(toDocumentReferenceResponse(ref, document.metadata()));
+          AgentInstanceHistoryContent.document(
+              toDocumentReferenceResponse(ref, document.metadata()));
       // External document references are not yet representable as a document content block on the
       // engine; fall back to an object reference block (follow-up: team decision).
       case ExternalDocumentReference ref -> externalDocumentReferenceContent(ref);
@@ -208,7 +209,8 @@ public class AgentInstanceHistoryMapper {
     };
   }
 
-  private AgentHistoryContent externalDocumentReferenceContent(ExternalDocumentReference ref) {
+  private AgentInstanceHistoryContent externalDocumentReferenceContent(
+      ExternalDocumentReference ref) {
     if (ref.url() == null || ref.name() == null) {
       throw new IllegalArgumentException(
           "External document reference requires both url and name for a history item");
