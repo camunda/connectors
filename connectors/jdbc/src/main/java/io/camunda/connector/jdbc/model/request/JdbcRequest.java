@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.jdbc.model.request;
 
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Configuration;
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
+import io.camunda.connector.jdbc.model.request.connection.JdbcConnectionConfiguration;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -36,4 +38,21 @@ public record JdbcRequest(
             })
         SupportedDatabase database,
     @Valid @NotNull JdbcConnection connection,
-    @Valid @NotNull JdbcRequestData data) {}
+    @Valid @NotNull JdbcRequestData data,
+    @TemplateProperty(
+            id = "connectionConfiguration",
+            label = "Connection credential",
+            group = "connection",
+            type = Configuration,
+            optional = true,
+            binding = @TemplateProperty.PropertyBinding(name = "configuration"),
+            description =
+                "Choose a reusable JDBC connection credential. When set, it is bound as a whole to"
+                    + " the connector's 'configuration' input.")
+        JdbcConnectionConfiguration configuration) {
+
+  /** Convenience constructor for the pre-configuration-chooser shape (no bound configuration). */
+  public JdbcRequest(SupportedDatabase database, JdbcConnection connection, JdbcRequestData data) {
+    this(database, connection, data, null);
+  }
+}
