@@ -51,7 +51,7 @@ public class HttpCommonRequest {
           @TemplateProperty.PropertyConstraints(
               notEmpty = true,
               pattern = @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a number")),
-      description = "Defines the connection timeout in seconds, or 0 for an infinite timeout")
+      tooltip = "Defines the connection timeout in seconds, or 0 for an infinite timeout")
   private Integer connectionTimeoutInSeconds;
 
   @TemplateProperty(
@@ -63,7 +63,7 @@ public class HttpCommonRequest {
           @TemplateProperty.PropertyConstraints(
               notEmpty = true,
               pattern = @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a number")),
-      description =
+      tooltip =
           "Timeout in seconds to read data from an established connection or 0 for an infinite timeout")
   private Integer readTimeoutInSeconds;
 
@@ -72,13 +72,13 @@ public class HttpCommonRequest {
       feel = FeelMode.required,
       group = "endpoint",
       optional = true,
-      description = "Map of HTTP headers to add to the request")
+      tooltip = "Map of HTTP headers to add to the request")
   private Map<String, String> headers;
 
   @FEEL
   @TemplateProperty(
       label = "Request body",
-      description = "Payload to send with the request",
+      tooltip = "Payload to send with the request",
       feel = FeelMode.optional,
       group = "payload",
       type = PropertyType.Text,
@@ -94,7 +94,7 @@ public class HttpCommonRequest {
       feel = FeelMode.required,
       group = "endpoint",
       optional = true,
-      description = "Map of query parameters to add to the request URL")
+      tooltip = "Map of query parameters to add to the request URL")
   private Map<String, String> queryParameters;
 
   @TemplateProperty(
@@ -102,7 +102,7 @@ public class HttpCommonRequest {
       type = PropertyType.Boolean,
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
       defaultValue = "false",
-      description = "Store the response as a document in the document store")
+      tooltip = "Store the response as a document in the document store")
   private boolean storeResponse;
 
   @TemplateProperty(
@@ -130,7 +130,7 @@ public class HttpCommonRequest {
       group = "endpoint",
       type = PropertyType.Boolean,
       label = "Follow redirects",
-      description =
+      tooltip =
           "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
       defaultValue = "false")

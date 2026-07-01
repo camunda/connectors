@@ -84,7 +84,6 @@
   }, {
     "id" : "authentication.apiKeyLocation",
     "label" : "Api key location",
-    "description" : "Choose type: Send API key in header or as query parameter.",
     "optional" : false,
     "value" : "headers",
     "constraints" : {
@@ -100,6 +99,7 @@
       "equals" : "apiKey",
       "type" : "simple"
     },
+    "tooltip" : "Send API key in header or as query parameter.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Headers",
@@ -201,7 +201,6 @@
   }, {
     "id" : "authentication.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
-    "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -224,7 +223,6 @@
   }, {
     "id" : "authentication.clientId",
     "label" : "Client ID",
-    "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -239,11 +237,11 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "Your application's client ID from the OAuth client",
     "type" : "String"
   }, {
     "id" : "authentication.clientSecret",
     "label" : "Client secret",
-    "description" : "Your application's client secret from the OAuth client",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -258,11 +256,11 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "Your application's client secret from the OAuth client",
     "type" : "String"
   }, {
     "id" : "authentication.audience",
     "label" : "Audience",
-    "description" : "The unique identifier of the target API you want to access",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
@@ -274,11 +272,11 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "The unique identifier of the target API you want to access",
     "type" : "String"
   }, {
     "id" : "authentication.clientAuthentication",
     "label" : "Client authentication",
-    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -293,6 +291,7 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "Send client ID and client secret as a Basic Auth header, or as client credentials in the request body",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Send client credentials in body",
@@ -304,7 +303,6 @@
   }, {
     "id" : "authentication.scopes",
     "label" : "Scopes",
-    "description" : "The scopes which you want to request authorization for (e.g.read:contacts)",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
@@ -316,11 +314,12 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "The scopes which you want to request authorization for",
+    "placeholder" : "read:contacts",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
-    "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -343,7 +342,6 @@
   }, {
     "id" : "authentication.oauthRefreshToken.clientId",
     "label" : "Client ID",
-    "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -358,11 +356,11 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
+    "tooltip" : "Your application's client ID from the OAuth client",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken.clientSecret",
     "label" : "Client secret",
-    "description" : "Your application's client secret from the OAuth client",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
@@ -374,11 +372,11 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
+    "tooltip" : "Your application's client secret from the OAuth client",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken.refreshToken",
     "label" : "Refresh token",
-    "description" : "The refresh token used to obtain a new access token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -393,11 +391,11 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
+    "tooltip" : "The refresh token used to obtain a new access token",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken.scopes",
     "label" : "Scopes",
-    "description" : "The scopes to request authorization for (space-separated)",
     "optional" : true,
     "group" : "authentication",
     "binding" : {
@@ -409,6 +407,7 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
+    "tooltip" : "The scopes to request authorization for (space-separated)",
     "type" : "String"
   }, {
     "id" : "method",
@@ -461,7 +460,6 @@
   }, {
     "id" : "queryParameters",
     "label" : "Query parameters",
-    "description" : "Map of query parameters to add to the request URL",
     "optional" : true,
     "feel" : "required",
     "group" : "endpoint",
@@ -469,11 +467,11 @@
       "name" : "queryParameters",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Map of query parameters to add to the request URL",
     "type" : "String"
   }, {
     "id" : "headers",
     "label" : "Headers",
-    "description" : "Map of HTTP headers to add to the request",
     "optional" : true,
     "feel" : "required",
     "group" : "endpoint",
@@ -481,6 +479,7 @@
       "name" : "headers",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Map of HTTP headers to add to the request",
     "type" : "String"
   }, {
     "id" : "skipEncoding",
@@ -496,7 +495,6 @@
   }, {
     "id" : "followRedirects",
     "label" : "Follow redirects",
-    "description" : "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
     "optional" : true,
     "value" : false,
     "feel" : "static",
@@ -505,11 +503,11 @@
       "name" : "followRedirects",
       "type" : "zeebe:property"
     },
+    "tooltip" : "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
     "type" : "Boolean"
   }, {
     "id" : "body",
     "label" : "Request body",
-    "description" : "Payload to send with the request",
     "optional" : true,
     "feel" : "optional",
     "group" : "payload",
@@ -522,11 +520,11 @@
       "oneOf" : [ "POST", "PUT", "PATCH" ],
       "type" : "simple"
     },
+    "tooltip" : "Payload to send with the request",
     "type" : "Text"
   }, {
     "id" : "httpRequestInterval",
     "label" : "Http request interval",
-    "description" : "The delay between HTTP requests, defined as ISO 8601 durations format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
     "optional" : false,
     "value" : "PT50S",
     "feel" : "optional",
@@ -535,6 +533,7 @@
       "name" : "httpRequestInterval",
       "type" : "zeebe:property"
     },
+    "tooltip" : "The delay between HTTP requests, defined in ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
     "type" : "String"
   }, {
     "id" : "processPollingInterval",
@@ -550,7 +549,6 @@
   }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
-    "description" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",
     "optional" : false,
     "value" : "20",
     "constraints" : {
@@ -571,7 +569,6 @@
   }, {
     "id" : "readTimeoutInSeconds",
     "label" : "Read timeout in seconds",
-    "description" : "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
     "optional" : false,
     "value" : "20",
     "constraints" : {
@@ -587,6 +584,7 @@
       "name" : "readTimeoutInSeconds",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
     "type" : "String"
   }, {
     "id" : "activationCondition",
