@@ -12,7 +12,17 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyB
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(id = "getWorksheetData", label = "Get worksheet data")
+@TemplateSubType(
+    id = "getWorksheetData",
+    label = "Get worksheet data",
+    description = "Retrieve all data from a Google Sheets worksheet",
+    keywords = {
+      "get worksheet data",
+      "read sheet",
+      "export data",
+      "fetch sheet data",
+      "retrieve sheet rows"
+    })
 public record GetWorksheetData(
     @TemplateProperty(
             id = "getWorksheetData.spreadsheetId",

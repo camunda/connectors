@@ -335,15 +335,19 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
       if (Files.notExists(Path.of(this.versionedDirectory))) {
         Files.createDirectories(Path.of(this.versionedDirectory));
       }
-      Files.copy(
-          latestBasicElementTemplateFile.toPath(),
+      Path destination =
           Path.of(
               this.versionedDirectory
                   + File.separator
                   + fileName.replaceFirst("\\.json$", "")
                   + "-"
                   + latestVersionedElementTemplate.version()
-                  + ".json"));
+                  + ".json");
+      if (Files.exists(destination)) {
+        // Versioned snapshot already exists from a previous generation run — skip.
+        return;
+      }
+      Files.copy(latestBasicElementTemplateFile.toPath(), destination);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

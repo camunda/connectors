@@ -15,7 +15,11 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "uploadBlob", label = "Upload blob")
+@TemplateSubType(
+    id = "uploadBlob",
+    label = "Upload blob",
+    description = "Upload a blob to Azure Blob Storage",
+    keywords = {"upload blob", "store blob", "save file", "put object", "publish to storage"})
 public record UploadBlob(
     @TemplateProperty(
             label = "Blob Storage container",

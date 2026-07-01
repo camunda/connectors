@@ -18,7 +18,10 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     defaultValue = "sendMessageToChannel",
     description = "Select method for channel interaction",
     label = "Method")
-@TemplateSubType(label = "Channel", id = "channel")
+@TemplateSubType(
+    label = "Channel",
+    id = "channel",
+    description = "Manage channels and channel messages in Microsoft Teams")
 public sealed interface ChannelData extends MSTeamsRequestData
     permits CreateChannel,
         GetChannel,

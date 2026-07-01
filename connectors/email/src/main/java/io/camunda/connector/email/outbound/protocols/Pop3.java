@@ -16,7 +16,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "pop3", label = "POP3")
+@TemplateSubType(id = "pop3", label = "POP3", description = "Read emails using the POP3 protocol")
 public record Pop3(
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,

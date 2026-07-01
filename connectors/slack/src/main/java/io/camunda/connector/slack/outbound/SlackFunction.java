@@ -31,7 +31,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "notification"
     },
     inputDataClass = SlackRequest.class,
-    version = 10,
+    version = 11,
     defaultResultExpression =
         "{\n"
             + "  myResponse: response\n"
@@ -39,8 +39,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
             + "  // type, e.g.,: myMessage: response.message.text\n"
             + "}",
     propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
-      @ElementTemplate.PropertyGroup(id = "method", label = "Method"),
       @ElementTemplate.PropertyGroup(id = "message", label = "Message"),
       @ElementTemplate.PropertyGroup(id = "channel", label = "Channel"),
       @ElementTemplate.PropertyGroup(id = "invite", label = "Invite"),

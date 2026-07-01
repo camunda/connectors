@@ -17,6 +17,6 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
   @JsonSubTypes.Type(value = ComprehendAsyncRequestData.class, name = "async")
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
-@TemplateDiscriminatorProperty(name = "type", group = "input", label = "Execution type")
+@TemplateDiscriminatorProperty(name = "type", group = "operation", label = "Execution type")
 public sealed interface ComprehendRequestData
     permits ComprehendSyncRequestData, ComprehendAsyncRequestData {}

@@ -10,7 +10,18 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
-@TemplateSubType(id = "searchEmailsImap", label = "Search emails")
+@TemplateSubType(
+    id = "searchEmailsImap",
+    label = "Search emails",
+    description = "Search for emails in an IMAP mailbox using criteria",
+    keywords = {
+      "search emails",
+      "imap search",
+      "find emails",
+      "filter messages",
+      "query inbox",
+      "look up emails"
+    })
 public record ImapSearchEmails(
     @TemplateProperty(
             label = "Search criteria",

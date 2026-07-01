@@ -13,7 +13,17 @@ import io.camunda.connector.model.OrderBy;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(label = "List messages in chat", id = MSTeamsMethodTypes.LIST_MESSAGES_IN_CHAT)
+@TemplateSubType(
+    label = "List messages in chat",
+    id = MSTeamsMethodTypes.LIST_MESSAGES_IN_CHAT,
+    description = "List messages in a Microsoft Teams chat",
+    keywords = {
+      "list chat messages",
+      "chat messages",
+      "get chat messages",
+      "fetch dm history",
+      "read chat history"
+    })
 public record ListMessagesInChat(
     @NotBlank
         @TemplateProperty(

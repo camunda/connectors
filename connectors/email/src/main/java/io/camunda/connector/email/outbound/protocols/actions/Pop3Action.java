@@ -11,7 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateDiscriminatorProperty(
     label = "POP3 action",
-    group = "pop3Action",
+    group = "operation",
     name = "data.pop3ActionDiscriminator",
     defaultValue = "listEmailsPop3")
 @TemplateSubType(id = "data.pop3ActionDiscriminator", label = "POP3 Action")

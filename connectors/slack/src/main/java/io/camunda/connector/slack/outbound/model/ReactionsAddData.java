@@ -19,7 +19,17 @@ import io.camunda.connector.slack.outbound.SlackResponse;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 
-@TemplateSubType(id = "reactions.add", label = "Add reaction")
+@TemplateSubType(
+    id = "reactions.add",
+    label = "Add reaction",
+    description = "Add an emoji reaction to a Slack message",
+    keywords = {
+      "add reaction",
+      "emoji reaction",
+      "like message",
+      "thumbs up",
+      "respond with emoji"
+    })
 public record ReactionsAddData(
     @TemplateProperty(
             label = "Channel",

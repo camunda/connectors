@@ -18,7 +18,11 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "deleteColumn", label = "Delete column")
+@TemplateSubType(
+    id = "deleteColumn",
+    label = "Delete column",
+    description = "Delete a column from a Google Sheets worksheet",
+    keywords = {"delete column", "remove column", "drop column", "erase column"})
 public record DeleteColumn(
     @TemplateProperty(
             id = "deleteColumn.spreadsheetId",

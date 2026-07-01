@@ -12,7 +12,18 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "readEmailImap", label = "Read an email")
+@TemplateSubType(
+    id = "readEmailImap",
+    label = "Read an email",
+    description = "Read the content of a specific email via IMAP",
+    keywords = {
+      "read email",
+      "imap read",
+      "fetch email",
+      "get email content",
+      "retrieve email",
+      "open message"
+    })
 public record ImapReadEmail(
     @TemplateProperty(
             label = "Message ID",

@@ -39,10 +39,10 @@ import org.slf4j.LoggerFactory;
       "excel"
     },
     inputDataClass = GoogleSheetsRequest.class,
-    version = 6,
+    version = 7,
     propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operationDetails", label = "Operation details"),
     },
     documentationRef =
