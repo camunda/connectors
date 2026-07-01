@@ -54,8 +54,12 @@ public @interface ConfigurationTemplate {
    */
   long version() default 1;
 
-  /** Human-readable name of the configuration template. */
-  String name() default "";
+  /**
+   * Human-readable name of the configuration template. Shown in the configuration editor and used
+   * as the primary chooser label. Required and must be non-blank (enforced at generation time) —
+   * the configuration-template schema requires {@code name}.
+   */
+  String name();
 
   /**
    * The class of configuration this template produces. It is written into the created instance's
