@@ -42,10 +42,10 @@ public interface AgentInstanceClient {
    * pre-date the agent-instance feature).
    *
    * <p>{@code previousTurn} is the turn preceding {@code turn} (typically {@code
-   * conversation.previousTurn()}); its assistant tool calls supply the originating arguments
-   * populated on tool-result history items, correlated by tool-call id. A tool-call result with a
-   * non-null id that has no originating tool call in {@code previousTurn} is treated as an
-   * invariant violation.
+   * conversation.lastTurn()}, which is the previous turn while the current turn is still pending);
+   * its assistant tool calls supply the originating arguments populated on tool-result history
+   * items, correlated by tool-call id. A tool-call result with a non-null id that has no
+   * originating tool call in {@code previousTurn} is treated as an invariant violation.
    *
    * @throws ConnectorException with code AGENT_INSTANCE_HISTORY_ITEM_FAILED when retries are
    *     exhausted or a non-retryable error occurs

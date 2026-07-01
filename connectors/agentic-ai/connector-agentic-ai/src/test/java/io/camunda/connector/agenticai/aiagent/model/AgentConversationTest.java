@@ -150,21 +150,15 @@ class AgentConversationTest {
   }
 
   @Test
-  void previousTurn_emptyWhenNoHistory() {
-    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
-    assertThat(conv.previousTurn()).isEmpty();
-  }
-
-  @Test
-  void previousTurn_returnsTurnPrecedingCurrent() {
-    // the preceding turn's assistant message requested the tools; the pending current turn carries
-    // the results
+  void lastTurn_whileCurrentPending_isTurnPrecedingCurrent() {
+    // while the current turn is still pending, lastTurn() resolves to the turn preceding it — the
+    // one whose assistant message requested the tools answered by the current turn's results
     var conv =
         rehydrate(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)),
             List.of(toolCallResultMessage(TOOL_CALL_RESULTS)));
 
-    assertThat(conv.previousTurn()).isPresent();
-    assertThat(conv.previousTurn().get().toolCalls()).isEqualTo(TOOL_CALLS);
+    assertThat(conv.lastTurn()).isPresent();
+    assertThat(conv.lastTurn().get().toolCalls()).isEqualTo(TOOL_CALLS);
   }
 }

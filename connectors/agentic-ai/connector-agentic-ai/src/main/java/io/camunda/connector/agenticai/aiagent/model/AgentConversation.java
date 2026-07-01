@@ -174,15 +174,6 @@ public final class AgentConversation {
     return all.isEmpty() ? Optional.empty() : Optional.of(all.getLast());
   }
 
-  /**
-   * Returns the turn preceding the current turn, if any. Unlike {@link #lastTurn()}, this is
-   * resolved directly from the previous turns and is therefore independent of whether the current
-   * turn has been ingested yet.
-   */
-  public Optional<AgentConversationTurn> previousTurn() {
-    return previousTurns.isEmpty() ? Optional.empty() : Optional.of(previousTurns.getLast());
-  }
-
   private List<AgentConversationTurn> allCompletedTurns() {
     if (currentTurn.assistantMessage() == null) {
       return previousTurns;

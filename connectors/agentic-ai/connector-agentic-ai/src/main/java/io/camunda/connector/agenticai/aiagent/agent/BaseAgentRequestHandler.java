@@ -146,11 +146,10 @@ public abstract class BaseAgentRequestHandler<
     notifyThinking(executionContext, conversation);
 
     final var agentInstanceKey = conversation.agentInstanceKey();
+    // called before ingest, so the current turn is still pending and lastTurn() is the turn
+    // preceding it — i.e. the one whose tool calls originated the current turn's tool results
     agentInstanceClient.createHistoryForInputMessages(
-        executionContext,
-        agentInstanceKey,
-        conversation.currentTurn(),
-        conversation.previousTurn());
+        executionContext, agentInstanceKey, conversation.currentTurn(), conversation.lastTurn());
 
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =
