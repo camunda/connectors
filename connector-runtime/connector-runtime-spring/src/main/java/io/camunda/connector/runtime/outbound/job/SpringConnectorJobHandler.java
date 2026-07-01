@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.outbound.job;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.command.ThrowErrorCommandStep1;
@@ -30,6 +31,7 @@ import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
 import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -42,6 +44,7 @@ import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,6 +125,15 @@ public class SpringConnectorJobHandler implements JobHandler {
         .errorMessage(truncateErrorMessage(error.errorMessage()));
   }
 
+  private void checkVariablesSize(Map<String, Object> variables) {
+    if (variables == null || variables.isEmpty()) return;
+    try {
+      InlineSizeGuard.check(objectMapper.writeValueAsBytes(variables).length);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize variables for size check", e);
+    }
+  }
+
   private static String truncateErrorMessage(String message) {
     return message != null
         ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
@@ -186,6 +198,9 @@ public class SpringConnectorJobHandler implements JobHandler {
               response,
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
+      if (!responseVariables.isEmpty()) {
+        InlineSizeGuard.check(objectMapper.writeValueAsBytes(responseVariables).length);
+      }
       return new ConnectorResult.SuccessResult(response, responseVariables);
     } catch (Exception e) {
       return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
@@ -244,11 +259,13 @@ public class SpringConnectorJobHandler implements JobHandler {
       CounterMetricsContext counterMetricsContext) {
     switch (error) {
       case BpmnError bpmnError -> {
+        checkVariablesSize(bpmnError.variables());
         LOGGER.debug(
             "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
         throwBpmnError(client, job, bpmnError, counterMetricsContext);
       }
       case JobError jobError -> {
+        checkVariablesSize(jobError.variablesWithErrorMessage());
         LOGGER.debug("Throwing incident for job {}", job.getKey());
         failJob(
             client,
@@ -261,6 +278,7 @@ public class SpringConnectorJobHandler implements JobHandler {
             counterMetricsContext);
       }
       case IgnoreError ignoreError -> {
+        checkVariablesSize(ignoreError.variables());
         LOGGER.debug("Ignoring error for job {}", job.getKey());
         completeJob(
             client,
