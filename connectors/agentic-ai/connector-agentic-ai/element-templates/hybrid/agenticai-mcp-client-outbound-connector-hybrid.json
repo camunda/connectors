@@ -3,8 +3,8 @@
   "name" : "Hybrid MCP Client",
   "id" : "io.camunda.connectors.agenticai.mcp.client.v0-hybrid",
   "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime.",
-  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client-connector/",
-  "version" : 2,
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client-connector/",
+  "version" : 3,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -14,7 +14,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.10"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -479,7 +479,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
