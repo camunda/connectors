@@ -32,7 +32,7 @@ public record ApiKeyAuthentication(
               @TemplateProperty.DropdownPropertyChoice(value = "headers", label = "Headers"),
               @TemplateProperty.DropdownPropertyChoice(value = "query", label = "Query parameters")
             },
-            description = "Choose type: Send API key in header or as query parameter.")
+            tooltip = "Send API key in header or as query parameter.")
         ApiKeyLocation apiKeyLocation,
     @FEEL @NotEmpty @TemplateProperty(group = "authentication", label = "API key name") String name,
     @FEEL @NotEmpty @TemplateProperty(group = "authentication", label = "API key value")
