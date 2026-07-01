@@ -20,8 +20,8 @@ public record SASAuthentication(
         @TemplateProperty(
             group = "authentication",
             label = "SAS token",
-            description =
-                "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
+            tooltip =
+                "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
             feel = FeelMode.optional)
         @NotBlank
         String SASToken,
@@ -29,8 +29,8 @@ public record SASAuthentication(
         @TemplateProperty(
             group = "authentication",
             label = "SAS URL",
-            description =
-                "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
+            tooltip =
+                "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
             feel = FeelMode.optional)
         @NotBlank
         String SASUrl)

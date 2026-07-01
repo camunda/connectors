@@ -13,11 +13,6 @@ import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(label = "List chat members", id = MSTeamsMethodTypes.LIST_CHAT_MEMBERS)
 public record ListChatMembers(
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "listChatMembers.chatId",
-            label = "Chat ID",
-            description = "The chat ID")
+    @NotBlank @TemplateProperty(group = "data", id = "listChatMembers.chatId", label = "Chat ID")
         String chatId)
     implements ChatData {}

@@ -72,7 +72,6 @@
   }, {
     "id" : "authentication.SASToken",
     "label" : "SAS token",
-    "description" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -88,11 +87,11 @@
       "equals" : "SAS",
       "type" : "simple"
     },
+    "tooltip" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.SASUrl",
     "label" : "SAS URL",
-    "description" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -108,11 +107,11 @@
       "equals" : "SAS",
       "type" : "simple"
     },
+    "tooltip" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.tenantId",
     "label" : "Tenant id",
-    "description" : "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -128,11 +127,11 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.clientId",
     "label" : "Client id",
-    "description" : "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -148,11 +147,11 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.clientSecret",
     "label" : "Client secret",
-    "description" : "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -168,11 +167,11 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.accountUrl",
     "label" : "Account url",
-    "description" : "The account url of the storage account. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -188,6 +187,7 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "operationDiscriminator",

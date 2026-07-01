@@ -15,20 +15,15 @@ import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(label = "List messages in chat", id = MSTeamsMethodTypes.LIST_MESSAGES_IN_CHAT)
 public record ListMessagesInChat(
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "listMessagesInChat.chatId",
-            label = "Chat ID",
-            description = "The chat ID")
+    @NotBlank @TemplateProperty(group = "data", id = "listMessagesInChat.chatId", label = "Chat ID")
         String chatId,
     @TemplateProperty(
             group = "data",
             id = "listMessagesInChat.top",
             label = "Top",
             optional = true,
-            description =
-                "Controls the number of items per response. Maximum allowed $top value is 50")
+            tooltip = "Controls the number of items per response.",
+            description = "Maximum allowed $top value is 50.")
         String top,
     @NotNull
         @TemplateProperty(
@@ -54,7 +49,7 @@ public record ListMessagesInChat(
             group = "data",
             id = "listMessagesInChat.filter",
             label = "Filter",
-            description =
-                "Sets the date range filter for the lastModifiedDateTime and createdDateTime properties. <a href='https://learn.microsoft.com/en-us/graph/filter-query-parameter'>Learn more about filtering</a>")
+            tooltip =
+                "Sets the date range filter for the lastModifiedDateTime and createdDateTime properties. See the <a href=\"https://learn.microsoft.com/en-us/graph/filter-query-parameter\">filter query parameter</a> reference.")
         String filter)
     implements ChatData {}

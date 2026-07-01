@@ -13,18 +13,9 @@ import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(label = "Get message in chat", id = MSTeamsMethodTypes.GET_MESSAGE_IN_CHAT)
 public record GetMessageInChat(
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "getMessageInChat.chatId",
-            label = "Chat ID",
-            description = "The chat ID")
+    @NotBlank @TemplateProperty(group = "data", id = "getMessageInChat.chatId", label = "Chat ID")
         String chatId,
     @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "getMessageInChat.messageId",
-            label = "Message ID",
-            description = "The message ID")
+        @TemplateProperty(group = "data", id = "getMessageInChat.messageId", label = "Message ID")
         String messageId)
     implements ChatData {}

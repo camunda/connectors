@@ -18,21 +18,17 @@ public record ListChannelMessages(
             group = "data",
             id = "listChannelMessage.groupId",
             label = "Group ID",
-            description = "The group ID for teams")
+            tooltip = "The Microsoft Teams group ID.")
         String groupId,
     @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "listChannelMessage.channelId",
-            label = "Channel ID",
-            description = "The channel ID")
+        @TemplateProperty(group = "data", id = "listChannelMessage.channelId", label = "Channel ID")
         String channelId,
     @TemplateProperty(
             group = "data",
             id = "listChannelMessage.top",
             label = "Top",
             optional = true,
-            description = "Controls the number of items per response")
+            tooltip = "Controls the number of items per response")
         String top,
     @TemplateProperty(
             group = "data",
@@ -45,7 +41,7 @@ public record ListChannelMessages(
               @TemplateProperty.DropdownPropertyChoice(value = "true", label = "True")
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            description = "Return message replies")
+            tooltip = "Return message replies")
         String isExpand)
     implements ChannelData {
   public static final String EXPAND_VALUE = "replies";
