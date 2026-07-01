@@ -112,7 +112,6 @@
   }, {
     "id" : "topic.topicArn",
     "label" : "Topic ARN",
-    "description" : "Specify the topic you want to publish to",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -123,11 +122,11 @@
       "name" : "topic.topicArn",
       "type" : "zeebe:input"
     },
+    "tooltip" : "ARN of the SNS topic to publish to.",
     "type" : "String"
   }, {
     "id" : "topic.type",
     "label" : "Topic type",
-    "description" : "Select SNS topic type. Details at <a href=\"https://aws.amazon.com/sns/features/\">AWS SNS Features</a>",
     "optional" : false,
     "value" : "standard",
     "constraints" : {
@@ -138,6 +137,7 @@
       "name" : "topic.type",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Details at <a href=\"https://aws.amazon.com/sns/features/\">AWS SNS features</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Standard",
@@ -175,7 +175,6 @@
   }, {
     "id" : "topic.messageGroupId",
     "label" : "Message group ID",
-    "description" : "Message group ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-grouping.html\">message grouping for FIFO topics</a> in the Amazon SNS developer guide",
     "optional" : false,
     "feel" : "optional",
     "group" : "input",
@@ -188,11 +187,11 @@
       "equals" : "fifo",
       "type" : "simple"
     },
+    "tooltip" : "Required for FIFO topics. See <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-grouping.html\">message grouping for FIFO topics</a> in the Amazon SNS developer guide",
     "type" : "String"
   }, {
     "id" : "topic.messageDeduplicationId",
     "label" : "Message deduplication ID",
-    "description" : "Message deduplication ID. See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\">Message deduplication for FIFO topics</a> in the Amazon SNS developer guide",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -205,11 +204,11 @@
       "equals" : "fifo",
       "type" : "simple"
     },
+    "tooltip" : "See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\">Message deduplication for FIFO topics</a> in the Amazon SNS developer guide",
     "type" : "String"
   }, {
     "id" : "topic.subject",
     "label" : "Subject",
-    "description" : "Specify the subject of the message you want to publish in the SNS topic",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -217,11 +216,11 @@
       "name" : "topic.subject",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Subject of the message to publish in the SNS topic.",
     "type" : "String"
   }, {
     "id" : "topic.message",
     "label" : "Message",
-    "description" : "Data to publish in the SNS topic",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -232,11 +231,11 @@
       "name" : "topic.message",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Data to publish in the SNS topic",
     "type" : "Text"
   }, {
     "id" : "topic.messageAttributes",
     "label" : "messageAttributes",
-    "description" : "Message attributes metadata",
     "optional" : true,
     "feel" : "required",
     "group" : "input",

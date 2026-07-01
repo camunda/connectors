@@ -17,7 +17,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "document",
             label = "Document source",
-            description = "Document source of the input document that should be analyzed.",
+            tooltip = "Source of the input document to be analyzed.",
             feel = FeelMode.disabled,
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "S3")
@@ -25,7 +25,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "document",
             label = "Document bucket",
-            description = "S3 bucket that contains document that should be analyzed.",
+            tooltip = "S3 bucket that contains the document to be analyzed.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.documentLocationType",
@@ -35,7 +35,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "document",
             label = "Document name",
-            description = "S3 document name of the document that should be analyzed.",
+            tooltip = "Name of the document to be analyzed in the S3 bucket.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.documentLocationType",
@@ -45,7 +45,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "document",
             label = "Document version",
-            description = "S3 document version of the document that should be analyzed.",
+            tooltip = "Version of the document to be analyzed in the S3 bucket.",
             optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -55,7 +55,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "document",
             label = "Camunda Document",
-            description = "The Camunda document of the process that should be analyzed.",
+            tooltip = "The Camunda document to be analyzed.",
             feel = FeelMode.required,
             type = TemplateProperty.PropertyType.String,
             condition =
@@ -70,8 +70,8 @@ public record TextractRequestData(
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "POLLING",
             feel = FeelMode.disabled,
-            description =
-                "How the document should be processes. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">documentation</a>.",
+            tooltip =
+                "How the document should be processed. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">Amazon Textract execution types documentation</a>.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.documentLocationType",
@@ -80,7 +80,7 @@ public record TextractRequestData(
         TextractExecutionType executionType,
     @TemplateProperty(
             label = "Analyze tables",
-            description =
+            tooltip =
                 "Select this to return information about the tables that are detected in the input document.",
             group = "input",
             type = TemplateProperty.PropertyType.Boolean,
@@ -90,7 +90,7 @@ public record TextractRequestData(
         boolean analyzeTables,
     @TemplateProperty(
             label = "Analyze form",
-            description = "Select this to return information detected form data.",
+            tooltip = "Select this to return information about detected form data.",
             group = "input",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
@@ -99,7 +99,7 @@ public record TextractRequestData(
         boolean analyzeForms,
     @TemplateProperty(
             label = "Analyze signatures",
-            description = "Select this to return the locations of detected signatures.",
+            tooltip = "Select this to return the locations of detected signatures.",
             group = "input",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
@@ -108,7 +108,7 @@ public record TextractRequestData(
         boolean analyzeSignatures,
     @TemplateProperty(
             label = "Analyze layout",
-            description = "Select this to return information about the layout of the document.",
+            tooltip = "Select this to return information about the layout of the document.",
             group = "input",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
@@ -135,7 +135,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "advanced",
             label = "Client request token",
-            description = "The idempotent token that you use to identify the start request.",
+            tooltip = "The idempotent token that you use to identify the start request.",
             optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -145,7 +145,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "advanced",
             label = "Job tag",
-            description =
+            tooltip =
                 "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic.",
             optional = true,
             condition =
@@ -156,7 +156,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "advanced",
             label = "KMS key ID",
-            description = "The KMS key used to encrypt the inference results.",
+            tooltip = "The KMS key used to encrypt the inference results.",
             optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -166,7 +166,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "advanced",
             label = "Notification channel role ARN",
-            description =
+            tooltip =
                 "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to.",
             optional = true,
             condition =
@@ -177,7 +177,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "advanced",
             label = "Notification channel SNS topic ARN",
-            description =
+            tooltip =
                 "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to.",
             optional = true,
             condition =
@@ -188,7 +188,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "input",
             label = "Output S3 bucket",
-            description = "The name of the bucket your output will go to.",
+            tooltip = "The name of the bucket your output will go to.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.executionType",
@@ -198,7 +198,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "input",
             label = "Output S3 prefix",
-            description = "The prefix of the object key that the output will be saved to.",
+            tooltip = "The prefix of the object key that the output will be saved to.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.executionType",

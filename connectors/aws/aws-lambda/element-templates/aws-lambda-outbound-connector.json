@@ -151,7 +151,6 @@
   }, {
     "id" : "awsFunction.functionName",
     "label" : "Function name",
-    "description" : "Enter a name, ARN or alias of your function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -162,11 +161,11 @@
       "name" : "awsFunction.functionName",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Name, ARN or alias of your function",
     "type" : "String"
   }, {
     "id" : "awsFunction.payload",
     "label" : "Payload",
-    "description" : "Provide payload for your function as JSON",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -177,6 +176,7 @@
       "name" : "awsFunction.payload",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Payload for your function as JSON",
     "type" : "Text"
   }, {
     "id" : "version",

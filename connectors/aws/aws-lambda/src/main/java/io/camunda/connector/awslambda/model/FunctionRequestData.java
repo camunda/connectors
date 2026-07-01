@@ -27,7 +27,7 @@ public class FunctionRequestData {
   @TemplateProperty(
       group = "operationDetails",
       label = "Function name",
-      description = "Enter a name, ARN or alias of your function")
+      tooltip = "Name, ARN or alias of your function")
   private String functionName;
 
   @NotNull
@@ -36,7 +36,7 @@ public class FunctionRequestData {
       group = "operationDetails",
       label = "Payload",
       type = TemplateProperty.PropertyType.Text,
-      description = "Provide payload for your function as JSON")
+      tooltip = "Payload for your function as JSON")
   private Object payload;
 
   @TemplateProperty(ignore = true)

@@ -133,7 +133,6 @@
   }, {
     "id" : "input.invocationType",
     "label" : "Inference type",
-    "description" : "Endpoint inference type",
     "optional" : false,
     "value" : "SYNC",
     "constraints" : {
@@ -155,7 +154,6 @@
   }, {
     "id" : "input.endpointName",
     "label" : "Endpoint name",
-    "description" : "The name of the endpoint. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -166,11 +164,11 @@
       "name" : "input.endpointName",
       "type" : "zeebe:input"
     },
+    "tooltip" : "<a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.body",
     "label" : "Payload",
-    "description" : "Input data. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -186,11 +184,11 @@
       "equals" : "SYNC",
       "type" : "simple"
     },
+    "tooltip" : "Input data. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "Text"
   }, {
     "id" : "input.contentType",
     "label" : "Content type",
-    "description" : "The MIME type of the input data in the request body. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : false,
     "value" : "application/json",
     "constraints" : {
@@ -202,11 +200,11 @@
       "name" : "input.contentType",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The MIME type of the input data in the request body. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.accept",
     "label" : "Accept",
-    "description" : "The desired MIME type of the inference response from the model container. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : false,
     "value" : "application/json",
     "constraints" : {
@@ -218,11 +216,11 @@
       "name" : "input.accept",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The desired MIME type of the inference response from the model container. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.customAttributes",
     "label" : "Custom attributes",
-    "description" : "Provides additional information about a request for an inference submitted to a model hosted at an Amazon SageMaker endpoint. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -230,11 +228,11 @@
       "name" : "input.customAttributes",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Provides additional information about a request for an inference submitted to a model hosted at an Amazon SageMaker endpoint. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.targetModel",
     "label" : "Target model",
-    "description" : "The model to request for inference when invoking a multi-model endpoint. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -247,11 +245,11 @@
       "equals" : "SYNC",
       "type" : "simple"
     },
+    "tooltip" : "The model to request for inference when invoking a multi-model endpoint. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.targetVariant",
     "label" : "Target variant",
-    "description" : "Specify the production variant to send the inference request to. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -264,11 +262,11 @@
       "equals" : "SYNC",
       "type" : "simple"
     },
+    "tooltip" : "The production variant to send the inference request to. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.targetContainerHostname",
     "label" : "Target invocation host name",
-    "description" : "If the endpoint hosts multiple containers and is configured to use direct invocation, this parameter specifies the host name of the container to invoke. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -281,11 +279,11 @@
       "equals" : "SYNC",
       "type" : "simple"
     },
+    "tooltip" : "If the endpoint hosts multiple containers and is configured to use direct invocation, this parameter specifies the host name of the container to invoke. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.inferenceId",
     "label" : "Inference ID",
-    "description" : "If you provide a value, it is added to the captured data when you enable data capture on the endpoint. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -293,11 +291,11 @@
       "name" : "input.inferenceId",
       "type" : "zeebe:input"
     },
+    "tooltip" : "If you provide a value, it is added to the captured data when you enable data capture on the endpoint. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.enableExplanations",
     "label" : "Enable explanations",
-    "description" : "Whether request needs to be explained. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : false,
     "value" : "NOT_SET",
     "group" : "input",
@@ -310,6 +308,7 @@
       "equals" : "SYNC",
       "type" : "simple"
     },
+    "tooltip" : "Whether request needs to be explained. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Not set",
@@ -324,7 +323,6 @@
   }, {
     "id" : "input.inferenceComponentName",
     "label" : "Inference component name",
-    "description" : "If the endpoint hosts one or more inference components, this parameter specifies the name of inference component to invoke. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -337,11 +335,11 @@
       "equals" : "SYNC",
       "type" : "simple"
     },
+    "tooltip" : "If the endpoint hosts one or more inference components, this parameter specifies the name of inference component to invoke. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.inputLocation",
     "label" : "Input location",
-    "description" : "The Amazon S3 URI where the inference request payload is stored. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -357,11 +355,11 @@
       "equals" : "ASYNC",
       "type" : "simple"
     },
+    "tooltip" : "The Amazon S3 URI where the inference request payload is stored. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.requestTTLSeconds",
     "label" : "Request time-to-leave in seconds",
-    "description" : "Maximum age in seconds a request can be in the queue before it is marked as expired. The default is 21,600 seconds. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -374,11 +372,11 @@
       "equals" : "ASYNC",
       "type" : "simple"
     },
+    "tooltip" : "Maximum age in seconds a request can be in the queue before it is marked as expired. The default is 21,600 seconds. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "input.invocationTimeoutSeconds",
     "label" : "Invocation timeout in seconds",
-    "description" : "Maximum amount of time in seconds a request can be processed before it is marked as expired. The default is 900 seconds. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Learn more</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -391,6 +389,7 @@
       "equals" : "ASYNC",
       "type" : "simple"
     },
+    "tooltip" : "Maximum amount of time in seconds a request can be processed before it is marked as expired. The default is 900 seconds. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>",
     "type" : "String"
   }, {
     "id" : "version",

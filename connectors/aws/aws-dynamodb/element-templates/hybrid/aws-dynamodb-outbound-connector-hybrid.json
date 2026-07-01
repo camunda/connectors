@@ -211,7 +211,6 @@
   }, {
     "id" : "input.createTable.tableName",
     "label" : "Table name",
-    "description" : "Name of DynamoDB table",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -233,11 +232,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.partitionKey",
     "label" : "Partition key",
-    "description" : "Partition key role. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -259,11 +258,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Attribute name of the table's partition key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.partitionKeyRole",
     "label" : "Partition key role",
-    "description" : "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -284,6 +283,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "HASH",
@@ -295,7 +295,6 @@
   }, {
     "id" : "input.partitionKeyType",
     "label" : "Partition key attribute data type",
-    "description" : "Represents the data for an attribute",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -316,6 +315,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Represents the data for an attribute",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Binary",
@@ -330,7 +330,6 @@
   }, {
     "id" : "input.sortKey",
     "label" : "Sort key",
-    "description" : "Sort key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -349,11 +348,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.sortKeyRole",
     "label" : "Sort key role",
-    "description" : "The role that this key attribute will assume",
     "optional" : true,
     "group" : "input",
     "binding" : {
@@ -371,6 +370,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The role that this key attribute will assume",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "HASH",
@@ -382,7 +382,6 @@
   }, {
     "id" : "input.sortKeyType",
     "label" : "Sort key attribute data type",
-    "description" : "Represents the data for an attribute",
     "optional" : true,
     "group" : "input",
     "binding" : {
@@ -400,6 +399,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Represents the data for an attribute",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Binary",
@@ -414,7 +414,6 @@
   }, {
     "id" : "input.readCapacityUnits",
     "label" : "Read capacity units",
-    "description" : "Total number of read capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -436,11 +435,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Total number of read capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "Number"
   }, {
     "id" : "input.writeCapacityUnits",
     "label" : "Write capacity units",
-    "description" : "Total number of write capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -462,11 +461,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Total number of write capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "Number"
   }, {
     "id" : "input.billingModeStr",
     "label" : "Billing mode",
-    "description" : "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -487,6 +486,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "PROVISIONED",
@@ -498,7 +498,6 @@
   }, {
     "id" : "input.deletionProtection",
     "label" : "Deletion protection",
-    "description" : "Prevents accidental table deletion",
     "optional" : false,
     "value" : "false",
     "constraints" : {
@@ -520,6 +519,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Prevents accidental table deletion",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "True",
@@ -531,7 +531,6 @@
   }, {
     "id" : "input.deleteTable.tableName",
     "label" : "Table name",
-    "description" : "Name of DynamoDB table",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -553,11 +552,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.describeTable.tableName",
     "label" : "Table name",
-    "description" : "Name of DynamoDB table",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -579,11 +578,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.scanTable.tableName",
     "label" : "Table name",
-    "description" : "Name of DynamoDB table",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -605,11 +604,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.filterExpression",
     "label" : "Filter expression",
-    "description" : "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -628,11 +627,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.projectionExpression",
     "label" : "Projection expression",
-    "description" : "Is a string that identifies the attributes that you want. For multiple attributes, the names must be comma-separated",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -651,11 +650,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "A string that identifies the attributes that you want. For multiple attributes, the names must be comma-separated.",
     "type" : "String"
   }, {
     "id" : "input.expressionAttributeNames",
     "label" : "Expression attribute names",
-    "description" : "Is a placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : true,
     "feel" : "required",
     "group" : "input",
@@ -674,11 +673,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "A placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.expressionAttributeValues",
     "label" : "Expression attribute values",
-    "description" : "Expression attribute values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : true,
     "feel" : "required",
     "group" : "input",
@@ -697,11 +696,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.addItem.tableName",
     "label" : "Table name",
-    "description" : "Name of DynamoDB table",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -723,11 +722,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.item",
     "label" : "Item",
-    "description" : "DynamoDB item (group of attributes)",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -749,11 +748,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "DynamoDB item (group of attributes)",
     "type" : "String"
   }, {
     "id" : "input.deleteItem.tableName",
     "label" : "Table name",
-    "description" : "Name of DynamoDB table",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -775,11 +774,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.deleteItem.primaryKeyComponents",
     "label" : "Primary key components",
-    "description" : "Simple or composite primary key",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -801,11 +800,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Simple or composite primary key",
     "type" : "String"
   }, {
     "id" : "input.getItem.tableName",
     "label" : "Table name",
-    "description" : "Name of DynamoDB table",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -827,11 +826,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.getItem.primaryKeyComponents",
     "label" : "Primary key components",
-    "description" : "Simple or composite primary key",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -853,11 +852,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Simple or composite primary key",
     "type" : "String"
   }, {
     "id" : "input.updateTable.tableName",
     "label" : "Table name",
-    "description" : "Name of DynamoDB table",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -879,11 +878,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.updateItem.primaryKeyComponents",
     "label" : "Primary key components",
-    "description" : "Simple or composite primary key",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -905,11 +904,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Simple or composite primary key",
     "type" : "String"
   }, {
     "id" : "input.keyAttributes",
     "label" : "Key attributes",
-    "description" : "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -931,11 +930,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.attributeAction",
     "label" : "Attribute action",
-    "description" : "Specifies how to perform the update",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -956,6 +955,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Specifies how to perform the update",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "PUT",

@@ -161,7 +161,6 @@
   }, {
     "id" : "data.modelId0",
     "label" : "Model ID",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -177,11 +176,11 @@
       "equals" : "invokeModel",
       "type" : "simple"
     },
+    "tooltip" : "<a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">AWS Bedrock model IDs</a>",
     "type" : "String"
   }, {
     "id" : "data.payload",
     "label" : "Payload",
-    "description" : "Specify the payload. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -197,11 +196,11 @@
       "equals" : "invokeModel",
       "type" : "simple"
     },
+    "tooltip" : "<a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html\" target=\"_blank\">AWS Bedrock model parameters</a>",
     "type" : "String"
   }, {
     "id" : "data.messagesHistory",
     "label" : "Message History",
-    "description" : "Specify the message history, when previous context is needed",
     "optional" : true,
     "feel" : "required",
     "group" : "converse",
@@ -214,11 +213,11 @@
       "equals" : "converse",
       "type" : "simple"
     },
+    "tooltip" : "History of the conversation to continue. If not set, this starts a new conversation.",
     "type" : "String"
   }, {
     "id" : "data.modelId1",
     "label" : "Model ID",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -234,11 +233,11 @@
       "equals" : "converse",
       "type" : "simple"
     },
+    "tooltip" : "<a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">AWS Bedrock model IDs</a>",
     "type" : "String"
   }, {
     "id" : "data.newMessage",
     "label" : "New Message",
-    "description" : "Specify the next message",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -254,6 +253,7 @@
       "equals" : "converse",
       "type" : "simple"
     },
+    "tooltip" : "The next message to send in the conversation.",
     "type" : "String"
   }, {
     "id" : "data.maxTokens",

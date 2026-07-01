@@ -35,7 +35,7 @@ public record ComprehendAsyncRequestData(
                   label = "Force document read action"),
               @TemplateProperty.DropdownPropertyChoice(value = "NO_DATA", label = "None"),
             },
-            description =
+            tooltip =
                 "Determines <a href=\"https://docs.aws.amazon.com/comprehend/latest/dg/idp-set-textract-options.html\">text extraction actions</a> for PDF files.")
         @NotNull
         ComprehendDocumentReadMode documentReadMode,
@@ -56,10 +56,8 @@ public record ComprehendAsyncRequestData(
                   label = "Analyze document"),
               @TemplateProperty.DropdownPropertyChoice(value = "NO_DATA", label = "None")
             },
-            description =
-                "Textract API operation that uses to extract text from PDF files and image files.",
             tooltip =
-                "<a href=\"https://docs.aws.amazon.com/comprehend/latest/dg/idp-set-textract-options.html\"target=\"_blank\">more info</a>")
+                "The Amazon Textract API operation that Amazon Comprehend uses to extract text from PDF files and image files.")
         @NotNull
         ComprehendDocumentReadAction documentReadAction,
     @TemplateProperty(
@@ -89,7 +87,7 @@ public record ComprehendAsyncRequestData(
     @TemplateProperty(
             label = "Inputs' S3 URI",
             group = "input",
-            description =
+            tooltip =
                 "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-InputDataConfig-S3Uri\">S3Uri</a> for input data.")
         @NotNull
         String inputS3Uri,
@@ -108,56 +106,55 @@ public record ComprehendAsyncRequestData(
                   label = "Each line in a file is considered a separate document"),
               @TemplateProperty.DropdownPropertyChoice(value = "NO_DATA", label = "None")
             },
-            description =
+            tooltip =
                 "Specifies how to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-InputDataConfig-InputFormat\">process input data</a>.")
         ComprehendInputFormat comprehendInputFormat,
     @TemplateProperty(
             group = "input",
             label = "Client request token",
-            description =
+            tooltip =
                 "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-ClientRequestToken\">Unique identifier</a> for the processing.",
             optional = true)
         String clientRequestToken,
     @TemplateProperty(
             group = "input",
             label = "Data Access Role's ARN",
-            description =
+            tooltip =
                 "ARN of IAM role that grants <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-DataAccessRoleArn\">Amazon Comprehend read access</a> to input data.")
         @NotNull
         String dataAccessRoleArn,
     @TemplateProperty(
             group = "input",
             label = "Document Classifier's ARN",
-            description =
+            tooltip =
                 "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-DocumentClassifierArn\">ARN of document classifier</a> to process input data.")
         @NotNull
         String documentClassifierArn,
     @TemplateProperty(
             group = "input",
             label = "Flywheel's ARN",
-            description =
+            tooltip =
                 "ARN of <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-FlywheelArn\">Flywheel</a> for processing model.",
             optional = true)
         String flywheelArn,
     @TemplateProperty(
             group = "input",
             label = "Job name",
-            description =
-                "The identifier of the job. "
-                    + "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-JobName\">More info.</a>",
+            tooltip =
+                "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-JobName\">identifier of the job</a>.",
             optional = true)
         String jobName,
     @TemplateProperty(
             group = "input",
             label = "Output's S3 URI",
-            description =
+            tooltip =
                 "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_InputDataConfig.html#comprehend-Type-OutputDataConfig-S3Uri\">S3Uri</a> for output data.")
         @NotNull
         String outputS3Uri,
     @TemplateProperty(
             group = "input",
             label = "Outputs KMS Key Id",
-            description =
+            tooltip =
                 "KMS' key Id used to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_OutputDataConfig.html#comprehend-Type-OutputDataConfig-KmsKeyId\">encrypt output data</a>.",
             optional = true)
         String outputKmsKeyId,
@@ -165,15 +162,15 @@ public record ComprehendAsyncRequestData(
         @TemplateProperty(
             group = "input",
             label = "Tags",
-            description =
-                "Tags to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-Tags\">associate progressing with a document classification</a>.",
+            tooltip =
+                "Tags to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-Tags\">associate with the document classification job</a>.",
             optional = true,
             feel = FeelMode.required)
         Map<String, String> tags,
     @TemplateProperty(
             group = "input",
             label = "VolumeKmsKeyId",
-            description =
+            tooltip =
                 "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-VolumeKmsKeyId\">KMS to encrypt data on storage</a> attached to compute instance.",
             optional = true)
         String volumeKmsKeyId,
@@ -181,7 +178,7 @@ public record ComprehendAsyncRequestData(
         @TemplateProperty(
             group = "input",
             label = "Security group Ids",
-            description =
+            tooltip =
                 "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_VpcConfig.html#comprehend-Type-VpcConfig-SecurityGroupIds\">ID for security group</a> on instance of private VPC.",
             optional = true,
             feel = FeelMode.required)
@@ -190,7 +187,7 @@ public record ComprehendAsyncRequestData(
         @TemplateProperty(
             group = "input",
             label = "Subnets",
-            description =
+            tooltip =
                 "ID for each <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_VpcConfig.html#comprehend-Type-VpcConfig-Subnets\">subnet used in VPC</a>.",
             optional = true,
             feel = FeelMode.required)

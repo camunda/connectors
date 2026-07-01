@@ -144,7 +144,6 @@
   }, {
     "id" : "input.documentLocationType",
     "label" : "Document source",
-    "description" : "Document source of the input document that should be analyzed.",
     "optional" : false,
     "value" : "S3",
     "group" : "document",
@@ -152,6 +151,7 @@
       "name" : "input.documentLocationType",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Source of the input document to be analyzed.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda Document",
@@ -163,7 +163,6 @@
   }, {
     "id" : "input.documentS3Bucket",
     "label" : "Document bucket",
-    "description" : "S3 bucket that contains document that should be analyzed.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -179,11 +178,11 @@
       "equals" : "S3",
       "type" : "simple"
     },
+    "tooltip" : "S3 bucket that contains the document to be analyzed.",
     "type" : "String"
   }, {
     "id" : "input.documentName",
     "label" : "Document name",
-    "description" : "S3 document name of the document that should be analyzed.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -199,11 +198,11 @@
       "equals" : "S3",
       "type" : "simple"
     },
+    "tooltip" : "Name of the document to be analyzed in the S3 bucket.",
     "type" : "String"
   }, {
     "id" : "input.documentVersion",
     "label" : "Document version",
-    "description" : "S3 document version of the document that should be analyzed.",
     "optional" : true,
     "feel" : "optional",
     "group" : "document",
@@ -216,11 +215,11 @@
       "equals" : "S3",
       "type" : "simple"
     },
+    "tooltip" : "Version of the document to be analyzed in the S3 bucket.",
     "type" : "String"
   }, {
     "id" : "input.document",
     "label" : "Camunda Document",
-    "description" : "The Camunda document of the process that should be analyzed.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -236,11 +235,11 @@
       "equals" : "UPLOADED",
       "type" : "simple"
     },
+    "tooltip" : "The Camunda document to be analyzed.",
     "type" : "String"
   }, {
     "id" : "input.executionType",
     "label" : "Execution type",
-    "description" : "How the document should be processes. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "value" : "POLLING",
     "constraints" : {
@@ -256,6 +255,7 @@
       "equals" : "S3",
       "type" : "simple"
     },
+    "tooltip" : "How the document should be processed. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">Amazon Textract execution types documentation</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Asynchronous",
@@ -270,7 +270,6 @@
   }, {
     "id" : "input.analyzeTables",
     "label" : "Analyze tables",
-    "description" : "Select this to return information about the tables that are detected in the input document.",
     "optional" : false,
     "value" : true,
     "constraints" : {
@@ -282,11 +281,11 @@
       "name" : "input.analyzeTables",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Select this to return information about the tables that are detected in the input document.",
     "type" : "Boolean"
   }, {
     "id" : "input.analyzeForms",
     "label" : "Analyze form",
-    "description" : "Select this to return information detected form data.",
     "optional" : false,
     "value" : true,
     "constraints" : {
@@ -298,11 +297,11 @@
       "name" : "input.analyzeForms",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Select this to return information about detected form data.",
     "type" : "Boolean"
   }, {
     "id" : "input.analyzeSignatures",
     "label" : "Analyze signatures",
-    "description" : "Select this to return the locations of detected signatures.",
     "optional" : false,
     "value" : true,
     "constraints" : {
@@ -314,11 +313,11 @@
       "name" : "input.analyzeSignatures",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Select this to return the locations of detected signatures.",
     "type" : "Boolean"
   }, {
     "id" : "input.analyzeLayout",
     "label" : "Analyze layout",
-    "description" : "Select this to return information about the layout of the document.",
     "optional" : false,
     "value" : false,
     "constraints" : {
@@ -330,6 +329,7 @@
       "name" : "input.analyzeLayout",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Select this to return information about the layout of the document.",
     "type" : "Boolean"
   }, {
     "id" : "input.analyzeQueries",
@@ -365,7 +365,6 @@
   }, {
     "id" : "input.outputConfigS3Bucket",
     "label" : "Output S3 bucket",
-    "description" : "The name of the bucket your output will go to.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -381,11 +380,11 @@
       "equals" : "ASYNC",
       "type" : "simple"
     },
+    "tooltip" : "The name of the bucket your output will go to.",
     "type" : "String"
   }, {
     "id" : "input.outputConfigS3Prefix",
     "label" : "Output S3 prefix",
-    "description" : "The prefix of the object key that the output will be saved to.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -401,11 +400,11 @@
       "equals" : "ASYNC",
       "type" : "simple"
     },
+    "tooltip" : "The prefix of the object key that the output will be saved to.",
     "type" : "String"
   }, {
     "id" : "input.clientRequestToken",
     "label" : "Client request token",
-    "description" : "The idempotent token that you use to identify the start request.",
     "optional" : true,
     "feel" : "optional",
     "group" : "advanced",
@@ -418,11 +417,11 @@
       "equals" : "ASYNC",
       "type" : "simple"
     },
+    "tooltip" : "The idempotent token that you use to identify the start request.",
     "type" : "String"
   }, {
     "id" : "input.jobTag",
     "label" : "Job tag",
-    "description" : "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic.",
     "optional" : true,
     "feel" : "optional",
     "group" : "advanced",
@@ -435,11 +434,11 @@
       "equals" : "ASYNC",
       "type" : "simple"
     },
+    "tooltip" : "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic.",
     "type" : "String"
   }, {
     "id" : "input.kmsKeyId",
     "label" : "KMS key ID",
-    "description" : "The KMS key used to encrypt the inference results.",
     "optional" : true,
     "feel" : "optional",
     "group" : "advanced",
@@ -452,11 +451,11 @@
       "equals" : "ASYNC",
       "type" : "simple"
     },
+    "tooltip" : "The KMS key used to encrypt the inference results.",
     "type" : "String"
   }, {
     "id" : "input.notificationChannelRoleArn",
     "label" : "Notification channel role ARN",
-    "description" : "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to.",
     "optional" : true,
     "feel" : "optional",
     "group" : "advanced",
@@ -469,11 +468,11 @@
       "equals" : "ASYNC",
       "type" : "simple"
     },
+    "tooltip" : "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to.",
     "type" : "String"
   }, {
     "id" : "input.notificationChannelSnsTopicArn",
     "label" : "Notification channel SNS topic ARN",
-    "description" : "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to.",
     "optional" : true,
     "feel" : "optional",
     "group" : "advanced",
@@ -486,6 +485,7 @@
       "equals" : "ASYNC",
       "type" : "simple"
     },
+    "tooltip" : "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to.",
     "type" : "String"
   }, {
     "id" : "version",
