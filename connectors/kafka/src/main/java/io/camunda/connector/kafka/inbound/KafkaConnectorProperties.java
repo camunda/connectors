@@ -33,15 +33,13 @@ public record KafkaConnectorProperties(
                   label = "Credentials"),
               @TemplateProperty.DropdownPropertyChoice(value = "custom", label = "Custom")
             },
-            description = "Username/password or custom")
+            tooltip = "Username/password or custom.")
         AuthenticationType authenticationType,
     @Valid KafkaAuthentication authentication,
     @Valid @NotNull KafkaTopic topic,
     @TemplateProperty(
             group = "kafka",
             label = "Consumer group ID",
-            description =
-                "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one",
             tooltip =
                 "It is strongly recommended to provide an explicit consumer group ID. "
                     + "Use a stable, application-specific identifier that represents the logical consumer group in your application "
@@ -54,7 +52,7 @@ public record KafkaConnectorProperties(
             label = "Additional properties",
             optional = true,
             feel = FeelMode.required,
-            description = "Provide additional Kafka consumer properties in JSON")
+            tooltip = "Additional Kafka consumer properties in JSON.")
         Map<String, Object> additionalProperties,
     @FEEL
         @TemplateProperty(
@@ -62,8 +60,8 @@ public record KafkaConnectorProperties(
             label = "Offsets",
             feel = FeelMode.optional,
             optional = true,
-            description =
-                "List of offsets, e.g. '10' or '=[10, 23]'. If specified, it has to have the same number of values as the number of partitions")
+            tooltip =
+                "List of offsets, e.g. '10' or '=[10, 23]'. If specified, it has to have the same number of values as the number of partitions.")
         List<Long> offsets,
     @NotNull
         @TemplateProperty(
@@ -76,8 +74,8 @@ public record KafkaConnectorProperties(
               @TemplateProperty.DropdownPropertyChoice(value = "latest", label = "Latest"),
               @TemplateProperty.DropdownPropertyChoice(value = "earliest", label = "Earliest")
             },
-            description =
-                "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets")
+            tooltip =
+                "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets.")
         AutoOffsetReset autoOffsetReset, // = AutoOffsetReset.NONE;
     @Valid InboundSchemaStrategy schemaStrategy) {
 

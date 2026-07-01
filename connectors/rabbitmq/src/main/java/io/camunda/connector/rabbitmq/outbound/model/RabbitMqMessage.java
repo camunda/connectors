@@ -17,12 +17,12 @@ public record RabbitMqMessage(
             optional = true,
             defaultValue = "={}",
             type = TemplateProperty.PropertyType.Text,
-            description = "Properties for the message, routing headers, etc")
+            tooltip = "Properties for the message, routing headers, etc")
         Object properties,
     @NotNull
         @TemplateProperty(
             group = "message",
             label = "Message",
             type = TemplateProperty.PropertyType.Text,
-            description = "Data to send to RabbitMQ")
+            tooltip = "Data to send to RabbitMQ")
         Object body) {}
