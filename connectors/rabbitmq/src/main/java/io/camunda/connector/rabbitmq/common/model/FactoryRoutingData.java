@@ -19,8 +19,8 @@ public record FactoryRoutingData(
                 @TemplateProperty.PropertyCondition(
                     property = "authentication.authType",
                     equals = "credentials"),
-            description =
-                "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
+            tooltip =
+                "Virtual host: get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
         String virtualHost,
     @NotBlank
         @TemplateProperty(
@@ -30,8 +30,8 @@ public record FactoryRoutingData(
                 @TemplateProperty.PropertyCondition(
                     property = "authentication.authType",
                     equals = "credentials"),
-            description =
-                "Host name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
+            tooltip =
+                "Host name: get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
         String hostName,
     @NotNull
         @TemplateProperty(
@@ -41,6 +41,6 @@ public record FactoryRoutingData(
                 @TemplateProperty.PropertyCondition(
                     property = "authentication.authType",
                     equals = "credentials"),
-            description =
-                "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
+            tooltip =
+                "Port: get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
         String port) {}

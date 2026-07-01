@@ -33,7 +33,7 @@ import java.io.IOException;
 public record ReactionsAddData(
     @TemplateProperty(
             label = "Channel",
-            description = "Channel ID of the message to react to",
+            tooltip = "Channel ID of the message to react to",
             id = "reaction.channel",
             group = "reaction",
             binding = @PropertyBinding(name = "data.channel"),
@@ -42,7 +42,7 @@ public record ReactionsAddData(
         String channel,
     @TemplateProperty(
             label = "Emoji name",
-            description = "Emoji name (e.g. eyes)",
+            placeholder = "eyes",
             id = "data.emoji",
             group = "reaction",
             binding = @PropertyBinding(name = "data.emoji"),
@@ -51,7 +51,7 @@ public record ReactionsAddData(
         String emoji,
     @TemplateProperty(
             label = "Message timestamp",
-            description = "Timestamp of the Slack message to react to",
+            tooltip = "Timestamp of the Slack message to react to",
             id = "data.timestamp",
             group = "reaction",
             feel = FeelMode.required,

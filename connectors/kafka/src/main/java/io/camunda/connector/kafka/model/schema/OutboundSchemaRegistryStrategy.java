@@ -30,7 +30,7 @@ public final class OutboundSchemaRegistryStrategy extends AbstractSchemaRegistry
       type = TemplateProperty.PropertyType.Text,
       label = "Schema",
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-      description = "Schema (JSON or AVRO) for the message value")
+      tooltip = "Schema (JSON or Avro) for the message value.")
   String schema;
 
   public OutboundSchemaRegistryStrategy(

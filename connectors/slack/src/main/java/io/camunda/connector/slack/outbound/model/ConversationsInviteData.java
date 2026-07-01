@@ -95,8 +95,8 @@ public record ConversationsInviteData(
     @TemplateProperty(
             label = "Users",
             id = "data.users",
-            description =
-                "Comma-separated list of users, e.g., '@user1,@user2' or '=[ \"@user1\", \"user2@company.com\"]'",
+            tooltip = "Comma-separated list of users.",
+            placeholder = "@user1,@user2",
             group = "invite",
             binding = @PropertyBinding(name = "data.users"),
             feel = FeelMode.optional)
