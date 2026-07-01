@@ -28,6 +28,7 @@ import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.cli.GeneratorServiceLoader;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.java.json.ElementTemplateModule;
+import io.camunda.connector.optimizer.core.Optimizer;
 import java.util.List;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
@@ -93,6 +94,13 @@ public class Generate implements Callable<Integer> {
     } catch (Exception e) {
       System.err.println("Generation failed: " + e.getMessage());
       return GENERATION_FAILED.getCode();
+    }
+    try {
+      Optimizer optimizer = Optimizer.defaultPipeline();
+      templates = templates.stream().map(optimizer::optimize).toList();
+    } catch (Exception e) {
+      System.err.println("Optimization failed: " + e.getMessage());
+      return OPTIMIZATION_FAILED.getCode();
     }
     try {
       String resultString;

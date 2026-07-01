@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -10,26 +11,34 @@
     <version>8.10.0-SNAPSHOT</version>
   </parent>
 
-  <name>congen-cli</name>
-  <description>congen CLI application</description>
-  <artifactId>congen-cli</artifactId>
+  <name>Element Template Optimizer</name>
+  <description>Optimizes Camunda element templates by compacting conditional properties</description>
+  <artifactId>element-template-optimizer</artifactId>
   <packaging>jar</packaging>
 
   <properties>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
     <version.picocli>4.7.7</version.picocli>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <dependencies>
     <dependency>
-      <groupId>info.picocli</groupId>
-      <artifactId>picocli</artifactId>
-      <version>${version.picocli}</version>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
-      <groupId>com.networknt</groupId>
-      <artifactId>json-schema-validator</artifactId>
-      <version>3.0.5</version>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-annotations</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
 
     <dependency>
@@ -38,30 +47,11 @@
     </dependency>
 
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>element-template-generator-annotations</artifactId>
+      <groupId>info.picocli</groupId>
+      <artifactId>picocli</artifactId>
+      <version>${version.picocli}</version>
     </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>element-template-generator-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>element-template-optimizer</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>openapi-parser</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>postman-collections-parser</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
-    </dependency>
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-nop</artifactId>
@@ -72,9 +62,17 @@
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.xmlunit</groupId>
+      <artifactId>xmlunit-core</artifactId>
+      <version>2.11.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -82,25 +80,8 @@
   <build>
     <plugins>
       <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>analyze-dependencies</id>
-            <configuration>
-              <ignoredDependencies>
-                <!-- false positives: these dependencies are linked to the CLI application -->
-                <ignoredDependency>io.camunda.connector:postman-collections-parser</ignoredDependency>
-                <ignoredDependency>io.camunda.connector:openapi-parser</ignoredDependency>
-                <ignoredDependency>org.slf4j:slf4j-nop</ignoredDependency>
-              </ignoredDependencies>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <!-- annotationProcessorPaths requires maven-compiler-plugin version 3.5 or higher -->
         <configuration>
           <annotationProcessorPaths>
             <path>
@@ -129,11 +110,25 @@
         <configuration>
           <programs>
             <program>
-              <mainClass>io.camunda.connector.generator.cli.Main</mainClass>
-              <id>congen</id>
+              <mainClass>io.camunda.connector.optimizer.Main</mainClass>
+              <id>element-template-optimizer</id>
             </program>
           </programs>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze-dependencies</id>
+            <configuration>
+              <ignoredDependencies>
+                <ignoredDependency>org.slf4j:slf4j-nop</ignoredDependency>
+                <ignoredDependency>io.camunda.connector:element-template-generator-core</ignoredDependency>
+              </ignoredDependencies>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
