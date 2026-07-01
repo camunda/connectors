@@ -60,7 +60,7 @@ import org.springframework.core.env.Environment;
   ProcessInstanceClientConfiguration.class,
   InboundConnectorRestController.class,
   InboundInstancesRestController.class,
-  GlobalExceptionHandler.class,
+  GlobalExceptionHandler.class
 })
 public class InboundConnectorRuntimeConfiguration {
   @Value("${camunda.connector.inbound.message.ttl:PT1H}")

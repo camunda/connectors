@@ -45,6 +45,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -134,7 +135,8 @@ class AiAgentJobWorkerHandlerTest {
             exceptionHandlingStrategy,
             outboundConnectorExceptionHandler,
             connectorResultHandler,
-            connectorsOutboundMetrics);
+            connectorsOutboundMetrics,
+            SecretFilterFactory.disabled());
 
     stubFor(post(urlPathEqualTo("/v2/jobs/123456/completion")).willReturn(jsonResponse("{}", 200)));
     stubFor(

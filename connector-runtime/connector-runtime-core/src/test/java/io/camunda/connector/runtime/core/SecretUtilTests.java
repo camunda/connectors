@@ -22,9 +22,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.core.secret.SecretReplacer;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
+import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -81,5 +84,16 @@ public class SecretUtilTests {
     SecretReplacer secretReplacer = (name, context) -> secrets.get(name);
     var result = SecretUtil.replaceSecrets(input, null, secretReplacer);
     assertThat(result).isEqualTo(output);
+  }
+
+  @Test
+  void shouldOnlyReplaceAllowListedSecrets() {
+    List<String> allowList = List.of("KEY1", "KEY2");
+    SecretReplacer secretReplacer =
+        (name, context) -> allowList.contains(name) ? secrets.get(name) : null;
+    String content = "Hello {{secrets.KEY1}} and {{secrets.KEY2}} and {{secrets.KEY3}}";
+    SecretContext secretContext = new SecretContext("tenantId", "processId");
+    String replacedContent = SecretUtil.replaceSecrets(content, secretContext, secretReplacer);
+    assertThat(replacedContent).isEqualTo("Hello VALUE1 and VALUE2 and {{secrets.KEY3}}");
   }
 }
