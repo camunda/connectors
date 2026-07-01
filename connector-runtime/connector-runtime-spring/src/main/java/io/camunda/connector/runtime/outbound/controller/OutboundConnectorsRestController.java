@@ -44,7 +44,10 @@ public class OutboundConnectorsRestController {
   private static final List<String> CURATED_METRICS =
       List.of(
           ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
-          ConnectorMetrics.Outbound.METRIC_NAME_TIME);
+          ConnectorMetrics.Outbound.METRIC_NAME_TIME,
+          ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED,
+          ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED,
+          ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED);
 
   private final InstanceForwardingRouter instanceForwardingRouter;
   private final OutboundConnectorsService outboundConnectorsService;

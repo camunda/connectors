@@ -17,27 +17,22 @@
 package io.camunda.connector.runtime.metrics;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a metric measurement result.
  *
- * @param name the metric name
- * @param meters the matched meters (series), each with its own tags and measurements
- * @param availableTags tag key/values available on the matched meters
+ * @param metricName the metric name
+ * @param series one entry per distinct tag combination, each with its measurements
  */
-public record MetricResponse(String name, List<Meter> meters, List<AvailableTag> availableTags) {
+public record MetricResponse(String metricName, List<Series> series) {
 
   /**
-   * A single matched meter (series) identified by its tag combination.
+   * A single series identified by its tag combination.
    *
-   * @param tags the tags identifying this series
-   * @param measurements list of statistic/value pairs (e.g. COUNT, TOTAL, MAX)
+   * @param tags tag key/value pairs identifying this series (e.g. {@code {"type":
+   *     "io.camunda:http-json:1"}})
+   * @param measurements statistic name to value (e.g. {@code {"COUNT": 2.0}})
    */
-  public record Meter(List<MetricTag> tags, List<Measurement> measurements) {}
-
-  public record MetricTag(String tag, String value) {}
-
-  public record Measurement(String statistic, double value) {}
-
-  public record AvailableTag(String tag, List<String> values) {}
+  public record Series(Map<String, String> tags, Map<String, Double> measurements) {}
 }

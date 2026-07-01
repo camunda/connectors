@@ -20,6 +20,7 @@ import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -83,37 +84,27 @@ public final class MetricsQueryHelper {
 
   /** Builds a {@link MetricResponse} from a collection of meters sharing the same metric name. */
   public static MetricResponse buildMetricResponse(String name, Collection<Meter> matched) {
-    List<MetricResponse.Meter> meters =
+    List<MetricResponse.Series> series =
         matched.stream()
             .map(
-                m ->
-                    new MetricResponse.Meter(
-                        m.getId().getTags().stream()
-                            .map(t -> new MetricResponse.MetricTag(t.getKey(), t.getValue()))
-                            .toList(),
-                        StreamSupport.stream(m.measure().spliterator(), false)
-                            .map(
-                                s ->
-                                    new MetricResponse.Measurement(
-                                        s.getStatistic().name(), s.getValue()))
-                            .toList()))
+                m -> {
+                  Map<String, String> tags =
+                      m.getId().getTags().stream()
+                          .collect(
+                              Collectors.toMap(
+                                  Tag::getKey, Tag::getValue, (a, b) -> a, LinkedHashMap::new));
+                  Map<String, Double> measurements =
+                      StreamSupport.stream(m.measure().spliterator(), false)
+                          .collect(
+                              Collectors.toMap(
+                                  s -> s.getStatistic().name(),
+                                  s -> s.getValue(),
+                                  (a, b) -> a,
+                                  LinkedHashMap::new));
+                  return new MetricResponse.Series(tags, measurements);
+                })
             .toList();
 
-    Map<String, List<String>> tagValues =
-        matched.stream()
-            .flatMap(m -> m.getId().getTags().stream())
-            .collect(
-                Collectors.groupingBy(
-                    Tag::getKey, Collectors.mapping(Tag::getValue, Collectors.toList())));
-
-    List<MetricResponse.AvailableTag> availableTags =
-        tagValues.entrySet().stream()
-            .map(
-                e ->
-                    new MetricResponse.AvailableTag(
-                        e.getKey(), e.getValue().stream().distinct().toList()))
-            .toList();
-
-    return new MetricResponse(name, meters, availableTags);
+    return new MetricResponse(name, series);
   }
 }

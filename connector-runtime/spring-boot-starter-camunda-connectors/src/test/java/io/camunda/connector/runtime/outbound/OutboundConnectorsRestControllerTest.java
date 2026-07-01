@@ -175,6 +175,18 @@ class OutboundConnectorsRestControllerTest {
         .tag("type", "http-json")
         .register(meterRegistry)
         .increment(5.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag("type", "http-json")
+        .register(meterRegistry)
+        .increment(5.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED)
+        .tag("type", "http-json")
+        .register(meterRegistry)
+        .increment(4.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED)
+        .tag("type", "http-json")
+        .register(meterRegistry)
+        .increment(1.0);
 
     var response =
         mockMvc
@@ -187,9 +199,13 @@ class OutboundConnectorsRestControllerTest {
     List<MetricResponse> metrics =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
-    var names = metrics.stream().map(MetricResponse::name).toList();
+    var names = metrics.stream().map(MetricResponse::metricName).toList();
     assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS));
-    // execution-time not registered yet → skipped
+    assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED));
+    assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED));
+    assertTrue(
+        names.contains(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED));
+    // execution-time not registered → skipped
     assertFalse(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_TIME));
   }
 
@@ -214,8 +230,9 @@ class OutboundConnectorsRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
     assertEquals(1, metrics.size());
-    assertEquals(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS, metrics.getFirst().name());
-    assertFalse(metrics.getFirst().meters().isEmpty());
+    assertEquals(
+        ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS, metrics.getFirst().metricName());
+    assertFalse(metrics.getFirst().series().isEmpty());
   }
 
   @Test
@@ -245,8 +262,8 @@ class OutboundConnectorsRestControllerTest {
 
     assertEquals(1, metrics.size());
     var m = metrics.getFirst();
-    assertEquals(1, m.meters().size());
-    assertEquals(4.0, m.meters().getFirst().measurements().getFirst().value());
+    assertEquals(1, m.series().size());
+    assertEquals(4.0, m.series().getFirst().measurements().get("COUNT"));
   }
 
   @Test

@@ -66,7 +66,7 @@ class InboundConnectorRestControllerTest {
     List<MetricResponse> metrics =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
-    var names = metrics.stream().map(MetricResponse::name).toList();
+    var names = metrics.stream().map(MetricResponse::metricName).toList();
     assertTrue(names.contains(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS));
     // triggers not registered yet → skipped
     assertFalse(names.contains(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS));
@@ -93,8 +93,8 @@ class InboundConnectorRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
     assertEquals(1, metrics.size());
-    assertEquals(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS, metrics.getFirst().name());
-    assertFalse(metrics.getFirst().meters().isEmpty());
+    assertEquals(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS, metrics.getFirst().metricName());
+    assertFalse(metrics.getFirst().series().isEmpty());
   }
 
   @Test
@@ -124,8 +124,8 @@ class InboundConnectorRestControllerTest {
 
     assertEquals(1, metrics.size());
     var m = metrics.getFirst();
-    assertEquals(1, m.meters().size());
-    assertEquals(6.0, m.meters().getFirst().measurements().getFirst().value());
+    assertEquals(1, m.series().size());
+    assertEquals(6.0, m.series().getFirst().measurements().get("COUNT"));
   }
 
   @Test
@@ -177,7 +177,7 @@ class InboundConnectorRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
     assertEquals(2, metrics.size());
-    var names = metrics.stream().map(MetricResponse::name).toList();
+    var names = metrics.stream().map(MetricResponse::metricName).toList();
     assertTrue(names.contains(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS));
     assertTrue(names.contains(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS));
   }
