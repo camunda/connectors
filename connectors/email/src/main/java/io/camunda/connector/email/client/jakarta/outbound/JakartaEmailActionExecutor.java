@@ -555,8 +555,11 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                             .build());
                   } catch (Exception e) {
                     throw new RuntimeException(
-                        "Failed to upload attachment '%s' to document store: %s"
-                            .formatted(attachment.name(), e.getMessage()),
+                        "Failed to upload attachment '%s' to document store (%s): %s"
+                            .formatted(
+                                attachment.name(),
+                                e.getClass().getSimpleName(),
+                                String.valueOf(e.getMessage())),
                         e);
                   }
                 })
