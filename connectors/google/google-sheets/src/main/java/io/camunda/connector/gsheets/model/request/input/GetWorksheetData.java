@@ -17,7 +17,6 @@ public record GetWorksheetData(
     @TemplateProperty(
             id = "getWorksheetData.spreadsheetId",
             label = "Spreadsheet ID",
-            description = "Enter the ID of the spreadsheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.spreadsheetId"))
@@ -26,7 +25,6 @@ public record GetWorksheetData(
     @TemplateProperty(
             id = "getWorksheetData.worksheetName",
             label = "Worksheet name",
-            description = "Enter name for the worksheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.worksheetName"))

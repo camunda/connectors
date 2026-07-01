@@ -19,7 +19,6 @@ public record AddValues(
     @TemplateProperty(
             id = "addValues.spreadsheetId",
             label = "Spreadsheet ID",
-            description = "Enter the ID of the spreadsheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.spreadsheetId"))
@@ -28,7 +27,6 @@ public record AddValues(
     @TemplateProperty(
             id = "addValues.worksheetName",
             label = "Worksheet name",
-            description = "Enter name for the worksheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.worksheetName"))
@@ -36,8 +34,8 @@ public record AddValues(
         String worksheetName,
     @TemplateProperty(
             label = "Cell ID",
-            description =
-                "Enter the ID of the cell. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">documentation</a>",
+            tooltip =
+                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">Cell ID documentation</a>",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.cellId"))
@@ -45,7 +43,6 @@ public record AddValues(
         String cellId,
     @TemplateProperty(
             label = "Value",
-            description = "Enter the value",
             group = "operationDetails",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),

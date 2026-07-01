@@ -17,7 +17,6 @@ public record CreateWorksheet(
     @TemplateProperty(
             id = "createWorksheet.spreadsheetId",
             label = "Spreadsheet ID",
-            description = "Enter the ID of the spreadsheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.spreadsheetId"))
@@ -26,7 +25,6 @@ public record CreateWorksheet(
     @TemplateProperty(
             id = "createWorksheet.worksheetName",
             label = "Worksheet name",
-            description = "Enter name for the worksheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.worksheetName"))
@@ -34,8 +32,8 @@ public record CreateWorksheet(
         String worksheetName,
     @TemplateProperty(
             label = "Worksheet index",
-            description =
-                "Enter index of the place where to add worksheet (leave empty if add to the end of sheet list) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">documentation</a>",
+            tooltip =
+                "Leave empty to add to the end of the sheet list. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">worksheet index documentation</a>",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.worksheetIndex"))

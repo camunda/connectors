@@ -15,6 +15,6 @@ public record UploadData(
             group = "operationDetails",
             condition =
                 @TemplateProperty.PropertyCondition(property = "resource.type", equals = "upload"),
-            description =
-                "Upload camunda document, <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">see documentation</a>")
+            tooltip =
+                "Upload a Camunda document. See the <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda document upload API</a>.")
         Document document) {}

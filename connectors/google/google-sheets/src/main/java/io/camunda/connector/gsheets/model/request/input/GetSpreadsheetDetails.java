@@ -17,7 +17,6 @@ public record GetSpreadsheetDetails(
     @TemplateProperty(
             id = "spreadsheetsDetails.spreadsheetId",
             label = "Spreadsheet ID",
-            description = "Enter the ID of the spreadsheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.spreadsheetId"))

@@ -17,7 +17,6 @@ public record CreateSpreadsheet(
     @TemplateProperty(
             id = "createSpreadsheet.spreadsheetName",
             label = "Spreadsheet name",
-            description = "Enter name for the new spreadsheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.spreadsheetName"))
@@ -25,7 +24,7 @@ public record CreateSpreadsheet(
         String spreadsheetName,
     @TemplateProperty(
             label = "Parent folder ID",
-            description = "Enter ID of the parent folder where new spreadsheet will be created",
+            tooltip = "Enter the ID of the parent folder where the new spreadsheet will be created",
             group = "operationDetails",
             optional = true,
             feel = FeelMode.optional,
