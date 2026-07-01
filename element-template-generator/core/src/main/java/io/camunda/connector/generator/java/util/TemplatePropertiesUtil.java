@@ -463,6 +463,7 @@ public class TemplatePropertiesUtil {
           case Hidden -> HiddenProperty.builder();
           case String -> StringProperty.builder();
           case Text -> TextProperty.builder();
+          case Configuration -> createConfigurationPropertyBuilder(parameterType);
           case Unknown -> throw new IllegalStateException("Unknown property type");
         };
     if (Object.class.equals(parameterType)
@@ -472,6 +473,44 @@ public class TemplatePropertiesUtil {
       builder.feel(FeelMode.required);
     }
     return builder;
+  }
+
+  private static PropertyBuilder createConfigurationPropertyBuilder(Class<?> parameterType) {
+    var templateAnnotation =
+        parameterType.getAnnotation(
+            io.camunda.connector.generator.java.annotation.ConfigurationTemplate.class);
+    if (templateAnnotation == null) {
+      throw new IllegalStateException(
+          "A property of type Configuration must reference a type annotated with"
+              + " @ConfigurationTemplate, but "
+              + parameterType.getName()
+              + " is not annotated with @ConfigurationTemplate");
+    }
+    return ConfigurationProperty.builder()
+        .configurationTemplate(templateAnnotation.id())
+        .feel(FeelMode.disabled);
+  }
+
+  /**
+   * Extracts properties from a {@code @ConfigurationTemplate}-annotated class in
+   * configuration-template extraction mode: each property's binding is replaced with a {@link
+   * PropertyBinding.ConfigurationTemplateProperty} (name = property id), {@code feel} is disabled,
+   * and any {@code secret} hint from {@link
+   * io.camunda.connector.generator.java.annotation.TemplateProperty#secret()} is preserved.
+   */
+  public static List<PropertyBuilder> extractConfigurationTemplatePropertiesFromType(
+      Class<?> type, TemplateGenerationContext context) {
+    var builders = extractTemplatePropertiesFromType(type, context);
+    for (var builder : builders) {
+      // Override binding: configuration-template properties use {"type":"property","name":<id>}
+      builder.binding(new PropertyBinding.ConfigurationTemplateProperty(builder.getId()));
+      // No feel on configuration-template properties (values are atomic literals / secret refs)
+      builder.feel(FeelMode.disabled);
+      // The configuration-template schema forbids `optional`; optionality is expressed via
+      // conditions, not this flag. Clear it so it is omitted from the embedded template.
+      builder.optional(null);
+    }
+    return builders;
   }
 
   public static boolean isOutbound(TemplateGenerationContext context) {

@@ -203,6 +203,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
           template.engineVersion() + " is not a valid semantic version");
     }
 
+    var configurationTemplates = buildConfigurationTemplates(template, context);
+
     return context.elementTypes().stream()
         .map(
             elementType -> {
@@ -236,6 +238,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                           mergedGroups, context, elementType, configuration, template))
                   .steps(stepTree.steps())
                   .presets(stepTree.presets())
+                  .configurationTemplates(configurationTemplates)
                   .build();
             })
         .toList();
@@ -308,6 +311,44 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
               template.defaultResultVariable(), template.defaultResultExpression()));
     }
     return newGroups;
+  }
+
+  private List<ConfigurationTemplate> buildConfigurationTemplates(
+      ElementTemplate template, TemplateGenerationContext context) {
+    return Arrays.stream(template.configurationTemplates())
+        .map(
+            templateClass -> {
+              var configurationAnnotation =
+                  templateClass.getAnnotation(
+                      io.camunda.connector.generator.java.annotation.ConfigurationTemplate.class);
+              if (configurationAnnotation == null) {
+                throw new IllegalArgumentException(
+                    "Class "
+                        + templateClass.getName()
+                        + " referenced in @ElementTemplate.configurationTemplates() must be"
+                        + " annotated with @ConfigurationTemplate");
+              }
+              if (configurationAnnotation.name().isBlank()) {
+                throw new IllegalArgumentException(
+                    "@ConfigurationTemplate on "
+                        + templateClass.getName()
+                        + " must declare a non-blank name (required by the configuration-template"
+                        + " schema)");
+              }
+              var templateProperties =
+                  TemplatePropertiesUtil.extractConfigurationTemplatePropertiesFromType(
+                          templateClass, context)
+                      .stream()
+                      .map(PropertyBuilder::build)
+                      .toList();
+              return new ConfigurationTemplate(
+                  configurationAnnotation.id(),
+                  configurationAnnotation.kind(),
+                  configurationAnnotation.version(),
+                  configurationAnnotation.name(),
+                  templateProperties);
+            })
+        .toList();
   }
 
   private List<PropertyBuilder> generateExtensionProperties(ElementTemplate template) {

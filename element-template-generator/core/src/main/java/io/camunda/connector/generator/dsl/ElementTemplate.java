@@ -42,7 +42,8 @@ import java.util.Set;
   "groups",
   "properties",
   "steps",
-  "presets"
+  "presets",
+  "configurationTemplates"
 })
 @JsonInclude(Include.NON_NULL)
 public record ElementTemplate(
@@ -60,7 +61,8 @@ public record ElementTemplate(
     List<Property> properties,
     ElementTemplateIcon icon,
     List<Step> steps,
-    List<Preset> presets) {
+    List<Preset> presets,
+    @JsonInclude(Include.NON_EMPTY) List<ConfigurationTemplate> configurationTemplates) {
 
   static final String SCHEMA_FIELD_NAME = "$schema";
   static final String SCHEMA_URL =
@@ -113,6 +115,9 @@ public record ElementTemplate(
     }
     if (icon != null && !icon.contents().matches("^(data):.*")) {
       throw new IllegalArgumentException("icon contents must be base64 encoded");
+    }
+    if (configurationTemplates == null) {
+      configurationTemplates = List.of();
     }
   }
 

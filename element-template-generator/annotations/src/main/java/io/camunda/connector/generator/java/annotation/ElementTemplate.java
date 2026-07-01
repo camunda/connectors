@@ -52,6 +52,19 @@ public @interface ElementTemplate {
   ExtensionProperty[] extensionProperties() default {};
 
   /**
+   * Configuration template classes to embed in the generated element template.
+   *
+   * <p>Each referenced class must be annotated with {@link ConfigurationTemplate}. Its {@link
+   * TemplateProperty}-annotated fields are walked in configuration-template extraction mode to
+   * produce the embedded template's property list (with {@code property} bindings, no {@code feel},
+   * and optional {@code secret} hints). The {@link ConfigurationTemplate#id()} / {@link
+   * ConfigurationTemplate#kind()} / {@link ConfigurationTemplate#version()} / {@link
+   * ConfigurationTemplate#name()} become the template's {@code id} / {@code kind} / {@code version}
+   * / {@code name}.
+   */
+  Class<?>[] configurationTemplates() default {};
+
+  /**
    * Element template version. The version should be incremented every time the template is changed
    * to make use of the version upgrade mechanism in Camunda Modeler.
    *

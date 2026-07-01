@@ -17,15 +17,21 @@
 package io.camunda.connector.generator.dsl;
 
 import io.camunda.connector.generator.java.annotation.FeelMode;
-import java.util.List;
 
-public final class DropdownProperty extends Property {
+/**
+ * A configuration chooser property. The Camunda Modeler renders this as a picker filtered to
+ * configuration instances compatible with the given {@link #configurationTemplate}. On selection,
+ * the Modeler writes the whole-configuration FEEL expression ({@code =camunda.vars.env.<name>}) to
+ * the single bound {@code zeebe:input} (outbound) / {@code zeebe:property} (inbound); the connector
+ * reads that object as a whole.
+ */
+public final class ConfigurationProperty extends Property {
 
-  public static final String TYPE = "Dropdown";
+  public static final String TYPE = "Configuration";
 
-  private final List<DropdownChoice> choices;
+  private final String configurationTemplate;
 
-  public DropdownProperty(
+  public ConfigurationProperty(
       String name,
       String label,
       String description,
@@ -38,9 +44,7 @@ public final class DropdownProperty extends Property {
       PropertyBinding binding,
       PropertyCondition condition,
       String tooltip,
-      List<DropdownChoice> choices,
-      Object exampleValue,
-      Boolean secret) {
+      String configurationTemplate) {
     super(
         name,
         label,
@@ -55,39 +59,38 @@ public final class DropdownProperty extends Property {
         condition,
         tooltip,
         null,
-        exampleValue,
+        null,
         null,
         TYPE,
-        secret);
-    this.choices = choices;
+        null);
+    this.configurationTemplate = configurationTemplate;
   }
 
-  public List<DropdownChoice> getChoices() {
-    return choices;
+  public String getConfigurationTemplate() {
+    return configurationTemplate;
   }
 
-  public record DropdownChoice(String name, String value) {}
-
-  public static DropdownPropertyBuilder builder() {
-    return new DropdownPropertyBuilder();
+  public static ConfigurationPropertyBuilder builder() {
+    return new ConfigurationPropertyBuilder();
   }
 
-  public static class DropdownPropertyBuilder extends PropertyBuilder {
+  public static class ConfigurationPropertyBuilder extends PropertyBuilder {
 
-    private List<DropdownChoice> choices;
+    private String configurationTemplate;
 
-    public DropdownPropertyBuilder() {}
+    private ConfigurationPropertyBuilder() {}
 
-    public DropdownPropertyBuilder choices(List<DropdownChoice> choices) {
-      this.choices = choices;
+    public ConfigurationPropertyBuilder configurationTemplate(String configurationTemplate) {
+      this.configurationTemplate = configurationTemplate;
       return this;
     }
 
-    public DropdownProperty build() {
+    @Override
+    public ConfigurationProperty build() {
       if (value != null && !(value instanceof String)) {
-        throw new IllegalStateException("Value of a dropdown property must be a string");
+        throw new IllegalStateException("Value of a configuration property must be a string");
       }
-      return new DropdownProperty(
+      return new ConfigurationProperty(
           id,
           label,
           description,
@@ -100,9 +103,7 @@ public final class DropdownProperty extends Property {
           binding,
           condition,
           tooltip,
-          choices,
-          exampleValue,
-          secret);
+          configurationTemplate);
     }
   }
 }
