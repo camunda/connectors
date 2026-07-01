@@ -545,13 +545,23 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
     List<Document> documents =
         attachments.stream()
             .map(
-                document -> {
-                  LOG.debug("Creating document for attachment");
-                  return connectorContext.create(
-                      DocumentCreationRequest.from(document.inputStream())
-                          .fileName(document.name())
-                          .contentType(document.contentType())
-                          .build());
+                attachment -> {
+                  LOG.debug("Creating document for attachment '{}'", attachment.name());
+                  try {
+                    return connectorContext.create(
+                        DocumentCreationRequest.from(attachment.inputStream())
+                            .fileName(attachment.name())
+                            .contentType(attachment.contentType())
+                            .build());
+                  } catch (Exception e) {
+                    throw new RuntimeException(
+                        "Failed to upload attachment '%s' to document store (%s): %s"
+                            .formatted(
+                                attachment.name(),
+                                e.getClass().getSimpleName(),
+                                String.valueOf(e.getMessage())),
+                        e);
+                  }
                 })
             .toList();
     LOG.debug("Created {} document(s) from attachments", documents.size());
