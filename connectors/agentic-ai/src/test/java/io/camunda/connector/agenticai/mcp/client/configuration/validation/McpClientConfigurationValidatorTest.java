@@ -133,6 +133,7 @@ class McpClientConfigurationValidatorTest {
         sseConfig,
         Duration.ofSeconds(1),
         Duration.ofSeconds(2),
-        Duration.ofSeconds(3));
+        Duration.ofSeconds(3),
+        null);
   }
 }

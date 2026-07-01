@@ -395,6 +395,7 @@ class McpRemoteClientRegistryTest {
         null,
         HTTP_TIMEOUT,
         HTTP_TIMEOUT,
+        null,
         null);
   }
 
@@ -415,6 +416,7 @@ class McpRemoteClientRegistryTest {
             SSE_URL, HTTP_HEADERS, authentication, HTTP_TIMEOUT),
         HTTP_TIMEOUT,
         HTTP_TIMEOUT,
+        null,
         null);
   }
 

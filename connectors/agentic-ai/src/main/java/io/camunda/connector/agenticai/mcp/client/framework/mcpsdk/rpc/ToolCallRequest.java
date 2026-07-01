@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -37,10 +38,12 @@ final class ToolCallRequest {
 
   private final String clientId;
   private final ObjectMapper objectMapper;
+  @Nullable private final Map<String, Object> meta;
 
-  ToolCallRequest(String clientId, ObjectMapper objectMapper) {
+  ToolCallRequest(String clientId, ObjectMapper objectMapper, @Nullable Map<String, Object> meta) {
     this.clientId = clientId;
     this.objectMapper = objectMapper;
+    this.meta = meta;
   }
 
   public McpClientCallToolResult execute(
@@ -183,7 +186,12 @@ final class ToolCallRequest {
 
     final var arguments = Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
 
-    return McpSchema.CallToolRequest.builder(params.name()).arguments(arguments).build();
+    final var builder =
+        McpSchema.CallToolRequest.builder(params.name()).arguments(arguments);
+    if (meta != null) {
+      builder.meta(meta);
+    }
+    return builder.build();
   }
 
   record ToolExecutionParameters(String name, Map<String, Object> arguments) {}

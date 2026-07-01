@@ -103,10 +103,10 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
     when(aSseRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
-    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, aMcpClient, objectMapper))
+    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, aMcpClient, objectMapper, null))
         .when(mcpClientRegistry)
         .getClient(MCP_CLIENT_ID);
-    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, filesystemMcpClient, objectMapper))
+    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, filesystemMcpClient, objectMapper, null))
         .when(mcpClientRegistry)
         .getClient("filesystem");
 
@@ -126,7 +126,7 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
                             "Unexpected remote MCP client ID: " + clientId.elementId());
                   };
 
-              return new McpSdkMcpClientDelegate(MCP_CLIENT_ID, internalClient, objectMapper);
+              return new McpSdkMcpClientDelegate(MCP_CLIENT_ID, internalClient, objectMapper, null);
             })
         .when(remoteMcpClientRegistry)
         .getClient(
