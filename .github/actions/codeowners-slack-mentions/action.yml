@@ -1,0 +1,43 @@
+name: Derive Slack mentions from CODEOWNERS
+description: >
+  Resolve the CODEOWNERS owners of the given repo paths and map them to Slack
+  mentions, with optional always-include mentions, deduped. Pure derivation —
+  no GitHub API calls and no Slack posting. Generic: paths + map in, mentions out.
+
+inputs:
+  paths:
+    description: "Newline- or space-separated repo-relative paths to resolve owners for. Empty is allowed (then only always-include is returned)."
+    required: false
+    default: ""
+  codeowners-file:
+    description: "Path to the CODEOWNERS file."
+    required: false
+    default: CODEOWNERS
+  team-slack-map:
+    description: 'JSON mapping "@org/team" -> Slack mention (<!subteam^…> or <@…>), inserted verbatim. Either inline JSON or a path to a .json file; inline lets a caller assemble it from secrets without writing them to disk.'
+    required: true
+  always-include:
+    description: "Mention(s) always included regardless of owners (e.g. a medic group). Space-separated."
+    required: false
+    default: ""
+
+outputs:
+  mentions:
+    description: "Space-joined, deduped Slack mentions (always-include first, then mapped owners)."
+    value: ${{ steps.derive.outputs.mentions }}
+  owners:
+    description: "Space-joined, deduped CODEOWNERS owner handles resolved from the paths."
+    value: ${{ steps.derive.outputs.owners }}
+
+runs:
+  using: composite
+  steps:
+    - name: Derive mentions
+      id: derive
+      shell: bash
+      env:
+        CO_PATHS: ${{ inputs.paths }}
+        CO_CODEOWNERS_FILE: ${{ inputs.codeowners-file }}
+        CO_TEAM_SLACK_MAP: ${{ inputs.team-slack-map }}
+        CO_ALWAYS_INCLUDE: ${{ inputs.always-include }}
+      run: node "$GITHUB_ACTION_PATH/index.mjs"
