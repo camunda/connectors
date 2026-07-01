@@ -19,6 +19,7 @@ package io.camunda.connector.generator.openapi;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.camunda.connector.generator.openapi.util.ParameterUtil;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.Schema;
@@ -182,6 +183,44 @@ public class ParameterUtilTest {
 
       // then
       assertThat(resolved).isSameAs(schema);
+    }
+
+    @Test
+    void transformToProperty_internalParameterRef_resolvesAndTransforms() {
+      // given – parameter with only $ref set, pointing to components
+      var schema = new Schema<>().type("string");
+      var referencedParam = new Parameter();
+      referencedParam.setName("myParam");
+      referencedParam.setIn("query");
+      referencedParam.setSchema(schema);
+
+      var stub = new Parameter();
+      stub.set$ref("#/components/parameters/myParam");
+
+      var components = new Components();
+      components.setParameters(Map.of("myParam", referencedParam));
+
+      // when
+      var property = ParameterUtil.transformToProperty(stub, components);
+
+      // then
+      assertThat(property.id()).isEqualTo("myParam");
+      assertThat(property.target()).isEqualTo(Target.QUERY);
+    }
+
+    @Test
+    void transformToProperty_externalParameterRef_throwsWithMessage() {
+      // given – parameter with an unresolved external $ref
+      var stub = new Parameter();
+      stub.set$ref("./external.yaml#/components/parameters/myParam");
+
+      var components = new Components();
+
+      // when / then
+      assertThatThrownBy(() -> ParameterUtil.transformToProperty(stub, components))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("./external.yaml#/components/parameters/myParam")
+          .hasMessageContaining("External $ref");
     }
   }
 }

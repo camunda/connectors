@@ -37,6 +37,19 @@ public class ParameterUtil {
 
   public static HttpOperationProperty transformToProperty(
       Parameter parameter, Components components) {
+    if (parameter.get$ref() != null) {
+      var ref = parameter.get$ref();
+      if (!ref.startsWith("#/")) {
+        throw new IllegalArgumentException(
+            "External $ref '"
+                + ref
+                + "' cannot be resolved: the spec contains a reference to an external file or URL "
+                + "that was not inlined during parsing. Either remove '--no-resolve-refs' so the "
+                + "parser can follow the reference, or replace the external $ref with an inline "
+                + "parameter definition.");
+      }
+      parameter = components.getParameters().get(ref.replace("#/components/parameters/", ""));
+    }
     if (parameter.getSchema() != null) {
       return fromSchema(parameter, components);
     } else if (parameter.getContent() != null) {
