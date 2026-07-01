@@ -279,11 +279,11 @@
       "name" : "Blocking",
       "value" : "blocking"
     }, {
-      "name" : "Polling",
-      "value" : "polling"
-    }, {
       "name" : "Notification",
       "value" : "notification"
+    }, {
+      "name" : "Polling",
+      "value" : "polling"
     } ]
   }, {
     "id" : "data.connectorMode.operation.settings.responseRetrievalMode.webhookUrl",
@@ -503,11 +503,11 @@
       "name" : "Blocking",
       "value" : "blocking"
     }, {
-      "name" : "Polling",
-      "value" : "polling"
-    }, {
       "name" : "Notification",
       "value" : "notification"
+    }, {
+      "name" : "Polling",
+      "value" : "polling"
     } ]
   }, {
     "id" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.webhookUrl",

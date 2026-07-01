@@ -216,15 +216,41 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Credentials",
-      "value" : "credentials"
-    }, {
       "name" : "API Key",
       "value" : "apiKey"
     }, {
       "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
       "value" : "defaultCredentialsChain"
+    }, {
+      "name" : "Credentials",
+      "value" : "credentials"
     } ]
+  }, {
+    "id" : "provider.bedrock.authentication.apiKey",
+    "label" : "API Key",
+    "description" : "Provide an API Key with permissions to interact with your AWS Bedrock Instance",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "provider.bedrock.authentication.accessKey",
     "label" : "Access key",
@@ -269,32 +295,6 @@
       "allMatch" : [ {
         "property" : "provider.bedrock.authentication.type",
         "equals" : "credentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "bedrock",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.bedrock.authentication.apiKey",
-    "label" : "API Key",
-    "description" : "Provide an API Key with permissions to interact with your AWS Bedrock Instance",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.bedrock.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.type",
-        "equals" : "apiKey",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -563,11 +563,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Service account credentials",
-      "value" : "serviceAccountCredentials"
-    }, {
       "name" : "Application default credentials (Hybrid/Self-Managed only)",
       "value" : "applicationDefaultCredentials"
+    }, {
+      "name" : "Service account credentials",
+      "value" : "serviceAccountCredentials"
     } ]
   }, {
     "id" : "provider.googleVertexAi.authentication.jsonKey",
@@ -1432,11 +1432,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Credentials",
-      "value" : "credentials"
-    }, {
       "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
       "value" : "defaultCredentialsChain"
+    }, {
+      "name" : "Credentials",
+      "value" : "credentials"
     } ]
   }, {
     "id" : "data.memory.storage.authentication.accessKey",
@@ -1605,30 +1605,12 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Text",
-      "value" : "text"
-    }, {
       "name" : "JSON",
       "value" : "json"
+    }, {
+      "name" : "Text",
+      "value" : "text"
     } ]
-  }, {
-    "id" : "data.response.format.parseJson",
-    "label" : "Parse text as JSON",
-    "description" : "Tries to parse the LLM response text as JSON object.",
-    "optional" : true,
-    "feel" : "static",
-    "group" : "response",
-    "binding" : {
-      "name" : "data.response.format.parseJson",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "data.response.format.type",
-      "equals" : "text",
-      "type" : "simple"
-    },
-    "tooltip" : "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). Make sure to instruct the model to return valid JSON in the system prompt. The parsed JSON will be available as <code>response.responseJson</code>.<br><br>If parsing fails, <code>null</code> will be returned as JSON response, but the text content will still be available as <code>response.responseText</code>.",
-    "type" : "Boolean"
   }, {
     "id" : "data.response.format.schema",
     "label" : "Response JSON schema",
@@ -1665,6 +1647,24 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "data.response.format.parseJson",
+    "label" : "Parse text as JSON",
+    "description" : "Tries to parse the LLM response text as JSON object.",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.format.parseJson",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.response.format.type",
+      "equals" : "text",
+      "type" : "simple"
+    },
+    "tooltip" : "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). Make sure to instruct the model to return valid JSON in the system prompt. The parsed JSON will be available as <code>response.responseJson</code>.<br><br>If parsing fails, <code>null</code> will be returned as JSON response, but the text content will still be available as <code>response.responseText</code>.",
+    "type" : "Boolean"
   }, {
     "id" : "data.response.includeAssistantMessage",
     "label" : "Include assistant message",
