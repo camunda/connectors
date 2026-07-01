@@ -20,17 +20,21 @@ public interface McpClientDelegate extends AutoCloseable {
 
   String clientId();
 
-  McpClientListToolsResult listTools(AllowDenyList filter);
+  McpClientListToolsResult listTools(AllowDenyList filter, Map<String, Object> meta);
 
-  McpClientCallToolResult callTool(Map<String, Object> params, AllowDenyList filter);
+  McpClientCallToolResult callTool(
+      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter);
 
-  McpClientListResourcesResult listResources(AllowDenyList filter);
+  McpClientListResourcesResult listResources(AllowDenyList filter, Map<String, Object> meta);
 
-  McpClientListResourceTemplatesResult listResourceTemplates(AllowDenyList filter);
+  McpClientListResourceTemplatesResult listResourceTemplates(
+      AllowDenyList filter, Map<String, Object> meta);
 
-  McpClientReadResourceResult readResource(Map<String, Object> params, AllowDenyList filter);
+  McpClientReadResourceResult readResource(
+      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter);
 
-  McpClientListPromptsResult listPrompts(AllowDenyList filter);
+  McpClientListPromptsResult listPrompts(AllowDenyList filter, Map<String, Object> meta);
 
-  McpClientGetPromptResult getPrompt(Map<String, Object> params, AllowDenyList filter);
+  McpClientGetPromptResult getPrompt(
+      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter);
 }

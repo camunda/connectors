@@ -44,10 +44,13 @@ final class ToolCallRequest {
   }
 
   public McpClientCallToolResult execute(
-      McpSyncClient client, AllowDenyList toolNameFilter, Map<String, Object> params) {
+      McpSyncClient client,
+      AllowDenyList toolNameFilter,
+      Map<String, Object> params,
+      Map<String, Object> meta) {
 
     final var parameters = parseParams(params);
-    final var toolExecutionRequest = createToolExecutionRequest(parameters);
+    final var toolExecutionRequest = createToolExecutionRequest(parameters, meta);
     if (!toolNameFilter.isPassing(toolExecutionRequest.name())) {
       LOGGER.error(
           "MCP({}): Tool '{}' is not included in the filter {}.",
@@ -176,14 +179,15 @@ final class ToolCallRequest {
     }
   }
 
-  private McpSchema.CallToolRequest createToolExecutionRequest(ToolExecutionParameters params) {
+  private McpSchema.CallToolRequest createToolExecutionRequest(
+      ToolExecutionParameters params, Map<String, Object> meta) {
     if (params == null || params.name() == null) {
       throw new IllegalArgumentException("Tool name must not be null");
     }
 
     final var arguments = Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
 
-    return McpSchema.CallToolRequest.builder(params.name()).arguments(arguments).build();
+    return McpSchema.CallToolRequest.builder(params.name()).arguments(arguments).meta(meta).build();
   }
 
   record ToolExecutionParameters(String name, Map<String, Object> arguments) {}

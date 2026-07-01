@@ -126,10 +126,10 @@ McpClientFunction / McpRemoteClientFunction
   │     └── McpClientResultDocumentHandler (binary → document conversion)
   │
   ├── McpClientDelegate (interface)
-  │     ├── listTools(filter)
-  │     ├── callTool(params, filter)
-  │     ├── listResources(filter), readResource(params, filter)
-  │     └── listPrompts(filter), getPrompt(params, filter)
+  │     ├── listTools(filter, meta)
+  │     ├── callTool(params, meta, filter)
+  │     ├── listResources(filter, meta), readResource(params, meta, filter)
+  │     └── listPrompts(filter, meta), getPrompt(params, meta, filter)
   │
   └── Implementation: MCP SDK (mcpsdk package)
         └── McpSdkClientFactory → creates MCP SDK client instances
@@ -137,26 +137,35 @@ McpClientFunction / McpRemoteClientFunction
 
 ### MCP Operations
 
-| Operation                 | Method                     | Used By                                       |
-|---------------------------|----------------------------|-----------------------------------------------|
-| `LIST_TOOLS`              | `listTools()`              | Discovery (agent integration) and standalone  |
-| `CALL_TOOL`               | `callTool(name, arguments)` | Tool execution (agent integration) and standalone |
-| `LIST_RESOURCES`          | `listResources()`          | Standalone only                               |
-| `LIST_RESOURCE_TEMPLATES` | `listResourceTemplates()`  | Standalone only                               |
-| `READ_RESOURCE`           | `readResource(uri)`        | Standalone only                               |
-| `LIST_PROMPTS`            | `listPrompts()`            | Standalone only                               |
-| `GET_PROMPT`              | `getPrompt(name)`          | Standalone only                               |
+| Operation                 | Method                             | Used By                                           |
+|---------------------------|-------------------------------------|---------------------------------------------------|
+| `LIST_TOOLS`              | `listTools(meta)`                  | Discovery (agent integration) and standalone       |
+| `CALL_TOOL`               | `callTool(name, arguments, meta)`  | Tool execution (agent integration) and standalone  |
+| `LIST_RESOURCES`          | `listResources(meta)`              | Standalone only                                    |
+| `LIST_RESOURCE_TEMPLATES` | `listResourceTemplates(meta)`      | Standalone only                                    |
+| `READ_RESOURCE`           | `readResource(uri, meta)`          | Standalone only                                    |
+| `LIST_PROMPTS`            | `listPrompts(meta)`                | Standalone only                                    |
+| `GET_PROMPT`              | `getPrompt(name, meta)`            | Standalone only                                    |
+
+All operations accept an optional `meta: Map<String, Object>`, forwarded unmodified as the MCP request's `_meta`
+field (see [§8](#8-request-data-model)). When not configured, no `_meta` field is sent — fully backwards compatible.
 
 ### RPC Layer
 
 Each operation is implemented by a package-private request class in the `rpc` subpackage:
-- `ListToolsRequest`: Calls `McpSyncClient.listTools()`, applies `AllowDenyList`, maps `McpSchema.Tool` → `McpToolDefinition`
-- `ToolCallRequest`: Validates tool name, parses parameters, and calls `McpSyncClient.callTool()`. Maps response
+- `ListToolsRequest`: Calls `McpSyncClient.listTools(cursor, meta)` (`cursor` always `null`, pagination is not
+  supported), applies `AllowDenyList`, maps `McpSchema.Tool` → `McpToolDefinition`
+- `ToolCallRequest`: Validates tool name, parses parameters, and calls `McpSyncClient.callTool()` with a
+  `McpSchema.CallToolRequest` built via `.meta(meta)`. Maps response
   content: `TextContent` → `McpTextContent`, `ImageContent`/`AudioContent` → `McpBlobContent` (Base64 decoded),
   `EmbeddedResource` → `McpEmbeddedResourceContent`, `ResourceLink` → `McpResourceLinkContent`,
   `structuredContent` → `McpObjectContent`. Failures during the MCP call or response mapping are caught and returned as
   `McpClientCallToolResult` with `isError = true`; earlier validation/argument parsing failures (e.g.,
   `ConnectorException(MCP_CLIENT_INVALID_PARAMS)` or null tool name) propagate as exceptions to the caller.
+
+The `meta` parameter is forwarded unmodified into the corresponding MCP SDK request object for every operation:
+`CallToolRequest.builder(...).meta(meta)`, `ReadResourceRequest(uri, meta)`, `GetPromptRequest(name, arguments, meta)`,
+and `PaginatedRequest(cursor, meta)` for the four list operations (via the SDK's `(cursor, meta)` client overloads).
 
 ---
 
@@ -269,14 +278,18 @@ McpRemoteClientRequest
 Discriminated by `type` JSON property:
 
 **`ToolModeConfiguration`** (`type = "aiAgentTool"`): Used as AI agent tool gateway.
-- `toolOperation: McpClientOperationConfiguration` — method + params
+- `toolOperation: McpClientOperationConfiguration` — method + params + `meta` (FEEL-configured, forwarded
+  unmodified as the MCP request's `_meta` field)
 - `toolModeFilters: McpClientToolModeFiltersConfiguration` — optional tool allow/deny
 
 **`StandaloneModeConfiguration`** (`type = "standalone"`): Used for direct invocation.
-- `operation: McpStandaloneOperationConfiguration` — method + optional params
+- `operation: McpStandaloneOperationConfiguration` — method + optional params + optional `meta` (all 7 operation
+  subtypes carry their own `meta` FEEL property, since the underlying MCP SDK supports `_meta` on every operation)
 - `standaloneModeFilters: McpClientStandaloneFiltersConfiguration` — tools + resources + prompts allow/deny
 
 Both implement `toMcpClientOperation()` → `McpClientOperation` and `createFilterOptions()` → `Optional<FilterOptions>`.
+`toMcpClientOperation()` forwards `meta()` from the configuration into `McpClientOperation`, defaulting to an empty
+map when unconfigured.
 
 ### McpClientOperation (sealed interface)
 
@@ -285,11 +298,17 @@ McpMethod method();             // enum: LIST_TOOLS, CALL_TOOL, LIST_RESOURCES,
                                 //       LIST_RESOURCE_TEMPLATES, READ_RESOURCE,
                                 //       LIST_PROMPTS, GET_PROMPT
 Map<String, Object> params();   // method-specific parameters
+Map<String, Object> meta();     // forwarded unmodified as the MCP request's `_meta` field
 ```
 
 `McpMethod` enum maps to MCP JSON-RPC method strings: `"tools/list"`, `"tools/call"`, `"resources/list"`, etc.
 
-`McpClientOperationDefinitions` provides factory methods: `listTools()`, `callTool(name, arguments)`.
+Factory methods: `of(method)`, `of(method, params)`, `of(method, params, meta)` — the 1-/2-arg overloads delegate to
+the 3-arg one with an empty `meta` map.
+
+`McpClientOperationDefinitions` provides factory methods: `listTools()`, `callTool(name, arguments)`. These back the
+AI-agent-internal tool discovery/invocation path (§6, §7), which is separate from the static Operation-group
+configuration above and has no `meta` FEEL property.
 
 ---
 

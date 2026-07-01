@@ -32,7 +32,10 @@ public class ReadResourceRequest {
   }
 
   public McpClientReadResourceResult execute(
-      McpSyncClient client, AllowDenyList resourceUriFilter, Map<String, Object> params) {
+      McpSyncClient client,
+      AllowDenyList resourceUriFilter,
+      Map<String, Object> params,
+      Map<String, Object> meta) {
     var resourceUri = getResourceUri(params);
 
     if (!resourceUriFilter.isPassing(resourceUri)) {
@@ -49,7 +52,8 @@ public class ReadResourceRequest {
 
     try {
       LOGGER.debug("MCP({}): Executing read resource request with params: {}", clientId, params);
-      var readResourceResult = client.readResource(new McpSchema.ReadResourceRequest(resourceUri));
+      var readResourceResult =
+          client.readResource(new McpSchema.ReadResourceRequest(resourceUri, meta));
 
       var contentResult = readResourceResult.contents().stream().map(this::map).toList();
 

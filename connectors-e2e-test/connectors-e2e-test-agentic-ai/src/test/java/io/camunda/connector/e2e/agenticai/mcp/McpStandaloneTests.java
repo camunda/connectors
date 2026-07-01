@@ -164,6 +164,31 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                   .withRequestBody(matchingJsonPath("$.params.name", equalTo("toolC")))
                   .withRequestBody(
                       matchingJsonPath("$.params.arguments.paramC1", equalTo("someOtherValue"))));
+
+          // "toolC" is called via the Remote Client, which never configures `meta` in either BPMN
+          // fixture - proves the backwards-compatible default (no `_meta` sent when unconfigured).
+          assertThat(capturedRequestBodyContaining("\"toolC\"")).doesNotContain("_meta");
+
+          if (!processDefinitionFilePath.startsWith("regression/")) {
+            // only the current (non-regression) BPMN fixture configures `meta` on the local
+            // MCP Client's "tools/list" and "tools/call" (toolA) service tasks.
+            wireMock.verify(
+                postRequestedFor(urlEqualTo("/mcp"))
+                    .withRequestBody(matchingJsonPath("$.method", equalTo("tools/list")))
+                    .withRequestBody(
+                        matchingJsonPath(
+                            "$.params._meta.source_group_ids_include[0]",
+                            equalTo("11111111-1111-1111-1111-111111111111"))));
+
+            wireMock.verify(
+                postRequestedFor(urlEqualTo("/mcp"))
+                    .withRequestBody(matchingJsonPath("$.method", equalTo("tools/call")))
+                    .withRequestBody(matchingJsonPath("$.params.name", equalTo("toolA")))
+                    .withRequestBody(
+                        matchingJsonPath(
+                            "$.params._meta.source_group_ids_include[0]",
+                            equalTo("11111111-1111-1111-1111-111111111111"))));
+          }
         });
   }
 
@@ -359,6 +384,14 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                   .withRequestBody(matchingJsonPath("$.params.name", equalTo("promptC")))
                   .withRequestBody(matchingJsonPath("$.params.arguments.cName", equalTo("nameC"))));
         });
+  }
+
+  private String capturedRequestBodyContaining(String needle) {
+    return wireMock.getAllServeEvents().stream()
+        .map(event -> event.getRequest().getBodyAsString())
+        .filter(body -> body.contains(needle))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("No captured request body contains: " + needle));
   }
 
   private BpmnModelInstance bootstrapTestProcess(String processDefinitionFilePath)

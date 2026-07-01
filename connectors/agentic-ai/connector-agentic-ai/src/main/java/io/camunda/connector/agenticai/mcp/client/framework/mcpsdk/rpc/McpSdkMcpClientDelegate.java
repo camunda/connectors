@@ -40,39 +40,43 @@ public class McpSdkMcpClientDelegate implements McpClientDelegate {
   }
 
   @Override
-  public McpClientListToolsResult listTools(AllowDenyList filter) {
-    return new ListToolsRequest(clientId).execute(delegate, filter);
+  public McpClientListToolsResult listTools(AllowDenyList filter, Map<String, Object> meta) {
+    return new ListToolsRequest(clientId).execute(delegate, filter, meta);
   }
 
   @Override
-  public McpClientCallToolResult callTool(Map<String, Object> params, AllowDenyList filter) {
-    return new ToolCallRequest(clientId, objectMapper).execute(delegate, filter, params);
+  public McpClientCallToolResult callTool(
+      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter) {
+    return new ToolCallRequest(clientId, objectMapper).execute(delegate, filter, params, meta);
   }
 
   @Override
-  public McpClientListResourcesResult listResources(AllowDenyList filter) {
-    return new ListResourcesRequest(clientId).execute(delegate, filter);
+  public McpClientListResourcesResult listResources(
+      AllowDenyList filter, Map<String, Object> meta) {
+    return new ListResourcesRequest(clientId).execute(delegate, filter, meta);
   }
 
   @Override
-  public McpClientListResourceTemplatesResult listResourceTemplates(AllowDenyList filter) {
-    return new ListResourceTemplatesRequest(clientId).execute(delegate, filter);
+  public McpClientListResourceTemplatesResult listResourceTemplates(
+      AllowDenyList filter, Map<String, Object> meta) {
+    return new ListResourceTemplatesRequest(clientId).execute(delegate, filter, meta);
   }
 
   @Override
   public McpClientReadResourceResult readResource(
-      Map<String, Object> params, AllowDenyList filter) {
-    return new ReadResourceRequest(clientId).execute(delegate, filter, params);
+      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter) {
+    return new ReadResourceRequest(clientId).execute(delegate, filter, params, meta);
   }
 
   @Override
-  public McpClientListPromptsResult listPrompts(AllowDenyList filter) {
-    return new ListPromptsRequest(clientId).execute(delegate, filter);
+  public McpClientListPromptsResult listPrompts(AllowDenyList filter, Map<String, Object> meta) {
+    return new ListPromptsRequest(clientId).execute(delegate, filter, meta);
   }
 
   @Override
-  public McpClientGetPromptResult getPrompt(Map<String, Object> params, AllowDenyList filter) {
-    return new GetPromptRequest(clientId).execute(delegate, filter, params);
+  public McpClientGetPromptResult getPrompt(
+      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter) {
+    return new GetPromptRequest(clientId).execute(delegate, filter, params, meta);
   }
 
   @Override

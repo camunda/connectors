@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,10 +28,11 @@ final class ListPromptsRequest {
     this.clientId = clientId;
   }
 
-  public McpClientListPromptsResult execute(McpSyncClient client, AllowDenyList promptsFilter) {
+  public McpClientListPromptsResult execute(
+      McpSyncClient client, AllowDenyList promptsFilter, Map<String, Object> meta) {
     LOGGER.debug("MCP({}): Executing list prompts", clientId);
 
-    var fetchedPrompts = client.listPrompts().prompts();
+    var fetchedPrompts = client.listPrompts(null, meta).prompts();
 
     if (CollectionUtils.isEmpty(fetchedPrompts)) {
       LOGGER.debug("MCP({}): No prompts found", clientId);

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
@@ -32,6 +33,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -67,7 +69,7 @@ class GetPromptRequestTest {
       parameters.put("arguments", arguments);
     }
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER, parameters);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, parameters, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -100,7 +102,7 @@ class GetPromptRequestTest {
 
     final var parameters = Map.of("name", "code_review", "arguments", Map.of("assignee", "dev1"));
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER, parameters);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, parameters, null);
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientGetPromptResult.class,
@@ -128,7 +130,7 @@ class GetPromptRequestTest {
     final var parameters =
         Map.of("name", "allowed-prompt", "arguments", Map.of("param1", "value1"));
 
-    final var result = testee.execute(mcpClient, filter, parameters);
+    final var result = testee.execute(mcpClient, filter, parameters, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -149,7 +151,7 @@ class GetPromptRequestTest {
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-prompt")).build();
     final var parameters = Map.of("name", "safe-prompt", "arguments", Map.of("param1", "value1"));
 
-    final var result = testee.execute(mcpClient, filter, parameters);
+    final var result = testee.execute(mcpClient, filter, parameters, null);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -158,7 +160,7 @@ class GetPromptRequestTest {
 
   @Test
   void throwsConnectorException_whenParamsAreNull() {
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, null))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, null, null))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -172,7 +174,7 @@ class GetPromptRequestTest {
   void throwsConnectorException_whenPromptNameIsMissing() {
     final Map<String, Object> parameters = Map.of("arguments", Map.of("assignee", "dev1"));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, parameters, null))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -186,7 +188,7 @@ class GetPromptRequestTest {
     final Map<String, Object> parameters =
         Map.of("name", 1, "arguments", Map.of("assignee", "dev1"));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, parameters, null))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -201,7 +203,7 @@ class GetPromptRequestTest {
     final Map<String, Object> parameters =
         Map.of("name", promptName, "arguments", Map.of("assignee", "dev1"));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, parameters, null))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -215,7 +217,7 @@ class GetPromptRequestTest {
     final Map<String, Object> parameters =
         Map.of("name", "code_review", "arguments", List.of(1, 2, 3));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, parameters, null))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -232,7 +234,7 @@ class GetPromptRequestTest {
 
     final var parameters = Map.of("name", "code_review", "arguments", Map.of("assignee", "dev1"));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, parameters, null))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -249,7 +251,7 @@ class GetPromptRequestTest {
     final var parameters =
         Map.of("name", "blocked-prompt", "arguments", Map.of("param1", "value1"));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, null))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -267,7 +269,7 @@ class GetPromptRequestTest {
     final var parameters =
         Map.of("name", "blocked-prompt", "arguments", Map.of("param1", "value1"));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, null))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -289,7 +291,7 @@ class GetPromptRequestTest {
     final var parameters =
         Map.of("name", "conflicted-prompt", "arguments", Map.of("param1", "value1"));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, null))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -298,6 +300,35 @@ class GetPromptRequestTest {
                   .contains(
                       "Getting prompt 'conflicted-prompt' is not allowed by filter configuration");
             });
+  }
+
+  @Test
+  void forwardsMetaUnmodified_whenMetaConfigured() {
+    when(mcpClient.getPrompt(any(McpSchema.GetPromptRequest.class)))
+        .thenReturn(mcpPromptResult("Code Review", List.of()));
+
+    final var meta = Map.<String, Object>of("source_group_ids_include", List.of("version-uuid"));
+    final var parameters = Map.of("name", "code_review", "arguments", Map.of("assignee", "dev1"));
+
+    testee.execute(mcpClient, EMPTY_FILTER, parameters, meta);
+
+    final var captor = ArgumentCaptor.forClass(McpSchema.GetPromptRequest.class);
+    verify(mcpClient).getPrompt(captor.capture());
+    assertThat(captor.getValue().meta()).isEqualTo(meta);
+  }
+
+  @Test
+  void doesNotSendMeta_whenMetaNotConfigured() {
+    when(mcpClient.getPrompt(any(McpSchema.GetPromptRequest.class)))
+        .thenReturn(mcpPromptResult("Code Review", List.of()));
+
+    final var parameters = Map.of("name", "code_review", "arguments", Map.of("assignee", "dev1"));
+
+    testee.execute(mcpClient, EMPTY_FILTER, parameters, null);
+
+    final var captor = ArgumentCaptor.forClass(McpSchema.GetPromptRequest.class);
+    verify(mcpClient).getPrompt(captor.capture());
+    assertThat(captor.getValue().meta()).isNull();
   }
 
   private McpSchema.GetPromptResult mcpPromptResult(

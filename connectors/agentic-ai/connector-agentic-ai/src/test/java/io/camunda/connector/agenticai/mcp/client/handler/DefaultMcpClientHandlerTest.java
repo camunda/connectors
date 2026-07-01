@@ -46,7 +46,7 @@ class DefaultMcpClientHandlerTest {
   private static final ClientConfiguration CLIENT_CONFIG = new ClientConfiguration(CLIENT_ID);
 
   private static final McpClientOperationConfiguration LIST_TOOLS_OPERATION =
-      new McpClientOperationConfiguration("tools/list", Map.of());
+      new McpClientOperationConfiguration("tools/list", Map.of(), null);
 
   private static final McpClientToolsFilterConfiguration EMPTY_FILTER_CONFIGURATION =
       new McpClientToolsFilterConfiguration(List.of(), List.of());
@@ -132,7 +132,7 @@ class DefaultMcpClientHandlerTest {
       final var request =
           createToolModeRequest(
               new McpClientOperationConfiguration(
-                  "tools/call", Map.of("name", "test-tool", "arguments", arguments)));
+                  "tools/call", Map.of("name", "test-tool", "arguments", arguments), null));
       final var expectedResult =
           new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
@@ -168,7 +168,7 @@ class DefaultMcpClientHandlerTest {
     void handlesListToolsRequest() {
       final var request =
           createStandaloneModeRequest(
-              new McpStandaloneOperationConfiguration.ListToolsOperationConfiguration());
+              new McpStandaloneOperationConfiguration.ListToolsOperationConfiguration(null));
       final var expectedResult = new McpClientListToolsResult(List.of());
 
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
@@ -194,7 +194,7 @@ class DefaultMcpClientHandlerTest {
       final var request =
           createStandaloneModeRequest(
               new McpStandaloneOperationConfiguration.CallToolOperationConfiguration(
-                  "test-tool", arguments));
+                  "test-tool", arguments, null));
       final var expectedResult =
           new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
@@ -228,7 +228,7 @@ class DefaultMcpClientHandlerTest {
       final var request =
           createStandaloneModeRequest(
               new McpStandaloneOperationConfiguration.CallToolOperationConfiguration(
-                  "test-tool", null));
+                  "test-tool", null, null));
       final var expectedResult =
           new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
@@ -256,7 +256,7 @@ class DefaultMcpClientHandlerTest {
     void handlesListResourcesRequest() {
       final var request =
           createStandaloneModeRequest(
-              new McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration());
+              new McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration(null));
       final var expectedResult = new McpClientListToolsResult(List.of());
 
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
@@ -279,8 +279,8 @@ class DefaultMcpClientHandlerTest {
     void handlesListResourceTemplatesRequest() {
       final var request =
           createStandaloneModeRequest(
-              new McpStandaloneOperationConfiguration
-                  .ListResourceTemplatesOperationConfiguration());
+              new McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration(
+                  null));
       final var expectedResult = new McpClientListResourceTemplatesResult(List.of());
 
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
@@ -304,7 +304,7 @@ class DefaultMcpClientHandlerTest {
       final var request =
           createStandaloneModeRequest(
               new McpStandaloneOperationConfiguration.ReadResourceOperationConfiguration(
-                  "resource-1"));
+                  "resource-1", null));
       final var expectedResult =
           new McpClientReadResourceResult(
               List.of(new ResourceData.TextResourceData("uri", "text/plain", "Sample text")));
@@ -335,7 +335,7 @@ class DefaultMcpClientHandlerTest {
     void handlesListPromptsRequest() {
       final var request =
           createStandaloneModeRequest(
-              new McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration());
+              new McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration(null));
       final var expectedResult = new McpClientListPromptsResult(List.of());
 
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
@@ -362,7 +362,7 @@ class DefaultMcpClientHandlerTest {
     final var request =
         createStandaloneModeRequest(
             new McpStandaloneOperationConfiguration.GetPromptOperationConfiguration(
-                "code_review", arguments));
+                "code_review", arguments, null));
     final var expectedResult =
         new McpClientGetPromptResult(
             "Code review",
