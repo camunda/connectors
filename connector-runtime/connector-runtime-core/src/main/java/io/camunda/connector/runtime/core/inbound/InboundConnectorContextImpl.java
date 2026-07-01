@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -30,12 +31,17 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ZeebeClientStatus;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageCorrelated;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreatedWithResult;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
+import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -44,11 +50,14 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,18 +65,18 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     implements InboundConnectorContext, InboundConnectorManagementContext {
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
-  private ValidInboundConnectorDetails connectorDetails;
+  private final FeelExpressionEvaluator evaluator;
   private final Map<String, Object> properties;
-
   private final InboundCorrelationHandler correlationHandler;
   private final ObjectMapper objectMapper;
-
   private final Consumer<Throwable> cancellationCallback;
   private final ActivityLogWriter activityLogWriter;
   private final DocumentFactory documentFactory;
   private final Long activationTimestamp;
+  private final CamundaClient camundaClient;
+  private ValidInboundConnectorDetails connectorDetails;
   private Health health = Health.unknown();
-  private Map<String, Object> propertiesWithSecrets;
+  private @Nullable Map<String, Object> propertiesWithSecrets;
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -77,8 +86,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      ActivityLogWriter activityLogWriter) {
-    super(secretProvider, validationProvider);
+      ActivityLogWriter activityLogWriter,
+      CamundaClient camundaClient) {
+    super(secretProvider, SecretFilter.allowAll(), validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
@@ -89,6 +99,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.cancellationCallback = cancellationCallback;
     this.activityLogWriter = activityLogWriter;
     this.activationTimestamp = System.currentTimeMillis();
+    this.camundaClient = Objects.requireNonNull(camundaClient, "camundaClient must not be null");
+    this.evaluator =
+        FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
+            .tenantId(connectorDetails.tenantId())
+            .objectMapper(objectMapper)
+            .build();
   }
 
   public InboundConnectorContextImpl(
@@ -98,7 +114,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      ActivityLogWriter logs) {
+      ActivityLogWriter logs,
+      CamundaClient camundaClient) {
     this(
         secretProvider,
         validationProvider,
@@ -107,7 +124,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         correlationHandler,
         cancellationCallback,
         objectMapper,
-        logs);
+        logs,
+        camundaClient);
   }
 
   @Override
@@ -131,7 +149,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       var result =
           correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest);
       logCorrelationResult(result);
-      return result;
+      return attachElementBinder(result);
     } catch (ConnectorInputException connectorInputException) {
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);
@@ -153,6 +171,31 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       LOG.error("Failed to correlate inbound event", exception);
       return new CorrelationResult.Failure.Other(exception);
     }
+  }
+
+  /**
+   * Wraps the activated element of a successful correlation in a {@link BindableProcessElement} so
+   * callers can resolve element-scoped properties via {@link
+   * CorrelationResult.Success#bindProperties(Class)} using this context's secret + FEEL pipeline,
+   * without handling raw property maps.
+   */
+  private CorrelationResult attachElementBinder(CorrelationResult result) {
+    if (!(result instanceof Success success)) {
+      return result;
+    }
+    var element =
+        new BindableProcessElement(success.activatedElement(), this::bindElementProperties);
+    return switch (success) {
+      case ProcessInstanceCreated s ->
+          new ProcessInstanceCreated(element, s.processInstanceKey(), s.tenantId());
+      case ProcessInstanceCreatedWithResult s ->
+          new ProcessInstanceCreatedWithResult(
+              element, s.processInstanceKey(), s.tenantId(), s.variables());
+      case MessagePublished s -> new MessagePublished(element, s.messageKey(), s.tenantId());
+      case MessageCorrelated s ->
+          new MessageCorrelated(element, s.processInstanceKey(), s.messageKey(), s.tenantId());
+      case MessageAlreadyCorrelated s -> new MessageAlreadyCorrelated(element);
+    };
   }
 
   private void logCorrelationResult(CorrelationResult correlationResult) {
@@ -275,9 +318,52 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public <T> T bindProperties(Class<T> cls) {
-    var mappedObject = objectMapper.convertValue(getPropertiesWithSecrets(properties), cls);
-    getValidationProvider().validate(mappedObject);
-    return mappedObject;
+    try {
+      var propertiesJson = objectMapper.valueToTree(getPropertiesWithSecrets(properties));
+      var result =
+          FeelContextAwareObjectReader.of(objectMapper)
+              .withEvaluator(evaluator)
+              .readValue(propertiesJson, cls);
+      getValidationProvider().validate(result);
+      return result;
+    } catch (IOException | FeelEngineWrapperException e) {
+      throw new RuntimeException(
+          "Failed to bind process instance properties to "
+              + cls.getName()
+              + " using FEEL evaluation/deserialization"
+              + " (tenantId="
+              + connectorDetails.tenantId()
+              + ")",
+          e);
+    }
+  }
+
+  private <T> T bindElementProperties(Map<String, String> rawProperties, Class<T> cls) {
+    try {
+      var wrapped = InboundPropertyHandler.readWrappedProperties(rawProperties);
+      var withSecrets =
+          InboundPropertyHandler.getPropertiesWithSecrets(
+              getSecretHandler(),
+              objectMapper,
+              wrapped,
+              new SecretContext(
+                  connectorDetails.tenantId(), connectorDetails.processDefinitionId()));
+      var propertiesJson = objectMapper.valueToTree(withSecrets);
+      var result =
+          FeelContextAwareObjectReader.of(objectMapper)
+              .withEvaluator(evaluator)
+              .readValue(propertiesJson, cls);
+      getValidationProvider().validate(result);
+      return result;
+    } catch (IOException | FeelEngineWrapperException e) {
+      throw new RuntimeException(
+          "Failed to bind element properties to "
+              + cls.getName()
+              + " using FEEL evaluation/deserialization (tenantId="
+              + connectorDetails.tenantId()
+              + ")",
+          e);
+    }
   }
 
   @Override

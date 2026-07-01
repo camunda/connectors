@@ -1,0 +1,271 @@
+name: E2E branch run
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        type: string
+        required: true
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.set-modules.outputs.modules }}
+    env:
+      # Runner overrides: JSON map from e2e module name → runner label.
+      # Modules absent from the map use ubuntu-latest.
+      # To redirect a new module to a different runner, add one key-value pair here.
+      E2E_RUNNER_OVERRIDES: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-default"}'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+
+      - name: Restore cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+      - name: Create settings.xml
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      # Build + install the entire reactor (incl. the connectors-e2e-test subtree, so the e2e parent
+      # POM and all first-party e2e artifacts land in ~/.m2 for the test matrix). Tests are skipped
+      # here; connector tests run in the next step, e2e tests run isolated in the matrix.
+      - name: Build connectors
+        run: ./mvnw --batch-mode -U clean install -PcheckFormat -DskipTests
+
+      # Non-PR (nightly/manual): run unit/integration tests for the connector modules. The whole
+      # connectors-e2e-test subtree is excluded by enumerating every e2e pom path: excluding only the
+      # aggregator (-pl '!connectors-e2e-test') would NOT exclude its nested children, so they would
+      # otherwise run their e2e tests here instead of isolated in the matrix.
+      - name: Run unit/integration tests (non-PR)
+        if: github.event_name != 'pull_request'
+        run: |
+          E2E_EXCLUDES=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' -printf '!%h\n' | paste -sd, -)
+          ./mvnw --batch-mode verify -pl "$E2E_EXCLUDES"
+
+      # Discover the e2e-test modules to run from this branch's checkout so the test matrix is
+      # branch-accurate. Leaf poms with `jar` packaging are test modules; aggregators (`pom`
+      # packaging) and `*-base` shared libraries are excluded. Each entry is a
+      # {"module": "...", "runner": "..."} object; runner comes from E2E_RUNNER_OVERRIDES
+      # (defaults to ubuntu-latest for modules not listed there).
+      - name: Discover e2e-test modules
+        id: set-modules
+        run: |
+          modules=$(find connectors-e2e-test -name pom.xml -not -path '*/target/*' | while read -r p; do
+            d=$(dirname "$p"); base=$(basename "$d")
+            pkg=$(grep -m1 -oP '(?<=<packaging>)[^<]+' "$p" || echo jar)
+            [ "$pkg" = "pom" ] && continue
+            case "$base" in *-base) continue;; esac
+            module="${d#connectors-e2e-test/}"
+            runner=$(printf '%s' "$E2E_RUNNER_OVERRIDES" | jq -r --arg m "$module" '.[$m] // "ubuntu-latest"')
+            printf '{"module":"%s","runner":"%s"}\n' "$module" "$runner"
+          done | jq -sc '.')
+          echo "modules=$modules" >> "$GITHUB_OUTPUT"
+
+      - name: Sanitize branch name for artifact
+        id: sanitize
+        run: echo "branch=${BRANCH//\//-}" >> "$GITHUB_OUTPUT"
+        env:
+          BRANCH: ${{ inputs.branch }}
+
+      # Hand the built artifacts (connectors + e2e subtree) to the test matrix.
+      - name: Upload first-party artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: m2-firstparty-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ~/.m2/repository/io/camunda/connector
+          retention-days: 1
+          include-hidden-files: true
+          overwrite: true
+
+  # Test phase (matrix: entry): each e2e-test module runs in its own job, in isolation.
+  # Runner is baked into each entry by the build job (sourced from e2e-runner-overrides.json).
+  test:
+    name: ${{ matrix.entry.module }}
+    needs: build
+    runs-on: ${{ matrix.entry.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        entry: ${{ fromJson(needs.build.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+
+      - name: Restore cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      - name: Create settings.xml
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install element templates CLI
+        run: npm install --global "element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)"
+
+      - name: Sanitize names for artifact
+        id: sanitize
+        run: |
+          echo "branch=${BRANCH//\//-}" >> "$GITHUB_OUTPUT"
+          echo "module=${MODULE//\//-}" >> "$GITHUB_OUTPUT"
+        env:
+          BRANCH: ${{ inputs.branch }}
+          MODULE: ${{ matrix.entry.module }}
+
+      # Restore the first-party SNAPSHOTs built by the build job; the test run resolves
+      # connectors + e2e base from here and does not rebuild them.
+      - name: Download first-party artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: m2-firstparty-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ~/.m2/repository/io/camunda/connector
+
+      # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
+      # artifact, so nothing upstream is rebuilt.
+      - name: Test e2e module
+        run: ./mvnw --batch-mode test -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
+
+      - name: Publish Test Report
+        if: always()
+        uses: scacap/action-surefire-report@v1
+        with:
+          check_name: Tests (${{ inputs.branch }} / ${{ matrix.entry.module }})
+
+      - name: Upload detailed surefire reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports-${{ steps.sanitize.outputs.branch }}-${{ steps.sanitize.outputs.module }}-${{ github.run_id }}-${{ github.run_attempt }}
+          # *-output.txt holds the redirected test stdout (parent pom sets redirectTestOutputToFile=true);
+          # the XML <system-out> is empty, so upload the txt files to retain test logs from CI runs.
+          path: |
+            **/target/surefire-reports/*.xml
+            **/target/surefire-reports/*-output.txt
+
+  # Post a single Slack message per branch when the build OR the test phase fails.
+  # A build failure skips the test job (result == 'skipped', not 'failure'), so it must
+  # be checked explicitly or the notification is silent on broken builds.
+  # Only fires for main and stable branches (not PR runs).
+  notify:
+    name: Notify
+    needs: [ build, test ]
+    if: |
+      always()
+      && (needs.build.result == 'failure' || needs.test.result == 'failure')
+      && (inputs.branch == 'main' || startsWith(inputs.branch, 'stable/'))
+    runs-on: ubuntu-latest
+    steps:
+      # Build failure short-circuits the matrix, so there are no per-module failures to list;
+      # tailor the headline to the phase that actually failed.
+      - name: Compose headline
+        id: phase
+        run: |
+          if [ "${{ needs.build.result }}" == "failure" ]; then
+            echo "headline=E2E build failed" >> "$GITHUB_OUTPUT"
+          else
+            echo "headline=E2E tests failed" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Reusable workflow sub-jobs appear as "{calling_job} / {sub_job}" in the API.
+      # The calling job for this branch is "($BRANCH)", so filter by that prefix.
+      - name: Fetch failed modules
+        id: modules
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          prefix="(${BRANCH}) / "
+          # --paginate emits one JSON doc per page; --slurp collects them so .[].jobs[] spans all pages.
+          failed_modules=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs" \
+            --paginate | \
+            jq -rs --arg p "$prefix" \
+            '[.[].jobs[] | select(.conclusion == "failure") | select(.name | startswith($p)) | .name | ltrimstr($p) | select(test("^connectors-"))] | map("• " + .) | join("\n")' \
+          )
+          [ -z "$failed_modules" ] && failed_modules="(see run for details)"
+          {
+            echo "failed_modules<<EOF_MODULES"
+            echo "$failed_modules"
+            echo "EOF_MODULES"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post failure summary to Slack
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
+              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} ${{ steps.phase.outputs.headline }} on `${{ inputs.branch }}`\n${{ steps.modules.outputs.failed_modules }}\nCheck: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }

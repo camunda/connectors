@@ -31,6 +31,7 @@ import io.camunda.connector.runtime.core.NoOpSecretProvider;
 import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import io.camunda.connector.runtime.core.outbound.operation.OutboundConnectorOperationFunction;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -118,7 +119,13 @@ public class AnnotatedOperationTests {
             .toList();
     Assertions.assertThatCollection(variables)
         .containsExactlyInAnyOrder(
-            "myStringParam", "myObjectParam", "nullObjectParam", "name", "value", "validatingName");
+            "myStringParam",
+            "myObjectParam",
+            "nullObjectParam",
+            "name",
+            "value",
+            "validatingName",
+            "spans");
   }
 
   @Test
@@ -147,6 +154,28 @@ public class AnnotatedOperationTests {
     when(activatedJob.getCustomHeaders()).thenReturn(customHeaders);
     when(activatedJob.getVariables()).thenReturn(json);
     return new JobHandlerContext(
-        activatedJob, new NoOpSecretProvider(), validationProvider, null, objectMapper);
+        activatedJob,
+        new NoOpSecretProvider(),
+        validationProvider,
+        null,
+        objectMapper,
+        SecretFilter.allowAll());
+  }
+
+  @Test
+  public void shouldDeserializeGenericListVariable() {
+    var json =
+        """
+          {
+            "spans": [
+              {"start": 1, "end": 3},
+              {"start": 5, "end": 7}
+            ]
+          }
+        """;
+
+    var result = invoker.execute(createMockContext(json, "myOperation7"));
+
+    assertEquals(6, result);
   }
 }

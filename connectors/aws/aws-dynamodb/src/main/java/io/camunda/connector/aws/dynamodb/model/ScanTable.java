@@ -12,7 +12,10 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 
-@TemplateSubType(id = OperationTypes.SCAN_TABLE)
+@TemplateSubType(
+    id = OperationTypes.SCAN_TABLE,
+    description = "Read every item in a DynamoDB table",
+    keywords = {"scan table", "list items", "read all items"})
 public record ScanTable(
     @TemplateProperty(
             label = "Table name",

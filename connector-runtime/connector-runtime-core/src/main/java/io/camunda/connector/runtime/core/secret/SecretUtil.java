@@ -24,6 +24,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.jspecify.annotations.Nullable;
 
 /** Utility class to replace secrets in strings. */
 public class SecretUtil {
@@ -72,7 +73,7 @@ public class SecretUtil {
     return input;
   }
 
-  private static String resolveSecretValue(
+  private static @Nullable String resolveSecretValue(
       SecretContext context, SecretReplacer secretReplacer, Matcher matcher) {
     var secretName = matcher.group("secret").trim();
     if (!secretName.isBlank()) {

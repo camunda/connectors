@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound.correlation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
@@ -23,6 +24,7 @@ import io.camunda.client.api.response.CorrelateMessageResponse;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.response.ProcessInstanceResult;
 import io.camunda.client.api.response.PublishMessageResponse;
+import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationRequest;
@@ -57,10 +59,12 @@ public class InboundCorrelationHandler {
   private final Duration defaultMessageTtl;
 
   private final ConnectorResultHandler connectorResultHandler;
+  private final ObjectMapper objectMapper;
 
   public InboundCorrelationHandler(
       CamundaClient camundaClient, ObjectMapper objectMapper, Duration defaultMessageTtl) {
     this.camundaClient = camundaClient;
+    this.objectMapper = objectMapper;
     this.activationConditionEvaluator = new ActivationConditionEvaluator(feelExpressionEvaluator);
     this.defaultMessageTtl = defaultMessageTtl;
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
@@ -123,6 +127,11 @@ public class InboundCorrelationHandler {
       StartEventCorrelationPoint correlationPoint,
       Object variables) {
     Object extractedVariables = extractVariables(variables, activatedElement);
+    try {
+      checkVariablesSize(extractedVariables);
+    } catch (ConnectorInputException e) {
+      return new CorrelationResult.Failure.InvalidInput(e.getMessage(), e);
+    }
     if (activatedElement.synchronousResponse()) {
       return triggerStartEventWithResult(activatedElement, correlationPoint, extractedVariables);
     } else {
@@ -254,6 +263,11 @@ public class InboundCorrelationHandler {
       String correlationKey) {
     Object extractedVariables = extractVariables(variables, activatedElement);
     try {
+      checkVariablesSize(extractedVariables);
+    } catch (ConnectorInputException e) {
+      return new CorrelationResult.Failure.InvalidInput(e.getMessage(), e);
+    }
+    try {
       var step2 = camundaClient.newCorrelateMessageCommand().messageName(messageName);
       var step3 =
           correlationKey.isBlank()
@@ -288,6 +302,11 @@ public class InboundCorrelationHandler {
       Duration timeToLive,
       String correlationKey) {
     Object extractedVariables = extractVariables(variables, activatedElement);
+    try {
+      checkVariablesSize(extractedVariables);
+    } catch (ConnectorInputException e) {
+      return new CorrelationResult.Failure.InvalidInput(e.getMessage(), e);
+    }
     CorrelationResult result;
     try {
       var command =
@@ -361,6 +380,15 @@ public class InboundCorrelationHandler {
   protected Object extractVariables(Object rawVariables, InboundConnectorElement definition) {
     return connectorResultHandler.createOutputVariables(
         rawVariables, definition.resultVariable(), definition.resultExpression());
+  }
+
+  private void checkVariablesSize(Object variables) {
+    if (variables == null) return;
+    try {
+      InlineSizeGuard.check(objectMapper.writeValueAsBytes(variables).length);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize variables for size check", e);
+    }
   }
 
   private String resolveMessageId(String messageIdExpression, String messageId, Object context) {

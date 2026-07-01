@@ -5,7 +5,7 @@
   "description" : "Configure webhook to receive callbacks",
   "keywords" : [ "receive webhook", "HTTP trigger", "event received", "inbound event", "webhook trigger", "HTTP callback", "listen for event" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 14,
+  "version" : 15,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -346,18 +346,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "inbound.responseExpression",
-    "label" : "Response expression",
-    "description" : "Expression used to generate the HTTP response",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "webhookResponse",
-    "binding" : {
-      "name" : "inbound.responseExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "Text"
-  }, {
     "id" : "inbound.verificationExpression",
     "label" : "One time verification response expression",
     "description" : "Specify condition and response. Learn more in the <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#verification-expression' target='_blank'>documentation</a>",
@@ -366,6 +354,18 @@
     "group" : "webhookResponse",
     "binding" : {
       "name" : "inbound.verificationExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "inbound.responseExpression",
+    "label" : "Response expression",
+    "description" : "Expression used to generate the HTTP response",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "webhookResponse",
+    "binding" : {
+      "name" : "inbound.responseExpression",
       "type" : "zeebe:property"
     },
     "type" : "Text"

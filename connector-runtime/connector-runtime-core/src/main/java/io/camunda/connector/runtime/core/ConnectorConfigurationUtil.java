@@ -28,6 +28,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.inbound.DeduplicationPropertyResolver;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -73,13 +74,28 @@ public final class ConnectorConfigurationUtil {
     }
     final var configurationOverrides =
         new ConnectorConfigurationOverrides(annotation.name(), System::getenv);
-    final var deduplicationProperties = Arrays.asList(annotation.deduplicationProperties());
+    final var deduplicationProperties = resolveDeduplicationScope(annotation);
 
     return new InboundConnectorConfiguration(
         annotation.name(),
         configurationOverrides.typeOverride().orElse(annotation.type()),
         cls,
         deduplicationProperties);
+  }
+
+  /**
+   * Resolves a connector's deduplication scope. When {@code deduplicationClasses} is declared, the
+   * scope is derived from those data classes (as property-key prefixes); otherwise the runtime
+   * falls back to the deprecated {@code deduplicationProperties} list of property names. An empty
+   * result means "deduplicate on all properties".
+   */
+  @SuppressWarnings("deprecation") // production bridge for the deprecated deduplicationProperties
+  public static List<String> resolveDeduplicationScope(InboundConnector annotation) {
+    var deduplicationClasses = annotation.deduplicationClasses();
+    if (deduplicationClasses.length > 0) {
+      return DeduplicationPropertyResolver.resolvePrefixes(Arrays.asList(deduplicationClasses));
+    }
+    return Arrays.asList(annotation.deduplicationProperties());
   }
 
   private static String toNormalizedConnectorName(final String connectorName) {

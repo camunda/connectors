@@ -33,10 +33,13 @@ public class ElementTemplateBuilder {
 
   protected final List<PropertyGroup> groups = new ArrayList<>();
   protected final List<Property> properties = new ArrayList<>();
+  protected final List<Step> steps = new ArrayList<>();
+  protected final List<Preset> presets = new ArrayList<>();
   private final Mode mode;
   protected String id;
   protected String name;
   protected long version;
+  protected ElementTemplateCategory category = ElementTemplateCategory.CONNECTORS;
   protected ElementTemplateIcon icon;
   protected String documentationRef;
   protected String description;
@@ -131,6 +134,11 @@ public class ElementTemplateBuilder {
     return this;
   }
 
+  public ElementTemplateBuilder category(ElementTemplateCategory category) {
+    this.category = category;
+    return this;
+  }
+
   public ElementTemplateBuilder engines(Engines engines) {
     this.engines = engines;
     return this;
@@ -194,6 +202,16 @@ public class ElementTemplateBuilder {
     return this;
   }
 
+  public ElementTemplateBuilder steps(Collection<Step> steps) {
+    this.steps.addAll(steps);
+    return this;
+  }
+
+  public ElementTemplateBuilder presets(Collection<Preset> presets) {
+    this.presets.addAll(presets);
+    return this;
+  }
+
   public ElementTemplate build() {
     if (!isTypeAssigned()) {
       throw new IllegalStateException("type is not assigned");
@@ -202,6 +220,7 @@ public class ElementTemplateBuilder {
         id,
         name,
         version,
+        category,
         documentationRef,
         engines,
         description,
@@ -210,7 +229,9 @@ public class ElementTemplateBuilder {
         ElementTypeWrapper.from(elementType),
         groups,
         properties,
-        icon);
+        icon,
+        steps.isEmpty() ? null : steps,
+        presets.isEmpty() ? null : presets);
   }
 
   private enum Mode {

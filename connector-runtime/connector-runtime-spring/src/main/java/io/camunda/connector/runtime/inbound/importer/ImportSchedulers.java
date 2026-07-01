@@ -40,7 +40,9 @@ public class ImportSchedulers {
     this.importers = importers;
   }
 
-  @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
+  @Scheduled(
+      fixedDelayString = "${camunda.connector.polling.interval:5000}",
+      initialDelayString = "${camunda.connector.polling.initial-delay:0}")
   public void scheduleLatestVersionImport() {
     try {
       var result = importers.importLatestVersions();
@@ -52,7 +54,9 @@ public class ImportSchedulers {
     }
   }
 
-  @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
+  @Scheduled(
+      fixedDelayString = "${camunda.connector.polling.interval:5000}",
+      initialDelayString = "${camunda.connector.polling.initial-delay:0}")
   public void scheduleActiveVersionImport() {
     if (!activeVersionsPollingEnabled) {
       LOG.debug("Skipping active versions polling.");

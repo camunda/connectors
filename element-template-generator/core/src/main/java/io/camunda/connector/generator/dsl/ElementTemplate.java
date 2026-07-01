@@ -40,13 +40,16 @@ import java.util.Set;
   "elementType",
   "engines",
   "groups",
-  "properties"
+  "properties",
+  "steps",
+  "presets"
 })
 @JsonInclude(Include.NON_NULL)
 public record ElementTemplate(
     String id,
     String name,
     long version,
+    ElementTemplateCategory category,
     String documentationRef,
     Engines engines,
     String description,
@@ -55,7 +58,9 @@ public record ElementTemplate(
     ElementTypeWrapper elementType,
     List<PropertyGroup> groups,
     List<Property> properties,
-    ElementTemplateIcon icon) {
+    ElementTemplateIcon icon,
+    List<Step> steps,
+    List<Preset> presets) {
 
   static final String SCHEMA_FIELD_NAME = "$schema";
   static final String SCHEMA_URL =
@@ -71,6 +76,13 @@ public record ElementTemplate(
     }
     if (version < 0) {
       errors.add("version cannot be negative");
+    }
+    if (category == null
+        || category.id() == null
+        || category.id().isBlank()
+        || category.name() == null
+        || category.name().isBlank()) {
+      errors.add("category id and name must be non-blank");
     }
     if (appliesTo == null || appliesTo.isEmpty() || appliesTo.stream().allMatch(String::isBlank)) {
       errors.add("appliesTo must be defined");
@@ -110,11 +122,6 @@ public record ElementTemplate(
 
   public static ElementTemplateBuilder builderForInbound() {
     return ElementTemplateBuilder.createInbound();
-  }
-
-  @JsonProperty
-  public ElementTemplateCategory category() {
-    return ElementTemplateCategory.CONNECTORS;
   }
 
   @JsonProperty(SCHEMA_FIELD_NAME)

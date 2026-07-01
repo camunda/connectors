@@ -70,7 +70,9 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
-      "camunda.connector.polling.enabled=false"
+      "camunda.connector.polling.enabled=false",
+      "camunda.connector.validation.hosts.enabled=true",
+      "camunda.connector.validation.hosts.unsafe-allow-loopback=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -134,6 +136,37 @@ public class HttpTests {
             .waitForProcessCompletion();
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
+  }
+
+  @Test
+  void testHostValidationUsingBlockedIp() {
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("restTask").endEvent().done();
+
+    var elementTemplate =
+        ElementTemplate.from(
+                "../../connectors/http/rest/element-templates/http-json-connector.json")
+            .property("url", "http:/192.0.0.0")
+            .property("method", "post")
+            .property("headers", "={testHeader: \"testHeaderValue\"}")
+            .property("queryParameters", "={testQueryParam: \"testQueryParamValue\"}")
+            .property("authentication.type", BasicAuthentication.TYPE)
+            .property("authentication.username", "username")
+            .property("authentication.password", "password")
+            .property("body", "={\"order\": {\"status\": \"processing\", \"id\": string(42+3)}}")
+            .property("resultExpression", "={orderStatus: response.body.order.status}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
+
+    var bpmnTest =
+        ZeebeTest.with(camundaClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForActiveIncidents();
   }
 
   @Test

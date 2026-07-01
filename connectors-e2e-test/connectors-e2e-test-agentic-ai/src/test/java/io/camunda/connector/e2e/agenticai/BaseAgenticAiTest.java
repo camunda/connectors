@@ -21,7 +21,9 @@ import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.search.response.Incident;
+import io.camunda.connector.e2e.ClusterStateDumpExtension;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -31,10 +33,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -51,15 +53,22 @@ import org.springframework.core.io.ResourceLoader;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@ExtendWith(ClusterStateDumpExtension.class)
 public abstract class BaseAgenticAiTest {
   @Autowired protected CamundaClient camundaClient;
   @Autowired @ConnectorsObjectMapper protected ObjectMapper objectMapper;
   @Autowired protected ResourceLoader resourceLoader;
   @TempDir protected File tempDir;
 
+  protected volatile ProcessInstanceEvent currentProcess;
+
   protected ZeebeTest createProcessInstance(
       BpmnModelInstance model, Map<String, Object> variables) {
-    return deployModel(model).createInstance(variables);
+    var zeebeTest = deployModel(model).createInstance(variables);
+
+    currentProcess = zeebeTest.getProcessInstanceEvent();
+
+    return zeebeTest;
   }
 
   protected ZeebeTest deployModel(BpmnModelInstance model) {
@@ -92,6 +101,22 @@ public abstract class BaseAgenticAiTest {
     return zeebeTest;
   }
 
+  protected ZeebeTest awaitActiveIncidents(ZeebeTest zeebeTest) {
+    return awaitActiveIncidents(zeebeTest, Duration.ofSeconds(30));
+  }
+
+  protected ZeebeTest awaitActiveIncidents(ZeebeTest zeebeTest, Duration timeout) {
+    return zeebeTest.waitForActiveIncidents(timeout);
+  }
+
+  protected ZeebeTest awaitProcessCompletion(ZeebeTest zeebeTest) {
+    return awaitProcessCompletion(zeebeTest, Duration.ofSeconds(30));
+  }
+
+  protected ZeebeTest awaitProcessCompletion(ZeebeTest zeebeTest, Duration timeout) {
+    return zeebeTest.waitForProcessCompletion(timeout);
+  }
+
   protected void assertIncident(ZeebeTest zeebeTest, ThrowingConsumer<Incident> assertion) {
     final var incidents =
         camundaClient
@@ -115,17 +140,6 @@ public abstract class BaseAgenticAiTest {
       try {
         return testFileResource(filename).getContentAsString(StandardCharsets.UTF_8);
       } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    };
-  }
-
-  protected Supplier<String> testFileContentBase64(String filename) {
-    return () -> {
-      try {
-        return Base64.getEncoder()
-            .encodeToString(testFileResource(filename).getContentAsByteArray());
-      } catch (Exception e) {
         throw new RuntimeException(e);
       }
     };

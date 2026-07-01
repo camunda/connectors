@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ public class ServiceLoaderIntrinsicFunctionRegistry implements IntrinsicFunction
   }
 
   @Override
-  public IntrinsicFunctionSource getIntrinsicFunction(String name) {
+  public @Nullable IntrinsicFunctionSource getIntrinsicFunction(String name) {
     return operationSources.get(name);
   }
 

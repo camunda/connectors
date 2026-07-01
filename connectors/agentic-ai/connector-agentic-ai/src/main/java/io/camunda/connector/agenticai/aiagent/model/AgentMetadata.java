@@ -1,0 +1,29 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.model;
+
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import io.camunda.connector.api.outbound.JobContext;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Metadata about an AI Agent's execution context, used for detecting process definition migrations.
+ *
+ * @param processDefinitionKey The key of the process definition this agent was initialized with
+ * @param processInstanceKey The key of the process instance this agent is executing in
+ * @param agentInstanceKey The key of the agent instance created on the engine, if any
+ */
+@AgenticAiRecord
+public record AgentMetadata(
+    Long processDefinitionKey, Long processInstanceKey, @Nullable Long agentInstanceKey)
+    implements AgentMetadataBuilder.With {
+
+  public static AgentMetadata of(JobContext jobContext) {
+    return new AgentMetadata(
+        jobContext.getProcessDefinitionKey(), jobContext.getProcessInstanceKey(), null);
+  }
+}

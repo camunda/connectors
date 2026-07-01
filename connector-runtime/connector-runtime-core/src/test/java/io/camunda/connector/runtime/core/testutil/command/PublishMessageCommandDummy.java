@@ -87,6 +87,11 @@ public class PublishMessageCommandDummy
   }
 
   @Override
+  public PublishMessageCommandStep3 businessId(String businessId) {
+    return this;
+  }
+
+  @Override
   public FinalCommandStep<PublishMessageResponse> requestTimeout(Duration requestTimeout) {
     return this;
   }

@@ -28,6 +28,7 @@ import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import javax.net.ssl.SSLException;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.core5.http.HttpStatus;
 
@@ -66,12 +67,16 @@ public class CustomApacheHttpClient implements HttpClient {
               + "Please ensure the URL includes a valid scheme.");
     }
 
+    var sslContext =
+        request.hasClientTls() ? ClientTlsFactory.create(request.getClientTls()) : null;
+
     try (var client =
         new ProxyAwareHttpClient(
             new ProxyAwareHttpClient.TimeoutConfiguration(
                 request.getConnectionTimeoutInSeconds(), request.getReadTimeoutInSeconds()),
             new ProxyAwareHttpClient.ProxyContext(scheme, host),
-            request.isFollowRedirects())) {
+            request.isFollowRedirects(),
+            sslContext)) {
 
       var apacheResponseHandler =
           new CustomResponseHandler<>(responseMapper, request.isFollowRedirects());
@@ -86,11 +91,29 @@ public class CustomApacheHttpClient implements HttpClient {
           String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
           "The request timed out. Please try increasing the read and connection timeouts.",
           e);
+    } catch (SSLException e) {
+      throw new ConnectorException(
+          "SSL_HANDSHAKE_FAILED",
+          "TLS handshake failed: "
+              + rootMessage(e)
+              + ". The server certificate may not be trusted — provide the server's CA "
+              + "certificate via 'clientTls.trustedCertificate', or check the client certificate "
+              + "configuration.",
+          e);
     } catch (IOException e) {
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
           "An error occurred while executing the request, or the connection was aborted",
           e);
     }
+  }
+
+  /** Returns the message of the deepest cause, e.g. the PKIX text of a wrapped TLS failure. */
+  private static String rootMessage(Throwable t) {
+    var cause = t;
+    while (cause.getCause() != null && cause.getCause() != cause) {
+      cause = cause.getCause();
+    }
+    return cause.getMessage();
   }
 }

@@ -8,7 +8,6 @@ package io.camunda.connector.inbound.model;
 
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
-import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
@@ -105,16 +104,6 @@ public record WebhookConnectorProperties(
         HMACScope[] hmacScopes,
     WebhookAuthorization auth,
     @TemplateProperty(
-            id = "responseExpression",
-            label = "Response expression",
-            type = PropertyType.Text,
-            group = "webhookResponse",
-            description = "Expression used to generate the HTTP response",
-            feel = FeelMode.required,
-            optional = true)
-        Function<WebhookResultContext, WebhookHttpResponse> responseExpression,
-    @TemplateProperty(ignore = true) Function<WebhookResultContext, Object> responseBodyExpression,
-    @TemplateProperty(
             id = "verificationExpression",
             label = "One time verification response expression",
             description =
@@ -136,8 +125,6 @@ public record WebhookConnectorProperties(
         // default to BODY if no scopes are provided
         getOrDefault(wrapper.inbound.hmacScopes, new HMACScope[] {HMACScope.BODY}),
         getOrDefault(wrapper.inbound.auth, new WebhookAuthorization.None()),
-        wrapper.inbound.responseExpression,
-        wrapper.inbound.responseBodyExpression,
         wrapper.inbound.verificationExpression);
   }
 
@@ -170,10 +157,6 @@ public record WebhookConnectorProperties(
         + Arrays.toString(hmacScopes)
         + ", auth="
         + auth
-        + ", responseExpression="
-        + responseExpression
-        + ", responseBodyExpression="
-        + responseBodyExpression
         + ", verificationExpression="
         + verificationExpression
         + "}";

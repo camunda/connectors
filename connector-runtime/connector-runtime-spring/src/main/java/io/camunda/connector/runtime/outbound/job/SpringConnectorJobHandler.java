@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound.job;
 
 import static java.util.Objects.requireNonNullElse;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.JobCallbackFinalCommandStep;
 import io.camunda.client.api.response.ActivatedJob;
@@ -32,6 +33,7 @@ import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
 import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
@@ -56,6 +58,9 @@ import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
@@ -88,6 +93,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private final ValidationProvider validationProvider;
   private final DocumentFactory documentFactory;
   private final ObjectMapper objectMapper;
+  private final SecretFilterFactory secretFilterFactory;
 
   public SpringConnectorJobHandler(
       MetricsRecorder outboundMetrics,
@@ -96,12 +102,14 @@ public class SpringConnectorJobHandler implements JobHandler {
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      OutboundConnectorFunction connectorFunction) {
+      OutboundConnectorFunction connectorFunction,
+      SecretFilterFactory secretFilterFactory) {
     this.call = connectorFunction;
     this.secretProvider = secretProviderAggregator;
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
+    this.secretFilterFactory = secretFilterFactory;
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
@@ -150,21 +158,31 @@ public class SpringConnectorJobHandler implements JobHandler {
         job.getKey(),
         job.getType(),
         job.getTenantId());
+    var secretFilter =
+        secretFilterFactory.create(
+            new SecretFilterContext(job.getProcessDefinitionKey(), job.getElementId()));
     var context =
         new JobHandlerContext(
-            job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
-    ConnectorResult result = getConnectorResult(job, context);
-    processFinalResult(client, job, context, result, counterMetricsContext);
+            job,
+            getSecretProvider(),
+            validationProvider,
+            documentFactory,
+            objectMapper,
+            secretFilter);
+    ConnectorResult result = getConnectorResult(job, context, secretFilter);
+    processFinalResult(client, job, context, result, counterMetricsContext, secretFilter);
   }
 
-  private ConnectorResult getConnectorResult(ActivatedJob job, OutboundConnectorContext context) {
+  private ConnectorResult getConnectorResult(
+      ActivatedJob job, OutboundConnectorContext context, SecretFilter secretFilter) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
 
       var connectorResponse = getConnectorResponse(context);
 
-      if (connectorResponse instanceof AdHocSubProcessConnectorResponse) {
+      if (connectorResponse instanceof AdHocSubProcessConnectorResponse ahsp) {
+        InlineSizeGuard.check(objectMapper.writeValueAsBytes(ahsp.variables()).length);
         // AHSP responses provide their own variables; skip result expression evaluation
         return new ConnectorResult.SuccessResult(connectorResponse, Map.of());
       }
@@ -174,10 +192,13 @@ public class SpringConnectorJobHandler implements JobHandler {
               connectorResponse.responseValue(),
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
+      if (!responseVariables.isEmpty()) {
+        InlineSizeGuard.check(objectMapper.writeValueAsBytes(responseVariables).length);
+      }
       return new ConnectorResult.SuccessResult(connectorResponse, responseVariables);
     } catch (Exception e) {
       return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
-          e, job, retryBackoff);
+          e, job, retryBackoff, secretFilter);
     }
   }
 
@@ -196,7 +217,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       OutboundConnectorContext context,
       ConnectorResult finalResult,
-      CounterMetricsContext counterMetricsContext) {
+      CounterMetricsContext counterMetricsContext,
+      SecretFilter secretFilter) {
     try {
       Optional<ConnectorError> optionalConnectorError =
           connectorResultHandler.examineErrorExpression(
@@ -213,7 +235,8 @@ public class SpringConnectorJobHandler implements JobHandler {
           failJob(
               client,
               job,
-              this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job),
+              this.outboundConnectorExceptionHandler.handleFinalResultException(
+                  ex, job, secretFilter),
               counterMetricsContext);
       notifyFailureOnCommandOutcome(
           failJobRequest,
@@ -264,6 +287,7 @@ public class SpringConnectorJobHandler implements JobHandler {
 
     switch (error) {
       case BpmnError bpmnError -> {
+        checkVariablesSize(bpmnError.variables());
         LOGGER.debug(
             "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
         CompletableFuture<CommandOutcome> throwBpmnErrorRequest =
@@ -280,6 +304,7 @@ public class SpringConnectorJobHandler implements JobHandler {
                     completionFailure));
       }
       case JobError jobError -> {
+        checkVariablesSize(jobError.variablesWithErrorMessage());
         LOGGER.debug("Throwing incident for job {}", job.getKey());
         CompletableFuture<CommandOutcome> failJobRequest =
             failJob(
@@ -334,6 +359,7 @@ public class SpringConnectorJobHandler implements JobHandler {
           response,
           completionFailure -> new ExecutionFailed(cause, completionFailure));
     } else {
+      checkVariablesSize(ignoreError.variables());
       LOGGER.debug("Ignoring error for job {}", job.getKey());
       completeJob(
           client,
@@ -481,6 +507,15 @@ public class SpringConnectorJobHandler implements JobHandler {
 
               return adHocSubProcess;
             });
+  }
+
+  private void checkVariablesSize(Map<String, Object> variables) {
+    if (variables == null || variables.isEmpty()) return;
+    try {
+      InlineSizeGuard.check(objectMapper.writeValueAsBytes(variables).length);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize variables for size check", e);
+    }
   }
 
   private static String truncateErrorMessage(String message) {

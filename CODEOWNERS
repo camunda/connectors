@@ -1,15 +1,35 @@
 # These owners will be the default owners for everything in the repo.
 * @camunda/connectors
 
-# Custom rule for AI & IDP collaborators
-/connectors/agentic-ai @camunda/connectors-agentic-ai @camunda/connectors
-/connectors/idp-extraction @camunda/connectors-idp @camunda/connectors
-/connectors/embeddings-vector-database @camunda/connectors-agentic-ai @camunda/connectors
-/connectors-e2e-test/connectors-e2e-test-agentic-ai @camunda/connectors-agentic-ai @camunda/connectors
-/connectors/aws/aws-bedrock-codeinterpreter @camunda/connectors-agentic-ai @camunda/connectors
-/connectors/aws/aws-bedrock-knowledgebase @camunda/connectors-agentic-ai @camunda/connectors
-/connectors/aws/aws-bedrock-agentcore-runtime @camunda/connectors-agentic-ai @camunda/connectors
-/connectors/aws/aws-bedrock-agentcore-long-term-memory @camunda/connectors-agentic-ai @camunda/connectors
+# Core platform infrastructure (SDK, runtime, bundle, shared libs)
+/connector-sdk/ @camunda/connectors-core
+/connector-runtime/ @camunda/connectors-core
+/bundle/ @camunda/connectors-core
+/connector-commons/ @camunda/connectors-core
+/parent/ @camunda/connectors-core
+/secret-providers/ @camunda/connectors-core
+/element-template-generator/ @camunda/connectors-core
+/connector-templates.json @camunda/connectors-core
+/ignore-templates.json @camunda/connectors-core
+
+# Connectors: experience team owns all by default; core overrides for http/graphql/webhook
+/connectors/ @camunda/connectors-experience
+/connectors/pom.xml @camunda/connectors-core @camunda/connectors-experience
+/connectors/http/ @camunda/connectors-core
+/connectors/webhook/ @camunda/connectors-core
+/connectors/soap/ @camunda/connectors-core
+
+# Custom rule for AI collaborators
+/connectors/agentic-ai @camunda/connectors-agentic-ai
+/connectors/embeddings-vector-database @camunda/connectors-agentic-ai
+/connectors-e2e-test/connectors-e2e-test-agentic-ai @camunda/connectors-agentic-ai
+/connectors/aws/aws-bedrock-codeinterpreter @camunda/connectors-agentic-ai
+/connectors/aws/aws-bedrock-knowledgebase @camunda/connectors-agentic-ai
+/connectors/aws/aws-bedrock-agentcore-runtime @camunda/connectors-agentic-ai
+/connectors/aws/aws-bedrock-agentcore-long-term-memory @camunda/connectors-agentic-ai
+
+# Custom rule for IDP collaborators
+/connectors/idp-extraction @camunda/connectors-idp
 
 # These files are excluded so that Renovate can automatically merge dependency upgrades
 renovate.json

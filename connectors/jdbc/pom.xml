@@ -66,14 +66,14 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.7.11</version>
+      <version>42.7.12</version>
     </dependency>
 
     <!-- Mariadb is used because of an issue with the MySQL ConnectorJ licence (GPL). We're not mentioning Mariadb in our docs -->
     <dependency>
       <groupId>org.mariadb.jdbc</groupId>
       <artifactId>mariadb-java-client</artifactId>
-      <version>3.5.8</version>
+      <version>3.5.9</version>
     </dependency>
 
     <dependency>

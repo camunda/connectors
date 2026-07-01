@@ -21,9 +21,11 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
+import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -121,6 +123,24 @@ class OutboundConnectorsRestControllerMultiInstancesTest extends BaseOutboundMul
     assertEquals(1, connectors.size());
     assertEquals("instance2", connectors.getFirst().runtimeId());
     assertTrue(connectors.getFirst().enabled());
+  }
+
+  @Test
+  void shouldReturnUnknownBrokerState_forAllConnectors() {
+    ResponseEntity<List<OutboundConnectorResponse>> response =
+        restTemplate.exchange(
+            "http://localhost:" + port1 + "/outbound",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<>() {});
+
+    var connectors = response.getBody();
+    // No BrokerJobStreamClient is configured in the test setup → UNKNOWN for all.
+    connectors.forEach(
+        c -> {
+          assertEquals(BrokerConnectivityState.UNKNOWN, c.brokerConnectivityState());
+          assertNull(c.streamIds());
+        });
   }
 
   @Test

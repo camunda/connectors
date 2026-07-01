@@ -25,7 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,11 +51,11 @@ public record InboundConnectorElement(
     return element.tenantId();
   }
 
-  public String resultExpression() {
+  public @Nullable String resultExpression() {
     return rawProperties.get(Keywords.RESULT_EXPRESSION_KEYWORD);
   }
 
-  public String resultVariable() {
+  public @Nullable String resultVariable() {
     return rawProperties.get(Keywords.RESULT_VARIABLE_KEYWORD);
   }
 
@@ -108,16 +110,8 @@ public record InboundConnectorElement(
   }
 
   private String computeDeduplicationId(List<String> deduplicationProperties) {
-    List<String> propsToHash;
-    if (!deduplicationProperties.isEmpty()) {
-      propsToHash =
-          deduplicationProperties.stream()
-              .map(rawProperties::get)
-              .filter(Objects::nonNull)
-              .toList();
-    } else {
-      propsToHash = propertiesForDeduplication().values().stream().toList();
-    }
+    var propsToHash =
+        propertiesForDeduplication(deduplicationProperties).values().stream().toList();
     if (propsToHash.isEmpty()) {
       throw new InvalidInboundConnectorDefinitionException(
           "Missing deduplication properties, expected at least one property to compute deduplicationId");
@@ -135,9 +129,24 @@ public record InboundConnectorElement(
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
-  public Map<String, String> propertiesForDeduplication() {
+  /**
+   * Properties used for deduplication, given a connector's deduplication scope.
+   *
+   * <p>When {@code deduplicationProperties} is empty (no scope declared), all properties are
+   * eligible except the runtime-handled {@link Keywords#PROPERTIES_EXCLUDED_FROM_DEDUPLICATION}.
+   * When a scope is declared (derived from {@code @InboundConnector.deduplicationClasses}, or the
+   * deprecated {@code deduplicationProperties}), only properties whose key falls within the scope
+   * prefixes are eligible — so element-scoped properties such as a webhook response expression are
+   * excluded and elements differing only in those values still deduplicate together.
+   */
+  public Map<String, String> propertiesForDeduplication(List<String> deduplicationProperties) {
+    Predicate<Map.Entry<String, String>> included =
+        deduplicationProperties.isEmpty()
+            ? entry -> !Keywords.PROPERTIES_EXCLUDED_FROM_DEDUPLICATION.contains(entry.getKey())
+            : entry ->
+                DeduplicationPropertyResolver.matchesScope(entry.getKey(), deduplicationProperties);
     return rawProperties.entrySet().stream()
-        .filter(e -> !Keywords.PROPERTIES_EXCLUDED_FROM_DEDUPLICATION.contains(e.getKey()))
+        .filter(included)
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 

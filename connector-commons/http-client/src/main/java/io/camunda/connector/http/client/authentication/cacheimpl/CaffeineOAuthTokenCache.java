@@ -21,6 +21,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.TokenResponse;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.model.auth.OAuthRefreshTokenAuthentication;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -107,7 +108,26 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
             Objects.requireNonNullElse(auth.audience(), ""),
             Objects.requireNonNullElse(auth.scopes(), ""),
             Objects.requireNonNullElse(auth.clientAuthentication(), ""));
+    return sha256Hex(raw);
+  }
 
+  /**
+   * Computes a SHA-256 hash of the refresh-token configuration fields to use as the cache key. This
+   * ensures that sensitive credential material is never stored in plain text.
+   */
+  static String computeCacheKey(OAuthRefreshTokenAuthentication auth) {
+    String raw =
+        String.join(
+            "\0",
+            Objects.requireNonNullElse(auth.oauthTokenEndpoint(), ""),
+            Objects.requireNonNullElse(auth.clientId(), ""),
+            Objects.requireNonNullElse(auth.clientSecret(), ""),
+            Objects.requireNonNullElse(auth.refreshToken(), ""),
+            Objects.requireNonNullElse(auth.scopes(), ""));
+    return sha256Hex(raw);
+  }
+
+  private static String sha256Hex(String raw) {
     MessageDigest digest = SHA_256_DIGEST.get();
     digest.reset();
     byte[] hash = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
@@ -125,8 +145,28 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
 
   @Override
   public String getOrFetch(OAuthAuthentication auth, Supplier<TokenResponse> tokenSupplier) {
-    String cacheKey = computeCacheKey(auth);
+    return getOrFetchByKey(computeCacheKey(auth), tokenSupplier);
+  }
 
+  @Override
+  public String getOrFetch(
+      OAuthRefreshTokenAuthentication auth, Supplier<TokenResponse> tokenSupplier) {
+    return getOrFetchByKey(computeCacheKey(auth), tokenSupplier);
+  }
+
+  @Override
+  public void invalidate(OAuthAuthentication auth) {
+    cache.invalidate(computeCacheKey(auth));
+    LOG.debug("OAuth token cache entry invalidated");
+  }
+
+  @Override
+  public void invalidate(OAuthRefreshTokenAuthentication auth) {
+    cache.invalidate(computeCacheKey(auth));
+    LOG.debug("OAuth token cache entry invalidated");
+  }
+
+  private String getOrFetchByKey(String cacheKey, Supplier<TokenResponse> tokenSupplier) {
     AtomicReference<String> uncachedToken = new AtomicReference<>();
 
     CaffeineCacheToken entry =
@@ -153,13 +193,6 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
 
     // Mapping returned null → token was fetched but not cached (no expires_in)
     return uncachedToken.get();
-  }
-
-  @Override
-  public void invalidate(OAuthAuthentication auth) {
-    String cacheKey = computeCacheKey(auth);
-    cache.invalidate(cacheKey);
-    LOG.debug("OAuth token cache entry invalidated");
   }
 
   @Override

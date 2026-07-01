@@ -13,7 +13,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
-@TemplateSubType(id = OperationTypes.UPDATE_ITEM)
+@TemplateSubType(
+    id = OperationTypes.UPDATE_ITEM,
+    description = "Update a single item in a DynamoDB table",
+    keywords = {"update item", "modify item", "patch item"})
 public record UpdateItem(
     @TemplateProperty(
             label = "Table name",

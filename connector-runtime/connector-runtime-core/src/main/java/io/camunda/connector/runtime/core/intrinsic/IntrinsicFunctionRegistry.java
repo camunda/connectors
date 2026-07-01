@@ -17,11 +17,12 @@
 package io.camunda.connector.runtime.core.intrinsic;
 
 import java.lang.reflect.Method;
+import org.jspecify.annotations.Nullable;
 
 public interface IntrinsicFunctionRegistry {
 
   record IntrinsicFunctionSource(IntrinsicFunctionProvider provider, Method method) {}
 
   /** Get an intrinsic function by name. */
-  IntrinsicFunctionSource getIntrinsicFunction(String name);
+  @Nullable IntrinsicFunctionSource getIntrinsicFunction(String name);
 }

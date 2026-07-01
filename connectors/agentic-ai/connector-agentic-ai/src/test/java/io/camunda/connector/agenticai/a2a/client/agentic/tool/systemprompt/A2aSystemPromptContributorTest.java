@@ -1,0 +1,79 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.a2a.client.agentic.tool.systemprompt;
+
+import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.PROPERTY_A2A_CLIENTS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import java.io.FileNotFoundException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.core.io.ClassPathResource;
+
+class A2aSystemPromptContributorTest {
+
+  private static AgentContext contextWithProperties(Map<String, Object> properties) {
+    return AgentContext.builder().state(AgentState.READY).properties(properties).build();
+  }
+
+  @Test
+  void shouldContributeWhenA2aToolsPresent() {
+    A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
+    var agentContext = contextWithProperties(Map.of(PROPERTY_A2A_CLIENTS, List.of("RemoteAgent")));
+
+    String result = contributor.contribute(null, agentContext);
+
+    assertThat(result).isNotNull();
+    assertThat(result).contains("A2A Remote Agent Interaction Guide");
+  }
+
+  @ParameterizedTest
+  @MethodSource("noA2aToolsPropertiesProvider")
+  void shouldNotContributeWhenNoA2aTools(Map<String, Object> properties) {
+    A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
+    var agentContext = contextWithProperties(properties);
+
+    String result = contributor.contribute(null, agentContext);
+
+    assertThat(result).isNull();
+  }
+
+  public static Stream<Arguments> noA2aToolsPropertiesProvider() {
+    return Stream.of(
+        Arguments.of(Map.of()),
+        Arguments.of(Map.of("someOtherProperty", "someValue")),
+        Arguments.of(Map.of(PROPERTY_A2A_CLIENTS, List.of())),
+        Arguments.of(Map.of(PROPERTY_A2A_CLIENTS, "NotAListButAString")));
+  }
+
+  @Test
+  void shouldHaveCorrectOrder() {
+    A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
+
+    assertThat(contributor.getOrder()).isEqualTo(100);
+  }
+
+  @Test
+  void shouldThrowIllegalStateExceptionWhenResourceLoadingFails() {
+    assertThatThrownBy(
+            () -> new A2aSystemPromptContributor(new ClassPathResource("some/nonexistent/path.md")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasCauseInstanceOf(FileNotFoundException.class);
+  }
+
+  private static A2aSystemPromptContributor newA2aSystemPromptContributor() {
+    return new A2aSystemPromptContributor(new ClassPathResource("a2a/a2a-system-prompt.md"));
+  }
+}

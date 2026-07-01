@@ -15,15 +15,6 @@ jobs:
   add-by-label:
     name: Add issue to project if label
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        mapping:
-          - label: idp
-            project-url: https://github.com/orgs/camunda/projects/133/views/1
-          - label: agentic-ai
-            project-url: https://github.com/orgs/camunda/projects/155/views/1
-
     steps:
       - name: Import Secrets
         id: vault-secrets
@@ -45,27 +36,53 @@ jobs:
       - name: Get labels
         id: get-labels
         run: |
-          echo "::set-output name=labels::$(jq -r '.issue? // .pull_request? | .labels[].name' <"$GITHUB_EVENT_PATH")"
+          {
+            echo "labels<<EOF"
+            jq -r '.issue? // .pull_request? | .labels[].name' <"$GITHUB_EVENT_PATH"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
         env:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
 
-      - name: Add to project if “${{ matrix.mapping.label }}” present
-        if: contains(steps.get-labels.outputs.labels, matrix.mapping.label)
+      - name: Add to idp project
+        if: contains(steps.get-labels.outputs.labels, 'idp')
         uses: actions/add-to-project@v2.0.0
         with:
-          project-url: ${{ matrix.mapping.project-url }}
+          project-url: https://github.com/orgs/camunda/projects/133/views/1
           github-token: ${{ steps.app-token.outputs.token }}
 
-      # Mark that at least one label matched
-      - name: Flag “matched”
-        if: contains(steps.get-labels.outputs.labels, matrix.mapping.label)
-        run: echo "::set-output name=matched::true"
-        id: flag
+      - name: Add to agentic-ai project
+        if: contains(steps.get-labels.outputs.labels, 'agentic-ai')
+        uses: actions/add-to-project@v2.0.0
+        with:
+          project-url: https://github.com/orgs/camunda/projects/155/views/1
+          github-token: ${{ steps.app-token.outputs.token }}
+
+      - name: Remove from connectors project
+        if: contains(steps.get-labels.outputs.labels, 'idp') || contains(steps.get-labels.outputs.labels, 'agentic-ai')
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          PROJECT_TITLE=$(gh project view 23 --owner camunda --format json | jq -r '.title')
+          ITEM_NUMBER=$(jq -r '.issue.number // .pull_request.number' < "$GITHUB_EVENT_PATH")
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            gh pr edit "$ITEM_NUMBER" --remove-project "$PROJECT_TITLE" --repo "${{ github.repository }}"
+          else
+            gh issue edit "$ITEM_NUMBER" --remove-project "$PROJECT_TITLE" --repo "${{ github.repository }}"
+          fi
 
   add-default:
     name: Add issue to project if no label
     runs-on: ubuntu-latest
-    if: needs.add-by-label.outputs['flag.matched'] != 'true'
+    needs: [add-by-label]
+    if: |
+      (github.event_name == 'issues' &&
+       !contains(github.event.issue.labels.*.name, 'idp') &&
+       !contains(github.event.issue.labels.*.name, 'agentic-ai')) ||
+      (github.event_name == 'pull_request' &&
+       !contains(github.event.pull_request.labels.*.name, 'idp') &&
+       !contains(github.event.pull_request.labels.*.name, 'agentic-ai'))
     steps:
       - name: Import Secrets
         id: vault-secrets

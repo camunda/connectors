@@ -48,7 +48,7 @@ public class IntrinsicFunctionParameterBinder {
     return parameterValues;
   }
 
-  private Object bindParameter(
+  private @Nullable Object bindParameter(
       Parameter parameter,
       Class<?> type,
       List<Annotation> annotations,

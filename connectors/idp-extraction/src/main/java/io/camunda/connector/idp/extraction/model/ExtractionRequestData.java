@@ -15,6 +15,13 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @deprecated Legacy IDP extraction request, bound only by {@link
+ *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. The structured /
+ *     unstructured / classification connectors use the {@code request.*} models instead. Retained
+ *     for backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 public record ExtractionRequestData(
     @TemplateProperty(
             id = "document",

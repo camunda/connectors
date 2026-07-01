@@ -60,6 +60,7 @@ import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -126,7 +127,8 @@ class SpringConnectorJobHandlerTest {
         new DefaultValidationProvider(),
         mock(DocumentFactory.class),
         TestObjectMapperSupplier.INSTANCE,
-        call);
+        call,
+        job -> SecretFilter.allowAll());
   }
 
   private SpringConnectorJobHandler newConnectorJobHandler(
@@ -140,7 +142,8 @@ class SpringConnectorJobHandlerTest {
         new DefaultValidationProvider(),
         mock(DocumentFactory.class),
         TestObjectMapperSupplier.INSTANCE,
-        call);
+        call,
+        job -> SecretFilter.allowAll());
   }
 
   @Nested
@@ -227,6 +230,42 @@ class SpringConnectorJobHandlerTest {
 
         // then
         assertThat(result.getVariables()).isEqualTo(Map.of("result", 1));
+      }
+
+      @Test
+      void shouldFailJobWhenResultVariableExceedsZeebeLimit() throws Exception {
+        // given
+        String largeValue =
+            "x"
+                .repeat(
+                    (int) io.camunda.connector.api.document.InlineSizeGuard.MAX_INLINE_BYTES + 1);
+        var jobHandler = newConnectorJobHandler((ctx) -> largeValue);
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withRetries(3)
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler, false);
+
+        // then - oversized payload is a deterministic input error: immediate incident, no retries
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage()).contains("Create document");
+      }
+
+      @Test
+      void shouldCompleteJobWhenResultVariableBelowZeebeLimit() throws Exception {
+        // given
+        var jobHandler = newConnectorJobHandler((ctx) -> "small value");
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler);
+
+        // then
+        assertThat(result.getVariables()).containsKey("result");
       }
     }
 

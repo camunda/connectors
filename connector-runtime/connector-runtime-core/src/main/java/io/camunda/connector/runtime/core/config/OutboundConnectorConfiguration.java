@@ -18,13 +18,14 @@ package io.camunda.connector.runtime.core.config;
 
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 
 public record OutboundConnectorConfiguration(
     String name,
     String[] inputVariables,
     String type,
     Supplier<OutboundConnectorFunction> instanceSupplier,
-    Long timeout)
+    @Nullable Long timeout)
     implements ConnectorConfiguration {
 
   public OutboundConnectorConfiguration(

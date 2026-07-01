@@ -32,6 +32,8 @@ public class CamundaClientFeelExpressionEvaluator implements FeelExpressionEvalu
 
   private final CamundaClient camundaClient;
   private final ObjectMapper objectMapper;
+  private final String tenantId;
+  private final Long scopeKey;
 
   /**
    * Creates a new evaluator with a custom ObjectMapper for result conversion.
@@ -41,7 +43,35 @@ public class CamundaClientFeelExpressionEvaluator implements FeelExpressionEvalu
    */
   public CamundaClientFeelExpressionEvaluator(
       CamundaClient camundaClient, ObjectMapper objectMapper) {
+    this(camundaClient, null, null, objectMapper);
+  }
+
+  /**
+   * Creates a new evaluator scoped to a specific tenant.
+   *
+   * @param camundaClient the CamundaClient instance to use for expression evaluation
+   * @param tenantId the tenant id to apply on the evaluation command (nullable)
+   * @param objectMapper the ObjectMapper to use for JSON conversion of the results
+   */
+  public CamundaClientFeelExpressionEvaluator(
+      CamundaClient camundaClient, String tenantId, ObjectMapper objectMapper) {
+    this(camundaClient, tenantId, null, objectMapper);
+  }
+
+  /**
+   * Creates a new evaluator scoped to a specific tenant and element instance.
+   *
+   * @param camundaClient the CamundaClient instance to use for expression evaluation
+   * @param tenantId the tenant id to apply on the evaluation command (nullable)
+   * @param scopeKey the scope key (e.g. element instance key) to apply on the evaluation command
+   *     (nullable)
+   * @param objectMapper the ObjectMapper to use for JSON conversion of the results
+   */
+  public CamundaClientFeelExpressionEvaluator(
+      CamundaClient camundaClient, String tenantId, Long scopeKey, ObjectMapper objectMapper) {
     this.camundaClient = camundaClient;
+    this.tenantId = tenantId;
+    this.scopeKey = scopeKey;
     this.objectMapper = objectMapper;
   }
 
@@ -89,6 +119,13 @@ public class CamundaClientFeelExpressionEvaluator implements FeelExpressionEvalu
     Map<String, Object> mergedVariables = FeelEngineWrapperUtil.mergeMapVariables(variables);
     if (!mergedVariables.isEmpty()) {
       request.variables(mergedVariables);
+    }
+
+    if (tenantId != null) {
+      request.tenantId(tenantId);
+    }
+    if (scopeKey != null) {
+      request.scopeKey(scopeKey);
     }
 
     var response = request.send().join();

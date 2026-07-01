@@ -9,6 +9,13 @@ package io.camunda.connector.idp.extraction.model.providers.gcp;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
+/**
+ * @deprecated Legacy IDP extraction provider model, used only by {@link
+ *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction} via {@code GcpProvider}. The
+ *     structured / unstructured / classification connectors use the {@code request.common} model
+ *     instead. Retained for backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 @TemplateSubType(id = "vertex", label = "Configuration for VertexAI")
 public final class VertexRequestConfiguration implements GcpRequestConfiguration {
 

@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -28,6 +29,7 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class DefaultInboundConnectorContextFactory implements InboundConnectorContextFactory {
@@ -37,6 +39,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
   private final ValidationProvider validationProvider;
   private final ProcessInstanceClient processInstanceClient;
   private final DocumentFactory documentFactory;
+  private final CamundaClient camundaClient;
 
   public DefaultInboundConnectorContextFactory(
       final ObjectMapper mapper,
@@ -44,13 +47,15 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
       final SecretProviderAggregator secretProviderAggregator,
       final ValidationProvider validationProvider,
       final ProcessInstanceClient processInstanceClient,
-      final DocumentFactory documentFactory) {
+      final DocumentFactory documentFactory,
+      final CamundaClient camundaClient) {
     this.objectMapper = mapper;
     this.correlationHandler = correlationHandler;
     this.secretProviderAggregator = secretProviderAggregator;
     this.validationProvider = validationProvider;
     this.processInstanceClient = processInstanceClient;
     this.documentFactory = documentFactory;
+    this.camundaClient = Objects.requireNonNull(camundaClient, "camundaClient must not be null");
   }
 
   @Override
@@ -69,7 +74,8 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
             correlationHandler,
             cancellationCallback,
             objectMapper,
-            logWriter);
+            logWriter,
+            camundaClient);
 
     if (isIntermediateContext(executableClass)) {
       inboundContext =
@@ -78,7 +84,8 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
               processInstanceClient,
               validationProvider,
               objectMapper,
-              correlationHandler);
+              correlationHandler,
+              camundaClient);
     }
 
     return inboundContext;

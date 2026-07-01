@@ -37,11 +37,11 @@ import java.util.function.Function;
       "file storage"
     },
     inputDataClass = S3Request.class,
-    version = 3,
+    version = 4,
     propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Action"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
-      @ElementTemplate.PropertyGroup(id = "action", label = "Action"),
       @ElementTemplate.PropertyGroup(id = "deleteObject", label = "Delete an object"),
       @ElementTemplate.PropertyGroup(id = "uploadObject", label = "Upload an object"),
       @ElementTemplate.PropertyGroup(id = "downloadObject", label = "Download an object"),

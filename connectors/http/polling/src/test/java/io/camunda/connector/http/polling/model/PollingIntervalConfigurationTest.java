@@ -7,8 +7,10 @@
 package io.camunda.connector.http.polling.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -66,7 +68,8 @@ public class PollingIntervalConfigurationTest {
             null,
             (e) -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
-            new ActivityLogRegistry());
+            new ActivityLogRegistry(),
+            mock(CamundaClient.class));
   }
 
   @ParameterizedTest

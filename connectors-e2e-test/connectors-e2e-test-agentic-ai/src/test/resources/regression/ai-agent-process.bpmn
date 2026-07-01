@@ -10,10 +10,10 @@
         <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
         <zeebe:taskDefinition type="io.camunda.agenticai:aiagent-job-worker:1" retries="3" />
         <zeebe:ioMapping>
-          <zeebe:input source="openai" target="provider.type" />
-          <zeebe:input source="DUMMY_API_KEY" target="provider.openai.authentication.apiKey" />
-          <zeebe:input source="PT30S" target="provider.openai.timeouts.timeout" />
-          <zeebe:input source="gpt-4o" target="provider.openai.model.model" />
+          <zeebe:input source="openaiCompatible" target="provider.type" />
+          <zeebe:input source="DUMMY_API_KEY" target="provider.openaiCompatible.authentication.apiKey" />
+          <zeebe:input source="test-model" target="provider.openaiCompatible.model.model" />
+          <zeebe:input source="=providerEndpoint" target="provider.openaiCompatible.endpoint" />
           <zeebe:input source="=&#34;You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking.&#34;" target="data.systemPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpUserPrompt)) then followUpUserPrompt&#10;else userPrompt" target="data.userPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpUserPrompt)) then []&#10;else downloadedFiles" target="data.userPrompt.documents" />

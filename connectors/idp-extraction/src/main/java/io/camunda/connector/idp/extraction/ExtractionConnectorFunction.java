@@ -19,6 +19,13 @@ import io.camunda.connector.idp.extraction.model.*;
 import io.camunda.connector.idp.extraction.service.StructuredService;
 import io.camunda.connector.idp.extraction.service.UnstructuredService;
 
+/**
+ * @deprecated Legacy IDP extraction entry point. Use {@link
+ *     UnstructuredExtractionConnectorFunction}, {@link StructuredExtractionConnectorFunction}, or
+ *     {@link ClassificationConnectorFunction} instead, which expose the full feature set. Retained
+ *     for backwards compatibility; no removal currently planned.
+ */
+@Deprecated(since = "8.9")
 @OutboundConnector(
     name = "IDP extraction outbound Connector",
     inputVariables = {"baseRequest", "input"},

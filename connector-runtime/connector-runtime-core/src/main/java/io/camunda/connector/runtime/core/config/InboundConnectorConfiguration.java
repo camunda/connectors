@@ -19,12 +19,13 @@ package io.camunda.connector.runtime.core.config;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import java.util.List;
 import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 
 public record InboundConnectorConfiguration(
     String name,
     String type,
     Class<? extends InboundConnectorExecutable> connectorClass,
-    Supplier<InboundConnectorExecutable> customInstanceSupplier,
+    @Nullable Supplier<InboundConnectorExecutable> customInstanceSupplier,
     List<String> deduplicationProperties)
     implements ConnectorConfiguration {
 

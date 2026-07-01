@@ -102,21 +102,34 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     var context = TemplateGenerationContextUtil.createContext(connectorDefinition, configuration);
 
     List<PropertyBuilder> properties;
+    StepTreeResult stepTree;
     if (OutboundConnectorFunction.class.isAssignableFrom(connectorDefinition)
         || InboundConnectorExecutable.class.isAssignableFrom(connectorDefinition)) {
-      properties =
-          new ArrayList<>(
-              TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context));
+      // Merge the properties of all input data classes (in declaration order) into one template.
+      // Property id collisions are rejected by the ElementTemplate constructor.
+      properties = new ArrayList<>();
+      for (Class<?> inputClass : connectorInput) {
+        if (inputClass != Void.class) {
+          properties.addAll(
+              TemplatePropertiesUtil.extractTemplatePropertiesFromType(inputClass, context));
+        }
+      }
       // zeebe:linkedResource is a service-task extension; skip it for inbound connectors
       if (OutboundConnectorFunction.class.isAssignableFrom(connectorDefinition)) {
-        properties.addAll(
-            LinkedResourcePropertiesUtil.buildClassBasedLinkedResourceProperties(connectorInput));
+        for (Class<?> inputClass : connectorInput) {
+          if (inputClass != Void.class) {
+            properties.addAll(
+                LinkedResourcePropertiesUtil.buildClassBasedLinkedResourceProperties(inputClass));
+          }
+        }
       }
+      stepTree = walkInputStepTree(connectorInput);
     } else if (OutboundConnectorProvider.class.isAssignableFrom(connectorDefinition)) {
       List<MethodWithAnnotation<Operation>> methods =
           ReflectionUtil.getMethodsAnnotatedWith(connectorDefinition, Operation.class);
       properties = new ArrayList<>(List.of(createOperationsProperty(methods)));
       properties.addAll(getOperationProperties(methods, context));
+      stepTree = OperationStepTreeWalker.walk(methods);
     } else {
       throw new IllegalArgumentException(
           "Connector class "
@@ -203,6 +216,9 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .type(context.connectorType(), isHybridMode)
                   .name(createName(context, template.name(), elementType, isHybridMode))
                   .version(template.version())
+                  .category(
+                      new ElementTemplateCategory(
+                          template.category().id(), template.category().name()))
                   .appliesTo(elementType.appliesTo())
                   .engines(
                       !template.engineVersion().isBlank()
@@ -218,9 +234,30 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .propertyGroups(
                       addServiceProperties(
                           mergedGroups, context, elementType, configuration, template))
+                  .steps(stepTree.steps())
+                  .presets(stepTree.presets())
                   .build();
             })
         .toList();
+  }
+
+  /**
+   * Produces the operation-metadata step tree for a connector that may declare multiple input data
+   * classes ({@code @ElementTemplate.inputDataClass} is an array). Walks each input class in
+   * declaration order and returns the first non-empty result; only sealed-type/operation connectors
+   * produce a non-empty tree, so for connectors that merge several plain models (e.g. the webhook)
+   * this is empty.
+   */
+  private static StepTreeResult walkInputStepTree(Class<?>[] inputClasses) {
+    for (Class<?> inputClass : inputClasses) {
+      if (inputClass != Void.class) {
+        StepTreeResult result = StepTreeWalker.walk(inputClass);
+        if (!result.isEmpty()) {
+          return result;
+        }
+      }
+    }
+    return StepTreeResult.empty();
   }
 
   private List<PropertyGroup> addServiceProperties(
