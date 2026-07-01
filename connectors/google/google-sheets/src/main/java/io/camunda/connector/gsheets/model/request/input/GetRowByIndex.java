@@ -23,7 +23,6 @@ public record GetRowByIndex(
     @TemplateProperty(
             id = "getRowByIndex.spreadsheetId",
             label = "Spreadsheet ID",
-            description = "Enter the ID of the spreadsheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.spreadsheetId"))
@@ -32,7 +31,6 @@ public record GetRowByIndex(
     @TemplateProperty(
             id = "getRowByIndex.worksheetName",
             label = "Worksheet name",
-            description = "Enter name for the worksheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.worksheetName"))
@@ -40,8 +38,8 @@ public record GetRowByIndex(
     @TemplateProperty(
             id = "getRowByIndex.rowIndex",
             label = "Row index",
-            description =
-                "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+            tooltip =
+                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">row index documentation</a>",
             group = "operationDetails",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),

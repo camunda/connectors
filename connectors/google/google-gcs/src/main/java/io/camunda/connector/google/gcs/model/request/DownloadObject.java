@@ -49,8 +49,8 @@ public record DownloadObject(
             id = "downloadOperationAsFile",
             group = "operation",
             tooltip =
-                "If checked, a Camunda document is created and its reference is returned\n"
-                    + "If not checked, no document is created and the content is passed as is",
+                "If checked, a Camunda document is created and its reference is returned.\n"
+                    + "If not checked, no document is created and the content is returned as is.",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
             defaultValue = "true",
