@@ -9,10 +9,12 @@ package io.camunda.connector.jdbc.model.request;
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Configuration;
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnectionConfiguration;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
 public record JdbcRequest(
@@ -36,7 +38,9 @@ public record JdbcRequest(
               @TemplateProperty.DropdownPropertyChoice(label = "Oracle", value = "ORACLE"),
             })
         SupportedDatabase database,
-    @Valid @NotNull JdbcConnection connection,
+    // Not @NotNull: a bound connection credential (configuration) may substitute for inline
+    // connection fields. Exactly one source is required; enforced in ConnectionHelper.
+    @Valid JdbcConnection connection,
     @Valid @NotNull JdbcRequestData data,
     @TemplateProperty(
             id = "connectionConfiguration",
@@ -53,5 +57,16 @@ public record JdbcRequest(
   /** Convenience constructor for the pre-configuration-chooser shape (no bound configuration). */
   public JdbcRequest(SupportedDatabase database, JdbcConnection connection, JdbcRequestData data) {
     this(database, connection, data, null);
+  }
+
+  /**
+   * Exactly one connection source is required: either the inline {@link #connection} fields or a
+   * bound connection credential ({@link #configuration}). Replaces the former {@code @NotNull} on
+   * {@code connection}, which no longer holds now that a credential can substitute for it.
+   */
+  @AssertTrue(message = "Either connection fields or a connection credential must be provided")
+  @JsonIgnore
+  public boolean isConnectionSourceProvided() {
+    return connection != null || configuration != null;
   }
 }
