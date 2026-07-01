@@ -4,7 +4,8 @@
     "config:recommended",
     "group:allNonMajor",
     "schedule:earlyMondays",
-    "schedule:automergeNonOfficeHours"
+    "schedule:automergeNonOfficeHours",
+    "github>camunda/infra-renovate-config:herodevs.json5"
   ],
   "timezone": "Europe/Berlin",
   "labels": [
@@ -31,6 +32,12 @@
       "matchHost": "https://reg.mini.dev",
       "username": "minimus",
       "password": "{{ secrets.INFRA_MINIMUS_REGISTRY_TOKEN }}"
+    },
+    {
+      "hostType": "maven",
+      "matchHost": "https://artifacts.camunda.com",
+      "username": "{{ secrets.ARTIFACTORY_USERNAME }}",
+      "password": "{{ secrets.ARTIFACTORY_PASSWORD }}"
     }
   ],
   "packageRules": [
