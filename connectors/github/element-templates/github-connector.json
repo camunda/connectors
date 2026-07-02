@@ -509,7 +509,7 @@
       "label": "GitHub personal token",
       "id": "authentication.pat",
       "group": "authentication",
-      "tooltip": "GitHub personal token, needs repository and workflow scope",
+      "tooltip": "Needs repository and workflow scope.",
       "type": "String",
       "feel": "optional",
       "optional": true,
@@ -530,7 +530,7 @@
       "id": "authentication.githubAppPrivateKey",
       "label": "Private Key",
       "group": "authentication",
-      "description": "The private key of your GitHub App. It is recommended to use a secret for this value.",
+      "tooltip": "The private key of your GitHub App. It is recommended to use a secret for this value.",
       "type": "String",
       "feel": "optional",
       "value": "",
@@ -1514,7 +1514,8 @@
     },
     {
       "label": "Color",
-      "description": "A 6 character hex code, without the leading #, identifying the color of the label",
+      "tooltip": "A 6-character hex code, without the leading #, identifying the color of the label.",
+      "placeholder": "ff0000",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -1600,7 +1601,7 @@
     },
     {
       "label": "Query",
-      "description": "The query contains one or more search keywords and qualifiers. Qualifiers allow you to limit your search to specific areas of GitHub",
+      "tooltip": "The query contains one or more search keywords and qualifiers. Qualifiers allow you to limit your search to specific areas of GitHub.",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1716,7 +1717,7 @@
     },
     {
       "label": "Assignees",
-      "description": "Logins for users to assign to this issue as an array of strings",
+      "tooltip": "Logins for users to assign to this issue as an array of strings.",
       "feel": "required",
       "group": "input",
       "type": "String",
@@ -1735,7 +1736,7 @@
     },
     {
       "label": "Labels",
-      "description": "Labels to associate with this issue as an array of strings",
+      "tooltip": "Labels to associate with this issue as an array of strings.",
       "feel": "required",
       "group": "input",
       "type": "String",
@@ -1853,7 +1854,7 @@
     },
     {
       "label": "Branch name",
-      "description": "The name of the branch. Cannot contain wildcard characters. To use wildcard characters in branch names, use the GraphQL API",
+      "tooltip": "Cannot contain wildcard characters. To use wildcard characters in branch names, use the GraphQL API.",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1893,7 +1894,7 @@
     },
     {
       "label": "Head",
-      "description": "The head to merge. This can be a branch name or a commit SHA1",
+      "tooltip": "The head to merge. This can be a branch name or a commit SHA1.",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1913,7 +1914,7 @@
     },
     {
       "label": "Organization name",
-      "description": "The organization name. The name is not case sensitive",
+      "tooltip": "The name is not case sensitive.",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -1933,7 +1934,7 @@
     },
     {
       "label": "Organization name",
-      "description": "The organization name. The name is not case sensitive",
+      "tooltip": "The name is not case sensitive.",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -2102,7 +2103,7 @@
     },
     {
       "label": "Sort order",
-      "description": "The order to sort by. Default: asc when using full_name, otherwise desc",
+      "tooltip": "The order to sort by. Default: asc when using full_name, otherwise desc.",
       "id": "repoSortOrder",
       "group": "input",
       "type": "Dropdown",
@@ -2130,7 +2131,7 @@
     },
     {
       "label": "Commit message",
-      "description": "Commit message to use for the merge commit. If omitted, a default message will be used",
+      "tooltip": "Commit message to use for the merge commit. If omitted, a default message will be used.",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -2260,7 +2261,7 @@
     },
     {
       "label": "State reason",
-      "description": "The reason for the state change. Ignored unless state is changed",
+      "tooltip": "The reason for the state change. Ignored unless state is changed.",
       "id": "issueStateReason",
       "group": "input",
       "type": "Dropdown",
@@ -2313,7 +2314,7 @@
     },
     {
       "label": "Workflow ID",
-      "description": "The ID of the workflow. You can also pass the workflow file name as a string.",
+      "tooltip": "You can also pass the workflow file name as a string.",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -2577,7 +2578,7 @@
     },
     {
       "label": "Ref",
-      "description": "The name of the commit/branch/tag. Default: the repository's main branch",
+      "tooltip": "The name of the commit/branch/tag. Default: the repository's main branch.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2596,7 +2597,7 @@
     },
     {
       "label": "Branch",
-      "description": "The name of the branch. Default: the repository's main branch",
+      "tooltip": "The name of the branch. Default: the repository's main branch.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2636,7 +2637,7 @@
     },
     {
       "label": "SHA",
-      "description": "Required if you are updating a file. The blob SHA of the file being replaced.",
+      "tooltip": "Required if you are updating a file. The blob SHA of the file being replaced.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2662,7 +2663,7 @@
     },
     {
       "label": "Content",
-      "description": "Provide the raw string, document reference or base64 encoded content to upload.",
+      "tooltip": "The content to upload as a raw string, document reference, or base64-encoded value.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2680,7 +2681,7 @@
     },
     {
       "label": "Content is already base64 encoded",
-      "description": "As uploaded content needs to be base64 encoded, you can check this box if the content is already encoded. Otherwise, it will be encoded for you",
+      "tooltip": "Uploaded content must be base64 encoded. Check this box if the content is already encoded; otherwise, it will be encoded for you.",
       "group": "input",
       "type": "Boolean",
       "default": "=false",
@@ -2708,7 +2709,7 @@
     {
       "id": "useCustomCommitter",
       "label": "Use custom committer",
-      "description": "By default, the committer is the user associated with the access token. Check this box to set a different committer in the commit metadata.",
+      "tooltip": "By default, the committer is the user associated with the access token. Check this box to set a different committer in the commit metadata.",
       "group": "input",
       "value": false,
       "type": "Boolean",
@@ -2725,7 +2726,8 @@
     },
     {
       "label": "Committer name",
-      "description": "The name/handle of the person that made the commit, e.g. octocat. Do not include an @",
+      "tooltip": "The name/handle of the person that made the commit. Do not include an @.",
+      "placeholder": "octocat",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2764,7 +2766,7 @@
     {
       "id": "useCustomAuthor",
       "label": "Use custom author",
-      "description": "By default, the author is the user associated with the access token. Check this box to use a different author in the commit metadata.",
+      "tooltip": "By default, the author is the user associated with the access token. Check this box to use a different author in the commit metadata.",
       "group": "input",
       "value": false,
       "type": "Boolean",
@@ -2781,7 +2783,8 @@
     },
     {
       "label": "Author name",
-      "description": "The name/handle of the author of the commit, e.g. octocat. Do not include an @",
+      "tooltip": "The name/handle of the author of the commit. Do not include an @.",
+      "placeholder": "octocat",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -3555,7 +3558,7 @@
     },
     {
       "label": "Connection timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "tooltip": "Sets the timeout in seconds to establish a connection, or 0 for an infinite timeout.",
       "group": "errors",
       "type": "String",
       "value": "20",

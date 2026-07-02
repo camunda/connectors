@@ -433,7 +433,8 @@
     },
     {
       "label": "Additional properties that should be returned",
-      "description": "Names of the additional properties as a comma separated list, e.g. city,annualrevenue. Get all contact properties <a href=\"https://developers.hubspot.com/docs/reference/api/crm/properties/v1-contacts#get-all-contact-properties\" target=\"_blank\">here</a> and learn more about default contact properties <a href=\"https://knowledge.hubspot.com/properties/hubspots-default-contact-properties\" target=\"_blank\">here</a>. Leave this empty to get only standard properties.",
+      "tooltip": "Names of the additional properties as a comma separated list. Leave this empty to get only standard properties. See all <a href=\"https://developers.hubspot.com/docs/reference/api/crm/properties/v1-contacts#get-all-contact-properties\" target=\"_blank\">contact properties</a> and HubSpot's <a href=\"https://knowledge.hubspot.com/properties/hubspots-default-contact-properties\" target=\"_blank\">default contact properties</a>.",
+      "placeholder": "city,annualrevenue",
       "optional": true,
       "value": "",
       "feel": "optional",
@@ -611,7 +612,7 @@
 
     {
       "label": "Search field",
-      "tooltip": "The field within the object to perform the search on, e.g. lastname",
+      "tooltip": "The field within the object to perform the search on.",
       "placeholder": "lastname",
       "feel": "optional",
       "group": "input",
@@ -635,7 +636,7 @@
     },
     {
       "label": "Search value",
-      "tooltip": "The value to search for, e.g. Smith",
+      "tooltip": "The value to search for.",
       "placeholder": "Smith",
       "feel": "optional",
       "group": "input",

@@ -85,6 +85,7 @@
     {
       "id": "restApiTriggerPath",
       "label": "REST API trigger path",
+      "placeholder": "/api/sn_cico/flow_starter/my_flow",
       "optional": false,
       "feel": "optional",
       "group": "sn",
@@ -383,7 +384,8 @@
     {
       "id": "authentication.scopes",
       "label": "Scopes",
-      "tooltip": "The scopes which you want to request authorization for (e.g. read:contacts)",
+      "tooltip": "The scopes which you want to request authorization for",
+      "placeholder": "read:contacts",
       "optional": true,
       "feel": "optional",
       "group": "authentication",

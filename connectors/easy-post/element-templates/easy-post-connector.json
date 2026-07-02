@@ -388,6 +388,7 @@
       "label": "Country",
       "id": "body.address.country",
       "tooltip": "The country code of the address location",
+      "placeholder": "US",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -475,7 +476,7 @@
     {
       "label": "Length",
       "id": "body.parcel.length",
-      "description": "Required if width and/or height are present (inches)",
+      "tooltip": "Required if width and/or height are present (inches)",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -497,7 +498,7 @@
     {
       "label": "Width",
       "id": "body.parcel.width",
-      "description": "Required if length and/or height are present (inches)",
+      "tooltip": "Required if length and/or height are present (inches)",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -519,7 +520,7 @@
     {
       "label": "Height",
       "id": "body.parcel.height",
-      "description": "Required if length and/or width are present (inches)",
+      "tooltip": "Required if length and/or width are present (inches)",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -672,7 +673,7 @@
     {
       "label": "Address ID",
       "id": "addressIdValue",
-      "tooltip": "The ID of the address that has already been created",
+      "tooltip": "ID of an address that has already been created",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -841,7 +842,7 @@
     },
     {
       "label": "Connection timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "tooltip": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "error",
       "type": "String",
       "value": "20",

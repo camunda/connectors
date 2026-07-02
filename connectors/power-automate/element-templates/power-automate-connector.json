@@ -157,7 +157,7 @@
     {
       "group": "authentication",
       "label": "OAuth token endpoint",
-      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/power-automate/#oauth-token-endpoint\">OAuth token endpoint documentation</a>",
+      "tooltip": "URL to obtain the OAuth access token. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/power-automate/#oauth-token-endpoint\">Power Automate OAuth token endpoint</a>.",
       "type": "String",
       "value": "",
       "feel": "optional",
@@ -175,7 +175,7 @@
     },
     {
       "label": "Client Id (secret ID)",
-      "tooltip": "Microsoft Azure Application Client id. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">Azure app registration documentation</a>",
+      "tooltip": "Microsoft Azure application client ID. See the <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">Azure app registration guide</a>.",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -193,7 +193,7 @@
     },
     {
       "label": "Client secret (Client secret value)",
-      "tooltip": "Microsoft Azure Application Client Secret value. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">Azure app registration documentation</a>",
+      "tooltip": "Microsoft Azure application client secret value. See the <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">Azure app registration guide</a>.",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -319,7 +319,7 @@
     },
     {
       "label": "Connection type",
-      "tooltip": "Identifies which type of connection is used in the connectionName.",
+      "tooltip": "How the connection name is resolved: 'Connection type' uses a direct connection, 'Connection reference type' uses a connection reference.",
       "group": "input",
       "type": "Dropdown",
       "value": "1",
@@ -349,7 +349,7 @@
     },
     {
       "label": "Run mode",
-      "tooltip": "Choose between attended or unattended",
+      "tooltip": "'Attended' runs the flow interactively in a signed-in user session; 'Unattended' runs it in the background without user interaction.",
       "group": "input",
       "type": "Dropdown",
       "value": "attended",
@@ -380,7 +380,7 @@
     {
       "label": "Run priority",
       "feel": "optional",
-      "tooltip": "Choose an option (normal, high) or add your own",
+      "tooltip": "Use a standard priority ('normal' or 'high'), or supply your own value.",
       "group": "input",
       "type": "String",
       "value": "normal",
@@ -399,7 +399,8 @@
     {
       "label": "Timeout",
       "feel": "optional",
-      "description": "Timeout for Power Automate script execution in seconds (default = 3 hours, max = 24 hours)",
+      "tooltip": "Timeout for Power Automate script execution, in seconds.",
+      "description": "Default = 3 hours, max = 24 hours.",
       "group": "input",
       "type": "String",
       "binding": {
@@ -416,7 +417,7 @@
     },
     {
       "label": "Inputs",
-      "tooltip": "The desktop flow script input parameters (json serialized string)",
+      "tooltip": "The desktop flow script input parameters, as a JSON-serialized string.",
       "group": "input",
       "type": "String",
       "feel": "required",

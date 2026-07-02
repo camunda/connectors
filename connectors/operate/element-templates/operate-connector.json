@@ -243,7 +243,6 @@
     },
     {
       "label": "Operate audience",
-      "tooltip": "API audience",
       "type": "String",
       "group": "authentication",
       "value": "operate-api",
@@ -262,7 +261,7 @@
     },
     {
       "label": "Scopes",
-      "description": "Space-separated list of OAuth 2.0 scopes to request from the token endpoint. Required by some identity providers — e.g. for Microsoft Entra ID use <code>api://&lt;client-id&gt;/.default</code>",
+      "tooltip": "Space-separated list of OAuth 2.0 scopes to request from the token endpoint. Required by some identity providers — e.g. for Microsoft Entra ID use <code>api://&lt;client-id&gt;/.default</code>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -290,7 +289,7 @@
     },
     {
       "label": "Endpoint",
-      "tooltip": "Operate API entity",
+      "tooltip": "Operate API entity to query: process instances, incidents, variables, process definitions, or flow node instances",
       "group": "input",
       "id": "input.internal_endpoint",
       "type": "Dropdown",
@@ -428,7 +427,7 @@
     },
     {
       "label": "Sort",
-      "description": "Sorting properties in <a href=\"https://docs.camunda.io/docs/apis-tools/operate-api/specifications/search\" target=\"_blank\">Operate format</a><br>Please provide a list of sort objects",
+      "tooltip": "List of sort objects in <a href=\"https://docs.camunda.io/docs/apis-tools/operate-api/specifications/search\" target=\"_blank\">Operate format</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -467,7 +466,7 @@
     },
     {
       "label": "Pagination",
-      "description": "Identifier of item from which the search should start. <br>Hint: Copy the <code>sortValues</code> field from the previous search result, or leave blank for no pagination",
+      "tooltip": "Identifier of the item from which the search should start. Copy the <code>sortValues</code> field from the previous search result, or leave blank for no pagination",
       "group": "parameters",
       "type": "String",
       "feel": "required",

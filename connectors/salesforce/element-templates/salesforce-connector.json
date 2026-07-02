@@ -133,7 +133,7 @@
     {
       "id": "salesforceOperationType",
       "label": "Salesforce operation type",
-      "tooltip": "The kind of operation to perform with the Salesforce REST API",
+      "tooltip": "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query.",
       "type": "Dropdown",
       "group": "operation",
       "binding": {
@@ -217,7 +217,6 @@
     },
     {
       "label": "Salesforce object ID",
-      "tooltip": "Identifier of the Salesforce object",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -271,7 +270,7 @@
     },
     {
       "label": "SOQL query",
-      "tooltip": "<a href=\"https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm\" target=\"_blank\">Salesforce SOQL query documentation</a>",
+      "tooltip": "Salesforce Object Query Language statement used to retrieve records. See the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm\" target=\"_blank\">SOQL reference</a>.",
       "group": "input",
       "type": "Text",
       "feel": "optional",
@@ -353,7 +352,7 @@
     },
     {
       "label": "Record fields",
-      "tooltip": "Record fields to send to Salesforce",
+      "tooltip": "Field values for the Salesforce object, provided as a FEEL context.",
       "group": "input",
       "type": "String",
       "feel": "required",
@@ -454,7 +453,7 @@
     },
     {
       "label": "Connection timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "tooltip": "Timeout in seconds to establish a connection, or 0 for an infinite timeout.",
       "group": "timeout",
       "type": "String",
       "value": "20",

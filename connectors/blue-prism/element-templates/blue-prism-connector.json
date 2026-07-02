@@ -355,7 +355,8 @@
     },
     {
       "label": "Defer date",
-      "description": "The earliest time and date that this item is deferred until. Expected date format: yyyy-MM-dd",
+      "tooltip": "The earliest time and date that this item is deferred until.",
+      "placeholder": "yyyy-MM-dd",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -430,7 +431,7 @@
     },
     {
       "label": "Connection timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "tooltip": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout.",
       "group": "errors",
       "type": "String",
       "value": "20",

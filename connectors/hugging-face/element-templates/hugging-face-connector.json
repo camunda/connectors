@@ -103,7 +103,7 @@
       "label": "Messages",
       "group": "input",
       "feel": "required",
-      "description": "Chat messages array in format: [{\"role\": \"user\", \"content\": \"Your message\"}]. Use 'system' role for instructions and 'user' role for queries. <a href=\"https://huggingface.co/docs/inference-providers/index#http--curl\" target=\"_blank\">Hugging Face inference API documentation</a>",
+      "tooltip": "Chat messages array in format: [{\"role\": \"user\", \"content\": \"Your message\"}]. Use 'system' role for instructions and 'user' role for queries. See the <a href=\"https://huggingface.co/docs/inference-providers/index#http--curl\" target=\"_blank\">Hugging Face inference API</a>.",
       "type": "Text",
       "binding": {
         "type": "zeebe:input",

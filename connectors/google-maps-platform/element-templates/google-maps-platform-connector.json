@@ -267,7 +267,7 @@
     },
     {
       "label": "Units",
-      "tooltip": "Specifies the unit system to use when displaying results",
+      "tooltip": "Unit system for the returned distances: Metric (kilometers/meters) or Imperial (miles/feet).",
       "group": "input",
       "value": "metric",
       "type": "Dropdown",

@@ -253,7 +253,6 @@
     },
     {
       "label": "UiPath organization",
-      "tooltip": "The name of your organization",
       "group": "configuration",
       "type": "String",
       "binding": {
@@ -266,7 +265,6 @@
     },
     {
       "label": "UiPath tenant",
-      "tooltip": "Your tenant name",
       "group": "configuration",
       "type": "String",
       "binding": {
@@ -323,7 +321,8 @@
     },
     {
       "label": "Defer date",
-      "description": "The earliest date and time at which the item is available for processing. If empty the item can be processed as soon as possible. Expected date format: yyyy-MM-dd",
+      "tooltip": "The earliest date and time at which the item is available for processing. If empty the item can be processed as soon as possible.",
+      "placeholder": "2026-01-15",
       "group": "input",
       "type": "String",
       "binding": {
@@ -340,7 +339,8 @@
     },
     {
       "label": "Due date",
-      "description": "The latest date and time at which the item should be processed. If empty the item can be processed at any given time. Expected date format: yyyy-MM-dd",
+      "tooltip": "The latest date and time at which the item should be processed. If empty the item can be processed at any given time.",
+      "placeholder": "2026-01-15",
       "group": "input",
       "type": "String",
       "binding": {
@@ -388,7 +388,7 @@
     },
     {
       "label": "Specific content for a UiPath job",
-      "description": "Data that will be passed in to the job. It should be in the JSON format",
+      "tooltip": "Data that will be passed in to the job. It should be in the JSON format.",
       "group": "input",
       "type": "String",
       "feel": "required",
@@ -523,7 +523,7 @@
     },
     {
       "label": "Connection timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "tooltip": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout.",
       "group": "errors",
       "type": "String",
       "value": "20",

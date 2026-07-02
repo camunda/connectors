@@ -553,7 +553,7 @@
     },
     {
       "label": "Project name",
-      "tooltip": "Name of the project. This is generally a short sentence fragment that fits on a line in the UI for maximum readability",
+      "tooltip": "Generally a short sentence fragment that fits on a line in the UI for maximum readability",
       "group": "operation",
       "type": "String",
       "feel": "optional",

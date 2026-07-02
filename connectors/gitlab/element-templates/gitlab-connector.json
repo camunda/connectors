@@ -795,7 +795,7 @@
     },
     {
       "label": "Scope",
-      "tooltip": "Return issues with the given scope",
+      "tooltip": "Which issues to return: all issues, those created by the access token owner, or those assigned to the access token owner",
       "group": "operation",
       "type": "Dropdown",
       "optional": true,
@@ -859,7 +859,7 @@
     },
     {
       "label": "Assignee ID",
-      "description": "Return issues assigned to the given user ID. Mutually exclusive with 'Assignee username'. None returns unassigned issues. 'Any' returns issues with an assignee",
+      "tooltip": "Return issues assigned to the given user ID. Mutually exclusive with 'Assignee username'. None returns unassigned issues. 'Any' returns issues with an assignee",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -877,7 +877,7 @@
     },
     {
       "label": "Assignee username",
-      "description": "Return issues assigned to the given username. Similar to 'Assignee ID' and mutually exclusive with 'Assignee ID'",
+      "tooltip": "Return issues assigned to the given username. Similar to 'Assignee ID' and mutually exclusive with 'Assignee ID'",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1227,7 +1227,7 @@
     },
     {
       "label": "Branch name",
-      "description": "Name of the new branch to modify the file in. The commit is added to this branch",
+      "tooltip": "Name of the new branch to modify the file in. The commit is added to this branch",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1349,7 +1349,7 @@
     },
     {
       "label": "Encoding",
-      "description": "Change encoding to <code>base64</code>. GitLab's default is <code>text</code>",
+      "tooltip": "Change encoding to <code>base64</code>. GitLab's default is <code>text</code>",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1546,7 +1546,7 @@
     },
     {
       "label": "Assignee IDs",
-      "description": "The ID of the users to assign the merge request to as an array of numbers",
+      "tooltip": "The ID of the users to assign the merge request to as an array of numbers",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1581,7 +1581,7 @@
     },
     {
       "label": "Labels",
-      "description": "Labels for the merge request, as a comma-separated list",
+      "tooltip": "Labels for the merge request, as a comma-separated list",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1634,7 +1634,7 @@
     },
     {
       "label": "Reviewer IDs",
-      "description": "The ID of the users added as a reviewer to the merge request as an array of numbers",
+      "tooltip": "The ID of the users added as a reviewer to the merge request as an array of numbers",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1652,7 +1652,7 @@
     },
     {
       "label": "Squash",
-      "description": "Indicates if the merge request is set to be squashed when merged. Project settings might override this value",
+      "tooltip": "Indicates if the merge request is set to be squashed when merged. Project settings might override this value",
       "group": "operation",
       "type": "Boolean",
       "feel": "optional",

@@ -139,7 +139,8 @@
       "//": "used for all operation types",
       "id": "customRequestTarget",
       "label": "Enter table name",
-      "tooltip": "Type the exact ServiceNow table name (case-sensitive)",
+      "tooltip": "Type the exact ServiceNow table name",
+      "description": "Note: Table names are case-sensitive",
       "type": "String",
       "group": "sn",
       "binding": {
@@ -154,7 +155,7 @@
     {
       "id": "sysparm_query",
       "label": "Query parameters (sysparm_query)",
-      "description": "Separate multiple conditions with '^' (Ex: active=true^priority=1)",
+      "tooltip": "Separate multiple conditions with '^'",
       "placeholder": "active=true^priority=1",
       "optional": true,
       "feel": "optional",
@@ -179,7 +180,7 @@
     {
       "id": "sysparm_fields",
       "label": "Fields to return (sysparm_fields)",
-      "description": "Comma-separated field names (Ex: sys_id, number, short_description)",
+      "tooltip": "Comma-separated field names",
       "placeholder": "sys_id,number,short_description",
       "optional": true,
       "feel": "optional",
@@ -197,7 +198,7 @@
     {
       "id": "sysparm_limit",
       "label": "Result limit (sysparm_limit)",
-      "tooltip": "The maximum number of records to return (Ex: 10)",
+      "tooltip": "The maximum number of records to return",
       "placeholder": "10",
       "optional": true,
       "feel": "optional",
@@ -740,7 +741,8 @@
     {
       "id": "authentication.scopes",
       "label": "Scopes",
-      "tooltip": "The scopes which you want to request authorization for (e.g. read:contacts)",
+      "tooltip": "The scopes which you want to request authorization for",
+      "placeholder": "read:contacts",
       "optional": true,
       "feel": "optional",
       "group": "authentication",
