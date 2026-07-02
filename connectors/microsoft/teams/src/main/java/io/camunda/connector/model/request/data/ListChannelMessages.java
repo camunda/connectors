@@ -24,11 +24,7 @@ import jakarta.validation.constraints.NotBlank;
     })
 public record ListChannelMessages(
     @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "listChannelMessage.groupId",
-            label = "Group ID",
-            tooltip = "The Microsoft Teams group ID.")
+        @TemplateProperty(group = "data", id = "listChannelMessage.groupId", label = "Group ID")
         String groupId,
     @NotBlank
         @TemplateProperty(group = "data", id = "listChannelMessage.channelId", label = "Channel ID")

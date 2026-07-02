@@ -18,8 +18,9 @@ public record EmailPollingConfig(
     @TemplateProperty(
             label = "Mailbox Owner",
             feel = FeelMode.optional,
+            placeholder = "user@example.com",
             tooltip =
-                "The email address or user ID of the mailbox to monitor (e.g., user@example.com). <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#configuration\" target=\"_blank\">Learn more</a>")
+                "The email address or user ID of the mailbox to monitor. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#configuration\" target=\"_blank\">Microsoft O365 Mail connector configuration</a>")
         @NotBlank
         @FEEL
         String userId,

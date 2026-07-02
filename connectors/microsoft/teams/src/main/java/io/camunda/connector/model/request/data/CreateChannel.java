@@ -17,12 +17,7 @@ import jakarta.validation.constraints.NotBlank;
     description = "Create a new channel in a Microsoft Teams team",
     keywords = {"create channel", "new channel", "add channel", "setup channel", "open channel"})
 public record CreateChannel(
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "createChannel.groupId",
-            label = "Group ID",
-            tooltip = "The Microsoft Teams group ID.")
+    @NotBlank @TemplateProperty(group = "data", id = "createChannel.groupId", label = "Group ID")
         String groupId,
     @NotBlank @TemplateProperty(group = "data", id = "createChannel.name", label = "Display name")
         String name,
@@ -56,6 +51,6 @@ public record CreateChannel(
                 @TemplateProperty.PropertyCondition(
                     property = "data.createChannel.channelType",
                     oneOf = {"private", "shared"}),
-            tooltip = "Enter ID or principal name of a user")
+            tooltip = "ID or principal name of the user")
         String owner)
     implements ChannelData {}

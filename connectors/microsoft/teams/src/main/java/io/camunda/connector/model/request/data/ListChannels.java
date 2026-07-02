@@ -23,12 +23,7 @@ import jakarta.validation.constraints.NotBlank;
       "browse channels"
     })
 public record ListChannels(
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "listChannels.groupId",
-            label = "Group ID",
-            tooltip = "The Microsoft Teams group ID.")
+    @NotBlank @TemplateProperty(group = "data", id = "listChannels.groupId", label = "Group ID")
         String groupId,
     @TemplateProperty(
             group = "data",

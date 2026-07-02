@@ -27,8 +27,7 @@ public record ListMessageRepliesInChannel(
         @TemplateProperty(
             group = "data",
             id = "listMessageRepliesInChannel.groupId",
-            label = "Group ID",
-            tooltip = "The Microsoft Teams group ID.")
+            label = "Group ID")
         String groupId,
     @NotBlank
         @TemplateProperty(

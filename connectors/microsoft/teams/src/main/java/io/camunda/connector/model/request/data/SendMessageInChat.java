@@ -39,7 +39,7 @@ public record SendMessageInChat(
               @TemplateProperty.DropdownPropertyChoice(value = "HTML", label = "HTML")
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            tooltip = "The type of the content. Possible values are text and html")
+            tooltip = "Text sends the message body as plain text; HTML renders it as HTML markup.")
         String bodyType,
     @NotBlank
         @TemplateProperty(

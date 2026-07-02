@@ -29,11 +29,7 @@ import java.util.List;
     })
 public record SendMessageToChannel(
     @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "sendMessageToChannel.groupId",
-            label = "Group ID",
-            tooltip = "The Microsoft Teams group ID.")
+        @TemplateProperty(group = "data", id = "sendMessageToChannel.groupId", label = "Group ID")
         String groupId,
     @NotBlank
         @TemplateProperty(
@@ -52,7 +48,7 @@ public record SendMessageToChannel(
               @TemplateProperty.DropdownPropertyChoice(value = "HTML", label = "HTML")
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            tooltip = "The type of the content. Possible values are text and html")
+            tooltip = "Text sends the message body as plain text; HTML renders it as HTML markup.")
         String bodyType,
     @NotBlank
         @TemplateProperty(

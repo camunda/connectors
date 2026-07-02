@@ -33,7 +33,9 @@ public record CreateChat(
               @TemplateProperty.DropdownPropertyChoice(value = "group", label = "Group")
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            tooltip = "The type of a new chat")
+            tooltip =
+                "One on one for a private conversation between two people; group for a"
+                    + " conversation among three or more people.")
         String chatType,
     @TemplateProperty(
             group = "data",

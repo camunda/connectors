@@ -339,7 +339,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The type of a new chat",
+    "tooltip" : "One on one for a private conversation between two people; group for a conversation among three or more people.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "One on one",
@@ -535,7 +535,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The type of the content. Possible values are text and html",
+    "tooltip" : "Text sends the message body as plain text; HTML renders it as HTML markup.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Text",
@@ -777,7 +777,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The Microsoft Teams group ID.",
     "type" : "String"
   }, {
     "id" : "data.createChannel.name",
@@ -889,7 +888,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Enter ID or principal name of a user",
+    "tooltip" : "ID or principal name of the user",
     "type" : "String"
   }, {
     "id" : "data.getChannel.groupId",
@@ -915,7 +914,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The Microsoft Teams group ID.",
     "type" : "String"
   }, {
     "id" : "data.getChannel.channelId",
@@ -966,7 +964,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The Microsoft Teams group ID.",
     "type" : "String"
   }, {
     "id" : "data.listChannels.filter",
@@ -1015,7 +1012,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The Microsoft Teams group ID.",
     "type" : "String"
   }, {
     "id" : "data.sendMessageToChannel.channelId",
@@ -1066,7 +1062,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The type of the content. Possible values are text and html",
+    "tooltip" : "Text sends the message body as plain text; HTML renders it as HTML markup.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Text",
@@ -1448,7 +1444,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The Microsoft Teams group ID.",
     "type" : "String"
   }, {
     "id" : "data.getChannelMessage.channelId",
@@ -1524,7 +1519,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The Microsoft Teams group ID.",
     "type" : "String"
   }, {
     "id" : "data.listChannelMessage.channelId",
@@ -1631,7 +1625,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The Microsoft Teams group ID.",
     "type" : "String"
   }, {
     "id" : "data.listMessageRepliesInChannel.channelId",
@@ -1707,7 +1700,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The Microsoft Teams group ID.",
     "type" : "String"
   }, {
     "id" : "data.listChannelMembers.channelId",
