@@ -56,7 +56,7 @@ public class DisabledConnectorEnvVarsConfig {
 
     boolean isDisabled;
     if (enabledSet) {
-      isDisabled = !getConnectorTypes(direction, "ENABLED").contains(type);
+      isDisabled = !getConnectorTypes(direction, true).contains(type);
       if (isDisabled) {
         LOG.info(
             "Connector {} is not in the CONNECTOR_{}_ENABLED allowlist and has been disabled",
@@ -64,7 +64,7 @@ public class DisabledConnectorEnvVarsConfig {
             direction.name());
       }
     } else {
-      isDisabled = getConnectorTypes(direction, "DISABLED").contains(type);
+      isDisabled = getConnectorTypes(direction, false).contains(type);
       if (isDisabled) {
         LOG.info(
             "Connector {} has been disabled by the CONNECTOR_{}_DISABLED environment variable",
@@ -75,11 +75,12 @@ public class DisabledConnectorEnvVarsConfig {
     return isDisabled;
   }
 
-  private Set<String> getConnectorTypes(ConnectorDirection direction, String detail) {
+  private Set<String> getConnectorTypes(ConnectorDirection direction, boolean enabled) {
+    var state = enabled ? "ENABLED" : "DISABLED";
     return envVarCache.computeIfAbsent(
-        direction.name() + "_" + detail,
+        direction.name() + "_" + state,
         key ->
-            getConnectorEnvironmentVariable(direction.name(), detail)
+            getConnectorEnvironmentVariable(direction.name(), state)
                 .map(
                     value ->
                         Arrays.stream(value.split(","))
