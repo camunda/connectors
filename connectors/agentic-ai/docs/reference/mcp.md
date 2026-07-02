@@ -137,15 +137,15 @@ McpClientFunction / McpRemoteClientFunction
 
 ### MCP Operations
 
-| Operation                 | Method                             | Used By                                           |
-|---------------------------|-------------------------------------|---------------------------------------------------|
-| `LIST_TOOLS`              | `listTools(meta)`                  | Discovery (agent integration) and standalone       |
-| `CALL_TOOL`               | `callTool(name, arguments, meta)`  | Tool execution (agent integration) and standalone  |
-| `LIST_RESOURCES`          | `listResources(meta)`              | Standalone only                                    |
-| `LIST_RESOURCE_TEMPLATES` | `listResourceTemplates(meta)`      | Standalone only                                    |
-| `READ_RESOURCE`           | `readResource(uri, meta)`          | Standalone only                                    |
-| `LIST_PROMPTS`            | `listPrompts(meta)`                | Standalone only                                    |
-| `GET_PROMPT`              | `getPrompt(name, meta)`            | Standalone only                                    |
+| Operation                 | Delegate method                          | Used By                                           |
+|---------------------------|------------------------------------------|---------------------------------------------------|
+| `LIST_TOOLS`              | `listTools(filter, meta)`                | Discovery (agent integration) and standalone       |
+| `CALL_TOOL`               | `callTool(params, filter, meta)`         | Tool execution (agent integration) and standalone  |
+| `LIST_RESOURCES`          | `listResources(filter, meta)`            | Standalone only                                    |
+| `LIST_RESOURCE_TEMPLATES` | `listResourceTemplates(filter, meta)`    | Standalone only                                    |
+| `READ_RESOURCE`           | `readResource(params, filter, meta)`     | Standalone only                                    |
+| `LIST_PROMPTS`            | `listPrompts(filter, meta)`              | Standalone only                                    |
+| `GET_PROMPT`              | `getPrompt(params, filter, meta)`        | Standalone only                                    |
 
 All operations accept an optional `meta: Map<String, Object>`, forwarded unmodified as the MCP request's `_meta`
 field (see [§8](#8-request-data-model)). When not configured, no `_meta` field is sent — fully backwards compatible.
