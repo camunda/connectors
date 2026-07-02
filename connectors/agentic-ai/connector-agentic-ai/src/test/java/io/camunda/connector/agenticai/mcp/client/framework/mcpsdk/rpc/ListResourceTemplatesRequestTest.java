@@ -20,8 +20,11 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -40,7 +43,7 @@ class ListResourceTemplatesRequestTest {
     when(mcpClient.listResourceTemplates())
         .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, Map.of());
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -85,7 +88,7 @@ class ListResourceTemplatesRequestTest {
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, Map.of());
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -133,7 +136,7 @@ class ListResourceTemplatesRequestTest {
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
 
-    final var result = testee.execute(mcpClient, filter, null);
+    final var result = testee.execute(mcpClient, filter, Map.of());
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -168,7 +171,7 @@ class ListResourceTemplatesRequestTest {
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
 
-    final var result = testee.execute(mcpClient, filter, null);
+    final var result = testee.execute(mcpClient, filter, Map.of());
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -194,7 +197,7 @@ class ListResourceTemplatesRequestTest {
     when(mcpClient.listResourceTemplates())
         .thenReturn(new McpSchema.ListResourceTemplatesResult(List.of(mcpResourceTemplate1), null));
 
-    final var result = testee.execute(mcpClient, filter, null);
+    final var result = testee.execute(mcpClient, filter, Map.of());
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -213,12 +216,13 @@ class ListResourceTemplatesRequestTest {
     verify(mcpClient).listResourceTemplates(isNull(), eq(meta));
   }
 
-  @Test
-  void doesNotSendMeta_whenMetaNotConfigured() {
+  @ParameterizedTest
+  @NullAndEmptySource
+  void doesNotSendMeta_whenMetaNotConfigured(Map<String, Object> meta) {
     when(mcpClient.listResourceTemplates())
         .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
 
-    testee.execute(mcpClient, EMPTY_FILTER, null);
+    testee.execute(mcpClient, EMPTY_FILTER, meta);
 
     verify(mcpClient).listResourceTemplates();
   }

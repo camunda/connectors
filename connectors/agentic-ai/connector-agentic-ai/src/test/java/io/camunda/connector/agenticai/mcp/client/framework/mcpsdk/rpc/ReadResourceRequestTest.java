@@ -57,7 +57,7 @@ class ReadResourceRequestTest {
     when(mcpClient.readResource(new McpSchema.ReadResourceRequest("contents-123")))
         .thenReturn(response);
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER, requestParams, null);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, requestParams, Map.of());
 
     assertThat(result.contents())
         .asInstanceOf(LIST)
@@ -84,7 +84,7 @@ class ReadResourceRequestTest {
     final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-resource")).build();
     final var parameters = Map.<String, Object>of("uri", "allowed-resource");
 
-    final var result = testee.execute(mcpClient, filter, parameters, null);
+    final var result = testee.execute(mcpClient, filter, parameters, Map.of());
 
     assertThat(result.contents()).asInstanceOf(LIST).hasSize(1);
   }
@@ -100,7 +100,7 @@ class ReadResourceRequestTest {
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-resource")).build();
     final var parameters = Map.<String, Object>of("uri", "safe-resource");
 
-    final var result = testee.execute(mcpClient, filter, parameters, null);
+    final var result = testee.execute(mcpClient, filter, parameters, Map.of());
 
     assertThat(result.contents()).asInstanceOf(LIST).hasSize(1);
   }
@@ -112,7 +112,7 @@ class ReadResourceRequestTest {
     when(mcpClient.readResource(new McpSchema.ReadResourceRequest("non-existing-resource")))
         .thenThrow(new RuntimeException("Resource not found"));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams, null))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -125,7 +125,7 @@ class ReadResourceRequestTest {
 
   @Test
   void throwsException_whenResourceUriIsNotPresent() {
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, Map.of(), null))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, Map.of(), Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -138,7 +138,7 @@ class ReadResourceRequestTest {
   void throwsConnectorException_whenResourceUriIsNotAString() {
     final Map<String, Object> requestParams = Map.of("uri", 12345);
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams, null))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -152,7 +152,7 @@ class ReadResourceRequestTest {
   void throwsConnectorException_whenResourceUriIsEmpty(String resourceUri) {
     final Map<String, Object> requestParams = Map.of("uri", resourceUri);
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams, null))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -168,7 +168,7 @@ class ReadResourceRequestTest {
 
     final var parameters = Map.<String, Object>of("uri", "blocked-resource");
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, null))
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -185,7 +185,7 @@ class ReadResourceRequestTest {
 
     final var parameters = Map.<String, Object>of("uri", "blocked-resource");
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, null))
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -206,7 +206,7 @@ class ReadResourceRequestTest {
 
     final var parameters = Map.<String, Object>of("uri", "conflicted-resource");
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, null))
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
