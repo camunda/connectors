@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
@@ -63,7 +64,8 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
   @Parameter ProviderWireFormatFixture fixture;
 
   static Stream<ProviderWireFormatFixture> fixtures() {
-    return Stream.of(new OpenAiCompletionsWireFormatFixture());
+    return Stream.of(
+        new OpenAiCompletionsWireFormatFixture(), new AnthropicMessagesWireFormatFixture());
   }
 
   @Override
