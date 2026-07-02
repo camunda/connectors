@@ -28,6 +28,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,6 +40,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/outbound")
 public class OutboundConnectorsRestController {
+
+  private static final Logger LOG = LoggerFactory.getLogger(OutboundConnectorsRestController.class);
 
   private final InstanceForwardingRouter instanceForwardingRouter;
   private final OutboundConnectorsService outboundConnectorsService;
@@ -54,6 +58,11 @@ public class OutboundConnectorsRestController {
     this.instanceForwardingRouter = instanceForwardingRouter;
     this.outboundConnectorsService = outboundConnectorsService;
     this.meterRegistry = meterRegistry.orElse(null);
+    if (this.meterRegistry == null) {
+      LOG.warn(
+          "No MeterRegistry bean found — outbound metrics endpoints will return empty results. "
+              + "Add spring-boot-starter-actuator to enable metrics.");
+    }
   }
 
   @GetMapping

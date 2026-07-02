@@ -31,11 +31,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class InboundConnectorRestController {
+
+  private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorRestController.class);
 
   private final InboundExecutableRegistry executableRegistry;
   private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
@@ -53,6 +57,11 @@ public class InboundConnectorRestController {
     this.executableRegistry = executableRegistry;
     this.instanceForwardingRouter = instanceForwardingRouter;
     this.meterRegistry = meterRegistry.orElse(null);
+    if (this.meterRegistry == null) {
+      LOG.warn(
+          "No MeterRegistry bean found — inbound metrics endpoints will return empty results. "
+              + "Add spring-boot-starter-actuator to enable metrics.");
+    }
   }
 
   @GetMapping("/inbound")
