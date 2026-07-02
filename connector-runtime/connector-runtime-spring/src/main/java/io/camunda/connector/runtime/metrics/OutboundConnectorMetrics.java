@@ -20,25 +20,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 
 /**
- * Aggregated outbound connector metrics, grouped into four sections.
+ * Aggregated outbound connector metrics, grouped into three sections.
  *
- * @param connector connector identity fields (type, element template)
  * @param runtime process-level runtime information
  * @param job job execution counters, timing, and last-activity timestamps
  * @param worker Zeebe job-worker level counters
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record OutboundConnectorMetrics(
-    ConnectorInfo connector, Runtime runtime, Job job, Worker worker) {
-
-  /**
-   * @param connectorType job type (e.g. {@code io.camunda:http-json:1}), or {@code null} when
-   *     representing aggregated totals across all types
-   * @param elementTemplateId element template ID, or {@code null} if not available
-   * @param elementTemplateVersion element template version, or {@code null} if not available
-   */
-  public record ConnectorInfo(
-      String connectorType, String elementTemplateId, String elementTemplateVersion) {}
+public record OutboundConnectorMetrics(Runtime runtime, Job job, Worker worker) {
 
   /**
    * @param uptimeSeconds number of seconds the runtime process has been running

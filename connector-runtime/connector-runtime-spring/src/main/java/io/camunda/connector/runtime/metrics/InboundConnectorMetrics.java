@@ -20,22 +20,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 
 /**
- * Aggregated inbound connector metrics, grouped into four sections.
+ * Aggregated inbound connector metrics, grouped into three sections.
  *
- * @param connector connector identity fields
  * @param runtime process-level runtime information
  * @param activation activation lifecycle counters and last-activity timestamp
  * @param trigger correlation / trigger counters and last-activity timestamp
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record InboundConnectorMetrics(
-    ConnectorInfo connector, Runtime runtime, Activation activation, Trigger trigger) {
-
-  /**
-   * @param connectorType connector type (e.g. {@code io.camunda:webhook:1}), or {@code null} when
-   *     representing aggregated totals across all types
-   */
-  public record ConnectorInfo(String connectorType) {}
+public record InboundConnectorMetrics(Runtime runtime, Activation activation, Trigger trigger) {
 
   /**
    * @param uptimeSeconds number of seconds the runtime process has been running

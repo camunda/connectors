@@ -143,7 +143,6 @@ class InboundConnectorRestControllerTest {
     InboundConnectorMetrics m =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertEquals(typeA, m.connector().connectorType());
     assertEquals(5L, m.activation().activated());
   }
 
@@ -167,7 +166,6 @@ class InboundConnectorRestControllerTest {
     InboundConnectorMetrics m =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertEquals(type, m.connector().connectorType());
     assertEquals(4L, m.activation().activated());
   }
 
@@ -243,8 +241,6 @@ class InboundConnectorRestControllerTest {
     InboundConnectorMetrics m =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    // connector is null (omitted) for the aggregate response
-    assertNull(m.connector());
     // activated must include at least the 8 (5+3) we just registered
     assertTrue(m.activation().activated() >= 8L);
   }

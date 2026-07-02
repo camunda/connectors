@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.outbound;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -265,7 +264,6 @@ class OutboundConnectorsRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy()
             .readValue(response, OutboundConnectorMetrics.class);
 
-    assertEquals(typeA, m.connector().connectorType());
     assertEquals(3L, m.worker().jobsActivated());
   }
 
@@ -289,7 +287,6 @@ class OutboundConnectorsRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy()
             .readValue(response, OutboundConnectorMetrics.class);
 
-    assertEquals(type, m.connector().connectorType());
     assertEquals(6L, m.worker().jobsActivated());
   }
 
@@ -318,36 +315,7 @@ class OutboundConnectorsRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy()
             .readValue(response, OutboundConnectorMetrics.class);
 
-    // connector is null (omitted) for the aggregate response
-    assertNull(m.connector());
     // jobsActivated must include at least the 10 (3+7) we just registered
     assertTrue(m.worker().jobsActivated() >= 10L);
-  }
-
-  @Test
-  void shouldIncludeElementTemplateMetadata_whenAvailable() throws Exception {
-    String type = "outbound-test-template-meta";
-    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-        .tag(ConnectorMetrics.Tag.TYPE, type)
-        .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, "io.camunda.connectors.HttpJson.v7")
-        .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, "7")
-        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_COMPLETED)
-        .register(meterRegistry)
-        .increment(1.0);
-
-    var response =
-        mockMvc
-            .perform(get("/outbound/metrics/" + type))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    OutboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy()
-            .readValue(response, OutboundConnectorMetrics.class);
-
-    assertEquals("io.camunda.connectors.HttpJson.v7", m.connector().elementTemplateId());
-    assertEquals("7", m.connector().elementTemplateVersion());
   }
 }

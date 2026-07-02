@@ -46,7 +46,7 @@ public final class ConnectorMetricsAggregator {
    */
   public static OutboundConnectorMetrics outbound(MeterRegistry registry, String connectorType) {
     if (registry == null) {
-      return new OutboundConnectorMetrics(null, null, null, null);
+      return new OutboundConnectorMetrics(null, null, null);
     }
     if (connectorType != null && !connectorType.isBlank()) {
       return buildOutbound(registry, connectorType);
@@ -122,7 +122,6 @@ public final class ConnectorMetricsAggregator {
             : null;
 
     return new OutboundConnectorMetrics(
-        null,
         new OutboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
         new OutboundConnectorMetrics.Job(
             completed,
@@ -135,19 +134,6 @@ public final class ConnectorMetricsAggregator {
   }
 
   private static OutboundConnectorMetrics buildOutbound(MeterRegistry registry, String type) {
-    String templateId =
-        findTagValue(
-            registry,
-            ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
-            type,
-            ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID);
-    String templateVersion =
-        findTagValue(
-            registry,
-            ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
-            type,
-            ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION);
-
     OutboundConnectorMetrics.ExecutionTime executionTime = buildExecutionTime(registry, type);
     Instant lastCompleted =
         epochMsToInstant(
@@ -157,7 +143,6 @@ public final class ConnectorMetricsAggregator {
             readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_LAST_FAILED, type));
 
     return new OutboundConnectorMetrics(
-        new OutboundConnectorMetrics.ConnectorInfo(type, templateId, templateVersion),
         new OutboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
         new OutboundConnectorMetrics.Job(
             sumCounterByAction(
@@ -230,7 +215,7 @@ public final class ConnectorMetricsAggregator {
    */
   public static InboundConnectorMetrics inbound(MeterRegistry registry, String connectorType) {
     if (registry == null) {
-      return new InboundConnectorMetrics(null, null, null, null);
+      return new InboundConnectorMetrics(null, null, null);
     }
     if (connectorType != null && !connectorType.isBlank()) {
       return buildInbound(registry, connectorType);
@@ -300,7 +285,6 @@ public final class ConnectorMetricsAggregator {
     }
 
     return new InboundConnectorMetrics(
-        null,
         new InboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
         new InboundConnectorMetrics.Activation(
             activated, deactivated, activationFailed, epochMsToInstant(maxLastActivated)),
@@ -314,7 +298,6 @@ public final class ConnectorMetricsAggregator {
 
   private static InboundConnectorMetrics buildInbound(MeterRegistry registry, String type) {
     return new InboundConnectorMetrics(
-        new InboundConnectorMetrics.ConnectorInfo(type),
         new InboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
         new InboundConnectorMetrics.Activation(
             sumCounterByAction(
@@ -431,19 +414,6 @@ public final class ConnectorMetricsAggregator {
    */
   private static Instant epochMsToInstant(long epochMs) {
     return epochMs > 0 ? Instant.ofEpochMilli(epochMs) : null;
-  }
-
-  /**
-   * Finds the value of {@code tagKey} from the first meter registered for {@code metricName} with
-   * the given connector type, or {@code null} if no meter is found.
-   */
-  private static String findTagValue(
-      MeterRegistry registry, String metricName, String type, String tagKey) {
-    return registry.find(metricName).tag(ConnectorMetrics.Tag.TYPE, type).meters().stream()
-        .map(m -> m.getId().getTag(tagKey))
-        .filter(v -> v != null && !v.isBlank())
-        .findFirst()
-        .orElse(null);
   }
 
   private static List<String> allOutboundMetricNames() {
