@@ -48,10 +48,14 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
     this.connectorsInboundMetrics.increaseTrigger(elementList.getFirst());
     try {
       var result = super.correlate(elementList, correlationRequest);
-      if (result instanceof CorrelationResult.Failure.ActivationConditionNotMet) {
-        this.connectorsInboundMetrics.increaseActivationConditionFailure(elementList.getFirst());
-      } else {
-        this.connectorsInboundMetrics.increaseCorrelationSuccess(elementList.getFirst());
+      switch (result) {
+        case CorrelationResult.Success ignored ->
+            this.connectorsInboundMetrics.increaseCorrelationSuccess(elementList.getFirst());
+        case CorrelationResult.Failure.ActivationConditionNotMet ignored ->
+            this.connectorsInboundMetrics.increaseActivationConditionFailure(
+                elementList.getFirst());
+        case CorrelationResult.Failure ignored ->
+            this.connectorsInboundMetrics.increaseCorrelationFailure(elementList.getFirst());
       }
       return result;
     } catch (Exception e) {
