@@ -78,7 +78,7 @@ public sealed interface McpStandaloneOperationConfiguration
           @TemplateProperty(
               id = "toolsListMeta",
               group = "operation",
-              label = "Meta",
+              label = "Metadata",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
               tooltip =
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
@@ -129,7 +129,7 @@ public sealed interface McpStandaloneOperationConfiguration
           @TemplateProperty(
               id = "toolsCallMeta",
               group = "operation",
-              label = "Meta",
+              label = "Metadata",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
               tooltip =
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
@@ -165,7 +165,7 @@ public sealed interface McpStandaloneOperationConfiguration
           @TemplateProperty(
               id = "resourcesListMeta",
               group = "operation",
-              label = "Meta",
+              label = "Metadata",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
               tooltip =
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
@@ -198,7 +198,7 @@ public sealed interface McpStandaloneOperationConfiguration
           @TemplateProperty(
               id = "resourcesTemplatesListMeta",
               group = "operation",
-              label = "Meta",
+              label = "Metadata",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
               tooltip =
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
@@ -241,7 +241,7 @@ public sealed interface McpStandaloneOperationConfiguration
           @TemplateProperty(
               id = "resourcesReadMeta",
               group = "operation",
-              label = "Meta",
+              label = "Metadata",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
               tooltip =
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
@@ -274,7 +274,7 @@ public sealed interface McpStandaloneOperationConfiguration
           @TemplateProperty(
               id = "promptsListMeta",
               group = "operation",
-              label = "Meta",
+              label = "Metadata",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
               tooltip =
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
@@ -325,7 +325,7 @@ public sealed interface McpStandaloneOperationConfiguration
           @TemplateProperty(
               id = "promptsGetMeta",
               group = "operation",
-              label = "Meta",
+              label = "Metadata",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
               tooltip =
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",

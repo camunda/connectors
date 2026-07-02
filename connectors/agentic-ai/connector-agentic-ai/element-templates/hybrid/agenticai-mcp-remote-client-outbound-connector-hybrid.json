@@ -801,7 +801,7 @@
     } ]
   }, {
     "id" : "data.connectorMode.operation.toolsListMeta",
-    "label" : "Meta",
+    "label" : "Metadata",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
     "feel" : "required",
@@ -874,7 +874,7 @@
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.toolsCallMeta",
-    "label" : "Meta",
+    "label" : "Metadata",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
     "feel" : "required",
@@ -898,7 +898,7 @@
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.resourcesListMeta",
-    "label" : "Meta",
+    "label" : "Metadata",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
     "feel" : "required",
@@ -922,7 +922,7 @@
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.resourcesTemplatesListMeta",
-    "label" : "Meta",
+    "label" : "Metadata",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
     "feel" : "required",
@@ -972,7 +972,7 @@
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.resourcesReadMeta",
-    "label" : "Meta",
+    "label" : "Metadata",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
     "feel" : "required",
@@ -996,7 +996,7 @@
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.promptsListMeta",
-    "label" : "Meta",
+    "label" : "Metadata",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
     "feel" : "required",
@@ -1069,7 +1069,7 @@
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.promptsGetMeta",
-    "label" : "Meta",
+    "label" : "Metadata",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
     "feel" : "required",
@@ -1134,7 +1134,7 @@
     "type" : "String"
   }, {
     "id" : "data.connectorMode.toolOperation.meta",
-    "label" : "Meta",
+    "label" : "Metadata",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
     "feel" : "required",

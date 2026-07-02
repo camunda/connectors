@@ -41,7 +41,7 @@ public record McpClientOperationConfiguration(
     @FEEL
         @TemplateProperty(
             group = "operation",
-            label = "Meta",
+            label = "Metadata",
             description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
             tooltip =
                 "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
