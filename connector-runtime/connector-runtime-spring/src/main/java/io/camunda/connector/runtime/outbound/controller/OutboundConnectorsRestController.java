@@ -22,9 +22,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
 import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
-import io.camunda.connector.runtime.metrics.ConnectorMetrics;
-import io.camunda.connector.runtime.metrics.MetricResponse;
-import io.camunda.connector.runtime.metrics.MetricsQueryHelper;
+import io.camunda.connector.runtime.metrics.ConnectorMetricsAggregator;
+import io.camunda.connector.runtime.metrics.OutboundConnectorMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -40,14 +39,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/outbound")
 public class OutboundConnectorsRestController {
-
-  private static final List<String> CURATED_METRICS =
-      List.of(
-          ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
-          ConnectorMetrics.Outbound.METRIC_NAME_TIME,
-          ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED,
-          ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED,
-          ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED);
 
   private final InstanceForwardingRouter instanceForwardingRouter;
   private final OutboundConnectorsService outboundConnectorsService;
@@ -91,21 +82,13 @@ public class OutboundConnectorsRestController {
   }
 
   /**
-   * Returns outbound connector metrics, optionally filtered by name and tags.
+   * Returns aggregated outbound connector metrics, optionally filtered to a single connector type.
    *
-   * <p>When no {@code name} is provided, a curated set of outbound metrics is returned:
-   * invocations, execution-time, worker job activated, worker job handled, and worker stream
-   * inactivity recreated. Tags are provided as {@code key:value} pairs and applied to every
-   * requested metric.
-   *
-   * @param names optional metric names to query (e.g. {@code
-   *     camunda.connector.outbound.invocations})
-   * @param tags optional {@code key:value} tag filters
+   * @param connectorType optional connector type filter (e.g. {@code io.camunda:http-json:1})
    */
   @GetMapping("/metrics")
-  public List<MetricResponse> getMetrics(
-      @RequestParam(name = "name", required = false) List<String> names,
-      @RequestParam(name = "tag", required = false) List<String> tags) {
-    return MetricsQueryHelper.queryMetrics(meterRegistry, names, tags, CURATED_METRICS);
+  public List<OutboundConnectorMetrics> getMetrics(
+      @RequestParam(name = "connectorType", required = false) String connectorType) {
+    return ConnectorMetricsAggregator.outbound(meterRegistry, connectorType);
   }
 }

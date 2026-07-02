@@ -22,9 +22,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.executable.*;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
-import io.camunda.connector.runtime.metrics.ConnectorMetrics;
-import io.camunda.connector.runtime.metrics.MetricResponse;
-import io.camunda.connector.runtime.metrics.MetricsQueryHelper;
+import io.camunda.connector.runtime.metrics.ConnectorMetricsAggregator;
+import io.camunda.connector.runtime.metrics.InboundConnectorMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collection;
@@ -36,11 +35,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class InboundConnectorRestController {
-
-  private static final List<String> CURATED_METRICS =
-      List.of(
-          ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
-          ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS);
 
   private final InboundExecutableRegistry executableRegistry;
   private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
@@ -125,20 +119,13 @@ public class InboundConnectorRestController {
   }
 
   /**
-   * Returns inbound connector metrics, optionally filtered by name and tags.
+   * Returns aggregated inbound connector metrics, optionally filtered to a single connector type.
    *
-   * <p>When no {@code name} is provided, a curated set of inbound metrics is returned: activations
-   * and triggers. Tags are provided as {@code key:value} pairs and applied to every requested
-   * metric.
-   *
-   * @param names optional metric names to query (e.g. {@code
-   *     camunda.connector.inbound.activations})
-   * @param tags optional {@code key:value} tag filters
+   * @param connectorType optional connector type filter (e.g. {@code io.camunda:webhook:1})
    */
   @GetMapping("/inbound/metrics")
-  public List<MetricResponse> getMetrics(
-      @RequestParam(name = "name", required = false) List<String> names,
-      @RequestParam(name = "tag", required = false) List<String> tags) {
-    return MetricsQueryHelper.queryMetrics(meterRegistry, names, tags, CURATED_METRICS);
+  public List<InboundConnectorMetrics> getMetrics(
+      @RequestParam(name = "connectorType", required = false) String connectorType) {
+    return ConnectorMetricsAggregator.inbound(meterRegistry, connectorType);
   }
 }

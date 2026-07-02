@@ -49,6 +49,15 @@ public class ConnectorMetrics {
      */
     public static final String METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED =
         "camunda.client.worker.stream.inactivity.recreated";
+
+    /** Value of the {@code action} tag for successfully completed jobs. */
+    public static final String ACTION_COMPLETED = "completed";
+
+    /** Value of the {@code action} tag for jobs that ended with a connector error. */
+    public static final String ACTION_FAILED = "failed";
+
+    /** Value of the {@code action} tag for jobs that threw a BPMN error. */
+    public static final String ACTION_BPMN_ERROR = "bpmnError";
   }
 
   public static class Inbound {

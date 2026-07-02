@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.inbound;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,7 +26,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
-import io.camunda.connector.runtime.metrics.MetricResponse;
+import io.camunda.connector.runtime.metrics.InboundConnectorMetrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
@@ -49,11 +48,123 @@ class InboundConnectorRestControllerTest {
   @MockitoBean private InboundExecutableRegistry executableRegistry;
 
   @Test
-  void shouldReturnCuratedMetrics_whenNoNameProvided() throws Exception {
+  void shouldReturnActivations_groupedByType() throws Exception {
+    // Use a unique type per test to avoid shared-context counter accumulation
+    String type = "inbound-test-activations";
     Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-        .tag("type", "webhook")
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_ACTIVATED)
         .register(meterRegistry)
         .increment(3.0);
+    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED)
+        .register(meterRegistry)
+        .increment(1.0);
+
+    var response =
+        mockMvc
+            .perform(get("/inbound/metrics").param("connectorType", type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(1, metrics.size());
+    var m = metrics.getFirst();
+    assertEquals(3L, m.activations().activated());
+    assertEquals(0L, m.activations().deactivated());
+    assertEquals(1L, m.activations().activationFailed());
+  }
+
+  @Test
+  void shouldReturnTriggers_groupedByType() throws Exception {
+    String type = "inbound-test-triggers";
+    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_TRIGGERED)
+        .register(meterRegistry)
+        .increment(10.0);
+    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_CORRELATED)
+        .register(meterRegistry)
+        .increment(9.0);
+    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(
+            ConnectorMetrics.Tag.ACTION,
+            ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED)
+        .register(meterRegistry)
+        .increment(1.0);
+
+    var response =
+        mockMvc
+            .perform(get("/inbound/metrics").param("connectorType", type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(1, metrics.size());
+    var m = metrics.getFirst();
+    assertEquals(10L, m.triggers().triggered());
+    assertEquals(9L, m.triggers().correlated());
+    assertEquals(0L, m.triggers().correlationFailed());
+    assertEquals(1L, m.triggers().activationConditionFailed());
+  }
+
+  @Test
+  void shouldFilterByConnectorType() throws Exception {
+    String typeA = "inbound-test-filter-a";
+    String typeB = "inbound-test-filter-b";
+    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, typeA)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_ACTIVATED)
+        .register(meterRegistry)
+        .increment(5.0);
+    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, typeB)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_ACTIVATED)
+        .register(meterRegistry)
+        .increment(2.0);
+
+    var response =
+        mockMvc
+            .perform(get("/inbound/metrics").param("connectorType", typeA))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(1, metrics.size());
+    assertEquals(typeA, metrics.getFirst().connectorType());
+    assertEquals(5L, metrics.getFirst().activations().activated());
+  }
+
+  @Test
+  void shouldReturnMultipleConnectorTypes() throws Exception {
+    String typeA = "inbound-test-multi-a";
+    String typeB = "inbound-test-multi-b";
+    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, typeA)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_ACTIVATED)
+        .register(meterRegistry)
+        .increment(1.0);
+    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, typeB)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_ACTIVATED)
+        .register(meterRegistry)
+        .increment(1.0);
 
     var response =
         mockMvc
@@ -63,122 +174,11 @@ class InboundConnectorRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<MetricResponse> metrics =
+    List<InboundConnectorMetrics> metrics =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
-    var names = metrics.stream().map(MetricResponse::metricName).toList();
-    assertTrue(names.contains(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS));
-    // triggers not registered yet → skipped
-    assertFalse(names.contains(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS));
-  }
-
-  @Test
-  void shouldReturnRequestedMetric_byName() throws Exception {
-    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-        .tag("type", "webhook")
-        .register(meterRegistry)
-        .increment(2.0);
-
-    var response =
-        mockMvc
-            .perform(
-                get("/inbound/metrics")
-                    .param("name", ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    List<MetricResponse> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-
-    assertEquals(1, metrics.size());
-    assertEquals(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS, metrics.getFirst().metricName());
-    assertFalse(metrics.getFirst().series().isEmpty());
-  }
-
-  @Test
-  void shouldFilterMetrics_byTag() throws Exception {
-    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-        .tag("type", "webhook")
-        .register(meterRegistry)
-        .increment(6.0);
-    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-        .tag("type", "kafka")
-        .register(meterRegistry)
-        .increment(1.0);
-
-    var response =
-        mockMvc
-            .perform(
-                get("/inbound/metrics")
-                    .param("name", ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-                    .param("tag", "type:webhook"))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    List<MetricResponse> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-
-    assertEquals(1, metrics.size());
-    var m = metrics.getFirst();
-    assertEquals(1, m.series().size());
-    assertEquals(6.0, m.series().getFirst().measurements().get("COUNT"));
-  }
-
-  @Test
-  void shouldReturnEmptyList_whenRequestedMetricNotRegistered() throws Exception {
-    var response =
-        mockMvc
-            .perform(get("/inbound/metrics").param("name", "camunda.connector.inbound.unknown"))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    List<MetricResponse> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-
-    assertTrue(metrics.isEmpty());
-  }
-
-  @Test
-  void shouldReturn400_whenInvalidTagFormat() throws Exception {
-    mockMvc
-        .perform(get("/inbound/metrics").param("tag", "no-colon-here"))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  void shouldQueryMultipleMetrics_byName() throws Exception {
-    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-        .tag("type", "webhook")
-        .register(meterRegistry)
-        .increment(2.0);
-    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS)
-        .tag("type", "webhook")
-        .register(meterRegistry)
-        .increment(1.0);
-
-    var response =
-        mockMvc
-            .perform(
-                get("/inbound/metrics")
-                    .param("name", ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-                    .param("name", ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    List<MetricResponse> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-
-    assertEquals(2, metrics.size());
-    var names = metrics.stream().map(MetricResponse::metricName).toList();
-    assertTrue(names.contains(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS));
-    assertTrue(names.contains(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS));
+    var types = metrics.stream().map(InboundConnectorMetrics::connectorType).toList();
+    assertTrue(types.contains(typeA));
+    assertTrue(types.contains(typeB));
   }
 }

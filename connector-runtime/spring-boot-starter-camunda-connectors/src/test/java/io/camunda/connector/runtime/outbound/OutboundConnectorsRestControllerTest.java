@@ -32,7 +32,7 @@ import io.camunda.connector.runtime.core.common.AbstractConnectorFactory.Connect
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
-import io.camunda.connector.runtime.metrics.MetricResponse;
+import io.camunda.connector.runtime.metrics.OutboundConnectorMetrics;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
 import io.micrometer.core.instrument.Counter;
@@ -170,21 +170,116 @@ class OutboundConnectorsRestControllerTest {
   }
 
   @Test
-  void shouldReturnCuratedMetrics_whenNoNameProvided() throws Exception {
+  void shouldReturnInvocations_groupedByType() throws Exception {
+    // Use a unique type per test to avoid shared-context counter accumulation
+    String type = "outbound-test-invocations";
     Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-        .tag("type", "http-json")
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_COMPLETED)
         .register(meterRegistry)
-        .increment(5.0);
+        .increment(10.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_FAILED)
+        .register(meterRegistry)
+        .increment(2.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_BPMN_ERROR)
+        .register(meterRegistry)
+        .increment(1.0);
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics").param("connectorType", type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(1, metrics.size());
+    var m = metrics.getFirst();
+    assertEquals(10L, m.invocations().completed());
+    assertEquals(2L, m.invocations().failed());
+    assertEquals(1L, m.invocations().bpmnError());
+  }
+
+  @Test
+  void shouldReturnWorkerStats_groupedByType() throws Exception {
+    String type = "outbound-test-worker";
     Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
-        .tag("type", "http-json")
+        .tag(ConnectorMetrics.Tag.TYPE, type)
         .register(meterRegistry)
         .increment(5.0);
     Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED)
-        .tag("type", "http-json")
+        .tag(ConnectorMetrics.Tag.TYPE, type)
         .register(meterRegistry)
         .increment(4.0);
     Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED)
-        .tag("type", "http-json")
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .register(meterRegistry)
+        .increment(1.0);
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics").param("connectorType", type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(1, metrics.size());
+    var worker = metrics.getFirst();
+    assertEquals(5L, worker.worker().jobsActivated());
+    assertEquals(4L, worker.worker().jobsHandled());
+    assertEquals(1L, worker.worker().streamRecreations());
+  }
+
+  @Test
+  void shouldFilterByConnectorType() throws Exception {
+    String typeA = "outbound-test-filter-a";
+    String typeB = "outbound-test-filter-b";
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, typeA)
+        .register(meterRegistry)
+        .increment(3.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, typeB)
+        .register(meterRegistry)
+        .increment(7.0);
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics").param("connectorType", typeA))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(1, metrics.size());
+    assertEquals(typeA, metrics.getFirst().connectorType());
+    assertEquals(3L, metrics.getFirst().worker().jobsActivated());
+  }
+
+  @Test
+  void shouldReturnMultipleConnectorTypes() throws Exception {
+    String typeA = "outbound-test-multi-a";
+    String typeB = "outbound-test-multi-b";
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, typeA)
+        .register(meterRegistry)
+        .increment(1.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, typeB)
         .register(meterRegistry)
         .increment(1.0);
 
@@ -196,127 +291,38 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<MetricResponse> metrics =
+    List<OutboundConnectorMetrics> metrics =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
-    var names = metrics.stream().map(MetricResponse::metricName).toList();
-    assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS));
-    assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED));
-    assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED));
-    assertTrue(
-        names.contains(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED));
-    // execution-time not registered → skipped
-    assertFalse(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_TIME));
+    var types = metrics.stream().map(OutboundConnectorMetrics::connectorType).toList();
+    assertTrue(types.contains(typeA));
+    assertTrue(types.contains(typeB));
   }
 
   @Test
-  void shouldReturnRequestedMetric_byName() throws Exception {
+  void shouldIncludeElementTemplateMetadata_whenAvailable() throws Exception {
+    String type = "outbound-test-template-meta";
     Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-        .tag("type", "http-json")
-        .register(meterRegistry)
-        .increment(3.0);
-
-    var response =
-        mockMvc
-            .perform(
-                get("/outbound/metrics")
-                    .param("name", ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    List<MetricResponse> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-
-    assertEquals(1, metrics.size());
-    assertEquals(
-        ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS, metrics.getFirst().metricName());
-    assertFalse(metrics.getFirst().series().isEmpty());
-  }
-
-  @Test
-  void shouldFilterMetrics_byTag() throws Exception {
-    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-        .tag("type", "http-json")
-        .register(meterRegistry)
-        .increment(4.0);
-    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-        .tag("type", "slack")
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, "io.camunda.connectors.HttpJson.v7")
+        .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, "7")
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_COMPLETED)
         .register(meterRegistry)
         .increment(1.0);
 
     var response =
         mockMvc
-            .perform(
-                get("/outbound/metrics")
-                    .param("name", ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-                    .param("tag", "type:http-json"))
+            .perform(get("/outbound/metrics").param("connectorType", type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    List<MetricResponse> metrics =
+    List<OutboundConnectorMetrics> metrics =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
-    assertEquals(1, metrics.size());
     var m = metrics.getFirst();
-    assertEquals(1, m.series().size());
-    assertEquals(4.0, m.series().getFirst().measurements().get("COUNT"));
-  }
-
-  @Test
-  void shouldReturnEmptyList_whenRequestedMetricNotRegistered() throws Exception {
-    var response =
-        mockMvc
-            .perform(get("/outbound/metrics").param("name", "camunda.connector.outbound.unknown"))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    List<MetricResponse> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-
-    assertTrue(metrics.isEmpty());
-  }
-
-  @Test
-  void shouldReturn400_whenInvalidTagFormat() throws Exception {
-    mockMvc
-        .perform(get("/outbound/metrics").param("tag", "no-colon-here"))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  void shouldQueryMultipleMetrics_byName() throws Exception {
-    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-        .tag("type", "http-json")
-        .register(meterRegistry)
-        .increment(3.0);
-    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
-        .tag("type", "http-json")
-        .register(meterRegistry)
-        .increment(5.0);
-
-    var response =
-        mockMvc
-            .perform(
-                get("/outbound/metrics")
-                    .param("name", ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-                    .param("name", ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    List<MetricResponse> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-
-    assertEquals(2, metrics.size());
-    var names = metrics.stream().map(MetricResponse::metricName).toList();
-    assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS));
-    assertTrue(names.contains(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED));
+    assertEquals("io.camunda.connectors.HttpJson.v7", m.elementTemplateId());
+    assertEquals("7", m.elementTemplateVersion());
   }
 }
