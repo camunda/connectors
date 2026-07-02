@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.optimizer.pass.MergeByIdentityPass;
+import io.camunda.connector.optimizer.pass.ReorderPass;
 import io.camunda.connector.optimizer.pass.TotalizePass;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -88,14 +89,14 @@ class OptimizerTest {
   @Test
   void defaultPassesEnumeratesEveryPassInOrder() {
     assertThat(Optimizer.defaultPasses().keySet())
-        .containsExactly("merge-by-identity", "totalize", "strength-reduce");
+        .containsExactly("merge-by-identity", "totalize", "strength-reduce", "reorder");
   }
 
   @Test
   void skippingEveryPassYieldsEmptyPipeline() {
     var optimizer =
         Optimizer.defaultPipelineExcept(
-            List.of(MergeByIdentityPass.ID, TotalizePass.ID, "strength-reduce"));
+            List.of(MergeByIdentityPass.ID, TotalizePass.ID, "strength-reduce", ReorderPass.ID));
     assertThat(optimizer.passes()).isEmpty();
   }
 

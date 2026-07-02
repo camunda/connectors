@@ -42,6 +42,7 @@ class TemplateLoaderTest {
           "name": "Test",
           "id": "io.camunda.test",
           "version": 1,
+          "category": {"id": "connectors", "name": "Connectors"},
           "appliesTo": ["bpmn:ServiceTask"],
           "elementType": {"value": "bpmn:ServiceTask"},
           "groups": [],

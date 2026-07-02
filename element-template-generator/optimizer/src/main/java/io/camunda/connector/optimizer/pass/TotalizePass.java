@@ -97,6 +97,7 @@ public class TotalizePass implements Pass {
         template.id(),
         template.name(),
         template.version(),
+        template.category(),
         template.documentationRef(),
         template.engines(),
         template.description(),
@@ -105,7 +106,9 @@ public class TotalizePass implements Pass {
         template.elementType(),
         template.groups(),
         optimized,
-        template.icon());
+        template.icon(),
+        template.steps(),
+        template.presets());
   }
 
   /**

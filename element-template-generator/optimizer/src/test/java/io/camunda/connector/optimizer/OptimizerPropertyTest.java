@@ -225,6 +225,7 @@ class OptimizerPropertyTest {
         template.id(),
         template.name(),
         template.version(),
+        template.category(),
         template.documentationRef(),
         template.engines(),
         template.description(),
@@ -233,7 +234,9 @@ class OptimizerPropertyTest {
         template.elementType(),
         template.groups(),
         updated,
-        template.icon());
+        template.icon(),
+        template.steps(),
+        template.presets());
   }
 
   private static final String MINIMAL_BPMN =

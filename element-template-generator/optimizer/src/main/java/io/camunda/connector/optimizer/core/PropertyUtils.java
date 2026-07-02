@@ -97,7 +97,8 @@ public final class PropertyUtils {
               condition,
               p.getTooltip(),
               p.getPlaceholder(),
-              p.getExampleValue());
+              p.getExampleValue(),
+              p.getLanguage());
       case TextProperty p ->
           new TextProperty(
               id,
@@ -113,7 +114,8 @@ public final class PropertyUtils {
               condition,
               p.getTooltip(),
               p.getPlaceholder(),
-              p.getExampleValue());
+              p.getExampleValue(),
+              p.getLanguage());
       case NumberProperty p ->
           new NumberProperty(
               id,

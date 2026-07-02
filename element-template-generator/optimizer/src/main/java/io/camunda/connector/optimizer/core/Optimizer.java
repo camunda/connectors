@@ -18,6 +18,7 @@ package io.camunda.connector.optimizer.core;
 
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.optimizer.pass.MergeByIdentityPass;
+import io.camunda.connector.optimizer.pass.ReorderPass;
 import io.camunda.connector.optimizer.pass.StrengthReducePass;
 import io.camunda.connector.optimizer.pass.TotalizePass;
 import java.util.ArrayList;
@@ -38,7 +39,11 @@ import java.util.Set;
 public final class Optimizer {
 
   private static final List<Pass> DEFAULT_PASSES =
-      List.of(new MergeByIdentityPass(), new TotalizePass(), new StrengthReducePass());
+      List.of(
+          new MergeByIdentityPass(),
+          new TotalizePass(),
+          new StrengthReducePass(),
+          new ReorderPass());
 
   private final List<Pass> passes;
 

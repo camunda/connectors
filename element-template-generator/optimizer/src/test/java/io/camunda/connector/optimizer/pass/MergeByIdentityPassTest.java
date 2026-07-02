@@ -267,6 +267,7 @@ class MergeByIdentityPassTest {
         source.getCondition(),
         source.getTooltip(),
         source.getPlaceholder(),
-        source.getExampleValue());
+        source.getExampleValue(),
+        source.getLanguage());
   }
 }

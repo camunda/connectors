@@ -36,14 +36,17 @@ public final class TestTemplates {
         "test-template",
         "Test Template",
         1,
+        ElementTemplateCategory.CONNECTORS,
         null,
         null,
         null,
         null,
-        Set.of("bpmn:ServiceTask"), // appliesTo
-        new ElementTemplate.ElementTypeWrapper("bpmn:ServiceTask", null, null), // elementType
-        List.of(), // groups
+        Set.of("bpmn:ServiceTask"),
+        new ElementTemplate.ElementTypeWrapper("bpmn:ServiceTask", null, null),
+        List.of(),
         List.of(properties),
+        null,
+        null,
         null);
   }
 
