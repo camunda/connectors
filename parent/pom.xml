@@ -88,6 +88,7 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>3.5.16</version.spring-boot>
+    <tomcat.version>10.1.56</tomcat.version>
     <version.spring-cloud-gcp-starter-logging>5.13.11</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.37</version.logback>
 
