@@ -38,7 +38,7 @@ class ListResourceTemplatesRequestTest {
 
   @Test
   void returnsEmptyList_whenNoResourcesAvailable() {
-    when(mcpClient.listResourceTemplates(null, null))
+    when(mcpClient.listResourceTemplates())
         .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
@@ -81,7 +81,7 @@ class ListResourceTemplatesRequestTest {
             "A second resource",
             "text/markdown");
 
-    when(mcpClient.listResourceTemplates(null, null))
+    when(mcpClient.listResourceTemplates())
         .thenReturn(
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
@@ -129,7 +129,7 @@ class ListResourceTemplatesRequestTest {
             .denied(List.of())
             .build();
 
-    when(mcpClient.listResourceTemplates(null, null))
+    when(mcpClient.listResourceTemplates())
         .thenReturn(
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
@@ -164,7 +164,7 @@ class ListResourceTemplatesRequestTest {
             .denied(List.of())
             .build();
 
-    when(mcpClient.listResourceTemplates(null, null))
+    when(mcpClient.listResourceTemplates())
         .thenReturn(
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
@@ -192,7 +192,7 @@ class ListResourceTemplatesRequestTest {
             .denied(List.of("file://allowed-template.txt"))
             .build();
 
-    when(mcpClient.listResourceTemplates(null, null))
+    when(mcpClient.listResourceTemplates())
         .thenReturn(new McpSchema.ListResourceTemplatesResult(List.of(mcpResourceTemplate1), null));
 
     final var result = testee.execute(mcpClient, filter, null);
@@ -205,9 +205,9 @@ class ListResourceTemplatesRequestTest {
 
   @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
-    final var meta = Map.<String, Object>of("source_group_ids_include", List.of("version-uuid"));
+    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
     when(mcpClient.listResourceTemplates(isNull(), eq(meta)))
-        .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
+        .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null, null));
 
     testee.execute(mcpClient, EMPTY_FILTER, meta);
 
@@ -216,12 +216,12 @@ class ListResourceTemplatesRequestTest {
 
   @Test
   void doesNotSendMeta_whenMetaNotConfigured() {
-    when(mcpClient.listResourceTemplates(isNull(), isNull()))
+    when(mcpClient.listResourceTemplates())
         .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
 
     testee.execute(mcpClient, EMPTY_FILTER, null);
 
-    verify(mcpClient).listResourceTemplates(isNull(), isNull());
+    verify(mcpClient).listResourceTemplates();
   }
 
   private McpSchema.ResourceTemplate createMcpResourceTemplate(

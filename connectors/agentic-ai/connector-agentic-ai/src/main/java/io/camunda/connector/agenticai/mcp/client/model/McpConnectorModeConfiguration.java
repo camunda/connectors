@@ -93,7 +93,7 @@ public sealed interface McpConnectorModeConfiguration
       return McpClientOperation.of(
           operation.method(),
           operation.params().orElseGet(Map::of),
-          operation.meta().orElseGet(Map::of));
+          MapUtils.emptyIfNull(operation.meta()));
     }
 
     @Override

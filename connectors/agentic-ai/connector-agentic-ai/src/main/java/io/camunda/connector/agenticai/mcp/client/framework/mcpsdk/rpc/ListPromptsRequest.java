@@ -14,6 +14,7 @@ import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -32,7 +33,8 @@ final class ListPromptsRequest {
       McpSyncClient client, AllowDenyList promptsFilter, Map<String, Object> meta) {
     LOGGER.debug("MCP({}): Executing list prompts", clientId);
 
-    var fetchedPrompts = client.listPrompts(null, meta).prompts();
+    var fetchedPrompts =
+        (MapUtils.isEmpty(meta) ? client.listPrompts() : client.listPrompts(null, meta)).prompts();
 
     if (CollectionUtils.isEmpty(fetchedPrompts)) {
       LOGGER.debug("MCP({}): No prompts found", clientId);

@@ -141,7 +141,7 @@
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.metaParameters",
+      "name" : "data.connectorMode.operation.meta",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -214,7 +214,7 @@
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.metaParameters",
+      "name" : "data.connectorMode.operation.meta",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -238,7 +238,7 @@
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.metaParameters",
+      "name" : "data.connectorMode.operation.meta",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -262,7 +262,7 @@
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.metaParameters",
+      "name" : "data.connectorMode.operation.meta",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -312,7 +312,7 @@
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.metaParameters",
+      "name" : "data.connectorMode.operation.meta",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -336,7 +336,7 @@
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.metaParameters",
+      "name" : "data.connectorMode.operation.meta",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -409,7 +409,7 @@
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.metaParameters",
+      "name" : "data.connectorMode.operation.meta",
       "type" : "zeebe:input"
     },
     "condition" : {

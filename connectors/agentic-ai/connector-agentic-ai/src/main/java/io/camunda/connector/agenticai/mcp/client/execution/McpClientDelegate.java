@@ -23,7 +23,7 @@ public interface McpClientDelegate extends AutoCloseable {
   McpClientListToolsResult listTools(AllowDenyList filter, Map<String, Object> meta);
 
   McpClientCallToolResult callTool(
-      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter);
+      Map<String, Object> params, AllowDenyList filter, Map<String, Object> meta);
 
   McpClientListResourcesResult listResources(AllowDenyList filter, Map<String, Object> meta);
 
@@ -31,10 +31,10 @@ public interface McpClientDelegate extends AutoCloseable {
       AllowDenyList filter, Map<String, Object> meta);
 
   McpClientReadResourceResult readResource(
-      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter);
+      Map<String, Object> params, AllowDenyList filter, Map<String, Object> meta);
 
   McpClientListPromptsResult listPrompts(AllowDenyList filter, Map<String, Object> meta);
 
   McpClientGetPromptResult getPrompt(
-      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter);
+      Map<String, Object> params, AllowDenyList filter, Map<String, Object> meta);
 }

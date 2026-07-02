@@ -84,7 +84,7 @@ class DefaultMcpRemoteClientHandlerTest {
           new SseHttpMcpRemoteClientConnection(null, SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT));
 
   private static final McpClientOperationConfiguration LIST_TOOLS_OPERATION =
-      new McpClientOperationConfiguration("tools/list", Map.of(), null);
+      new McpClientOperationConfiguration("tools/list", Map.of());
 
   private static final McpClientToolsFilterConfiguration EMPTY_FILTER_CONFIGURATION =
       new McpClientToolsFilterConfiguration(List.of(), List.of());
@@ -191,7 +191,7 @@ class DefaultMcpRemoteClientHandlerTest {
               transport,
               false,
               new McpClientOperationConfiguration(
-                  "tools/call", Map.of("name", "test-tool", "arguments", arguments), null));
+                  "tools/call", Map.of("name", "test-tool", "arguments", arguments)));
       final var expectedResult =
           new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
@@ -229,7 +229,7 @@ class DefaultMcpRemoteClientHandlerTest {
         "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void handlesListToolsRequest(McpRemoteClientTransportConfiguration transport) {
       final var request =
-          createStandaloneModeRequest(transport, false, new ListToolsOperationConfiguration(null));
+          createStandaloneModeRequest(transport, false, new ListToolsOperationConfiguration());
       final var expectedResult = new McpClientListToolsResult(List.of());
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
@@ -255,7 +255,7 @@ class DefaultMcpRemoteClientHandlerTest {
         McpRemoteClientTransportConfiguration transport, Map<String, Object> arguments) {
       final var request =
           createStandaloneModeRequest(
-              transport, false, new CallToolOperationConfiguration("test-tool", arguments, null));
+              transport, false, new CallToolOperationConfiguration("test-tool", arguments));
       final var expectedResult =
           new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
@@ -292,7 +292,7 @@ class DefaultMcpRemoteClientHandlerTest {
     void handlesCallToolRequestWithNullArguments(McpRemoteClientTransportConfiguration transport) {
       final var request =
           createStandaloneModeRequest(
-              transport, false, new CallToolOperationConfiguration("test-tool", null, null));
+              transport, false, new CallToolOperationConfiguration("test-tool", null));
       final var expectedResult =
           new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
@@ -324,7 +324,7 @@ class DefaultMcpRemoteClientHandlerTest {
           createStandaloneModeRequest(
               transport,
               false,
-              new McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration(null));
+              new McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration());
       final var expectedResult = new McpClientListToolsResult(List.of());
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
@@ -351,8 +351,8 @@ class DefaultMcpRemoteClientHandlerTest {
           createStandaloneModeRequest(
               transport,
               false,
-              new McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration(
-                  null));
+              new McpStandaloneOperationConfiguration
+                  .ListResourceTemplatesOperationConfiguration());
       final var expectedResult = new McpClientListResourceTemplatesResult(List.of());
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
@@ -380,7 +380,7 @@ class DefaultMcpRemoteClientHandlerTest {
               transport,
               false,
               new McpStandaloneOperationConfiguration.ReadResourceOperationConfiguration(
-                  "resource-1", null));
+                  "resource-1"));
       final var expectedResult =
           new McpClientReadResourceResult(
               List.of(new ResourceData.TextResourceData("uri", "text/plain", "Sample text")));
@@ -415,7 +415,7 @@ class DefaultMcpRemoteClientHandlerTest {
           createStandaloneModeRequest(
               transport,
               false,
-              new McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration(null));
+              new McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration());
       final var expectedResult = new McpClientListPromptsResult(List.of());
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
@@ -444,7 +444,7 @@ class DefaultMcpRemoteClientHandlerTest {
               transport,
               false,
               new McpStandaloneOperationConfiguration.GetPromptOperationConfiguration(
-                  "code_review", arguments, null));
+                  "code_review", arguments));
       final var expectedResult =
           new McpClientGetPromptResult(
               "Code review",

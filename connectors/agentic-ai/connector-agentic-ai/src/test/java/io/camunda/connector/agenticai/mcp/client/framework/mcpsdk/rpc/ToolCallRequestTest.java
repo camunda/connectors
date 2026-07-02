@@ -274,7 +274,7 @@ class ToolCallRequestTest {
     when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
         .thenReturn(callToolResult("Tool execution result"));
 
-    final var meta = Map.<String, Object>of("source_group_ids_include", List.of("version-uuid"));
+    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
 
     testee.execute(
         mcpClient,

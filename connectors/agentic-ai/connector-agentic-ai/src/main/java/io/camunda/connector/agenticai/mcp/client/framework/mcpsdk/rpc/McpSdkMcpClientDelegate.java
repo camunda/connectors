@@ -46,7 +46,7 @@ public class McpSdkMcpClientDelegate implements McpClientDelegate {
 
   @Override
   public McpClientCallToolResult callTool(
-      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter) {
+      Map<String, Object> params, AllowDenyList filter, Map<String, Object> meta) {
     return new ToolCallRequest(clientId, objectMapper).execute(delegate, filter, params, meta);
   }
 
@@ -64,7 +64,7 @@ public class McpSdkMcpClientDelegate implements McpClientDelegate {
 
   @Override
   public McpClientReadResourceResult readResource(
-      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter) {
+      Map<String, Object> params, AllowDenyList filter, Map<String, Object> meta) {
     return new ReadResourceRequest(clientId).execute(delegate, filter, params, meta);
   }
 
@@ -75,7 +75,7 @@ public class McpSdkMcpClientDelegate implements McpClientDelegate {
 
   @Override
   public McpClientGetPromptResult getPrompt(
-      Map<String, Object> params, Map<String, Object> meta, AllowDenyList filter) {
+      Map<String, Object> params, AllowDenyList filter, Map<String, Object> meta) {
     return new GetPromptRequest(clientId).execute(delegate, filter, params, meta);
   }
 

@@ -24,6 +24,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -68,7 +69,11 @@ public sealed interface McpStandaloneOperationConfiguration
 
   Optional<Map<String, Object>> params();
 
-  Optional<Map<String, Object>> meta();
+  // Note: unlike params(), meta() is a direct pass-through of the configured value (no
+  // per-operation
+  // synthesis), so it is intentionally not Optional-wrapped here - this lets every subtype's `meta`
+  // record component satisfy this method via its own implicit accessor, with no manual override.
+  @Nullable Map<String, Object> meta();
 
   @TemplateSubType(id = LIST_TOOLS_ID, label = "List Tools")
   record ListToolsOperationConfiguration(
@@ -82,11 +87,15 @@ public sealed interface McpStandaloneOperationConfiguration
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> metaParameters)
+          @Nullable Map<String, Object> meta)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_TOOLS_ID = "tools/list";
+
+    public ListToolsOperationConfiguration() {
+      this(null);
+    }
 
     @Override
     public String method() {
@@ -96,11 +105,6 @@ public sealed interface McpStandaloneOperationConfiguration
     @Override
     public Optional<Map<String, Object>> params() {
       return Optional.empty();
-    }
-
-    @Override
-    public Optional<Map<String, Object>> meta() {
-      return Optional.ofNullable(metaParameters);
     }
   }
 
@@ -134,11 +138,15 @@ public sealed interface McpStandaloneOperationConfiguration
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> metaParameters)
+          @Nullable Map<String, Object> meta)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String CALL_TOOL_ID = "tools/call";
+
+    public CallToolOperationConfiguration(String toolName, Map<String, Object> toolArguments) {
+      this(toolName, toolArguments, null);
+    }
 
     @Override
     public String method() {
@@ -151,11 +159,6 @@ public sealed interface McpStandaloneOperationConfiguration
         return Optional.of(Map.of("name", toolName));
       }
       return Optional.of(Map.of("name", toolName, "arguments", toolArguments));
-    }
-
-    @Override
-    public Optional<Map<String, Object>> meta() {
-      return Optional.ofNullable(metaParameters);
     }
   }
 
@@ -171,11 +174,15 @@ public sealed interface McpStandaloneOperationConfiguration
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> metaParameters)
+          @Nullable Map<String, Object> meta)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_RESOURCES_ID = "resources/list";
+
+    public ListResourcesOperationConfiguration() {
+      this(null);
+    }
 
     @Override
     public String method() {
@@ -185,11 +192,6 @@ public sealed interface McpStandaloneOperationConfiguration
     @Override
     public Optional<Map<String, Object>> params() {
       return Optional.empty();
-    }
-
-    @Override
-    public Optional<Map<String, Object>> meta() {
-      return Optional.ofNullable(metaParameters);
     }
   }
 
@@ -205,11 +207,15 @@ public sealed interface McpStandaloneOperationConfiguration
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> metaParameters)
+          @Nullable Map<String, Object> meta)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_RESOURCE_TEMPLATES_ID = "resources/templates/list";
+
+    public ListResourceTemplatesOperationConfiguration() {
+      this(null);
+    }
 
     @Override
     public String method() {
@@ -219,11 +225,6 @@ public sealed interface McpStandaloneOperationConfiguration
     @Override
     public Optional<Map<String, Object>> params() {
       return Optional.empty();
-    }
-
-    @Override
-    public Optional<Map<String, Object>> meta() {
-      return Optional.ofNullable(metaParameters);
     }
   }
 
@@ -249,11 +250,15 @@ public sealed interface McpStandaloneOperationConfiguration
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> metaParameters)
+          @Nullable Map<String, Object> meta)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String READ_RESOURCE_ID = "resources/read";
+
+    public ReadResourceOperationConfiguration(String resourceUri) {
+      this(resourceUri, null);
+    }
 
     @Override
     public String method() {
@@ -263,11 +268,6 @@ public sealed interface McpStandaloneOperationConfiguration
     @Override
     public Optional<Map<String, Object>> params() {
       return Optional.of(Map.of("uri", resourceUri));
-    }
-
-    @Override
-    public Optional<Map<String, Object>> meta() {
-      return Optional.ofNullable(metaParameters);
     }
   }
 
@@ -283,11 +283,15 @@ public sealed interface McpStandaloneOperationConfiguration
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> metaParameters)
+          @Nullable Map<String, Object> meta)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_PROMPTS_ID = "prompts/list";
+
+    public ListPromptsOperationConfiguration() {
+      this(null);
+    }
 
     @Override
     public String method() {
@@ -297,11 +301,6 @@ public sealed interface McpStandaloneOperationConfiguration
     @Override
     public Optional<Map<String, Object>> params() {
       return Optional.empty();
-    }
-
-    @Override
-    public Optional<Map<String, Object>> meta() {
-      return Optional.ofNullable(metaParameters);
     }
   }
 
@@ -335,11 +334,15 @@ public sealed interface McpStandaloneOperationConfiguration
                   "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> metaParameters)
+          @Nullable Map<String, Object> meta)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String GET_PROMPT_ID = "prompts/get";
+
+    public GetPromptOperationConfiguration(String promptName, Map<String, Object> promptArguments) {
+      this(promptName, promptArguments, null);
+    }
 
     @Override
     public String method() {
@@ -352,11 +355,6 @@ public sealed interface McpStandaloneOperationConfiguration
         return Optional.of(Map.of("name", promptName));
       }
       return Optional.of(Map.of("name", promptName, "arguments", promptArguments));
-    }
-
-    @Override
-    public Optional<Map<String, Object>> meta() {
-      return Optional.ofNullable(metaParameters);
     }
   }
 }

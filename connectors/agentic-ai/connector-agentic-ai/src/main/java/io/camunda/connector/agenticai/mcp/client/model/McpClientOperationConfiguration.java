@@ -11,6 +11,7 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 public record McpClientOperationConfiguration(
     @FEEL
@@ -46,4 +47,9 @@ public record McpClientOperationConfiguration(
                 "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
             feel = FeelMode.required,
             optional = true)
-        Map<String, Object> meta) {}
+        @Nullable Map<String, Object> meta) {
+
+  public McpClientOperationConfiguration(String method, Map<String, Object> params) {
+    this(method, params, null);
+  }
+}

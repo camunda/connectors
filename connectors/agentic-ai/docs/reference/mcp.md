@@ -153,8 +153,11 @@ field (see [§8](#8-request-data-model)). When not configured, no `_meta` field 
 ### RPC Layer
 
 Each operation is implemented by a package-private request class in the `rpc` subpackage:
-- `ListToolsRequest`: Calls `McpSyncClient.listTools(cursor, meta)` (`cursor` always `null`, pagination is not
-  supported), applies `AllowDenyList`, maps `McpSchema.Tool` → `McpToolDefinition`
+- `ListToolsRequest`: Calls `McpSyncClient.listTools()` when `meta` is unset (preserving prior behavior exactly),
+  or `listTools(cursor, meta)` (`cursor` always `null`, pagination is not supported) when `meta` is configured;
+  the four list operations (`ListToolsRequest`, `ListResourcesRequest`, `ListResourceTemplatesRequest`,
+  `ListPromptsRequest`) all follow this same guard so the `meta`-aware SDK overload is only exercised when
+  actually needed. Applies `AllowDenyList`, maps `McpSchema.Tool` → `McpToolDefinition`
 - `ToolCallRequest`: Validates tool name, parses parameters, and calls `McpSyncClient.callTool()` with a
   `McpSchema.CallToolRequest` built via `.meta(meta)`. Maps response
   content: `TextContent` → `McpTextContent`, `ImageContent`/`AudioContent` → `McpBlobContent` (Base64 decoded),

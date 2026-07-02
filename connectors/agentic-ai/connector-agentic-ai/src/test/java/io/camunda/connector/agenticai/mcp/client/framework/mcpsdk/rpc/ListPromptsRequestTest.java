@@ -37,7 +37,7 @@ class ListPromptsRequestTest {
 
   @Test
   void returnsEmptyList_whenNoPromptsAvailable() {
-    when(mcpClient.listPrompts(null, null))
+    when(mcpClient.listPrompts())
         .thenReturn(new McpSchema.ListPromptsResult(Collections.emptyList(), null));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
@@ -70,7 +70,7 @@ class ListPromptsRequestTest {
         createPrompt(
             "four_eyes_review", "Four Eyes Review", "Asks the LLM to judge something", List.of());
 
-    when(mcpClient.listPrompts(null, null))
+    when(mcpClient.listPrompts())
         .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2), null));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
@@ -97,7 +97,7 @@ class ListPromptsRequestTest {
     final var filter =
         AllowDenyListBuilder.builder().allowed(List.of("allowed-prompt")).denied(List.of()).build();
 
-    when(mcpClient.listPrompts(null, null))
+    when(mcpClient.listPrompts())
         .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2), null));
 
     final var result = testee.execute(mcpClient, filter, null);
@@ -122,7 +122,7 @@ class ListPromptsRequestTest {
             .denied(List.of("blocked-prompt3"))
             .build();
 
-    when(mcpClient.listPrompts(null, null))
+    when(mcpClient.listPrompts())
         .thenReturn(
             new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2, mcpPrompt3), null));
 
@@ -144,7 +144,7 @@ class ListPromptsRequestTest {
             .denied(List.of("allowed-prompt"))
             .build();
 
-    when(mcpClient.listPrompts(null, null))
+    when(mcpClient.listPrompts())
         .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1), null));
 
     final var result = testee.execute(mcpClient, filter, null);
@@ -157,9 +157,9 @@ class ListPromptsRequestTest {
 
   @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
-    final var meta = Map.<String, Object>of("source_group_ids_include", List.of("version-uuid"));
+    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
     when(mcpClient.listPrompts(isNull(), eq(meta)))
-        .thenReturn(new McpSchema.ListPromptsResult(Collections.emptyList(), null));
+        .thenReturn(new McpSchema.ListPromptsResult(Collections.emptyList(), null, null));
 
     testee.execute(mcpClient, EMPTY_FILTER, meta);
 
@@ -168,12 +168,12 @@ class ListPromptsRequestTest {
 
   @Test
   void doesNotSendMeta_whenMetaNotConfigured() {
-    when(mcpClient.listPrompts(isNull(), isNull()))
+    when(mcpClient.listPrompts())
         .thenReturn(new McpSchema.ListPromptsResult(Collections.emptyList(), null));
 
     testee.execute(mcpClient, EMPTY_FILTER, null);
 
-    verify(mcpClient).listPrompts(isNull(), isNull());
+    verify(mcpClient).listPrompts();
   }
 
   private McpSchema.Prompt createMcpPrompt(

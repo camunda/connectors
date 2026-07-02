@@ -37,7 +37,7 @@ class ListToolsRequestTest {
 
   @Test
   void returnsEmptyList_whenNoToolsAvailable() {
-    when(mcpClient.listTools(null, null))
+    when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
@@ -52,7 +52,7 @@ class ListToolsRequestTest {
     final var toolSpec1 = createTool("tool1", "First Tool", "Tool 1 description");
     final var toolSpec2 = createTool("tool2", "Second Tool", "Tool 2 description");
 
-    when(mcpClient.listTools(null, null))
+    when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
@@ -81,7 +81,7 @@ class ListToolsRequestTest {
     final var filter =
         AllowDenyListBuilder.builder().allowed(List.of("allowed-tool")).denied(List.of()).build();
 
-    when(mcpClient.listTools(null, null))
+    when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
 
     final var result = testee.execute(mcpClient, filter, null);
@@ -102,7 +102,7 @@ class ListToolsRequestTest {
     final var filter =
         AllowDenyListBuilder.builder().allowed(List.of("allowed-tool")).denied(List.of()).build();
 
-    when(mcpClient.listTools(null, null))
+    when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
 
     final var result = testee.execute(mcpClient, filter, null);
@@ -114,9 +114,9 @@ class ListToolsRequestTest {
 
   @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
-    final var meta = Map.<String, Object>of("source_group_ids_include", List.of("version-uuid"));
+    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
     when(mcpClient.listTools(isNull(), eq(meta)))
-        .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null));
+        .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null, null));
 
     testee.execute(mcpClient, EMPTY_FILTER, meta);
 
@@ -125,12 +125,12 @@ class ListToolsRequestTest {
 
   @Test
   void doesNotSendMeta_whenMetaNotConfigured() {
-    when(mcpClient.listTools(isNull(), isNull()))
+    when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null));
 
     testee.execute(mcpClient, EMPTY_FILTER, null);
 
-    verify(mcpClient).listTools(isNull(), isNull());
+    verify(mcpClient).listTools();
   }
 
   private McpSchema.Tool createTool(String name, String title, String description) {

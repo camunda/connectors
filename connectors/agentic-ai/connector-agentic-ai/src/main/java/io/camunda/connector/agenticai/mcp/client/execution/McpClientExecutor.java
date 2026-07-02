@@ -32,19 +32,19 @@ public class McpClientExecutor {
       case LIST_TOOLS -> clientDelegate.listTools(filterOptions.toolFilters(), operation.meta());
       case CALL_TOOL ->
           clientDelegate.callTool(
-              operation.params(), operation.meta(), filterOptions.toolFilters());
+              operation.params(), filterOptions.toolFilters(), operation.meta());
       case LIST_RESOURCES ->
           clientDelegate.listResources(filterOptions.resourceFilters(), operation.meta());
       case LIST_RESOURCE_TEMPLATES ->
           clientDelegate.listResourceTemplates(filterOptions.resourceFilters(), operation.meta());
       case READ_RESOURCE ->
           clientDelegate.readResource(
-              operation.params(), operation.meta(), filterOptions.resourceFilters());
+              operation.params(), filterOptions.resourceFilters(), operation.meta());
       case LIST_PROMPTS ->
           clientDelegate.listPrompts(filterOptions.promptFilters(), operation.meta());
       case GET_PROMPT ->
           clientDelegate.getPrompt(
-              operation.params(), operation.meta(), filterOptions.promptFilters());
+              operation.params(), filterOptions.promptFilters(), operation.meta());
     };
   }
 }

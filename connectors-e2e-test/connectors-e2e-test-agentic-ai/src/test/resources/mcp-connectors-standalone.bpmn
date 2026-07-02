@@ -9,7 +9,7 @@
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
           <zeebe:input source="=[&#34;toolB&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
-          <zeebe:input source="={source_group_ids_include: [&#34;11111111-1111-1111-1111-111111111111&#34;]}" target="data.connectorMode.operation.meta" />
+          <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.operation.meta" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="2" />
@@ -38,7 +38,7 @@
           <zeebe:input source="toolA" target="data.connectorMode.operation.toolName" />
           <zeebe:input source="={&#10;  paramA1: &#34;someValue&#34;,&#10;  paramA2: 3&#10;}" target="data.connectorMode.operation.toolArguments" />
           <zeebe:input source="=[&#34;toolB&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
-          <zeebe:input source="={source_group_ids_include: [&#34;11111111-1111-1111-1111-111111111111&#34;]}" target="data.connectorMode.operation.meta" />
+          <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.operation.meta" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="2" />

@@ -221,9 +221,10 @@ class ReadResourceRequestTest {
     when(mcpClient.readResource(any(McpSchema.ReadResourceRequest.class)))
         .thenReturn(
             new McpSchema.ReadResourceResult(
-                List.of(new McpSchema.TextResourceContents("uri", "text/plain", "content"))));
+                List.of(new McpSchema.TextResourceContents("uri", "text/plain", "content", null)),
+                null));
 
-    final var meta = Map.<String, Object>of("source_group_ids_include", List.of("version-uuid"));
+    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
 
     testee.execute(mcpClient, EMPTY_FILTER, Map.of("uri", "uri"), meta);
 
@@ -237,7 +238,8 @@ class ReadResourceRequestTest {
     when(mcpClient.readResource(any(McpSchema.ReadResourceRequest.class)))
         .thenReturn(
             new McpSchema.ReadResourceResult(
-                List.of(new McpSchema.TextResourceContents("uri", "text/plain", "content"))));
+                List.of(new McpSchema.TextResourceContents("uri", "text/plain", "content", null)),
+                null));
 
     testee.execute(mcpClient, EMPTY_FILTER, Map.of("uri", "uri"), null);
 

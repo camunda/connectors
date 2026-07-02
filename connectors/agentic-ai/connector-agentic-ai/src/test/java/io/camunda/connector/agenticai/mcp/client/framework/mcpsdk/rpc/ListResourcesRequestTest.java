@@ -37,7 +37,7 @@ class ListResourcesRequestTest {
 
   @Test
   void returnsEmptyList_whenNoResourcesAvailable() {
-    when(mcpClient.listResources(null, null))
+    when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(Collections.emptyList(), null));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
@@ -79,7 +79,7 @@ class ListResourcesRequestTest {
             "A second resource",
             "text/markdown");
 
-    when(mcpClient.listResources(null, null))
+    when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1, mcpResource2), null));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER, null);
@@ -125,7 +125,7 @@ class ListResourcesRequestTest {
             .denied(List.of())
             .build();
 
-    when(mcpClient.listResources(null, null))
+    when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1, mcpResource2), null));
 
     final var result = testee.execute(mcpClient, filter, null);
@@ -158,7 +158,7 @@ class ListResourcesRequestTest {
             .denied(List.of())
             .build();
 
-    when(mcpClient.listResources(null, null))
+    when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1, mcpResource2), null));
 
     final var result = testee.execute(mcpClient, filter, null);
@@ -183,7 +183,7 @@ class ListResourcesRequestTest {
             .denied(List.of("file://allowed-resource.txt"))
             .build();
 
-    when(mcpClient.listResources(null, null))
+    when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1), null));
 
     final var result = testee.execute(mcpClient, filter, null);
@@ -195,9 +195,9 @@ class ListResourcesRequestTest {
 
   @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
-    final var meta = Map.<String, Object>of("source_group_ids_include", List.of("version-uuid"));
+    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
     when(mcpClient.listResources(isNull(), eq(meta)))
-        .thenReturn(new McpSchema.ListResourcesResult(Collections.emptyList(), null));
+        .thenReturn(new McpSchema.ListResourcesResult(Collections.emptyList(), null, null));
 
     testee.execute(mcpClient, EMPTY_FILTER, meta);
 
@@ -206,12 +206,12 @@ class ListResourcesRequestTest {
 
   @Test
   void doesNotSendMeta_whenMetaNotConfigured() {
-    when(mcpClient.listResources(isNull(), isNull()))
+    when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(Collections.emptyList(), null));
 
     testee.execute(mcpClient, EMPTY_FILTER, null);
 
-    verify(mcpClient).listResources(isNull(), isNull());
+    verify(mcpClient).listResources();
   }
 
   private McpSchema.Resource createMcpResource(
