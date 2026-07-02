@@ -155,7 +155,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
+    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.toolName",
@@ -228,7 +228,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
+    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.resourcesListMeta",
@@ -252,7 +252,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
+    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.resourcesTemplatesListMeta",
@@ -276,7 +276,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
+    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.resourceUri",
@@ -326,7 +326,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
+    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.promptsListMeta",
@@ -350,7 +350,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
+    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.promptName",
@@ -423,7 +423,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
+    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.connectorMode.toolOperation.method",
@@ -482,7 +482,7 @@
       "equals" : "aiAgentTool",
       "type" : "simple"
     },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
+    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.connectorMode.standaloneModeFilters.tools.included",
