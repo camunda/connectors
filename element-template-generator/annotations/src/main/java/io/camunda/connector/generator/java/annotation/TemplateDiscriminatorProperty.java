@@ -66,6 +66,9 @@ public @interface TemplateDiscriminatorProperty {
   /** Custom description of the discriminator property */
   String description() default "";
 
+  /** Tooltip for the discriminator property */
+  String tooltip() default "";
+
   /** Pre-defined value for the discriminator property */
   String defaultValue() default "";
 }

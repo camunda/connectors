@@ -142,7 +142,8 @@ public record MyConnectorInput(
   @TemplateDiscriminatorProperty(
       name = "annotatedTypeOverride",
       label = "Annotated type override",
-      id = "annotatedTypeOverrideCustomId")
+      id = "annotatedTypeOverrideCustomId",
+      tooltip = "Annotated type override tooltip")
   sealed interface AnnotatedSealedType
       permits FirstAnnotatedSubType,
           IgnoredSubType,
