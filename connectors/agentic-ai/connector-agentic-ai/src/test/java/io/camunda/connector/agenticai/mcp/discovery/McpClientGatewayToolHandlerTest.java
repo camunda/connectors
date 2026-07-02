@@ -440,6 +440,25 @@ class McpClientGatewayToolHandlerTest {
     }
 
     @Test
+    void preservesCompletedAtFromTheOriginalResult() {
+      // the transformed result is a new ToolCallResult instance; completedAt (resolved by
+      // ingestion normalization, ADR 008, before this transform ever runs) must carry over or
+      // every MCP tool-result history item fails as a missing-completedAt invariant violation
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1"));
+      var mcpCallToolResult =
+          new McpClientCallToolResult(
+              "tool1", List.of(McpTextContent.textContent("Tool result")), false);
+      var completedAt = java.time.OffsetDateTime.parse("2026-07-02T10:00:00Z");
+      var toolCallResult =
+          createToolCallResultWithContent("call1", "mcp1", mcpCallToolResult)
+              .withCompletedAt(completedAt);
+
+      var result = handler.transformToolCallResults(agentContext, List.of(toolCallResult));
+
+      assertThat(result).singleElement().extracting("completedAt").isEqualTo(completedAt);
+    }
+
+    @Test
     void preservesOriginalResult_whenNotMcpClient() {
       var agentContext = AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1"));
       var toolCallResults = List.of(createToolCallResult("call1", "other_tool"));
