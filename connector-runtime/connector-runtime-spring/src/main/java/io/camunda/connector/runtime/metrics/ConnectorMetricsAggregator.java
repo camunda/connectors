@@ -246,6 +246,8 @@ public final class ConnectorMetricsAggregator {
 
     long activated = 0, deactivated = 0, activationFailed = 0;
     long triggered = 0, correlated = 0, correlationFailed = 0, activationConditionFailed = 0;
+    long maxLastActivated = 0L;
+    long maxLastTriggered = 0L;
 
     for (String type : types) {
       activated +=
@@ -290,6 +292,14 @@ public final class ConnectorMetricsAggregator {
               ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
               type,
               ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED);
+      maxLastActivated =
+          Math.max(
+              maxLastActivated,
+              readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED, type));
+      maxLastTriggered =
+          Math.max(
+              maxLastTriggered,
+              readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED, type));
     }
 
     return new InboundConnectorMetrics(
@@ -297,6 +307,8 @@ public final class ConnectorMetricsAggregator {
         new InboundConnectorMetrics.Activations(activated, deactivated, activationFailed),
         new InboundConnectorMetrics.Triggers(
             triggered, correlated, correlationFailed, activationConditionFailed),
+        epochMsToInstant(maxLastActivated),
+        epochMsToInstant(maxLastTriggered),
         readRuntimeUptime(registry));
   }
 
@@ -305,6 +317,10 @@ public final class ConnectorMetricsAggregator {
         null,
         buildActivations(registry, type),
         buildTriggers(registry, type),
+        epochMsToInstant(
+            readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED, type)),
+        epochMsToInstant(
+            readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED, type)),
         readRuntimeUptime(registry));
   }
 
@@ -452,6 +468,8 @@ public final class ConnectorMetricsAggregator {
   private static List<String> allInboundMetricNames() {
     return List.of(
         ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
-        ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS);
+        ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
+        ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED,
+        ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED);
   }
 }

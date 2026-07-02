@@ -28,7 +28,9 @@ import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.InboundConnectorMetrics;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -167,6 +169,52 @@ class InboundConnectorRestControllerTest {
 
     assertNull(m.connectorType());
     assertEquals(4L, m.activations().activated());
+  }
+
+  @Test
+  void shouldReturnLastActivated_whenGaugeIsRegistered() throws Exception {
+    String type = "inbound-test-last-activated";
+    long epochMs = 1_750_000_000_000L;
+    Gauge.builder(ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED, () -> (double) epochMs)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .register(meterRegistry);
+
+    var response =
+        mockMvc
+            .perform(get("/inbound/metrics/" + type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    InboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
+
+    assertEquals(Instant.ofEpochMilli(epochMs), m.lastActivated());
+    assertNull(m.lastTriggered());
+  }
+
+  @Test
+  void shouldReturnLastTriggered_whenGaugeIsRegistered() throws Exception {
+    String type = "inbound-test-last-triggered";
+    long epochMs = 1_750_000_111_000L;
+    Gauge.builder(ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED, () -> (double) epochMs)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .register(meterRegistry);
+
+    var response =
+        mockMvc
+            .perform(get("/inbound/metrics/" + type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    InboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
+
+    assertNull(m.lastActivated());
+    assertEquals(Instant.ofEpochMilli(epochMs), m.lastTriggered());
   }
 
   @Test

@@ -79,6 +79,20 @@ public class ConnectorMetrics {
     public static final String METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED =
         "camunda.connector.inbound.process-definitions-checked";
 
+    /**
+     * Epoch-millisecond timestamp of the last successful activation, per connector type. Value is
+     * {@code 0} if no activation has occurred yet.
+     */
+    public static final String METRIC_NAME_LAST_ACTIVATED =
+        "camunda.connector.inbound.last-activated";
+
+    /**
+     * Epoch-millisecond timestamp of the last trigger attempt, per connector type. Value is {@code
+     * 0} if no trigger has occurred yet.
+     */
+    public static final String METRIC_NAME_LAST_TRIGGERED =
+        "camunda.connector.inbound.last-triggered";
+
     public static final String ACTION_ACTIVATED = "activated";
     public static final String ACTION_DEACTIVATED = "deactivated";
     public static final String ACTION_ACTIVATION_FAILED = "activation-failed";

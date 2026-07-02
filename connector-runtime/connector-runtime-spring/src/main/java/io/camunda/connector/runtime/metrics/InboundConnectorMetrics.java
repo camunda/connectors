@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.metrics;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.time.Instant;
 
 /**
  * Aggregated inbound connector metrics for a single connector type.
@@ -25,11 +26,18 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *     representing aggregated totals across all types
  * @param activations activation lifecycle counters
  * @param triggers correlation / trigger counters
+ * @param lastActivated timestamp of the last successful activation, or {@code null} if none yet
+ * @param lastTriggered timestamp of the last trigger attempt, or {@code null} if none yet
  * @param runtimeUptimeSeconds number of seconds the runtime process has been running
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record InboundConnectorMetrics(
-    String connectorType, Activations activations, Triggers triggers, Long runtimeUptimeSeconds) {
+    String connectorType,
+    Activations activations,
+    Triggers triggers,
+    Instant lastActivated,
+    Instant lastTriggered,
+    Long runtimeUptimeSeconds) {
 
   /**
    * @param activated number of successful activations
