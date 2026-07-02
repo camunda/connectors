@@ -605,7 +605,7 @@
       "name" : "connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",
+    "tooltip" : "Use 0 for an infinite timeout",
     "type" : "Number"
   }, {
     "id" : "readTimeoutInSeconds",

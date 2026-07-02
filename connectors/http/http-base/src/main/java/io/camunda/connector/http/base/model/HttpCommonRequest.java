@@ -51,7 +51,7 @@ public class HttpCommonRequest {
           @TemplateProperty.PropertyConstraints(
               notEmpty = true,
               pattern = @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a number")),
-      tooltip = "Defines the connection timeout in seconds, or 0 for an infinite timeout")
+      tooltip = "Use 0 for an infinite timeout")
   private Integer connectionTimeoutInSeconds;
 
   @TemplateProperty(

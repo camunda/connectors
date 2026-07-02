@@ -34,7 +34,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               id = "query",
               label = "Query/Mutation",
               tooltip =
-                  "See <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">GraphQL query/mutation documentation</a>",
+                  "The GraphQL query or mutation to execute. See the <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">GraphQL query/mutation syntax</a>.",
               type = TemplateProperty.PropertyType.Text,
               // TODO add support for language property supported by element templates: language:
               // graphql

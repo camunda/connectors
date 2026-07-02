@@ -499,7 +499,7 @@
       "name" : "graphql.query",
       "type" : "zeebe:input"
     },
-    "tooltip" : "See <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">GraphQL query/mutation documentation</a>",
+    "tooltip" : "The GraphQL query or mutation to execute. See the <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">GraphQL query/mutation syntax</a>.",
     "type" : "Text"
   }, {
     "id" : "graphql.variables",

@@ -564,7 +564,7 @@
       "name" : "connectionTimeoutInSeconds",
       "type" : "zeebe:property"
     },
-    "tooltip" : "Set the timeout in seconds to establish a connection or 0 for an infinite timeout",
+    "tooltip" : "Use 0 for an infinite timeout",
     "type" : "String"
   }, {
     "id" : "readTimeoutInSeconds",

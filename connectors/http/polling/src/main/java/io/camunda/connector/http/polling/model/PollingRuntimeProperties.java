@@ -79,7 +79,7 @@ public class PollingRuntimeProperties {
   @TemplateProperty(
       group = "timeout",
       label = "Connection timeout in seconds",
-      tooltip = "Set the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      tooltip = "Use 0 for an infinite timeout",
       defaultValueType = TemplateProperty.DefaultValueType.Number,
       defaultValue = "20",
       feel = FeelMode.optional,
