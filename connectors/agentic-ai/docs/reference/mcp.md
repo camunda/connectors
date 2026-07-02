@@ -127,9 +127,9 @@ McpClientFunction / McpRemoteClientFunction
   │
   ├── McpClientDelegate (interface)
   │     ├── listTools(filter, meta)
-  │     ├── callTool(params, meta, filter)
-  │     ├── listResources(filter, meta), readResource(params, meta, filter)
-  │     └── listPrompts(filter, meta), getPrompt(params, meta, filter)
+  │     ├── callTool(params, filter, meta)
+  │     ├── listResources(filter, meta), readResource(params, filter, meta)
+  │     └── listPrompts(filter, meta), getPrompt(params, filter, meta)
   │
   └── Implementation: MCP SDK (mcpsdk package)
         └── McpSdkClientFactory → creates MCP SDK client instances

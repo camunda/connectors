@@ -20,7 +20,6 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -195,7 +194,7 @@ class ListResourcesRequestTest {
 
   @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
-    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
+    final var meta = McpRpcTestFixtures.EXAMPLE_META;
     when(mcpClient.listResources(isNull(), eq(meta)))
         .thenReturn(new McpSchema.ListResourcesResult(Collections.emptyList(), null, null));
 

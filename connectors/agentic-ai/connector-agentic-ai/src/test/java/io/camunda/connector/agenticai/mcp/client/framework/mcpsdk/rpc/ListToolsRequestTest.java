@@ -114,7 +114,7 @@ class ListToolsRequestTest {
 
   @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
-    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
+    final var meta = McpRpcTestFixtures.EXAMPLE_META;
     when(mcpClient.listTools(isNull(), eq(meta)))
         .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null, null));
 

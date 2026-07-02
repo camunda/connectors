@@ -307,8 +307,8 @@ class GetPromptRequestTest {
     when(mcpClient.getPrompt(any(McpSchema.GetPromptRequest.class)))
         .thenReturn(mcpPromptResult("Code Review", List.of()));
 
-    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
     final var parameters = Map.of("name", "code_review", "arguments", Map.of("assignee", "dev1"));
+    final var meta = McpRpcTestFixtures.EXAMPLE_META;
 
     testee.execute(mcpClient, EMPTY_FILTER, parameters, meta);
 

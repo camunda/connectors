@@ -134,7 +134,7 @@
       "value" : "prompts/get"
     } ]
   }, {
-    "id" : "data.connectorMode.operation.metaListTools",
+    "id" : "data.connectorMode.operation.toolsListMeta",
     "label" : "Meta",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
@@ -207,7 +207,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.metaCallTool",
+    "id" : "data.connectorMode.operation.toolsCallMeta",
     "label" : "Meta",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
@@ -231,7 +231,7 @@
     "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.metaListResources",
+    "id" : "data.connectorMode.operation.resourcesListMeta",
     "label" : "Meta",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
@@ -255,7 +255,7 @@
     "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.metaListResourceTemplates",
+    "id" : "data.connectorMode.operation.resourcesTemplatesListMeta",
     "label" : "Meta",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
@@ -305,7 +305,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.metaReadResource",
+    "id" : "data.connectorMode.operation.resourcesReadMeta",
     "label" : "Meta",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
@@ -329,7 +329,7 @@
     "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-06-18/basic#meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.metaListPrompts",
+    "id" : "data.connectorMode.operation.promptsListMeta",
     "label" : "Meta",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
@@ -402,7 +402,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.metaGetPrompt",
+    "id" : "data.connectorMode.operation.promptsGetMeta",
     "label" : "Meta",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,

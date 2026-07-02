@@ -224,7 +224,7 @@ class ReadResourceRequestTest {
                 List.of(new McpSchema.TextResourceContents("uri", "text/plain", "content", null)),
                 null));
 
-    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
+    final var meta = McpRpcTestFixtures.EXAMPLE_META;
 
     testee.execute(mcpClient, EMPTY_FILTER, Map.of("uri", "uri"), meta);
 

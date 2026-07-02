@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.mcp;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -163,15 +164,11 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                   .withRequestBody(matchingJsonPath("$.method", equalTo("tools/call")))
                   .withRequestBody(matchingJsonPath("$.params.name", equalTo("toolC")))
                   .withRequestBody(
-                      matchingJsonPath("$.params.arguments.paramC1", equalTo("someOtherValue"))));
-
-          // "toolC" is called via the Remote Client, which never configures `meta` in either BPMN
-          // fixture - proves the backwards-compatible default (no `_meta` sent when unconfigured).
-          wireMock.verify(
-              0,
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("toolC")))
-                  .withRequestBody(matchingJsonPath("$.params._meta")));
+                      matchingJsonPath("$.params.arguments.paramC1", equalTo("someOtherValue")))
+                  // "toolC" is called via the Remote Client, which never configures `meta` in
+                  // either BPMN fixture - proves the backwards-compatible default (no `_meta`
+                  // sent when unconfigured).
+                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
 
           if (!processDefinitionFilePath.startsWith("regression/")) {
             // only the current (non-regression) BPMN fixture configures `meta` on the local

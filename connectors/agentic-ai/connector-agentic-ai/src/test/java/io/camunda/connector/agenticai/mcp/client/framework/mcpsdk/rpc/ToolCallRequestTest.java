@@ -274,7 +274,7 @@ class ToolCallRequestTest {
     when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
         .thenReturn(callToolResult("Tool execution result"));
 
-    final var meta = Map.<String, Object>of("exampleMetaKey", "exampleMetaValue");
+    final var meta = McpRpcTestFixtures.EXAMPLE_META;
 
     testee.execute(
         mcpClient,

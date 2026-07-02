@@ -69,17 +69,14 @@ public sealed interface McpStandaloneOperationConfiguration
 
   Optional<Map<String, Object>> params();
 
-  // Note: unlike params(), meta() is a direct pass-through of the configured value (no
-  // per-operation
-  // synthesis), so it is intentionally not Optional-wrapped here - this lets every subtype's `meta`
-  // record component satisfy this method via its own implicit accessor, with no manual override.
+  // Unlike params(), meta() is a direct pass-through, so it's not Optional-wrapped.
   @Nullable Map<String, Object> meta();
 
   @TemplateSubType(id = LIST_TOOLS_ID, label = "List Tools")
   record ListToolsOperationConfiguration(
       @FEEL
           @TemplateProperty(
-              id = "metaListTools",
+              id = "toolsListMeta",
               group = "operation",
               label = "Meta",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
@@ -130,7 +127,7 @@ public sealed interface McpStandaloneOperationConfiguration
           Map<String, Object> toolArguments,
       @FEEL
           @TemplateProperty(
-              id = "metaCallTool",
+              id = "toolsCallMeta",
               group = "operation",
               label = "Meta",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
@@ -166,7 +163,7 @@ public sealed interface McpStandaloneOperationConfiguration
   record ListResourcesOperationConfiguration(
       @FEEL
           @TemplateProperty(
-              id = "metaListResources",
+              id = "resourcesListMeta",
               group = "operation",
               label = "Meta",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
@@ -199,7 +196,7 @@ public sealed interface McpStandaloneOperationConfiguration
   record ListResourceTemplatesOperationConfiguration(
       @FEEL
           @TemplateProperty(
-              id = "metaListResourceTemplates",
+              id = "resourcesTemplatesListMeta",
               group = "operation",
               label = "Meta",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
@@ -242,7 +239,7 @@ public sealed interface McpStandaloneOperationConfiguration
           String resourceUri,
       @FEEL
           @TemplateProperty(
-              id = "metaReadResource",
+              id = "resourcesReadMeta",
               group = "operation",
               label = "Meta",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
@@ -275,7 +272,7 @@ public sealed interface McpStandaloneOperationConfiguration
   record ListPromptsOperationConfiguration(
       @FEEL
           @TemplateProperty(
-              id = "metaListPrompts",
+              id = "promptsListMeta",
               group = "operation",
               label = "Meta",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
@@ -326,7 +323,7 @@ public sealed interface McpStandaloneOperationConfiguration
           Map<String, Object> promptArguments,
       @FEEL
           @TemplateProperty(
-              id = "metaGetPrompt",
+              id = "promptsGetMeta",
               group = "operation",
               label = "Meta",
               description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
