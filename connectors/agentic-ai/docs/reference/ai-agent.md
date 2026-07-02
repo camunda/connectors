@@ -653,8 +653,11 @@ return AiAgentSubProcessConnectorResponse.builder()
 2. The tool is expected to have produced a `toolCallResult` variable in its local scope
 3. Zeebe evaluates the `outputElement` expression:
    ```
-   ={id: toolCall._meta.id, name: toolCall._meta.name, content: toolCallResult}
+   ={id: toolCall._meta.id, name: toolCall._meta.name, content: toolCallResult, completedAt: now()}
    ```
+   `completedAt` (v11+ templates) is the engine's own completion timestamp for *this* tool, so a
+   `TOOL_RESULT` history item can report when the individual tool finished rather than when the
+   whole turn's slowest tool let the job proceed (ADR 008).
 4. The result is **appended** to the `toolCallResults` output collection list
 5. Zeebe creates a **new job** for the AHSP
 
@@ -729,7 +732,7 @@ The method checks each tool call from the last assistant message against the ava
 ```java
 return switch (compositionResult) {
     case CompositionResult.Deferred ignored ->
-        handleNoOp(executionContext);          // wait for more tool results
+        handleNoOp(executionContext, agentContext); // wait for more tool results
     case CompositionResult.NoInput ignored ->
         handleNoInput(executionContext);       // nothing to add; handler decides
     case CompositionResult.NextTurn(var newMessages) ->
@@ -743,6 +746,19 @@ more results). When no input (user prompt, documents or events) is available at 
 `CompositionResult.NoInput`. This variant carries no error semantics — each handler decides: the job
 worker's `handleNoInput` completes without a response, while the outbound connector's `handleNoInput`
 throws a `ConnectorException` with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`.
+
+**`agentContext` on the no-op path (ADR 008).** `handleNoOp` on this path takes the current
+`agentContext`, not just the execution context. `JobWorkerAgentRequestHandler` overrides it to emit
+the `agentContext` variable even though the response is otherwise empty
+(`completionConditionFulfilled=false`, no elements activated). This matters for results that never
+get an engine `completedAt` (Task flavor, non-AHSP gateway results, pre-v11 templates):
+`ToolCallResultCompletedAtResolver` stamps the worker's first-seen time for such a result and
+persists it in `agentContext.properties()`, keyed by tool-call id. Without re-emitting `agentContext`
+on every no-op job, that persisted time would never reach the next job — e.g. in the scenario above,
+Job #1 would lose track of when it first observed tool A's result, and by the time Job #2 finally
+sees both A and B, A's fallback timestamp would collapse to B's arrival time again (the original
+bug). The map is rebuilt from each job's current `toolCallResults` batch, so ids from an
+already-consumed round are dropped rather than accumulating for the lifetime of the agent.
 
 ---
 
@@ -1351,6 +1367,12 @@ public interface GatewayToolCallTransformer {
 }
 ```
 
+**Pitfall:** `transformToolCallResults` implementations (MCP, A2A) unwrap a gateway envelope into a
+new `ToolCallResult` via `ToolCallResult.builder()...build()`. Unlike `elementId` (which has a
+fallback resolution path via the gateway registry), `completedAt` has none — it must be copied over
+explicitly (`.completedAt(toolCallResult.completedAt())`) or every such result fails the mapper's
+non-null `completedAt` invariant (ADR 008).
+
 ### Gateway Tool Handler Registry
 
 `GatewayToolHandlerRegistryImpl` wraps multiple `GatewayToolHandler` instances and distributes operations:
@@ -1557,6 +1579,17 @@ call (`POST /v2/agent-instances/{key}/history` via `newCreateAgentHistoryItemCom
   `durationMs`, measured via `AiFrameworkAdapter.executeMeasuringTime` and carried on the turn's
   `AgentMetrics.executionTime`). Empty assistant content (tool-only turns) falls back to a single
   `"No content"` text block, since the API rejects empty content.
+
+**`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
+resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither
+computes a timestamp itself. A `TOOL_RESULT` item uses `ToolCallResult.completedAt()`: the engine's
+own timestamp from the AHSP `outputElement` (v11+ templates) when present, otherwise the
+worker-observed first-seen time for that result id (`ToolCallResultCompletedAtResolver`, run at the
+earliest ingestion point in `AgentInitializerImpl`), otherwise `now()` as a last resort. `USER` and
+other non-tool-result items use a turn-ingestion timestamp captured once by
+`BaseAgentRequestHandler.proceed` and passed down; the `ASSISTANT` item likewise takes an explicit
+timestamp captured right after the LLM call. This is what lets a 2-second tool and a 4-hour tool in
+the same turn report their own completion times instead of a shared turn-end timestamp.
 
 Each `toolCalls` entry carries the BPMN **`elementId`** alongside the (LLM-visible, possibly
 namespaced) `toolName`. For tool results it is resolved once on the model in
