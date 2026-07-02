@@ -3,7 +3,7 @@
   "name" : "MCP Remote Client",
   "id" : "io.camunda.connectors.agenticai.mcp.remoteclient.v0",
   "description" : "MCP (Model Context Protocol) client, operating on temporary remote connections.",
-  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-remote-client-connector/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-remote-client-connector/",
   "version" : 3,
   "category" : {
     "id" : "aiTools",
@@ -14,7 +14,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.10"
+    "camunda" : "^8.9"
   },
   "groups" : [ {
     "id" : "transport",
