@@ -281,17 +281,20 @@ McpRemoteClientRequest
 Discriminated by `type` JSON property:
 
 **`ToolModeConfiguration`** (`type = "aiAgentTool"`): Used as AI agent tool gateway.
-- `toolOperation: McpClientOperationConfiguration` — method + params + `meta` (FEEL-configured, forwarded
-  unmodified as the MCP request's `_meta` field)
+- `toolOperation: McpClientOperationConfiguration` — method + params
+- `meta: Map<String, Object>` — optional `meta` FEEL property, forwarded unmodified as the MCP request's `_meta` field
 - `toolModeFilters: McpClientToolModeFiltersConfiguration` — optional tool allow/deny
 
 **`StandaloneModeConfiguration`** (`type = "standalone"`): Used for direct invocation.
-- `operation: McpStandaloneOperationConfiguration` — method + optional params + optional `meta` (all 7 operation
-  subtypes carry their own `meta` FEEL property, since the underlying MCP SDK supports `_meta` on every operation)
+- `operation: McpStandaloneOperationConfiguration` — method + optional params
+- `meta: Map<String, Object>` — optional `meta` FEEL property, forwarded unmodified as the MCP request's `_meta` field
 - `standaloneModeFilters: McpClientStandaloneFiltersConfiguration` — tools + resources + prompts allow/deny
 
+`meta` lives once per mode (bound to `data.connectorMode.meta`), not per operation subtype, since the underlying MCP
+SDK supports `_meta` on every operation — a single shared property keeps the element template compact.
+
 Both implement `toMcpClientOperation()` → `McpClientOperation` and `createFilterOptions()` → `Optional<FilterOptions>`.
-`toMcpClientOperation()` forwards `meta()` from the configuration into `McpClientOperation`, defaulting to an empty
+`toMcpClientOperation()` forwards the mode-level `meta` into `McpClientOperation`, defaulting to an empty
 map when unconfigured.
 
 ### McpClientOperation (sealed interface)

@@ -73,7 +73,7 @@
             <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
             <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
             <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
-            <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.toolOperation.meta" />
+            <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
             <zeebe:input source="=[&#34;toolA&#34;, &#34;toolB&#34;, &#34;toolC&#34;]" target="data.connectorMode.toolModeFilters.tools.included" />
             <zeebe:input source="=[&#34;toolB&#34;]" target="data.connectorMode.toolModeFilters.tools.excluded" />
           </zeebe:ioMapping>

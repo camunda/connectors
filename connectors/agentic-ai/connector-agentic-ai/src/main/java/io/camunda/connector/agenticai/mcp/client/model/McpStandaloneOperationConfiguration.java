@@ -24,7 +24,6 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 import java.util.Optional;
-import org.jspecify.annotations.Nullable;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -69,30 +68,11 @@ public sealed interface McpStandaloneOperationConfiguration
 
   Optional<Map<String, Object>> params();
 
-  // Unlike params(), meta() is a direct pass-through, so it's not Optional-wrapped.
-  @Nullable Map<String, Object> meta();
-
   @TemplateSubType(id = LIST_TOOLS_ID, label = "List Tools")
-  record ListToolsOperationConfiguration(
-      @FEEL
-          @TemplateProperty(
-              id = "toolsListMeta",
-              group = "operation",
-              label = "Metadata",
-              description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-              tooltip =
-                  "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-              feel = FeelMode.required,
-              optional = true)
-          @Nullable Map<String, Object> meta)
-      implements McpStandaloneOperationConfiguration {
+  record ListToolsOperationConfiguration() implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_TOOLS_ID = "tools/list";
-
-    public ListToolsOperationConfiguration() {
-      this(null);
-    }
 
     @Override
     public String method() {
@@ -124,26 +104,11 @@ public sealed interface McpStandaloneOperationConfiguration
               description = "The arguments to pass to the tool.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> toolArguments,
-      @FEEL
-          @TemplateProperty(
-              id = "toolsCallMeta",
-              group = "operation",
-              label = "Metadata",
-              description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-              tooltip =
-                  "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-              feel = FeelMode.required,
-              optional = true)
-          @Nullable Map<String, Object> meta)
+          Map<String, Object> toolArguments)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String CALL_TOOL_ID = "tools/call";
-
-    public CallToolOperationConfiguration(String toolName, Map<String, Object> toolArguments) {
-      this(toolName, toolArguments, null);
-    }
 
     @Override
     public String method() {
@@ -160,26 +125,10 @@ public sealed interface McpStandaloneOperationConfiguration
   }
 
   @TemplateSubType(id = LIST_RESOURCES_ID, label = "List Resources")
-  record ListResourcesOperationConfiguration(
-      @FEEL
-          @TemplateProperty(
-              id = "resourcesListMeta",
-              group = "operation",
-              label = "Metadata",
-              description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-              tooltip =
-                  "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-              feel = FeelMode.required,
-              optional = true)
-          @Nullable Map<String, Object> meta)
-      implements McpStandaloneOperationConfiguration {
+  record ListResourcesOperationConfiguration() implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_RESOURCES_ID = "resources/list";
-
-    public ListResourcesOperationConfiguration() {
-      this(null);
-    }
 
     @Override
     public String method() {
@@ -193,26 +142,11 @@ public sealed interface McpStandaloneOperationConfiguration
   }
 
   @TemplateSubType(id = LIST_RESOURCE_TEMPLATES_ID, label = "List Resource Templates")
-  record ListResourceTemplatesOperationConfiguration(
-      @FEEL
-          @TemplateProperty(
-              id = "resourcesTemplatesListMeta",
-              group = "operation",
-              label = "Metadata",
-              description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-              tooltip =
-                  "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-              feel = FeelMode.required,
-              optional = true)
-          @Nullable Map<String, Object> meta)
+  record ListResourceTemplatesOperationConfiguration()
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_RESOURCE_TEMPLATES_ID = "resources/templates/list";
-
-    public ListResourceTemplatesOperationConfiguration() {
-      this(null);
-    }
 
     @Override
     public String method() {
@@ -236,26 +170,11 @@ public sealed interface McpStandaloneOperationConfiguration
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           @NotBlank
-          String resourceUri,
-      @FEEL
-          @TemplateProperty(
-              id = "resourcesReadMeta",
-              group = "operation",
-              label = "Metadata",
-              description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-              tooltip =
-                  "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-              feel = FeelMode.required,
-              optional = true)
-          @Nullable Map<String, Object> meta)
+          String resourceUri)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String READ_RESOURCE_ID = "resources/read";
-
-    public ReadResourceOperationConfiguration(String resourceUri) {
-      this(resourceUri, null);
-    }
 
     @Override
     public String method() {
@@ -269,26 +188,10 @@ public sealed interface McpStandaloneOperationConfiguration
   }
 
   @TemplateSubType(id = LIST_PROMPTS_ID, label = "List Prompts")
-  record ListPromptsOperationConfiguration(
-      @FEEL
-          @TemplateProperty(
-              id = "promptsListMeta",
-              group = "operation",
-              label = "Metadata",
-              description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-              tooltip =
-                  "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-              feel = FeelMode.required,
-              optional = true)
-          @Nullable Map<String, Object> meta)
-      implements McpStandaloneOperationConfiguration {
+  record ListPromptsOperationConfiguration() implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_PROMPTS_ID = "prompts/list";
-
-    public ListPromptsOperationConfiguration() {
-      this(null);
-    }
 
     @Override
     public String method() {
@@ -320,26 +223,11 @@ public sealed interface McpStandaloneOperationConfiguration
               description = "The arguments to pass to the prompt generation.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> promptArguments,
-      @FEEL
-          @TemplateProperty(
-              id = "promptsGetMeta",
-              group = "operation",
-              label = "Metadata",
-              description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-              tooltip =
-                  "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-              feel = FeelMode.required,
-              optional = true)
-          @Nullable Map<String, Object> meta)
+          Map<String, Object> promptArguments)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String GET_PROMPT_ID = "prompts/get";
-
-    public GetPromptOperationConfiguration(String promptName, Map<String, Object> promptArguments) {
-      this(promptName, promptArguments, null);
-    }
 
     @Override
     public String method() {

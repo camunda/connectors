@@ -800,30 +800,6 @@
       "value" : "prompts/get"
     } ]
   }, {
-    "id" : "data.connectorMode.operation.toolsListMeta",
-    "label" : "Metadata",
-    "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.connectorMode.operation.meta",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.connectorMode.operation.type",
-        "equals" : "tools/list",
-        "type" : "simple"
-      }, {
-        "property" : "data.connectorMode.type",
-        "equals" : "standalone",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-    "type" : "String"
-  }, {
     "id" : "data.connectorMode.operation.toolName",
     "label" : "Tool name",
     "description" : "The name of the tool to call.",
@@ -873,78 +849,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.toolsCallMeta",
-    "label" : "Metadata",
-    "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.connectorMode.operation.meta",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.connectorMode.operation.type",
-        "equals" : "tools/call",
-        "type" : "simple"
-      }, {
-        "property" : "data.connectorMode.type",
-        "equals" : "standalone",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-    "type" : "String"
-  }, {
-    "id" : "data.connectorMode.operation.resourcesListMeta",
-    "label" : "Metadata",
-    "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.connectorMode.operation.meta",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.connectorMode.operation.type",
-        "equals" : "resources/list",
-        "type" : "simple"
-      }, {
-        "property" : "data.connectorMode.type",
-        "equals" : "standalone",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-    "type" : "String"
-  }, {
-    "id" : "data.connectorMode.operation.resourcesTemplatesListMeta",
-    "label" : "Metadata",
-    "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.connectorMode.operation.meta",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.connectorMode.operation.type",
-        "equals" : "resources/templates/list",
-        "type" : "simple"
-      }, {
-        "property" : "data.connectorMode.type",
-        "equals" : "standalone",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-    "type" : "String"
-  }, {
     "id" : "data.connectorMode.operation.resourceUri",
     "label" : "Resource URI",
     "description" : "The URI of the resource to read.",
@@ -969,54 +873,6 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
-  }, {
-    "id" : "data.connectorMode.operation.resourcesReadMeta",
-    "label" : "Metadata",
-    "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.connectorMode.operation.meta",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.connectorMode.operation.type",
-        "equals" : "resources/read",
-        "type" : "simple"
-      }, {
-        "property" : "data.connectorMode.type",
-        "equals" : "standalone",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
-    "type" : "String"
-  }, {
-    "id" : "data.connectorMode.operation.promptsListMeta",
-    "label" : "Metadata",
-    "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.connectorMode.operation.meta",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.connectorMode.operation.type",
-        "equals" : "prompts/list",
-        "type" : "simple"
-      }, {
-        "property" : "data.connectorMode.type",
-        "equals" : "standalone",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.promptName",
@@ -1068,26 +924,20 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.promptsGetMeta",
+    "id" : "data.connectorMode.standaloneModeMeta",
     "label" : "Metadata",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.meta",
+      "name" : "data.connectorMode.meta",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "data.connectorMode.operation.type",
-        "equals" : "prompts/get",
-        "type" : "simple"
-      }, {
-        "property" : "data.connectorMode.type",
-        "equals" : "standalone",
-        "type" : "simple"
-      } ]
+      "property" : "data.connectorMode.type",
+      "equals" : "standalone",
+      "type" : "simple"
     },
     "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Can be used, for example, to scope requests to a specific product version. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
@@ -1133,14 +983,14 @@
     "tooltip" : "The parameter structure depends on the method being called. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server/tools#calling-tools\">MCP specification</a> for an example of the parameters for the <code>tools/call</code> method.",
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.toolOperation.meta",
+    "id" : "data.connectorMode.toolModeMeta",
     "label" : "Metadata",
     "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
     "optional" : true,
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.toolOperation.meta",
+      "name" : "data.connectorMode.meta",
       "type" : "zeebe:input"
     },
     "condition" : {

@@ -8,7 +8,7 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
-          <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.operation.meta" />
+          <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
           <zeebe:input source="=[&#34;toolB&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -37,7 +37,7 @@
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
           <zeebe:input source="toolA" target="data.connectorMode.operation.toolName" />
           <zeebe:input source="={&#10;  paramA1: &#34;someValue&#34;,&#10;  paramA2: 3&#10;}" target="data.connectorMode.operation.toolArguments" />
-          <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.operation.meta" />
+          <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
           <zeebe:input source="=[&#34;toolB&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
