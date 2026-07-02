@@ -74,9 +74,9 @@ class InboundConnectorRestControllerTest {
     InboundConnectorMetrics m =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertEquals(3L, m.activations().activated());
-    assertEquals(0L, m.activations().deactivated());
-    assertEquals(1L, m.activations().activationFailed());
+    assertEquals(3L, m.activation().activated());
+    assertEquals(0L, m.activation().deactivated());
+    assertEquals(1L, m.activation().activationFailed());
   }
 
   @Test
@@ -111,10 +111,10 @@ class InboundConnectorRestControllerTest {
     InboundConnectorMetrics m =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertEquals(10L, m.triggers().triggered());
-    assertEquals(9L, m.triggers().correlated());
-    assertEquals(0L, m.triggers().correlationFailed());
-    assertEquals(1L, m.triggers().activationConditionFailed());
+    assertEquals(10L, m.trigger().triggered());
+    assertEquals(9L, m.trigger().correlated());
+    assertEquals(0L, m.trigger().correlationFailed());
+    assertEquals(1L, m.trigger().activationConditionFailed());
   }
 
   @Test
@@ -143,8 +143,8 @@ class InboundConnectorRestControllerTest {
     InboundConnectorMetrics m =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertNull(m.connectorType());
-    assertEquals(5L, m.activations().activated());
+    assertEquals(typeA, m.connector().connectorType());
+    assertEquals(5L, m.activation().activated());
   }
 
   @Test
@@ -167,8 +167,8 @@ class InboundConnectorRestControllerTest {
     InboundConnectorMetrics m =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertNull(m.connectorType());
-    assertEquals(4L, m.activations().activated());
+    assertEquals(type, m.connector().connectorType());
+    assertEquals(4L, m.activation().activated());
   }
 
   @Test
@@ -190,8 +190,8 @@ class InboundConnectorRestControllerTest {
     InboundConnectorMetrics m =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertEquals(Instant.ofEpochMilli(epochMs), m.lastActivated());
-    assertNull(m.lastTriggered());
+    assertEquals(Instant.ofEpochMilli(epochMs), m.activation().lastActivated());
+    assertNull(m.trigger().lastTriggered());
   }
 
   @Test
@@ -213,8 +213,8 @@ class InboundConnectorRestControllerTest {
     InboundConnectorMetrics m =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertNull(m.lastActivated());
-    assertEquals(Instant.ofEpochMilli(epochMs), m.lastTriggered());
+    assertNull(m.activation().lastActivated());
+    assertEquals(Instant.ofEpochMilli(epochMs), m.trigger().lastTriggered());
   }
 
   @Test
@@ -243,9 +243,9 @@ class InboundConnectorRestControllerTest {
     InboundConnectorMetrics m =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    // connectorType is null (omitted) for the aggregate response
-    assertNull(m.connectorType());
+    // connector is null (omitted) for the aggregate response
+    assertNull(m.connector());
     // activated must include at least the 8 (5+3) we just registered
-    assertTrue(m.activations().activated() >= 8L);
+    assertTrue(m.activation().activated() >= 8L);
   }
 }

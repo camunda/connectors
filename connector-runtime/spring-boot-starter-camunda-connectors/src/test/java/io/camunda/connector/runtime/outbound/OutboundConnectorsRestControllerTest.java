@@ -202,9 +202,9 @@ class OutboundConnectorsRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy()
             .readValue(response, OutboundConnectorMetrics.class);
 
-    assertEquals(10L, m.jobs().completed());
-    assertEquals(2L, m.jobs().failed());
-    assertEquals(1L, m.jobs().bpmnError());
+    assertEquals(10L, m.job().completed());
+    assertEquals(2L, m.job().failed());
+    assertEquals(1L, m.job().bpmnError());
   }
 
   @Test
@@ -265,7 +265,7 @@ class OutboundConnectorsRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy()
             .readValue(response, OutboundConnectorMetrics.class);
 
-    assertNull(m.connectorType());
+    assertEquals(typeA, m.connector().connectorType());
     assertEquals(3L, m.worker().jobsActivated());
   }
 
@@ -289,7 +289,7 @@ class OutboundConnectorsRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy()
             .readValue(response, OutboundConnectorMetrics.class);
 
-    assertNull(m.connectorType());
+    assertEquals(type, m.connector().connectorType());
     assertEquals(6L, m.worker().jobsActivated());
   }
 
@@ -318,8 +318,8 @@ class OutboundConnectorsRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy()
             .readValue(response, OutboundConnectorMetrics.class);
 
-    // connectorType is null (omitted) for the aggregate response
-    assertNull(m.connectorType());
+    // connector is null (omitted) for the aggregate response
+    assertNull(m.connector());
     // jobsActivated must include at least the 10 (3+7) we just registered
     assertTrue(m.worker().jobsActivated() >= 10L);
   }
@@ -347,7 +347,7 @@ class OutboundConnectorsRestControllerTest {
         ConnectorsObjectMapperSupplier.getCopy()
             .readValue(response, OutboundConnectorMetrics.class);
 
-    assertEquals("io.camunda.connectors.HttpJson.v7", m.elementTemplateId());
-    assertEquals("7", m.elementTemplateVersion());
+    assertEquals("io.camunda.connectors.HttpJson.v7", m.connector().elementTemplateId());
+    assertEquals("7", m.connector().elementTemplateVersion());
   }
 }
