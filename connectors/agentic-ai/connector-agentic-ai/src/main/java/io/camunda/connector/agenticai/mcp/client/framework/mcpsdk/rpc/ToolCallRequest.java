@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -187,7 +188,10 @@ final class ToolCallRequest {
 
     final var arguments = Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
 
-    return McpSchema.CallToolRequest.builder(params.name()).arguments(arguments).meta(meta).build();
+    return McpSchema.CallToolRequest.builder(params.name())
+        .arguments(arguments)
+        .meta(MapUtils.isEmpty(meta) ? null : meta)
+        .build();
   }
 
   record ToolExecutionParameters(String name, Map<String, Object> arguments) {}

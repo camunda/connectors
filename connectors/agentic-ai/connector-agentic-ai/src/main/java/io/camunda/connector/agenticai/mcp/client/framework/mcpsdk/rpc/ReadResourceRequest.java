@@ -15,6 +15,7 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Base64;
 import java.util.Map;
+import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -53,7 +54,8 @@ public class ReadResourceRequest {
     try {
       LOGGER.debug("MCP({}): Executing read resource request with params: {}", clientId, params);
       var readResourceResult =
-          client.readResource(new McpSchema.ReadResourceRequest(resourceUri, meta));
+          client.readResource(
+              new McpSchema.ReadResourceRequest(resourceUri, MapUtils.isEmpty(meta) ? null : meta));
 
       var contentResult = readResourceResult.contents().stream().map(this::map).toList();
 

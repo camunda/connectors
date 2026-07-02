@@ -59,7 +59,8 @@ final class GetPromptRequest {
 
       final var result =
           client.getPrompt(
-              new McpSchema.GetPromptRequest(getPromptParams.name(), promptArguments, meta));
+              new McpSchema.GetPromptRequest(
+                  getPromptParams.name(), promptArguments, MapUtils.isEmpty(meta) ? null : meta));
 
       LOGGER.debug(
           "MCP({}): Successfully retrieved prompt '{}' with {} messages",

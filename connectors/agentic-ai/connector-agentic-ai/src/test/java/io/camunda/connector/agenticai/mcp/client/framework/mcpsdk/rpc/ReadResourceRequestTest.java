@@ -26,6 +26,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -233,15 +234,16 @@ class ReadResourceRequestTest {
     assertThat(captor.getValue().meta()).isEqualTo(meta);
   }
 
-  @Test
-  void doesNotSendMeta_whenMetaNotConfigured() {
+  @ParameterizedTest
+  @NullAndEmptySource
+  void doesNotSendMeta_whenMetaNotConfigured(Map<String, Object> meta) {
     when(mcpClient.readResource(any(McpSchema.ReadResourceRequest.class)))
         .thenReturn(
             new McpSchema.ReadResourceResult(
                 List.of(new McpSchema.TextResourceContents("uri", "text/plain", "content", null)),
                 null));
 
-    testee.execute(mcpClient, EMPTY_FILTER, Map.of("uri", "uri"), null);
+    testee.execute(mcpClient, EMPTY_FILTER, Map.of("uri", "uri"), meta);
 
     final var captor = ArgumentCaptor.forClass(McpSchema.ReadResourceRequest.class);
     verify(mcpClient).readResource(captor.capture());

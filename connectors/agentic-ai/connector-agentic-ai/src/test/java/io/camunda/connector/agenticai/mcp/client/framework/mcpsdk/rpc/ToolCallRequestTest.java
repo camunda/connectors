@@ -287,8 +287,9 @@ class ToolCallRequestTest {
     assertThat(captor.getValue().meta()).isEqualTo(meta);
   }
 
-  @Test
-  void doesNotSendMeta_whenMetaNotConfigured() {
+  @ParameterizedTest
+  @NullAndEmptySource
+  void doesNotSendMeta_whenMetaNotConfigured(Map<String, Object> meta) {
     when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
         .thenReturn(callToolResult("Tool execution result"));
 
@@ -296,7 +297,7 @@ class ToolCallRequestTest {
         mcpClient,
         EMPTY_FILTER,
         Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")),
-        null);
+        meta);
 
     final var captor = ArgumentCaptor.forClass(McpSchema.CallToolRequest.class);
     verify(mcpClient).callTool(captor.capture());

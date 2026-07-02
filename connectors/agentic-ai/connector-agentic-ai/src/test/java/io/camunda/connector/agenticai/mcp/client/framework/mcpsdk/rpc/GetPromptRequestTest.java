@@ -317,14 +317,15 @@ class GetPromptRequestTest {
     assertThat(captor.getValue().meta()).isEqualTo(meta);
   }
 
-  @Test
-  void doesNotSendMeta_whenMetaNotConfigured() {
+  @ParameterizedTest
+  @NullAndEmptySource
+  void doesNotSendMeta_whenMetaNotConfigured(Map<String, Object> meta) {
     when(mcpClient.getPrompt(any(McpSchema.GetPromptRequest.class)))
         .thenReturn(mcpPromptResult("Code Review", List.of()));
 
     final var parameters = Map.of("name", "code_review", "arguments", Map.of("assignee", "dev1"));
 
-    testee.execute(mcpClient, EMPTY_FILTER, parameters, null);
+    testee.execute(mcpClient, EMPTY_FILTER, parameters, meta);
 
     final var captor = ArgumentCaptor.forClass(McpSchema.GetPromptRequest.class);
     verify(mcpClient).getPrompt(captor.capture());
