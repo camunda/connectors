@@ -108,7 +108,7 @@ public class SendGridRequest {
       group = "content",
       optional = true,
       tooltip =
-          "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>")
+          "Files to attach to the email, referenced as <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a>.")
   private List<Document> attachments;
 
   @AssertTrue(message = "must not be empty")

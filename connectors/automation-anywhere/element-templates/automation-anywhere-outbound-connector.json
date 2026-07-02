@@ -241,7 +241,6 @@
       "equals" : "addWorkItemsToTheQueue",
       "type" : "simple"
     },
-    "tooltip" : "The queue ID of the item",
     "type" : "String"
   }, {
     "id" : "operation.data",
@@ -261,7 +260,7 @@
       "equals" : "addWorkItemsToTheQueue",
       "type" : "simple"
     },
-    "tooltip" : "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">Automation Anywhere connector documentation</a>",
+    "tooltip" : "JSON data for the work item, mapping queue column names to values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">Automation Anywhere connector documentation</a>",
     "type" : "Text"
   }, {
     "id" : "operation.workQueueId",
@@ -281,7 +280,6 @@
       "equals" : "listWorkItemsInQueue",
       "type" : "simple"
     },
-    "tooltip" : "The queue ID of the item",
     "type" : "String"
   }, {
     "id" : "operation.workItemId",

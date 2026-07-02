@@ -19,8 +19,7 @@ public record JdbcRequest(
             id = "database",
             label = "Select a database",
             tooltip =
-                "Select the database you want to connect to. "
-                    + "If you choose Oracle, make sure the Oracle JDBC driver is included. "
+                "If you choose Oracle, make sure the Oracle JDBC driver is included. "
                     + "<a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Oracle JDBC driver setup</a>.",
             group = "database",
             type = Dropdown,

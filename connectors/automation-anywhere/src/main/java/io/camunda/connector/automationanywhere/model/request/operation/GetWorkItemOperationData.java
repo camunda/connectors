@@ -23,12 +23,7 @@ import jakarta.validation.constraints.NotNull;
       "read queue item"
     })
 public record GetWorkItemOperationData(
-    @TemplateProperty(
-            label = "Work queue ID",
-            group = "input",
-            id = "workQueueId",
-            tooltip = "The queue ID of the item")
-        @NotNull
+    @TemplateProperty(label = "Work queue ID", group = "input", id = "workQueueId") @NotNull
         Object queueId,
     @TemplateProperty(
             label = "Work item ID",

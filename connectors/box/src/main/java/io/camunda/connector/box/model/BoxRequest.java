@@ -240,21 +240,19 @@ public record BoxRequest(
         @TemplateProperty(
                 id = "searchSortColumn",
                 defaultValue = "modified_at",
-                tooltip = "Column for sorting search results",
                 group = "operation")
             @NotBlank
             String sortColumn,
         @TemplateProperty(
                 id = "searchSortDirection",
                 defaultValue = "DESC",
-                tooltip = "Direction for sorting search results",
+                tooltip = "Sort order for results: ASC (ascending) or DESC (descending)",
                 group = "operation")
             SortDirection sortDirection,
         @TemplateProperty(
                 id = "searchOffset",
                 defaultValueType = TemplateProperty.DefaultValueType.Number,
                 defaultValue = "0",
-                tooltip = "Offset for search results",
                 group = "operation")
             Long offset,
         @TemplateProperty(

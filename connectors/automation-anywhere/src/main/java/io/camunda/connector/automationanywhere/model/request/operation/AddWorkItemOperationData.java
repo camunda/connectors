@@ -24,19 +24,14 @@ import jakarta.validation.constraints.NotNull;
       "insert queue item"
     })
 public record AddWorkItemOperationData(
-    @TemplateProperty(
-            label = "Work queue ID",
-            group = "input",
-            tooltip = "The queue ID of the item")
-        @NotNull
-        Object queueId,
+    @TemplateProperty(label = "Work queue ID", group = "input") @NotNull Object queueId,
     @TemplateProperty(
             label = "Work item json data",
             group = "input",
             feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Text,
             tooltip =
-                "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">Automation Anywhere connector documentation</a>")
+                "JSON data for the work item, mapping queue column names to values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">Automation Anywhere connector documentation</a>")
         @NotNull
         Object data)
     implements OperationData {}

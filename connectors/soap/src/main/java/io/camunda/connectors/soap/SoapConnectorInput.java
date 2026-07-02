@@ -161,11 +161,7 @@ public record SoapConnectorInput(
   public sealed interface Version {
     @TemplateSubType(id = "1.1", label = "1.1")
     record _1_1(
-        @TemplateProperty(
-                label = "SOAPAction HTTP header",
-                tooltip = "The SOAPAction HTTP header to be used in the request",
-                optional = true,
-                group = "soap-message")
+        @TemplateProperty(label = "SOAPAction HTTP header", optional = true, group = "soap-message")
             String soapAction)
         implements Version {}
 
@@ -280,17 +276,9 @@ public record SoapConnectorInput(
 
         @TemplateSubType(id = "keystore", label = "Keystore certificate")
         record KeystoreCertificate(
-            @TemplateProperty(
-                    label = "Keystore location",
-                    tooltip = "The keystore to use",
-                    group = "authentication")
-                @NotNull
+            @TemplateProperty(label = "Keystore location", group = "authentication") @NotNull
                 String keystoreLocation,
-            @TemplateProperty(
-                    label = "Keystore password",
-                    tooltip = "The password to access the keystore",
-                    group = "authentication")
-                @NotNull
+            @TemplateProperty(label = "Keystore password", group = "authentication") @NotNull
                 String keystorePassword,
             @TemplateProperty(
                     label = "Certificate alias",
@@ -298,11 +286,7 @@ public record SoapConnectorInput(
                     group = "authentication")
                 @NotNull
                 String alias,
-            @TemplateProperty(
-                    label = "Certificate password",
-                    tooltip = "The password to access the certificate",
-                    group = "authentication")
-                @NotNull
+            @TemplateProperty(label = "Certificate password", group = "authentication") @NotNull
                 String password)
             implements Certificate {
           @Override

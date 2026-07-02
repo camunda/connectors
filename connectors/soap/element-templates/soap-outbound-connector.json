@@ -243,7 +243,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The keystore to use",
     "type" : "String"
   }, {
     "id" : "authentication.certificate.keystorePassword",
@@ -269,7 +268,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The password to access the keystore",
     "type" : "String"
   }, {
     "id" : "authentication.certificate.alias",
@@ -321,7 +319,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The password to access the certificate",
     "type" : "String"
   }, {
     "id" : "authentication.signatureAlgorithm",
@@ -424,7 +421,6 @@
       "equals" : "1.1",
       "type" : "simple"
     },
-    "tooltip" : "The SOAPAction HTTP header to be used in the request",
     "type" : "String"
   }, {
     "id" : "header.type",

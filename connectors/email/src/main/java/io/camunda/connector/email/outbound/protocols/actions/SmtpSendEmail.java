@@ -90,7 +90,6 @@ public record SmtpSendEmail(
             group = "sendEmailSmtp",
             id = "smtpSubject",
             type = TemplateProperty.PropertyType.String,
-            tooltip = "Email's subject",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.subject"),
             feel = FeelMode.optional)
         @Valid
@@ -102,7 +101,8 @@ public record SmtpSendEmail(
             id = "contentType",
             defaultValue = "PLAIN",
             type = TemplateProperty.PropertyType.Dropdown,
-            tooltip = "The content type of the email.",
+            tooltip =
+                "Format of the email body: PLAIN sends plain text only, HTML sends HTML only, HTML & Plaintext sends both as a multipart message.",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.contentType"))
         @Valid
         @NotNull
@@ -113,7 +113,6 @@ public record SmtpSendEmail(
             group = "sendEmailSmtp",
             id = "smtpBody",
             type = TemplateProperty.PropertyType.Text,
-            tooltip = "Email's content",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.body"),
             feel = FeelMode.optional,
             condition =
@@ -127,7 +126,6 @@ public record SmtpSendEmail(
             group = "sendEmailSmtp",
             id = "smtpHtmlBody",
             type = TemplateProperty.PropertyType.Text,
-            tooltip = "Email's HTML content",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.htmlBody"),
             feel = FeelMode.optional,
             condition =

@@ -246,7 +246,7 @@
       "name" : "attachments_documentMode",
       "type" : "zeebe:input"
     },
-    "tooltip" : "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>",
+    "tooltip" : "Files to attach to the email, referenced as <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",

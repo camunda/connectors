@@ -482,7 +482,6 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "tooltip" : "Column for sorting search results",
     "type" : "String"
   }, {
     "id" : "operation.searchSortDirection",
@@ -499,7 +498,7 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "tooltip" : "Direction for sorting search results",
+    "tooltip" : "Sort order for results: ASC (ascending) or DESC (descending)",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "ASC",
@@ -524,7 +523,6 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "tooltip" : "Offset for search results",
     "type" : "Number"
   }, {
     "id" : "operation.searchLimit",

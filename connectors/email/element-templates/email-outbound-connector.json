@@ -377,7 +377,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's subject",
     "type" : "String"
   }, {
     "id" : "contentType",
@@ -403,7 +402,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The content type of the email.",
+    "tooltip" : "Format of the email body: PLAIN sends plain text only, HTML sends HTML only, HTML & Plaintext sends both as a multipart message.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "PLAIN",
@@ -440,7 +439,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's content",
     "type" : "Text"
   }, {
     "id" : "smtpHtmlBody",
@@ -467,7 +465,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's HTML content",
     "type" : "Text"
   }, {
     "id" : "data_smtpAction_attachments_documentMode",
@@ -912,6 +909,7 @@
   }, {
     "id" : "pop3MessageIdRead",
     "label" : "Message ID",
+    "description" : "Warning: reading an email using POP3 will delete it.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -933,7 +931,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it.",
+    "tooltip" : "ID of the message, typically returned by a previous email task.",
     "type" : "String"
   }, {
     "id" : "imapMaxToBeRead",
@@ -1098,7 +1096,8 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Specify the folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path (e.g., 'INBOX.Archives').",
+    "tooltip" : "Folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path.",
+    "placeholder" : "INBOX.Archives",
     "type" : "String"
   }, {
     "id" : "imapMessageIdRead",

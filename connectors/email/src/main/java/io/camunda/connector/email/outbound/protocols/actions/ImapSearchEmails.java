@@ -39,7 +39,8 @@ public record ImapSearchEmails(
             group = "searchEmailsImap",
             id = "searchEmailFolder",
             tooltip =
-                "Specify the folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path (e.g., 'INBOX.Archives').",
+                "Folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path.",
+            placeholder = "INBOX.Archives",
             optional = true,
             feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.searchEmailFolder"))
