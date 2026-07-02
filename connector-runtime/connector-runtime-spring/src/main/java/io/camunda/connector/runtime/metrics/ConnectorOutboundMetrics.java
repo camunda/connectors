@@ -96,9 +96,11 @@ public class ConnectorOutboundMetrics {
         connectorType,
         type -> {
           AtomicLong gauge = new AtomicLong(0);
-          Gauge.builder(metricName, gauge, AtomicLong::doubleValue)
-              .tag(ConnectorMetrics.Tag.TYPE, type)
-              .register(meterRegistry);
+          if (meterRegistry != null) {
+            Gauge.builder(metricName, gauge, AtomicLong::doubleValue)
+                .tag(ConnectorMetrics.Tag.TYPE, type)
+                .register(meterRegistry);
+          }
           return gauge;
         });
   }
