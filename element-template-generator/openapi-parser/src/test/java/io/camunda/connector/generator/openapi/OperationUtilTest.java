@@ -148,4 +148,46 @@ public class OperationUtilTest {
         .as("healthCheck has no external $ref and must still be supported")
         .isTrue();
   }
+
+  @Test
+  void extractOperations_specWithInternalParamRef_noResolve_operationIsSupported() {
+    var spec =
+        """
+        openapi: 3.0.3
+        info:
+          title: Test API
+          version: 1.0.0
+        servers:
+          - url: https://api.example.com/v1
+        components:
+          parameters:
+            myParam:
+              name: myParam
+              in: query
+              schema:
+                type: string
+        paths:
+          /items:
+            get:
+              operationId: listItems
+              parameters:
+                - $ref: '#/components/parameters/myParam'
+              responses:
+                '200':
+                  description: OK
+        """;
+
+    var source = new OpenApiGenerationSource(List.of(spec, "--no-resolve-refs"));
+
+    var results =
+        OperationUtil.extractOperations(
+            source.openAPI(), source.includeOperations(), source.options());
+
+    assertThat(results).hasSize(1);
+    var listItems = results.getFirst();
+    assertThat(listItems.supported())
+        .as("listItems uses an internal $ref param and must be supported")
+        .isTrue();
+    assertThat(listItems.builder().getProperties()).anyMatch(p -> "myParam".equals(p.id()));
+  }
 }
