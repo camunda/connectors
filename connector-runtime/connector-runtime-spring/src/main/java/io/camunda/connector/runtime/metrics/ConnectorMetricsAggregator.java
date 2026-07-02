@@ -46,7 +46,7 @@ public final class ConnectorMetricsAggregator {
    */
   public static OutboundConnectorMetrics outbound(MeterRegistry registry, String connectorType) {
     if (registry == null) {
-      return new OutboundConnectorMetrics(null, null, null, null, null, null, null, null, null);
+      return new OutboundConnectorMetrics(null, null, null, null);
     }
     if (connectorType != null && !connectorType.isBlank()) {
       return buildOutbound(registry, connectorType);
@@ -123,14 +123,15 @@ public final class ConnectorMetricsAggregator {
 
     return new OutboundConnectorMetrics(
         null,
-        null,
-        null,
-        new OutboundConnectorMetrics.Jobs(completed, failed, bpmnError),
-        executionTime,
-        new OutboundConnectorMetrics.WorkerStats(jobsActivated, jobsHandled, streamRecreations),
-        epochMsToInstant(maxLastCompleted),
-        epochMsToInstant(maxLastFailed),
-        readRuntimeUptime(registry));
+        new OutboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
+        new OutboundConnectorMetrics.Job(
+            completed,
+            failed,
+            bpmnError,
+            executionTime,
+            epochMsToInstant(maxLastCompleted),
+            epochMsToInstant(maxLastFailed)),
+        new OutboundConnectorMetrics.Worker(jobsActivated, jobsHandled, streamRecreations));
   }
 
   private static OutboundConnectorMetrics buildOutbound(MeterRegistry registry, String type) {
@@ -147,9 +148,7 @@ public final class ConnectorMetricsAggregator {
             type,
             ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION);
 
-    OutboundConnectorMetrics.Jobs jobs = buildJobs(registry, type);
     OutboundConnectorMetrics.ExecutionTime executionTime = buildExecutionTime(registry, type);
-    OutboundConnectorMetrics.WorkerStats worker = buildWorkerStats(registry, type);
     Instant lastCompleted =
         epochMsToInstant(
             readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_LAST_COMPLETED, type));
@@ -158,34 +157,39 @@ public final class ConnectorMetricsAggregator {
             readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_LAST_FAILED, type));
 
     return new OutboundConnectorMetrics(
-        null,
-        templateId,
-        templateVersion,
-        jobs,
-        executionTime,
-        worker,
-        lastCompleted,
-        lastFailed,
-        readRuntimeUptime(registry));
-  }
-
-  private static OutboundConnectorMetrics.Jobs buildJobs(MeterRegistry registry, String type) {
-    return new OutboundConnectorMetrics.Jobs(
-        sumCounterByAction(
-            registry,
-            ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
-            type,
-            ConnectorMetrics.Outbound.ACTION_COMPLETED),
-        sumCounterByAction(
-            registry,
-            ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
-            type,
-            ConnectorMetrics.Outbound.ACTION_FAILED),
-        sumCounterByAction(
-            registry,
-            ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
-            type,
-            ConnectorMetrics.Outbound.ACTION_BPMN_ERROR));
+        new OutboundConnectorMetrics.ConnectorInfo(type, templateId, templateVersion),
+        new OutboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
+        new OutboundConnectorMetrics.Job(
+            sumCounterByAction(
+                registry,
+                ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
+                type,
+                ConnectorMetrics.Outbound.ACTION_COMPLETED),
+            sumCounterByAction(
+                registry,
+                ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
+                type,
+                ConnectorMetrics.Outbound.ACTION_FAILED),
+            sumCounterByAction(
+                registry,
+                ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
+                type,
+                ConnectorMetrics.Outbound.ACTION_BPMN_ERROR),
+            executionTime,
+            lastCompleted,
+            lastFailed),
+        new OutboundConnectorMetrics.Worker(
+            (long)
+                sumCounter(
+                    registry, ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED, type),
+            (long)
+                sumCounter(
+                    registry, ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED, type),
+            (long)
+                sumCounter(
+                    registry,
+                    ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED,
+                    type)));
   }
 
   private static OutboundConnectorMetrics.ExecutionTime buildExecutionTime(
@@ -216,19 +220,6 @@ public final class ConnectorMetricsAggregator {
     return new OutboundConnectorMetrics.ExecutionTime(meanMs, maxMs);
   }
 
-  private static OutboundConnectorMetrics.WorkerStats buildWorkerStats(
-      MeterRegistry registry, String type) {
-    return new OutboundConnectorMetrics.WorkerStats(
-        (long)
-            sumCounter(registry, ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED, type),
-        (long) sumCounter(registry, ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED, type),
-        (long)
-            sumCounter(
-                registry,
-                ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED,
-                type));
-  }
-
   // -------------------------------------------------------------------------
   // Inbound
   // -------------------------------------------------------------------------
@@ -239,7 +230,7 @@ public final class ConnectorMetricsAggregator {
    */
   public static InboundConnectorMetrics inbound(MeterRegistry registry, String connectorType) {
     if (registry == null) {
-      return new InboundConnectorMetrics(null, null, null, null, null, null);
+      return new InboundConnectorMetrics(null, null, null, null);
     }
     if (connectorType != null && !connectorType.isBlank()) {
       return buildInbound(registry, connectorType);
@@ -310,69 +301,62 @@ public final class ConnectorMetricsAggregator {
 
     return new InboundConnectorMetrics(
         null,
-        new InboundConnectorMetrics.Activations(activated, deactivated, activationFailed),
-        new InboundConnectorMetrics.Triggers(
-            triggered, correlated, correlationFailed, activationConditionFailed),
-        epochMsToInstant(maxLastActivated),
-        epochMsToInstant(maxLastTriggered),
-        readRuntimeUptime(registry));
+        new InboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
+        new InboundConnectorMetrics.Activation(
+            activated, deactivated, activationFailed, epochMsToInstant(maxLastActivated)),
+        new InboundConnectorMetrics.Trigger(
+            triggered,
+            correlated,
+            correlationFailed,
+            activationConditionFailed,
+            epochMsToInstant(maxLastTriggered)));
   }
 
   private static InboundConnectorMetrics buildInbound(MeterRegistry registry, String type) {
     return new InboundConnectorMetrics(
-        null,
-        buildActivations(registry, type),
-        buildTriggers(registry, type),
-        epochMsToInstant(
-            readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED, type)),
-        epochMsToInstant(
-            readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED, type)),
-        readRuntimeUptime(registry));
-  }
-
-  private static InboundConnectorMetrics.Activations buildActivations(
-      MeterRegistry registry, String type) {
-    return new InboundConnectorMetrics.Activations(
-        sumCounterByAction(
-            registry,
-            ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
-            type,
-            ConnectorMetrics.Inbound.ACTION_ACTIVATED),
-        sumCounterByAction(
-            registry,
-            ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
-            type,
-            ConnectorMetrics.Inbound.ACTION_DEACTIVATED),
-        sumCounterByAction(
-            registry,
-            ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
-            type,
-            ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED));
-  }
-
-  private static InboundConnectorMetrics.Triggers buildTriggers(
-      MeterRegistry registry, String type) {
-    return new InboundConnectorMetrics.Triggers(
-        sumCounterByAction(
-            registry,
-            ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
-            type,
-            ConnectorMetrics.Inbound.ACTION_TRIGGERED),
-        sumCounterByAction(
-            registry,
-            ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
-            type,
-            ConnectorMetrics.Inbound.ACTION_CORRELATED),
-        sumCounterByAction(
-            registry,
-            ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
-            type,
-            ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED),
-        sumCounterByAction(
-            registry,
-            ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
-            type,
-            ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED));
+        new InboundConnectorMetrics.ConnectorInfo(type),
+        new InboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
+        new InboundConnectorMetrics.Activation(
+            sumCounterByAction(
+                registry,
+                ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
+                type,
+                ConnectorMetrics.Inbound.ACTION_ACTIVATED),
+            sumCounterByAction(
+                registry,
+                ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
+                type,
+                ConnectorMetrics.Inbound.ACTION_DEACTIVATED),
+            sumCounterByAction(
+                registry,
+                ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
+                type,
+                ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED),
+            epochMsToInstant(
+                readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED, type))),
+        new InboundConnectorMetrics.Trigger(
+            sumCounterByAction(
+                registry,
+                ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
+                type,
+                ConnectorMetrics.Inbound.ACTION_TRIGGERED),
+            sumCounterByAction(
+                registry,
+                ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
+                type,
+                ConnectorMetrics.Inbound.ACTION_CORRELATED),
+            sumCounterByAction(
+                registry,
+                ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
+                type,
+                ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED),
+            sumCounterByAction(
+                registry,
+                ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
+                type,
+                ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED),
+            epochMsToInstant(
+                readGauge(registry, ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED, type))));
   }
 
   // -------------------------------------------------------------------------

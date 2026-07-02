@@ -20,38 +20,50 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 
 /**
- * Aggregated inbound connector metrics for a single connector type.
+ * Aggregated inbound connector metrics, grouped into four sections.
  *
- * @param connectorType connector type (e.g. {@code io.camunda:webhook:1}), or {@code null} when
- *     representing aggregated totals across all types
- * @param activations activation lifecycle counters
- * @param triggers correlation / trigger counters
- * @param lastActivated timestamp of the last successful activation, or {@code null} if none yet
- * @param lastTriggered timestamp of the last trigger attempt, or {@code null} if none yet
- * @param runtimeUptimeSeconds number of seconds the runtime process has been running
+ * @param connector connector identity fields
+ * @param runtime process-level runtime information
+ * @param activation activation lifecycle counters and last-activity timestamp
+ * @param trigger correlation / trigger counters and last-activity timestamp
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record InboundConnectorMetrics(
-    String connectorType,
-    Activations activations,
-    Triggers triggers,
-    Instant lastActivated,
-    Instant lastTriggered,
-    Long runtimeUptimeSeconds) {
+    ConnectorInfo connector, Runtime runtime, Activation activation, Trigger trigger) {
+
+  /**
+   * @param connectorType connector type (e.g. {@code io.camunda:webhook:1}), or {@code null} when
+   *     representing aggregated totals across all types
+   */
+  public record ConnectorInfo(String connectorType) {}
+
+  /**
+   * @param uptimeSeconds number of seconds the runtime process has been running
+   */
+  public record Runtime(Long uptimeSeconds) {}
 
   /**
    * @param activated number of successful activations
    * @param deactivated number of deactivations
    * @param activationFailed number of failed activations
+   * @param lastActivated timestamp of the last successful activation, or {@code null} if none yet
    */
-  public record Activations(long activated, long deactivated, long activationFailed) {}
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record Activation(
+      long activated, long deactivated, long activationFailed, Instant lastActivated) {}
 
   /**
    * @param triggered number of trigger attempts (inbound event received)
    * @param correlated number of successfully correlated process instances
    * @param correlationFailed number of correlation failures
    * @param activationConditionFailed number of events filtered by activation condition
+   * @param lastTriggered timestamp of the last trigger attempt, or {@code null} if none yet
    */
-  public record Triggers(
-      long triggered, long correlated, long correlationFailed, long activationConditionFailed) {}
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record Trigger(
+      long triggered,
+      long correlated,
+      long correlationFailed,
+      long activationConditionFailed,
+      Instant lastTriggered) {}
 }

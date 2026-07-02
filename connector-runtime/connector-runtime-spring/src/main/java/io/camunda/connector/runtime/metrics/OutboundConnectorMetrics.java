@@ -20,38 +20,47 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 
 /**
- * Aggregated outbound connector metrics for a single connector type.
+ * Aggregated outbound connector metrics, grouped into four sections.
  *
- * @param connectorType job type (e.g. {@code io.camunda:http-json:1}), or {@code null} when
- *     representing aggregated totals across all types
- * @param elementTemplateId element template ID associated with this connector type, or {@code null}
- *     if not available
- * @param elementTemplateVersion element template version, or {@code null} if not available
- * @param jobs counts per job outcome
- * @param executionTime execution-time statistics derived from a Micrometer Timer
+ * @param connector connector identity fields (type, element template)
+ * @param runtime process-level runtime information
+ * @param job job execution counters, timing, and last-activity timestamps
  * @param worker Zeebe job-worker level counters
- * @param lastCompleted timestamp of the last successfully completed job, or {@code null} if none
- * @param lastFailed timestamp of the last failed job, or {@code null} if none
- * @param runtimeUptimeSeconds number of seconds the runtime process has been running
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record OutboundConnectorMetrics(
-    String connectorType,
-    String elementTemplateId,
-    String elementTemplateVersion,
-    Jobs jobs,
-    ExecutionTime executionTime,
-    WorkerStats worker,
-    Instant lastCompleted,
-    Instant lastFailed,
-    Long runtimeUptimeSeconds) {
+    ConnectorInfo connector, Runtime runtime, Job job, Worker worker) {
+
+  /**
+   * @param connectorType job type (e.g. {@code io.camunda:http-json:1}), or {@code null} when
+   *     representing aggregated totals across all types
+   * @param elementTemplateId element template ID, or {@code null} if not available
+   * @param elementTemplateVersion element template version, or {@code null} if not available
+   */
+  public record ConnectorInfo(
+      String connectorType, String elementTemplateId, String elementTemplateVersion) {}
+
+  /**
+   * @param uptimeSeconds number of seconds the runtime process has been running
+   */
+  public record Runtime(Long uptimeSeconds) {}
 
   /**
    * @param completed jobs that completed successfully
    * @param failed jobs that ended with a connector error or exception
    * @param bpmnError jobs that threw a BPMN error
+   * @param executionTime execution-time statistics, or {@code null} if no jobs have run yet
+   * @param lastCompleted timestamp of the last successfully completed job, or {@code null} if none
+   * @param lastFailed timestamp of the last failed job, or {@code null} if none
    */
-  public record Jobs(long completed, long failed, long bpmnError) {}
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record Job(
+      long completed,
+      long failed,
+      long bpmnError,
+      ExecutionTime executionTime,
+      Instant lastCompleted,
+      Instant lastFailed) {}
 
   /**
    * @param meanMs mean execution duration in milliseconds
@@ -64,5 +73,5 @@ public record OutboundConnectorMetrics(
    * @param jobsHandled jobs acknowledged back to the Zeebe broker
    * @param streamRecreations number of times the job-stream was recreated due to inactivity
    */
-  public record WorkerStats(long jobsActivated, long jobsHandled, long streamRecreations) {}
+  public record Worker(long jobsActivated, long jobsHandled, long streamRecreations) {}
 }
