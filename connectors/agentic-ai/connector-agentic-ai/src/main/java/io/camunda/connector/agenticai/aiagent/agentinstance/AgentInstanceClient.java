@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.api.error.ConnectorException;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -47,6 +48,8 @@ public interface AgentInstanceClient {
    * items, correlated by tool-call id. A tool-call result with a non-null id that has no
    * originating tool call in {@code previousTurn} is treated as an invariant violation.
    *
+   * @param turnIngestionTimestamp the {@code producedAt} for non-tool-result items (e.g. a user
+   *     message); tool-result items use their own resolved completion timestamp instead (ADR 008)
    * @throws ConnectorException with code AGENT_INSTANCE_HISTORY_ITEM_FAILED when retries are
    *     exhausted or a non-retryable error occurs
    */
@@ -54,17 +57,20 @@ public interface AgentInstanceClient {
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
-      Optional<AgentConversationTurn> previousTurn);
+      Optional<AgentConversationTurn> previousTurn,
+      OffsetDateTime turnIngestionTimestamp);
 
   /**
    * Appends the assistant history item including turn metrics for the given completed turn, after
    * the LLM call. Silently skips when {@code agentInstanceKey} is {@code null}.
    *
+   * @param producedAt the {@code producedAt} for the assistant history item
    * @throws ConnectorException with code AGENT_INSTANCE_HISTORY_ITEM_FAILED when retries are
    *     exhausted or a non-retryable error occurs
    */
   void createHistoryForAssistantMessage(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      AgentConversationTurn turn);
+      AgentConversationTurn turn,
+      OffsetDateTime producedAt);
 }

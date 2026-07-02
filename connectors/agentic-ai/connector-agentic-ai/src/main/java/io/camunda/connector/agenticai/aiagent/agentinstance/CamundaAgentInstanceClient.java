@@ -165,7 +165,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
-      Optional<AgentConversationTurn> previousTurn) {
+      Optional<AgentConversationTurn> previousTurn,
+      OffsetDateTime turnIngestionTimestamp) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance history items (before chat): no agent instance key");
       return;
@@ -173,7 +174,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     for (final Message message : turn.inputMessages()) {
-      for (final var item : historyMapper.inputHistoryItems(message, toolCallsById)) {
+      for (final var item :
+          historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
         createHistoryItem(
             executionContext,
             agentInstanceKey.value(),
@@ -181,7 +183,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             item.content(),
             turn.iterationKey(),
             item.toolCalls(),
-            null);
+            null,
+            item.producedAt());
       }
     }
   }
@@ -190,7 +193,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   public void createHistoryForAssistantMessage(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      AgentConversationTurn turn) {
+      AgentConversationTurn turn,
+      OffsetDateTime producedAt) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance history item (after chat): no agent instance key");
       return;
@@ -213,7 +217,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         content,
         turn.iterationKey(),
         toolCalls,
-        historyMapper.historyMetrics(turn.metrics()));
+        historyMapper.historyMetrics(turn.metrics()),
+        producedAt);
   }
 
   private void createHistoryItem(
@@ -223,11 +228,19 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       List<AgentInstanceHistoryContent> content,
       int iteration,
       @Nullable List<AgentInstanceHistoryToolCall> toolCalls,
-      @Nullable AgentInstanceHistoryMetrics metrics) {
+      @Nullable AgentInstanceHistoryMetrics metrics,
+      OffsetDateTime producedAt) {
     CamundaApiRetry.execute(
         () -> {
           executeCreateHistoryItem(
-              executionContext, agentInstanceKey, role, content, iteration, toolCalls, metrics);
+              executionContext,
+              agentInstanceKey,
+              role,
+              content,
+              iteration,
+              toolCalls,
+              metrics,
+              producedAt);
           return null;
         },
         AgentInstanceErrorClassifier.INSTANCE,
@@ -244,7 +257,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       List<AgentInstanceHistoryContent> content,
       int iteration,
       @Nullable List<AgentInstanceHistoryToolCall> toolCalls,
-      @Nullable AgentInstanceHistoryMetrics metrics) {
+      @Nullable AgentInstanceHistoryMetrics metrics,
+      OffsetDateTime producedAt) {
     LOGGER.debug(
         "Creating agent instance {} history item: role={}, iteration={}, contentBlocks={}",
         agentInstanceKey,
@@ -258,7 +272,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             .jobKey(executionContext.jobContext().getJobKey())
             .role(role)
             .content(content)
-            .producedAt(OffsetDateTime.now())
+            .producedAt(producedAt)
             .iteration(iteration);
 
     if (toolCalls != null && !toolCalls.isEmpty()) {

@@ -670,11 +670,12 @@ class JobWorkerAgentRequestHandlerTest {
   private void verifyHistoryItemsCreated(AssistantMessage expectedAssistantMessage) {
     verify(agentInstanceClient)
         .createHistoryForInputMessages(
-            eq(agentExecutionContext), any(), turnCaptor.capture(), any());
+            eq(agentExecutionContext), any(), turnCaptor.capture(), any(), any());
     assertThat(turnCaptor.getValue().inputMessages()).containsExactly(USER_MESSAGE);
 
     verify(agentInstanceClient)
-        .createHistoryForAssistantMessage(eq(agentExecutionContext), any(), turnCaptor.capture());
+        .createHistoryForAssistantMessage(
+            eq(agentExecutionContext), any(), turnCaptor.capture(), any());
     assertThat(turnCaptor.getValue().assistantMessage()).isEqualTo(expectedAssistantMessage);
   }
 
