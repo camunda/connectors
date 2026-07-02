@@ -24,7 +24,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-@TemplateSubType(id = "conversations.invite", label = "Invite to channel")
+@TemplateSubType(
+    id = "conversations.invite",
+    label = "Invite to channel",
+    description = "Invite users to a Slack channel",
+    keywords = {
+      "invite to channel",
+      "add user to channel",
+      "add member",
+      "join channel",
+      "channel membership"
+    })
 public record ConversationsInviteData(
     @TemplateProperty(
             label = "Invite By",

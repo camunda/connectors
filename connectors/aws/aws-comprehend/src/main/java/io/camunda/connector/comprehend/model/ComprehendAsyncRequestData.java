@@ -16,7 +16,18 @@ import java.util.List;
 import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@TemplateSubType(id = "async", label = "Async")
+@TemplateSubType(
+    id = "async",
+    label = "Async",
+    description = "Submit an asynchronous document classification job to Amazon Comprehend",
+    keywords = {
+      "batch classification",
+      "document classification",
+      "text analysis",
+      "async nlp",
+      "classify documents",
+      "bulk text processing"
+    })
 public record ComprehendAsyncRequestData(
     @TemplateProperty(
             id = "async.documentReadMode",

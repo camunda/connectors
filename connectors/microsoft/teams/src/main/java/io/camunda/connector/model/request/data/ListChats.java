@@ -9,5 +9,9 @@ package io.camunda.connector.model.request.data;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.MSTeamsMethodTypes;
 
-@TemplateSubType(label = "List chats", id = MSTeamsMethodTypes.LIST_CHATS)
+@TemplateSubType(
+    id = MSTeamsMethodTypes.LIST_CHATS,
+    label = "List chats",
+    description = "List all chats available in Microsoft Teams",
+    keywords = {"list chats", "chat list", "get chats", "fetch conversations", "browse chats"})
 public record ListChats() implements ChatData {}

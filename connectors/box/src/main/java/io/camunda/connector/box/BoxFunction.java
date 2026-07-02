@@ -33,10 +33,10 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "document management"
     },
     inputDataClass = BoxRequest.class,
-    version = 3,
+    version = 4,
     propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
     },
     documentationRef =
         "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/box/",

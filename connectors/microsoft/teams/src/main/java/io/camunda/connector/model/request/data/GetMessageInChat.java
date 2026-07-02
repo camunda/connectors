@@ -11,7 +11,17 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(label = "Get message in chat", id = MSTeamsMethodTypes.GET_MESSAGE_IN_CHAT)
+@TemplateSubType(
+    id = MSTeamsMethodTypes.GET_MESSAGE_IN_CHAT,
+    label = "Get message in chat",
+    description = "Retrieve a specific message from a Microsoft Teams chat",
+    keywords = {
+      "get chat message",
+      "fetch message",
+      "retrieve chat message",
+      "read message",
+      "direct message"
+    })
 public record GetMessageInChat(
     @NotBlank
         @TemplateProperty(

@@ -18,7 +18,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "smtp", label = "SMTP")
+@TemplateSubType(id = "smtp", label = "SMTP", description = "Send emails using the SMTP protocol")
 public record Smtp(
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,

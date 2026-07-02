@@ -12,7 +12,11 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "moveEmailImap", label = "Move email")
+@TemplateSubType(
+    id = "moveEmailImap",
+    label = "Move email",
+    description = "Move an email to a different folder in an IMAP mailbox",
+    keywords = {"move email", "imap move", "relocate email", "transfer email", "move to folder"})
 public record ImapMoveEmail(
     @TemplateProperty(
             label = "Message ID",

@@ -27,11 +27,11 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     description =
         "Retrieve persistent knowledge — facts, preferences, and summaries — from AWS Bedrock AgentCore Long-Term Memory",
     inputDataClass = AgentCoreMemoryRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
+      @PropertyGroup(id = "operation", label = "Operation"),
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "configuration", label = "Configuration"),
-      @PropertyGroup(id = "operation", label = "Operation"),
       @PropertyGroup(id = "retrieve", label = "Retrieve Memory Records"),
       @PropertyGroup(id = "list", label = "List Memory Records"),
     },

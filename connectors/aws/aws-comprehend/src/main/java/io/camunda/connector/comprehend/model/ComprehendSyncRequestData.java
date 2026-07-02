@@ -12,7 +12,18 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@TemplateSubType(id = "sync", label = "Sync")
+@TemplateSubType(
+    id = "sync",
+    label = "Sync",
+    description = "Classify text synchronously using Amazon Comprehend",
+    keywords = {
+      "classify text",
+      "natural language processing",
+      "text analysis",
+      "nlp",
+      "text classification",
+      "detect entities"
+    })
 public record ComprehendSyncRequestData(
     @TemplateProperty(
             group = "input",

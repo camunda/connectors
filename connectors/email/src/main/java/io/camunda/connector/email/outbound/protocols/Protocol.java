@@ -13,7 +13,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateDiscriminatorProperty(
     label = "Email Protocol",
-    group = "protocol",
+    group = "operation",
     name = "protocol",
     defaultValue = "smtp")
 @TemplateSubType(id = "protocol", label = "Email Protocol")

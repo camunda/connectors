@@ -16,7 +16,10 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "imap", label = "IMAP")
+@TemplateSubType(
+    id = "imap",
+    label = "IMAP",
+    description = "Read and manage emails using the IMAP protocol")
 public record Imap(
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,

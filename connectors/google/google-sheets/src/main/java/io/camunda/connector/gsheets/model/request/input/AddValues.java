@@ -14,7 +14,18 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "addValues", label = "Add values to spreadsheet")
+@TemplateSubType(
+    id = "addValues",
+    label = "Add values to spreadsheet",
+    description = "Add values to a specific cell in a Google Sheets spreadsheet",
+    keywords = {
+      "add values",
+      "write cell",
+      "update spreadsheet",
+      "insert data",
+      "fill cell",
+      "set cell value"
+    })
 public record AddValues(
     @TemplateProperty(
             id = "addValues.spreadsheetId",

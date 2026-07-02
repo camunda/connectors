@@ -31,10 +31,10 @@ import java.util.function.Function;
     name = "Google Cloud Storage Outbound Connector",
     description = "Upload and download files from Google Cloud Storage.",
     inputDataClass = ObjectStorageRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "additionalProperties", label = "Additional properties")
     },
     keywords = {

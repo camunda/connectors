@@ -31,37 +31,34 @@ public final class OperationMetadataIgnoreList {
       Set.of(
           "agentic-ai",
           "asana",
-          "automation-anywhere",
           "aws-base",
-          "aws-bedrock",
-          "aws-bedrock-agentcore-long-term-memory",
           "aws-bedrock-agentcore-runtime",
           "aws-bedrock-codeinterpreter",
           "aws-bedrock-knowledgebase",
-          "aws-comprehend",
           "aws-eventbridge",
           "aws-lambda",
           "aws-sagemaker",
           "aws-sns",
           "aws-sqs",
           "aws-textract",
+          "azure-open-ai",
           "blue-prism",
-          "box",
-          "camunda-message",
           "easy-post",
-          "email",
-          "embeddings-vector-database",
+          "email-inbound",
+          "email-message-start-event",
           "github",
           "gitlab",
-          "google",
+          "google-drive",
+          "google-gemini",
           "google-maps-platform",
           "http",
           "hubspot",
           "hugging-face",
+          "hybrid-email-message-start-event",
           "idp-extraction",
           "jdbc",
           "kafka",
-          "microsoft",
+          "mail",
           "openai",
           "operate",
           "orchestration",
@@ -71,7 +68,7 @@ public final class OperationMetadataIgnoreList {
           "salesforce",
           "sendgrid",
           "servicenow",
-          "slack",
+          "slack-inbound",
           "soap",
           "twilio",
           "uipath",
@@ -79,9 +76,10 @@ public final class OperationMetadataIgnoreList {
           "whatsapp");
 
   /**
-   * Returns true if the given template file lives under any connector directory on the ignore list.
-   * Matching is by directory name only (any path segment), the same convention as the existing
-   * {@code --skip-connector} flag.
+   * Returns true if the given template file lives under any connector directory on the ignore list,
+   * or if its filename (without extension) equals or starts with an entry followed by a hyphen. The
+   * filename-prefix check handles inbound connectors whose files share a directory with outbound
+   * templates (e.g. {@code slack-inbound-*.json} in the {@code slack} directory).
    */
   public static boolean isIgnored(Path templateFile) {
     if (templateFile == null) {
@@ -90,6 +88,15 @@ public final class OperationMetadataIgnoreList {
     for (Path segment : templateFile) {
       if (ENTRIES.contains(segment.toString())) {
         return true;
+      }
+    }
+    Path fileNamePath = templateFile.getFileName();
+    if (fileNamePath != null) {
+      String base = fileNamePath.toString().replaceAll("\\.json$", "");
+      for (String entry : ENTRIES) {
+        if (base.equals(entry) || base.startsWith(entry + "-")) {
+          return true;
+        }
       }
     }
     return false;

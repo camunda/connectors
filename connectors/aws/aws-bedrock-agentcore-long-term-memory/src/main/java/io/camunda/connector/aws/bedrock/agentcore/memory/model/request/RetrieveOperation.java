@@ -12,7 +12,19 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(id = "retrieve", label = "Retrieve Memory Records")
+@TemplateSubType(
+    id = "retrieve",
+    label = "Retrieve Memory Records",
+    description =
+        "Retrieve relevant memory records from AWS Bedrock AgentCore Long-Term Memory using semantic search",
+    keywords = {
+      "retrieve memory",
+      "semantic search",
+      "memory records",
+      "search memories",
+      "vector search",
+      "find memories"
+    })
 public record RetrieveOperation(
     @NotBlank
         @TemplateProperty(

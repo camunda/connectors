@@ -140,7 +140,11 @@ public record BoxRequest(
           Operation.MoveFile,
           Operation.DeleteFile,
           Operation.Search {
-    @TemplateSubType(id = "createFolder", label = "Create Folder")
+    @TemplateSubType(
+        id = "createFolder",
+        label = "Create Folder",
+        description = "Create a new folder in Box",
+        keywords = {"create folder", "new folder", "add directory", "make folder"})
     record CreateFolder(
         @TemplateProperty(id = "createFolderName", group = "operation", label = "Folder name")
             @NotBlank
@@ -154,7 +158,11 @@ public record BoxRequest(
             String folderPath)
         implements Operation {}
 
-    @TemplateSubType(id = "deleteFolder", label = "Delete Folder")
+    @TemplateSubType(
+        id = "deleteFolder",
+        label = "Delete Folder",
+        description = "Delete a folder from Box",
+        keywords = {"delete folder", "remove folder", "trash folder", "erase directory"})
     record DeleteFolder(
         @TemplateProperty(id = "deleteFolderPath", group = "operation", label = "Folder path")
             @NotBlank
@@ -168,7 +176,11 @@ public record BoxRequest(
             boolean recursive)
         implements Operation {}
 
-    @TemplateSubType(id = "uploadFile", label = "Upload File")
+    @TemplateSubType(
+        id = "uploadFile",
+        label = "Upload File",
+        description = "Upload a file to Box",
+        keywords = {"upload file", "store file", "save document", "put file", "publish file"})
     record UploadFile(
         @TemplateProperty(id = "uploadFileName", group = "operation", label = "File name") @NotBlank
             String name,
@@ -188,7 +200,11 @@ public record BoxRequest(
       }
     }
 
-    @TemplateSubType(id = "downloadFile", label = "Download File")
+    @TemplateSubType(
+        id = "downloadFile",
+        label = "Download File",
+        description = "Download a file from Box",
+        keywords = {"download file", "get file", "fetch file", "retrieve document", "export file"})
     record DownloadFile(
         @TemplateProperty(
                 id = "downloadFilePath",
@@ -198,7 +214,11 @@ public record BoxRequest(
             String filePath)
         implements Operation {}
 
-    @TemplateSubType(id = "moveFile", label = "Move File")
+    @TemplateSubType(
+        id = "moveFile",
+        label = "Move File",
+        description = "Move a file to a different folder in Box",
+        keywords = {"move file", "relocate file", "transfer file", "cut file"})
     record MoveFile(
         @TemplateProperty(id = "moveFilePath", group = "operation", label = "File path") @NotBlank
             String filePath,
@@ -210,13 +230,21 @@ public record BoxRequest(
             String folderPath)
         implements Operation {}
 
-    @TemplateSubType(id = "deleteFile", label = "Delete File")
+    @TemplateSubType(
+        id = "deleteFile",
+        label = "Delete File",
+        description = "Delete a file from Box",
+        keywords = {"delete file", "remove file", "erase file", "trash file"})
     record DeleteFile(
         @TemplateProperty(id = "deleteFilePath", group = "operation", label = "File path") @NotBlank
             String filePath)
         implements Operation {}
 
-    @TemplateSubType(id = "search", label = "Search")
+    @TemplateSubType(
+        id = "search",
+        label = "Search",
+        description = "Search for files and folders in Box",
+        keywords = {"search", "find files", "look up content", "query files", "locate documents"})
     record Search(
         @TemplateProperty(id = "searchQuery", group = "operation") @NotBlank String query,
         @TemplateProperty(

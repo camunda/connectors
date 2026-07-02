@@ -11,7 +11,11 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(label = "Create channel", id = MSTeamsMethodTypes.CREATE_CHANNEL)
+@TemplateSubType(
+    id = MSTeamsMethodTypes.CREATE_CHANNEL,
+    label = "Create channel",
+    description = "Create a new channel in a Microsoft Teams team",
+    keywords = {"create channel", "new channel", "add channel", "setup channel", "open channel"})
 public record CreateChannel(
     @NotBlank
         @TemplateProperty(

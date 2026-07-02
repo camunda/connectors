@@ -12,8 +12,16 @@ import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(
+    id = MSTeamsMethodTypes.LIST_MESSAGE_REPLIES_IN_CHANNEL,
     label = "List message replies",
-    id = MSTeamsMethodTypes.LIST_MESSAGE_REPLIES_IN_CHANNEL)
+    description = "List replies to a message in a Microsoft Teams channel",
+    keywords = {
+      "list replies",
+      "message replies",
+      "get replies",
+      "fetch thread replies",
+      "conversation thread"
+    })
 public record ListMessageRepliesInChannel(
     @NotBlank
         @TemplateProperty(
