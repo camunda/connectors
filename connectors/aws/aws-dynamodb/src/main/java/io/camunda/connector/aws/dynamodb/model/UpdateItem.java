@@ -18,12 +18,7 @@ import java.util.Map;
     description = "Update a single item in a DynamoDB table",
     keywords = {"update item", "modify item", "patch item"})
 public record UpdateItem(
-    @TemplateProperty(
-            label = "Table name",
-            id = "updateTable.tableName",
-            group = "input",
-            tooltip = "Name of DynamoDB table")
-        @NotBlank
+    @TemplateProperty(label = "Table name", id = "updateTable.tableName", group = "input") @NotBlank
         String tableName,
     @TemplateProperty(
             label = "Primary key components",
@@ -38,7 +33,7 @@ public record UpdateItem(
             group = "input",
             feel = FeelMode.required,
             tooltip =
-                "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
+                "Attribute values to write to the item. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         @NotNull
         Map<String, Object> keyAttributes,
     @TemplateProperty(
@@ -49,7 +44,7 @@ public record UpdateItem(
               @TemplateProperty.DropdownPropertyChoice(value = "put", label = "PUT"),
               @TemplateProperty.DropdownPropertyChoice(value = "delete", label = "DELETE")
             },
-            tooltip = "Specifies how to perform the update")
+            tooltip = "PUT = set the attribute value, DELETE = remove the attribute")
         @NotBlank
         String attributeAction)
     implements ItemInput {}

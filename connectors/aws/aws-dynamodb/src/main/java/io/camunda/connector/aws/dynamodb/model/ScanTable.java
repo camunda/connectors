@@ -17,12 +17,7 @@ import java.util.Map;
     description = "Read every item in a DynamoDB table",
     keywords = {"scan table", "list items", "read all items"})
 public record ScanTable(
-    @TemplateProperty(
-            label = "Table name",
-            id = "scanTable.tableName",
-            group = "input",
-            tooltip = "Name of DynamoDB table")
-        @NotBlank
+    @TemplateProperty(label = "Table name", id = "scanTable.tableName", group = "input") @NotBlank
         String tableName,
     @TemplateProperty(
             label = "Filter expression",
@@ -35,6 +30,7 @@ public record ScanTable(
             label = "Projection expression",
             group = "input",
             optional = true,
+            placeholder = "Artist, SongTitle, Genre",
             tooltip =
                 "A string that identifies the attributes that you want. For multiple attributes, the names must be comma-separated.")
         String projectionExpression,
@@ -52,6 +48,6 @@ public record ScanTable(
             feel = FeelMode.required,
             optional = true,
             tooltip =
-                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
+                "Substitution values for placeholders used in the filter or projection expression. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         Map<String, Object> expressionAttributeValues)
     implements TableInput {}

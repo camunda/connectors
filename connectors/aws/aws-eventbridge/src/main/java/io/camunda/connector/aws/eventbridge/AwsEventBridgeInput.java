@@ -42,8 +42,9 @@ public class AwsEventBridgeInput {
   @TemplateProperty(
       group = "eventPayload",
       label = "Event payload",
+      placeholder = "{\"key\": \"value\"}",
       tooltip =
-          "Payload must be provided as JSON. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge event payload</a>")
+          "Payload must be provided as JSON. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge event payload</a> documentation.")
   @NotNull
   private Object detail;
 

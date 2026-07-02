@@ -30,7 +30,7 @@ public record SageMakerRequestData(
             group = "input",
             label = "Endpoint name",
             tooltip =
-                "<a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>")
+                "The name of the endpoint to invoke. <a href=\"https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_Operations_Amazon_SageMaker_Runtime.html\">Amazon SageMaker Runtime API</a>")
         String endpointName,
     @TemplateProperty(
             label = "Payload",

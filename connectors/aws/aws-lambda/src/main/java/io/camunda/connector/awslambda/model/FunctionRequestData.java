@@ -36,7 +36,8 @@ public class FunctionRequestData {
       group = "operationDetails",
       label = "Payload",
       type = TemplateProperty.PropertyType.Text,
-      tooltip = "Payload for your function as JSON")
+      placeholder = "{\"key\": \"value\"}",
+      tooltip = "JSON input passed to the Lambda function when it is invoked.")
   private Object payload;
 
   @TemplateProperty(ignore = true)

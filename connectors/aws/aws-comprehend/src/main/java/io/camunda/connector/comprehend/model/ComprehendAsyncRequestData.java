@@ -145,16 +145,10 @@ public record ComprehendAsyncRequestData(
             group = "input",
             label = "Flywheel's ARN",
             tooltip =
-                "ARN of <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-FlywheelArn\">Flywheel</a> for processing model.",
+                "ARN of the <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-FlywheelArn\">flywheel</a> that orchestrates training and versioning of the classification model.",
             optional = true)
         String flywheelArn,
-    @TemplateProperty(
-            group = "input",
-            label = "Job name",
-            tooltip =
-                "The <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-JobName\">identifier of the job</a>.",
-            optional = true)
-        String jobName,
+    @TemplateProperty(group = "input", label = "Job name", optional = true) String jobName,
     @TemplateProperty(
             group = "input",
             label = "Output's S3 URI",

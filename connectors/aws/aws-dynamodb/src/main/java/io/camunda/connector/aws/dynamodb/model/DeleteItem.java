@@ -17,12 +17,7 @@ import jakarta.validation.constraints.NotNull;
     description = "Delete a single item from a DynamoDB table by primary key",
     keywords = {"delete item", "remove item", "drop item"})
 public record DeleteItem(
-    @TemplateProperty(
-            label = "Table name",
-            id = "deleteItem.tableName",
-            group = "input",
-            tooltip = "Name of DynamoDB table")
-        @NotBlank
+    @TemplateProperty(label = "Table name", id = "deleteItem.tableName", group = "input") @NotBlank
         String tableName,
     @TemplateProperty(
             label = "Primary key components",

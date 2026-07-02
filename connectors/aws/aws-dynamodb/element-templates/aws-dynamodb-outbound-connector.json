@@ -140,7 +140,6 @@
   }, {
     "id" : "authentication.accessKey",
     "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -156,11 +155,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "authentication.secretKey",
     "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -176,11 +175,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "configuration.region",
     "label" : "Region",
-    "description" : "Specify the AWS region",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -227,7 +226,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.partitionKey",
@@ -310,7 +308,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Represents the data for an attribute",
+    "tooltip" : "S = String, N = Number, B = Binary",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Binary",
@@ -343,7 +341,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Attribute name of the table's sort key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.sortKeyRole",
@@ -365,7 +363,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The role that this key attribute will assume",
+    "tooltip" : "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "HASH",
@@ -394,7 +392,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Represents the data for an attribute",
+    "tooltip" : "S = String, N = Number, B = Binary",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Binary",
@@ -547,7 +545,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.describeTable.tableName",
@@ -573,7 +570,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.scanTable.tableName",
@@ -599,7 +595,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.filterExpression",
@@ -646,6 +641,7 @@
       } ]
     },
     "tooltip" : "A string that identifies the attributes that you want. For multiple attributes, the names must be comma-separated.",
+    "placeholder" : "Artist, SongTitle, Genre",
     "type" : "String"
   }, {
     "id" : "input.expressionAttributeNames",
@@ -691,7 +687,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Substitution values for placeholders used in the filter or projection expression. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.addItem.tableName",
@@ -717,7 +713,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.item",
@@ -769,7 +764,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.deleteItem.primaryKeyComponents",
@@ -821,7 +815,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.getItem.primaryKeyComponents",
@@ -873,7 +866,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Name of DynamoDB table",
     "type" : "String"
   }, {
     "id" : "input.updateItem.primaryKeyComponents",
@@ -925,7 +917,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
+    "tooltip" : "Attribute values to write to the item. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>",
     "type" : "String"
   }, {
     "id" : "input.attributeAction",
@@ -950,7 +942,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Specifies how to perform the update",
+    "tooltip" : "PUT = set the attribute value, DELETE = remove the attribute",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "PUT",

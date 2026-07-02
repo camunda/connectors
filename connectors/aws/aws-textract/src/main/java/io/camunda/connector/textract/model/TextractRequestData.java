@@ -117,6 +117,7 @@ public record TextractRequestData(
         boolean analyzeLayout,
     @TemplateProperty(
             label = "Analyze queries",
+            tooltip = "Select this to return an answer to a query run against the document.",
             group = "input",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
@@ -125,6 +126,9 @@ public record TextractRequestData(
         boolean analyzeQueries,
     @TemplateProperty(
             label = "Query",
+            tooltip =
+                "A natural-language question applied to the document; Textract returns the extracted answer.",
+            placeholder = "What is the IBAN in the invoice?",
             group = "input",
             type = TemplateProperty.PropertyType.String,
             condition =

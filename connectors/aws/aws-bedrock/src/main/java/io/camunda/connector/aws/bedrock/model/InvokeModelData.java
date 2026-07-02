@@ -36,7 +36,8 @@ public final class InvokeModelData implements RequestData {
       group = "invokeModel",
       id = "data.modelId0",
       tooltip =
-          "<a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">AWS Bedrock model IDs</a>",
+          "ID of the model to invoke. See <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">AWS Bedrock model IDs</a>.",
+      placeholder = "amazon.titan-text-express-v1",
       feel = FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.modelId"))
   @Valid
@@ -47,7 +48,7 @@ public final class InvokeModelData implements RequestData {
       label = "Payload",
       group = "invokeModel",
       tooltip =
-          "<a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html\" target=\"_blank\">AWS Bedrock model parameters</a>",
+          "Request body sent to the model, whose structure depends on the model. See <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html\" target=\"_blank\">AWS Bedrock model parameters</a>.",
       id = "data.payload",
       feel = FeelMode.required,
       binding = @TemplateProperty.PropertyBinding(name = "data.payload"))

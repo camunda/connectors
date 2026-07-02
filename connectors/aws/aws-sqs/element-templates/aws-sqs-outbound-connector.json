@@ -67,7 +67,6 @@
   }, {
     "id" : "authentication.accessKey",
     "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -83,11 +82,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "authentication.secretKey",
     "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -103,6 +102,7 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "queue.url",
@@ -144,7 +144,6 @@
   }, {
     "id" : "configuration.region",
     "label" : "Region",
-    "description" : "Specify the AWS region",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -192,6 +191,7 @@
       "name" : "queue.messageAttributes",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Optional message metadata as a map keyed by attribute name, each value having a StringValue and DataType, following the <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html#sqs-message-attributes\" target=\"_blank\">SQS message attribute format</a>.",
     "type" : "Text"
   }, {
     "id" : "queue.messageGroupId",

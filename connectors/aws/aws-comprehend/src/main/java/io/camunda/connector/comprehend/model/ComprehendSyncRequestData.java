@@ -36,7 +36,7 @@ public record ComprehendSyncRequestData(
             group = "input",
             label = "Endpoint's ARN",
             tooltip =
-                "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-EndpointArn\">ARN of Endpoint.</a>")
+                "ARN of the custom model <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_ClassifyDocument.html#comprehend-ClassifyDocument-request-EndpointArn\">endpoint</a> used to run the classification.")
         @NotNull
         String endpointArn)
     implements ComprehendRequestData {

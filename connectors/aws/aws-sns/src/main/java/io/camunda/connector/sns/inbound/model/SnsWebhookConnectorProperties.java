@@ -42,7 +42,9 @@ public record SnsWebhookConnectorProperties(
             id = "topicsAllowList",
             label = "Topic ARN(s)",
             group = "subscription",
-            tooltip = "Comma-separated topic ARNs that are allowed to trigger the process",
+            tooltip = "Topic ARNs that are allowed to trigger the process, comma-separated",
+            placeholder =
+                "arn:aws:sns:us-east-1:123456789012:Topic1,arn:aws:sns:us-east-1:123456789012:Topic2",
             optional = true,
             condition =
                 @PropertyCondition(

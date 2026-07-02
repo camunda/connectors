@@ -67,7 +67,6 @@
   }, {
     "id" : "authentication.accessKey",
     "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -83,11 +82,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "authentication.secretKey",
     "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -103,6 +102,7 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "topic.topicArn",
@@ -117,7 +117,7 @@
       "name" : "topic.topicArn",
       "type" : "zeebe:input"
     },
-    "tooltip" : "ARN of the SNS topic to publish to.",
+    "placeholder" : "arn:aws:sns:us-east-1:123456789012:MyTopic",
     "type" : "String"
   }, {
     "id" : "topic.type",
@@ -132,7 +132,7 @@
       "name" : "topic.type",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Details at <a href=\"https://aws.amazon.com/sns/features/\">AWS SNS features</a>",
+    "tooltip" : "Standard topics maximize throughput; FIFO topics preserve ordering and deduplication. See <a href=\"https://aws.amazon.com/sns/features/\" target=\"_blank\">AWS SNS features</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Standard",
@@ -144,7 +144,6 @@
   }, {
     "id" : "configuration.region",
     "label" : "Region",
-    "description" : "Specify the AWS region",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -182,7 +181,7 @@
       "equals" : "fifo",
       "type" : "simple"
     },
-    "tooltip" : "Required for FIFO topics. See <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-grouping.html\">message grouping for FIFO topics</a> in the Amazon SNS developer guide",
+    "tooltip" : "Required for FIFO topics. See <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-grouping.html\" target=\"_blank\">message grouping for FIFO topics</a> in the Amazon SNS developer guide",
     "type" : "String"
   }, {
     "id" : "topic.messageDeduplicationId",
@@ -199,7 +198,7 @@
       "equals" : "fifo",
       "type" : "simple"
     },
-    "tooltip" : "See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\">Message deduplication for FIFO topics</a> in the Amazon SNS developer guide",
+    "tooltip" : "Suppresses duplicate messages within a five-minute window. See <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\" target=\"_blank\">message deduplication for FIFO topics</a> in the Amazon SNS developer guide",
     "type" : "String"
   }, {
     "id" : "topic.subject",
@@ -211,7 +210,6 @@
       "name" : "topic.subject",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Subject of the message to publish in the SNS topic.",
     "type" : "String"
   }, {
     "id" : "topic.message",
@@ -226,7 +224,6 @@
       "name" : "topic.message",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Data to publish in the SNS topic",
     "type" : "Text"
   }, {
     "id" : "topic.messageAttributes",

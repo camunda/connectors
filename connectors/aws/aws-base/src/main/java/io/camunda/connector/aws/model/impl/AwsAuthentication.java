@@ -41,15 +41,15 @@ public sealed interface AwsAuthentication
       @TemplateProperty(
               group = "authentication",
               label = "Access key",
-              description =
-                  "Provide an IAM access key tailored to a user, equipped with the necessary permissions")
+              tooltip =
+                  "IAM access key of a user with the necessary permissions for this connector")
           @NotBlank
           String accessKey,
       @TemplateProperty(
               group = "authentication",
               label = "Secret key",
-              description =
-                  "Provide a secret key of a user with permissions to invoke specified AWS Lambda function")
+              tooltip =
+                  "IAM secret key of a user with the necessary permissions for this connector")
           @NotBlank
           String secretKey)
       implements AwsAuthentication {

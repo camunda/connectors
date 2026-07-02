@@ -59,7 +59,9 @@ public class QueueRequestData {
       group = "input",
       type = TemplateProperty.PropertyType.Text,
       optional = true,
-      feel = FeelMode.required)
+      feel = FeelMode.required,
+      tooltip =
+          "Optional message metadata as a map keyed by attribute name, each value having a StringValue and DataType, following the <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html#sqs-message-attributes\" target=\"_blank\">SQS message attribute format</a>.")
   private Map<String, SqsMessageAttribute> messageAttributes;
 
   @TemplateProperty(

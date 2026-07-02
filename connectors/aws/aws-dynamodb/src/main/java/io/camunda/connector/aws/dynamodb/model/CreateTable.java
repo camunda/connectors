@@ -18,12 +18,7 @@ import jakarta.validation.constraints.NotNull;
     description = "Create a new DynamoDB table",
     keywords = {"create table", "new table", "provision table"})
 public record CreateTable(
-    @TemplateProperty(
-            label = "Table name",
-            id = "createTable.tableName",
-            group = "input",
-            tooltip = "Name of DynamoDB table")
-        @NotBlank
+    @TemplateProperty(label = "Table name", id = "createTable.tableName", group = "input") @NotBlank
         String tableName,
     @TemplateProperty(
             group = "input",
@@ -51,7 +46,7 @@ public record CreateTable(
               @TemplateProperty.DropdownPropertyChoice(value = "N", label = "Number"),
               @TemplateProperty.DropdownPropertyChoice(value = "S", label = "String")
             },
-            tooltip = "Represents the data for an attribute")
+            tooltip = "S = String, N = Number, B = Binary")
         @NotBlank
         String partitionKeyType,
     @TemplateProperty(
@@ -59,7 +54,7 @@ public record CreateTable(
             group = "input",
             optional = true,
             tooltip =
-                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
+                "Attribute name of the table's sort key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         String sortKey,
     @TemplateProperty(
             label = "Sort key role",
@@ -70,7 +65,8 @@ public record CreateTable(
               @TemplateProperty.DropdownPropertyChoice(value = "HASH", label = "HASH"),
               @TemplateProperty.DropdownPropertyChoice(value = "RANGE", label = "RANGE")
             },
-            tooltip = "The role that this key attribute will assume")
+            tooltip =
+                "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         String sortKeyRole,
     @TemplateProperty(
             label = "Sort key attribute data type",
@@ -82,7 +78,7 @@ public record CreateTable(
               @TemplateProperty.DropdownPropertyChoice(value = "N", label = "Number"),
               @TemplateProperty.DropdownPropertyChoice(value = "S", label = "String")
             },
-            tooltip = "Represents the data for an attribute")
+            tooltip = "S = String, N = Number, B = Binary")
         String sortKeyType,
     @TemplateProperty(
             label = "Read capacity units",

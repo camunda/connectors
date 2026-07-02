@@ -12,10 +12,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 
 public record AwsBaseConfiguration(
-    @TemplateProperty(
-            group = "configuration",
-            description = "Specify the AWS region",
-            constraints = @PropertyConstraints(notEmpty = true))
+    @TemplateProperty(group = "configuration", constraints = @PropertyConstraints(notEmpty = true))
         String region,
     @TemplateProperty(
             group = "configuration",
