@@ -202,7 +202,7 @@ class CamundaAgentInstanceClientTest {
     void shouldReturnKeyAndRecordOneSleepWhenRetryableErrorPrecedesSuccess() {
       givenCreateCommandWithMaxModelCalls();
       when(step5.execute())
-          .thenThrow(new ClientHttpException(404, "Not Found"))
+          .thenThrow(new ClientHttpException(503, "Service Unavailable"))
           .thenReturn(response);
       when(response.getAgentInstanceKey()).thenReturn(999L);
 
@@ -212,6 +212,25 @@ class CamundaAgentInstanceClientTest {
       assertThat(recordedSleeps).hasSize(1);
       assertThat(recordedSleeps).containsExactly(Duration.ofSeconds(1));
       verify(camundaClient, times(2)).newCreateAgentInstanceCommand();
+    }
+
+    @Test
+    void shouldThrowConnectorExceptionImmediatelyForHttp404PermanentError() {
+      // given: a 404 from the create endpoint (x-eventually-consistent: false) means the
+      // referenced element instance genuinely doesn't exist, not a not-yet-visible record
+      givenCreateCommandWithMaxModelCalls();
+      when(step5.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
+
+      assertThatThrownBy(() -> client.create(TestAgentExecutionContext.withLimits()))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e ->
+                  assertThat(e.getErrorCode())
+                      .isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED));
+
+      // Only 1 attempt, no sleeps
+      assertThat(recordedSleeps).isEmpty();
+      verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
     }
 
     @Test
@@ -325,13 +344,15 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void shouldRetry404ForUpdateDueToEventualConsistency() {
-      // given: a freshly created agent instance may not yet be visible to the update call
+    void shouldThrowConnectorExceptionImmediatelyForHttp404PermanentError() {
+      // given: the update endpoint is x-eventually-consistent: false and Zeebe key-based
+      // partition routing guarantees the create is visible before the key is returned, so a 404
+      // means the agent instance genuinely doesn't exist rather than being not-yet-visible
       givenUpdateCommand();
       final var agentInstanceKey = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
       when(updateCommandStep2.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
-      // when / then: 404 is retryable for update → retries are exhausted before failing
+      // when / then: 404 is permanent for update → fails immediately, no retries
       assertThatThrownBy(
               () ->
                   client.update(
@@ -342,8 +363,8 @@ class CamundaAgentInstanceClientTest {
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED));
 
-      assertThat(recordedSleeps).hasSize(4);
-      verify(camundaClient, times(5)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
+      assertThat(recordedSleeps).isEmpty();
+      verify(camundaClient, times(1)).newUpdateAgentInstanceCommand(AGENT_INSTANCE_KEY);
     }
 
     @Test

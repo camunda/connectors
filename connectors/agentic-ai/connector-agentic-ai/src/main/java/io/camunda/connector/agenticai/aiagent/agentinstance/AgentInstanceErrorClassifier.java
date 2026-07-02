@@ -10,32 +10,19 @@ import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.connector.agenticai.common.util.retry.ErrorClassifier;
 import java.io.IOException;
 
-public final class AgentInstanceErrorClassifier implements ErrorClassifier {
-
-  /** For create: 404 is retryable (idempotent re-create against a transient lookup race). */
-  public static final AgentInstanceErrorClassifier FOR_CREATE =
-      new AgentInstanceErrorClassifier(true);
-
-  /**
-   * For update: 404 is retryable. A just-created agent instance may not yet be visible to follow-up
-   * API calls due to eventual consistency, so a transient 404 should be retried rather than failing
-   * the job.
-   */
-  public static final AgentInstanceErrorClassifier FOR_UPDATE =
-      new AgentInstanceErrorClassifier(true);
-
-  /**
-   * For history item creation: 404 is retryable for the same eventual-consistency reason as {@link
-   * #FOR_UPDATE}.
-   */
-  public static final AgentInstanceErrorClassifier FOR_HISTORY_ITEM =
-      new AgentInstanceErrorClassifier(true);
-
-  private final boolean notFoundIsRetryable;
-
-  private AgentInstanceErrorClassifier(boolean notFoundIsRetryable) {
-    this.notFoundIsRetryable = notFoundIsRetryable;
-  }
+/**
+ * Shared classifier for the agent-instance write endpoints (create, update, history item creation).
+ * All three are {@code x-eventually-consistent: false} and are validated against primary processing
+ * state, with Zeebe's key-based partition routing guaranteeing a create is visible to the same
+ * partition before its key is ever returned to the caller. A {@code 404} from update/history means
+ * the referenced agent instance genuinely doesn't exist (wrong/stale key, or since
+ * completed/terminated); from create it means the referenced element instance doesn't exist. Either
+ * way it reflects a genuinely missing entity rather than a not-yet-visible record, so it is
+ * classified as permanent along with the other 4xx responses. {@code 429} is the exception: it
+ * signals rate limiting rather than a semantic error, so it is retried like a 5xx.
+ */
+public enum AgentInstanceErrorClassifier implements ErrorClassifier {
+  INSTANCE;
 
   @Override
   public Decision classify(Throwable t) {
@@ -43,14 +30,11 @@ public final class AgentInstanceErrorClassifier implements ErrorClassifier {
     while (current != null) {
       if (current instanceof ClientHttpException httpEx) {
         int status = httpEx.code();
-        if (status == 404) {
-          return notFoundIsRetryable ? Decision.RETRYABLE : Decision.PERMANENT;
-        }
-        if (status >= 400 && status < 500) {
-          return Decision.PERMANENT;
-        }
-        if (status >= 500) {
+        if (status == 429 || status >= 500) {
           return Decision.RETRYABLE;
+        }
+        if (status >= 400) {
+          return Decision.PERMANENT;
         }
       }
 

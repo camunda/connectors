@@ -1517,10 +1517,15 @@ connector behavior, element template properties, or data model shapes, update th
 ## 23. Agent Instance Integration
 
 The agent reports its lifecycle to the engine's **agent instance** API via `AgentInstanceClient`
-(`CamundaAgentInstanceClient`). All calls silently skip when the `agentInstanceKey` is `null` (agents
-that pre-date the feature) and retry transient failures via `CamundaApiRetry`. A `404` is treated as
-**retryable** for updates and history items, because a freshly created agent instance may not yet be
-visible to follow-up calls (eventual consistency).
+(`CamundaAgentInstanceClient`). Update and history calls silently skip when the `agentInstanceKey` is
+`null` (agents that pre-date the feature); create has no such key to check, since it produces one. All
+calls retry transient failures via `CamundaApiRetry`. A `404` is treated as **permanent** (not
+retried) for create, update, and history items: all three write endpoints are
+`x-eventually-consistent: false` and are validated against primary processing state, with Zeebe's
+key-based partition routing guaranteeing the create is visible to the same partition before the key
+is ever returned to the caller. For update/history a `404` means the agent instance genuinely doesn't
+exist, not that it isn't visible yet; for create it means the referenced element instance doesn't
+exist.
 
 ### Status & metrics
 
