@@ -18,14 +18,19 @@ package io.camunda.connector.runtime.metrics;
 
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ConnectorsInboundMetrics {
 
   private final MeterRegistry meterRegistry;
   private final Map<String, Counter> activationCounter = new ConcurrentHashMap<>();
+  private final Map<String, AtomicLong> lastActivatedGauges = new ConcurrentHashMap<>();
+  private final Map<String, AtomicLong> lastTriggeredGauges = new ConcurrentHashMap<>();
 
   public ConnectorsInboundMetrics(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
@@ -44,6 +49,7 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
+    recordLastActivated(result.type());
   }
 
   public void increaseDeactivation(InboundConnectorElement connectorElement) {
@@ -123,6 +129,7 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
+    recordLastTriggered(result.type());
   }
 
   public void increaseActivationConditionFailure(InboundConnectorElement connectorElement) {
@@ -140,5 +147,35 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
+  }
+
+  private void recordLastActivated(String type) {
+    lastActivatedGauges
+        .computeIfAbsent(
+            type,
+            t -> {
+              AtomicLong holder = new AtomicLong(0);
+              Gauge.builder(
+                      ConnectorMetrics.Inbound.METRIC_NAME_LAST_ACTIVATED, holder, AtomicLong::get)
+                  .tag(ConnectorMetrics.Tag.TYPE, t)
+                  .register(meterRegistry);
+              return holder;
+            })
+        .set(Instant.now().toEpochMilli());
+  }
+
+  private void recordLastTriggered(String type) {
+    lastTriggeredGauges
+        .computeIfAbsent(
+            type,
+            t -> {
+              AtomicLong holder = new AtomicLong(0);
+              Gauge.builder(
+                      ConnectorMetrics.Inbound.METRIC_NAME_LAST_TRIGGERED, holder, AtomicLong::get)
+                  .tag(ConnectorMetrics.Tag.TYPE, t)
+                  .register(meterRegistry);
+              return holder;
+            })
+        .set(Instant.now().toEpochMilli());
   }
 }

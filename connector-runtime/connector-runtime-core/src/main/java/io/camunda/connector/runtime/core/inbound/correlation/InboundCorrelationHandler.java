@@ -356,10 +356,6 @@ public class InboundCorrelationHandler {
     return activationConditionEvaluator.checkActivation(elements, context);
   }
 
-  protected boolean isActivationConditionMet(InboundConnectorElement definition, Object context) {
-    return activationConditionEvaluator.isActivationConditionMet(definition, context);
-  }
-
   protected Optional<String> extractCorrelationKey(
       String correlationKeyExpression, Object context) {
     Optional<String> correlationKey;
