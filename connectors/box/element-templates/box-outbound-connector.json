@@ -5,7 +5,7 @@
   "description" : "Interact with the Box Document API",
   "keywords" : [ "create folder", "delete folder", "upload file", "download file", "move file", "delete file", "search files", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/box/",
-  "version" : 3,
+  "version" : 4,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,11 +18,11 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "authentication",
-    "label" : "Authentication"
-  }, {
     "id" : "operation",
     "label" : "Operation"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -43,190 +43,6 @@
       "type" : "zeebe:taskDefinition"
     },
     "type" : "Hidden"
-  }, {
-    "id" : "authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify authentication strategy. Learn more at the <a href=\"https://developer.box.com/guides/authentication/\" target=\"_blank\">documentation page</a>",
-    "value" : "developerToken",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.type",
-      "type" : "zeebe:input"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Client Credentials Enterprise",
-      "value" : "clientCredentialsEnterprise"
-    }, {
-      "name" : "Client Credentials User",
-      "value" : "clientCredentialsUser"
-    }, {
-      "name" : "Developer token",
-      "value" : "developerToken"
-    }, {
-      "name" : "JWT JSON Config",
-      "value" : "jwtJsonConfig"
-    } ]
-  }, {
-    "id" : "authentication.clientIdEnterprise",
-    "label" : "Client id",
-    "description" : "The client id",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "clientCredentialsEnterprise",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientSecretEnterprise",
-    "label" : "Client secret",
-    "description" : "The client secret",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "clientCredentialsEnterprise",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.enterpriseId",
-    "label" : "Enterprise ID",
-    "description" : "The enterprise ID to authenticate against",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.enterpriseId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "clientCredentialsEnterprise",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientIdUser",
-    "label" : "Client id",
-    "description" : "The client id",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "clientCredentialsUser",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientSecretUser",
-    "label" : "Client secret",
-    "description" : "The client secret",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "clientCredentialsUser",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.userId",
-    "label" : "User ID",
-    "description" : "The user ID to of the account to authenticate against",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.userId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "clientCredentialsUser",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.accessToken",
-    "label" : "Access key",
-    "description" : "The access key or developer token",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.accessToken",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "developerToken",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.jsonConfig",
-    "label" : "JSON config",
-    "description" : "The JSON config as string",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.jsonConfig",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "jwtJsonConfig",
-      "type" : "simple"
-    },
-    "type" : "String"
   }, {
     "id" : "operation.type",
     "label" : "Operation",
@@ -724,10 +540,194 @@
     },
     "type" : "Number"
   }, {
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify authentication strategy. Learn more at the <a href=\"https://developer.box.com/guides/authentication/\" target=\"_blank\">documentation page</a>",
+    "value" : "developerToken",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Client Credentials Enterprise",
+      "value" : "clientCredentialsEnterprise"
+    }, {
+      "name" : "Client Credentials User",
+      "value" : "clientCredentialsUser"
+    }, {
+      "name" : "Developer token",
+      "value" : "developerToken"
+    }, {
+      "name" : "JWT JSON Config",
+      "value" : "jwtJsonConfig"
+    } ]
+  }, {
+    "id" : "authentication.clientIdEnterprise",
+    "label" : "Client id",
+    "description" : "The client id",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "clientCredentialsEnterprise",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.clientSecretEnterprise",
+    "label" : "Client secret",
+    "description" : "The client secret",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "clientCredentialsEnterprise",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.enterpriseId",
+    "label" : "Enterprise ID",
+    "description" : "The enterprise ID to authenticate against",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.enterpriseId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "clientCredentialsEnterprise",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.clientIdUser",
+    "label" : "Client id",
+    "description" : "The client id",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "clientCredentialsUser",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.clientSecretUser",
+    "label" : "Client secret",
+    "description" : "The client secret",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "clientCredentialsUser",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.userId",
+    "label" : "User ID",
+    "description" : "The user ID to of the account to authenticate against",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.userId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "clientCredentialsUser",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.accessToken",
+    "label" : "Access key",
+    "description" : "The access key or developer token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.accessToken",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "developerToken",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.jsonConfig",
+    "label" : "JSON config",
+    "description" : "The JSON config as string",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.jsonConfig",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "jwtJsonConfig",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "3",
+    "value" : "4",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -800,6 +800,78 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
+  } ],
+  "steps" : [ {
+    "name" : "Create Folder",
+    "description" : "Create a new folder in Box",
+    "keywords" : [ "create folder", "new folder", "add directory", "make folder" ],
+    "presetId" : "type_createFolder"
+  }, {
+    "name" : "Delete Folder",
+    "description" : "Delete a folder from Box",
+    "keywords" : [ "delete folder", "remove folder", "trash folder", "erase directory" ],
+    "presetId" : "type_deleteFolder"
+  }, {
+    "name" : "Upload File",
+    "description" : "Upload a file to Box",
+    "keywords" : [ "upload file", "store file", "save document", "put file", "publish file" ],
+    "presetId" : "type_uploadFile"
+  }, {
+    "name" : "Download File",
+    "description" : "Download a file from Box",
+    "keywords" : [ "download file", "get file", "fetch file", "retrieve document", "export file" ],
+    "presetId" : "type_downloadFile"
+  }, {
+    "name" : "Move File",
+    "description" : "Move a file to a different folder in Box",
+    "keywords" : [ "move file", "relocate file", "transfer file", "cut file" ],
+    "presetId" : "type_moveFile"
+  }, {
+    "name" : "Delete File",
+    "description" : "Delete a file from Box",
+    "keywords" : [ "delete file", "remove file", "erase file", "trash file" ],
+    "presetId" : "type_deleteFile"
+  }, {
+    "name" : "Search",
+    "description" : "Search for files and folders in Box",
+    "keywords" : [ "search", "find files", "look up content", "query files", "locate documents" ],
+    "presetId" : "type_search"
+  } ],
+  "presets" : [ {
+    "id" : "type_createFolder",
+    "properties" : {
+      "operation.type" : "createFolder"
+    }
+  }, {
+    "id" : "type_deleteFolder",
+    "properties" : {
+      "operation.type" : "deleteFolder"
+    }
+  }, {
+    "id" : "type_uploadFile",
+    "properties" : {
+      "operation.type" : "uploadFile"
+    }
+  }, {
+    "id" : "type_downloadFile",
+    "properties" : {
+      "operation.type" : "downloadFile"
+    }
+  }, {
+    "id" : "type_moveFile",
+    "properties" : {
+      "operation.type" : "moveFile"
+    }
+  }, {
+    "id" : "type_deleteFile",
+    "properties" : {
+      "operation.type" : "deleteFile"
+    }
+  }, {
+    "id" : "type_search",
+    "properties" : {
+      "operation.type" : "search"
+    }
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE1LjY5MjkgMTEuMjAwMkMxNS44ODggMTEuNDczNCAxNS44NDkgMTEuODI0NiAxNS42MTQ4IDEyLjAxOTdDMTUuMzQxNyAxMi4yMTQ4IDE0Ljk1MTQgMTIuMTc1OCAxNC43NTYzIDExLjk0MTdMMTMuMzkwNCAxMC4xODU2TDEyLjA2MzYgMTEuOTAyNkMxMS44Njg1IDEyLjE3NTggMTEuNDc4MiAxMi4xNzU4IDExLjIwNTEgMTEuOTgwN0MxMC45MzE5IDExLjc4NTYgMTAuODkyOSAxMS40MzQzIDExLjA4OCAxMS4xNjEyTDEyLjY0OSA5LjEzMTkxTDExLjA4OCA3LjEwMjY0QzEwLjg5MjkgNi44Mjk0NyAxMC45NzA5IDYuNDM5MjMgMTEuMjA1MSA2LjI0NDFDMTEuNDc4MiA2LjA0ODk4IDExLjg2ODUgNi4xMjcwMyAxMi4wNjM2IDYuMzYxMThMMTMuMzkwNCA4LjExNzI4TDE0Ljc1NjMgNi40MzkyM0MxNC45NTE0IDYuMTY2MDYgMTUuMzAyNiA2LjEyNzAzIDE1LjYxNDggNi4zMjIxNUMxNS44ODggNi41MTcyOCAxNS44ODggNi45MDc1MiAxNS42OTI5IDcuMTgwNjlMMTQuMTcwOSA5LjE3MDkzTDE1LjY5MjkgMTEuMjAwMlpNOC41OTA0NCAxMC45NjYxQzcuNTc1OCAxMC45NjYxIDYuNzU2MjkgMTAuMTg1NiA2Ljc1NjI5IDkuMTcwOTNDNi43NTYyOSA4LjE5NTMyIDcuNTc1OCA3LjM3NTgxIDguNTkwNDQgNy4zNzU4MUM5LjYwNTA3IDcuMzc1ODEgMTAuNDI0NiA4LjE5NTMyIDEwLjQyNDYgOS4xNzA5M0MxMC4zODU2IDEwLjE4NTYgOS41NjYwNSAxMC45NjYxIDguNTkwNDQgMTAuOTY2MVpNMy4yMDUwNyAxMC45NjYxQzIuMTkwNDQgMTAuOTY2MSAxLjM3MDkzIDEwLjE4NTYgMS4zNzA5MyA5LjE3MDkzQzEuMzcwOTMgOC4xOTUzMiAyLjE5MDQ0IDcuMzc1ODEgMy4yMDUwNyA3LjM3NTgxQzQuMjE5NzEgNy4zNzU4MSA1LjAzOTIyIDguMTk1MzIgNS4wMzkyMiA5LjE3MDkzQzUuMDM5MjIgMTAuMTg1NiA0LjIxOTcxIDEwLjk2NjEgMy4yMDUwNyAxMC45NjYxWk04LjU5MDQ0IDYuMjA1MDhDNy40NTg3MyA2LjIwNTA4IDYuNDQ0MSA2LjgyOTQ3IDUuOTM2NzggNy43NjYwNkM1LjQyOTQ2IDYuODI5NDcgNC40MTQ4MyA2LjIwNTA4IDMuMjQ0MSA2LjIwNTA4QzIuNTQxNjYgNi4yMDUwOCAxLjkxNzI3IDYuNDM5MjMgMS40MDk5NSA2Ljc5MDQ1VjQuMjkyODlDMS40MDk5NSAzLjk4MDY5IDEuMTM2NzggMy43MDc1MiAwLjgyNDU4NiAzLjcwNzUyQzAuNDczMzY2IDMuNzA3NTIgMC4yMDAxOTUgMy45ODA2OSAwLjIwMDE5NSA0LjI5Mjg5VjkuMjA5OTZDMC4yMzkyMiAxMC44NDkgMS41NjYwNSAxMi4xMzY4IDMuMjA1MDcgMTIuMTM2OEM0LjM3NTggMTIuMTM2OCA1LjM5MDQ0IDExLjQ3MzQgNS44OTc3NiAxMC41MzY4QzYuNDA1MDcgMTEuNDczNCA3LjQxOTcxIDEyLjEzNjggOC41NTE0MSAxMi4xMzY4QzEwLjIyOTUgMTIuMTM2OCAxMS41OTUzIDEwLjgxIDExLjU5NTMgOS4xMzE5MUMxMS42MzQzIDcuNTMxOTEgMTAuMjY4NSA2LjIwNTA4IDguNTkwNDQgNi4yMDUwOFoiIGZpbGw9IiMwMDcxRjciLz4KPC9zdmc+Cg=="
