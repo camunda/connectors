@@ -52,8 +52,9 @@ public class McpSdkClientFactory implements McpClientFactory {
                 McpSchema.Implementation.builder("Camunda 8 MCP Connector", "1.0.0").build())
             .capabilities(McpSchema.ClientCapabilities.builder().roots(false).build());
 
-    Optional.ofNullable(config.initializationTimeout()).map(clientBuilder::initializationTimeout);
-    Optional.ofNullable(config.toolExecutionTimeout()).map(clientBuilder::requestTimeout);
+    Optional.ofNullable(config.initializationTimeout())
+        .ifPresent(clientBuilder::initializationTimeout);
+    Optional.ofNullable(config.toolExecutionTimeout()).ifPresent(clientBuilder::requestTimeout);
 
     return new McpSdkMcpClientDelegate(clientId, clientBuilder.build(), objectMapper);
   }
