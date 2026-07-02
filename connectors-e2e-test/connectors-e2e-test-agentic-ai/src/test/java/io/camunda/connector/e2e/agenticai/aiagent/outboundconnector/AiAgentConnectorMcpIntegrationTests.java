@@ -291,6 +291,8 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
                   assertThat(toolExecutionRequest.arguments())
                       .containsExactly(entry("paramA1", "someValue"), entry("paramA2", 3));
+                  assertThat(toolExecutionRequest.meta())
+                      .containsExactly(entry("exampleMetaKey", "exampleMetaValue"));
                 }));
     verify(aHttpRemoteMcpClient)
         .callTool(
@@ -299,6 +301,9 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
                   assertThat(toolExecutionRequest.arguments())
                       .containsExactly(entry("paramC1", "someOtherValue"));
+                  // A_HTTP_Remote_MCP_Client never configures `meta` - proves the
+                  // backwards-compatible default (no `_meta` sent when unconfigured).
+                  assertThat(toolExecutionRequest.meta()).isNull();
                 }));
     verify(aSseRemoteMcpClient)
         .callTool(
