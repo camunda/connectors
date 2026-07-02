@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
@@ -40,12 +41,12 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  public boolean isActivationConditionMet(InboundConnectorElement def, Object context) {
-    boolean isConditionMet = super.isActivationConditionMet(def, context);
-    if (!isConditionMet) {
-      this.connectorsInboundMetrics.increaseActivationConditionFailure(def);
+  public ActivationCheckResult canActivate(List<InboundConnectorElement> elements, Object context) {
+    var result = super.canActivate(elements, context);
+    if (result instanceof ActivationCheckResult.Failure.NoMatchingElement && !elements.isEmpty()) {
+      connectorsInboundMetrics.increaseActivationConditionFailure(elements.getFirst());
     }
-    return isConditionMet;
+    return result;
   }
 
   @Override
