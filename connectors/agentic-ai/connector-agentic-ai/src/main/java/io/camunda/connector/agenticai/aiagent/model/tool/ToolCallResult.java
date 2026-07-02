@@ -54,6 +54,7 @@ public record ToolCallResult(
         .id(id)
         .name(name)
         .content(CONTENT_CANCELLED)
+        .completedAt(OffsetDateTime.now())
         .properties(Map.of(PROPERTY_INTERRUPTED, true))
         .build();
   }

@@ -71,6 +71,9 @@ class ToolCallResultTest {
     assertThat(deserialized.content()).isEqualTo(ToolCallResult.CONTENT_CANCELLED);
     assertThat(deserialized.properties())
         .isEqualTo(Map.of(ToolCallResult.PROPERTY_INTERRUPTED, true));
+    // a cancelled result is never seen again by the ingestion normalization step, so it must
+    // stamp its own completedAt at creation time to satisfy the "always non-null" invariant
+    assertThat(deserialized.completedAt()).isNotNull();
   }
 
   @Test
