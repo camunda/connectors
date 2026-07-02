@@ -9,9 +9,19 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import java.io.IOException;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -23,6 +33,13 @@ public record ToolCallResult(
     @Nullable String name,
     @Nullable String elementId,
     @Nullable Object content,
+    // engine-sourced completion timestamp (AHSP outputElement's completedAt: now()); absent for
+    // results not produced by an AHSP tool element on a v11+ template, resolved by ingestion
+    // normalization (see ADR 008)
+    @Nullable
+        @JsonSerialize(using = ToolCallResult.CompletedAtSerializer.class)
+        @JsonDeserialize(using = ToolCallResult.CompletedAtDeserializer.class)
+        OffsetDateTime completedAt,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @JsonAnySetter @JsonAnyGetter
         Map<String, Object> properties)
     implements ToolCallResultBuilder.With {
@@ -78,6 +95,28 @@ public record ToolCallResult(
         super.properties(merged);
       }
       return super.build();
+    }
+  }
+
+  /**
+   * Parses the FEEL {@code now()} string form produced by the AHSP outputElement, which carries an
+   * offset plus a bracketed zone id (e.g. {@code 2026-07-02T11:55:00.522622+02:00[Europe/Berlin]})
+   * that bare {@code OffsetDateTime.parse(text)} cannot handle. Also accepts the plain offset form
+   * (no brackets), so it round-trips values written by {@link CompletedAtSerializer}.
+   */
+  public static final class CompletedAtDeserializer extends JsonDeserializer<OffsetDateTime> {
+    @Override
+    public OffsetDateTime deserialize(JsonParser p, DeserializationContext ctxt)
+        throws IOException {
+      return OffsetDateTime.parse(p.getValueAsString(), DateTimeFormatter.ISO_ZONED_DATE_TIME);
+    }
+  }
+
+  public static final class CompletedAtSerializer extends JsonSerializer<OffsetDateTime> {
+    @Override
+    public void serialize(OffsetDateTime value, JsonGenerator gen, SerializerProvider serializers)
+        throws IOException {
+      gen.writeString(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(value));
     }
   }
 }
