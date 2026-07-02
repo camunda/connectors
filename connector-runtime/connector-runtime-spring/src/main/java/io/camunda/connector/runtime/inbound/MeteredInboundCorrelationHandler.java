@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
@@ -41,15 +40,6 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  public ActivationCheckResult canActivate(List<InboundConnectorElement> elements, Object context) {
-    var result = super.canActivate(elements, context);
-    if (result instanceof ActivationCheckResult.Failure.NoMatchingElement && !elements.isEmpty()) {
-      connectorsInboundMetrics.increaseActivationConditionFailure(elements.getFirst());
-    }
-    return result;
-  }
-
-  @Override
   public CorrelationResult correlate(
       List<InboundConnectorElement> elementList, CorrelationRequest correlationRequest) {
     if (elementList.isEmpty()) {
@@ -58,7 +48,11 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
     this.connectorsInboundMetrics.increaseTrigger(elementList.getFirst());
     try {
       var result = super.correlate(elementList, correlationRequest);
-      this.connectorsInboundMetrics.increaseCorrelationSuccess(elementList.getFirst());
+      if (result instanceof CorrelationResult.Failure.ActivationConditionNotMet) {
+        this.connectorsInboundMetrics.increaseActivationConditionFailure(elementList.getFirst());
+      } else {
+        this.connectorsInboundMetrics.increaseCorrelationSuccess(elementList.getFirst());
+      }
       return result;
     } catch (Exception e) {
       this.connectorsInboundMetrics.increaseCorrelationFailure(elementList.getFirst());
