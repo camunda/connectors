@@ -42,22 +42,19 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
       "inbox"
     },
     inputDataClass = EmailRequest.class,
-    version = 5,
+    version = 6,
     propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
-      @ElementTemplate.PropertyGroup(id = "protocol", label = "Protocol"),
-      @ElementTemplate.PropertyGroup(id = "smtpAction", label = "SMTP Action"),
-      @ElementTemplate.PropertyGroup(id = "pop3Action", label = "POP3 Action"),
-      @ElementTemplate.PropertyGroup(id = "imapAction", label = "IMAP Action"),
       @ElementTemplate.PropertyGroup(id = "sendEmailSmtp", label = "Send Email"),
       @ElementTemplate.PropertyGroup(id = "listEmailsPop3", label = "List Emails"),
       @ElementTemplate.PropertyGroup(id = "searchEmailsPop3", label = "Search Emails"),
       @ElementTemplate.PropertyGroup(id = "deleteEmailPop3", label = "Delete Email"),
       @ElementTemplate.PropertyGroup(id = "readEmailPop3", label = "Read Email"),
-      @ElementTemplate.PropertyGroup(id = "listEmailsImap", label = "List Email"),
+      @ElementTemplate.PropertyGroup(id = "listEmailsImap", label = "List Emails"),
       @ElementTemplate.PropertyGroup(id = "searchEmailsImap", label = "Search Emails"),
       @ElementTemplate.PropertyGroup(id = "readEmailImap", label = "Read Email"),
-      @ElementTemplate.PropertyGroup(id = "deleteEmailImap", label = "Read Email"),
+      @ElementTemplate.PropertyGroup(id = "deleteEmailImap", label = "Delete Email"),
       @ElementTemplate.PropertyGroup(id = "moveEmailImap", label = "Move Emails")
     },
     documentationRef =

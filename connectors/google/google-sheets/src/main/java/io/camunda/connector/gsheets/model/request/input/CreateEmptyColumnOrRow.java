@@ -15,7 +15,18 @@ import io.camunda.connector.gsheets.model.request.Dimension;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "createEmptyColumnOrRow", label = "Create empty column or row")
+@TemplateSubType(
+    id = "createEmptyColumnOrRow",
+    label = "Create empty column or row",
+    description = "Insert an empty column or row into a Google Sheets worksheet",
+    keywords = {
+      "create column",
+      "create row",
+      "insert column",
+      "insert row",
+      "add column",
+      "blank row"
+    })
 public record CreateEmptyColumnOrRow(
     @TemplateProperty(
             id = "createEmptyColumnOrRow.spreadsheetId",

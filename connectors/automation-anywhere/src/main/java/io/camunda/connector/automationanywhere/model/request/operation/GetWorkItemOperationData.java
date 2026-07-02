@@ -10,7 +10,18 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "listWorkItemsInQueue", label = "Get work item result from queue by ID")
+@TemplateSubType(
+    id = "listWorkItemsInQueue",
+    label = "Get work item result from queue by ID",
+    description = "Get a work item result from an Automation Anywhere queue by ID",
+    keywords = {
+      "get work item",
+      "retrieve work item",
+      "queue item",
+      "fetch work item",
+      "work item result",
+      "read queue item"
+    })
 public record GetWorkItemOperationData(
     @TemplateProperty(
             label = "Work queue ID",

@@ -19,7 +19,11 @@ import io.camunda.connector.slack.outbound.SlackResponse;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 
-@TemplateSubType(id = "pins.add", label = "Pin Message")
+@TemplateSubType(
+    id = "pins.add",
+    label = "Pin Message",
+    description = "Pin a message in a Slack channel",
+    keywords = {"pin message", "pin", "bookmark message", "highlight message", "mark important"})
 public record PinsAddData(
     @TemplateProperty(
             label = "Channel",

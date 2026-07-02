@@ -14,7 +14,11 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "uploadObject", label = "Upload object")
+@TemplateSubType(
+    id = "uploadObject",
+    label = "Upload object",
+    description = "Upload an object to a Google Cloud Storage bucket",
+    keywords = {"upload", "store object", "save file", "put object", "publish to bucket"})
 public record UploadObject(
     @TemplateProperty(
             label = "GCP project",

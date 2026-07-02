@@ -11,7 +11,17 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(label = "List members", id = MSTeamsMethodTypes.LIST_CHANNEL_MEMBERS)
+@TemplateSubType(
+    id = MSTeamsMethodTypes.LIST_CHANNEL_MEMBERS,
+    label = "List members",
+    description = "List members of a Microsoft Teams channel",
+    keywords = {
+      "list members",
+      "channel members",
+      "get channel members",
+      "fetch members",
+      "member roster"
+    })
 public record ListChannelMembers(
     @NotBlank
         @TemplateProperty(

@@ -12,7 +12,17 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyB
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(id = "createSpreadsheet", label = "Create spreadsheet")
+@TemplateSubType(
+    id = "createSpreadsheet",
+    label = "Create spreadsheet",
+    description = "Create a new Google Sheets spreadsheet",
+    keywords = {
+      "create spreadsheet",
+      "new spreadsheet",
+      "make spreadsheet",
+      "new workbook",
+      "create excel file"
+    })
 public record CreateSpreadsheet(
     @TemplateProperty(
             id = "createSpreadsheet.spreadsheetName",

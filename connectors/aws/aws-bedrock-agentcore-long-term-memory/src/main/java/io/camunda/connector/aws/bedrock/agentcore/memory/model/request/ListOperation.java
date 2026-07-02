@@ -11,7 +11,17 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
-@TemplateSubType(id = "list", label = "List Memory Records")
+@TemplateSubType(
+    id = "list",
+    label = "List Memory Records",
+    description = "List memory records stored in AWS Bedrock AgentCore Long-Term Memory",
+    keywords = {
+      "list memory",
+      "memory records",
+      "get memory records",
+      "browse memories",
+      "fetch memories"
+    })
 public record ListOperation(
     @TemplateProperty(
             id = "list.memoryStrategyId",

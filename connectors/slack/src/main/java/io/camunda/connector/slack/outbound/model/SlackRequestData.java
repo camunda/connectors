@@ -15,7 +15,7 @@ import java.io.IOException;
 
 @TemplateDiscriminatorProperty(
     label = "Method",
-    group = "method",
+    group = "operation",
     name = "method",
     defaultValue = "chat.postMessage")
 @TemplateSubType(id = "method", label = "Method")

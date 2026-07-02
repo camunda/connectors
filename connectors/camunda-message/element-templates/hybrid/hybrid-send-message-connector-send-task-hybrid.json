@@ -3,7 +3,7 @@
   "name" : "Hybrid Send Message Connector (Send Task)",
   "id" : "io.camunda.connectors.message.sendtask.v1-hybrid",
   "keywords" : [ "send message", "correlate message", "publish message", "message event", "trigger process", "signal process" ],
-  "version" : 0,
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -19,8 +19,8 @@
     "id" : "taskDefinitionType",
     "label" : "Task definition type"
   }, {
-    "id" : "default",
-    "label" : "Properties"
+    "id" : "operation",
+    "label" : "Operation"
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -50,7 +50,6 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "default",
     "binding" : {
       "name" : "messageName",
       "type" : "zeebe:input"
@@ -61,7 +60,6 @@
     "label" : "Correlation key",
     "optional" : true,
     "feel" : "optional",
-    "group" : "default",
     "binding" : {
       "name" : "correlationKey",
       "type" : "zeebe:input"
@@ -72,9 +70,28 @@
     "label" : "Payload",
     "optional" : true,
     "feel" : "optional",
-    "group" : "default",
     "binding" : {
       "name" : "variables",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "tenantId",
+    "label" : "Tenant id",
+    "optional" : true,
+    "feel" : "optional",
+    "binding" : {
+      "name" : "tenantId",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "requestTimeout",
+    "label" : "Request timeout",
+    "optional" : true,
+    "feel" : "optional",
+    "binding" : {
+      "name" : "requestTimeout",
       "type" : "zeebe:input"
     },
     "type" : "String"
@@ -83,17 +100,17 @@
     "label" : "Correlation mode",
     "description" : "Send message with <a href='https://docs.camunda.io/docs/components/concepts/messages/#message-buffering' target='_blank'>buffer (publish)</a> or with <a href='https://docs.camunda.io/docs/components/concepts/messages/#message-response' target='_blank'>result (correlate)</a>",
     "value" : "publish",
-    "group" : "default",
+    "group" : "operation",
     "binding" : {
       "name" : "correlationType.type",
       "type" : "zeebe:input"
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "correlate message (with result)",
+      "name" : "Correlate message (with result)",
       "value" : "correlate"
     }, {
-      "name" : "publish message (with buffer)",
+      "name" : "Publish message (with buffer)",
       "value" : "publish"
     } ]
   }, {
@@ -102,7 +119,7 @@
     "description" : "Duration for which the message remains buffered",
     "optional" : true,
     "feel" : "optional",
-    "group" : "default",
+    "group" : "operation",
     "binding" : {
       "name" : "correlationType.timeToLive",
       "type" : "zeebe:input"
@@ -118,7 +135,7 @@
     "label" : "Message id (optional)",
     "optional" : true,
     "feel" : "optional",
-    "group" : "default",
+    "group" : "operation",
     "binding" : {
       "name" : "correlationType.messageId",
       "type" : "zeebe:input"
@@ -130,32 +147,10 @@
     },
     "type" : "String"
   }, {
-    "id" : "tenantId",
-    "label" : "Tenant id",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "default",
-    "binding" : {
-      "name" : "tenantId",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
-    "id" : "requestTimeout",
-    "label" : "Request timeout",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "default",
-    "binding" : {
-      "name" : "requestTimeout",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "0",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -228,6 +223,28 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
+  } ],
+  "steps" : [ {
+    "name" : "Correlate message (with result)",
+    "description" : "Correlate a message to a running process instance and receive the result",
+    "keywords" : [ "correlate message", "message correlation", "receive result", "await response", "synchronous message" ],
+    "presetId" : "type_correlate"
+  }, {
+    "name" : "Publish message (with buffer)",
+    "description" : "Publish a message to Camunda with buffering support",
+    "keywords" : [ "publish message", "buffer message", "send message", "emit event", "broadcast message", "trigger message" ],
+    "presetId" : "type_publish"
+  } ],
+  "presets" : [ {
+    "id" : "type_correlate",
+    "properties" : {
+      "correlationType.type" : "correlate"
+    }
+  }, {
+    "id" : "type_publish",
+    "properties" : {
+      "correlationType.type" : "publish"
+    }
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZwogICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHdpZHRoPSIyMDAwIgogICBoZWlnaHQ9IjIwMDAiCiAgIHZpZXdCb3g9IjAgMCAyMDAwIDIwMDAiCiAgIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIj4KICA8cGF0aAogICAgIHN0eWxlPSJjb2xvcjojMDAwMDAwIgogICAgIGQ9Im0gMCwyODQgMjAwMCwwIC0xMDAwLDU1NCB6Ii8+CiAgPHBhdGgKICAgICBzdHlsZT0iY29sb3I6IzAwMDAwMCIKICAgICBkPSJtIDAsNDUyIDEwMDAsNTQ4IDEwMDAsLTU0OCAwLDEwOTYgLTIwMDAsMCB6Ii8+Cjwvc3ZnPgo="
