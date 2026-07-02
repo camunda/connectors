@@ -28,6 +28,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,7 @@ public class InboundConnectorRestController {
   private final InboundExecutableRegistry executableRegistry;
   private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
   private final InstanceForwardingRouter instanceForwardingRouter;
+  // null when MeterRegistry is not in the application context (e.g. no Actuator)
   private final MeterRegistry meterRegistry;
 
   @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
@@ -47,10 +49,10 @@ public class InboundConnectorRestController {
   public InboundConnectorRestController(
       InboundExecutableRegistry executableRegistry,
       InstanceForwardingRouter instanceForwardingRouter,
-      MeterRegistry meterRegistry) {
+      Optional<MeterRegistry> meterRegistry) {
     this.executableRegistry = executableRegistry;
     this.instanceForwardingRouter = instanceForwardingRouter;
-    this.meterRegistry = meterRegistry;
+    this.meterRegistry = meterRegistry.orElse(null);
   }
 
   @GetMapping("/inbound")

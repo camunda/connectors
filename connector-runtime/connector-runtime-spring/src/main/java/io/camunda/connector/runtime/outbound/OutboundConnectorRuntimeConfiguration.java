@@ -49,6 +49,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -186,7 +187,7 @@ public class OutboundConnectorRuntimeConfiguration {
       DocumentFactory documentFactory,
       @OutboundConnectorObjectMapper ObjectMapper objectMapper,
       SecretFilterFactory secretFilterFactory,
-      MeterRegistry meterRegistry) {
+      Optional<MeterRegistry> meterRegistry) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -197,6 +198,6 @@ public class OutboundConnectorRuntimeConfiguration {
         objectMapper,
         metricsRecorder,
         secretFilterFactory,
-        meterRegistry);
+        meterRegistry.orElse(null));
   }
 }

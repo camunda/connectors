@@ -45,6 +45,9 @@ public final class ConnectorMetricsAggregator {
    * when {@code connectorType} is {@code null} or blank.
    */
   public static OutboundConnectorMetrics outbound(MeterRegistry registry, String connectorType) {
+    if (registry == null) {
+      return new OutboundConnectorMetrics(null, null, null, null, null, null, null, null, null);
+    }
     if (connectorType != null && !connectorType.isBlank()) {
       return buildOutbound(registry, connectorType);
     }
@@ -235,6 +238,9 @@ public final class ConnectorMetricsAggregator {
    * when {@code connectorType} is {@code null} or blank.
    */
   public static InboundConnectorMetrics inbound(MeterRegistry registry, String connectorType) {
+    if (registry == null) {
+      return new InboundConnectorMetrics(null, null, null, null, null, null);
+    }
     if (connectorType != null && !connectorType.isBlank()) {
       return buildInbound(registry, connectorType);
     }

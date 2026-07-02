@@ -41,6 +41,7 @@ public class OutboundConnectorsRestController {
 
   private final InstanceForwardingRouter instanceForwardingRouter;
   private final OutboundConnectorsService outboundConnectorsService;
+  // null when MeterRegistry is not in the application context (e.g. no Actuator)
   private final MeterRegistry meterRegistry;
 
   @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
@@ -49,10 +50,10 @@ public class OutboundConnectorsRestController {
   public OutboundConnectorsRestController(
       InstanceForwardingRouter instanceForwardingRouter,
       OutboundConnectorsService outboundConnectorsService,
-      MeterRegistry meterRegistry) {
+      Optional<MeterRegistry> meterRegistry) {
     this.instanceForwardingRouter = instanceForwardingRouter;
     this.outboundConnectorsService = outboundConnectorsService;
-    this.meterRegistry = meterRegistry;
+    this.meterRegistry = meterRegistry.orElse(null);
   }
 
   @GetMapping
