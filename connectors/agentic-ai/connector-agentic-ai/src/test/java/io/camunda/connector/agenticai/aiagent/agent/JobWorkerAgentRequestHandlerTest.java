@@ -361,14 +361,17 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   @Test
-  void silentlyCompletesJobWhenInputComposerReturnsNoOp() {
+  void persistsAgentContextWhenInputComposerReturnsNoOp() {
+    // no-op/Deferred jobs still must persist agentContext (e.g. worker-observed tool-result
+    // completion timestamps, ADR 008) so a subsequent job waiting on further AHSP tool results
+    // sees it -- otherwise the "keep earliest across no-op jobs" resolution never survives
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     when(agentInputComposer.compose(any(), any(), any(), any()))
         .thenReturn(new CompositionResult.Deferred());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(response.variables()).isEmpty();
+    assertThat(response.variables()).isEqualTo(Map.of("agentContext", INITIAL_AGENT_CONTEXT));
     assertThat(response.completionConditionFulfilled()).isFalse();
     assertThat(response.cancelRemainingInstances()).isFalse();
     assertThat(response.elementActivations()).isEmpty();

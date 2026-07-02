@@ -116,7 +116,7 @@ public abstract class BaseAgentRequestHandler<
       return switch (compositionResult) {
         case CompositionResult.Deferred ignored -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
-          yield handleNoOp(executionContext);
+          yield handleNoOp(executionContext, agentContext);
         }
         case CompositionResult.NoInput ignored -> {
           LOGGER.debug("No input could be composed for this turn");
@@ -272,6 +272,17 @@ public abstract class BaseAgentRequestHandler<
   /** Called when no agent response should be produced this turn. Default: no-op response. */
   protected R handleNoOp(C executionContext) {
     return buildConnectorResponse(executionContext, null, null, null);
+  }
+
+  /**
+   * Called when no agent response should be produced this turn, but {@code agentContext} may have
+   * changed (e.g. worker-observed tool-result completion timestamps persisted for the B fallback,
+   * see ADR 008) and must still be visible to a subsequent job. Default: same as {@link
+   * #handleNoOp(AgentExecutionContext)}, discarding the context — override where the response
+   * protocol supports emitting variables without a full agent response.
+   */
+  protected R handleNoOp(C executionContext, AgentContext agentContext) {
+    return handleNoOp(executionContext);
   }
 
   /**

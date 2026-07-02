@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
@@ -56,6 +57,19 @@ public class JobWorkerAgentRequestHandler
     // completion listener. Otherwise (final turn, no tool calls) the subprocess completes and the
     // update must be sent synchronously before the job completion command.
     return !conversation.currentTurn().hasToolCalls();
+  }
+
+  @Override
+  protected AiAgentSubProcessConnectorResponse handleNoOp(
+      JobWorkerAgentExecutionContext executionContext, AgentContext agentContext) {
+    LOGGER.debug(
+        "No input ready to add, completing job {} without response but persisting agent context",
+        executionContext.jobContext().getJobKey());
+    return AiAgentSubProcessConnectorResponse.builder()
+        .completionConditionFulfilled(false)
+        .cancelRemainingInstances(false)
+        .variables(Map.of(AiAgentJobWorker.AGENT_CONTEXT_VARIABLE, agentContext))
+        .build();
   }
 
   @Override
