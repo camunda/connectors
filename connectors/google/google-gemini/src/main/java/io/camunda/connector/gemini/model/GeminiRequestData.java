@@ -47,7 +47,6 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Custom model name",
             group = "input",
-            tooltip = "Custom model name or identifier.",
             feel = FeelMode.optional,
             condition =
                 @TemplateProperty.PropertyCondition(property = "input.model", equals = "CUSTOM"),
@@ -129,8 +128,9 @@ public record GeminiRequestData(
                     property = "input.safetySettings",
                     equalsBoolean = TemplateProperty.EqualsBoolean.TRUE),
             tooltip =
-                "You can adjust the likelihood of receiving a model response that could contain harmful content. "
-                    + "Content is blocked based on the probability that it's harmful."
+                "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: "
+                    + "OFF blocks nothing, Block few blocks only high-probability content, "
+                    + "Block some blocks medium-and-above, and Block most blocks low-and-above."
                     + " <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
             optional = true)
         BlockingDegree hateSpeech,
@@ -156,8 +156,9 @@ public record GeminiRequestData(
                     property = "input.safetySettings",
                     equalsBoolean = TemplateProperty.EqualsBoolean.TRUE),
             tooltip =
-                "You can adjust the likelihood of receiving a model response that could contain harmful content. "
-                    + "Content is blocked based on the probability that it's harmful."
+                "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: "
+                    + "OFF blocks nothing, Block few blocks only high-probability content, "
+                    + "Block some blocks medium-and-above, and Block most blocks low-and-above."
                     + " <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
             optional = true)
         BlockingDegree dangerousContent,
@@ -183,8 +184,9 @@ public record GeminiRequestData(
                     property = "input.safetySettings",
                     equalsBoolean = TemplateProperty.EqualsBoolean.TRUE),
             tooltip =
-                "You can adjust the likelihood of receiving a model response that could contain harmful content. "
-                    + "Content is blocked based on the probability that it's harmful."
+                "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: "
+                    + "OFF blocks nothing, Block few blocks only high-probability content, "
+                    + "Block some blocks medium-and-above, and Block most blocks low-and-above."
                     + " <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
             optional = true)
         BlockingDegree sexuallyExplicit,
@@ -210,8 +212,9 @@ public record GeminiRequestData(
                     property = "input.safetySettings",
                     equalsBoolean = TemplateProperty.EqualsBoolean.TRUE),
             tooltip =
-                "You can adjust the likelihood of receiving a model response that could contain harmful content. "
-                    + "Content is blocked based on the probability that it's harmful."
+                "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: "
+                    + "OFF blocks nothing, Block few blocks only high-probability content, "
+                    + "Block some blocks medium-and-above, and Block most blocks low-and-above."
                     + " <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
             optional = true)
         BlockingDegree harassment,

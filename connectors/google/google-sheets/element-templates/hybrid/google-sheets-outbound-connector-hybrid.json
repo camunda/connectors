@@ -131,7 +131,6 @@
       "equals" : "bearer",
       "type" : "simple"
     },
-    "tooltip" : "Enter a valid Google API bearer token.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthClientId",
@@ -151,7 +150,6 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "tooltip" : "Enter the Google API client ID.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthClientSecret",
@@ -171,7 +169,6 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "tooltip" : "Enter the Google API client secret.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken",
@@ -191,7 +188,6 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "tooltip" : "Enter a valid Google API refresh token.",
     "type" : "String"
   }, {
     "id" : "createSpreadsheet.spreadsheetName",
@@ -227,7 +223,7 @@
       "equals" : "createSpreadsheet",
       "type" : "simple"
     },
-    "tooltip" : "Enter the ID of the parent folder where the new spreadsheet will be created",
+    "tooltip" : "Folder in which the new spreadsheet is created. If left empty, it is created in the Google Drive root folder of the OAuth token owner.",
     "type" : "String"
   }, {
     "id" : "addValues.spreadsheetId",
@@ -285,7 +281,8 @@
       "equals" : "addValues",
       "type" : "simple"
     },
-    "tooltip" : "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">Cell ID documentation</a>",
+    "tooltip" : "Target cell in ColumnRow format. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">add values to spreadsheet</a> operation.",
+    "placeholder" : "A1",
     "type" : "String"
   }, {
     "id" : "value",
@@ -385,7 +382,7 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
-    "tooltip" : "Leave empty to add to the end of the sheet. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">create empty column or row documentation</a>",
+    "tooltip" : "Leave empty to add to the end of the sheet. Count starts from 0. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">create empty column or row</a> operation.",
     "type" : "Number"
   }, {
     "id" : "endIndex",
@@ -402,7 +399,7 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
-    "tooltip" : "Leave empty to add to the end of the sheet. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">create empty column or row documentation</a>",
+    "tooltip" : "Leave empty to add to the end of the sheet. Count starts from 0. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">create empty column or row</a> operation.",
     "type" : "Number"
   }, {
     "id" : "createRow.spreadsheetId",
@@ -464,7 +461,7 @@
       "equals" : "createRow",
       "type" : "simple"
     },
-    "tooltip" : "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">row index documentation</a>",
+    "tooltip" : "Position of the row, shown to the left of each row. If left empty, a new row is appended to the end. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">what is a row index</a>.",
     "type" : "Number"
   }, {
     "id" : "values",
@@ -484,7 +481,7 @@
       "equals" : "createRow",
       "type" : "simple"
     },
-    "tooltip" : "See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">create row value format</a>",
+    "tooltip" : "List of cell values to add as a new row. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">create row</a> operation.",
     "type" : "String"
   }, {
     "id" : "createWorksheet.spreadsheetId",
@@ -539,7 +536,7 @@
       "equals" : "createWorksheet",
       "type" : "simple"
     },
-    "tooltip" : "Leave empty to add to the end of the sheet list. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">worksheet index documentation</a>",
+    "tooltip" : "Position of the new worksheet; count starts from 0. Leave empty to add it to the end of the sheet list. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">what is a worksheet index</a>.",
     "type" : "Number"
   }, {
     "id" : "deleteColumn.spreadsheetId",
@@ -597,7 +594,7 @@
       "equals" : "deleteColumn",
       "type" : "simple"
     },
-    "tooltip" : "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">column index format documentation</a>",
+    "tooltip" : "How the column to delete is identified: Numbers (numeric index at the top of the column, starting from 0) or Letters (the column letter). See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Numbers",
@@ -627,7 +624,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">column index documentation</a>",
+    "tooltip" : "Numeric position of the column to delete; count starts from 0 (column A is 0, B is 1). See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
     "type" : "Number"
   }, {
     "id" : "columnLetterIndex",
@@ -650,7 +647,8 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">column index documentation</a>",
+    "tooltip" : "Letter of the column to delete, as shown at the top of the column. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
+    "placeholder" : "A",
     "type" : "String"
   }, {
     "id" : "deleteWorksheet.spreadsheetId",
@@ -743,7 +741,7 @@
       "equals" : "getRowByIndex",
       "type" : "simple"
     },
-    "tooltip" : "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">row index documentation</a>",
+    "tooltip" : "Position of the row to retrieve, shown to the left of each row. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">what is a row index</a>.",
     "type" : "Number"
   }, {
     "id" : "spreadsheetsDetails.spreadsheetId",

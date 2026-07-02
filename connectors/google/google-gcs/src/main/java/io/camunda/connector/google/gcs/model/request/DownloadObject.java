@@ -39,7 +39,7 @@ public record DownloadObject(
             label = "File name",
             id = "downloadOperationFileName",
             group = "operation",
-            tooltip = "Specify the name of the document to be downloaded.",
+            tooltip = "Name of the object in the bucket to download.",
             feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
         @NotBlank

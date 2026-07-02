@@ -34,7 +34,8 @@ public record CreateSpreadsheet(
         String spreadsheetName,
     @TemplateProperty(
             label = "Parent folder ID",
-            tooltip = "Enter the ID of the parent folder where the new spreadsheet will be created",
+            tooltip =
+                "Folder in which the new spreadsheet is created. If left empty, it is created in the Google Drive root folder of the OAuth token owner.",
             group = "operationDetails",
             optional = true,
             feel = FeelMode.optional,

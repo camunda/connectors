@@ -41,7 +41,7 @@ public record CreateRow(
             id = "createRow.rowIndex",
             label = "Row index",
             tooltip =
-                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">row index documentation</a>",
+                "Position of the row, shown to the left of each row. If left empty, a new row is appended to the end. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">what is a row index</a>.",
             group = "operationDetails",
             feel = FeelMode.optional,
             constraints =
@@ -56,7 +56,7 @@ public record CreateRow(
     @TemplateProperty(
             label = "Enter values",
             tooltip =
-                "See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">create row value format</a>",
+                "List of cell values to add as a new row. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">create row</a> operation.",
             group = "operationDetails",
             feel = FeelMode.required,
             constraints = @PropertyConstraints(notEmpty = true),

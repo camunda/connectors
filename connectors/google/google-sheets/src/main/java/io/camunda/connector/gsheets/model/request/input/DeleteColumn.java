@@ -44,7 +44,7 @@ public record DeleteColumn(
     @TemplateProperty(
             label = "Index format",
             tooltip =
-                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">column index format documentation</a>",
+                "How the column to delete is identified: Numbers (numeric index at the top of the column, starting from 0) or Letters (the column letter). See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
             group = "operationDetails",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
@@ -59,7 +59,7 @@ public record DeleteColumn(
     @TemplateProperty(
             label = "Column numeric index",
             tooltip =
-                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">column index documentation</a>",
+                "Numeric position of the column to delete; count starts from 0 (column A is 0, B is 1). See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.columnNumberIndex"),
@@ -68,7 +68,8 @@ public record DeleteColumn(
     @TemplateProperty(
             label = "Column letter index",
             tooltip =
-                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">column index documentation</a>",
+                "Letter of the column to delete, as shown at the top of the column. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">defining which column will be deleted</a>.",
+            placeholder = "A",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.columnLetterIndex"),

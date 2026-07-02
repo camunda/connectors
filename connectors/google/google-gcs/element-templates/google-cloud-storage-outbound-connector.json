@@ -121,7 +121,7 @@
       "equals" : "downloadObject",
       "type" : "simple"
     },
-    "tooltip" : "Specify the name of the document to be downloaded.",
+    "tooltip" : "Name of the object in the bucket to download.",
     "type" : "String"
   }, {
     "id" : "downloadOperationAsFile",

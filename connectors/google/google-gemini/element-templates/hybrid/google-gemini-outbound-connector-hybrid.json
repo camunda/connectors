@@ -87,7 +87,6 @@
       "equals" : "bearer",
       "type" : "simple"
     },
-    "tooltip" : "Enter a valid Google API bearer token.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthClientId",
@@ -107,7 +106,6 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "tooltip" : "Enter the Google API client ID.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthClientSecret",
@@ -127,7 +125,6 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "tooltip" : "Enter the Google API client secret.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken",
@@ -147,7 +144,6 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "tooltip" : "Enter a valid Google API refresh token.",
     "type" : "String"
   }, {
     "id" : "input.projectId",
@@ -228,7 +224,6 @@
       "equals" : "CUSTOM",
       "type" : "simple"
     },
-    "tooltip" : "Custom model name or identifier.",
     "type" : "String"
   }, {
     "id" : "input.prompts",
@@ -318,7 +313,7 @@
       "equals" : true,
       "type" : "simple"
     },
-    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
+    "tooltip" : "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: OFF blocks nothing, Block few blocks only high-probability content, Block some blocks medium-and-above, and Block most blocks low-and-above. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "OFF",
@@ -348,7 +343,7 @@
       "equals" : true,
       "type" : "simple"
     },
-    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
+    "tooltip" : "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: OFF blocks nothing, Block few blocks only high-probability content, Block some blocks medium-and-above, and Block most blocks low-and-above. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "OFF",
@@ -378,7 +373,7 @@
       "equals" : true,
       "type" : "simple"
     },
-    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
+    "tooltip" : "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: OFF blocks nothing, Block few blocks only high-probability content, Block some blocks medium-and-above, and Block most blocks low-and-above. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "OFF",
@@ -408,7 +403,7 @@
       "equals" : true,
       "type" : "simple"
     },
-    "tooltip" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
+    "tooltip" : "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: OFF blocks nothing, Block few blocks only high-probability content, Block some blocks medium-and-above, and Block most blocks low-and-above. <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "OFF",

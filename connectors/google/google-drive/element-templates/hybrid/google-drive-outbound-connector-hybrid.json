@@ -90,7 +90,6 @@
       "equals" : "bearer",
       "type" : "simple"
     },
-    "tooltip" : "Enter a valid Google API bearer token.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthClientId",
@@ -110,7 +109,6 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "tooltip" : "Enter the Google API client ID.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthClientSecret",
@@ -130,7 +128,6 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "tooltip" : "Enter the Google API client secret.",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken",
@@ -150,7 +147,6 @@
       "equals" : "refresh",
       "type" : "simple"
     },
-    "tooltip" : "Enter a valid Google API refresh token.",
     "type" : "String"
   }, {
     "id" : "resource.type",

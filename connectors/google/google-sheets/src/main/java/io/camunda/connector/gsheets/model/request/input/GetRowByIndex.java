@@ -39,7 +39,7 @@ public record GetRowByIndex(
             id = "getRowByIndex.rowIndex",
             label = "Row index",
             tooltip =
-                "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">row index documentation</a>",
+                "Position of the row to retrieve, shown to the left of each row. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">what is a row index</a>.",
             group = "operationDetails",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),

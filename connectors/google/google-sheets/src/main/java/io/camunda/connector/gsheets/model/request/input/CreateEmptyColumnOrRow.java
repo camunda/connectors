@@ -57,7 +57,7 @@ public record CreateEmptyColumnOrRow(
     @TemplateProperty(
             label = "Start index",
             tooltip =
-                "Leave empty to add to the end of the sheet. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">create empty column or row documentation</a>",
+                "Leave empty to add to the end of the sheet. Count starts from 0. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">create empty column or row</a> operation.",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.startIndex"))
@@ -65,7 +65,7 @@ public record CreateEmptyColumnOrRow(
     @TemplateProperty(
             label = "End index",
             tooltip =
-                "Leave empty to add to the end of the sheet. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">create empty column or row documentation</a>",
+                "Leave empty to add to the end of the sheet. Count starts from 0. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">create empty column or row</a> operation.",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.endIndex"))
