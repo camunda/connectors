@@ -17,10 +17,12 @@
 package io.camunda.connector.runtime.metrics;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.TimeGauge;
 import io.micrometer.core.instrument.Timer;
-import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -39,17 +41,93 @@ public final class ConnectorMetricsAggregator {
   // -------------------------------------------------------------------------
 
   /**
-   * Returns aggregated outbound metrics for all registered connector types, optionally filtered to
-   * a single {@code connectorType}.
+   * Returns outbound metrics for a specific connector type, or aggregated totals across all types
+   * when {@code connectorType} is {@code null} or blank.
    */
-  public static List<OutboundConnectorMetrics> outbound(
-      MeterRegistry registry, String connectorType) {
-    Set<String> types = discoverTypes(registry, connectorType, allOutboundMetricNames());
-    List<OutboundConnectorMetrics> result = new ArrayList<>(types.size());
-    for (String type : types) {
-      result.add(buildOutbound(registry, type));
+  public static OutboundConnectorMetrics outbound(MeterRegistry registry, String connectorType) {
+    if (connectorType != null && !connectorType.isBlank()) {
+      return buildOutbound(registry, connectorType);
     }
-    return result;
+    return buildOutboundAggregate(registry);
+  }
+
+  private static OutboundConnectorMetrics buildOutboundAggregate(MeterRegistry registry) {
+    Set<String> types = discoverTypes(registry, null, allOutboundMetricNames());
+
+    long completed = 0, failed = 0, bpmnError = 0;
+    long jobsActivated = 0, jobsHandled = 0, streamRecreations = 0;
+    double totalMs = 0.0;
+    long totalCount = 0L;
+    double maxMs = 0.0;
+    long maxLastCompleted = 0L;
+    long maxLastFailed = 0L;
+
+    for (String type : types) {
+      completed +=
+          sumCounterByAction(
+              registry,
+              ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
+              type,
+              ConnectorMetrics.Outbound.ACTION_COMPLETED);
+      failed +=
+          sumCounterByAction(
+              registry,
+              ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
+              type,
+              ConnectorMetrics.Outbound.ACTION_FAILED);
+      bpmnError +=
+          sumCounterByAction(
+              registry,
+              ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
+              type,
+              ConnectorMetrics.Outbound.ACTION_BPMN_ERROR);
+      jobsActivated +=
+          (long)
+              sumCounter(
+                  registry, ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED, type);
+      jobsHandled +=
+          (long)
+              sumCounter(registry, ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED, type);
+      streamRecreations +=
+          (long)
+              sumCounter(
+                  registry,
+                  ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED,
+                  type);
+      for (Timer t :
+          registry
+              .find(ConnectorMetrics.Outbound.METRIC_NAME_TIME)
+              .tag(ConnectorMetrics.Tag.TYPE, type)
+              .timers()) {
+        totalMs += t.totalTime(TimeUnit.MILLISECONDS);
+        totalCount += t.count();
+        maxMs = Math.max(maxMs, t.max(TimeUnit.MILLISECONDS));
+      }
+      maxLastCompleted =
+          Math.max(
+              maxLastCompleted,
+              readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_LAST_COMPLETED, type));
+      maxLastFailed =
+          Math.max(
+              maxLastFailed,
+              readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_LAST_FAILED, type));
+    }
+
+    OutboundConnectorMetrics.ExecutionTime executionTime =
+        totalCount > 0
+            ? new OutboundConnectorMetrics.ExecutionTime(totalMs / totalCount, maxMs)
+            : null;
+
+    return new OutboundConnectorMetrics(
+        null,
+        null,
+        null,
+        new OutboundConnectorMetrics.Jobs(completed, failed, bpmnError),
+        executionTime,
+        new OutboundConnectorMetrics.WorkerStats(jobsActivated, jobsHandled, streamRecreations),
+        epochMsToInstant(maxLastCompleted),
+        epochMsToInstant(maxLastFailed),
+        readRuntimeUptime(registry));
   }
 
   private static OutboundConnectorMetrics buildOutbound(MeterRegistry registry, String type) {
@@ -66,17 +144,30 @@ public final class ConnectorMetricsAggregator {
             type,
             ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION);
 
-    OutboundConnectorMetrics.Invocations invocations = buildInvocations(registry, type);
+    OutboundConnectorMetrics.Jobs jobs = buildJobs(registry, type);
     OutboundConnectorMetrics.ExecutionTime executionTime = buildExecutionTime(registry, type);
     OutboundConnectorMetrics.WorkerStats worker = buildWorkerStats(registry, type);
+    Instant lastCompleted =
+        epochMsToInstant(
+            readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_LAST_COMPLETED, type));
+    Instant lastFailed =
+        epochMsToInstant(
+            readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_LAST_FAILED, type));
 
     return new OutboundConnectorMetrics(
-        type, templateId, templateVersion, invocations, executionTime, worker);
+        null,
+        templateId,
+        templateVersion,
+        jobs,
+        executionTime,
+        worker,
+        lastCompleted,
+        lastFailed,
+        readRuntimeUptime(registry));
   }
 
-  private static OutboundConnectorMetrics.Invocations buildInvocations(
-      MeterRegistry registry, String type) {
-    return new OutboundConnectorMetrics.Invocations(
+  private static OutboundConnectorMetrics.Jobs buildJobs(MeterRegistry registry, String type) {
+    return new OutboundConnectorMetrics.Jobs(
         sumCounterByAction(
             registry,
             ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
@@ -140,22 +231,81 @@ public final class ConnectorMetricsAggregator {
   // -------------------------------------------------------------------------
 
   /**
-   * Returns aggregated inbound metrics for all registered connector types, optionally filtered to a
-   * single {@code connectorType}.
+   * Returns inbound metrics for a specific connector type, or aggregated totals across all types
+   * when {@code connectorType} is {@code null} or blank.
    */
-  public static List<InboundConnectorMetrics> inbound(
-      MeterRegistry registry, String connectorType) {
-    Set<String> types = discoverTypes(registry, connectorType, allInboundMetricNames());
-    List<InboundConnectorMetrics> result = new ArrayList<>(types.size());
-    for (String type : types) {
-      result.add(buildInbound(registry, type));
+  public static InboundConnectorMetrics inbound(MeterRegistry registry, String connectorType) {
+    if (connectorType != null && !connectorType.isBlank()) {
+      return buildInbound(registry, connectorType);
     }
-    return result;
+    return buildInboundAggregate(registry);
+  }
+
+  private static InboundConnectorMetrics buildInboundAggregate(MeterRegistry registry) {
+    Set<String> types = discoverTypes(registry, null, allInboundMetricNames());
+
+    long activated = 0, deactivated = 0, activationFailed = 0;
+    long triggered = 0, correlated = 0, correlationFailed = 0, activationConditionFailed = 0;
+
+    for (String type : types) {
+      activated +=
+          sumCounterByAction(
+              registry,
+              ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
+              type,
+              ConnectorMetrics.Inbound.ACTION_ACTIVATED);
+      deactivated +=
+          sumCounterByAction(
+              registry,
+              ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
+              type,
+              ConnectorMetrics.Inbound.ACTION_DEACTIVATED);
+      activationFailed +=
+          sumCounterByAction(
+              registry,
+              ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS,
+              type,
+              ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED);
+      triggered +=
+          sumCounterByAction(
+              registry,
+              ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
+              type,
+              ConnectorMetrics.Inbound.ACTION_TRIGGERED);
+      correlated +=
+          sumCounterByAction(
+              registry,
+              ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
+              type,
+              ConnectorMetrics.Inbound.ACTION_CORRELATED);
+      correlationFailed +=
+          sumCounterByAction(
+              registry,
+              ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
+              type,
+              ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED);
+      activationConditionFailed +=
+          sumCounterByAction(
+              registry,
+              ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS,
+              type,
+              ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED);
+    }
+
+    return new InboundConnectorMetrics(
+        null,
+        new InboundConnectorMetrics.Activations(activated, deactivated, activationFailed),
+        new InboundConnectorMetrics.Triggers(
+            triggered, correlated, correlationFailed, activationConditionFailed),
+        readRuntimeUptime(registry));
   }
 
   private static InboundConnectorMetrics buildInbound(MeterRegistry registry, String type) {
     return new InboundConnectorMetrics(
-        type, buildActivations(registry, type), buildTriggers(registry, type));
+        null,
+        buildActivations(registry, type),
+        buildTriggers(registry, type),
+        readRuntimeUptime(registry));
   }
 
   private static InboundConnectorMetrics.Activations buildActivations(
@@ -242,6 +392,39 @@ public final class ConnectorMetricsAggregator {
     return registry.find(metricName).tag(ConnectorMetrics.Tag.TYPE, type).counters().stream()
         .mapToDouble(Counter::count)
         .sum();
+  }
+
+  /**
+   * Reads the {@code process.uptime} gauge (registered by Spring Boot Actuator) and returns the
+   * uptime in whole seconds, or {@code null} if the metric is not available.
+   */
+  private static Long readRuntimeUptime(MeterRegistry registry) {
+    TimeGauge timeGauge = registry.find("process.uptime").timeGauge();
+    if (timeGauge != null) {
+      return (long) timeGauge.value(TimeUnit.SECONDS);
+    }
+    // Fall back to a plain Gauge (some test registries expose it this way)
+    Gauge gauge = registry.find("process.uptime").gauge();
+    return gauge != null ? (long) gauge.value() : null;
+  }
+
+  /**
+   * Reads the value of a {@link Gauge} tagged with the given connector type. Returns {@code 0} if
+   * no gauge is registered for that type.
+   */
+  private static long readGauge(MeterRegistry registry, String metricName, String type) {
+    return registry.find(metricName).tag(ConnectorMetrics.Tag.TYPE, type).gauges().stream()
+        .mapToLong(g -> (long) g.value())
+        .max()
+        .orElse(0L);
+  }
+
+  /**
+   * Converts an epoch-millisecond value to an {@link Instant}, returning {@code null} when the
+   * value is {@code 0} (meaning "never recorded").
+   */
+  private static Instant epochMsToInstant(long epochMs) {
+    return epochMs > 0 ? Instant.ofEpochMilli(epochMs) : null;
   }
 
   /**

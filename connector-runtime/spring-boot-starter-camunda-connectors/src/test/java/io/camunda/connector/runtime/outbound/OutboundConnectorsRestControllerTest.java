@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.outbound;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -197,14 +198,13 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<OutboundConnectorMetrics> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    OutboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response, OutboundConnectorMetrics.class);
 
-    assertEquals(1, metrics.size());
-    var m = metrics.getFirst();
-    assertEquals(10L, m.invocations().completed());
-    assertEquals(2L, m.invocations().failed());
-    assertEquals(1L, m.invocations().bpmnError());
+    assertEquals(10L, m.jobs().completed());
+    assertEquals(2L, m.jobs().failed());
+    assertEquals(1L, m.jobs().bpmnError());
   }
 
   @Test
@@ -231,11 +231,10 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<OutboundConnectorMetrics> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    OutboundConnectorMetrics worker =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response, OutboundConnectorMetrics.class);
 
-    assertEquals(1, metrics.size());
-    var worker = metrics.getFirst();
     assertEquals(5L, worker.worker().jobsActivated());
     assertEquals(4L, worker.worker().jobsHandled());
     assertEquals(1L, worker.worker().streamRecreations());
@@ -262,26 +261,50 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<OutboundConnectorMetrics> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    OutboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response, OutboundConnectorMetrics.class);
 
-    assertEquals(1, metrics.size());
-    assertEquals(typeA, metrics.getFirst().connectorType());
-    assertEquals(3L, metrics.getFirst().worker().jobsActivated());
+    assertNull(m.connectorType());
+    assertEquals(3L, m.worker().jobsActivated());
   }
 
   @Test
-  void shouldReturnMultipleConnectorTypes() throws Exception {
-    String typeA = "outbound-test-multi-a";
-    String typeB = "outbound-test-multi-b";
+  void shouldReturnMetricsByTypePath() throws Exception {
+    String type = "outbound-test-path-type";
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .register(meterRegistry)
+        .increment(6.0);
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics/" + type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    OutboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response, OutboundConnectorMetrics.class);
+
+    assertNull(m.connectorType());
+    assertEquals(6L, m.worker().jobsActivated());
+  }
+
+  @Test
+  void shouldAggregateAcrossAllTypes_whenNoConnectorTypeProvided() throws Exception {
+    String typeA = "outbound-test-agg-a";
+    String typeB = "outbound-test-agg-b";
     Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
         .tag(ConnectorMetrics.Tag.TYPE, typeA)
         .register(meterRegistry)
-        .increment(1.0);
+        .increment(3.0);
     Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
         .tag(ConnectorMetrics.Tag.TYPE, typeB)
         .register(meterRegistry)
-        .increment(1.0);
+        .increment(7.0);
 
     var response =
         mockMvc
@@ -291,12 +314,14 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<OutboundConnectorMetrics> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    OutboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response, OutboundConnectorMetrics.class);
 
-    var types = metrics.stream().map(OutboundConnectorMetrics::connectorType).toList();
-    assertTrue(types.contains(typeA));
-    assertTrue(types.contains(typeB));
+    // connectorType is null (omitted) for the aggregate response
+    assertNull(m.connectorType());
+    // jobsActivated must include at least the 10 (3+7) we just registered
+    assertTrue(m.worker().jobsActivated() >= 10L);
   }
 
   @Test
@@ -318,10 +343,10 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<OutboundConnectorMetrics> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    OutboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response, OutboundConnectorMetrics.class);
 
-    var m = metrics.getFirst();
     assertEquals("io.camunda.connectors.HttpJson.v7", m.elementTemplateId());
     assertEquals("7", m.elementTemplateVersion());
   }

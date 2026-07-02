@@ -44,6 +44,19 @@ public class ConnectorMetrics {
     public static final String METRIC_NAME_WORKER_JOB_HANDLED = "camunda.client.worker.job.handled";
 
     /**
+     * Epoch-millisecond timestamp of the last successfully completed job, per connector type. Value
+     * is {@code 0} if no job has completed yet.
+     */
+    public static final String METRIC_NAME_LAST_COMPLETED =
+        "camunda.connector.outbound.last-completed";
+
+    /**
+     * Epoch-millisecond timestamp of the last failed job, per connector type. Value is {@code 0} if
+     * no job has failed yet.
+     */
+    public static final String METRIC_NAME_LAST_FAILED = "camunda.connector.outbound.last-failed";
+
+    /**
      * Number of times a job-stream was recreated due to inactivity, tagged by connector {@code
      * type}. Spikes indicate broker connectivity instability.
      */
@@ -57,7 +70,7 @@ public class ConnectorMetrics {
     public static final String ACTION_FAILED = "failed";
 
     /** Value of the {@code action} tag for jobs that threw a BPMN error. */
-    public static final String ACTION_BPMN_ERROR = "bpmnError";
+    public static final String ACTION_BPMN_ERROR = "bpmn-error";
   }
 
   public static class Inbound {

@@ -119,13 +119,25 @@ public class InboundConnectorRestController {
   }
 
   /**
-   * Returns aggregated inbound connector metrics, optionally filtered to a single connector type.
+   * Returns inbound connector metrics for a specific connector type, or aggregated totals across
+   * all connector types when {@code connectorType} is omitted.
    *
    * @param connectorType optional connector type filter (e.g. {@code io.camunda:webhook:1})
    */
   @GetMapping("/inbound/metrics")
-  public List<InboundConnectorMetrics> getMetrics(
+  public InboundConnectorMetrics getMetrics(
       @RequestParam(name = "connectorType", required = false) String connectorType) {
+    return ConnectorMetricsAggregator.inbound(meterRegistry, connectorType);
+  }
+
+  /**
+   * Returns inbound connector metrics for a specific connector type.
+   *
+   * @param connectorType connector type (e.g. {@code io.camunda:webhook:1})
+   */
+  @GetMapping("/inbound/metrics/{connectorType}")
+  public InboundConnectorMetrics getMetricsByType(
+      @PathVariable(name = "connectorType") String connectorType) {
     return ConnectorMetricsAggregator.inbound(meterRegistry, connectorType);
   }
 }

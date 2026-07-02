@@ -45,6 +45,7 @@ import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
@@ -184,7 +185,8 @@ public class OutboundConnectorRuntimeConfiguration {
       MetricsRecorder metricsRecorder,
       DocumentFactory documentFactory,
       @OutboundConnectorObjectMapper ObjectMapper objectMapper,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      MeterRegistry meterRegistry) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -194,6 +196,7 @@ public class OutboundConnectorRuntimeConfiguration {
         documentFactory,
         objectMapper,
         metricsRecorder,
-        secretFilterFactory);
+        secretFilterFactory,
+        meterRegistry);
   }
 }

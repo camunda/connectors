@@ -82,13 +82,25 @@ public class OutboundConnectorsRestController {
   }
 
   /**
-   * Returns aggregated outbound connector metrics, optionally filtered to a single connector type.
+   * Returns outbound connector metrics for a specific connector type, or aggregated totals across
+   * all connector types when {@code connectorType} is omitted.
    *
    * @param connectorType optional connector type filter (e.g. {@code io.camunda:http-json:1})
    */
   @GetMapping("/metrics")
-  public List<OutboundConnectorMetrics> getMetrics(
+  public OutboundConnectorMetrics getMetrics(
       @RequestParam(name = "connectorType", required = false) String connectorType) {
+    return ConnectorMetricsAggregator.outbound(meterRegistry, connectorType);
+  }
+
+  /**
+   * Returns outbound connector metrics for a specific connector type.
+   *
+   * @param connectorType connector type (e.g. {@code io.camunda:http-json:1})
+   */
+  @GetMapping("/metrics/{connectorType}")
+  public OutboundConnectorMetrics getMetricsByType(
+      @PathVariable(name = "connectorType") String connectorType) {
     return ConnectorMetricsAggregator.outbound(meterRegistry, connectorType);
   }
 }

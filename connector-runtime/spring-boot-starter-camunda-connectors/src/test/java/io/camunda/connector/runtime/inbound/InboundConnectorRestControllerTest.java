@@ -17,11 +17,11 @@
 package io.camunda.connector.runtime.inbound;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
@@ -29,7 +29,6 @@ import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.InboundConnectorMetrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -70,11 +69,9 @@ class InboundConnectorRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<InboundConnectorMetrics> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    InboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertEquals(1, metrics.size());
-    var m = metrics.getFirst();
     assertEquals(3L, m.activations().activated());
     assertEquals(0L, m.activations().deactivated());
     assertEquals(1L, m.activations().activationFailed());
@@ -109,11 +106,9 @@ class InboundConnectorRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<InboundConnectorMetrics> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    InboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertEquals(1, metrics.size());
-    var m = metrics.getFirst();
     assertEquals(10L, m.triggers().triggered());
     assertEquals(9L, m.triggers().correlated());
     assertEquals(0L, m.triggers().correlationFailed());
@@ -143,28 +138,51 @@ class InboundConnectorRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<InboundConnectorMetrics> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    InboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    assertEquals(1, metrics.size());
-    assertEquals(typeA, metrics.getFirst().connectorType());
-    assertEquals(5L, metrics.getFirst().activations().activated());
+    assertNull(m.connectorType());
+    assertEquals(5L, m.activations().activated());
   }
 
   @Test
-  void shouldReturnMultipleConnectorTypes() throws Exception {
-    String typeA = "inbound-test-multi-a";
-    String typeB = "inbound-test-multi-b";
+  void shouldReturnMetricsByTypePath() throws Exception {
+    String type = "inbound-test-path-type";
+    Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_ACTIVATED)
+        .register(meterRegistry)
+        .increment(4.0);
+
+    var response =
+        mockMvc
+            .perform(get("/inbound/metrics/" + type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    InboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
+
+    assertNull(m.connectorType());
+    assertEquals(4L, m.activations().activated());
+  }
+
+  @Test
+  void shouldAggregateAcrossAllTypes_whenNoConnectorTypeProvided() throws Exception {
+    String typeA = "inbound-test-agg-a";
+    String typeB = "inbound-test-agg-b";
     Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
         .tag(ConnectorMetrics.Tag.TYPE, typeA)
         .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_ACTIVATED)
         .register(meterRegistry)
-        .increment(1.0);
+        .increment(5.0);
     Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
         .tag(ConnectorMetrics.Tag.TYPE, typeB)
         .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_ACTIVATED)
         .register(meterRegistry)
-        .increment(1.0);
+        .increment(3.0);
 
     var response =
         mockMvc
@@ -174,11 +192,12 @@ class InboundConnectorRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<InboundConnectorMetrics> metrics =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    InboundConnectorMetrics m =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
 
-    var types = metrics.stream().map(InboundConnectorMetrics::connectorType).toList();
-    assertTrue(types.contains(typeA));
-    assertTrue(types.contains(typeB));
+    // connectorType is null (omitted) for the aggregate response
+    assertNull(m.connectorType());
+    // activated must include at least the 8 (5+3) we just registered
+    assertTrue(m.activations().activated() >= 8L);
   }
 }

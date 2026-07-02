@@ -17,33 +17,41 @@
 package io.camunda.connector.runtime.metrics;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.time.Instant;
 
 /**
  * Aggregated outbound connector metrics for a single connector type.
  *
- * @param connectorType job type (e.g. {@code io.camunda:http-json:1})
+ * @param connectorType job type (e.g. {@code io.camunda:http-json:1}), or {@code null} when
+ *     representing aggregated totals across all types
  * @param elementTemplateId element template ID associated with this connector type, or {@code null}
  *     if not available
  * @param elementTemplateVersion element template version, or {@code null} if not available
- * @param invocations counts per invocation outcome action
+ * @param jobs counts per job outcome
  * @param executionTime execution-time statistics derived from a Micrometer Timer
  * @param worker Zeebe job-worker level counters
+ * @param lastCompleted timestamp of the last successfully completed job, or {@code null} if none
+ * @param lastFailed timestamp of the last failed job, or {@code null} if none
+ * @param runtimeUptimeSeconds number of seconds the runtime process has been running
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record OutboundConnectorMetrics(
     String connectorType,
     String elementTemplateId,
     String elementTemplateVersion,
-    Invocations invocations,
+    Jobs jobs,
     ExecutionTime executionTime,
-    WorkerStats worker) {
+    WorkerStats worker,
+    Instant lastCompleted,
+    Instant lastFailed,
+    Long runtimeUptimeSeconds) {
 
   /**
    * @param completed jobs that completed successfully
    * @param failed jobs that ended with a connector error or exception
    * @param bpmnError jobs that threw a BPMN error
    */
-  public record Invocations(long completed, long failed, long bpmnError) {}
+  public record Jobs(long completed, long failed, long bpmnError) {}
 
   /**
    * @param meanMs mean execution duration in milliseconds
