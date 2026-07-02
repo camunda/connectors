@@ -63,7 +63,7 @@ class InboundConnectorRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/inbound/metrics").param("connectorType", type))
+            .perform(get("/inbound/metrics/" + type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -100,7 +100,7 @@ class InboundConnectorRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/inbound/metrics").param("connectorType", type))
+            .perform(get("/inbound/metrics/" + type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -132,7 +132,7 @@ class InboundConnectorRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/inbound/metrics").param("connectorType", typeA))
+            .perform(get("/inbound/metrics/" + typeA))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()

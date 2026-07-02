@@ -33,7 +33,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -81,16 +80,10 @@ public class OutboundConnectorsRestController {
         .orElseThrow(() -> new DataNotFoundException(OutboundConnectorResponse.class, type));
   }
 
-  /**
-   * Returns outbound connector metrics for a specific connector type, or aggregated totals across
-   * all connector types when {@code connectorType} is omitted.
-   *
-   * @param connectorType optional connector type filter (e.g. {@code io.camunda:http-json:1})
-   */
+  /** Returns aggregated outbound connector metrics across all connector types. */
   @GetMapping("/metrics")
-  public OutboundConnectorMetrics getMetrics(
-      @RequestParam(name = "connectorType", required = false) String connectorType) {
-    return ConnectorMetricsAggregator.outbound(meterRegistry, connectorType);
+  public OutboundConnectorMetrics getMetrics() {
+    return ConnectorMetricsAggregator.outbound(meterRegistry, null);
   }
 
   /**

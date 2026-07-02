@@ -192,7 +192,7 @@ class OutboundConnectorsRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/outbound/metrics").param("connectorType", type))
+            .perform(get("/outbound/metrics/" + type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -225,7 +225,7 @@ class OutboundConnectorsRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/outbound/metrics").param("connectorType", type))
+            .perform(get("/outbound/metrics/" + type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -255,7 +255,7 @@ class OutboundConnectorsRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/outbound/metrics").param("connectorType", typeA))
+            .perform(get("/outbound/metrics/" + typeA))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -337,7 +337,7 @@ class OutboundConnectorsRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/outbound/metrics").param("connectorType", type))
+            .perform(get("/outbound/metrics/" + type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
