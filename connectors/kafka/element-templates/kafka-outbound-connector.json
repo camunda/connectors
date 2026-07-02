@@ -86,6 +86,7 @@
       "type" : "zeebe:input"
     },
     "tooltip" : "Bootstrap server(s), comma-delimited if there are multiple.",
+    "placeholder" : "broker1:9092,broker2:9092",
     "type" : "String"
   }, {
     "id" : "topic.topicName",
@@ -188,7 +189,7 @@
       "equals" : "schemaRegistry",
       "type" : "simple"
     },
-    "tooltip" : "For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">Kafka connector documentation</a>",
+    "tooltip" : "Format used to (de)serialize the message value: JSON or Avro. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">Kafka connector</a> guide.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "JSON",

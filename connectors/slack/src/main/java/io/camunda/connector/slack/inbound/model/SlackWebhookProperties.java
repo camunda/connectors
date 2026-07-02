@@ -29,7 +29,7 @@ public record SlackWebhookProperties(
             label = "Slack signing secret",
             group = "endpoint",
             tooltip =
-                "<a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>Slack request signing documentation</a>",
+                "Used to verify that incoming requests originate from Slack. See <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>Verifying requests from Slack</a>",
             feel = FeelMode.disabled)
         @NotBlank
         String slackSigningSecret,

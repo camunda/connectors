@@ -69,7 +69,7 @@
       "name" : "inbound.slackSigningSecret",
       "type" : "zeebe:property"
     },
-    "tooltip" : "<a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>Slack request signing documentation</a>",
+    "tooltip" : "Used to verify that incoming requests originate from Slack. See <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>Verifying requests from Slack</a>",
     "type" : "String"
   }, {
     "id" : "inbound.verificationExpression",

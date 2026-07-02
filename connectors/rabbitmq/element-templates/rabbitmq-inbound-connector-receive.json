@@ -141,7 +141,7 @@
       "equals" : "credentials",
       "type" : "simple"
     },
-    "tooltip" : "Virtual host: get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
+    "tooltip" : "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
     "type" : "String"
   }, {
     "id" : "routing.hostName",
@@ -160,7 +160,7 @@
       "equals" : "credentials",
       "type" : "simple"
     },
-    "tooltip" : "Host name: get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
+    "tooltip" : "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
     "type" : "String"
   }, {
     "id" : "routing.port",
@@ -179,7 +179,7 @@
       "equals" : "credentials",
       "type" : "simple"
     },
-    "tooltip" : "Port: get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
+    "tooltip" : "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
     "type" : "String"
   }, {
     "id" : "queueName",
@@ -204,7 +204,6 @@
       "name" : "consumerTag",
       "type" : "zeebe:property"
     },
-    "tooltip" : "Consumer tag to use for the subscription",
     "type" : "String"
   }, {
     "id" : "arguments",
@@ -216,7 +215,6 @@
       "name" : "arguments",
       "type" : "zeebe:property"
     },
-    "tooltip" : "Arguments to use for the subscription",
     "type" : "String"
   }, {
     "id" : "exclusive",

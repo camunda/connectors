@@ -23,7 +23,7 @@ public abstract class AbstractSchemaRegistryStrategy {
         @TemplateProperty.DropdownPropertyChoice(value = "avro", label = "Avro")
       },
       tooltip =
-          "For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">Kafka connector documentation</a>")
+          "Format used to (de)serialize the message value: JSON or Avro. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">Kafka connector</a> guide.")
   SchemaType schemaType;
 
   @NotBlank
