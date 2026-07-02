@@ -34,8 +34,7 @@ public record TextractExtractorRequest(
     @TemplateProperty(
             id = "accessKey",
             label = "Access key",
-            tooltip =
-                "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+            tooltip = "IAM access key of a user with the necessary permissions",
             group = "extractor",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -47,8 +46,7 @@ public record TextractExtractorRequest(
     @TemplateProperty(
             id = "secretKey",
             label = "Secret key",
-            tooltip =
-                "Provide the AWS secret access key of a user with permissions for Amazon Textract and S3",
+            tooltip = "AWS secret access key of a user with permissions for Amazon Textract and S3",
             group = "extractor",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -60,7 +58,6 @@ public record TextractExtractorRequest(
     @TemplateProperty(
             id = "region",
             group = "extractor",
-            tooltip = "Specify the AWS region",
             type = TemplateProperty.PropertyType.Text,
             feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -71,8 +68,7 @@ public record TextractExtractorRequest(
             label = "AWS S3 Bucket name",
             group = "extractor",
             type = TemplateProperty.PropertyType.Text,
-            tooltip =
-                "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
+            tooltip = "Where the document will be stored temporarily during Textract analysis",
             defaultValue = "idp-extraction-connector",
             binding = @TemplateProperty.PropertyBinding(name = "bucketName"),
             feel = FeelMode.disabled,

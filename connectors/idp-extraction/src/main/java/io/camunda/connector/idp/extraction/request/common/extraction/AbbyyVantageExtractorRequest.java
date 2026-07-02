@@ -18,7 +18,6 @@ public record AbbyyVantageExtractorRequest(
             label = "ABBYY Vantage Base URL",
             group = "extractor",
             type = TemplateProperty.PropertyType.Text,
-            tooltip = "Base URL of the ABBYY Vantage instance",
             placeholder = "https://vantage-us.abbyy.com",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -49,8 +48,7 @@ public record AbbyyVantageExtractorRequest(
             label = "Skill ID",
             group = "extractor",
             type = TemplateProperty.PropertyType.Text,
-            tooltip =
-                "The ABBYY Vantage OCR skill ID (skill must be configured to output Text format)",
+            tooltip = "The skill must be configured to output Text format.",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull

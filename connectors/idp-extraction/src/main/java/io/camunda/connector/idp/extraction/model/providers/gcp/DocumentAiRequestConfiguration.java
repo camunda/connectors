@@ -33,7 +33,7 @@ public final class DocumentAiRequestConfiguration implements GcpRequestConfigura
       group = "configuration",
       id = "processorId",
       label = "Processor ID",
-      tooltip = "The id of the processor used to parse the document")
+      tooltip = "Processor used to parse the document")
   private String processorId;
 
   public DocumentAiRequestConfiguration() {}

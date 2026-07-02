@@ -26,7 +26,8 @@ public class AiFoundryConfig {
       label = "Model type",
       group = "configuration",
       type = Dropdown,
-      tooltip = "Specify if the Azure AI Foundry is using OpenAI",
+      tooltip =
+          "Base Azure Foundry model = a model deployed directly in Azure AI Foundry; Azure OpenAI model = an OpenAI model served through Azure OpenAI",
       defaultValue = "false",
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
       choices = {

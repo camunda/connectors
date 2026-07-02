@@ -20,7 +20,6 @@ public record OpenAiRequest(
             id = "openAiEndpoint",
             label = "OpenAI Spec Endpoint",
             group = "ai",
-            tooltip = "The OpenAI-compatible specification endpoint.",
             type = TemplateProperty.PropertyType.Text,
             binding = @TemplateProperty.PropertyBinding(name = "openAiEndpoint"),
             feel = FeelMode.disabled,

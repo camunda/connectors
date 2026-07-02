@@ -19,7 +19,6 @@ public class UnstructuredExtractionRequestData extends DocumentRequestData {
       label = "Taxonomy Items",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
-      tooltip = "Array of taxonomy items",
       defaultValue = "=[\n  {name: \"\", prompt: \"\"},\n  {name: \"\", prompt: \"\"}\n]",
       binding = @TemplateProperty.PropertyBinding(name = "taxonomyItems"),
       feel = FeelMode.optional)

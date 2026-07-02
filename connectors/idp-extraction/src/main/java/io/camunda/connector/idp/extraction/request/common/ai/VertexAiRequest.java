@@ -33,7 +33,6 @@ public record VertexAiRequest(
     @TemplateProperty(
             id = "bearerToken",
             label = "Bearer token",
-            tooltip = "Enter a valid Google API Bearer token",
             group = "ai",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -43,7 +42,6 @@ public record VertexAiRequest(
     @TemplateProperty(
             id = "oauthClientId",
             label = "Client ID",
-            tooltip = "Enter Google API Client ID",
             group = "ai",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -53,7 +51,6 @@ public record VertexAiRequest(
     @TemplateProperty(
             id = "oauthClientSecret",
             label = "Client secret",
-            tooltip = "Enter Google API client Secret",
             group = "ai",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -63,7 +60,6 @@ public record VertexAiRequest(
     @TemplateProperty(
             id = "oauthRefreshToken",
             label = "Refresh token",
-            tooltip = "Enter a valid Google API refresh token",
             group = "ai",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -73,7 +69,7 @@ public record VertexAiRequest(
     @TemplateProperty(
             id = "serviceAccountJson",
             label = "Service account json",
-            tooltip = "Enter the contents of your service account JSON file",
+            tooltip = "Contents of your service account JSON file",
             group = "ai",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),

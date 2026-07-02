@@ -216,7 +216,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Enter a valid Google API Bearer token",
     "type" : "String"
   }, {
     "id" : "extractor.oauthClientId",
@@ -242,7 +241,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Enter Google API Client ID",
     "type" : "String"
   }, {
     "id" : "extractor.oauthClientSecret",
@@ -268,7 +266,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Enter Google API client Secret",
     "type" : "String"
   }, {
     "id" : "extractor.oauthRefreshToken",
@@ -294,7 +291,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Enter a valid Google API refresh token",
     "type" : "String"
   }, {
     "id" : "extractor.serviceAccountJson",
@@ -339,7 +335,7 @@
       "equals" : "documentAi",
       "type" : "simple"
     },
-    "tooltip" : "Select the region for Document AI",
+    "tooltip" : "Geographic location where the Document AI processor runs. EU = European Union, US = United States.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "EU",
@@ -379,7 +375,7 @@
       "equals" : "documentAi",
       "type" : "simple"
     },
-    "tooltip" : "The id of the processor used to parse the document",
+    "tooltip" : "Processor used to parse the document",
     "type" : "String"
   }, {
     "id" : "extractor.awsAuthType",
@@ -431,7 +427,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+    "tooltip" : "IAM access key of a user with the necessary permissions",
     "type" : "String"
   }, {
     "id" : "extractor.secretKey",
@@ -457,7 +453,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Provide the AWS secret access key of a user with permissions for Amazon Textract and S3",
+    "tooltip" : "AWS secret access key of a user with permissions for Amazon Textract and S3",
     "type" : "String"
   }, {
     "id" : "extractor.region",
@@ -476,7 +472,6 @@
       "equals" : "textract",
       "type" : "simple"
     },
-    "tooltip" : "Specify the AWS region",
     "type" : "Text"
   }, {
     "id" : "extractor.bucketName",
@@ -496,7 +491,7 @@
       "equals" : "textract",
       "type" : "simple"
     },
-    "tooltip" : "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
+    "tooltip" : "Where the document will be stored temporarily during Textract analysis",
     "type" : "Text"
   }, {
     "id" : "extractor.abbyyBaseUrl",
@@ -516,7 +511,6 @@
       "equals" : "abbyy",
       "type" : "simple"
     },
-    "tooltip" : "Base URL of the ABBYY Vantage instance",
     "placeholder" : "https://vantage-us.abbyy.com",
     "type" : "Text"
   }, {
@@ -577,7 +571,7 @@
       "equals" : "abbyy",
       "type" : "simple"
     },
-    "tooltip" : "The ABBYY Vantage OCR skill ID (skill must be configured to output Text format)",
+    "tooltip" : "The skill must be configured to output Text format.",
     "type" : "Text"
   }, {
     "id" : "version",

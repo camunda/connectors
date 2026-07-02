@@ -60,7 +60,6 @@ public record BedrockAiRequest(
     @TemplateProperty(
             id = "region",
             group = "ai",
-            tooltip = "Specify the AWS region",
             type = TemplateProperty.PropertyType.Text,
             feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

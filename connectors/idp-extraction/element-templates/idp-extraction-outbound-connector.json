@@ -288,7 +288,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Enter a valid Google API Bearer token",
     "type" : "String"
   }, {
     "id" : "baseRequest.authentication.oauthClientId",
@@ -314,7 +313,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Enter Google API Client ID",
     "type" : "String"
   }, {
     "id" : "baseRequest.authentication.oauthClientSecret",
@@ -340,7 +338,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Enter Google API client Secret",
     "type" : "String"
   }, {
     "id" : "baseRequest.authentication.oauthRefreshToken",
@@ -366,7 +363,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Enter a valid Google API refresh token",
     "type" : "String"
   }, {
     "id" : "baseRequest.authentication.serviceAccountJson",
@@ -412,7 +408,7 @@
       "equals" : "aws",
       "type" : "simple"
     },
-    "tooltip" : "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
+    "tooltip" : "Where the document will be stored temporarily during Textract analysis",
     "type" : "Text"
   }, {
     "id" : "baseRequest.extractionEngineType",
@@ -529,7 +525,7 @@
       "equals" : "azure",
       "type" : "simple"
     },
-    "tooltip" : "Specify if the Azure AI Foundry is using OpenAI",
+    "tooltip" : "Base Azure Foundry model = a model deployed directly in Azure AI Foundry; Azure OpenAI model = an OpenAI model served through Azure OpenAI",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Base Azure Foundry model",
@@ -728,7 +724,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The id of the processor used to parse the document",
+    "tooltip" : "Processor used to parse the document",
     "type" : "String"
   }, {
     "id" : "baseRequest.openAiEndpoint",
