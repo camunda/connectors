@@ -24,6 +24,7 @@ import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import java.time.Duration;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
@@ -33,7 +34,8 @@ public class InboundConnectorTestConfiguration {
 
   @Bean
   public InboundConnectorTestHelper inboundConnectorTestHelper(
-      CacheManager cacheManager, InboundExecutableRegistry executableRegistry) {
+      @Qualifier("processDefinitionCacheManager") CacheManager cacheManager,
+      InboundExecutableRegistry executableRegistry) {
     return new InboundConnectorTestHelper(cacheManager, executableRegistry);
   }
 
