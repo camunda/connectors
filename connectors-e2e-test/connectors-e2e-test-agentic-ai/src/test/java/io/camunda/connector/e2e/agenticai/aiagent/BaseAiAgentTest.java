@@ -60,13 +60,44 @@ import org.springframework.core.io.Resource;
 @Import(CamundaDocumentTestConfiguration.class)
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
+  public static final String HTTPS_KEYSTORE_PASSWORD = "changeit";
+
+  /**
+   * Self-signed keystore backing the WireMock HTTPS port. Also usable as a truststore by clients
+   * (e.g. Azure's SDK) that need to trust this same self-signed certificate, since it's a
+   * self-signed cert with no separate CA.
+   */
+  public static java.nio.file.Path httpsKeystoreFile() {
+    try {
+      return java.nio.file.Path.of(
+          BaseAiAgentTest.class
+              .getResource("/wiremock-https/azure-wiremock-https-keystore.p12")
+              .toURI());
+    } catch (Exception e) {
+      throw new IllegalStateException(
+          "Missing test resource /wiremock-https/azure-wiremock-https-keystore.p12", e);
+    }
+  }
+
   // Programmatic registration (not @WireMockTest) so we can set a verbose notifier that logs the
   // request journal. We use ConsoleNotifier (stdout) because wiremock-standalone's Slf4jNotifier
   // is bound to its shaded SLF4J and never reaches our logback.
+  //
+  // The HTTPS port (self-signed keystore under wiremock-https/) is only used by
+  // ProviderWireFormatSmokeTests' AzureOpenAiCompletions row — Azure's SDK unconditionally
+  // rejects non-HTTPS endpoints for API-key auth. All other tests keep using the HTTP port.
   @RegisterExtension
   static WireMockExtension wireMockExtension =
       WireMockExtension.newInstance()
-          .options(options().dynamicPort().notifier(new ConsoleNotifier(true)))
+          .options(
+              options()
+                  .dynamicPort()
+                  .dynamicHttpsPort()
+                  .keystorePath(httpsKeystoreFile().toString())
+                  .keystorePassword(HTTPS_KEYSTORE_PASSWORD)
+                  .keyManagerPassword(HTTPS_KEYSTORE_PASSWORD)
+                  .keystoreType("PKCS12")
+                  .notifier(new ConsoleNotifier(true)))
           .configureStaticDsl(true)
           .build();
 

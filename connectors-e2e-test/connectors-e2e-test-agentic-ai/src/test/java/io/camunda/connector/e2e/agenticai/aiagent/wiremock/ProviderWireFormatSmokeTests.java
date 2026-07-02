@@ -22,8 +22,10 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAI
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.azureopenai.AzureOpenAiCompletionsWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
@@ -34,6 +36,7 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
@@ -68,7 +71,22 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
     return Stream.of(
         new OpenAiCompletionsWireFormatFixture(),
         new AnthropicMessagesWireFormatFixture(),
-        new BedrockConverseWireFormatFixture());
+        new BedrockConverseWireFormatFixture(),
+        new AzureOpenAiCompletionsWireFormatFixture());
+  }
+
+  /**
+   * Trusts WireMock's self-signed HTTPS certificate JVM-wide, for the {@code
+   * AzureOpenAiCompletions} row (Azure's SDK requires HTTPS for API-key auth — see {@code
+   * AzureOpenAiCompletionsWireFormatFixture}). Safe to set unconditionally: no other test in this
+   * module makes real outbound HTTPS calls that would need the JVM's real default trust store.
+   */
+  @BeforeAll
+  static void trustWireMockHttpsCertificate() {
+    final var keystoreFile = BaseAiAgentTest.httpsKeystoreFile();
+    System.setProperty("javax.net.ssl.trustStore", keystoreFile.toString());
+    System.setProperty("javax.net.ssl.trustStorePassword", BaseAiAgentTest.HTTPS_KEYSTORE_PASSWORD);
+    System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
   }
 
   @Override
@@ -150,7 +168,7 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
                     "userPrompt",
                     userPrompt,
                     "downloadUrls",
-                    List.of(wireMock.getHttpBaseUrl() + "/test.pdf"))));
+                    List.of(wireMock.getHttpBaseUrl() + "/" + fixture.documentFixtureFile()))));
 
     assertThat(fixture.modelCallCount()).isEqualTo(1);
     final var lastRequest = fixture.lastRecordedRequest();

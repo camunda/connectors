@@ -39,6 +39,16 @@ public interface ProviderWireFormatFixture {
    */
   String apiName();
 
+  /**
+   * The {@code __files}-relative filename to attach as a user-prompt document in the multimodal
+   * scenario. Defaults to a PDF; override if a fixture's provider/API doesn't support that content
+   * type (e.g. {@code langchain4j-azure-openai}'s message mapper only handles {@code TextContent} /
+   * {@code ImageContent}, not {@code PdfFileContent} — confirmed via source, not a fixture bug).
+   */
+  default String documentFixtureFile() {
+    return "test.pdf";
+  }
+
   /** Configures the element template to point the connector at this fixture's WireMock server. */
   Function<ElementTemplate, ElementTemplate> configureProvider(WireMockRuntimeInfo wireMock);
 
