@@ -665,6 +665,26 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+### 5. Terminal Commands — Disable Pagers
+
+**Always prevent interactive pagers in terminal commands.**
+
+Any command that may open a pager (e.g. `git log`, `git diff`, `git show`, `man`, `less`) must be run with pager disabled so the output is returned inline without requiring user interaction:
+
+- Use `git --no-pager <command>` for git commands
+- Or pipe to `cat`: `git log | cat`
+
+Example:
+
+```bash
+# ✅ Correct
+git --no-pager log --oneline -10
+git --no-pager diff HEAD
+
+# ❌ Wrong — blocks waiting for "q"
+git log --oneline -10
+```
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and
