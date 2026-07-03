@@ -111,7 +111,7 @@ jobs:
 
       # Build and test (format and javadoc run in parallel jobs)
       - name: Build Connectors
-        run: ./mvnw --batch-mode -U clean test -Dquickly
+        run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
