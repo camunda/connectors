@@ -127,14 +127,14 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                     st,
                     Map.of(
                         "data.connectorMode.standaloneModeFilters.tools.excluded",
-                        "=[\"add\", \"base64Encode\", \"base64Decode\"]")));
+                        "=[\"add\", \"base64Encode\", \"base64Decode\", \"divide\", \"multiply\", \"subtract\", \"failTool\"]")));
 
     updateInputMappings(
         bpmnModel,
         "Client_Call_Tool",
         Map.ofEntries(
-            Map.entry("data.connectorMode.operation.toolName", "uppercase"),
-            Map.entry("data.connectorMode.operation.toolArguments", "={ message: \"hello\" }")));
+            Map.entry("data.connectorMode.operation.toolName", "echoMeta"),
+            Map.entry("data.connectorMode.operation.toolArguments", "={}")));
 
     // MCP Remote Client
     serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpremoteclient"))
@@ -146,7 +146,7 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                     remoteClientProperties.mcpRemoteClientInputMappings(
                         Map.of(
                             "data.connectorMode.standaloneModeFilters.tools.excluded",
-                            "=[\"uppercase\", \"lowercase\"]"))));
+                            "=[\"uppercase\", \"lowercase\", \"divide\", \"multiply\", \"subtract\", \"failTool\", \"echoMeta\"]"))));
 
     updateInputMappings(
         bpmnModel,
@@ -166,13 +166,16 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                 assertThat(listToolsResult.toolDefinitions())
                     .isNotEmpty()
                     .extracting(McpToolDefinition::name)
-                    .containsExactlyInAnyOrder("uppercase", "lowercase", "echo", "greet"))
+                    .containsExactlyInAnyOrder(
+                        "uppercase", "lowercase", "echo", "greet", "echoMeta"))
         .hasVariableSatisfies(
             "clientCallToolResult",
             McpClientCallToolResult.class,
             toolCallResult -> {
-              assertThat(toolCallResult.name()).isEqualTo("uppercase");
-              assertThat(toolCallResult.content()).hasSize(1).containsExactly(textContent("HELLO"));
+              assertThat(toolCallResult.name()).isEqualTo("echoMeta");
+              assertThat(toolCallResult.content())
+                  .hasSize(1)
+                  .containsExactly(textContent("{\"exampleMetaKey\":\"exampleMetaValue\"}"));
               assertThat(toolCallResult.isError()).isFalse();
             })
         .hasVariableSatisfies(
