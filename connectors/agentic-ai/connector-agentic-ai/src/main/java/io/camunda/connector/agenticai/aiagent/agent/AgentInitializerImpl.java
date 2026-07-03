@@ -54,11 +54,9 @@ public class AgentInitializerImpl implements AgentInitializer {
     List<ToolCallResult> initialToolCallResults =
         Optional.ofNullable(executionContext.initialToolCallResults()).orElseGet(List::of);
 
-    // resolve completedAt (engine timestamp -> worker-observed -> now()) at the earliest
-    // ingestion point, per ADR 008, before any further processing of these results
-    final var resolved = completedAtResolver.resolve(agentContext, initialToolCallResults);
-    agentContext = resolved.agentContext();
-    initialToolCallResults = resolved.toolCallResults();
+    // resolve completedAt (engine timestamp -> now()) at the earliest ingestion point, per
+    // ADR 008, before any further processing of these results
+    initialToolCallResults = completedAtResolver.resolve(initialToolCallResults);
 
     return switch (agentContext.state()) {
       case INITIALIZING ->

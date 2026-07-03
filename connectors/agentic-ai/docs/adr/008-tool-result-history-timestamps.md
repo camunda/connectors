@@ -32,11 +32,11 @@ useless for deriving per-tool execution time.
 
 ## Considered Options
 
-| Dimension | A — engine `now()` in outputElement | B — worker-observed, correlated to collection |
+| Dimension | A — engine `now()` in outputElement | B — worker-observed, persisted first-seen |
 |---|---|---|
-| Measures | True tool-completion moment | When worker first *received* a job carrying the result |
+| Measures | True tool-completion moment | When the worker first *received* a job carrying the result |
 | Accuracy | High, exact per tool | Approx.; lags by job-create + activation + poll latency |
-| Co-arriving results | Distinguished precisely | Batched on one job share its time |
+| Co-arriving results | Distinguished precisely | Distinguished only if seen on different jobs |
 | Clock | Engine (Zeebe) | Connector host (same as existing `producedAt`) |
 | State | Stateless — rides the result | Stateful — persisted first-seen map, written on no-op jobs |
 | Robustness (supersession/redelivery/no-op) | Immune (fixed at completion) | Sensitive — needs keep-earliest + superseded-write care |
@@ -44,6 +44,15 @@ useless for deriving per-tool execution time.
 | Coverage | AHSP tool elements (+AHSP gateway); **not** Task flavor | Broad, incl. Task flavor & gateway |
 | Serialization risk | FEEL `now()` zone form may not parse to `OffsetDateTime` | None |
 | Complexity | Low–medium | Medium–high |
+
+**B (persisted first-seen) was implemented, then reverted.** It requires threading state through
+`agentContext` and re-emitting it on the no-op/`Deferred` AHSP path (which previously emitted no
+variables at all) purely so a later job can recover an earlier job's observation. That is a
+meaningful amount of surface area and failure modes (superseded-write tolerance, keep-earliest
+correctness, pruning stale entries) for a fallback that only ever applies to cases the recommended
+AHSP + v11 template combination doesn't hit (Task flavor, non-AHSP gateway results, pre-v11
+diagrams). Decided the stateless fallback (plain `now()` at resolution time, no persistence) is the
+right tradeoff — see Decision Outcome.
 
 Rejected / deferred: **Eager push** (write each history item as it arrives, rather than only once the
 turn is complete). This is heavier (needs history-item idempotency, since the dominant duplicate source
@@ -54,7 +63,7 @@ deferred to parent epic #7595.
 
 ## Decision Outcome
 
-**A primary → B fallback → `now()` last resort**, resolved at the earliest ingestion point so every
+**A primary → stateless `now()` fallback**, resolved at the earliest ingestion point so every
 `ToolCallResult` carries a concrete completion time (`completedAt`) before it flows into the history
 path. The mapper and `CamundaAgentInstanceClient` take a required (non-null) `producedAt` — no nullable
 plumbing and no `now()` fallback scattered downstream.
@@ -62,12 +71,15 @@ plumbing and no `now()` fallback scattered downstream.
 - **A — engine timestamp via AHSP `outputElement`**: the tool element's output mapping FEEL expression
   now also emits `completedAt: now()`. The engine stamps the true completion moment; it rides the
   `ToolCallResult`. Primary source, ships in the AI Agent Sub-process element template v11.
-- **B — worker-observed timestamp**: for results lacking an engine timestamp (Task flavor, non-AHSP
-  gateway results, migrated/in-flight AHSP instances, and diagrams still bound to v10 or earlier), the
-  worker stamps the receipt/activation time of the *first* job that carries the result, persisted per
-  result id so it survives the intervening no-op jobs. Better than raw `now()` because it still
-  separates a fast tool from a slow one arriving in the same turn.
-- **`now()`** only when neither A nor B is available (cancelled results, events, nothing observed yet).
+- **`now()` fallback**: for results lacking an engine timestamp (Task flavor, non-AHSP gateway
+  results, migrated/in-flight AHSP instances, cancelled results, events, and diagrams still bound to
+  v10 or earlier), the worker stamps `OffsetDateTime.now()` at the moment ingestion normalization
+  resolves the result. This is computed fresh on every job and **not persisted anywhere** — no
+  `agentContext` state, no no-op-path plumbing. On an AHSP round that no-ops while waiting for
+  further tool results, a result missing an engine timestamp gets the *resolving* job's `now()`,
+  which for a genuinely no-op-spanning round means it converges on the same timestamp as the other
+  results resolved on that same (later) job — i.e. it degrades to the pre-fix turn-end timestamp for
+  exactly the cases A doesn't cover. That degradation is accepted as the cost of statelessness.
 
 ### Serialization risk (A) — confirmed and resolved
 
@@ -106,10 +118,10 @@ historical `producedAt` data on already-persisted history items is attempted.
 
 ### Negative Consequences
 
-- Task flavor and pre-v11 AHSP diagrams never get the accurate (A) timestamp, only the coarser
-  worker-observed (B) approximation — expected and documented, not a bug.
-- B requires stateful bookkeeping (persisted first-seen map in `agentContext` metadata) that must
-  tolerate superseded-job write rejection and no-op/deferred jobs.
+- Task flavor and pre-v11 AHSP diagrams never get the accurate (A) timestamp. For an AHSP round that
+  spans multiple no-op jobs, results without an engine timestamp can still collapse onto the
+  resolving job's shared `now()` — the same inaccuracy this ADR set out to fix, just for a narrower
+  set of cases (everything not covered by A). Accepted in exchange for zero added state.
 
 ## Out of Scope
 
@@ -117,6 +129,8 @@ historical `producedAt` data on already-persisted history items is attempted.
   keep their (inaccurate) turn-end timestamp permanently.
 - Editing v10 (or any other already-released template version) in place — see rejected alternative
   above.
+- Persisting worker-observed timestamps across jobs (the reverted B design above) — the fallback path
+  is intentionally stateless.
 - Eager push + history-item idempotency (the visibility fix) — parent epic #7595, revisit with the job
   lease concept (camunda/camunda#54840).
 - Deriving completion time from queryable engine element-instance data per tool, if it becomes

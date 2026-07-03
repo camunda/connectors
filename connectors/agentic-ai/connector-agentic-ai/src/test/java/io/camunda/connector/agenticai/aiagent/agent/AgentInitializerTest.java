@@ -89,11 +89,8 @@ class AgentInitializerTest {
   @BeforeEach
   void stubCompletedAtResolverAsIdentity() {
     lenient()
-        .when(completedAtResolver.resolve(any(), any()))
-        .thenAnswer(
-            invocation ->
-                new ToolCallResultCompletedAtResolver.Resolved(
-                    invocation.getArgument(0), invocation.getArgument(1)));
+        .when(completedAtResolver.resolve(any()))
+        .thenAnswer(invocation -> invocation.getArgument(0));
   }
 
   @Nested
@@ -660,11 +657,7 @@ class AgentInitializerTest {
 
       final var resolvedToolCallResults =
           List.of(TOOL_CALL_RESULTS.get(0).withCompletedAt(OffsetDateTime.now()));
-      final var resolvedAgentContext = agentContext.withProperty("resolved", true);
-      when(completedAtResolver.resolve(agentContext, TOOL_CALL_RESULTS))
-          .thenReturn(
-              new ToolCallResultCompletedAtResolver.Resolved(
-                  resolvedAgentContext, resolvedToolCallResults));
+      when(completedAtResolver.resolve(TOOL_CALL_RESULTS)).thenReturn(resolvedToolCallResults);
 
       final var result = agentInitializer.initializeAgent(executionContext);
 
@@ -672,10 +665,10 @@ class AgentInitializerTest {
           .isInstanceOfSatisfying(
               ReadyToConverse.class,
               res -> {
-                assertThat(res.agentContext()).isEqualTo(resolvedAgentContext);
+                assertThat(res.agentContext()).usingRecursiveComparison().isEqualTo(agentContext);
                 assertThat(res.toolCallResults()).isEqualTo(resolvedToolCallResults);
               });
-      verify(completedAtResolver).resolve(agentContext, TOOL_CALL_RESULTS);
+      verify(completedAtResolver).resolve(TOOL_CALL_RESULTS);
     }
   }
 

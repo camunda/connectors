@@ -829,7 +829,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Optional.empty());
+          Optional.empty(),
+          TURN_INGESTION_TIMESTAMP);
 
       // then
       verify(historyCommand).content(contentCaptor.capture());

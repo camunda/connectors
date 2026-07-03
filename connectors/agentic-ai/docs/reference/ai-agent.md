@@ -732,7 +732,7 @@ The method checks each tool call from the last assistant message against the ava
 ```java
 return switch (compositionResult) {
     case CompositionResult.Deferred ignored ->
-        handleNoOp(executionContext, agentContext); // wait for more tool results
+        handleNoOp(executionContext);          // wait for more tool results
     case CompositionResult.NoInput ignored ->
         handleNoInput(executionContext);       // nothing to add; handler decides
     case CompositionResult.NextTurn(var newMessages) ->
@@ -746,19 +746,6 @@ more results). When no input (user prompt, documents or events) is available at 
 `CompositionResult.NoInput`. This variant carries no error semantics — each handler decides: the job
 worker's `handleNoInput` completes without a response, while the outbound connector's `handleNoInput`
 throws a `ConnectorException` with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`.
-
-**`agentContext` on the no-op path (ADR 008).** `handleNoOp` on this path takes the current
-`agentContext`, not just the execution context. `JobWorkerAgentRequestHandler` overrides it to emit
-the `agentContext` variable even though the response is otherwise empty
-(`completionConditionFulfilled=false`, no elements activated). This matters for results that never
-get an engine `completedAt` (Task flavor, non-AHSP gateway results, pre-v11 templates):
-`ToolCallResultCompletedAtResolver` stamps the worker's first-seen time for such a result and
-persists it in `agentContext.properties()`, keyed by tool-call id. Without re-emitting `agentContext`
-on every no-op job, that persisted time would never reach the next job — e.g. in the scenario above,
-Job #1 would lose track of when it first observed tool A's result, and by the time Job #2 finally
-sees both A and B, A's fallback timestamp would collapse to B's arrival time again (the original
-bug). The map is rebuilt from each job's current `toolCallResults` batch, so ids from an
-already-consumed round are dropped rather than accumulating for the lifetime of the agent.
 
 ---
 
@@ -1583,13 +1570,16 @@ call (`POST /v2/agent-instances/{key}/history` via `newCreateAgentHistoryItemCom
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither
 computes a timestamp itself. A `TOOL_RESULT` item uses `ToolCallResult.completedAt()`: the engine's
-own timestamp from the AHSP `outputElement` (v11+ templates) when present, otherwise the
-worker-observed first-seen time for that result id (`ToolCallResultCompletedAtResolver`, run at the
-earliest ingestion point in `AgentInitializerImpl`), otherwise `now()` as a last resort. `USER` and
+own timestamp from the AHSP `outputElement` (v11+ templates) when present, otherwise `now()`
+(`ToolCallResultCompletedAtResolver`, run at the earliest ingestion point in `AgentInitializerImpl`).
+This fallback is stateless and not persisted anywhere: for results that never get an engine
+timestamp (Task flavor, non-AHSP gateway results, pre-v11 templates) on an AHSP round spanning
+multiple no-op jobs, the result is only resolved once the round actually proceeds, so it can still
+collapse onto the same timestamp as other results resolved on that job — the same inaccuracy this
+ADR fixes, just narrowed to cases outside A's coverage (see ADR 008 for the tradeoff). `USER` and
 other non-tool-result items use a turn-ingestion timestamp captured once by
 `BaseAgentRequestHandler.proceed` and passed down; the `ASSISTANT` item likewise takes an explicit
-timestamp captured right after the LLM call. This is what lets a 2-second tool and a 4-hour tool in
-the same turn report their own completion times instead of a shared turn-end timestamp.
+timestamp captured right after the LLM call.
 
 Each `toolCalls` entry carries the BPMN **`elementId`** alongside the (LLM-visible, possibly
 namespaced) `toolName`. For tool results it is resolved once on the model in
