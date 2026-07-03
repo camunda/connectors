@@ -232,8 +232,11 @@ jobs:
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
+      - name: Install element-template-generator plugin
+        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly
+
       - name: Check Javadoc
-        run: ./mvnw --batch-mode -U compile javadoc:javadoc -Dquickly
+        run: ./mvnw --batch-mode compile javadoc:javadoc -Dquickly
 
   check-format:
 
