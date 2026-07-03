@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * A single conversation message recorded from a request sent to a stubbed model endpoint, in a
@@ -28,10 +29,24 @@ public interface RecordedMessage {
   String role();
 
   /**
-   * Text content of the message, regardless of whether the wire format encodes it as a plain string
-   * or as parts of a multimodal content array.
+   * The message's content parts in wire order (text, images, documents, ...) — excludes tool
+   * calls/results, which are carried separately via {@link #toolCalls()}/{@link #toolCallId()}. The
+   * source of truth for {@link #textContent()}.
    */
-  String textContent();
+  List<RecordedContentPart> contentParts();
+
+  /**
+   * Text content of the message, joined from all {@code "text"} content parts. Regardless of
+   * whether the wire format encodes the message as a plain string or a multimodal content array,
+   * this ignores non-text parts (e.g. attached images/documents) — use {@link #contentParts()} to
+   * inspect those.
+   */
+  default String textContent() {
+    return contentParts().stream()
+        .filter(RecordedContentPart::isText)
+        .map(RecordedContentPart::text)
+        .collect(Collectors.joining());
+  }
 
   List<RecordedToolCall> toolCalls();
 

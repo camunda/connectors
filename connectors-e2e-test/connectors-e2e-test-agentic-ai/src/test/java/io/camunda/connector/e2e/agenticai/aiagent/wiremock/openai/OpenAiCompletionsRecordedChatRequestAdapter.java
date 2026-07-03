@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
 
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedContentPart;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedResponseFormat;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedToolCall;
@@ -76,8 +77,18 @@ final class OpenAiCompletionsRecordedChatRequestAdapter implements RecordedChatR
     }
 
     @Override
-    public String textContent() {
-      return delegate.textContent();
+    public List<RecordedContentPart> contentParts() {
+      if (delegate.content() != null) {
+        return List.of(new RecordedContentPart("text", delegate.content()));
+      }
+      return delegate.contentParts().stream()
+          .map(
+              part -> {
+                final var kind = part.path("type").asText();
+                return new RecordedContentPart(
+                    kind, "text".equals(kind) ? part.path("text").asText() : null);
+              })
+          .toList();
     }
 
     @Override

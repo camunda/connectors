@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic;
 
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedContentPart;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedResponseFormat;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedToolCall;
@@ -62,8 +63,10 @@ final class AnthropicMessagesRecordedChatRequestAdapter implements RecordedChatR
     }
 
     @Override
-    public String textContent() {
-      return delegate.textContent();
+    public List<RecordedContentPart> contentParts() {
+      return delegate.contentParts().stream()
+          .<RecordedContentPart>map(part -> new RecordedContentPart(part.kind(), part.text()))
+          .toList();
     }
 
     @Override

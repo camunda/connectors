@@ -90,8 +90,18 @@ public final class BedrockConverseRecordedConversation {
 
   public record RecordedToolCall(String id, String name) {}
 
+  /**
+   * A content block, in Bedrock's own wire shape: {@code kind} is the single field name present on
+   * the block (e.g. {@code text}, {@code image}, {@code document}) since Bedrock has no explicit
+   * {@code type} discriminator field.
+   */
+  public record ContentBlock(String kind, String text) {}
+
   public record RecordedMessage(
-      String role, String textContent, List<RecordedToolCall> toolCalls, String toolCallId) {}
+      String role,
+      List<ContentBlock> contentParts,
+      List<RecordedToolCall> toolCalls,
+      String toolCallId) {}
 
   public record RecordedResponseFormat(
       String type, String schemaName, Map<String, Object> jsonSchema) {}
@@ -106,7 +116,9 @@ public final class BedrockConverseRecordedConversation {
 
         final var systemText = extractSystemText(root.path("system"));
         if (systemText != null) {
-          messages.add(new RecordedMessage("system", systemText, List.of(), null));
+          messages.add(
+              new RecordedMessage(
+                  "system", List.of(new ContentBlock("text", systemText)), List.of(), null));
         }
 
         root.path("messages").forEach(message -> messages.addAll(toRecordedMessages(message)));
@@ -153,7 +165,8 @@ public final class BedrockConverseRecordedConversation {
                 toolResults.add(
                     new RecordedMessage(
                         "tool",
-                        toolResultText(toolResult.path("content")),
+                        List.of(
+                            new ContentBlock("text", toolResultText(toolResult.path("content")))),
                         List.of(),
                         toolResult.path("toolUseId").asText()));
               }
@@ -161,11 +174,17 @@ public final class BedrockConverseRecordedConversation {
         return toolResults;
       }
 
-      final var text =
+      // Content parts exclude toolUse blocks - those become toolCalls() instead.
+      final var contentParts =
           StreamSupport.stream(content.spliterator(), false)
-              .filter(block -> !block.path("text").isMissingNode())
-              .map(block -> block.path("text").asText())
-              .collect(Collectors.joining());
+              .filter(block -> block.path("toolUse").isMissingNode())
+              .map(
+                  block -> {
+                    final var kind = blockKind(block);
+                    return new ContentBlock(
+                        kind, "text".equals(kind) ? block.path("text").asText() : null);
+                  })
+              .toList();
 
       final var toolCalls =
           StreamSupport.stream(content.spliterator(), false)
@@ -177,7 +196,13 @@ public final class BedrockConverseRecordedConversation {
                           toolUse.path("toolUseId").asText(), toolUse.path("name").asText()))
               .toList();
 
-      return List.of(new RecordedMessage(role, text.isEmpty() ? null : text, toolCalls, null));
+      return List.of(new RecordedMessage(role, contentParts, toolCalls, null));
+    }
+
+    /** Bedrock content blocks have no {@code type} field; the single field present is the kind. */
+    private static String blockKind(JsonNode block) {
+      final var fieldNames = block.fieldNames();
+      return fieldNames.hasNext() ? fieldNames.next() : "unknown";
     }
 
     private static String toolResultText(JsonNode content) {

@@ -93,8 +93,14 @@ public final class AnthropicMessagesRecordedConversation {
 
   public record RecordedToolCall(String id, String name) {}
 
+  /** A content block, in Anthropic's own wire shape: {@code kind} is the block's {@code type}. */
+  public record ContentBlock(String kind, String text) {}
+
   public record RecordedMessage(
-      String role, String textContent, List<RecordedToolCall> toolCalls, String toolCallId) {}
+      String role,
+      List<ContentBlock> contentParts,
+      List<RecordedToolCall> toolCalls,
+      String toolCallId) {}
 
   public record RecordedResponseFormat(String type, Map<String, Object> jsonSchema) {}
 
@@ -108,7 +114,9 @@ public final class AnthropicMessagesRecordedConversation {
 
         final var systemText = extractSystemText(root.path("system"));
         if (systemText != null) {
-          messages.add(new RecordedMessage("system", systemText, List.of(), null));
+          messages.add(
+              new RecordedMessage(
+                  "system", List.of(new ContentBlock("text", systemText)), List.of(), null));
         }
 
         root.path("messages").forEach(message -> messages.addAll(toRecordedMessages(message)));
@@ -156,7 +164,7 @@ public final class AnthropicMessagesRecordedConversation {
                 toolResults.add(
                     new RecordedMessage(
                         "tool",
-                        toolResultText(block.path("content")),
+                        List.of(new ContentBlock("text", toolResultText(block.path("content")))),
                         List.of(),
                         block.path("tool_use_id").asText()));
               }
@@ -164,11 +172,17 @@ public final class AnthropicMessagesRecordedConversation {
         return toolResults;
       }
 
-      final var text =
+      // Content parts exclude tool_use blocks - those become toolCalls() instead.
+      final var contentParts =
           StreamSupport.stream(content.spliterator(), false)
-              .filter(block -> "text".equals(block.path("type").asText()))
-              .map(block -> block.path("text").asText())
-              .collect(Collectors.joining());
+              .filter(block -> !"tool_use".equals(block.path("type").asText()))
+              .map(
+                  block -> {
+                    final var kind = block.path("type").asText();
+                    return new ContentBlock(
+                        kind, "text".equals(kind) ? block.path("text").asText() : null);
+                  })
+              .toList();
 
       final var toolCalls =
           StreamSupport.stream(content.spliterator(), false)
@@ -178,7 +192,7 @@ public final class AnthropicMessagesRecordedConversation {
                       new RecordedToolCall(block.path("id").asText(), block.path("name").asText()))
               .toList();
 
-      return List.of(new RecordedMessage(role, text.isEmpty() ? null : text, toolCalls, null));
+      return List.of(new RecordedMessage(role, contentParts, toolCalls, null));
     }
 
     private static String toolResultText(JsonNode content) {

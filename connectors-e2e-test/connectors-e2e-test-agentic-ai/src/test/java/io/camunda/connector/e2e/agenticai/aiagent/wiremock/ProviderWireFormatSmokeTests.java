@@ -198,8 +198,15 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
     final var lastRequest = fixture.lastRecordedRequest();
     assertThat(lastRequest.messages()).hasSize(2);
     assertThat(lastRequest.messages().get(0).role()).isEqualTo("system");
-    assertThat(lastRequest.messages().get(1).role()).isEqualTo("user");
-    assertThat(lastRequest.messages().get(1).textContent()).isEqualTo(userPrompt);
+
+    final var userMessage = lastRequest.messages().get(1);
+    assertThat(userMessage.role()).isEqualTo("user");
+    assertThat(userMessage.textContent()).isEqualTo(userPrompt);
+    assertThat(userMessage.contentParts())
+        .as("user message content parts")
+        .hasSize(2)
+        .anySatisfy(part -> assertThat(part.isText()).isTrue())
+        .anySatisfy(part -> assertThat(part.isText()).isFalse());
 
     assertAgentResponse(
         zeebeTest,
