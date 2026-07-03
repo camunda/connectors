@@ -16,9 +16,12 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -38,16 +41,6 @@ public interface ProviderWireFormatFixture {
    * parameterized class display name (via {@code toString()}).
    */
   String apiName();
-
-  /**
-   * The {@code __files}-relative filename to attach as a user-prompt document in the multimodal
-   * scenario. Defaults to a PDF; override if a fixture's provider/API doesn't support that content
-   * type (e.g. {@code langchain4j-azure-openai}'s message mapper only handles {@code TextContent} /
-   * {@code ImageContent}, not {@code PdfFileContent} — confirmed via source, not a fixture bug).
-   */
-  default String documentFixtureFile() {
-    return "test.pdf";
-  }
 
   /** Configures the element template to point the connector at this fixture's WireMock server. */
   Function<ElementTemplate, ElementTemplate> configureProvider(WireMockRuntimeInfo wireMock);
@@ -74,10 +67,31 @@ public interface ProviderWireFormatFixture {
   }
 
   /**
-   * Asserts that a JSON response-schema instruction was communicated to the model in the given
-   * request. How this manifests on the wire is provider-specific (e.g. a {@code response_format}
-   * field for OpenAI-style APIs vs. a forced tool call for providers without a native structured
-   * output field) — pinning that down per provider is exactly what this suite exists to do.
+   * Asserts that the given request actually carries the configured JSON schema on the wire: the
+   * schema's {@code type}/{@code properties}/{@code required} must match {@code expectedSchema},
+   * and (where the provider puts it on the wire at all) the schema name must match {@code
+   * expectedSchemaName}. Override when a provider's wire format doesn't carry the schema name (see
+   * {@code AnthropicMessagesWireFormatFixture}).
    */
-  void assertResponseFormatConfigured(RecordedChatRequest request, String expectedSchemaName);
+  default void assertResponseFormatConfigured(
+      RecordedChatRequest request, String expectedSchemaName, Map<String, Object> expectedSchema) {
+    final var responseFormat = request.responseFormat();
+    assertThat(responseFormat).as("structured output format in recorded request").isPresent();
+    assertThat(responseFormat.get().type()).isEqualTo("json_schema");
+    assertThat(responseFormat.get().schemaName()).isEqualTo(expectedSchemaName);
+    assertSchemaContentMatches(responseFormat.get().jsonSchema(), expectedSchema);
+  }
+
+  @SuppressWarnings("unchecked")
+  static void assertSchemaContentMatches(
+      Map<String, Object> actualSchema, Map<String, Object> expectedSchema) {
+    assertThat(actualSchema)
+        .as("recorded JSON schema")
+        .containsEntry("type", expectedSchema.get("type"))
+        .containsEntry("properties", expectedSchema.get("properties"));
+    // "required" is semantically a set - some providers don't preserve declaration order.
+    assertThat((List<Object>) actualSchema.get("required"))
+        .as("recorded JSON schema 'required'")
+        .containsExactlyInAnyOrderElementsOf((List<Object>) expectedSchema.get("required"));
+  }
 }

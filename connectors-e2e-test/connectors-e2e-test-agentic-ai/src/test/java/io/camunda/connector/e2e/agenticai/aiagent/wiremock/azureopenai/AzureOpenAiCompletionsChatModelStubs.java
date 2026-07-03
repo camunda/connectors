@@ -37,16 +37,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * /openai/deployments/test-model/chat/completions}) so the AI agent connector drives the
  * conversation loop against a mock HTTP endpoint.
  *
- * <p>Confirmed (via {@code com.azure:azure-ai-openai:1.0.0-beta.16} source inspection — the {@code
- * ChatCompletionsOptions}/{@code ChatRequestMessage}/{@code ChatResponseMessage} wire model classes
- * used by {@code AzureOpenAiChatModel}) that Azure OpenAI's request/response body shape is
- * byte-for-byte identical to OpenAI's Chat Completions format (same {@code messages}/{@code
- * tool_calls}/{@code response_format} field names) — only the URL path (deployment-based, prefixed
- * with {@code /openai}) and authentication differ. This class therefore mirrors {@code
- * OpenAiCompletionsChatModelStubs} closely by design, not by omission; if a future Azure-specific
- * wire quirk is found, that is exactly the kind of drift this suite exists to catch. No Azure
- * credentials were available to calibrate this against the real API — unlike the Anthropic/Bedrock
- * fixtures, this one is source-derived only.
+ * <p>Azure OpenAI's request/response body shape is byte-for-byte identical to OpenAI's Chat
+ * Completions format (same {@code messages}/{@code tool_calls}/{@code response_format} field names)
+ * — only the URL path (deployment-based, prefixed with {@code /openai}) and authentication differ.
+ * This class mirrors {@code OpenAiCompletionsChatModelStubs} closely by design, not by omission.
  */
 public final class AzureOpenAiCompletionsChatModelStubs {
 

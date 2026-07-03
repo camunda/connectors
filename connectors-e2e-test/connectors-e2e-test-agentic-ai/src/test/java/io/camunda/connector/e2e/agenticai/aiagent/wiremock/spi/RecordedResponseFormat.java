@@ -18,5 +18,11 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi;
 
 import java.util.Map;
 
-/** The structured-output configuration recorded from a request, in a provider-agnostic shape. */
-public record RecordedResponseFormat(String type, Map<String, Object> jsonSchema) {}
+/**
+ * The structured-output configuration recorded from a request, in a provider-agnostic shape. {@code
+ * schemaName} is {@code null} for providers that don't put the configured schema name on the wire.
+ * {@code jsonSchema} is always the raw JSON schema object (never wrapped in a provider-specific
+ * envelope), regardless of where it sits in the actual wire body.
+ */
+public record RecordedResponseFormat(
+    String type, String schemaName, Map<String, Object> jsonSchema) {}

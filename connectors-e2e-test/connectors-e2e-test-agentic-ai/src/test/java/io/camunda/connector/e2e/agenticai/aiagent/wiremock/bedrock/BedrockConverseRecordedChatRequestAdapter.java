@@ -48,7 +48,10 @@ final class BedrockConverseRecordedChatRequestAdapter implements RecordedChatReq
   public Optional<RecordedResponseFormat> responseFormat() {
     return delegate
         .responseFormat()
-        .map(format -> new RecordedResponseFormat(format.type(), format.jsonSchema()));
+        .map(
+            format ->
+                new RecordedResponseFormat(
+                    format.type(), format.schemaName(), format.jsonSchema()));
   }
 
   private record MessageAdapter(BedrockConverseRecordedConversation.RecordedMessage delegate)

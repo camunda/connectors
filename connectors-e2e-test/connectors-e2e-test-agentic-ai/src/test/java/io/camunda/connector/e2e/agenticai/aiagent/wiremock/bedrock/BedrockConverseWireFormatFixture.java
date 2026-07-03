@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.bedrock.BedrockConverseChatModelStubs.ToolCall;
@@ -33,22 +31,19 @@ import java.util.function.Function;
  * Plugs AWS Bedrock's Converse API wire format into the provider-agnostic {@link
  * ProviderWireFormatFixture} SPI.
  *
- * <p>Notable wire-level differences pinned down here (via {@code langchain4j-bedrock:1.17.1} source
- * inspection and calibration against the real AWS Bedrock Converse API), as regression coverage
- * ahead of the native-provider rewrite (#7211):
+ * <p>Notable wire-level differences from OpenAI/Anthropic:
  *
  * <ul>
  *   <li>Content blocks are discriminated by which key is present ({@code text}, {@code toolUse},
- *       {@code toolResult}) rather than a {@code type} field, unlike OpenAI/Anthropic.
+ *       {@code toolResult}) rather than a {@code type} field.
  *   <li>The system prompt is a top-level {@code system} field (list of text blocks), and tool
  *       results for a turn are batched into a single {@code user}-role message, same as Anthropic.
  *   <li>JSON-schema structured output ({@code outputConfig.textFormat}) sends the schema
  *       <em>name</em> (unlike Anthropic, which drops it) but encodes the schema itself as a
  *       JSON-serialized <em>string</em> ({@code structure.jsonSchema.schema}), not a nested JSON
  *       object like OpenAI/Anthropic do.
- *   <li>The wire enum value for the format type is lowercase {@code "json_schema"} — confirmed via
- *       calibration; the uppercase Java SDK constant name ({@code OutputFormatType.JSON_SCHEMA}) is
- *       not what appears on the wire, so this could not have been derived from source alone.
+ *   <li>The wire enum value for the format type is lowercase {@code "json_schema"}, not the
+ *       uppercase Java SDK constant name ({@code OutputFormatType.JSON_SCHEMA}).
  * </ul>
  */
 public final class BedrockConverseWireFormatFixture implements ProviderWireFormatFixture {
@@ -105,14 +100,5 @@ public final class BedrockConverseWireFormatFixture implements ProviderWireForma
     return BedrockConverseRecordedConversation.recorded().requests().stream()
         .<RecordedChatRequest>map(BedrockConverseRecordedChatRequestAdapter::new)
         .toList();
-  }
-
-  @Override
-  public void assertResponseFormatConfigured(
-      RecordedChatRequest request, String expectedSchemaName) {
-    final var responseFormat = request.responseFormat();
-    assertThat(responseFormat).as("outputConfig.textFormat in recorded request").isPresent();
-    assertThat(responseFormat.get().type()).isEqualTo("json_schema");
-    assertThat(responseFormat.get().jsonSchema()).containsEntry("type", "object");
   }
 }

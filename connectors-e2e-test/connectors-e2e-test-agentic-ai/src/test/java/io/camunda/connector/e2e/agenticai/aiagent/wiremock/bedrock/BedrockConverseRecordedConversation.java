@@ -42,8 +42,7 @@ import java.util.stream.StreamSupport;
  * blocks of a single {@code user}-role message rather than sent as separate messages.
  *
  * <p>Unlike OpenAI/Anthropic, content blocks are discriminated by which key is present ({@code
- * text}, {@code toolUse}, {@code toolResult}) rather than a {@code type} field — confirmed against
- * the real AWS Bedrock Converse API during calibration.
+ * text}, {@code toolUse}, {@code toolResult}) rather than a {@code type} field.
  */
 public final class BedrockConverseRecordedConversation {
 
@@ -94,7 +93,8 @@ public final class BedrockConverseRecordedConversation {
   public record RecordedMessage(
       String role, String textContent, List<RecordedToolCall> toolCalls, String toolCallId) {}
 
-  public record RecordedResponseFormat(String type, Map<String, Object> jsonSchema) {}
+  public record RecordedResponseFormat(
+      String type, String schemaName, Map<String, Object> jsonSchema) {}
 
   /** A single parsed Bedrock Converse request body. */
   public static final class RecordedChatRequest {
@@ -215,7 +215,8 @@ public final class BedrockConverseRecordedConversation {
         throw new IllegalStateException(
             "Failed to parse Bedrock jsonSchema.schema: " + schemaJson, e);
       }
-      return new RecordedResponseFormat(textFormat.path("type").asText(), schema);
+      return new RecordedResponseFormat(
+          textFormat.path("type").asText(), jsonSchemaNode.path("name").asText(null), schema);
     }
 
     private final List<RecordedMessage> messages;

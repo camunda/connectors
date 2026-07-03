@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.azureopenai;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.azureopenai.AzureOpenAiCompletionsChatModelStubs.ToolCall;
@@ -33,17 +31,19 @@ import java.util.function.Function;
  * Plugs Azure OpenAI's Chat Completions wire format into the provider-agnostic {@link
  * ProviderWireFormatFixture} SPI.
  *
- * <p>The request/response body shape is identical to {@code OpenAiCompletionsWireFormatFixture} —
- * confirmed via {@code com.azure:azure-ai-openai} SDK source, see {@code
- * AzureOpenAiCompletionsChatModelStubs} for details. Only the URL (deployment-based, {@code
- * {endpoint}/openai/deployments/{deploymentId}/chat/completions}) and authentication differ. No
- * Azure credentials were available to calibrate this row against the real API.
+ * <p>The request/response body shape is identical to {@code OpenAiCompletionsWireFormatFixture};
+ * see {@code AzureOpenAiCompletionsChatModelStubs} for details. Only the URL (deployment-based,
+ * {@code {endpoint}/openai/deployments/{deploymentId}/chat/completions}) and authentication differ.
  *
  * <p>Azure's SDK ({@code azure-core}'s {@code KeyCredentialPolicy}) unconditionally rejects
  * non-HTTPS endpoints when using API-key authentication (hardcoded, no builder-level bypass) — so
  * unlike the other three fixtures, this one points at WireMock's HTTPS port, whose self-signed
  * certificate ({@code BaseAiAgentTest.httpsKeystoreFile()}) is also configured as the JVM's trust
  * store for this test run (see {@code ProviderWireFormatSmokeTests}).
+ *
+ * <p>Separately, {@code langchain4j-azure-openai}'s message mapper only handles {@code
+ * TextContent}/{@code ImageContent} in user messages, not {@code PdfFileContent}, unlike
+ * OpenAI/Anthropic/Bedrock.
  */
 public final class AzureOpenAiCompletionsWireFormatFixture implements ProviderWireFormatFixture {
 
@@ -55,18 +55,6 @@ public final class AzureOpenAiCompletionsWireFormatFixture implements ProviderWi
   @Override
   public String toString() {
     return apiName();
-  }
-
-  /**
-   * {@code langchain4j-azure-openai}'s message mapper only handles {@code TextContent}/{@code
-   * ImageContent} in user messages (confirmed via source) — {@code PdfFileContent} throws {@code
-   * IllegalArgumentException("Unsupported content type: PDF")}, unlike OpenAI/Anthropic/Bedrock,
-   * which all support PDFs. Using an image here instead is exactly the kind of provider gap this
-   * suite exists to surface.
-   */
-  @Override
-  public String documentFixtureFile() {
-    return "test.jpg";
   }
 
   @Override
@@ -109,19 +97,5 @@ public final class AzureOpenAiCompletionsWireFormatFixture implements ProviderWi
     return AzureOpenAiCompletionsRecordedConversation.recorded().requests().stream()
         .<RecordedChatRequest>map(AzureOpenAiCompletionsRecordedChatRequestAdapter::new)
         .toList();
-  }
-
-  @Override
-  public void assertResponseFormatConfigured(
-      RecordedChatRequest request, String expectedSchemaName) {
-    final var responseFormat = request.responseFormat();
-    assertThat(responseFormat).as("response_format in recorded request").isPresent();
-
-    if (expectedSchemaName == null) {
-      assertThat(responseFormat.get().type()).isEqualTo("json_object");
-    } else {
-      assertThat(responseFormat.get().type()).isEqualTo("json_schema");
-      assertThat(responseFormat.get().jsonSchema()).containsEntry("name", expectedSchemaName);
-    }
   }
 }

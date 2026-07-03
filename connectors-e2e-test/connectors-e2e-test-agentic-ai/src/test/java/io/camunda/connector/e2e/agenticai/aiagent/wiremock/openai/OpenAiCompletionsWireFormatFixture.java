@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
@@ -30,10 +28,9 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Plugs the existing OpenAI-compatible chat completions stubs ({@link
- * OpenAiCompletionsChatModelStubs} / {@link OpenAiCompletionsRecordedConversation}, originally
- * built for #7400 and still backing the rest of the agentic-ai e2e suite) into the
- * provider-agnostic {@link ProviderWireFormatFixture} SPI.
+ * Plugs the OpenAI-compatible chat completions stubs ({@link OpenAiCompletionsChatModelStubs} /
+ * {@link OpenAiCompletionsRecordedConversation}, which also back the rest of the agentic-ai e2e
+ * suite) into the provider-agnostic {@link ProviderWireFormatFixture} SPI.
  */
 public final class OpenAiCompletionsWireFormatFixture implements ProviderWireFormatFixture {
 
@@ -86,19 +83,5 @@ public final class OpenAiCompletionsWireFormatFixture implements ProviderWireFor
     return OpenAiCompletionsRecordedConversation.recorded().requests().stream()
         .<RecordedChatRequest>map(OpenAiCompletionsRecordedChatRequestAdapter::new)
         .toList();
-  }
-
-  @Override
-  public void assertResponseFormatConfigured(
-      RecordedChatRequest request, String expectedSchemaName) {
-    final var responseFormat = request.responseFormat();
-    assertThat(responseFormat).as("response_format in recorded request").isPresent();
-
-    if (expectedSchemaName == null) {
-      assertThat(responseFormat.get().type()).isEqualTo("json_object");
-    } else {
-      assertThat(responseFormat.get().type()).isEqualTo("json_schema");
-      assertThat(responseFormat.get().jsonSchema()).containsEntry("name", expectedSchemaName);
-    }
   }
 }

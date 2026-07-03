@@ -68,14 +68,17 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
    * self-signed cert with no separate CA.
    */
   public static java.nio.file.Path httpsKeystoreFile() {
-    try {
-      return java.nio.file.Path.of(
-          BaseAiAgentTest.class
-              .getResource("/wiremock-https/azure-wiremock-https-keystore.p12")
-              .toURI());
-    } catch (Exception e) {
+    final var resource =
+        BaseAiAgentTest.class.getResource("/wiremock-https/azure-wiremock-https-keystore.p12");
+    if (resource == null) {
       throw new IllegalStateException(
-          "Missing test resource /wiremock-https/azure-wiremock-https-keystore.p12", e);
+          "Missing test resource /wiremock-https/azure-wiremock-https-keystore.p12");
+    }
+    try {
+      return java.nio.file.Path.of(resource.toURI());
+    } catch (java.net.URISyntaxException e) {
+      throw new IllegalStateException(
+          "Invalid URI for test resource /wiremock-https/azure-wiremock-https-keystore.p12", e);
     }
   }
 

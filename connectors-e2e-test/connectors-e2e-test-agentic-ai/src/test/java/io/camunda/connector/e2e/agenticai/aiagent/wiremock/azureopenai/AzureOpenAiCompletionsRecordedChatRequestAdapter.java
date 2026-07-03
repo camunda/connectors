@@ -22,6 +22,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedResponseFormat;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedToolCall;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -48,9 +49,19 @@ final class AzureOpenAiCompletionsRecordedChatRequestAdapter implements Recorded
 
   @Override
   public Optional<RecordedResponseFormat> responseFormat() {
+    // Azure's response_format.json_schema is {name, strict, schema}, identical to OpenAI's -
+    // normalize to the SPI's flat (type, schemaName, jsonSchema) shape.
     return delegate
         .responseFormat()
-        .map(format -> new RecordedResponseFormat(format.type(), format.jsonSchema()));
+        .map(
+            format -> {
+              final var jsonSchema = format.jsonSchema();
+              final String name = jsonSchema != null ? (String) jsonSchema.get("name") : null;
+              @SuppressWarnings("unchecked")
+              final Map<String, Object> schema =
+                  jsonSchema != null ? (Map<String, Object>) jsonSchema.get("schema") : null;
+              return new RecordedResponseFormat(format.type(), name, schema);
+            });
   }
 
   private record MessageAdapter(AzureOpenAiCompletionsRecordedConversation.RecordedMessage delegate)

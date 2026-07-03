@@ -30,7 +30,6 @@ import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Stubs the AWS Bedrock Converse endpoint ({@code POST /model/test-model/converse}) so the AI agent
@@ -42,8 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * of request body.
  *
  * <p>Unlike OpenAI/Anthropic, Bedrock's content blocks are discriminated by which key is present
- * (e.g. {@code text}, {@code toolUse}) rather than a {@code type} field — confirmed against the
- * real AWS Bedrock Converse API during calibration.
+ * (e.g. {@code text}, {@code toolUse}) rather than a {@code type} field.
  */
 public final class BedrockConverseChatModelStubs {
 
@@ -51,7 +49,6 @@ public final class BedrockConverseChatModelStubs {
 
   private static final String SCENARIO_NAME = "llm-conversation";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final AtomicInteger TURN_COUNTER = new AtomicInteger(0);
 
   private BedrockConverseChatModelStubs() {}
 

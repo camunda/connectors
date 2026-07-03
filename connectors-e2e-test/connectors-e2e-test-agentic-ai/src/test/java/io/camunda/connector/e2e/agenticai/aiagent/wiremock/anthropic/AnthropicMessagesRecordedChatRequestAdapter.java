@@ -46,9 +46,11 @@ final class AnthropicMessagesRecordedChatRequestAdapter implements RecordedChatR
 
   @Override
   public Optional<RecordedResponseFormat> responseFormat() {
+    // Anthropic's output_config.format.schema is already the raw schema and never carries a
+    // schema name on the wire (dropped by AnthropicFormat.fromJsonSchema).
     return delegate
         .responseFormat()
-        .map(format -> new RecordedResponseFormat(format.type(), format.jsonSchema()));
+        .map(format -> new RecordedResponseFormat(format.type(), null, format.jsonSchema()));
   }
 
   private record MessageAdapter(AnthropicMessagesRecordedConversation.RecordedMessage delegate)
