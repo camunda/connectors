@@ -18,7 +18,8 @@ jobs:
       # Runner overrides: JSON map from e2e module name → runner label.
       # Modules absent from the map use ubuntu-latest.
       # To redirect a new module to a different runner, add one key-value pair here.
-      E2E_RUNNER_OVERRIDES: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-default"}'
+      # a2a is omitted intentionally so it runs on ubuntu-latest (single lightweight test).
+      E2E_RUNNER_OVERRIDES: '{"connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent-jobworker":"gcp-core-4-default","connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent-connector":"gcp-core-4-default","connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-mcp":"gcp-core-4-default"}'
     steps:
       - uses: actions/checkout@v7
         with:
@@ -67,7 +68,7 @@ jobs:
       # POM and all first-party e2e artifacts land in ~/.m2 for the test matrix). Tests are skipped
       # here; connector tests run in the next step, e2e tests run isolated in the matrix.
       - name: Build connectors
-        run: ./mvnw --batch-mode -U clean install -PcheckFormat -DskipTests
+        run: ./mvnw --batch-mode -T1C -U clean install -PcheckFormat -DskipTests
 
       # Non-PR (nightly/manual): run unit/integration tests for the connector modules. The whole
       # connectors-e2e-test subtree is excluded by enumerating every e2e pom path: excluding only the
@@ -104,18 +105,22 @@ jobs:
         env:
           BRANCH: ${{ inputs.branch }}
 
-      # Hand the built artifacts (connectors + e2e subtree) to the test matrix.
-      - name: Upload first-party artifacts
+      # Hand the fully-populated local Maven repo (first-party SNAPSHOTs + all third-party
+      # dependencies resolved during the build) to the test matrix, so test jobs resolve
+      # everything from the artifact instead of re-downloading their dependency tree from
+      # Nexus. Maven stays online in the test jobs, so anything missing still falls back to
+      # Nexus - the artifact just eliminates the bulk of the per-job resolution.
+      - name: Upload Maven repository
         uses: actions/upload-artifact@v7
         with:
-          name: m2-firstparty-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
-          path: ~/.m2/repository/io/camunda/connector
+          name: m2-repo-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ~/.m2/repository
           retention-days: 1
           include-hidden-files: true
           overwrite: true
 
   # Test phase (matrix: entry): each e2e-test module runs in its own job, in isolation.
-  # Runner is baked into each entry by the build job (sourced from e2e-runner-overrides.json).
+  # Runner is baked into each entry by the build job (sourced from E2E_RUNNER_OVERRIDES).
   test:
     name: ${{ matrix.entry.module }}
     needs: build
@@ -183,18 +188,20 @@ jobs:
           BRANCH: ${{ inputs.branch }}
           MODULE: ${{ matrix.entry.module }}
 
-      # Restore the first-party SNAPSHOTs built by the build job; the test run resolves
-      # connectors + e2e base from here and does not rebuild them.
-      - name: Download first-party artifacts
+      # Restore the fully-populated Maven repo built by the build job (first-party SNAPSHOTs +
+      # third-party dependencies). This lets the test run resolve its dependency tree locally
+      # instead of re-downloading it from Nexus on every matrix job. Maven stays online, so any
+      # artifact not present still falls back to Nexus.
+      - name: Download Maven repository
         uses: actions/download-artifact@v8
         with:
-          name: m2-firstparty-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
-          path: ~/.m2/repository/io/camunda/connector
+          name: m2-repo-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}
+          path: ~/.m2/repository
 
       # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
       # artifact, so nothing upstream is rebuilt.
       - name: Test e2e module
-        run: ./mvnw --batch-mode test -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
+        run: ./mvnw --batch-mode -T1C test -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
 
       - name: Publish Test Report
         if: always()

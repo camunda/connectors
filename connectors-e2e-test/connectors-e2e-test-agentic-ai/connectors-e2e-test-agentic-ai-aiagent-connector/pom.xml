@@ -1,0 +1,68 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connectors-e2e-test-agentic-ai</artifactId>
+    <relativePath>../pom.xml</relativePath>
+    <version>8.10.0-SNAPSHOT</version>
+  </parent>
+
+  <description>AI Agent (outbound connector) E2E Tests, incl. ad-hoc tools schema and real-LLM E2E</description>
+  <name>Connectors E2e Test Agentic Ai - AI Agent Connector</name>
+  <artifactId>connectors-e2e-test-agentic-ai-aiagent-connector</artifactId>
+  <packaging>jar</packaging>
+
+  <profiles>
+    <profile>
+      <id>it-real-llm</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <skipTests>true</skipTests>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>${plugin.version.maven-surefire-plugin}</version>
+            <configuration>
+              <includes>
+                <include>**/*E2ETestIT.java</include>
+              </includes>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-agentic-ai</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connectors-e2e-test-agentic-ai-aiagent-base</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
