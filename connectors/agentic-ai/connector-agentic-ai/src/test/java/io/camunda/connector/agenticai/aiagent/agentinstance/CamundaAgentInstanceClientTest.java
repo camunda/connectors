@@ -21,7 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
@@ -118,7 +117,7 @@ class CamundaAgentInstanceClientTest {
   @BeforeEach
   void setUp() {
     recordedSleeps = new ArrayList<>();
-    var historyMapper = new AgentInstanceHistoryMapper(new ObjectMapper(), gatewayToolHandlers);
+    var historyMapper = new AgentInstanceHistoryMapper(gatewayToolHandlers);
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
@@ -785,7 +784,40 @@ class CamundaAgentInstanceClientTest {
           .singleElement()
           .isInstanceOfSatisfying(
               AgentInstanceHistoryContent.ObjectContent.class,
-              object -> assertThat(object.getObject()).containsEntry("key", "value"));
+              object -> assertThat(object.getObject()).isEqualTo(Map.of("key", "value")));
+    }
+
+    @Test
+    void shouldMapNonMapObjectContentToObjectBlock() {
+      givenHistoryCommand();
+
+      // given: a list-shaped object result (e.g. a "list users" tool), which must be preserved as
+      // OBJECT content rather than being flattened to TEXT (#7626)
+      final var users = List.of("alice", "bob");
+      final var turn =
+          new AgentConversationTurn(
+              1,
+              List.of(
+                  UserMessage.builder()
+                      .content(List.of(ObjectContent.objectContent(users)))
+                      .build()),
+              null,
+              AgentMetrics.empty());
+
+      // when
+      client.createHistoryForInputMessages(
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          Optional.empty());
+
+      // then
+      verify(historyCommand).content(contentCaptor.capture());
+      assertThat(contentCaptor.getValue())
+          .singleElement()
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.ObjectContent.class,
+              object -> assertThat(object.getObject()).isEqualTo(users));
     }
 
     @Test
