@@ -202,7 +202,7 @@ jobs:
       # the channel is set below and the bot is invited to it). Best-effort.
       - name: Post AlwaysGreen failure feedback
         continue-on-error: true
-        uses: camunda/c8-cross-component-e2e-tests/.github/actions/post-failure-feedback@main
+        uses: ./.github/actions/post-failure-feedback
         with:
           failure_category: unknown
           stage: sm-e2e-helm
