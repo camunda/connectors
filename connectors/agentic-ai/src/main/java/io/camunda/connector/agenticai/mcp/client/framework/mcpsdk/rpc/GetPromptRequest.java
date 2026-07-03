@@ -92,6 +92,9 @@ final class GetPromptRequest {
               throw new UnsupportedOperationException("Not yet implemented!");
           case McpSchema.TextContent textContent ->
               new McpClientGetPromptResult.TextMessage(textContent.text());
+          default ->
+              throw new UnsupportedOperationException(
+                  "Unsupported content type: " + content.getClass().getSimpleName());
         };
 
     return new McpClientGetPromptResult.PromptMessage(role, resultingContent);
@@ -111,6 +114,10 @@ final class GetPromptRequest {
                   textResourceContents.uri(),
                   textResourceContents.mimeType(),
                   textResourceContents.text());
+          default ->
+              throw new UnsupportedOperationException(
+                  "Unsupported resource type: "
+                      + embeddedResource.resource().getClass().getSimpleName());
         });
   }
 
