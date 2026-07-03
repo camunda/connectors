@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.ProcessElement;
@@ -95,6 +96,62 @@ class HttpWebhookExecutableTest {
         new WebhookResultContext(
             new MappedHttpRequest(Map.of(), Map.of(), Map.of()), Map.of(), null);
     assertNull(result.response().apply(resultContext));
+  }
+
+  @Test
+  void activate_deprecatedResponseBodyExpression_failsDeploymentWithMigrationHint() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"),
+                        "responseBodyExpression", "={\"foo\": \"bar\"}")))
+            .build();
+
+    var exception = catchException(() -> testObject.activate(ctx));
+
+    assertThat(exception)
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("responseBodyExpression")
+        .hasMessageContaining("responseExpression");
+  }
+
+  @Test
+  void activate_blankResponseBodyExpression_doesNotFailDeployment() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"),
+                        "responseBodyExpression", "   ")))
+            .build();
+
+    assertThat(catchException(() -> testObject.activate(ctx))).isNull();
+  }
+
+  @Test
+  void activate_responseExpressionOnly_doesNotFailDeployment() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"),
+                        "responseExpression", "={body: request.body}")))
+            .build();
+
+    assertThat(catchException(() -> testObject.activate(ctx))).isNull();
   }
 
   @Test

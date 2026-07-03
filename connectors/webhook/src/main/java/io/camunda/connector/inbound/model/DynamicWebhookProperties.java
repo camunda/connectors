@@ -37,7 +37,9 @@ public record DynamicWebhookProperties(
             optional = true)
         Function<WebhookResultContext, WebhookHttpResponse> responseExpression,
     // Legacy body-only expression, superseded by responseExpression (which can produce a full HTTP
-    // response). Retained only for backward compatibility.
+    // response). Deprecated and rejected at deployment time (see
+    // HttpWebhookExecutable#rejectDeprecatedResponseBodyExpression, issue #7468); the runtime
+    // fallback below is retained for backward compatibility until removal is completed in 8.10.
     @Deprecated @TemplateProperty(ignore = true)
         Function<WebhookResultContext, Object> responseBodyExpression) {
 

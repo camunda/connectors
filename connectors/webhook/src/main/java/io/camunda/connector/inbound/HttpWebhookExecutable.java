@@ -9,6 +9,7 @@ package io.camunda.connector.inbound;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
@@ -106,6 +107,16 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);
 
+  /** Wrapper key under which the element-scoped inbound properties are nested. */
+  private static final String INBOUND_PROPERTIES_KEY = "inbound";
+
+  /**
+   * Legacy, deprecated response property, superseded by {@code responseExpression}. Its presence on
+   * a deployed element is rejected at activation time (see {@link
+   * #rejectDeprecatedResponseBodyExpression}).
+   */
+  private static final String LEGACY_RESPONSE_BODY_EXPRESSION_KEY = "responseBodyExpression";
+
   private WebhookConnectorProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
   private InboundConnectorContext context;
@@ -114,6 +125,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   @Override
   public void activate(InboundConnectorContext context) {
     this.context = context;
+    rejectDeprecatedResponseBodyExpression(context);
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
@@ -121,6 +133,29 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
         new HMACVerifier(
             props.hmacScopes(), props.hmacHeader(), props.hmacSecret(), props.hmacAlgorithm());
     context.reportHealth(Health.up());
+  }
+
+  /**
+   * Fails webhook deployment (activation) when the legacy, deprecated {@code
+   * responseBodyExpression} property is present on the element. It was superseded by {@code
+   * responseExpression} — which can return a full HTTP response — and removed from element
+   * templates long ago, but was still silently honored at runtime. Deployments must migrate to
+   * {@code responseExpression}.
+   *
+   * <p>Throwing here causes the runtime to report the connector as {@code DOWN} with this message,
+   * which surfaces in the Manage &amp; Run UI. See
+   * https://github.com/camunda/connectors/issues/7468.
+   */
+  private static void rejectDeprecatedResponseBodyExpression(InboundConnectorContext context) {
+    if (context.getProperties().get(INBOUND_PROPERTIES_KEY) instanceof Map<?, ?> inbound
+        && inbound.get(LEGACY_RESPONSE_BODY_EXPRESSION_KEY) instanceof String expression
+        && !expression.isBlank()) {
+      throw new ConnectorInputException(
+          "The webhook property 'responseBodyExpression' is deprecated and no longer supported. "
+              + "Replace it with 'responseExpression', which returns a full HTTP response, e.g. "
+              + "'={body: ..., statusCode: 200, headers: {...}}'. See "
+              + "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/ for details.");
+    }
   }
 
   @Override
