@@ -184,13 +184,7 @@ public class AgentInstanceHistoryMapper {
     return List.of(objectHistoryContent(resultContent));
   }
 
-  /**
-   * Maps any non-string content value to an {@code OBJECT} history block. The engine's {@link
-   * AgentInstanceHistoryContent#object(Object)} accepts arbitrary JSON values (maps, lists,
-   * numbers, ...), so structured tool results such as a JSON array are preserved as {@code OBJECT}
-   * rather than being flattened to {@code TEXT}. String content is routed to {@code TEXT} by the
-   * callers before reaching here.
-   */
+  // preserves arbitrary JSON values (maps, lists, numbers) as OBJECT rather than flattening to TEXT
   private AgentInstanceHistoryContent objectHistoryContent(Object value) {
     return AgentInstanceHistoryContent.object(value);
   }
