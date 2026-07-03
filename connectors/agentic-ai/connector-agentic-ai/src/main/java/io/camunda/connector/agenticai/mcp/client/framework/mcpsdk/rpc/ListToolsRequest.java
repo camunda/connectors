@@ -31,8 +31,9 @@ final class ListToolsRequest {
       McpSyncClient client, AllowDenyList toolNameFilter, Map<String, Object> meta) {
     LOGGER.debug("MCP({}): Executing list tools", clientId);
 
-    final var toolSpecifications =
-        (MapUtils.isEmpty(meta) ? client.listTools() : client.listTools(null, meta)).tools();
+    final var listToolsResult =
+        MapUtils.isEmpty(meta) ? client.listTools() : client.listTools(null, meta);
+    final var toolSpecifications = listToolsResult.tools();
     if (toolSpecifications.isEmpty()) {
       LOGGER.debug("MCP({}): No tools found", clientId);
       return new McpClientListToolsResult(Collections.emptyList());

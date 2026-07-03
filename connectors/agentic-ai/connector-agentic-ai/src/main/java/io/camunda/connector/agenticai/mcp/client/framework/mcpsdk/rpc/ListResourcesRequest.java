@@ -30,9 +30,9 @@ final class ListResourcesRequest {
       McpSyncClient client, AllowDenyList resourcesFilter, Map<String, Object> meta) {
     LOGGER.debug("MCP({}): Executing list resources", clientId);
 
-    var fetchedResources =
-        (MapUtils.isEmpty(meta) ? client.listResources() : client.listResources(null, meta))
-            .resources();
+    var listResourcesResult =
+        MapUtils.isEmpty(meta) ? client.listResources() : client.listResources(null, meta);
+    var fetchedResources = listResourcesResult.resources();
 
     if (fetchedResources.isEmpty()) {
       LOGGER.debug("MCP({}): No resources found", clientId);

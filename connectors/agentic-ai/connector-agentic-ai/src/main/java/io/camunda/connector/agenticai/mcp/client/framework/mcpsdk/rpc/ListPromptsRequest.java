@@ -33,8 +33,9 @@ final class ListPromptsRequest {
       McpSyncClient client, AllowDenyList promptsFilter, Map<String, Object> meta) {
     LOGGER.debug("MCP({}): Executing list prompts", clientId);
 
-    var fetchedPrompts =
-        (MapUtils.isEmpty(meta) ? client.listPrompts() : client.listPrompts(null, meta)).prompts();
+    var listPromptsResult =
+        MapUtils.isEmpty(meta) ? client.listPrompts() : client.listPrompts(null, meta);
+    var fetchedPrompts = listPromptsResult.prompts();
 
     if (CollectionUtils.isEmpty(fetchedPrompts)) {
       LOGGER.debug("MCP({}): No prompts found", clientId);

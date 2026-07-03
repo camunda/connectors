@@ -30,11 +30,11 @@ final class ListResourceTemplatesRequest {
       McpSyncClient client, AllowDenyList resourcesFilter, Map<String, Object> meta) {
     LOGGER.debug("MCP({}): Executing list resource templates", clientId);
 
-    var fetchedResources =
-        (MapUtils.isEmpty(meta)
-                ? client.listResourceTemplates()
-                : client.listResourceTemplates(null, meta))
-            .resourceTemplates();
+    var listResourceTemplatesResult =
+        MapUtils.isEmpty(meta)
+            ? client.listResourceTemplates()
+            : client.listResourceTemplates(null, meta);
+    var fetchedResources = listResourceTemplatesResult.resourceTemplates();
 
     if (fetchedResources.isEmpty()) {
       LOGGER.debug("MCP({}): No resource templates found", clientId);
