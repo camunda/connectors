@@ -129,7 +129,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                       email.body().bodyAsPlainText(),
                       email.body().bodyAsHtml(),
                       this.createDocumentList(email.body().attachments(), connectorContext),
-                      email.receivedAt());
+                      email.receivedAt(),
+                      List.of());
                 })
             .orElseThrow(
                 () -> {
@@ -278,7 +279,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                         email.body().bodyAsPlainText(),
                         email.body().bodyAsHtml(),
                         this.createDocumentList(email.body().attachments(), this.connectorContext),
-                        email.receivedAt());
+                        email.receivedAt(),
+                        List.of());
                   })
               .orElseThrow(
                   () -> {

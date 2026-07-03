@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.ActivityBuilder;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -23,6 +24,7 @@ import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
 import io.camunda.connector.email.inbound.model.EmailListenerConfig;
 import io.camunda.connector.email.inbound.model.HandlingStrategy;
 import io.camunda.connector.email.inbound.model.PollUnseen;
+import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.mail.*;
@@ -37,6 +39,7 @@ import java.util.Objects;
 import org.apache.hc.core5.http.ContentType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
 class PollingManagerTest {
@@ -181,12 +184,22 @@ class PollingManagerTest {
     pollingManager.poll();
 
     // correlation must still happen — upload failure must not block processing
-    verify(connectorContext, times(1)).correlate(argThat(Objects::nonNull));
+    ArgumentCaptor<CorrelationRequest> correlationCaptor =
+        ArgumentCaptor.forClass(CorrelationRequest.class);
+    verify(connectorContext, times(1)).correlate(correlationCaptor.capture());
     // health must be UP — the exception was handled, not propagated to the top-level catch-all
     verify(connectorContext).reportHealth(argThat(h -> h.equals(Health.up())));
     // the upload failure must be surfaced in the activity log with ERROR severity
     Assertions.assertTrue(
         loggedSeverities.contains(Severity.ERROR),
         "Expected an ERROR activity log entry for the failed document upload");
+    // the error must be present in the correlation payload so process modelers can handle it
+    ReadEmailResponse response = (ReadEmailResponse) correlationCaptor.getValue().getVariables();
+    Assertions.assertNotNull(response.errors());
+    Assertions.assertFalse(
+        response.errors().isEmpty(), "Expected errors to be non-empty in the correlation payload");
+    Assertions.assertTrue(
+        response.errors().stream().anyMatch(e -> e.contains("large-file.pdf")),
+        "Expected an error message referencing 'large-file.pdf' in the payload");
   }
 }
