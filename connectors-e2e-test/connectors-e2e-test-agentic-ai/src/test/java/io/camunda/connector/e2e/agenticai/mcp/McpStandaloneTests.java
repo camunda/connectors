@@ -56,7 +56,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -100,9 +100,11 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {"regression/mcp-connectors-standalone-v0.bpmn", "mcp-connectors-standalone.bpmn"})
-  void toolsListAndCall(String processDefinitionFilePath) throws IOException {
+  @CsvSource({
+    "regression/mcp-connectors-standalone-v0.bpmn,false",
+    "mcp-connectors-standalone.bpmn,true"
+  })
+  void toolsListAndCall(String processDefinitionFilePath, boolean assertMeta) throws IOException {
     BpmnModelInstance bpmnModel = bootstrapTestProcess(processDefinitionFilePath);
 
     executeProcessAndVerify(
@@ -170,7 +172,7 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                   // sent when unconfigured).
                   .withRequestBody(matchingJsonPath("$.params._meta", absent())));
 
-          if (!processDefinitionFilePath.startsWith("regression/")) {
+          if (assertMeta) {
             // only the current (non-regression) BPMN fixture configures `meta` on the local
             // MCP Client's "tools/list" and "tools/call" (toolA) service tasks.
             wireMock.verify(
