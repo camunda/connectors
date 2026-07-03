@@ -13,11 +13,10 @@ on:
   merge_group:
     branches: [ main ]
 
-# Prevent duplicate runs when a push triggers both the push and pull_request events
-# for the same commit. Both events share the same commit SHA, so they land in the
-# same concurrency group and the second one cancels the first.
+# Cancel stale runs of the same type (push-on-push, PR-on-PR) without
+# letting push and pull_request events cancel each other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
