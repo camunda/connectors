@@ -253,6 +253,35 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
               postRequestedFor(urlEqualTo("/mcp"))
                   .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
                   .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resourceC"))));
+
+          // only the local MCP Client's "resources/list" and "resources/read" (resourceA)
+          // service tasks configure `meta`.
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/list")))
+                  .withRequestBody(
+                      matchingJsonPath(
+                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
+
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/list")))
+                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
+
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
+                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resourceA")))
+                  .withRequestBody(
+                      matchingJsonPath(
+                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
+
+          // "resourceC" is read via the Remote Client, which never configures `meta`.
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
+                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resourceC")))
+                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
         });
   }
 
@@ -315,6 +344,37 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
               postRequestedFor(urlEqualTo("/mcp"))
                   .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
                   .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resource-a-1"))));
+
+          // only the local MCP Client's "resources/templates/list" and "resources/read"
+          // service tasks configure `meta` - both operations are also called via the Remote
+          // Client with the same uri, so distinguish by `_meta` presence/absence.
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(
+                      matchingJsonPath("$.method", equalTo("resources/templates/list")))
+                  .withRequestBody(
+                      matchingJsonPath(
+                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
+
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(
+                      matchingJsonPath("$.method", equalTo("resources/templates/list")))
+                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
+
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
+                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resource-a-1")))
+                  .withRequestBody(
+                      matchingJsonPath(
+                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
+
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
+                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resource-a-1")))
+                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
         });
   }
 
@@ -384,6 +444,35 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                   .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/get")))
                   .withRequestBody(matchingJsonPath("$.params.name", equalTo("promptC")))
                   .withRequestBody(matchingJsonPath("$.params.arguments.cName", equalTo("nameC"))));
+
+          // only the local MCP Client's "prompts/list" and "prompts/get" (promptA) service
+          // tasks configure `meta` - the "prompts/list" call is otherwise identical between
+          // clients, so distinguish by `_meta` presence/absence.
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/list")))
+                  .withRequestBody(
+                      matchingJsonPath(
+                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
+
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/list")))
+                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
+
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/get")))
+                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("promptA")))
+                  .withRequestBody(
+                      matchingJsonPath(
+                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
+
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/get")))
+                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("promptC")))
+                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
         });
   }
 
