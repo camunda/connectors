@@ -74,12 +74,8 @@ plumbing and no `now()` fallback scattered downstream.
 - **`now()` fallback**: for results lacking an engine timestamp (Task flavor, non-AHSP gateway
   results, migrated/in-flight AHSP instances, cancelled results, events, and diagrams still bound to
   v10 or earlier), the worker stamps `OffsetDateTime.now()` at the moment ingestion normalization
-  resolves the result. This is computed fresh on every job and **not persisted anywhere** — no
-  `agentContext` state, no no-op-path plumbing. On an AHSP round that no-ops while waiting for
-  further tool results, a result missing an engine timestamp gets the *resolving* job's `now()`,
-  which for a genuinely no-op-spanning round means it converges on the same timestamp as the other
-  results resolved on that same (later) job — i.e. it degrades to the pre-fix turn-end timestamp for
-  exactly the cases A doesn't cover. That degradation is accepted as the cost of statelessness.
+  resolves the result — computed fresh on every job, **not persisted anywhere** (no `agentContext`
+  state, no no-op-path plumbing). See Negative Consequences for what this costs.
 
 ### Serialization risk (A) — confirmed and resolved
 

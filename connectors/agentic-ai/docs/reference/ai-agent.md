@@ -655,9 +655,8 @@ return AiAgentSubProcessConnectorResponse.builder()
    ```
    ={id: toolCall._meta.id, name: toolCall._meta.name, content: toolCallResult, completedAt: now()}
    ```
-   `completedAt` (v11+ templates) is the engine's own completion timestamp for *this* tool, so a
-   `TOOL_RESULT` history item can report when the individual tool finished rather than when the
-   whole turn's slowest tool let the job proceed (ADR 008).
+   `completedAt` (v11+ templates) is this tool's own engine completion timestamp, not the turn's
+   (ADR 008).
 4. The result is **appended** to the `toolCallResults` output collection list
 5. Zeebe creates a **new job** for the AHSP
 
@@ -1354,11 +1353,9 @@ public interface GatewayToolCallTransformer {
 }
 ```
 
-**Pitfall:** `transformToolCallResults` implementations (MCP, A2A) unwrap a gateway envelope into a
-new `ToolCallResult` via `ToolCallResult.builder()...build()`. Unlike `elementId` (which has a
-fallback resolution path via the gateway registry), `completedAt` has none — it must be copied over
-explicitly (`.completedAt(toolCallResult.completedAt())`) or every such result fails the mapper's
-non-null `completedAt` invariant (ADR 008).
+**Pitfall:** `transformToolCallResults` (MCP, A2A) rebuilds a new `ToolCallResult` via
+`.builder()...build()`. Unlike `elementId`, `completedAt` has no fallback — copy it over explicitly
+or the result fails the mapper's non-null `completedAt` invariant (ADR 008).
 
 ### Gateway Tool Handler Registry
 
@@ -1569,17 +1566,11 @@ call (`POST /v2/agent-instances/{key}/history` via `newCreateAgentHistoryItemCom
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither
-computes a timestamp itself. A `TOOL_RESULT` item uses `ToolCallResult.completedAt()`: the engine's
-own timestamp from the AHSP `outputElement` (v11+ templates) when present, otherwise `now()`
-(`ToolCallResultCompletedAtResolver`, run at the earliest ingestion point in `AgentInitializerImpl`).
-This fallback is stateless and not persisted anywhere: for results that never get an engine
-timestamp (Task flavor, non-AHSP gateway results, pre-v11 templates) on an AHSP round spanning
-multiple no-op jobs, the result is only resolved once the round actually proceeds, so it can still
-collapse onto the same timestamp as other results resolved on that job — the same inaccuracy this
-ADR fixes, just narrowed to cases outside A's coverage (see ADR 008 for the tradeoff). `USER` and
-other non-tool-result items use a turn-ingestion timestamp captured once by
-`BaseAgentRequestHandler.proceed` and passed down; the `ASSISTANT` item likewise takes an explicit
-timestamp captured right after the LLM call.
+computes a timestamp itself. A `TOOL_RESULT` item uses `ToolCallResult.completedAt()`: the AHSP
+`outputElement`'s engine timestamp (v11+ templates) if present, else a stateless `now()`
+(`ToolCallResultCompletedAtResolver`, resolved at ingestion in `AgentInitializerImpl`; see ADR 008
+for what the `now()` fallback does and doesn't cover). `USER` and `ASSISTANT` items use a timestamp
+`BaseAgentRequestHandler.proceed` captures and passes down.
 
 Each `toolCalls` entry carries the BPMN **`elementId`** alongside the (LLM-visible, possibly
 namespaced) `toolName`. For tool results it is resolved once on the model in
