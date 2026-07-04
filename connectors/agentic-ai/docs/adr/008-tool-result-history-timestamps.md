@@ -45,14 +45,14 @@ useless for deriving per-tool execution time.
 | Serialization risk | FEEL `now()` zone form may not parse to `OffsetDateTime` | None |
 | Complexity | Low–medium | Medium–high |
 
-**B (persisted first-seen) was implemented, then reverted.** It requires threading state through
-`agentContext` and re-emitting it on the no-op/`Deferred` AHSP path (which previously emitted no
-variables at all) purely so a later job can recover an earlier job's observation. That is a
-meaningful amount of surface area and failure modes (superseded-write tolerance, keep-earliest
-correctness, pruning stale entries) for a fallback that only ever applies to cases the recommended
-AHSP + v11 template combination doesn't hit (Task flavor, non-AHSP gateway results, pre-v11
-diagrams). Decided the stateless fallback (plain `now()` at resolution time, no persistence) is the
-right tradeoff — see Decision Outcome.
+**B (persisted first-seen) was considered and rejected.** It would require threading state through
+`agentContext` and re-emitting it on the no-op/`Deferred` AHSP path (which emits no variables at
+all) purely so a later job could recover an earlier job's observation. That is a meaningful amount
+of surface area and failure modes (superseded-write tolerance, keep-earliest correctness, pruning
+stale entries) for a fallback that only ever applies to cases the recommended AHSP + v11 template
+combination doesn't hit (Task flavor, non-AHSP gateway results, pre-v11 diagrams). The stateless
+fallback (plain `now()` at resolution time, no persistence) is the right tradeoff — see Decision
+Outcome.
 
 Rejected / deferred: **Eager push** (write each history item as it arrives, rather than only once the
 turn is complete). This is heavier (needs history-item idempotency, since the dominant duplicate source
@@ -125,7 +125,7 @@ historical `producedAt` data on already-persisted history items is attempted.
   keep their (inaccurate) turn-end timestamp permanently.
 - Editing v10 (or any other already-released template version) in place — see rejected alternative
   above.
-- Persisting worker-observed timestamps across jobs (the reverted B design above) — the fallback path
+- Persisting worker-observed timestamps across jobs (the rejected B design above) — the fallback path
   is intentionally stateless.
 - Eager push + history-item idempotency (the visibility fix) — parent epic #7595, revisit with the job
   lease concept (camunda/camunda#54840).
