@@ -20,6 +20,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -209,10 +210,12 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
                     .callingTools("SuperfluxProduct", "Download_A_File"))
         .finalAnswerTurn(
             new AgentMetrics(1, new AgentMetrics.TokenUsage(15, 25), 0),
-            turn ->
-                turn.fromToolResults()
-                    .toolResultCompletedAtBefore("fast-001", "slow-001", Duration.ofSeconds(2))
-                    .answering("Done."))
+            turn -> {
+              turn.fromToolResults().answering("Done.");
+              assertThat(turn.toolResultCompletedAt("fast-001"))
+                  .as("fast tool completed before slow tool")
+                  .isBefore(turn.toolResultCompletedAt("slow-001").minus(Duration.ofSeconds(2)));
+            })
         .noMoreInteractions();
   }
 }
