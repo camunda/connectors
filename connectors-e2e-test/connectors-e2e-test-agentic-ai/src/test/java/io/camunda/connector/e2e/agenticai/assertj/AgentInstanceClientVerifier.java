@@ -31,6 +31,8 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -178,16 +180,42 @@ public class AgentInstanceClientVerifier {
      * asserts every result carries its resolved BPMN element id (== tool name for ad-hoc tools).
      */
     public ChatTurnAssert fromToolResults() {
-      final var toolResultMessage =
-          before.inputMessages().stream()
-              .filter(ToolCallResultMessage.class::isInstance)
-              .map(ToolCallResultMessage.class::cast)
-              .findFirst()
-              .orElseThrow(() -> new AssertionError("no tool call result message in input"));
-      assertThat(toolResultMessage.results())
+      assertThat(toolCallResultMessage().results())
           .isNotEmpty()
           .allSatisfy(r -> assertThat(r.elementId()).isNotNull().isEqualTo(r.name()));
       return this;
+    }
+
+    /**
+     * Asserts that the tool call result identified by {@code earlierToolCallId} carries a {@code
+     * completedAt} at least {@code minGap} before the result identified by {@code laterToolCallId}
+     * -- i.e. each tool result's own completion time is used, not a shared turn-end timestamp
+     * (regression guard for #7597).
+     */
+    public ChatTurnAssert toolResultCompletedAtBefore(
+        String earlierToolCallId, String laterToolCallId, Duration minGap) {
+      final var earlier = completedAtFor(earlierToolCallId);
+      final var later = completedAtFor(laterToolCallId);
+      assertThat(earlier)
+          .as("completedAt of tool call result '%s'", earlierToolCallId)
+          .isBefore(later.minus(minGap));
+      return this;
+    }
+
+    private ToolCallResultMessage toolCallResultMessage() {
+      return before.inputMessages().stream()
+          .filter(ToolCallResultMessage.class::isInstance)
+          .map(ToolCallResultMessage.class::cast)
+          .findFirst()
+          .orElseThrow(() -> new AssertionError("no tool call result message in input"));
+    }
+
+    private OffsetDateTime completedAtFor(String toolCallId) {
+      return toolCallResultMessage().results().stream()
+          .filter(r -> toolCallId.equals(r.id()))
+          .findFirst()
+          .orElseThrow(() -> new AssertionError("no tool call result with id '" + toolCallId + "'"))
+          .completedAt();
     }
 
     /** The assistant responded with a single tool call to the named tool. */
@@ -196,6 +224,14 @@ public class AgentInstanceClientVerifier {
           .singleElement()
           .extracting(ToolCall::name)
           .isEqualTo(expectedToolName);
+      return this;
+    }
+
+    /** The assistant responded with tool calls to exactly the named tools, in any order. */
+    public ChatTurnAssert callingTools(String... expectedToolNames) {
+      assertThat(after.assistantMessage().toolCalls())
+          .extracting(ToolCall::name)
+          .containsExactlyInAnyOrder(expectedToolNames);
       return this;
     }
 
