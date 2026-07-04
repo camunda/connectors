@@ -43,12 +43,13 @@ public record ToolCallResult(
       "Tool execution succeeded, but returned no result.";
   public static final String CONTENT_CANCELLED = "Tool execution was canceled.";
 
-  public static ToolCallResult forCancelledToolCall(String id, String name) {
+  public static ToolCallResult forCancelledToolCall(
+      String id, String name, OffsetDateTime completedAt) {
     return ToolCallResult.builder()
         .id(id)
         .name(name)
         .content(CONTENT_CANCELLED)
-        .completedAt(OffsetDateTime.now())
+        .completedAt(completedAt)
         .properties(Map.of(PROPERTY_INTERRUPTED, true))
         .build();
   }

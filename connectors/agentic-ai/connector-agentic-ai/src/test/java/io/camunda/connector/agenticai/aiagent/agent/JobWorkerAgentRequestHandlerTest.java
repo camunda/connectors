@@ -64,6 +64,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -322,7 +323,10 @@ class JobWorkerAgentRequestHandlerTest {
     final var interruptedMessage =
         toolCallResultMessage(
             toolCallResults.stream()
-                .map(tc -> ToolCallResult.forCancelledToolCall(tc.id(), tc.name()))
+                .map(
+                    tc ->
+                        ToolCallResult.forCancelledToolCall(
+                            tc.id(), tc.name(), OffsetDateTime.parse("2026-07-02T10:00:00Z")))
                 .toList());
     mockProceed(interruptedMessage);
 

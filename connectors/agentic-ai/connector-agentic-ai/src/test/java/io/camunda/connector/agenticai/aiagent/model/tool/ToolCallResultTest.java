@@ -59,7 +59,8 @@ class ToolCallResultTest {
   @Test
   void shouldRoundTripCancelledToolCall() throws Exception {
     // given
-    ToolCallResult original = ToolCallResult.forCancelledToolCall("call-1", "search");
+    OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00");
+    ToolCallResult original = ToolCallResult.forCancelledToolCall("call-1", "search", completedAt);
 
     // when
     String json = objectMapper.writeValueAsString(original);
@@ -71,9 +72,9 @@ class ToolCallResultTest {
     assertThat(deserialized.content()).isEqualTo(ToolCallResult.CONTENT_CANCELLED);
     assertThat(deserialized.properties())
         .isEqualTo(Map.of(ToolCallResult.PROPERTY_INTERRUPTED, true));
-    // a cancelled result is never seen again by the ingestion normalization step, so it must
-    // stamp its own completedAt at creation time to satisfy the "always non-null" invariant
-    assertThat(deserialized.completedAt()).isNotNull();
+    // a cancelled result is never seen again by the ingestion normalization step, so its caller
+    // must supply a completedAt at creation time to satisfy the "always non-null" invariant
+    assertThat(deserialized.completedAt()).isEqualTo(completedAt);
   }
 
   @Test
