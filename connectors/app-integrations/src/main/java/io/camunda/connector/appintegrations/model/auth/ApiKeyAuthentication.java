@@ -9,12 +9,10 @@ package io.camunda.connector.appintegrations.model.auth;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import jakarta.validation.constraints.NotEmpty;
 
 @TemplateSubType(id = ApiKeyAuthentication.TYPE, label = "API key")
 public record ApiKeyAuthentication(
     @FEEL
-        @NotEmpty
         @TemplateProperty(
             group = "authentication",
             label = "API key",

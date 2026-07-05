@@ -21,10 +21,12 @@
     "label" : "Operation"
   }, {
     "id" : "configuration",
-    "label" : "Configuration"
+    "label" : "Configuration",
+    "openByDefault" : false
   }, {
     "id" : "authentication",
-    "label" : "Authentication"
+    "label" : "Authentication",
+    "openByDefault" : false
   }, {
     "id" : "message",
     "label" : "Message"
@@ -77,9 +79,6 @@
     "label" : "Base URL",
     "description" : "App Integrations backend URL.",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "configuration",
     "binding" : {
@@ -100,9 +99,6 @@
     "label" : "Base URL",
     "description" : "App Integrations backend URL.",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "configuration",
     "binding" : {
@@ -148,9 +144,6 @@
     "label" : "API key",
     "description" : "Shared API key for authenticating to the App Integrations backend (self-managed).",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
@@ -176,9 +169,8 @@
     "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true,
       "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
         "message" : "Must be a http(s) URL"
       }
     },
@@ -205,9 +197,6 @@
     "label" : "Client ID",
     "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
@@ -231,9 +220,6 @@
     "label" : "Client secret",
     "description" : "Your application's client secret from the OAuth client",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
@@ -281,9 +267,6 @@
     "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
     "value" : "credentialsBody",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "group" : "authentication",
     "binding" : {
       "name" : "configuration.authentication.clientAuthentication",
@@ -361,9 +344,6 @@
     "label" : "API key",
     "description" : "Shared API key for authenticating to the App Integrations backend (self-managed).",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
@@ -389,9 +369,8 @@
     "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true,
       "pattern" : {
-        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "value" : "^($|=|(http://|https://|secrets|\\{\\{).*$)",
         "message" : "Must be a http(s) URL"
       }
     },
@@ -418,9 +397,6 @@
     "label" : "Client ID",
     "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
@@ -444,9 +420,6 @@
     "label" : "Client secret",
     "description" : "Your application's client secret from the OAuth client",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
@@ -494,9 +467,6 @@
     "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
     "value" : "credentialsBody",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "group" : "authentication",
     "binding" : {
       "name" : "configuration.authentication.clientAuthentication",

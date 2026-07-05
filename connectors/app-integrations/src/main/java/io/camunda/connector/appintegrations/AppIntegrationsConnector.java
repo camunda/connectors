@@ -27,6 +27,7 @@ import io.camunda.connector.appintegrations.model.auth.ApiKeyAuthentication;
 import io.camunda.connector.appintegrations.model.auth.AppIntegrationsAuthentication;
 import io.camunda.connector.appintegrations.model.auth.OAuthAuthentication;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
@@ -39,6 +40,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +62,14 @@ import org.slf4j.LoggerFactory;
     engineVersion = "^8.8",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
-      @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(
+          id = "configuration",
+          label = "Configuration",
+          openByDefault = false),
+      @ElementTemplate.PropertyGroup(
+          id = "authentication",
+          label = "Authentication",
+          openByDefault = false),
       @ElementTemplate.PropertyGroup(id = "message", label = "Message"),
       @ElementTemplate.PropertyGroup(id = "form", label = "Form"),
       @ElementTemplate.PropertyGroup(id = "channel", label = "Channel")
@@ -81,6 +89,13 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
   private static final String CLUSTER_ID_HEADER = "X-Cluster-Id";
   private static final String API_KEY_HEADER = "X-API-KEY";
 
+  private static final String BASE_URL_ENV_VAR = "APP_INTEGRATIONS_BASE_URL";
+  private static final String OAUTH_TOKEN_ENDPOINT_ENV_VAR =
+      "APP_INTEGRATIONS_OAUTH_TOKEN_ENDPOINT";
+  private static final String OAUTH_CLIENT_ID_ENV_VAR = "APP_INTEGRATIONS_OAUTH_CLIENT_ID";
+  private static final String OAUTH_CLIENT_SECRET_ENV_VAR = "APP_INTEGRATIONS_OAUTH_CLIENT_SECRET";
+  private static final String OAUTH_AUDIENCE_ENV_VAR = "APP_INTEGRATIONS_OAUTH_AUDIENCE";
+
   // All HTTP calls go through the connector SDK's HttpClient (CustomApacheHttpClient), so the
   // connector shares the SDK's transport (timeouts, proxy support, TLS). OAuth is delegated to the
   // client as well: setting the authentication on the request makes execute() fetch, cache (shared
@@ -88,15 +103,21 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
   // HTTP stack or re-implementing token acquisition.
   private final ObjectMapper objectMapper;
   private final HttpClient httpClient;
+  private final UnaryOperator<String> getenv;
 
   public AppIntegrationsConnector() {
-    this.objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-    this.httpClient = new CustomApacheHttpClient();
+    this(ConnectorsObjectMapperSupplier.getCopy(), new CustomApacheHttpClient(), System::getenv);
   }
 
   AppIntegrationsConnector(ObjectMapper objectMapper, HttpClient httpClient) {
+    this(objectMapper, httpClient, System::getenv);
+  }
+
+  AppIntegrationsConnector(
+      ObjectMapper objectMapper, HttpClient httpClient, UnaryOperator<String> getenv) {
     this.objectMapper = objectMapper;
     this.httpClient = httpClient;
+    this.getenv = getenv;
   }
 
   @Operation(id = "sendMessage", name = "Send Message")
@@ -163,17 +184,19 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
    */
   private <T> T post(
       AppIntegrationsConfiguration config, String path, Object payload, Class<T> resultType) {
+    var effective = resolveConfig(config);
+    var baseUrl = effective.baseUrl();
+    var auth = effective.authentication();
     var body = serialize(payload);
-    var auth = config.authentication();
 
     HttpResponse<String> response;
     try {
-      response = send(config.baseUrl(), path, body, auth);
+      response = send(baseUrl, path, body, auth);
     } catch (ConnectorException e) {
       if ("401".equals(e.getErrorCode()) && auth instanceof OAuthAuthentication oauth) {
         LOGGER.debug("Received 401 from {}; invalidating OAuth token and retrying", path);
         OAuthTokenCacheHolder.get().invalidate(toClientAuthentication(oauth));
-        response = send(config.baseUrl(), path, body, auth);
+        response = send(baseUrl, path, body, auth);
       } else {
         throw e;
       }
@@ -181,6 +204,44 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
 
     LOGGER.debug("POST {} → {}", path, response.status());
     return deserialize(response.entity(), resultType);
+  }
+
+  private AppIntegrationsConfiguration resolveConfig(AppIntegrationsConfiguration config) {
+    if (isSaaS()) {
+      return new AppIntegrationsConfiguration(requireEnv(BASE_URL_ENV_VAR), oauthFromEnv());
+    }
+    var baseUrl = config == null ? null : config.baseUrl();
+    var auth = config == null ? null : config.authentication();
+    if (baseUrl == null || baseUrl.isBlank()) {
+      throw new ConnectorException("VALIDATION_ERROR", "Base URL is required");
+    }
+    if (auth == null) {
+      throw new ConnectorException("VALIDATION_ERROR", "Authentication is required");
+    }
+    return new AppIntegrationsConfiguration(baseUrl, auth);
+  }
+
+  private boolean isSaaS() {
+    return getenv.apply(SAAS_ENV_VAR) != null;
+  }
+
+  private OAuthAuthentication oauthFromEnv() {
+    return new OAuthAuthentication(
+        requireEnv(OAUTH_TOKEN_ENDPOINT_ENV_VAR),
+        requireEnv(OAUTH_CLIENT_ID_ENV_VAR),
+        requireEnv(OAUTH_CLIENT_SECRET_ENV_VAR),
+        requireEnv(OAUTH_AUDIENCE_ENV_VAR),
+        OAuthConstants.CREDENTIALS_BODY,
+        null);
+  }
+
+  private String requireEnv(String name) {
+    var value = getenv.apply(name);
+    if (value == null || value.isBlank()) {
+      throw new ConnectorException(
+          "VALIDATION_ERROR", "Missing required environment variable: " + name);
+    }
+    return value;
   }
 
   private String serialize(Object payload) {
@@ -252,12 +313,12 @@ public class AppIntegrationsConnector implements OutboundConnectorProvider {
    * call to the originating organization/cluster.
    */
   private void applyContextHeaders(Map<String, String> headers) {
-    if (!System.getenv().containsKey(SAAS_ENV_VAR)) {
+    if (!isSaaS()) {
       return;
     }
-    var orgId = System.getenv(ORG_ID_ENV_VAR);
-    var clusterId = System.getenv(CLUSTER_ID_ENV_VAR);
-    if (orgId != null && !orgId.isBlank()) {
+    var orgId = getenv.apply(ORG_ID_ENV_VAR);
+    var clusterId = getenv.apply(CLUSTER_ID_ENV_VAR);
+    if (orgId != null && !orgId.isBlank() && !"null".equals(orgId)) {
       headers.put(ORG_ID_HEADER, orgId);
     }
     if (clusterId != null && !clusterId.isBlank()) {

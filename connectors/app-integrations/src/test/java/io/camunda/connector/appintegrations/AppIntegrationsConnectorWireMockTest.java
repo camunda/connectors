@@ -7,6 +7,8 @@
 package io.camunda.connector.appintegrations;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -28,6 +30,9 @@ import io.camunda.connector.appintegrations.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -132,5 +137,67 @@ class AppIntegrationsConnectorWireMockTest {
     // re-fetched after invalidation (cache miss on the retry).
     verify(exactly(2), postRequestedFor(urlPathEqualTo(CHANNEL_PATH)));
     verify(exactly(2), postRequestedFor(urlPathEqualTo(TOKEN_PATH)));
+  }
+
+  private static AppIntegrationsConnector saasConnector(WireMockRuntimeInfo wm, String orgId) {
+    var env =
+        Map.of(
+            "CAMUNDA_CONNECTOR_RUNTIME_SAAS", "true",
+            "APP_INTEGRATIONS_BASE_URL", wm.getHttpBaseUrl(),
+            "APP_INTEGRATIONS_OAUTH_TOKEN_ENDPOINT", wm.getHttpBaseUrl() + TOKEN_PATH,
+            "APP_INTEGRATIONS_OAUTH_CLIENT_ID", "client-id",
+            "APP_INTEGRATIONS_OAUTH_CLIENT_SECRET", "client-secret",
+            "APP_INTEGRATIONS_OAUTH_AUDIENCE", "app-integrations",
+            "CAMUNDA_CONNECTOR_CLOUD_ORGANIZATION_ID", orgId,
+            "CAMUNDA_CLIENT_CLOUD_CLUSTERID", "cluster-456");
+    return new AppIntegrationsConnector(
+        ConnectorsObjectMapperSupplier.getCopy(), new CustomApacheHttpClient(), env::get);
+  }
+
+  private static CreateChannelRequest templateChannelRequest() {
+    return new CreateChannelRequest(
+        new AppIntegrationsConfiguration(
+            "http://ignored.invalid", new ApiKeyAuthentication("ignored-key")),
+        "b7779302-e8cb-4b34-901b-5b150a19fd47",
+        "My Channel",
+        null,
+        "standard");
+  }
+
+  @Test
+  void saas_readsBaseUrlAndOAuthFromEnv_ignoringTemplate(WireMockRuntimeInfo wm) {
+    stubFor(
+        post(urlPathEqualTo(TOKEN_PATH))
+            .willReturn(
+                okJson(
+                    "{\"access_token\":\"tok\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")));
+    stubFor(
+        post(urlPathEqualTo(CHANNEL_PATH))
+            .willReturn(okJson("{\"channelId\":\"19:saas@thread.tacv2\"}").withStatus(201)));
+
+    var result = saasConnector(wm, "org-123").createChannel(templateChannelRequest());
+
+    assertThat(result.channelId()).isEqualTo("19:saas@thread.tacv2");
+    verify(postRequestedFor(urlPathEqualTo(TOKEN_PATH)));
+    verify(
+        postRequestedFor(urlPathEqualTo(CHANNEL_PATH))
+            .withHeader("X-Org-Id", equalTo("org-123"))
+            .withHeader("X-Cluster-Id", equalTo("cluster-456")));
+  }
+
+  @Test
+  void saas_nullOrgSentinel_omitsOrgHeader(WireMockRuntimeInfo wm) {
+    stubFor(
+        post(urlPathEqualTo(TOKEN_PATH))
+            .willReturn(
+                okJson(
+                    "{\"access_token\":\"tok\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")));
+    stubFor(
+        post(urlPathEqualTo(CHANNEL_PATH))
+            .willReturn(okJson("{\"channelId\":\"19:saas@thread.tacv2\"}").withStatus(201)));
+
+    saasConnector(wm, "null").createChannel(templateChannelRequest());
+
+    verify(postRequestedFor(urlPathEqualTo(CHANNEL_PATH)).withHeader("X-Org-Id", absent()));
   }
 }

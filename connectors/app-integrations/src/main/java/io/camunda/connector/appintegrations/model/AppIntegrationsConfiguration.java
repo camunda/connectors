@@ -9,16 +9,13 @@ package io.camunda.connector.appintegrations.model;
 import io.camunda.connector.appintegrations.model.auth.AppIntegrationsAuthentication;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 
 public record AppIntegrationsConfiguration(
-    @NotEmpty
-        @TemplateProperty(
+    @TemplateProperty(
             group = "configuration",
             label = "Base URL",
             description = "App Integrations backend URL.",
             tooltip =
                 "Tip: store the URL as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_BASE_URL</code>.")
         String baseUrl,
-    @NotNull @Valid AppIntegrationsAuthentication authentication) {}
+    @Valid AppIntegrationsAuthentication authentication) {}

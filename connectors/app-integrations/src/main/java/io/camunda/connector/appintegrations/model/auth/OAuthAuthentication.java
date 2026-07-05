@@ -12,15 +12,13 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownP
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 
 @TemplateSubType(id = OAuthAuthentication.TYPE, label = "OAuth 2.0 (client credentials)")
 public record OAuthAuthentication(
     @FEEL
-        @NotEmpty
         @Pattern(
-            regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)",
+            regexp = "^($|=|(http://|https://|secrets|\\{\\{).*$)",
             message = "Must be a http(s) URL")
         @TemplateProperty(
             group = "authentication",
@@ -28,14 +26,12 @@ public record OAuthAuthentication(
             description = "The OAuth token endpoint")
         String oauthTokenEndpoint,
     @FEEL
-        @NotEmpty
         @TemplateProperty(
             group = "authentication",
             label = "Client ID",
             description = "Your application's client ID from the OAuth client")
         String clientId,
     @FEEL
-        @NotEmpty
         @TemplateProperty(
             group = "authentication",
             label = "Client secret",
@@ -49,7 +45,6 @@ public record OAuthAuthentication(
             optional = true)
         String audience,
     @FEEL
-        @NotEmpty
         @TemplateProperty(
             group = "authentication",
             label = "Client authentication",
