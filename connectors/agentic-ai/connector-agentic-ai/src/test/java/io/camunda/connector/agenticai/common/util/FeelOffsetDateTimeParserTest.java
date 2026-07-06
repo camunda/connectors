@@ -8,10 +8,19 @@ package io.camunda.connector.agenticai.common.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 
 class FeelOffsetDateTimeParserTest {
+
+  // statically constructed rather than parsed, so the expectation does not lean on the same
+  // parsing behavior under test; .522622s == 522_622_000ns
+  private static final OffsetDateTime DATE_TIME =
+      OffsetDateTime.of(
+          LocalDate.of(2026, 7, 2), LocalTime.of(11, 55, 0, 522_622_000), ZoneOffset.ofHours(2));
 
   @Test
   void parsesTheBracketedZoneForFeelNowProducesOnARealBroker() {
@@ -20,29 +29,25 @@ class FeelOffsetDateTimeParserTest {
     // bare OffsetDateTime.parse(text) cannot handle
     var parsed = FeelOffsetDateTimeParser.parse("2026-07-02T11:55:00.522622+02:00[Europe/Berlin]");
 
-    assertThat(parsed).isEqualTo(OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00"));
+    assertThat(parsed).isEqualTo(DATE_TIME);
   }
 
   @Test
   void parsesThePlainOffsetFormWithoutBrackets() {
     var parsed = FeelOffsetDateTimeParser.parse("2026-07-02T11:55:00.522622+02:00");
 
-    assertThat(parsed).isEqualTo(OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00"));
+    assertThat(parsed).isEqualTo(DATE_TIME);
   }
 
   @Test
   void formatsAsThePlainOffsetFormWithoutAZoneId() {
-    var value = OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00");
-
-    assertThat(FeelOffsetDateTimeParser.format(value))
+    assertThat(FeelOffsetDateTimeParser.format(DATE_TIME))
         .isEqualTo("2026-07-02T11:55:00.522622+02:00");
   }
 
   @Test
   void roundTripsThroughFormatAndParse() {
-    var value = OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00");
-
-    assertThat(FeelOffsetDateTimeParser.parse(FeelOffsetDateTimeParser.format(value)))
-        .isEqualTo(value);
+    assertThat(FeelOffsetDateTimeParser.parse(FeelOffsetDateTimeParser.format(DATE_TIME)))
+        .isEqualTo(DATE_TIME);
   }
 }

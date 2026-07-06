@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -54,7 +55,7 @@ class AgentInstanceHistoryMapperTest {
             .content("sunny")
             .completedAt(TOOL_RESULT_COMPLETED_AT)
             .build();
-    final var message = ToolCallResultMessage.builder().results(java.util.List.of(result)).build();
+    final var message = ToolCallResultMessage.builder().results(List.of(result)).build();
 
     final var items =
         mapper.inputHistoryItems(message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP);
@@ -91,7 +92,7 @@ class AgentInstanceHistoryMapperTest {
             .completedAt(slowCompletedAt)
             .build();
     final var message =
-        ToolCallResultMessage.builder().results(java.util.List.of(fastResult, slowResult)).build();
+        ToolCallResultMessage.builder().results(List.of(fastResult, slowResult)).build();
 
     final var items =
         mapper.inputHistoryItems(
@@ -115,7 +116,7 @@ class AgentInstanceHistoryMapperTest {
             .elementId("getWeather")
             .content("sunny")
             .build();
-    final var message = ToolCallResultMessage.builder().results(java.util.List.of(result)).build();
+    final var message = ToolCallResultMessage.builder().results(List.of(result)).build();
 
     assertThatThrownBy(
             () ->

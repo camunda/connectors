@@ -37,6 +37,7 @@ import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -465,7 +466,7 @@ class A2aGatewayToolHandlerTest {
               .contextId("context-1")
               .contents(List.of(TextContent.textContent("Agent response as message")))
               .build();
-      var completedAt = java.time.OffsetDateTime.parse("2026-07-02T10:00:00Z");
+      var completedAt = OffsetDateTime.parse("2026-07-02T10:00:00Z");
       var toolCallResult =
           createToolCallResultWithContent("call1", "a2a1", a2aMessage).withCompletedAt(completedAt);
 

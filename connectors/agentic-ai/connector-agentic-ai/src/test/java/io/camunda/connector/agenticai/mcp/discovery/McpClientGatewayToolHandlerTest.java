@@ -38,6 +38,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -448,7 +449,7 @@ class McpClientGatewayToolHandlerTest {
       var mcpCallToolResult =
           new McpClientCallToolResult(
               "tool1", List.of(McpTextContent.textContent("Tool result")), false);
-      var completedAt = java.time.OffsetDateTime.parse("2026-07-02T10:00:00Z");
+      var completedAt = OffsetDateTime.parse("2026-07-02T10:00:00Z");
       var toolCallResult =
           createToolCallResultWithContent("call1", "mcp1", mcpCallToolResult)
               .withCompletedAt(completedAt);

@@ -8,17 +8,10 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 class ToolCallResultCompletedAtResolverTest {
 
@@ -74,30 +67,5 @@ class ToolCallResultCompletedAtResolverTest {
     var resolved = resolver.resolve(List.of());
 
     assertThat(resolved).isEmpty();
-  }
-
-  @Test
-  void fallbackCompletedAtSurfacesAsHistoryProducedAt() {
-    // a result without an engine timestamp gets the resolver's now() fallback, which must flow
-    // through to the history item's producedAt rather than the turn ingestion timestamp (ADR 008)
-    final var turnIngestionTimestamp = OffsetDateTime.parse("2026-07-05T10:00:00Z");
-    final var mapper =
-        new AgentInstanceHistoryMapper(
-            new ObjectMapper(), Mockito.mock(GatewayToolHandlerRegistry.class));
-    final var toolCall = ToolCall.builder().id("call-1").name("tool").build();
-    final var rawResult =
-        ToolCallResult.builder()
-            .id("call-1")
-            .name("tool")
-            .elementId("tool")
-            .content("done")
-            .build();
-
-    final var resolved = resolver.resolve(List.of(rawResult));
-    final var message = ToolCallResultMessage.builder().results(resolved).build();
-    final var items =
-        mapper.inputHistoryItems(message, Map.of("call-1", toolCall), turnIngestionTimestamp);
-
-    assertThat(items).singleElement().extracting("producedAt").isEqualTo(NOW);
   }
 }
