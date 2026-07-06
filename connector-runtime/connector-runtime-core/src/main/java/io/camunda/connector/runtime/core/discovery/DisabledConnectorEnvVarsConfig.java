@@ -30,6 +30,9 @@ import org.slf4j.LoggerFactory;
 public class DisabledConnectorEnvVarsConfig {
   private static final Logger LOG = LoggerFactory.getLogger(DisabledConnectorEnvVarsConfig.class);
 
+  private static final String ENABLED = "ENABLED";
+  private static final String DISABLED = "DISABLED";
+
   private final HashMap<String, Set<String>> envVarCache = new HashMap<>();
 
   public static boolean isDiscoveryDisabled(ConnectorDirection direction) {
@@ -41,8 +44,8 @@ public class DisabledConnectorEnvVarsConfig {
     var type = config.type().toLowerCase();
     // Presence (not parsed content) decides the mode: an env var set to an empty/whitespace value
     // still counts as "set".
-    var enabledSet = getConnectorEnvironmentVariable(direction.name(), "ENABLED").isPresent();
-    var disabledSet = getConnectorEnvironmentVariable(direction.name(), "DISABLED").isPresent();
+    var enabledSet = getConnectorEnvironmentVariable(direction.name(), ENABLED).isPresent();
+    var disabledSet = getConnectorEnvironmentVariable(direction.name(), DISABLED).isPresent();
 
     // ENABLED (allowlist) and DISABLED (blocklist) are mutually exclusive per direction
     if (enabledSet && disabledSet) {
@@ -76,7 +79,7 @@ public class DisabledConnectorEnvVarsConfig {
   }
 
   private Set<String> getConnectorTypes(ConnectorDirection direction, boolean enabled) {
-    var state = enabled ? "ENABLED" : "DISABLED";
+    var state = enabled ? ENABLED : DISABLED;
     return envVarCache.computeIfAbsent(
         direction.name() + "_" + state,
         key ->
