@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -31,8 +30,7 @@ class AgentInstanceHistoryMapperTest {
       OffsetDateTime.parse("2026-07-02T09:59:55Z");
 
   private final AgentInstanceHistoryMapper mapper =
-      new AgentInstanceHistoryMapper(
-          new ObjectMapper(), Mockito.mock(GatewayToolHandlerRegistry.class));
+      new AgentInstanceHistoryMapper(Mockito.mock(GatewayToolHandlerRegistry.class));
 
   @Test
   void userMessageUsesThePassedInTurnIngestionTimestamp() {
