@@ -73,19 +73,8 @@ public final class BedrockConverseRecordedConversation {
     return new BedrockConverseRecordedConversation(parsed);
   }
 
-  public int modelCallCount() {
-    return requests.size();
-  }
-
   public List<RecordedChatRequest> requests() {
     return requests;
-  }
-
-  public RecordedChatRequest lastRequest() {
-    if (requests.isEmpty()) {
-      throw new IllegalStateException("No converse requests were recorded");
-    }
-    return requests.getLast();
   }
 
   public record RecordedToolCall(String id, String name) {}

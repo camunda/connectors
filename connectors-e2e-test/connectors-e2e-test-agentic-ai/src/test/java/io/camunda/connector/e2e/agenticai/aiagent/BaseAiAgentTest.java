@@ -86,9 +86,11 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   // request journal. We use ConsoleNotifier (stdout) because wiremock-standalone's Slf4jNotifier
   // is bound to its shaded SLF4J and never reaches our logback.
   //
-  // The HTTPS port (self-signed keystore under wiremock-https/) is only used by
-  // ProviderWireFormatSmokeTests' AzureOpenAiCompletions row — Azure's SDK unconditionally
-  // rejects non-HTTPS endpoints for API-key auth. All other tests keep using the HTTP port.
+  // The HTTPS port (self-signed keystore under wiremock-https/) is functionally needed only by
+  // ProviderWireFormatSmokeTests' AzureOpenAiCompletions row — Azure's SDK unconditionally rejects
+  // non-HTTPS endpoints for API-key auth. All other tests keep using the HTTP port. It's configured
+  // here rather than on a dedicated extension because this field is shared (and initialized once)
+  // across every subclass of BaseAiAgentTest.
   @RegisterExtension
   static WireMockExtension wireMockExtension =
       WireMockExtension.newInstance()

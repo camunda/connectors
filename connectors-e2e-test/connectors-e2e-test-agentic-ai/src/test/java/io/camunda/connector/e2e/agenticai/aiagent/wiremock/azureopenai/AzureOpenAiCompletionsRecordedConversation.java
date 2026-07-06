@@ -69,19 +69,8 @@ public final class AzureOpenAiCompletionsRecordedConversation {
     return new AzureOpenAiCompletionsRecordedConversation(parsed);
   }
 
-  public int modelCallCount() {
-    return requests.size();
-  }
-
   public List<RecordedChatRequest> requests() {
     return requests;
-  }
-
-  public RecordedChatRequest lastRequest() {
-    if (requests.isEmpty()) {
-      throw new IllegalStateException("No chat completion requests were recorded");
-    }
-    return requests.getLast();
   }
 
   public record RecordedMessage(

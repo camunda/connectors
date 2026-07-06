@@ -76,19 +76,8 @@ public final class AnthropicMessagesRecordedConversation {
     return new AnthropicMessagesRecordedConversation(parsed);
   }
 
-  public int modelCallCount() {
-    return requests.size();
-  }
-
   public List<RecordedChatRequest> requests() {
     return requests;
-  }
-
-  public RecordedChatRequest lastRequest() {
-    if (requests.isEmpty()) {
-      throw new IllegalStateException("No message requests were recorded");
-    }
-    return requests.getLast();
   }
 
   public record RecordedToolCall(String id, String name) {}
