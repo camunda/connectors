@@ -791,8 +791,7 @@ class CamundaAgentInstanceClientTest {
     void shouldMapNonMapObjectContentToObjectBlock() {
       givenHistoryCommand();
 
-      // given: a list-shaped object result (e.g. a "list users" tool), which must be preserved as
-      // OBJECT content rather than being flattened to TEXT (#7626)
+      // given: a list-shaped object result (e.g. a "list users" tool) mapped to OBJECT content
       final var users = List.of("alice", "bob");
       final var turn =
           new AgentConversationTurn(

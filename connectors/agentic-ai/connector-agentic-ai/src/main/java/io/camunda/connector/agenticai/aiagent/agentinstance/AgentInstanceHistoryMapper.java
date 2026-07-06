@@ -184,7 +184,6 @@ public class AgentInstanceHistoryMapper {
     return List.of(objectHistoryContent(resultContent));
   }
 
-  // preserves arbitrary JSON values (maps, lists, numbers) as OBJECT rather than flattening to TEXT
   private AgentInstanceHistoryContent objectHistoryContent(Object value) {
     return AgentInstanceHistoryContent.object(value);
   }
