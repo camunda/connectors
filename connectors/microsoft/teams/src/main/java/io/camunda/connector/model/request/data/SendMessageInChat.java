@@ -14,7 +14,17 @@ import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
-@TemplateSubType(label = "Send message in chat", id = MSTeamsMethodTypes.SEND_MESSAGE_IN_CHAT)
+@TemplateSubType(
+    id = MSTeamsMethodTypes.SEND_MESSAGE_IN_CHAT,
+    label = "Send message in chat",
+    description = "Send a message to a Microsoft Teams chat",
+    keywords = {
+      "send message in chat",
+      "chat message",
+      "direct message",
+      "post in chat",
+      "notify via chat"
+    })
 public record SendMessageInChat(
     @NotBlank
         @TemplateProperty(

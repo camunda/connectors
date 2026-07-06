@@ -30,7 +30,17 @@ import java.io.IOException;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
-@TemplateSubType(id = "chat.postMessage", label = "Post message")
+@TemplateSubType(
+    id = "chat.postMessage",
+    label = "Post message",
+    description = "Post a message to a Slack channel or user",
+    keywords = {
+      "post message",
+      "send message",
+      "chat notification",
+      "notify user",
+      "write message"
+    })
 public record ChatPostMessageData(
     @TemplateProperty(
             label = "Channel/user name/email",

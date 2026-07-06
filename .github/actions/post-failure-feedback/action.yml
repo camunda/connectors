@@ -7,7 +7,7 @@ description: >
 
 inputs:
   failure_category:
-    description: "infra | flaky | product | test | external | unknown"
+    description: "infra | test-infra | flaky | product | test | external | unknown"
     required: true
   stage:
     description: "Pipeline stage, e.g. helm-integration / saas-e2e"
@@ -60,6 +60,7 @@ runs:
   steps:
     - name: Render & post failure feedback
       shell: bash
+      continue-on-error: true
       env:
         FB_CATEGORY: ${{ inputs.failure_category }}
         FB_STAGE: ${{ inputs.stage }}
@@ -67,7 +68,7 @@ runs:
         FB_RUN_URL: ${{ inputs.run_url }}
         FB_STATUS: ${{ inputs.status }}
         FB_EVIDENCE: ${{ inputs.evidence }}
-        FB_REPO: ${{ inputs.repo }}
+        FB_REPO: ${{ inputs.repo || github.repository }}
         FB_PR: ${{ inputs.pr }}
         FB_COOKBOOK_URL: ${{ inputs.cookbook_url }}
         FB_SLACK_CHANNEL: ${{ inputs.slack_channel }}

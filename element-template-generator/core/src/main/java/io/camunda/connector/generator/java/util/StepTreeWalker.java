@@ -185,7 +185,12 @@ public final class StepTreeWalker {
     // field and update the property path prefix per @NestedProperties(addNestedPath).
     NestedDiscriminatorField nested = findSingleNestedDiscriminatorField(node, propertyPathPrefix);
     boolean hasKeywords = st != null && st.keywords().length > 0;
-    if (nested != null) {
+    // Only treat the nested discriminator as an operation group when it actually contains
+    // operations (i.e. has keywords reachable from its subtypes). A nested discriminator that
+    // is purely a configuration picker (e.g. DocumentSplitter inside EmbedDocumentOperation)
+    // has no keywords and should not pull the enclosing record into group-node territory.
+    boolean nestedHasOperations = nested != null && hasAnyLeafKeywords(nested.sealedType());
+    if (nestedHasOperations) {
       if (hasKeywords) {
         throw new IllegalStateException(
             "Type "
@@ -317,15 +322,31 @@ public final class StepTreeWalker {
 
   private static boolean hasAnyLeafKeywords(Class<?> root) {
     Deque<Class<?>> queue = new ArrayDeque<>();
+    Set<Class<?>> seen = new HashSet<>();
     queue.add(root);
     while (!queue.isEmpty()) {
       Class<?> c = queue.pop();
+      if (!seen.add(c)) {
+        continue;
+      }
       if (c.isSealed()) {
         queue.addAll(nonIgnoredSubtypes(c));
       } else {
         TemplateSubType st = c.getAnnotation(TemplateSubType.class);
         if (st != null && st.keywords().length > 0) {
           return true;
+        }
+        // Recurse through @NestedProperties-annotated fields only, to discover nested sealed
+        // discriminator hierarchies (e.g. Protocol → Smtp → SmtpAction → SmtpSendEmail).
+        // Bare field references (e.g. NestedAuthCarryingOps.action) are NOT followed — that
+        // field is a reachable operation root on its own, not a sub-discriminator of NestedAuth.
+        for (Field f : getAllFields(c)) {
+          if (!f.isAnnotationPresent(NestedProperties.class)) continue;
+          for (Class<?> ft : extractCandidateTypes(f)) {
+            if (ft.isSealed() && !seen.contains(ft)) {
+              queue.add(ft);
+            }
+          }
         }
       }
     }
@@ -341,7 +362,9 @@ public final class StepTreeWalker {
               + " participates in operation metadata but does not declare "
               + "@TemplateDiscriminatorProperty(name = ...).");
     }
-    return d.name();
+    // Use id() when explicitly set — that is the generated template property's id.
+    // When id is not set (empty default) the ETG also uses name() as the property id.
+    return d.id().isBlank() ? d.name() : d.id();
   }
 
   private static String requireSubTypeId(Class<?> sub) {

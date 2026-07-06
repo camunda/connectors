@@ -12,7 +12,11 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "deleteEmailImap", label = "Delete an email")
+@TemplateSubType(
+    id = "deleteEmailImap",
+    label = "Delete an email",
+    description = "Delete an email from an IMAP mailbox",
+    keywords = {"delete email", "imap delete", "remove email", "trash email", "purge message"})
 public record ImapDeleteEmail(
     @TemplateProperty(
             label = "Message ID",

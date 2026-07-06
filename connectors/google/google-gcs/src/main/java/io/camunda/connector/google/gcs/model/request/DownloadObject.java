@@ -11,7 +11,11 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(id = "downloadObject", label = "Download object")
+@TemplateSubType(
+    id = "downloadObject",
+    label = "Download object",
+    description = "Download an object from a Google Cloud Storage bucket",
+    keywords = {"download", "get object", "fetch file", "retrieve object", "export from bucket"})
 public record DownloadObject(
     @TemplateProperty(
             label = "GCP project",

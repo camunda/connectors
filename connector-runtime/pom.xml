@@ -37,6 +37,7 @@
           <release>${version.java}</release>
           <compilerArgs>
             <arg>-XDcompilePolicy=simple</arg>
+            <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
             <arg>--should-stop=ifError=FLOW</arg>
             <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:WARN -XepOpt:NullAway:AnnotatedPackages=io.camunda.connector -XepExcludedPaths:.*/src/test/java/.*</arg>
           </compilerArgs>

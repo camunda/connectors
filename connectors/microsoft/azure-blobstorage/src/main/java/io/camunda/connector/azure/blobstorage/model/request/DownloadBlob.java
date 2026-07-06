@@ -11,7 +11,17 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(id = "downloadBlob", label = "Download blob")
+@TemplateSubType(
+    id = "downloadBlob",
+    label = "Download blob",
+    description = "Download a blob from Azure Blob Storage",
+    keywords = {
+      "download blob",
+      "get blob",
+      "fetch file",
+      "retrieve object",
+      "export from storage"
+    })
 public record DownloadBlob(
     @TemplateProperty(
             label = "Blob Storage container",

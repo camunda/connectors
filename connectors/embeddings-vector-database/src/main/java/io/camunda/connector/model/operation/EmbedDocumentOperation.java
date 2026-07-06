@@ -19,7 +19,17 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
-@TemplateSubType(label = "Embed document", id = EMBED_DOCUMENT_OPERATION)
+@TemplateSubType(
+    label = "Embed document",
+    id = EMBED_DOCUMENT_OPERATION,
+    description = "Embed a document or text into a vector database for semantic search",
+    keywords = {
+      "embed document",
+      "vectorize",
+      "store embedding",
+      "index document",
+      "semantic index"
+    })
 public record EmbedDocumentOperation(
     @NotNull
         @TemplateProperty(

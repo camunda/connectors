@@ -18,7 +18,10 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     defaultValue = "sendMessageToChat",
     label = "Method",
     description = "Select method for chat interaction")
-@TemplateSubType(label = "Chat", id = "chat")
+@TemplateSubType(
+    id = "chat",
+    label = "Chat",
+    description = "Manage chats and chat messages in Microsoft Teams")
 public sealed interface ChatData extends MSTeamsRequestData
     permits CreateChat,
         GetChat,

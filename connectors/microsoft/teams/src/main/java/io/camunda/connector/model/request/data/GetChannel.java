@@ -11,7 +11,17 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(label = "Get channel", id = MSTeamsMethodTypes.GET_CHANNEL)
+@TemplateSubType(
+    id = MSTeamsMethodTypes.GET_CHANNEL,
+    label = "Get channel",
+    description = "Get details of a specific Microsoft Teams channel",
+    keywords = {
+      "get channel",
+      "channel info",
+      "fetch channel",
+      "retrieve channel",
+      "channel details"
+    })
 public record GetChannel(
     @NotBlank
         @TemplateProperty(

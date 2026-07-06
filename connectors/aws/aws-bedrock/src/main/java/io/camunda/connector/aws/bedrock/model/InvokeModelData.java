@@ -17,7 +17,18 @@ import java.util.Objects;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
-@TemplateSubType(id = "invokeModel", label = "Invoke Model")
+@TemplateSubType(
+    id = "invokeModel",
+    label = "Invoke Model",
+    description = "Invoke an Amazon Bedrock foundation model with a single request",
+    keywords = {
+      "invoke model",
+      "call model",
+      "generate",
+      "run model",
+      "ai inference",
+      "foundation model"
+    })
 public final class InvokeModelData implements RequestData {
 
   @TemplateProperty(

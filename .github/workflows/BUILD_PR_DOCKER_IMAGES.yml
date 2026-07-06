@@ -171,6 +171,17 @@ jobs:
               '- `' + reg + '/connectors:' + tag + '`',
               '- `' + reg + '/connectors-bundle:' + tag + '`',
               '- `' + reg + '/connectors-bundle-saas:' + tag + '`',
+              '',
+              '**To use the SaaS bundle on a cluster:**',
+              '',
+              '_GCP cluster:_',
+              '```',
+              'europe-docker.pkg.dev/camunda-saas-registry/harbor/team-connectors/connectors-bundle-saas:' + tag,
+              '```',
+              '_AWS cluster (replace `<WORKER_REGION>`, e.g. `eu-central-1`):_',
+              '```',
+              '390403865336.dkr.ecr.<WORKER_REGION>.amazonaws.com/team-connectors/connectors-bundle-saas:' + tag,
+              '```',
             ].join('\n');
             await github.rest.issues.createComment({
               owner: context.repo.owner,

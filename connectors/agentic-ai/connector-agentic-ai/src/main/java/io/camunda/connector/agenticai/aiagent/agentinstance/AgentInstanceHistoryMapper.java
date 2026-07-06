@@ -6,11 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED;
 import static java.util.Objects.requireNonNullElse;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
 import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
@@ -35,7 +32,6 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.util.List;
 import java.util.Map;
@@ -51,12 +47,9 @@ import org.jspecify.annotations.Nullable;
  */
 public class AgentInstanceHistoryMapper {
 
-  private final ObjectMapper objectMapper;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
 
-  public AgentInstanceHistoryMapper(
-      ObjectMapper objectMapper, GatewayToolHandlerRegistry gatewayToolHandlers) {
-    this.objectMapper = objectMapper;
+  public AgentInstanceHistoryMapper(GatewayToolHandlerRegistry gatewayToolHandlers) {
     this.gatewayToolHandlers = gatewayToolHandlers;
   }
 
@@ -176,7 +169,7 @@ public class AgentInstanceHistoryMapper {
   private AgentInstanceHistoryContent toHistoryContent(Content content) {
     return switch (content) {
       case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
-      case ObjectContent objectContent -> objectOrText(objectContent.content());
+      case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
     };
   }
@@ -188,33 +181,11 @@ public class AgentInstanceHistoryMapper {
     if (resultContent instanceof String s) {
       return StringUtils.isBlank(s) ? List.of() : List.of(AgentInstanceHistoryContent.text(s));
     }
-    return List.of(objectOrText(resultContent));
+    return List.of(objectHistoryContent(resultContent));
   }
 
-  @SuppressWarnings("unchecked")
-  private AgentInstanceHistoryContent objectOrText(Object value) {
-    if (value instanceof Map<?, ?> map) {
-      return AgentInstanceHistoryContent.object((Map<String, Object>) map);
-    }
-    try {
-      return AgentInstanceHistoryContent.object(objectMapper.convertValue(value, Map.class));
-    } catch (IllegalArgumentException e) {
-      return AgentInstanceHistoryContent.text(toJson(value));
-    }
-  }
-
-  private String toJson(Object value) {
-    if (value instanceof String s) {
-      return s;
-    }
-    try {
-      return objectMapper.writeValueAsString(value);
-    } catch (JsonProcessingException e) {
-      throw new ConnectorException(
-          ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED,
-          "Failed to serialize history item content: " + e.getMessage(),
-          e);
-    }
+  private AgentInstanceHistoryContent objectHistoryContent(Object value) {
+    return AgentInstanceHistoryContent.object(value);
   }
 
   private AgentInstanceHistoryContent documentHistoryContent(DocumentContent documentContent) {
@@ -241,7 +212,7 @@ public class AgentInstanceHistoryMapper {
       throw new IllegalArgumentException(
           "External document reference requires both url and name for a history item");
     }
-    return objectOrText(new ExternalDocumentReferenceModel(ref.url(), ref.name()));
+    return objectHistoryContent(new ExternalDocumentReferenceModel(ref.url(), ref.name()));
   }
 
   private DocumentReferenceResponseImpl toDocumentReferenceResponse(

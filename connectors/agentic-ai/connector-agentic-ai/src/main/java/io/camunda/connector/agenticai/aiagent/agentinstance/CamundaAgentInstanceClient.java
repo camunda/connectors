@@ -62,7 +62,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   public AgentInstanceKey create(AgentExecutionContext agentExecutionContext) {
     return CamundaApiRetry.execute(
         () -> executeCreate(agentExecutionContext),
-        AgentInstanceErrorClassifier.FOR_CREATE,
+        AgentInstanceErrorClassifier.INSTANCE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
         this::buildCreateException,
@@ -110,7 +110,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
           executeUpdate(executionContext, agentInstanceKey.value(), request);
           return null;
         },
-        AgentInstanceErrorClassifier.FOR_UPDATE,
+        AgentInstanceErrorClassifier.INSTANCE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
         this::buildUpdateException,
@@ -230,7 +230,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
               executionContext, agentInstanceKey, role, content, iteration, toolCalls, metrics);
           return null;
         },
-        AgentInstanceErrorClassifier.FOR_HISTORY_ITEM,
+        AgentInstanceErrorClassifier.INSTANCE,
         retriesProperties.maxRetries(),
         retriesProperties.initialRetryDelay(),
         this::buildHistoryItemException,

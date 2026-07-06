@@ -14,7 +14,17 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(label = "Retrieve document", id = RETRIEVE_DOCUMENT_OPERATION)
+@TemplateSubType(
+    label = "Retrieve document",
+    id = RETRIEVE_DOCUMENT_OPERATION,
+    description = "Retrieve documents from a vector database using semantic search",
+    keywords = {
+      "retrieve document",
+      "semantic search",
+      "vector search",
+      "similarity search",
+      "find similar"
+    })
 public record RetrieveDocumentOperation(
     @NotBlank
         @TemplateProperty(

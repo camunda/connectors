@@ -13,6 +13,12 @@ on:
   merge_group:
     branches: [ main ]
 
+# Cancel stale runs of the same type (push-on-push, PR-on-PR) without
+# letting push and pull_request events cancel each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run-tests:
 
@@ -103,9 +109,9 @@ jobs:
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      # Build
+      # Build and test (format and javadoc run in parallel jobs)
       - name: Build Connectors
-        run: ./mvnw --batch-mode -U clean test javadoc:javadoc -PcheckFormat -Dquickly
+        run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
@@ -149,3 +155,165 @@ jobs:
         run: |
           ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
           ./element-template-generator/validator/target/appassembler/bin/element-template-validator
+
+  check-javadoc:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - name: Set internal build flag
+        id: internal
+        run: |
+          if [ "${{ github.repository_owner }}" = "camunda" ]; then
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              if [ "${{ github.event.pull_request.head.repo.fork }}" = "false" ]; then
+                echo "internal=true" >> $GITHUB_OUTPUT
+              else
+                echo "internal=false" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "internal=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "internal=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Restore cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      - name: Import Nexus Secrets (internal only)
+        if: ${{ steps.internal.outputs.internal == 'true' }}
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC;
+
+      - name: Create internal Maven settings.xml (Nexus mirror)
+        if: ${{ steps.internal.outputs.internal == 'true' }}
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+            {
+               "id": "central",
+               "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
+               "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
+             }
+            ]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - name: Install element-template-generator plugin
+        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly
+
+      - name: Check Javadoc
+        run: ./mvnw --batch-mode compile javadoc:javadoc -Dquickly
+
+  check-format:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - name: Set internal build flag
+        id: internal
+        run: |
+          if [ "${{ github.repository_owner }}" = "camunda" ]; then
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              if [ "${{ github.event.pull_request.head.repo.fork }}" = "false" ]; then
+                echo "internal=true" >> $GITHUB_OUTPUT
+              else
+                echo "internal=false" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "internal=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "internal=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Restore cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      - name: Import Nexus Secrets (internal only)
+        if: ${{ steps.internal.outputs.internal == 'true' }}
+        id: secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC;
+
+      - name: Create internal Maven settings.xml (Nexus mirror)
+        if: ${{ steps.internal.outputs.internal == 'true' }}
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+            {
+               "id": "central",
+               "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
+               "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
+             }
+            ]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - name: Install element-template-generator plugin
+        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly
+
+      - name: Check Format
+        run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly

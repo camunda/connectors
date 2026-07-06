@@ -14,7 +14,11 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "getRowByIndex", label = "Get row by index")
+@TemplateSubType(
+    id = "getRowByIndex",
+    label = "Get row by index",
+    description = "Retrieve a row from a Google Sheets worksheet by its index",
+    keywords = {"get row", "read row", "fetch row", "retrieve row", "row by number"})
 public record GetRowByIndex(
     @TemplateProperty(
             id = "getRowByIndex.spreadsheetId",

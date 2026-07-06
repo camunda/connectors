@@ -13,7 +13,7 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 @TemplateDiscriminatorProperty(
     label = "Action",
-    group = "action",
+    group = "operation",
     name = "action",
     defaultValue = "invokeModel")
 @TemplateSubType(id = "action", label = "Action")
