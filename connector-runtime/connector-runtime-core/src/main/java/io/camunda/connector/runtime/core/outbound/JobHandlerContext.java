@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.*;
 import io.camunda.client.api.response.ActivatedJob;
@@ -26,6 +27,8 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.document.DocumentReturnChoice;
+import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -35,9 +38,8 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import java.util.Objects;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link io.camunda.connector.api.outbound.OutboundConnectorContext} passed on to
@@ -47,7 +49,6 @@ import org.slf4j.LoggerFactory;
 public class JobHandlerContext extends AbstractConnectorContext
     implements OutboundConnectorContext {
 
-  private static final Logger log = LoggerFactory.getLogger(JobHandlerContext.class);
   private final ActivatedJob job;
 
   private final ObjectMapper objectMapper;
@@ -113,6 +114,31 @@ public class JobHandlerContext extends AbstractConnectorContext
       throw new ConnectorInputException(errorMessage, e);
     } catch (JsonProcessingException e) {
       throw new ConnectorInputException(e.getOriginalMessage(), e);
+    }
+  }
+
+  @Override
+  public Optional<DocumentReturnFormat> readDocumentReturnFormat() {
+    JsonNode formatNode;
+    try {
+      formatNode = objectMapper.readTree(getJsonReplacedWithSecrets()).path("documentReturnFormat");
+    } catch (JsonProcessingException e) {
+      throw new ConnectorInputException(
+          "Failed to parse job variables while reading documentReturnFormat: "
+              + e.getOriginalMessage(),
+          e);
+    }
+    String choiceText = formatNode.path("choice").asText(null);
+    if (choiceText == null || choiceText.isBlank()) {
+      return Optional.empty();
+    }
+    try {
+      return Optional.of(
+          new DocumentReturnFormat(
+              DocumentReturnChoice.valueOf(choiceText), formatNode.path("encoding").asText(null)));
+    } catch (IllegalArgumentException e) {
+      throw new ConnectorInputException(
+          "documentReturnFormat.choice must be one of DOCUMENT, TEXT, JSON. Got: " + choiceText);
     }
   }
 
