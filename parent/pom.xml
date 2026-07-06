@@ -233,7 +233,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <version>42.7.12</version>
+        <version>42.7.13</version>
       </dependency>
 
       <!-- gRPC BOM - the version has to be equal or greater than the one from the Camunda client -->
