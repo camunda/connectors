@@ -88,7 +88,7 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.0</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.22.0</version.jackson-datatype-jsr310>
-    <version.hibernate-validator>9.1.1.Final</version.hibernate-validator>
+    <version.hibernate-validator>9.1.2.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.json>20250517</version.json>
     <version.failsafe>3.3.2</version.failsafe>
@@ -172,7 +172,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.2</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
-    <version.langchain4j>1.17.1</version.langchain4j>
+    <version.langchain4j>1.17.2</version.langchain4j>
     <version.mcp-sdk>2.0.0</version.mcp-sdk>
     <version.elasticsearch-java>8.19.18</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.18</version.elasticsearch-rest-client>
