@@ -37,6 +37,7 @@ import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
@@ -65,9 +66,13 @@ class InboundInstancesRestControllerTest {
 
   private static final String TYPE_1 = "webhook";
 
+  private static final String MESSAGE_NAME_1 = "myMessage";
+  private static final String MESSAGE_NAME_BOUNDARY = "boundaryMessage";
+
   private static final ExecutableId RANDOM_ID_1 = ExecutableId.fromDeduplicationId("theid1");
   private static final ExecutableId RANDOM_ID_2 = ExecutableId.fromDeduplicationId("theid2");
   private static final ExecutableId RANDOM_ID_3 = ExecutableId.fromDeduplicationId("theid3");
+  private static final ExecutableId RANDOM_ID_4 = ExecutableId.fromDeduplicationId("theid4");
   private static final String TYPE_2 = "anotherType";
 
   private final Health health1 = Health.up();
@@ -109,7 +114,18 @@ class InboundInstancesRestControllerTest {
                                   Map.of("inbound.context", "myPath", "inbound.type", TYPE_1),
                                   new StandaloneMessageCorrelationPoint(
                                       "myPath", "=expression", "=myPath", null),
-                                  new ProcessElementWithRuntimeData("ProcessA", 1, 1, "", ""))),
+                                  new ProcessElementWithRuntimeData(
+                                      "ProcessA",
+                                      null,
+                                      MESSAGE_NAME_1,
+                                      1,
+                                      1,
+                                      "",
+                                      null,
+                                      null,
+                                      "",
+                                      new ElementTemplateDetails("Test", "1", "icon"),
+                                      Map.of()))),
                           health1,
                           Collections.emptyList(),
                           System.currentTimeMillis()),
@@ -160,6 +176,38 @@ class InboundInstancesRestControllerTest {
                                   .withTag("myTag2")
                                   .withMessage("myMessage2")
                                   .build()),
+                          System.currentTimeMillis()),
+                      new ActiveExecutableResponse(
+                          RANDOM_ID_4,
+                          AnotherExecutable.class,
+                          List.of(
+                              new InboundConnectorElement(
+                                  Map.of(
+                                      "inbound.other.prop",
+                                      "boundaryValue",
+                                      "inbound.type",
+                                      TYPE_2),
+                                  new BoundaryEventCorrelationPoint(
+                                      MESSAGE_NAME_BOUNDARY,
+                                      "=key",
+                                      null,
+                                      null,
+                                      new BoundaryEventCorrelationPoint.Activity(
+                                          "task1", "Task 1")),
+                                  new ProcessElementWithRuntimeData(
+                                      "ProcessD",
+                                      null,
+                                      MESSAGE_NAME_BOUNDARY,
+                                      1,
+                                      1,
+                                      "boundaryElem",
+                                      null,
+                                      null,
+                                      "",
+                                      new ElementTemplateDetails("Test", "1", "icon"),
+                                      Map.of()))),
+                          Health.up(),
+                          Collections.emptyList(),
                           System.currentTimeMillis()))
                   .filter(response -> matchesQuery(response, query))
                   .toList();
@@ -189,11 +237,13 @@ class InboundInstancesRestControllerTest {
     var instance2 = instance.get(1);
     assertEquals(TYPE_2, instance2.connectorId());
     assertEquals("AnotherType", instance2.connectorName());
-    assertEquals(2, instance2.instances().size());
+    assertEquals(3, instance2.instances().size());
     assertEquals(RANDOM_ID_2, instance2.instances().get(0).executableId());
     assertEquals("ProcessB", instance2.instances().get(0).elements().getFirst().bpmnProcessId());
     assertEquals(RANDOM_ID_3, instance2.instances().get(1).executableId());
     assertEquals("ProcessC", instance2.instances().get(1).elements().getFirst().bpmnProcessId());
+    assertEquals(RANDOM_ID_4, instance2.instances().get(2).executableId());
+    assertEquals("ProcessD", instance2.instances().get(2).elements().getFirst().bpmnProcessId());
   }
 
   @Test
@@ -254,6 +304,7 @@ class InboundInstancesRestControllerTest {
             .readValue(response, ActiveInboundConnectorResponse.class);
     assertEquals(RANDOM_ID_1, executable.executableId());
     assertEquals("ProcessA", executable.elements().getFirst().bpmnProcessId());
+    assertEquals(MESSAGE_NAME_1, executable.elements().getFirst().messageName());
   }
 
   @Test
@@ -359,6 +410,25 @@ class InboundInstancesRestControllerTest {
             .readValue(response, ActiveInboundConnectorResponse.class);
     assertEquals(RANDOM_ID_1, executable.executableId());
     assertEquals("ProcessA", executable.elements().getFirst().bpmnProcessId());
+    assertEquals(MESSAGE_NAME_1, executable.elements().getFirst().messageName());
+  }
+
+  @Test
+  public void shouldReturnMessageName_forBoundaryEvent() throws Exception {
+    var response =
+        mockMvc
+            .perform(get("/inbound-instances/executables/" + RANDOM_ID_4.getId()))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    ActiveInboundConnectorResponse executable =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response, ActiveInboundConnectorResponse.class);
+    assertEquals(RANDOM_ID_4, executable.executableId());
+    assertEquals("ProcessD", executable.elements().getFirst().bpmnProcessId());
+    assertEquals(MESSAGE_NAME_BOUNDARY, executable.elements().getFirst().messageName());
   }
 
   @Test
