@@ -65,14 +65,11 @@ class InboundWebhookRestControllerTest {
     request.setServerName("example.com");
     request.setServerPort(443);
     request.setRequestURI("/inbound/myPath");
+    request.setQueryString("token=secret-token&q=visible");
     request.setMethod("POST");
     request.setContent("a".repeat(1005).getBytes(StandardCharsets.UTF_8));
 
-    controller.inbound(
-        "myPath",
-        Map.of("authorization", "******", "x-test", "visible"),
-        Map.of("token", "secret-token", "q", "visible"),
-        request);
+    controller.inbound("myPath", Map.of("authorization", "******", "x-test", "visible"), request);
 
     var latestActivity = latestActivity(activityLogRegistry, connector.id());
     assertThat(latestActivity.message())
@@ -105,7 +102,7 @@ class InboundWebhookRestControllerTest {
             "file", "test.txt", "text/plain", "top secret file contents".getBytes()));
     request.setContent("top secret file contents".getBytes(StandardCharsets.UTF_8));
 
-    controller.inbound("myPath", new HashMap<>(), new HashMap<>(), request);
+    controller.inbound("myPath", new HashMap<>(), request);
 
     var latestActivity = latestActivity(activityLogRegistry, connector.id());
     assertThat(latestActivity.message())

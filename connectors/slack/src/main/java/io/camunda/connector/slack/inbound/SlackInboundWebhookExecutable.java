@@ -194,7 +194,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
           URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
       return Arrays.stream(bodyAsString.split("&"))
           .filter(Objects::nonNull)
-          .map(param -> param.split("="))
+          .map(param -> param.split("=", 2))
           .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
     } else {
       // Do our best to parse to JSON (throws exception otherwise)

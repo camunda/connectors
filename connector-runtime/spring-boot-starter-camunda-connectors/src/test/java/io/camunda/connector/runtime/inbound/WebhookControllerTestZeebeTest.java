@@ -126,8 +126,7 @@ class WebhookControllerTestZeebeTest {
     deployProcess("processA");
 
     ResponseEntity<?> responseEntity =
-        controller.inbound(
-            "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+        controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertNull(responseEntity.getBody());
@@ -168,8 +167,7 @@ class WebhookControllerTestZeebeTest {
 
     ResponseEntity<Map> responseEntity =
         (ResponseEntity<Map>)
-            controller.inbound(
-                "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+            controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(201, responseEntity.getStatusCode().value());
     assertEquals("valueResponse", responseEntity.getBody().get("keyResponse"));
@@ -212,8 +210,7 @@ class WebhookControllerTestZeebeTest {
             ExecutableId.fromDeduplicationId("random")));
 
     ResponseEntity<?> responseEntity =
-        controller.inbound(
-            "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+        controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(422, responseEntity.getStatusCode().value());
     assertNotNull(responseEntity.getBody());
@@ -253,8 +250,7 @@ class WebhookControllerTestZeebeTest {
             ExecutableId.fromDeduplicationId("random")));
 
     ResponseEntity<?> responseEntity =
-        controller.inbound(
-            "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+        controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertNotNull(responseEntity.getBody());
@@ -296,8 +292,7 @@ class WebhookControllerTestZeebeTest {
             ExecutableId.fromDeduplicationId("random")));
 
     ResponseEntity<?> responseEntity =
-        controller.inbound(
-            "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+        controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertNotNull(responseEntity.getBody());
@@ -337,8 +332,7 @@ class WebhookControllerTestZeebeTest {
 
     ResponseEntity<Map> responseEntity =
         (ResponseEntity<Map>)
-            controller.inbound(
-                "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+            controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
 
@@ -374,8 +368,7 @@ class WebhookControllerTestZeebeTest {
     deployProcess("processB");
 
     ResponseEntity<?> responseEntity =
-        controller.inbound(
-            "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+        controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
     assertEquals(500, responseEntity.getStatusCode().value());
   }
 
@@ -407,8 +400,7 @@ class WebhookControllerTestZeebeTest {
     deployProcess("processA");
 
     ResponseEntity<?> responseEntity =
-        controller.inbound(
-            "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+        controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(500, responseEntity.getStatusCode().value());
   }
@@ -443,8 +435,7 @@ class WebhookControllerTestZeebeTest {
 
     ResponseEntity<FeelExpressionErrorResponse> responseEntity =
         (ResponseEntity<FeelExpressionErrorResponse>)
-            controller.inbound(
-                "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+            controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(422, responseEntity.getStatusCode().value());
     assertEquals("reason", responseEntity.getBody().reason());
@@ -490,8 +481,7 @@ class WebhookControllerTestZeebeTest {
 
     ResponseEntity<Map> responseEntity =
         (ResponseEntity<Map>)
-            controller.inbound(
-                "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+            controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertNull(responseEntity.getBody().get("keyResponse"));
@@ -541,8 +531,7 @@ class WebhookControllerTestZeebeTest {
 
     ResponseEntity<CorrelationResult.Success.ProcessInstanceCreated> responseEntity =
         (ResponseEntity<CorrelationResult.Success.ProcessInstanceCreated>)
-            controller.inbound(
-                "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+            controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertEquals(1L, responseEntity.getBody().processInstanceKey());
@@ -587,8 +576,7 @@ class WebhookControllerTestZeebeTest {
     deployProcess("processA");
 
     ResponseEntity<?> responseEntity =
-        controller.inbound(
-            "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+        controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertNull(responseEntity.getBody());
@@ -626,8 +614,7 @@ class WebhookControllerTestZeebeTest {
     MockHttpServletRequest headRequest = new MockHttpServletRequest();
     headRequest.setMethod("HEAD");
 
-    ResponseEntity<?> responseEntity =
-        controller.inbound("myPath", new HashMap<>(), new HashMap<>(), headRequest);
+    ResponseEntity<?> responseEntity = controller.inbound("myPath", new HashMap<>(), headRequest);
 
     assertEquals(200, responseEntity.getStatusCode().value());
   }
@@ -665,8 +652,7 @@ class WebhookControllerTestZeebeTest {
     request.setContentType("application/json");
     request.setContent("{\"key\": \"value\", \"nested\": {\"foo\": \"bar\"}}".getBytes());
 
-    ResponseEntity<?> responseEntity =
-        controller.inbound("myPath", new HashMap<>(), new HashMap<>(), request);
+    ResponseEntity<?> responseEntity = controller.inbound("myPath", new HashMap<>(), request);
 
     assertEquals(200, responseEntity.getStatusCode().value());
   }
@@ -710,8 +696,7 @@ class WebhookControllerTestZeebeTest {
         new MockMultipartFile("file", "test.txt", "text/plain", "file content here".getBytes());
     request.addFile(file);
 
-    ResponseEntity<?> responseEntity =
-        controller.inbound("myPath", new HashMap<>(), new HashMap<>(), request);
+    ResponseEntity<?> responseEntity = controller.inbound("myPath", new HashMap<>(), request);
 
     assertEquals(200, responseEntity.getStatusCode().value());
   }
@@ -749,8 +734,7 @@ class WebhookControllerTestZeebeTest {
     request.setContentType("application/x-www-form-urlencoded");
     request.setContent("field1=value1&field2=value2&special=%26%3D%3F".getBytes());
 
-    ResponseEntity<?> responseEntity =
-        controller.inbound("myPath", new HashMap<>(), new HashMap<>(), request);
+    ResponseEntity<?> responseEntity = controller.inbound("myPath", new HashMap<>(), request);
 
     assertEquals(200, responseEntity.getStatusCode().value());
   }
@@ -788,8 +772,7 @@ class WebhookControllerTestZeebeTest {
     request.setContentType("application/xml");
     request.setContent("<?xml version=\"1.0\"?><root><element>value</element></root>".getBytes());
 
-    ResponseEntity<?> responseEntity =
-        controller.inbound("myPath", new HashMap<>(), new HashMap<>(), request);
+    ResponseEntity<?> responseEntity = controller.inbound("myPath", new HashMap<>(), request);
 
     assertEquals(200, responseEntity.getStatusCode().value());
   }
@@ -827,8 +810,7 @@ class WebhookControllerTestZeebeTest {
     request.setContentType("text/plain");
     request.setContent("This is plain text content for the webhook".getBytes());
 
-    ResponseEntity<?> responseEntity =
-        controller.inbound("myPath", new HashMap<>(), new HashMap<>(), request);
+    ResponseEntity<?> responseEntity = controller.inbound("myPath", new HashMap<>(), request);
 
     assertEquals(200, responseEntity.getStatusCode().value());
   }
@@ -867,8 +849,7 @@ class WebhookControllerTestZeebeTest {
     byte[] binaryContent = new byte[] {0x00, 0x01, 0x02, 0x03, (byte) 0xFF, (byte) 0xFE};
     request.setContent(binaryContent);
 
-    ResponseEntity<?> responseEntity =
-        controller.inbound("myPath", new HashMap<>(), new HashMap<>(), request);
+    ResponseEntity<?> responseEntity = controller.inbound("myPath", new HashMap<>(), request);
 
     assertEquals(200, responseEntity.getStatusCode().value());
   }
