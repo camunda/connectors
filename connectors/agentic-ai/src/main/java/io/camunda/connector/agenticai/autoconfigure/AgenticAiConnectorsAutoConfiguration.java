@@ -180,8 +180,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceHistoryMapper aiAgentInstanceHistoryMapper(
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
       GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentInstanceHistoryMapper(gatewayToolHandlers);
+    return new AgentInstanceHistoryMapper(objectMapper, gatewayToolHandlers);
   }
 
   @Bean
