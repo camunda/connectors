@@ -111,9 +111,8 @@ class InboundInstancesRestControllerTest {
                           TestWebhookExecutable.class,
                           List.of(
                               new InboundConnectorElement(
-                                  Map.of("inbound.context", "myPath", "inbound.type", TYPE_1),
                                   new StandaloneMessageCorrelationPoint(
-                                      "myPath", "=expression", "=myPath", null),
+                                      MESSAGE_NAME_1, "=expression", "=myPath", null),
                                   new ProcessElementWithRuntimeData(
                                       "ProcessA",
                                       null,
