@@ -29,6 +29,7 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.FieldVisibility;
 import io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -69,8 +70,31 @@ final class DocumentReturnFormatHandler {
     String group = blankToNull(annotation.group());
     PropertyCondition userCondition = userCondition(annotation);
 
+    DocumentReturnChoice[] supportedFormats = annotation.supportedFormats();
+    if (supportedFormats.length == 0) {
+      throw new IllegalStateException(
+          "@DocumentReturnFormat.supportedFormats must not be empty — the generated dropdown"
+              + " needs at least one choice.");
+    }
+    DocumentReturnChoice defaultFormat = annotation.defaultFormat();
+    boolean defaultInSupported = false;
+    for (DocumentReturnChoice c : supportedFormats) {
+      if (c == defaultFormat) {
+        defaultInSupported = true;
+        break;
+      }
+    }
+    if (!defaultInSupported) {
+      throw new IllegalStateException(
+          "@DocumentReturnFormat.defaultFormat ("
+              + defaultFormat
+              + ") is not listed in supportedFormats "
+              + Arrays.toString(supportedFormats)
+              + " — the default must be one of the supported choices.");
+    }
+
     List<DropdownChoice> choices = new ArrayList<>();
-    for (DocumentReturnChoice c : annotation.supportedFormats()) {
+    for (DocumentReturnChoice c : supportedFormats) {
       DropdownChoice mapped = CHOICE_LABELS.get(c);
       if (mapped == null) {
         throw new IllegalStateException("Unknown DocumentReturnChoice: " + c);

@@ -138,7 +138,7 @@ public class JobHandlerContext extends AbstractConnectorContext
               DocumentReturnChoice.valueOf(choiceText), formatNode.path("encoding").asText(null)));
     } catch (IllegalArgumentException e) {
       throw new ConnectorInputException(
-          "documentReturnFormat.choice must be one of DOCUMENT, TEXT, JSON. Got: " + choiceText);
+          "documentReturnFormat.choice must be one of DOCUMENT, TEXT, JSON. Got: " + choiceText, e);
     }
   }
 

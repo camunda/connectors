@@ -136,7 +136,17 @@ public class DocumentReturnProcessor {
     if (encoding == null || encoding.isBlank()) {
       return StandardCharsets.UTF_8;
     }
-    return Charset.forName(encoding);
+    try {
+      return Charset.forName(encoding);
+    } catch (IllegalArgumentException e) {
+      throw new ConnectorException(
+          null,
+          "Unsupported charset '"
+              + encoding
+              + "' configured on documentReturnFormat.encoding. Use a valid IANA charset name (e.g."
+              + " UTF-8, ISO-8859-1) or leave the field blank to default to UTF-8.",
+          e);
+    }
   }
 
   private static void ensureFitsInVariable(int byteLength, String formatLabel) {

@@ -50,9 +50,8 @@ public interface OutboundConnectorContext extends DocumentFactory {
 
   /**
    * Reads the user-selected document return format from the job's input variables. Bound to the
-   * canonical {@code documentReturnFormat} variable path produced by the {@link
-   * io.camunda.connector.api.document.DocumentReturnFormat @DocumentReturnFormat} element template
-   * dropdown.
+   * canonical {@code documentReturnFormat} variable path produced by the
+   * {@code @DocumentReturnFormat} element-template annotation (in the generator module).
    *
    * <p>Returns {@link Optional#empty()} when the dropdown was not set (old templates / connectors
    * that don't expose the new field), letting the connector fall back to its legacy code path.
