@@ -16,6 +16,8 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.common.reflect.TypeToken;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReturn;
+import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.gdrive.mapper.DocumentMapper;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;
@@ -29,6 +31,7 @@ import io.camunda.connector.gdrive.model.request.Variables;
 import io.camunda.google.supplier.GsonComponentSupplier;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -56,12 +59,15 @@ public class GoogleDriveService {
 
   public GoogleDriveService() {}
 
-  public Object execute(final GoogleDriveClient client, final Resource resource) {
+  public Object execute(
+      final GoogleDriveClient client,
+      final Resource resource,
+      final boolean useDocumentReturnFlow) {
     return switch (resource) {
       case FolderResource folder -> createFolder(client, folder);
       case FileResource file -> createFile(client, file);
       case UploadResource upload -> uploadFile(client, upload);
-      case DownloadResource download -> downloadFile(client, download);
+      case DownloadResource download -> downloadFile(client, download, useDocumentReturnFlow);
     };
   }
 
@@ -175,14 +181,25 @@ public class GoogleDriveService {
     }
   }
 
-  private Document downloadFile(final GoogleDriveClient client, final DownloadResource resource) {
+  private Object downloadFile(
+      final GoogleDriveClient client,
+      final DownloadResource resource,
+      final boolean useDocumentReturnFlow) {
     Drive drive = client.getDriveService();
     try {
       String fileId = resource.downloadData().fileId();
       File fileMetaData = drive.files().get(fileId).setSupportsAllDrives(true).execute();
-      try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-        drive.files().get(fileId).executeMediaAndDownloadTo(outputStream);
-        return documentMapper.mapToDocument(outputStream.toByteArray(), fileMetaData);
+      if (useDocumentReturnFlow) {
+        InputStream stream =
+            drive.files().get(fileId).setSupportsAllDrives(true).executeMediaAsInputStream();
+        RawPayload payload =
+            new RawPayload(stream, fileMetaData.getMimeType(), fileMetaData.getName());
+        return DocumentReturn.of(payload, (converted, choice) -> converted);
+      } else {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+          drive.files().get(fileId).executeMediaAndDownloadTo(outputStream);
+          return documentMapper.mapToDocument(outputStream.toByteArray(), fileMetaData);
+        }
       }
     } catch (IOException e) {
       String msg = String.format(IO_EXCEPTION_MESSAGE, "downloading");

@@ -21,6 +21,8 @@ import com.azure.storage.blob.models.DownloadRetryOptions;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReturn;
+import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.azure.blobstorage.model.request.BlobStorageOperation;
 import io.camunda.connector.azure.blobstorage.model.request.BlobStorageRequest;
 import io.camunda.connector.azure.blobstorage.model.request.DownloadBlob;
@@ -31,6 +33,7 @@ import io.camunda.connector.azure.blobstorage.model.request.auth.SASAuthenticati
 import io.camunda.connector.azure.blobstorage.model.response.DownloadResponse;
 import io.camunda.connector.azure.blobstorage.model.response.DownloadResponse.DocumentContent;
 import io.camunda.connector.azure.blobstorage.model.response.UploadResponse;
+import java.io.ByteArrayInputStream;
 import java.time.Duration;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -55,9 +58,9 @@ public class BlobStorageExecutor {
     return new BlobStorageExecutor(blobStorageRequest.getAuthentication(), createDocument);
   }
 
-  public Object execute(BlobStorageOperation blobStorageOperation) {
+  public Object execute(BlobStorageOperation blobStorageOperation, boolean useDocumentReturnFlow) {
     return switch (blobStorageOperation) {
-      case DownloadBlob downloadBlob -> download(downloadBlob);
+      case DownloadBlob downloadBlob -> download(downloadBlob, useDocumentReturnFlow);
       case UploadBlob uploadBlob -> upload(uploadBlob);
     };
   }
@@ -90,7 +93,7 @@ public class BlobStorageExecutor {
         blobClient.getContainerName(), blobClient.getBlobName(), blobClient.getBlobUrl());
   }
 
-  private DownloadResponse download(DownloadBlob downloadBlob) {
+  private Object download(DownloadBlob downloadBlob, boolean useDocumentReturnFlow) {
     BlobContainerClient blobContainerClient = getClient(downloadBlob.container());
     DownloadRetryOptions options = new DownloadRetryOptions().setMaxRetryRequests(3);
 
@@ -106,6 +109,20 @@ public class BlobStorageExecutor {
         blobClient.getContainerName(),
         contentResponse.getStatusCode());
 
+    if (useDocumentReturnFlow) {
+      String contentType = contentResponse.getDeserializedHeaders().getContentType();
+      RawPayload payload =
+          new RawPayload(
+              new ByteArrayInputStream(content.toBytes()), contentType, downloadBlob.fileName());
+      return DocumentReturn.of(
+          payload, (converted, choice) -> DownloadResponse.of(choice, converted));
+    } else {
+      return legacyDownloadPath(downloadBlob, contentResponse, content);
+    }
+  }
+
+  private DownloadResponse legacyDownloadPath(
+      DownloadBlob downloadBlob, BlobDownloadContentResponse contentResponse, BinaryData content) {
     if (downloadBlob.asFile()) {
       return this.createDocument
           .andThen(DocumentContent::new)

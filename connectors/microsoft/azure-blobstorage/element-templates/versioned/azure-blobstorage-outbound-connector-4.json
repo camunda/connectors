@@ -5,7 +5,7 @@
   "description" : "Upload and download files from Azure Blob Storage.",
   "keywords" : [ "download file from azure blob storage", "upload file to azure blob storage", "download blob", "upload blob", "download file", "upload file", "blob storage", "file storage", "cloud storage" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
-  "version" : 5,
+  "version" : 4,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -104,12 +104,14 @@
     "tooltip" : "Specify the name of the document to be downloaded.",
     "type" : "String"
   }, {
-    "id" : "documentReturnFormat",
-    "label" : "Response format",
-    "value" : "DOCUMENT",
+    "id" : "downloadOperationAsFile",
+    "label" : "Return document as reference",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
-      "name" : "documentReturnFormat.choice",
+      "name" : "operation.asFile",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -117,41 +119,8 @@
       "equals" : "downloadBlob",
       "type" : "simple"
     },
-    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Document reference",
-      "value" : "DOCUMENT"
-    }, {
-      "name" : "as text",
-      "value" : "TEXT"
-    }, {
-      "name" : "as JSON",
-      "value" : "JSON"
-    } ]
-  }, {
-    "id" : "documentReturnFormatEncoding",
-    "label" : "Encoding",
-    "description" : "Character set used to decode the response. Default UTF-8.",
-    "value" : "UTF-8",
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "documentReturnFormat.encoding",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "documentReturnFormat",
-        "equals" : "TEXT",
-        "type" : "simple"
-      }, {
-        "property" : "operationDiscriminator",
-        "equals" : "downloadBlob",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
+    "tooltip" : "By default, only a reference to the document is returned. If this option is unchecked, the full content of the document is extracted and included in the response.",
+    "type" : "Boolean"
   }, {
     "id" : "container",
     "label" : "Blob Storage container",
@@ -368,6 +337,7 @@
   }, {
     "id" : "authentication.SASToken",
     "label" : "SAS token",
+    "description" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -383,11 +353,11 @@
       "equals" : "SAS",
       "type" : "simple"
     },
-    "tooltip" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.SASUrl",
     "label" : "SAS URL",
+    "description" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -403,11 +373,11 @@
       "equals" : "SAS",
       "type" : "simple"
     },
-    "tooltip" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">Azure Blob Storage SAS token documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.tenantId",
     "label" : "Tenant id",
+    "description" : "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -423,11 +393,11 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
-    "tooltip" : "ID of the Microsoft Entra ID tenant that owns the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.clientId",
     "label" : "Client id",
+    "description" : "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -443,11 +413,11 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
-    "tooltip" : "Application (client) ID of the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.clientSecret",
     "label" : "Client secret",
+    "description" : "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -463,11 +433,11 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
-    "tooltip" : "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "authentication.accountUrl",
     "label" : "Account url",
+    "description" : "The account url of the storage account. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -483,7 +453,6 @@
       "equals" : "oAuth-client-credentials-flow",
       "type" : "simple"
     },
-    "tooltip" : "URL of the Azure Blob Storage account to connect to. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
     "type" : "String"
   }, {
     "id" : "uploadOperationFileName",
@@ -526,7 +495,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "4",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

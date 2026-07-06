@@ -50,7 +50,11 @@ class GoogleDriveFunctionTest extends BaseTest {
     googleDriveResult.setGoogleDriveResourceId(FILE_ID);
     googleDriveResult.setGoogleDriveResourceUrl(FILE_URL);
 
-    Mockito.when(googleDriveServiceMock.execute(any(GoogleDriveClient.class), any(Resource.class)))
+    Mockito.when(
+            googleDriveServiceMock.execute(
+                any(GoogleDriveClient.class),
+                any(Resource.class),
+                org.mockito.ArgumentMatchers.anyBoolean()))
         .thenReturn(googleDriveResult);
     // When
     Object execute = service.execute(context);
@@ -78,7 +82,11 @@ class GoogleDriveFunctionTest extends BaseTest {
     googleDriveResult.setGoogleDriveResourceUrl(
         String.format(MimeTypeUrl.FILE_TEMPLATE_URL, FILE_ID));
 
-    Mockito.when(googleDriveServiceMock.execute(any(GoogleDriveClient.class), any(Resource.class)))
+    Mockito.when(
+            googleDriveServiceMock.execute(
+                any(GoogleDriveClient.class),
+                any(Resource.class),
+                org.mockito.ArgumentMatchers.anyBoolean()))
         .thenReturn(googleDriveResult);
     // When
     Object execute = service.execute(context);
@@ -102,7 +110,11 @@ class GoogleDriveFunctionTest extends BaseTest {
             .validation(new DefaultValidationProvider())
             .build();
 
-    Mockito.when(googleDriveServiceMock.execute(any(GoogleDriveClient.class), any(Resource.class)))
+    Mockito.when(
+            googleDriveServiceMock.execute(
+                any(GoogleDriveClient.class),
+                any(Resource.class),
+                org.mockito.ArgumentMatchers.anyBoolean()))
         .thenReturn(mock(Document.class));
 
     var result = (Document) service.execute(context);

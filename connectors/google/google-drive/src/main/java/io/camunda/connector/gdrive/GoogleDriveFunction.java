@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
       "document management"
     },
     inputDataClass = GoogleDriveRequest.class,
-    version = 7,
+    version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
     icon = "icon.svg")
 @OutboundConnector(
     name = "Google Docs",
-    inputVariables = {"authentication", "resource"},
+    inputVariables = {"authentication", "resource", "documentReturnFormat"},
     type = "io.camunda:google-drive:1")
 public class GoogleDriveFunction implements OutboundConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveFunction.class);
@@ -63,11 +63,13 @@ public class GoogleDriveFunction implements OutboundConnectorFunction {
 
     var request = context.bindVariables(GoogleDriveRequest.class);
     service.setDocumentMapper(new DocumentMapper(context));
+    boolean useDocumentReturnFlow = context.readDocumentReturnFormat().isPresent();
 
-    return executeConnector(request);
+    return executeConnector(request, useDocumentReturnFlow);
   }
 
-  private Object executeConnector(final GoogleDriveRequest request) {
+  private Object executeConnector(
+      final GoogleDriveRequest request, final boolean useDocumentReturnFlow) {
     LOGGER.debug("Executing my connector with request {}", request);
 
     GoogleDriveClient drive =
@@ -75,6 +77,6 @@ public class GoogleDriveFunction implements OutboundConnectorFunction {
             GoogleDriveServiceSupplier.createDriveClientInstance(request.getAuthentication()),
             GoogleDocsServiceSupplier.createDocsClientInstance(request.getAuthentication()));
 
-    return service.execute(drive, request.getResource());
+    return service.execute(drive, request.getResource(), useDocumentReturnFlow);
   }
 }

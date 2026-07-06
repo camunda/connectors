@@ -69,7 +69,8 @@ class GoogleDriveServiceTest extends BaseTest {
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
-    var execute = (GoogleDriveResult) service.execute(googleDriveClient, request.getResource());
+    var execute =
+        (GoogleDriveResult) service.execute(googleDriveClient, request.getResource(), false);
     // Then
     Mockito.verify(googleDriveClient).createWithMetadata(captor.capture());
     File value = captor.getValue();
@@ -93,7 +94,8 @@ class GoogleDriveServiceTest extends BaseTest {
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
-    var execute = (GoogleDriveResult) service.execute(googleDriveClient, request.getResource());
+    var execute =
+        (GoogleDriveResult) service.execute(googleDriveClient, request.getResource(), false);
     // Then
     Mockito.verify(googleDriveClient).createWithTemplate(captor.capture(), eq(templateId));
     File value = captor.getValue();
@@ -114,7 +116,8 @@ class GoogleDriveServiceTest extends BaseTest {
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
-    var execute = (GoogleDriveResult) service.execute(googleDriveClient, request.getResource());
+    var execute =
+        (GoogleDriveResult) service.execute(googleDriveClient, request.getResource(), false);
     // Then
     Mockito.verify(googleDriveClient).createWithTemplate(captor.capture(), eq(templateId));
     File value = captor.getValue();
@@ -142,7 +145,8 @@ class GoogleDriveServiceTest extends BaseTest {
     Mockito.when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);
     ArgumentCaptor<List<Request>> captor = ArgumentCaptor.forClass(List.class);
     // When
-    var execute = (GoogleDriveResult) service.execute(googleDriveClient, request.getResource());
+    var execute =
+        (GoogleDriveResult) service.execute(googleDriveClient, request.getResource(), false);
     // Then
     verify(googleDriveClient).updateDocument(eq(FILE_ID), captor.capture());
 
@@ -165,7 +169,7 @@ class GoogleDriveServiceTest extends BaseTest {
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     Mockito.when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);
     // When
-    service.execute(googleDriveClient, request.getResource());
+    service.execute(googleDriveClient, request.getResource(), false);
     // Then
     verify(googleDriveClient, never()).updateDocument(any(), any());
   }
@@ -185,7 +189,8 @@ class GoogleDriveServiceTest extends BaseTest {
     when(create.execute()).thenThrow(IOException.class);
 
     RuntimeException ex =
-        assertThrows(RuntimeException.class, () -> service.execute(googleDriveClient, resource));
+        assertThrows(
+            RuntimeException.class, () -> service.execute(googleDriveClient, resource, false));
     assertThat(ex.getMessage()).isEqualTo(String.format(IO_EXCEPTION_MESSAGE, "uploading"));
   }
 
@@ -206,7 +211,8 @@ class GoogleDriveServiceTest extends BaseTest {
     doThrow(IOException.class).when(getFile).executeMediaAndDownloadTo(any(OutputStream.class));
 
     RuntimeException ex =
-        assertThrows(RuntimeException.class, () -> service.execute(googleDriveClient, resource));
+        assertThrows(
+            RuntimeException.class, () -> service.execute(googleDriveClient, resource, false));
     assertThat(ex.getMessage()).isEqualTo(String.format(IO_EXCEPTION_MESSAGE, "downloading"));
   }
 
@@ -225,7 +231,7 @@ class GoogleDriveServiceTest extends BaseTest {
     when(create.setSupportsAllDrives(true)).thenReturn(create);
     when(create.execute()).thenReturn(new File().setId("1"));
 
-    var result = service.execute(googleDriveClient, resource);
+    var result = service.execute(googleDriveClient, resource, false);
     assertThat(result).isInstanceOf(GoogleDriveResult.class);
     assertThat(((GoogleDriveResult) result).getGoogleDriveResourceId()).isEqualTo("1");
     assertThat(((GoogleDriveResult) result).getGoogleDriveResourceUrl())
@@ -243,7 +249,7 @@ class GoogleDriveServiceTest extends BaseTest {
     Drive.Files.Get getFile = mock(Drive.Files.Get.class);
     doNothing().when(getFile).executeAndDownloadTo(any());
 
-    var result = service.execute(googleDriveClient, resource);
+    var result = service.execute(googleDriveClient, resource, false);
 
     assertThat(result).isInstanceOf(Document.class);
   }

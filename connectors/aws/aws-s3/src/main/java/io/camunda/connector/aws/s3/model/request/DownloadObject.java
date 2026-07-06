@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.aws.s3.model.request;
 
+import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -16,6 +17,12 @@ import jakarta.validation.constraints.NotBlank;
     label = "Download object",
     description = "Download an object from an S3 bucket",
     keywords = {"download", "get object", "fetch s3 object"})
+@DocumentReturnFormat(
+    group = "downloadObject",
+    tooltip =
+        "How the downloaded payload should be returned. Document reference uploads the payload to"
+            + " the document store; as text decodes it as a String; as JSON parses it into a"
+            + " structure you can access via dot notation.")
 public record DownloadObject(
     @TemplateProperty(
             label = "AWS bucket",
@@ -35,15 +42,5 @@ public record DownloadObject(
             binding = @TemplateProperty.PropertyBinding(name = "action.key"))
         @NotBlank
         String key,
-    @TemplateProperty(
-            label = "Create document",
-            id = "downloadActionAsFile",
-            group = "downloadObject",
-            tooltip =
-                "If set to true, a document reference will be created. If set to false, the content will be extracted and provided inside the response.",
-            type = TemplateProperty.PropertyType.Boolean,
-            defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-            defaultValue = "true",
-            binding = @TemplateProperty.PropertyBinding(name = "action.asFile"))
-        boolean asFile)
+    @TemplateProperty(ignore = true) @Deprecated boolean asFile)
     implements S3Action {}
