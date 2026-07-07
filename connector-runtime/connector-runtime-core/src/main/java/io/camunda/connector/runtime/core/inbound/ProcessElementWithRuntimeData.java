@@ -24,6 +24,7 @@ import java.util.Map;
 public record ProcessElementWithRuntimeData(
     String bpmnProcessId,
     String processName,
+    String messageName,
     int version,
     long processDefinitionKey,
     String elementId,
@@ -42,6 +43,7 @@ public record ProcessElementWithRuntimeData(
       String tenantId) {
     this(
         bpmnProcessId,
+        null,
         null,
         version,
         processDefinitionKey,
