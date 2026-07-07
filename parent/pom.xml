@@ -138,7 +138,7 @@ limitations under the License.</license.inlineheader>
     <version.awaitility>4.3.0</version.awaitility>
     <version.json-path>2.10.0</version.json-path>
 
-    <version.netty>4.2.15.Final</version.netty>
+    <version.netty>4.2.16.Final</version.netty>
 
     <version.snappy-java>1.1.10.8</version.snappy-java>
     <version.commons-codec>1.22.0</version.commons-codec>
