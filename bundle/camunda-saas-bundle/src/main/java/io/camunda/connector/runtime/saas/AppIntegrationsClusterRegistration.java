@@ -42,13 +42,13 @@ import org.springframework.stereotype.Component;
  * <p>If the App Integrations connector settings are provisioned for the cluster, the runtime
  * registers the cluster with {@code PUT /api/connector/{orgId}/{clusterId}}; otherwise it
  * deregisters it with {@code DELETE /api/connector/{orgId}/{clusterId}}. Both requests are
- * authenticated with a shared API key ({@code APP_INTEGRATIONS_SECRET}) sent in the {@code
- * X-API-KEY} header — no OAuth client is built here.
+ * authenticated with a shared API key ({@code APP_INTEGRATIONS_CONNECTOR_SECRET}) sent in the
+ * {@code X-API-KEY} header — no OAuth client is built here.
  *
- * <p>{@code APP_INTEGRATIONS_BASE_URL} and {@code APP_INTEGRATIONS_SECRET} are fleet-level values
- * that address and authenticate the reporting endpoint (including the disable/{@code DELETE} case).
- * "Settings present" therefore refers to the per-cluster connector configuration, detected by the
- * presence of the connector's OAuth client credentials.
+ * <p>{@code APP_INTEGRATIONS_BASE_URL} and {@code APP_INTEGRATIONS_CONNECTOR_SECRET} are
+ * fleet-level values that address and authenticate the reporting endpoint (including the
+ * disable/{@code DELETE} case). "Settings present" therefore refers to the per-cluster connector
+ * configuration, detected by the presence of the connector's OAuth client credentials.
  */
 @Component
 @Profile("!test")
@@ -74,7 +74,7 @@ public class AppIntegrationsClusterRegistration {
   @Autowired
   public AppIntegrationsClusterRegistration(
       @Value("${APP_INTEGRATIONS_BASE_URL:}") String baseUrl,
-      @Value("${APP_INTEGRATIONS_SECRET:}") String apiKey,
+      @Value("${APP_INTEGRATIONS_CONNECTOR_SECRET:}") String apiKey,
       @Value("${APP_INTEGRATIONS_OAUTH_CLIENT_ID:}") String oauthClientId,
       @Value("${APP_INTEGRATIONS_OAUTH_CLIENT_SECRET:}") String oauthClientSecret,
       @Value("${camunda.connector.cloud.organization.id:}") String organizationId,
