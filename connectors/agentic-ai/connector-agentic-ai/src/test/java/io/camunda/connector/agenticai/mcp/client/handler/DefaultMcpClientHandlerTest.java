@@ -92,7 +92,8 @@ class DefaultMcpClientHandlerTest {
         new McpClientRequest(
             new McpClientRequestData(
                 CLIENT_CONFIG,
-                new ToolModeConfiguration(LIST_TOOLS_OPERATION, null))); // No filters provided
+                new ToolModeConfiguration(
+                    LIST_TOOLS_OPERATION, null, null))); // No filters provided
 
     when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
     when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
@@ -403,7 +404,9 @@ class DefaultMcpClientHandlerTest {
         new McpClientRequestData(
             CLIENT_CONFIG,
             new ToolModeConfiguration(
-                operation, new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
+                operation,
+                null,
+                new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
   }
 
   private McpClientRequest createStandaloneModeRequest(
@@ -413,6 +416,7 @@ class DefaultMcpClientHandlerTest {
             CLIENT_CONFIG,
             new StandaloneModeConfiguration(
                 operation,
+                null,
                 new McpClientStandaloneFiltersConfiguration(
                     EMPTY_FILTER_CONFIGURATION, null, null))));
   }

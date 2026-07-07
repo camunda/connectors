@@ -11,6 +11,8 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResou
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceTemplate;
 import io.modelcontextprotocol.client.McpSyncClient;
 import java.util.Collections;
+import java.util.Map;
+import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,10 +27,14 @@ final class ListResourceTemplatesRequest {
   }
 
   public McpClientListResourceTemplatesResult execute(
-      McpSyncClient client, AllowDenyList resourcesFilter) {
+      McpSyncClient client, AllowDenyList resourcesFilter, Map<String, Object> meta) {
     LOGGER.debug("MCP({}): Executing list resource templates", clientId);
 
-    var fetchedResources = client.listResourceTemplates().resourceTemplates();
+    var listResourceTemplatesResult =
+        MapUtils.isEmpty(meta)
+            ? client.listResourceTemplates()
+            : client.listResourceTemplates(null, meta);
+    var fetchedResources = listResourceTemplatesResult.resourceTemplates();
 
     if (fetchedResources.isEmpty()) {
       LOGGER.debug("MCP({}): No resource templates found", clientId);

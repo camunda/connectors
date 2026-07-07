@@ -30,7 +30,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     documentationRef =
         "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-remote-client-connector/",
     engineVersion = "^8.9",
-    version = 2,
+    version = 3,
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = McpRemoteClientRequest.class,
     defaultResultVariable = "toolCallResult",

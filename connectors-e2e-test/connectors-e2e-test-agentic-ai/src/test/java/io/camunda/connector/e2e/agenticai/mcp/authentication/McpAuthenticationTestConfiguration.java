@@ -49,7 +49,16 @@ class McpAuthenticationTestConfiguration {
         new KeycloakContainer(DockerImages.get("keycloak"))
             .withNetwork(mcpTestServerNetwork)
             .withNetworkAliases("keycloak")
-            .withRealmImportFile("/keycloak/testme-realm.json");
+            .withRealmImportFile("/keycloak/testme-realm.json")
+            // Fix the issuer to the container-network address so it matches what
+            // mcpTestServer() below is told to expect via MCP_SERVER_AUTH_OAUTH2_ISSUERURL,
+            // regardless of whether Keycloak is reached via its host-mapped port (used by the
+            // connector under test, running on the host) or the "keycloak" network alias (used
+            // by the mcp-test-server container). Without this, the token's `iss` claim reflects
+            // whatever URL a given caller used to reach Keycloak, which mcp-test-server versions
+            // that strictly validate the issuer (from 2.x onwards) then reject.
+            .withEnv("KC_HOSTNAME", "http://keycloak:8080")
+            .withEnv("KC_HOSTNAME_STRICT", "false");
 
     keycloak.start();
 

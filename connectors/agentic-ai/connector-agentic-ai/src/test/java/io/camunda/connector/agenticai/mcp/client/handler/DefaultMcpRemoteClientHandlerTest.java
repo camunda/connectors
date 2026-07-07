@@ -146,7 +146,7 @@ class DefaultMcpRemoteClientHandlerTest {
             new McpRemoteClientRequestData(
                 null,
                 new McpRemoteClientOptionsConfiguration(false),
-                new ToolModeConfiguration(LIST_TOOLS_OPERATION, null)));
+                new ToolModeConfiguration(LIST_TOOLS_OPERATION, null, null)));
 
     when(remoteClientRegistry.getClient(CLIENT_ID, null, false)).thenReturn(mcpClient);
     when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
@@ -531,6 +531,7 @@ class DefaultMcpRemoteClientHandlerTest {
                   null,
                   new ToolModeConfiguration(
                       LIST_TOOLS_OPERATION,
+                      null,
                       new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
 
       final var expectedResult = new McpClientListToolsResult(List.of());
@@ -557,6 +558,7 @@ class DefaultMcpRemoteClientHandlerTest {
                   new McpRemoteClientOptionsConfiguration(null),
                   new ToolModeConfiguration(
                       LIST_TOOLS_OPERATION,
+                      null,
                       new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
 
       final var expectedResult = new McpClientListToolsResult(List.of());
@@ -599,7 +601,9 @@ class DefaultMcpRemoteClientHandlerTest {
             transport,
             new McpRemoteClientOptionsConfiguration(clientCache),
             new ToolModeConfiguration(
-                operation, new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
+                operation,
+                null,
+                new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
   }
 
   private McpRemoteClientRequest createStandaloneModeRequest(
@@ -612,6 +616,7 @@ class DefaultMcpRemoteClientHandlerTest {
             new McpRemoteClientOptionsConfiguration(clientCache),
             new StandaloneModeConfiguration(
                 operation,
+                null,
                 new McpClientStandaloneFiltersConfiguration(
                     EMPTY_FILTER_CONFIGURATION, null, null))));
   }
