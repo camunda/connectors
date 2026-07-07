@@ -98,7 +98,10 @@ public class OutboundConnectorsRestController {
     return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
         request,
         forwardedFor,
-        () -> List.of(ConnectorMetricsAggregator.outbound(meterRegistry, null, hostname)),
+        () ->
+            meterRegistry == null
+                ? List.of()
+                : List.of(ConnectorMetricsAggregator.outbound(meterRegistry, null, hostname)),
         new TypeReference<>() {});
   }
 
@@ -115,7 +118,11 @@ public class OutboundConnectorsRestController {
     return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
         request,
         forwardedFor,
-        () -> List.of(ConnectorMetricsAggregator.outbound(meterRegistry, connectorType, hostname)),
+        () ->
+            meterRegistry == null
+                ? List.of()
+                : List.of(
+                    ConnectorMetricsAggregator.outbound(meterRegistry, connectorType, hostname)),
         new TypeReference<>() {});
   }
 }
