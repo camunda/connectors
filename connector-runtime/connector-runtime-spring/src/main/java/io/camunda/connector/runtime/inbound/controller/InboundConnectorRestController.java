@@ -22,46 +22,29 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.executable.*;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
-import io.camunda.connector.runtime.metrics.ConnectorMetricsAggregator;
-import io.camunda.connector.runtime.metrics.InboundConnectorMetrics;
-import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class InboundConnectorRestController {
 
-  private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorRestController.class);
-
   private final InboundExecutableRegistry executableRegistry;
   private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
   private final InstanceForwardingRouter instanceForwardingRouter;
-  // null when MeterRegistry is not in the application context (e.g. no Actuator)
-  private final MeterRegistry meterRegistry;
 
   @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
   private String hostname;
 
   public InboundConnectorRestController(
       InboundExecutableRegistry executableRegistry,
-      InstanceForwardingRouter instanceForwardingRouter,
-      Optional<MeterRegistry> meterRegistry) {
+      InstanceForwardingRouter instanceForwardingRouter) {
     this.executableRegistry = executableRegistry;
     this.instanceForwardingRouter = instanceForwardingRouter;
-    this.meterRegistry = meterRegistry.orElse(null);
-    if (this.meterRegistry == null) {
-      LOG.warn(
-          "No MeterRegistry bean found — inbound metrics endpoints will return empty results. "
-              + "Add spring-boot-starter-actuator to enable metrics.");
-    }
   }
 
   @GetMapping("/inbound")
@@ -127,22 +110,5 @@ public class InboundConnectorRestController {
         .stream()
         .map(connectorDataMapper::createActiveInboundConnectorResponse)
         .collect(Collectors.toList());
-  }
-
-  /** Returns aggregated inbound connector metrics across all connector types. */
-  @GetMapping("/inbound/metrics")
-  public InboundConnectorMetrics getMetrics() {
-    return ConnectorMetricsAggregator.inbound(meterRegistry, null);
-  }
-
-  /**
-   * Returns inbound connector metrics for a specific connector type.
-   *
-   * @param connectorType connector type (e.g. {@code io.camunda:webhook:1})
-   */
-  @GetMapping("/inbound/metrics/{connectorType}")
-  public InboundConnectorMetrics getMetricsByType(
-      @PathVariable(name = "connectorType") String connectorType) {
-    return ConnectorMetricsAggregator.inbound(meterRegistry, connectorType);
   }
 }

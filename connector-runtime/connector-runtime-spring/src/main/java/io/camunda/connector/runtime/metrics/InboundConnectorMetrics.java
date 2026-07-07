@@ -22,12 +22,14 @@ import java.time.Instant;
 /**
  * Aggregated inbound connector metrics, grouped into three sections.
  *
+ * @param runtimeId hostname of the runtime node that reported these metrics
  * @param runtime process-level runtime information
  * @param activation activation lifecycle counters and last-activity timestamp
  * @param trigger correlation / trigger counters and last-activity timestamp
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record InboundConnectorMetrics(Runtime runtime, Activation activation, Trigger trigger) {
+public record InboundConnectorMetrics(
+    String runtimeId, Runtime runtime, Activation activation, Trigger trigger) {
 
   /**
    * @param uptimeSeconds number of seconds the runtime process has been running
