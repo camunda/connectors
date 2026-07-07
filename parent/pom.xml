@@ -111,6 +111,9 @@ limitations under the License.</license.inlineheader>
     <version.okhttp>5.4.0</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
     <version.opensearch-client>2.26.0</version.opensearch-client>
+    <!-- CVE-2026-9563: parsson transitive override — remove once opensearch-java ships parsson >= 1.1.8
+         Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/4192 -->
+    <version.parsson>1.1.9</version.parsson>
 
     <version.google-api-client>2.9.0</version.google-api-client>
 
@@ -227,6 +230,14 @@ limitations under the License.</license.inlineheader>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>okhttp</artifactId>
         <version>${version.okhttp}</version>
+      </dependency>
+
+      <!-- CVE-2026-9563: override parsson transitive version brought in by opensearch-java.
+           Remove once opensearch-java ships parsson >= 1.1.8 (see version.parsson property). -->
+      <dependency>
+        <groupId>org.eclipse.parsson</groupId>
+        <artifactId>parsson</artifactId>
+        <version>${version.parsson}</version>
       </dependency>
 
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
@@ -1016,6 +1027,18 @@ limitations under the License.</license.inlineheader>
               <requirePluginVersions>
                 <banSnapshots>false</banSnapshots>
               </requirePluginVersions>
+              <!-- CVE-2026-9563 guard: fails if opensearch-client is bumped, as a reminder to
+                   check whether the parsson override can be removed (see version.parsson). -->
+              <requireProperty>
+                <property>version.opensearch-client</property>
+                <regex>2\.26\.0</regex>
+                <regexMessage>
+opensearch-client version was bumped! Check if the parsson CVE override can be removed.
+If the new opensearch-java version ships parsson &gt;= 1.1.8, remove the version.parsson property
+and the parsson dependencyManagement entry from parent/pom.xml, then remove this enforcer rule.
+Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/4192
+                </regexMessage>
+              </requireProperty>
             </rules>
           </configuration>
           <executions>
