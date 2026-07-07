@@ -57,7 +57,7 @@ jobs:
             echo "Fetched team members: $TEAM_MEMBERS"
             echo "team_members=$TEAM_MEMBERS" >> "$GITHUB_OUTPUT"
       - name: Assign Reviewer
-        uses: Joxtacy/auto-assign-reviewers@v0.1.0
+        uses: Joxtacy/auto-assign-reviewers@v0.1.2
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           team_members: ${{ steps.get-members.outputs.team_members }}
