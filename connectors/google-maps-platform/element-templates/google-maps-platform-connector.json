@@ -542,7 +542,7 @@
   "steps": [
     {
       "name": "Validate address",
-      "description": "Validate and standardize a postal address using the Google Maps Address Validation service.",
+      "description": "Validate and standardize a postal address with Google Maps Platform.",
       "keywords": [
         "address",
         "validate",
@@ -554,7 +554,7 @@
     },
     {
       "name": "Get place ID",
-      "description": "Look up the Google Maps place ID for a given address or location.",
+      "description": "Look up the place ID for a given address or location using Google Maps Platform.",
       "keywords": [
         "place",
         "place id",
@@ -566,7 +566,7 @@
     },
     {
       "name": "Calculate distance",
-      "description": "Calculate the distance and travel time between origin and destination points.",
+      "description": "Calculate the distance and travel time between origin and destination points with Google Maps Platform.",
       "keywords": [
         "distance",
         "route",

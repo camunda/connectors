@@ -1077,7 +1077,7 @@
     },
     {
       "name": "Buy a shipment",
-      "description": "Purchase a shipping label for a shipment using a selected rate.",
+      "description": "Purchase a shipping label in EasyPost for a shipment using a selected rate.",
       "keywords": [
         "buy shipment",
         "purchase label",
@@ -1101,7 +1101,7 @@
     },
     {
       "name": "Retrieve a tracker by ID",
-      "description": "Retrieve tracking information for a shipment using its tracker ID.",
+      "description": "Retrieve tracking information from EasyPost for a shipment using its tracker ID.",
       "keywords": [
         "retrieve tracker",
         "track shipment",

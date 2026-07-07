@@ -455,7 +455,7 @@
   "steps": [
     {
       "name": "Chat",
-      "description": "Generate a chat completion response from an OpenAI GPT model",
+      "description": "Generate a chat completion response using OpenAI",
       "keywords": [
         "chat completion",
         "generate text",
@@ -467,7 +467,7 @@
     },
     {
       "name": "Moderation",
-      "description": "Analyze text for policy violations using the OpenAI moderation API",
+      "description": "Analyze text for policy violations with OpenAI",
       "keywords": [
         "content moderation",
         "moderate text",

@@ -331,7 +331,7 @@
   "steps": [
     {
       "name": "Send plain text message",
-      "description": "Send a plain text WhatsApp message to a recipient's phone number",
+      "description": "Send a plain text message to a recipient's phone number via WhatsApp",
       "keywords": [
         "send plain text",
         "text message",
@@ -343,7 +343,7 @@
     },
     {
       "name": "Send message template",
-      "description": "Send a pre-approved WhatsApp message template with optional header and body variables",
+      "description": "Send a pre-approved message template with optional header and body variables via WhatsApp",
       "keywords": [
         "send message template",
         "template message",

@@ -985,7 +985,7 @@
   "steps": [
     {
       "name": "Get user's folders",
-      "description": "List the mail folders in a user's mailbox",
+      "description": "List the mail folders in a user's mailbox with Microsoft 365 Mail",
       "keywords": [
         "list mail folders",
         "get folders",
@@ -997,7 +997,7 @@
     },
     {
       "name": "Create mail folder for user",
-      "description": "Create a new mail folder in a user's mailbox",
+      "description": "Create a new mail folder in a user's mailbox with Microsoft 365 Mail",
       "keywords": [
         "create mail folder",
         "new folder",
@@ -1009,7 +1009,7 @@
     },
     {
       "name": "Get user's messages",
-      "description": "List the email messages in a user's mailbox",
+      "description": "List the email messages in a user's mailbox with Microsoft 365 Mail",
       "keywords": [
         "list messages",
         "get messages",
@@ -1021,7 +1021,7 @@
     },
     {
       "name": "Send mail on behalf of user",
-      "description": "Send an email message on behalf of a user",
+      "description": "Send an email message on behalf of a user with Microsoft 365 Mail",
       "keywords": [
         "send mail",
         "send email",
