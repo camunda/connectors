@@ -80,13 +80,12 @@ public final class AnthropicMessagesWireFormatFixture implements ProviderWireFor
 
   private static Turn toStubTurn(TurnStub turn) {
     return switch (turn) {
-      case TurnStub.Text text ->
-          Turn.text(text.text(), text.promptTokens(), text.completionTokens());
+      case TurnStub.Text text -> Turn.text(text.text(), text.inputTokens(), text.outputTokens());
       case TurnStub.ToolCalls toolCalls ->
           Turn.toolCalls(
               toolCalls.text(),
-              toolCalls.promptTokens(),
-              toolCalls.completionTokens(),
+              toolCalls.inputTokens(),
+              toolCalls.outputTokens(),
               toolCalls.toolCalls().stream()
                   .map(tc -> ToolCall.of(tc.id(), tc.name(), tc.argumentsJson()))
                   .toArray(ToolCall[]::new));

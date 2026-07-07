@@ -25,23 +25,22 @@ import java.util.List;
  */
 public sealed interface TurnStub {
 
-  static TurnStub text(String text, int promptTokens, int completionTokens) {
-    return new Text(text, promptTokens, completionTokens);
+  static TurnStub text(String text, int inputTokens, int outputTokens) {
+    return new Text(text, inputTokens, outputTokens);
   }
 
   static TurnStub toolCalls(
-      String text, int promptTokens, int completionTokens, ToolCallStub... toolCalls) {
-    return new ToolCalls(text, promptTokens, completionTokens, List.of(toolCalls));
+      String text, int inputTokens, int outputTokens, ToolCallStub... toolCalls) {
+    return new ToolCalls(text, inputTokens, outputTokens, List.of(toolCalls));
   }
 
   /** A plain text response that ends the turn. */
-  record Text(String text, int promptTokens, int completionTokens) implements TurnStub {}
+  record Text(String text, int inputTokens, int outputTokens) implements TurnStub {}
 
   /**
    * A tool-call response. The optional assistant text is included alongside the tool calls,
    * matching how providers return reasoning text with tool calls.
    */
-  record ToolCalls(
-      String text, int promptTokens, int completionTokens, List<ToolCallStub> toolCalls)
+  record ToolCalls(String text, int inputTokens, int outputTokens, List<ToolCallStub> toolCalls)
       implements TurnStub {}
 }

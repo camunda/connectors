@@ -77,7 +77,7 @@ public final class BedrockConverseRecordedConversation {
     return requests;
   }
 
-  public record RecordedToolCall(String id, String name) {}
+  public record RecordedToolCall(String id, String name, String argumentsJson) {}
 
   /**
    * A content block, in Bedrock's own wire shape: {@code kind} is the single field name present on
@@ -182,7 +182,9 @@ public final class BedrockConverseRecordedConversation {
               .map(
                   toolUse ->
                       new RecordedToolCall(
-                          toolUse.path("toolUseId").asText(), toolUse.path("name").asText()))
+                          toolUse.path("toolUseId").asText(),
+                          toolUse.path("name").asText(),
+                          toolUse.path("input").toString()))
               .toList();
 
       return List.of(new RecordedMessage(role, contentParts, toolCalls, null));

@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesWireFormatFixture;
@@ -35,15 +36,21 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.core.io.Resource;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
+import uk.org.webcompere.systemstubs.properties.SystemProperties;
 
 /**
  * Wire-format e2e coverage per LLM provider/API, asserting on the actual request bodies the AI
@@ -60,6 +67,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 @SlowTest
 @ParameterizedClass(name = "{0}")
 @MethodSource("fixtures")
+@ExtendWith(SystemStubsExtension.class)
 public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
 
   @Parameter ProviderWireFormatFixture fixture;
@@ -72,50 +80,43 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
         new AzureOpenAiCompletionsWireFormatFixture());
   }
 
-  private static final String TRUST_STORE_PROPERTY = "javax.net.ssl.trustStore";
-  private static final String TRUST_STORE_PASSWORD_PROPERTY = "javax.net.ssl.trustStorePassword";
-  private static final String TRUST_STORE_TYPE_PROPERTY = "javax.net.ssl.trustStoreType";
-
-  private static String previousTrustStore;
-  private static String previousTrustStorePassword;
-  private static String previousTrustStoreType;
-
   /**
    * Trusts WireMock's self-signed HTTPS certificate JVM-wide, for the {@code
    * AzureOpenAiCompletions} row (Azure's SDK requires HTTPS for API-key auth — see {@code
    * AzureOpenAiCompletionsWireFormatFixture}). Safe to set unconditionally: no other test in this
    * module makes real outbound HTTPS calls that would need the JVM's real default trust store.
+   * {@code SystemStub}, being a static field, applies the properties once before the class's tests
+   * run and restores their previous values once after, saving us the manual save/restore dance.
    */
-  @BeforeAll
-  static void trustWireMockHttpsCertificate() {
-    previousTrustStore = System.getProperty(TRUST_STORE_PROPERTY);
-    previousTrustStorePassword = System.getProperty(TRUST_STORE_PASSWORD_PROPERTY);
-    previousTrustStoreType = System.getProperty(TRUST_STORE_TYPE_PROPERTY);
+  @SystemStub
+  private static final SystemProperties TRUST_WIREMOCK_HTTPS_CERTIFICATE =
+      new SystemProperties(
+          "javax.net.ssl.trustStore",
+          BaseAiAgentTest.httpsKeystoreFile().toString(),
+          "javax.net.ssl.trustStorePassword",
+          BaseAiAgentTest.HTTPS_KEYSTORE_PASSWORD,
+          "javax.net.ssl.trustStoreType",
+          "PKCS12");
 
-    final var keystoreFile = BaseAiAgentTest.httpsKeystoreFile();
-    System.setProperty(TRUST_STORE_PROPERTY, keystoreFile.toString());
-    System.setProperty(TRUST_STORE_PASSWORD_PROPERTY, BaseAiAgentTest.HTTPS_KEYSTORE_PASSWORD);
-    System.setProperty(TRUST_STORE_TYPE_PROPERTY, "PKCS12");
-  }
-
-  @AfterAll
-  static void restoreTrustStore() {
-    restoreProperty(TRUST_STORE_PROPERTY, previousTrustStore);
-    restoreProperty(TRUST_STORE_PASSWORD_PROPERTY, previousTrustStorePassword);
-    restoreProperty(TRUST_STORE_TYPE_PROPERTY, previousTrustStoreType);
-  }
-
-  private static void restoreProperty(String key, String previousValue) {
-    if (previousValue == null) {
-      System.clearProperty(key);
-    } else {
-      System.setProperty(key, previousValue);
-    }
-  }
-
+  /**
+   * Overridden directly (rather than the {@code withOpenAiCompatibleProvider} hook {@link
+   * BaseAiAgentJobWorkerTest#createProcessInstance} composes) so this row's provider fixture, not
+   * the openaiCompatible default, configures the element template — without touching the shared
+   * base test classes other providers' scenarios also run through.
+   */
   @Override
-  protected ElementTemplate withOpenAiCompatibleProvider(ElementTemplate template) {
-    return fixture.configureProvider(wireMock).apply(template);
+  protected ZeebeTest createProcessInstance(
+      Resource process,
+      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
+      Map<String, Object> variables)
+      throws IOException {
+    final var composed = fixture.configureProvider(wireMock).andThen(elementTemplateModifier);
+    final var updatedElementTemplate =
+        elementTemplateWithModifications(elementTemplatePath(), composed);
+    final var updatedElementTemplateFile =
+        updatedElementTemplate.writeTo(new File(tempDir, "template.json"));
+    final var updatedModel = modelWithModifications(process.getFile(), updatedElementTemplateFile);
+    return createProcessInstance(customizeModel(updatedModel), variables);
   }
 
   @Test
@@ -195,18 +196,10 @@ public class ProviderWireFormatSmokeTests extends BaseAiAgentJobWorkerTest {
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
     assertThat(fixture.modelCallCount()).isEqualTo(1);
-    final var lastRequest = fixture.lastRecordedRequest();
-    assertThat(lastRequest.messages()).hasSize(2);
-    assertThat(lastRequest.messages().get(0).role()).isEqualTo("system");
-
-    final var userMessage = lastRequest.messages().get(1);
-    assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.textContent()).isEqualTo(userPrompt);
-    assertThat(userMessage.contentParts())
-        .as("user message content parts")
-        .hasSize(2)
-        .anySatisfy(part -> assertThat(part.isText()).isTrue())
-        .anySatisfy(part -> assertThat(part.isText()).isFalse());
+    ProviderWireFormatExpectedMessage.assertConversationMessages(
+        fixture.lastRecordedRequest(),
+        ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+        ProviderWireFormatExpectedMessage.userWithDocument(userPrompt));
 
     assertAgentResponse(
         zeebeTest,

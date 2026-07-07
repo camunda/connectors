@@ -115,5 +115,10 @@ final class OpenAiCompletionsRecordedChatRequestAdapter implements RecordedChatR
     public String name() {
       return delegate.name();
     }
+
+    @Override
+    public String argumentsJson() {
+      return delegate.argumentsJson();
+    }
   }
 }

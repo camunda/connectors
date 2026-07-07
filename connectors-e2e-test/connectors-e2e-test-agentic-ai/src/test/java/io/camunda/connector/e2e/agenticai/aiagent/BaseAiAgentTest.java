@@ -66,21 +66,21 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   /**
    * Self-signed keystore backing the WireMock HTTPS port. Also usable as a truststore by clients
-   * (e.g. Azure's SDK) that need to trust this same self-signed certificate, since it's a
-   * self-signed cert with no separate CA.
+   * that need to trust this same self-signed certificate, since it's a self-signed cert with no
+   * separate CA.
    */
   public static Path httpsKeystoreFile() {
     final var resource =
-        BaseAiAgentTest.class.getResource("/wiremock-https/azure-wiremock-https-keystore.p12");
+        BaseAiAgentTest.class.getResource("/wiremock-https/wiremock-https-keystore.p12");
     if (resource == null) {
       throw new IllegalStateException(
-          "Missing test resource /wiremock-https/azure-wiremock-https-keystore.p12");
+          "Missing test resource /wiremock-https/wiremock-https-keystore.p12");
     }
     try {
       return Path.of(resource.toURI());
     } catch (URISyntaxException e) {
       throw new IllegalStateException(
-          "Invalid URI for test resource /wiremock-https/azure-wiremock-https-keystore.p12", e);
+          "Invalid URI for test resource /wiremock-https/wiremock-https-keystore.p12", e);
     }
   }
 

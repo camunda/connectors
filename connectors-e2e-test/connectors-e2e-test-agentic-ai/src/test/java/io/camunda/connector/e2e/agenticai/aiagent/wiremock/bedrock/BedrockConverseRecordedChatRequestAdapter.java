@@ -93,5 +93,10 @@ final class BedrockConverseRecordedChatRequestAdapter implements RecordedChatReq
     public String name() {
       return delegate.name();
     }
+
+    @Override
+    public String argumentsJson() {
+      return delegate.argumentsJson();
+    }
   }
 }

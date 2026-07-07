@@ -80,7 +80,7 @@ public final class AnthropicMessagesRecordedConversation {
     return requests;
   }
 
-  public record RecordedToolCall(String id, String name) {}
+  public record RecordedToolCall(String id, String name, String argumentsJson) {}
 
   /** A content block, in Anthropic's own wire shape: {@code kind} is the block's {@code type}. */
   public record ContentBlock(String kind, String text) {}
@@ -178,7 +178,10 @@ public final class AnthropicMessagesRecordedConversation {
               .filter(block -> "tool_use".equals(block.path("type").asText()))
               .map(
                   block ->
-                      new RecordedToolCall(block.path("id").asText(), block.path("name").asText()))
+                      new RecordedToolCall(
+                          block.path("id").asText(),
+                          block.path("name").asText(),
+                          block.path("input").toString()))
               .toList();
 
       return List.of(new RecordedMessage(role, contentParts, toolCalls, null));

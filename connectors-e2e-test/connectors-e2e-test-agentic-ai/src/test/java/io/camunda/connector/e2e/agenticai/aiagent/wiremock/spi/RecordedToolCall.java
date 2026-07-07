@@ -22,4 +22,7 @@ public interface RecordedToolCall {
   String id();
 
   String name();
+
+  /** The call's arguments/input, as a JSON string regardless of how the provider encodes it. */
+  String argumentsJson();
 }
