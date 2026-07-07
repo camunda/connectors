@@ -191,14 +191,16 @@ public final class AgentConversation {
 
   /**
    * Produces an updated {@link AgentContext} with cumulative metrics from all turns ingested in
-   * this invocation applied on top of the base context metrics.
+   * this invocation applied on top of the base context metrics, and {@code lastIterationKey}
+   * stamped to the current turn's key once it has been ingested.
    */
   public AgentContext toAgentContext() {
     var withMetrics = currentContext.withMetrics(totalMetrics());
     var metadata = currentContext.metadata();
-    return metadata == null
-        ? withMetrics
-        : withMetrics.withMetadata(metadata.withLastIterationKey(currentTurn.iterationKey()));
+    if (metadata == null || currentTurn.assistantMessage() == null) {
+      return withMetrics;
+    }
+    return withMetrics.withMetadata(metadata.withLastIterationKey(currentTurn.iterationKey()));
   }
 
   /** Returns the last completed turn, or empty if no turns have been completed yet. */

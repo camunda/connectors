@@ -183,6 +183,27 @@ class AgentConversationTest {
   }
 
   @Test
+  void toAgentContext_doesNotStampLastIterationKey_whileTurnPending() {
+    var contextWithStoredKey =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .metadata(new AgentMetadata(1L, 1L, null, 4))
+            .build();
+    var history = TurnReconstructor.reconstruct(List.of());
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            contextWithStoredKey,
+            history,
+            systemMessage("sys"),
+            List.of(userMessage("hi")));
+
+    assertThat(conv.currentTurn().assistantMessage()).isNull();
+    var ctx = conv.toAgentContext();
+    assertThat(ctx.metadata().lastIterationKey()).isEqualTo(4);
+  }
+
+  @Test
   void toAgentContext_leavesMetadataNull_whenAbsent() {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))

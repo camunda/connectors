@@ -349,8 +349,8 @@ invocation and transformed through copy-on-write methods.
 - `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a
   read-only `ConversationSnapshot`.
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
-  `AgentContext.metrics` by the current turn's delta and stamping `AgentMetadata.lastIterationKey`
-  with the current turn's `iterationKey` (when metadata is present).
+  `AgentContext.metrics` by the current turn's delta and, once the current turn has been `ingest`ed,
+  stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).
 - `totalMetrics()`: returns the durable `AgentContext.metrics()` plus the current turn's delta —
   **not** a sum over the reconstructed turns, which always carry `AgentMetrics.empty()`. The
   model-call limit check (`BaseAgentRequestHandler.throwIfLimitsReached`) relies on this cumulative
