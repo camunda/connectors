@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client-connector/",
-  "version" : 2,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -261,6 +261,24 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.connectorMode.standaloneModeMeta",
+    "label" : "Metadata",
+    "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.meta",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "standalone",
+      "type" : "simple"
+    },
+    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Required metadata is defined by the MCP server. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
+    "type" : "String"
+  }, {
     "id" : "data.connectorMode.toolOperation.method",
     "label" : "Method",
     "description" : "The MCP method to be called, e.g. <code>tools/list</code>.",
@@ -300,6 +318,24 @@
       "type" : "simple"
     },
     "tooltip" : "The parameter structure depends on the method being called. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server/tools#calling-tools\">MCP specification</a> for an example of the parameters for the <code>tools/call</code> method.",
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.toolModeMeta",
+    "label" : "Metadata",
+    "description" : "MCP <code>_meta</code> parameters to be passed to the MCP request.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.meta",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "tooltip" : "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Required metadata is defined by the MCP server. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.connectorMode.standaloneModeFilters.tools.included",
@@ -477,7 +513,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

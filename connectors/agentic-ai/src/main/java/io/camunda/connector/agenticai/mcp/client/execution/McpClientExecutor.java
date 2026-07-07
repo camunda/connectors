@@ -29,16 +29,22 @@ public class McpClientExecutor {
   private @NonNull McpClientResult executeRequest(
       McpClientDelegate clientDelegate, McpClientOperation operation, FilterOptions filterOptions) {
     return switch (operation.method()) {
-      case LIST_TOOLS -> clientDelegate.listTools(filterOptions.toolFilters());
-      case CALL_TOOL -> clientDelegate.callTool(operation.params(), filterOptions.toolFilters());
-      case LIST_RESOURCES -> clientDelegate.listResources(filterOptions.resourceFilters());
+      case LIST_TOOLS -> clientDelegate.listTools(filterOptions.toolFilters(), operation.meta());
+      case CALL_TOOL ->
+          clientDelegate.callTool(
+              operation.params(), filterOptions.toolFilters(), operation.meta());
+      case LIST_RESOURCES ->
+          clientDelegate.listResources(filterOptions.resourceFilters(), operation.meta());
       case LIST_RESOURCE_TEMPLATES ->
-          clientDelegate.listResourceTemplates(filterOptions.resourceFilters());
+          clientDelegate.listResourceTemplates(filterOptions.resourceFilters(), operation.meta());
       case READ_RESOURCE ->
-          clientDelegate.readResource(operation.params(), filterOptions.resourceFilters());
-      case LIST_PROMPTS -> clientDelegate.listPrompts(filterOptions.promptFilters());
+          clientDelegate.readResource(
+              operation.params(), filterOptions.resourceFilters(), operation.meta());
+      case LIST_PROMPTS ->
+          clientDelegate.listPrompts(filterOptions.promptFilters(), operation.meta());
       case GET_PROMPT ->
-          clientDelegate.getPrompt(operation.params(), filterOptions.promptFilters());
+          clientDelegate.getPrompt(
+              operation.params(), filterOptions.promptFilters(), operation.meta());
     };
   }
 }

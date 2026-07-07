@@ -44,10 +44,12 @@ public record McpClientRequest(@Valid @NotNull McpClientRequestData data) {
                         standaloneModeConfiguration ->
                     new McpConnectorModeConfiguration.StandaloneModeConfiguration(
                         standaloneModeConfiguration.operation(),
+                        standaloneModeConfiguration.meta(),
                         new McpClientStandaloneFiltersConfiguration(tools, null, null));
                 case McpConnectorModeConfiguration.ToolModeConfiguration toolModeConfiguration ->
                     new McpConnectorModeConfiguration.ToolModeConfiguration(
                         toolModeConfiguration.toolOperation(),
+                        toolModeConfiguration.meta(),
                         new McpClientToolModeFiltersConfiguration(tools));
               };
 

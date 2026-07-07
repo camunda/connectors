@@ -14,6 +14,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
+import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -22,6 +24,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.collections4.MapUtils;
+import org.jspecify.annotations.Nullable;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -49,6 +52,17 @@ public sealed interface McpConnectorModeConfiguration
   @TemplateSubType(id = AI_AGENT_TOOL_ID, label = "AI Agent tool")
   record ToolModeConfiguration(
       @Valid @NotNull McpClientOperationConfiguration toolOperation,
+      @FEEL
+          @TemplateProperty(
+              id = "toolModeMeta",
+              group = "operation",
+              label = "Metadata",
+              description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
+              tooltip =
+                  "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Required metadata is defined by the MCP server. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
+              feel = FeelMode.required,
+              optional = true)
+          @Nullable Map<String, Object> meta,
       @Valid McpClientToolModeFiltersConfiguration toolModeFilters)
       implements McpConnectorModeConfiguration {
 
@@ -57,9 +71,10 @@ public sealed interface McpConnectorModeConfiguration
 
     @Override
     public McpClientOperation toMcpClientOperation() {
-      return MapUtils.isEmpty(toolOperation.params())
-          ? McpClientOperation.of(toolOperation.method())
-          : McpClientOperation.of(toolOperation.method(), toolOperation.params());
+      return McpClientOperation.of(
+          toolOperation.method(),
+          MapUtils.emptyIfNull(toolOperation.params()),
+          MapUtils.emptyIfNull(meta));
     }
 
     @Override
@@ -81,6 +96,17 @@ public sealed interface McpConnectorModeConfiguration
   @TemplateSubType(id = STANDALONE_ID, label = "Standalone")
   record StandaloneModeConfiguration(
       @Valid @NotNull McpStandaloneOperationConfiguration operation,
+      @FEEL
+          @TemplateProperty(
+              id = "standaloneModeMeta",
+              group = "operation",
+              label = "Metadata",
+              description = "MCP <code>_meta</code> parameters to be passed to the MCP request.",
+              tooltip =
+                  "Forwarded unmodified as the <code>_meta</code> field of the MCP request. Required metadata is defined by the MCP server. See the <a href=\"https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta\">MCP specification</a> for details.",
+              feel = FeelMode.required,
+              optional = true)
+          @Nullable Map<String, Object> meta,
       @Valid McpClientStandaloneFiltersConfiguration standaloneModeFilters)
       implements McpConnectorModeConfiguration {
 
@@ -89,7 +115,8 @@ public sealed interface McpConnectorModeConfiguration
 
     @Override
     public McpClientOperation toMcpClientOperation() {
-      return McpClientOperation.of(operation.method(), operation.params().orElseGet(Map::of));
+      return McpClientOperation.of(
+          operation.method(), operation.params().orElseGet(Map::of), MapUtils.emptyIfNull(meta));
     }
 
     @Override

@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.LIST;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
@@ -24,7 +26,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -53,7 +57,7 @@ class ReadResourceRequestTest {
     when(mcpClient.readResource(new McpSchema.ReadResourceRequest("contents-123")))
         .thenReturn(response);
 
-    final var result = testee.execute(mcpClient, EMPTY_FILTER, requestParams);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, requestParams, Map.of());
 
     assertThat(result.contents())
         .asInstanceOf(LIST)
@@ -80,7 +84,7 @@ class ReadResourceRequestTest {
     final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-resource")).build();
     final var parameters = Map.<String, Object>of("uri", "allowed-resource");
 
-    final var result = testee.execute(mcpClient, filter, parameters);
+    final var result = testee.execute(mcpClient, filter, parameters, Map.of());
 
     assertThat(result.contents()).asInstanceOf(LIST).hasSize(1);
   }
@@ -96,7 +100,7 @@ class ReadResourceRequestTest {
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-resource")).build();
     final var parameters = Map.<String, Object>of("uri", "safe-resource");
 
-    final var result = testee.execute(mcpClient, filter, parameters);
+    final var result = testee.execute(mcpClient, filter, parameters, Map.of());
 
     assertThat(result.contents()).asInstanceOf(LIST).hasSize(1);
   }
@@ -108,7 +112,7 @@ class ReadResourceRequestTest {
     when(mcpClient.readResource(new McpSchema.ReadResourceRequest("non-existing-resource")))
         .thenThrow(new RuntimeException("Resource not found"));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -121,7 +125,7 @@ class ReadResourceRequestTest {
 
   @Test
   void throwsException_whenResourceUriIsNotPresent() {
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, Map.of()))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, Map.of(), Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -134,7 +138,7 @@ class ReadResourceRequestTest {
   void throwsConnectorException_whenResourceUriIsNotAString() {
     final Map<String, Object> requestParams = Map.of("uri", 12345);
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -148,7 +152,7 @@ class ReadResourceRequestTest {
   void throwsConnectorException_whenResourceUriIsEmpty(String resourceUri) {
     final Map<String, Object> requestParams = Map.of("uri", resourceUri);
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -164,7 +168,7 @@ class ReadResourceRequestTest {
 
     final var parameters = Map.<String, Object>of("uri", "blocked-resource");
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -181,7 +185,7 @@ class ReadResourceRequestTest {
 
     final var parameters = Map.<String, Object>of("uri", "blocked-resource");
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -202,7 +206,7 @@ class ReadResourceRequestTest {
 
     final var parameters = Map.<String, Object>of("uri", "conflicted-resource");
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters))
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception -> {
@@ -211,5 +215,38 @@ class ReadResourceRequestTest {
                   .contains(
                       "Reading resource 'conflicted-resource' is not allowed by filter configuration");
             });
+  }
+
+  @Test
+  void forwardsMetaUnmodified_whenMetaConfigured() {
+    when(mcpClient.readResource(any(McpSchema.ReadResourceRequest.class)))
+        .thenReturn(
+            new McpSchema.ReadResourceResult(
+                List.of(new McpSchema.TextResourceContents("uri", "text/plain", "content", null)),
+                null));
+
+    final var meta = McpRpcTestFixtures.EXAMPLE_META;
+
+    testee.execute(mcpClient, EMPTY_FILTER, Map.of("uri", "uri"), meta);
+
+    final var captor = ArgumentCaptor.forClass(McpSchema.ReadResourceRequest.class);
+    verify(mcpClient).readResource(captor.capture());
+    assertThat(captor.getValue().meta()).isEqualTo(meta);
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  void doesNotSendMeta_whenMetaNotConfigured(Map<String, Object> meta) {
+    when(mcpClient.readResource(any(McpSchema.ReadResourceRequest.class)))
+        .thenReturn(
+            new McpSchema.ReadResourceResult(
+                List.of(new McpSchema.TextResourceContents("uri", "text/plain", "content", null)),
+                null));
+
+    testee.execute(mcpClient, EMPTY_FILTER, Map.of("uri", "uri"), meta);
+
+    final var captor = ArgumentCaptor.forClass(McpSchema.ReadResourceRequest.class);
+    verify(mcpClient).readResource(captor.capture());
+    assertThat(captor.getValue().meta()).isNull();
   }
 }
