@@ -1769,7 +1769,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "7",
+      "value": "9",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
