@@ -25,6 +25,7 @@ import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCorrelationPoint;
@@ -151,6 +152,12 @@ public class ProcessDefinitionInspector {
         continue;
       }
       ProcessCorrelationPoint target = optionalTarget.get();
+      String messageName =
+          switch (target) {
+            case MessageCorrelationPoint mcp -> mcp.messageName();
+            case MessageStartEventCorrelationPoint msecp -> msecp.messageName();
+            default -> null;
+          };
 
       var rawProperties = getRawProperties(element);
       if (rawProperties == null || !rawProperties.containsKey(INBOUND_TYPE_KEYWORD)) {
@@ -162,6 +169,7 @@ public class ProcessDefinitionInspector {
           new ProcessElementWithRuntimeData(
               process.getId(),
               process.getName(),
+              messageName,
               version.version(),
               version.processDefinitionKey(),
               element.getId(),
