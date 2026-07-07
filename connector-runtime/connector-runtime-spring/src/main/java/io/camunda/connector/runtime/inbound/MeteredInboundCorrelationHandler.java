@@ -40,15 +40,6 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  public boolean isActivationConditionMet(InboundConnectorElement def, Object context) {
-    boolean isConditionMet = super.isActivationConditionMet(def, context);
-    if (!isConditionMet) {
-      this.connectorsInboundMetrics.increaseActivationConditionFailure(def);
-    }
-    return isConditionMet;
-  }
-
-  @Override
   public CorrelationResult correlate(
       List<InboundConnectorElement> elementList, CorrelationRequest correlationRequest) {
     if (elementList.isEmpty()) {
@@ -57,7 +48,15 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
     this.connectorsInboundMetrics.increaseTrigger(elementList.getFirst());
     try {
       var result = super.correlate(elementList, correlationRequest);
-      this.connectorsInboundMetrics.increaseCorrelationSuccess(elementList.getFirst());
+      switch (result) {
+        case CorrelationResult.Success ignored ->
+            this.connectorsInboundMetrics.increaseCorrelationSuccess(elementList.getFirst());
+        case CorrelationResult.Failure.ActivationConditionNotMet ignored ->
+            this.connectorsInboundMetrics.increaseActivationConditionFailure(
+                elementList.getFirst());
+        case CorrelationResult.Failure ignored ->
+            this.connectorsInboundMetrics.increaseCorrelationFailure(elementList.getFirst());
+      }
       return result;
     } catch (Exception e) {
       this.connectorsInboundMetrics.increaseCorrelationFailure(elementList.getFirst());

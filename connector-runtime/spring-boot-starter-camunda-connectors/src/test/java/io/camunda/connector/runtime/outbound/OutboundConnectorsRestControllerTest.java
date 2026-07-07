@@ -31,8 +31,12 @@ import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.common.AbstractConnectorFactory.ConnectorRuntimeConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.metrics.ConnectorMetrics;
+import io.camunda.connector.runtime.metrics.OutboundConnectorMetrics;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +56,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class OutboundConnectorsRestControllerTest {
 
   @Autowired private MockMvc mockMvc;
+  @Autowired private MeterRegistry meterRegistry;
 
   @MockitoBean private OutboundConnectorFactory connectorFactory;
 
@@ -162,5 +167,153 @@ class OutboundConnectorsRestControllerTest {
                 .string(
                     containsString(
                         "Data of type 'OutboundConnectorResponse' with id 'unknown-type' not found")));
+  }
+
+  @Test
+  void shouldReturnInvocations_groupedByType() throws Exception {
+    // Use a unique type per test to avoid shared-context counter accumulation
+    String type = "outbound-test-invocations";
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_COMPLETED)
+        .register(meterRegistry)
+        .increment(10.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_FAILED)
+        .register(meterRegistry)
+        .increment(2.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_BPMN_ERROR)
+        .register(meterRegistry)
+        .increment(1.0);
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics/" + type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    OutboundConnectorMetrics m = metrics.getFirst();
+    assertEquals("localhost", m.runtimeId());
+    assertEquals(10L, m.job().completed());
+    assertEquals(2L, m.job().failed());
+    assertEquals(1L, m.job().bpmnError());
+  }
+
+  @Test
+  void shouldReturnWorkerStats_groupedByType() throws Exception {
+    String type = "outbound-test-worker";
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .register(meterRegistry)
+        .increment(5.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .register(meterRegistry)
+        .increment(4.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .register(meterRegistry)
+        .increment(1.0);
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics/" + type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    OutboundConnectorMetrics worker = metrics.getFirst();
+    assertEquals(5L, worker.worker().jobsActivated());
+    assertEquals(4L, worker.worker().jobsHandled());
+    assertEquals(1L, worker.worker().streamRecreations());
+  }
+
+  @Test
+  void shouldFilterByConnectorType() throws Exception {
+    String typeA = "outbound-test-filter-a";
+    String typeB = "outbound-test-filter-b";
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, typeA)
+        .register(meterRegistry)
+        .increment(3.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, typeB)
+        .register(meterRegistry)
+        .increment(7.0);
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics/" + typeA))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(3L, metrics.getFirst().worker().jobsActivated());
+  }
+
+  @Test
+  void shouldReturnMetricsByTypePath() throws Exception {
+    String type = "outbound-test-path-type";
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .register(meterRegistry)
+        .increment(6.0);
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics/" + type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(6L, metrics.getFirst().worker().jobsActivated());
+  }
+
+  @Test
+  void shouldAggregateAcrossAllTypes_whenNoConnectorTypeProvided() throws Exception {
+    String typeA = "outbound-test-agg-a";
+    String typeB = "outbound-test-agg-b";
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, typeA)
+        .register(meterRegistry)
+        .increment(3.0);
+    Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED)
+        .tag(ConnectorMetrics.Tag.TYPE, typeB)
+        .register(meterRegistry)
+        .increment(7.0);
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    // jobsActivated must include at least the 10 (3+7) we just registered
+    assertTrue(metrics.getFirst().worker().jobsActivated() >= 10L);
   }
 }

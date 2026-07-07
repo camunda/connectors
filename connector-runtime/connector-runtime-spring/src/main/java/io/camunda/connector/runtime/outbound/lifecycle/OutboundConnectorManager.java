@@ -32,8 +32,11 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
@@ -52,6 +55,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   private final ObjectMapper objectMapper;
   private final DocumentFactory documentFactory;
   private final MetricsRecorder metricsRecorder;
+  private final SecretFilterFactory secretFilterFactory;
+  private final MeterRegistry meterRegistry;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
@@ -61,7 +66,9 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
+      MetricsRecorder metricsRecorder,
+      SecretFilterFactory secretFilterFactory,
+      MeterRegistry meterRegistry) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.jobCallbackCommandWrapperFactory = jobCallbackCommandWrapperFactory;
@@ -70,6 +77,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
+    this.secretFilterFactory = secretFilterFactory;
+    this.meterRegistry = meterRegistry;
   }
 
   @Override
@@ -109,13 +118,14 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     JobHandlerFactory jobHandlerFactory =
         ctx ->
             new SpringConnectorJobHandler(
-                metricsRecorder,
+                new ConnectorOutboundMetrics(metricsRecorder, meterRegistry),
                 jobCallbackCommandWrapperFactory,
                 secretProviderAggregator,
                 validationProvider,
                 documentFactory,
                 objectMapper,
-                connectorFunction);
+                connectorFunction,
+                secretFilterFactory);
     jobWorkerManager.createJobWorker(
         client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this);
   }

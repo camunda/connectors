@@ -12,7 +12,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -56,6 +59,14 @@ public record AgentConversationTurn(
       return List.of();
     }
     return assistantMessage.toolCalls();
+  }
+
+  /**
+   * Returns this turn's assistant {@link #toolCalls()} keyed by tool-call id. A tool-call result in
+   * the following turn correlates to one of these by id.
+   */
+  public Map<String, ToolCall> toolCallsById() {
+    return toolCalls().stream().collect(Collectors.toMap(ToolCall::id, Function.identity()));
   }
 
   /** Returns {@code true} if any tool call result in this turn's input was interrupted. */

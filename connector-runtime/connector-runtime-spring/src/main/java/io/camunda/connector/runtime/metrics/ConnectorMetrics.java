@@ -35,6 +35,42 @@ public class ConnectorMetrics {
 
     public static final String METRIC_NAME_INVOCATIONS = "camunda.connector.outbound.invocations";
     public static final String METRIC_NAME_TIME = "camunda.connector.outbound.execution-time";
+
+    /** Jobs pulled from the Zeebe broker queue, tagged by connector {@code type}. */
+    public static final String METRIC_NAME_WORKER_JOB_ACTIVATED =
+        "camunda.client.worker.job.activated";
+
+    /** Jobs acknowledged back to the Zeebe broker, tagged by connector {@code type}. */
+    public static final String METRIC_NAME_WORKER_JOB_HANDLED = "camunda.client.worker.job.handled";
+
+    /**
+     * Epoch-millisecond timestamp of the last successfully completed job, per connector type. Value
+     * is {@code 0} if no job has completed yet.
+     */
+    public static final String METRIC_NAME_LAST_COMPLETED =
+        "camunda.connector.outbound.last-completed";
+
+    /**
+     * Epoch-millisecond timestamp of the last failed job, per connector type. Value is {@code 0} if
+     * no job has failed yet.
+     */
+    public static final String METRIC_NAME_LAST_FAILED = "camunda.connector.outbound.last-failed";
+
+    /**
+     * Number of times a job-stream was recreated due to inactivity, tagged by connector {@code
+     * type}. Spikes indicate broker connectivity instability.
+     */
+    public static final String METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED =
+        "camunda.client.worker.stream.inactivity.recreated";
+
+    /** Value of the {@code action} tag for successfully completed jobs. */
+    public static final String ACTION_COMPLETED = "completed";
+
+    /** Value of the {@code action} tag for jobs that ended with a connector error. */
+    public static final String ACTION_FAILED = "failed";
+
+    /** Value of the {@code action} tag for jobs that threw a BPMN error. */
+    public static final String ACTION_BPMN_ERROR = "bpmn-error";
   }
 
   public static class Inbound {
@@ -42,6 +78,20 @@ public class ConnectorMetrics {
     public static final String METRIC_NAME_TRIGGERS = "camunda.connector.inbound.triggers";
     public static final String METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED =
         "camunda.connector.inbound.process-definitions-checked";
+
+    /**
+     * Epoch-millisecond timestamp of the last successful activation, per connector type. Value is
+     * {@code 0} if no activation has occurred yet.
+     */
+    public static final String METRIC_NAME_LAST_ACTIVATED =
+        "camunda.connector.inbound.last-activated";
+
+    /**
+     * Epoch-millisecond timestamp of the last trigger attempt, per connector type. Value is {@code
+     * 0} if no trigger has occurred yet.
+     */
+    public static final String METRIC_NAME_LAST_TRIGGERED =
+        "camunda.connector.inbound.last-triggered";
 
     public static final String ACTION_ACTIVATED = "activated";
     public static final String ACTION_DEACTIVATED = "deactivated";
