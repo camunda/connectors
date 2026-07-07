@@ -518,7 +518,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "4",
+      "value": "6",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
