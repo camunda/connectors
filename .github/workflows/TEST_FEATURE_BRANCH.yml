@@ -10,13 +10,16 @@ on:
     branches:
       - '**'
       - '!main'
+      - '!gh-readonly-queue/**'
   merge_group:
     branches: [ main ]
 
 # Cancel stale runs of the same type (push-on-push, PR-on-PR) without
-# letting push and pull_request events cancel each other.
+# letting push and pull_request events cancel each other. Merge-queue runs
+# are keyed on the merge group's head ref so entries queued behind others
+# don't collide into the same group and get cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.merge_group.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
