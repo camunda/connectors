@@ -26,6 +26,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -33,11 +34,14 @@ import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationRegistry;
+import io.camunda.connector.runtime.core.outbound.configuration.ConfigurationValidationService;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
+import io.camunda.connector.runtime.outbound.controller.ConfigurationValidationRestController;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorsRestController;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
@@ -65,8 +69,31 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 @Configuration
-@Import({OutboundConnectorsRestController.class, InstanceForwardingConfiguration.class})
+@Import({
+  OutboundConnectorsRestController.class,
+  ConfigurationValidationRestController.class,
+  InstanceForwardingConfiguration.class
+})
 public class OutboundConnectorRuntimeConfiguration {
+
+  @Bean
+  public ConfigurationValidationRegistry configurationValidationRegistry(
+      OutboundConnectorFactory connectorFactory) {
+    return new ConfigurationValidationRegistry(connectorFactory);
+  }
+
+  @Bean
+  public ConfigurationValidationService configurationValidationService(
+      ConfigurationValidationRegistry configurationValidationRegistry,
+      FeelExpressionEvaluator feelExpressionEvaluator,
+      SecretProviderAggregator secretProviderAggregator,
+      @OutboundConnectorObjectMapper ObjectMapper objectMapper) {
+    return new ConfigurationValidationService(
+        configurationValidationRegistry,
+        feelExpressionEvaluator,
+        secretProviderAggregator,
+        objectMapper);
+  }
 
   @Bean
   @ConditionalOnMissingBean(OutboundConnectorFactory.class)
