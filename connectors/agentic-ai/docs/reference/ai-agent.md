@@ -349,7 +349,8 @@ invocation and transformed through copy-on-write methods.
 - `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a
   read-only `ConversationSnapshot`.
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
-  `AgentContext.metrics` by the current turn's delta.
+  `AgentContext.metrics` by the current turn's delta and, once the current turn has been `ingest`ed,
+  stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).
 - `totalMetrics()`: returns the durable `AgentContext.metrics()` plus the current turn's delta —
   **not** a sum over the reconstructed turns, which always carry `AgentMetrics.empty()`. The
   model-call limit check (`BaseAgentRequestHandler.throwIfLimitsReached`) relies on this cumulative
@@ -360,12 +361,20 @@ invocation and transformed through copy-on-write methods.
 AgentMetrics metrics)`. `iterationKey` is 1-based across the agent lifetime; the turn is pending
 while `assistantMessage == null`.
 
+The next turn's `iterationKey` is determined by `AgentConversation.rehydrate()`:
+`AgentMetadata.lastIterationKey` (persisted by `toAgentContext()`, see above) is authoritative when
+present. The reconstructed turn count is used as a fallback when it's absent (pre-feature
+conversations, or right after a process definition migration reset — `AgentInitializerImpl` replaces
+metadata wholesale on migration) and, when a stored key is present, to cross-validate against it:
+a mismatch is logged as a warning (reconstruction drift), not thrown.
+
 `TurnReconstructor.reconstruct(messages)` (`...aiagent.model`) rebuilds the turn list and the
 optional system message from the persisted flat message list: the leading `SystemMessage` (if any)
 is split off, and the remaining body is grouped by `AssistantMessage` boundaries. All reconstructed
 turns carry `AgentMetrics.empty()` — per-invocation metrics are computed live from the current
 turn, not read from history. This provides backward compatibility with existing conversations
-without a data migration.
+without a data migration, and is now also the cross-validation source for `iterationKey` drift
+detection described above.
 
 `ConversationSnapshot` (record, `...aiagent.memory`) is the transient, windowed, read-only view sent
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`.

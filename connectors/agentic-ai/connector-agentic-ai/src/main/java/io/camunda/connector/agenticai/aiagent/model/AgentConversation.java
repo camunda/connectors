@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Immutable domain aggregate representing the agent's full conversation across all turns.
@@ -28,6 +30,8 @@ import org.jspecify.annotations.Nullable;
  * and completed by {@link #ingest}.
  */
 public final class AgentConversation {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AgentConversation.class);
 
   private final AgentConfiguration configuration;
   private final AgentContext currentContext;
@@ -68,10 +72,35 @@ public final class AgentConversation {
       PreviousConversation previousConversation,
       @Nullable SystemMessage systemMessage,
       List<Message> inputMessages) {
-    int nextKey = previousConversation.turns().size() + 1;
+    int nextKey = nextIterationKey(agentContext, previousConversation);
     var currentTurn = new AgentConversationTurn(nextKey, inputMessages, null, AgentMetrics.empty());
     return new AgentConversation(
         configuration, agentContext, systemMessage, previousConversation.turns(), currentTurn);
+  }
+
+  /**
+   * Determines the next turn's iterationKey. The stored {@code lastIterationKey} on the agent
+   * context metadata is authoritative when present; the reconstructed turn count is used as a
+   * fallback (pre-feature conversations, or right after a process definition migration reset) and
+   * to cross-validate the stored value, logging a warning on drift instead of failing silently.
+   */
+  private static int nextIterationKey(
+      AgentContext agentContext, PreviousConversation previousConversation) {
+    var metadata = agentContext.metadata();
+    var storedLastIterationKey = metadata != null ? metadata.lastIterationKey() : null;
+    int reconstructedCount = previousConversation.turns().size();
+
+    if (storedLastIterationKey == null) {
+      return reconstructedCount + 1;
+    }
+
+    if (storedLastIterationKey != reconstructedCount) {
+      LOGGER.warn(
+          "Turn reconstruction drift detected: stored lastIterationKey={} but reconstructed {} turn(s) from history",
+          storedLastIterationKey,
+          reconstructedCount);
+    }
+    return storedLastIterationKey + 1;
   }
 
   /**
@@ -162,10 +191,16 @@ public final class AgentConversation {
 
   /**
    * Produces an updated {@link AgentContext} with cumulative metrics from all turns ingested in
-   * this invocation applied on top of the base context metrics.
+   * this invocation applied on top of the base context metrics, and {@code lastIterationKey}
+   * stamped to the current turn's key once it has been ingested.
    */
   public AgentContext toAgentContext() {
-    return currentContext.withMetrics(totalMetrics());
+    var withMetrics = currentContext.withMetrics(totalMetrics());
+    var metadata = currentContext.metadata();
+    if (metadata == null || currentTurn.assistantMessage() == null) {
+      return withMetrics;
+    }
+    return withMetrics.withMetadata(metadata.withLastIterationKey(currentTurn.iterationKey()));
   }
 
   /** Returns the last completed turn, or empty if no turns have been completed yet. */

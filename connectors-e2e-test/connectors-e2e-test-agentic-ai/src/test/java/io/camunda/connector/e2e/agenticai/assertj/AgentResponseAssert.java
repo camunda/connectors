@@ -122,4 +122,13 @@ public class AgentResponseAssert extends AbstractAssert<AgentResponseAssert, Age
     Assertions.assertThat(actual.context().metadata().agentInstanceKey()).isNotNull().isPositive();
     return this;
   }
+
+  public AgentResponseAssert hasLastIterationKey(int expectedLastIterationKey) {
+    isNotNull();
+    Assertions.assertThat(actual.context()).isNotNull();
+    Assertions.assertThat(actual.context().metadata()).isNotNull();
+    Assertions.assertThat(actual.context().metadata().lastIterationKey())
+        .isEqualTo(expectedLastIterationKey);
+    return this;
+  }
 }
