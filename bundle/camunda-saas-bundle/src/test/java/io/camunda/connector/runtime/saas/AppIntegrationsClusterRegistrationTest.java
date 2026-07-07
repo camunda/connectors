@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -116,9 +117,58 @@ class AppIntegrationsClusterRegistrationTest {
     assertThatCode(() -> registration(true).reportAvailability()).doesNotThrowAnyException();
   }
 
+  @Test
+  void retriesTransientIoErrorThenSucceeds() throws Exception {
+    HttpResponse<?> ok = responseWithStatus(200);
+    doThrow(new IOException("transient"))
+        .doReturn(ok)
+        .when(httpClient)
+        .send(any(HttpRequest.class), any());
+
+    registration(true).reportAvailability();
+
+    verify(httpClient, times(2)).send(any(HttpRequest.class), any());
+  }
+
+  @Test
+  void retriesServerErrorThenSucceeds() throws Exception {
+    HttpResponse<?> serverError = responseWithStatus(503);
+    HttpResponse<?> ok = responseWithStatus(200);
+    doReturn(serverError).doReturn(ok).when(httpClient).send(any(HttpRequest.class), any());
+
+    registration(true).reportAvailability();
+
+    verify(httpClient, times(2)).send(any(HttpRequest.class), any());
+  }
+
+  @Test
+  void doesNotRetryClientError() throws Exception {
+    HttpResponse<?> clientError = responseWithStatus(404);
+    doReturn(clientError).when(httpClient).send(any(HttpRequest.class), any());
+
+    registration(true).reportAvailability();
+
+    verify(httpClient, times(1)).send(any(HttpRequest.class), any());
+  }
+
+  @Test
+  void givesUpAfterExhaustingRetries() throws Exception {
+    doThrow(new IOException("boom")).when(httpClient).send(any(HttpRequest.class), any());
+
+    // Default test constructor allows 2 retries, i.e. 3 attempts in total.
+    assertThatCode(() -> registration(true).reportAvailability()).doesNotThrowAnyException();
+    verify(httpClient, times(3)).send(any(HttpRequest.class), any());
+  }
+
   private AppIntegrationsClusterRegistration registration(boolean settingsPresent) {
     return new AppIntegrationsClusterRegistration(
         BASE_URL, API_KEY, settingsPresent, ORG_ID, CLUSTER_ID, httpClient);
+  }
+
+  private static HttpResponse<?> responseWithStatus(int status) {
+    HttpResponse<?> response = mock(HttpResponse.class);
+    when(response.statusCode()).thenReturn(status);
+    return response;
   }
 
   private HttpRequest capturedRequest() throws Exception {

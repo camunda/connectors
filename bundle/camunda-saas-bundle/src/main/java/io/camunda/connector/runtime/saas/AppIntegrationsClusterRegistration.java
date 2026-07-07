@@ -16,6 +16,9 @@
  */
 package io.camunda.connector.runtime.saas;
 
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -56,6 +59,8 @@ public class AppIntegrationsClusterRegistration {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(AppIntegrationsClusterRegistration.class);
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
+  private static final int MAX_RETRIES = 3;
+  private static final Duration RETRY_DELAY = Duration.ofSeconds(2);
 
   private final String baseUrl;
   private final String apiKey;
@@ -63,6 +68,8 @@ public class AppIntegrationsClusterRegistration {
   private final String organizationId;
   private final String clusterId;
   private final HttpClient httpClient;
+  private final int maxRetries;
+  private final Duration retryDelay;
 
   @Autowired
   public AppIntegrationsClusterRegistration(
@@ -80,7 +87,9 @@ public class AppIntegrationsClusterRegistration {
         isPresent(oauthClientId) && isPresent(oauthClientSecret),
         organizationId,
         clusterId,
-        HttpClient.newBuilder().connectTimeout(TIMEOUT).build());
+        HttpClient.newBuilder().connectTimeout(TIMEOUT).build(),
+        MAX_RETRIES,
+        RETRY_DELAY);
   }
 
   AppIntegrationsClusterRegistration(
@@ -90,12 +99,35 @@ public class AppIntegrationsClusterRegistration {
       String organizationId,
       String clusterId,
       HttpClient httpClient) {
+    // Convenience for tests: short retry delay so the retry path runs quickly.
+    this(
+        baseUrl,
+        apiKey,
+        settingsPresent,
+        organizationId,
+        clusterId,
+        httpClient,
+        2,
+        Duration.ofMillis(1));
+  }
+
+  AppIntegrationsClusterRegistration(
+      String baseUrl,
+      String apiKey,
+      boolean settingsPresent,
+      String organizationId,
+      String clusterId,
+      HttpClient httpClient,
+      int maxRetries,
+      Duration retryDelay) {
     this.baseUrl = baseUrl;
     this.apiKey = apiKey;
     this.settingsPresent = settingsPresent;
     this.organizationId = organizationId;
     this.clusterId = clusterId;
     this.httpClient = httpClient;
+    this.maxRetries = maxRetries;
+    this.retryDelay = retryDelay;
   }
 
   @EventListener(ApplicationReadyEvent.class)
@@ -114,14 +146,33 @@ public class AppIntegrationsClusterRegistration {
         URI.create(
             baseUrl.replaceAll("/+$", "") + "/api/connector/" + organizationId + "/" + clusterId);
     var method = settingsPresent ? "PUT" : "DELETE";
+    var request =
+        HttpRequest.newBuilder(uri)
+            .timeout(TIMEOUT)
+            .header(API_KEY_HEADER, apiKey)
+            .method(method, BodyPublishers.noBody())
+            .build();
+
+    // Retry transient failures (I/O errors and 5xx responses) with a bounded, backing-off policy,
+    // mirroring the Failsafe usage elsewhere in the runtime. Client errors (4xx) are not retried.
+    RetryPolicy<HttpResponse<String>> retryPolicy =
+        RetryPolicy.<HttpResponse<String>>builder()
+            .handle(IOException.class)
+            .handleResultIf(response -> response != null && response.statusCode() >= 500)
+            .withBackoff(retryDelay, retryDelay.multipliedBy(8))
+            .withMaxRetries(maxRetries)
+            .onRetry(
+                event ->
+                    LOGGER.warn(
+                        "Retrying App Integrations cluster registration ({} {}) after attempt {} failed",
+                        method,
+                        uri,
+                        event.getAttemptCount()))
+            .build();
+
     try {
-      var request =
-          HttpRequest.newBuilder(uri)
-              .timeout(TIMEOUT)
-              .header(API_KEY_HEADER, apiKey)
-              .method(method, BodyPublishers.noBody())
-              .build();
-      HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+      HttpResponse<String> response =
+          Failsafe.with(retryPolicy).get(() -> httpClient.send(request, BodyHandlers.ofString()));
       if (response.statusCode() >= 400) {
         LOGGER.warn(
             "App Integrations cluster registration ({} {}) returned status {}",
@@ -135,12 +186,11 @@ public class AppIntegrationsClusterRegistration {
             uri,
             response.statusCode());
       }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      LOGGER.warn(
-          "Interrupted while reporting App Integrations availability ({} {})", method, uri, e);
     } catch (Exception e) {
       // Never let a reporting failure prevent the runtime from starting.
+      if (e instanceof InterruptedException || e.getCause() instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       LOGGER.warn(
           "Failed to report App Integrations availability ({} {}): {}",
           method,
