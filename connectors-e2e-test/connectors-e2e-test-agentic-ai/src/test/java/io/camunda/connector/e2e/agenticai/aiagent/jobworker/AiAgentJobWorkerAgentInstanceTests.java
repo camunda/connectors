@@ -16,6 +16,12 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.jobworker;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
@@ -24,6 +30,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceClientVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
@@ -152,5 +159,63 @@ class AiAgentJobWorkerAgentInstanceTests extends BaseAiAgentJobWorkerTest {
         .noMoreInteractions();
 
     assertAgentInstanceCreatedOnEngine(agentInstanceKey.get(), "test-model");
+  }
+
+  /**
+   * Two tools completing at genuinely different real times (a fast script task and an HTTP download
+   * delayed via WireMock) in the same tool-calling round: each TOOL_RESULT's {@code completedAt}
+   * must reflect its own completion, not a shared turn-end timestamp. Regression guard for #7597.
+   */
+  @Test
+  void shouldRecordDistinctCompletedAtPerToolBasedOnActualCompletionTime() throws Exception {
+    final var slowFileUrl = wireMock.getHttpBaseUrl() + "/slow-test.pdf";
+    stubFor(
+        get(urlPathEqualTo("/slow-test.pdf"))
+            .atPriority(1)
+            .willReturn(
+                aResponse()
+                    .withBodyFile("test.pdf")
+                    .withHeader("Content-Type", "application/pdf")
+                    .withFixedDelay(3000)));
+
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            null,
+            10,
+            20,
+            ToolCall.of("fast-001", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"),
+            ToolCall.of("slow-001", "Download_A_File", "{\"url\": \"%s\"}".formatted(slowFileUrl))),
+        Turn.text("Done.", 15, 25));
+
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                Map.of("userPrompt", "Calculate the superflux product and download a file")));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 2)));
+
+    AgentInstanceClientVerifier.verify(agentInstanceClient)
+        .createdInstance()
+        .toolCallTurn(
+            new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 2),
+            turn ->
+                turn.fromUserPrompt("Calculate the superflux product and download a file")
+                    .callingTools("SuperfluxProduct", "Download_A_File"))
+        .finalAnswerTurn(
+            new AgentMetrics(1, new AgentMetrics.TokenUsage(15, 25), 0),
+            turn -> {
+              turn.fromToolResults().answering("Done.");
+              assertThat(turn.toolResultCompletedAt("fast-001"))
+                  .as("fast tool completed before slow tool")
+                  .isBefore(turn.toolResultCompletedAt("slow-001").minus(Duration.ofSeconds(2)));
+            })
+        .noMoreInteractions();
   }
 }

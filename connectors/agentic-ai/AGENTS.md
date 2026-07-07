@@ -109,6 +109,9 @@ High-frequency traps (detail behind each link):
   bubble up to the AHSP scope. `ai-agent.md` §8.
 - **Events have `id = null`**: tool-call results without an id are event results, partitioned from real tool results.
   `ai-agent.md` §11.
+- **Gateway `transformToolCallResults` must carry `completedAt` forward**: MCP/A2A handlers rebuild a
+  new `ToolCallResult` when unwrapping the gateway envelope; unlike `elementId`, `completedAt` has no
+  fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
 
 ## Architectural invariants
 

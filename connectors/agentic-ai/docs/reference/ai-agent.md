@@ -653,8 +653,10 @@ return AiAgentSubProcessConnectorResponse.builder()
 2. The tool is expected to have produced a `toolCallResult` variable in its local scope
 3. Zeebe evaluates the `outputElement` expression:
    ```
-   ={id: toolCall._meta.id, name: toolCall._meta.name, content: toolCallResult}
+   ={id: toolCall._meta.id, name: toolCall._meta.name, content: toolCallResult, completedAt: now()}
    ```
+   `completedAt` (v11+ templates) is this tool's own engine completion timestamp, not the turn's
+   (ADR 008).
 4. The result is **appended** to the `toolCallResults` output collection list
 5. Zeebe creates a **new job** for the AHSP
 
@@ -1351,6 +1353,10 @@ public interface GatewayToolCallTransformer {
 }
 ```
 
+**Pitfall:** `transformToolCallResults` (MCP, A2A) rebuilds a new `ToolCallResult` via
+`.builder()...build()`. Unlike `elementId`, `completedAt` has no fallback — copy it over explicitly
+or the result fails the mapper's non-null `completedAt` invariant (ADR 008).
+
 ### Gateway Tool Handler Registry
 
 `GatewayToolHandlerRegistryImpl` wraps multiple `GatewayToolHandler` instances and distributes operations:
@@ -1557,6 +1563,14 @@ call (`POST /v2/agent-instances/{key}/history` via `newCreateAgentHistoryItemCom
   `durationMs`, measured via `AiFrameworkAdapter.executeMeasuringTime` and carried on the turn's
   `AgentMetrics.executionTime`). Empty assistant content (tool-only turns) falls back to a single
   `"No content"` text block, since the API rejects empty content.
+
+**`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
+resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither
+computes a timestamp itself. A `TOOL_RESULT` item uses `ToolCallResult.completedAt()`: the AHSP
+`outputElement`'s engine timestamp (v11+ templates) if present, else a stateless `now()`
+(`ToolCallResultCompletedAtResolver`, resolved at ingestion in `AgentInitializerImpl`; see ADR 008
+for what the `now()` fallback does and doesn't cover). `USER` and `ASSISTANT` items use a timestamp
+`BaseAgentRequestHandler.proceed` captures and passes down.
 
 Each `toolCalls` entry carries the BPMN **`elementId`** alongside the (LLM-visible, possibly
 namespaced) `toolName`. For tool results it is resolved once on the model in

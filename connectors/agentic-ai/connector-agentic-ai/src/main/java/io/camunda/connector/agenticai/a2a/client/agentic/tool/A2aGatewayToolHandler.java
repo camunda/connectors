@@ -243,7 +243,10 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
             Objects.requireNonNull(toolCallResult.name(), "Tool call result name is required"));
 
     final var toolCallResultBuilder =
-        ToolCallResult.builder().id(toolCallResult.id()).name(identifier.fullyQualifiedName());
+        ToolCallResult.builder()
+            .id(toolCallResult.id())
+            .name(identifier.fullyQualifiedName())
+            .completedAt(toolCallResult.completedAt());
 
     toolCallResultBuilder.content(sendMessageResult);
 

@@ -38,6 +38,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -437,6 +438,25 @@ class McpClientGatewayToolHandlerTest {
           .containsExactly(
               McpTextContent.textContent("First content"),
               McpTextContent.textContent("Second content"));
+    }
+
+    @Test
+    void preservesCompletedAtFromTheOriginalResult() {
+      // the transformed result is a new ToolCallResult instance; completedAt (resolved by
+      // ingestion normalization, ADR 008, before this transform ever runs) must carry over or
+      // every MCP tool-result history item fails as a missing-completedAt invariant violation
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1"));
+      var mcpCallToolResult =
+          new McpClientCallToolResult(
+              "tool1", List.of(McpTextContent.textContent("Tool result")), false);
+      var completedAt = OffsetDateTime.parse("2026-07-02T10:00:00Z");
+      var toolCallResult =
+          createToolCallResultWithContent("call1", "mcp1", mcpCallToolResult)
+              .withCompletedAt(completedAt);
+
+      var result = handler.transformToolCallResults(agentContext, List.of(toolCallResult));
+
+      assertThat(result).singleElement().extracting("completedAt").isEqualTo(completedAt);
     }
 
     @Test

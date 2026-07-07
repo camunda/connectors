@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -74,9 +75,23 @@ class AgentInitializerTest {
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @Mock private AgentInstanceClient agentInstanceClient;
   @Mock private JobContext jobContext;
+  @Mock private ToolCallResultCompletedAtResolver completedAtResolver;
   @InjectMocks private AgentInitializerImpl agentInitializer;
 
   @Mock private AgentExecutionContext executionContext;
+
+  /**
+   * Ingestion-normalization ({@code completedAt} resolution) is covered in its own dedicated unit
+   * test ({@link ToolCallResultCompletedAtResolverTest}); here the resolver is stubbed as an
+   * identity pass-through so existing assertions on the raw fixtures keep working, except in {@link
+   * WithCompletedAtResolution}, which verifies the wiring itself.
+   */
+  @BeforeEach
+  void stubCompletedAtResolverAsIdentity() {
+    lenient()
+        .when(completedAtResolver.resolve(any()))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+  }
 
   @Nested
   class WithAlreadyInitializedState {
@@ -619,6 +634,41 @@ class AgentInitializerTest {
               e ->
                   assertThat(((ConnectorException) e).getErrorCode())
                       .isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED));
+    }
+  }
+
+  @Nested
+  class WithCompletedAtResolution {
+
+    private static final long PROCESS_DEFINITION_KEY = 300L;
+    private static final long PROCESS_INSTANCE_KEY = 400L;
+
+    @Test
+    void shouldResolveCompletedAtBeforeDispatchingAndUseTheResolvedResults() {
+      final var metadata = new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+      final var agentContext =
+          AgentContext.empty()
+              .withState(AgentState.READY)
+              .withMetadata(metadata)
+              .withToolDefinitions(TOOL_DEFINITIONS);
+      when(executionContext.initialAgentContext()).thenReturn(agentContext);
+      when(executionContext.initialToolCallResults()).thenReturn(TOOL_CALL_RESULTS);
+      mockJobContextMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+
+      final var resolvedToolCallResults =
+          List.of(TOOL_CALL_RESULTS.get(0).withCompletedAt(OffsetDateTime.now()));
+      when(completedAtResolver.resolve(TOOL_CALL_RESULTS)).thenReturn(resolvedToolCallResults);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              ReadyToConverse.class,
+              res -> {
+                assertThat(res.agentContext()).usingRecursiveComparison().isEqualTo(agentContext);
+                assertThat(res.toolCallResults()).isEqualTo(resolvedToolCallResults);
+              });
+      verify(completedAtResolver).resolve(TOOL_CALL_RESULTS);
     }
   }
 

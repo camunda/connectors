@@ -136,7 +136,7 @@ def updatedProperties = []
                 property: "outputElement",
                 type: "zeebe:adHoc"
             ],
-            value: "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult\n}",
+            value: "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult,\n  completedAt: now()\n}",
             type: "Hidden"
         ])
     } else if (property.id == "id") {

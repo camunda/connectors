@@ -33,6 +33,7 @@ import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -61,15 +62,24 @@ public class AgentInstanceHistoryMapper {
   public record InputHistoryItem(
       AgentInstanceHistoryRole role,
       List<AgentInstanceHistoryContent> content,
-      @Nullable List<AgentInstanceHistoryToolCall> toolCalls) {}
+      @Nullable List<AgentInstanceHistoryToolCall> toolCalls,
+      OffsetDateTime producedAt) {}
 
+  /**
+   * @param turnIngestionTimestamp the timestamp for non-tool-result items (e.g. a {@link
+   *     UserMessage}), passed in by the caller so this mapper stays clock-free. Tool-call results
+   *     use their own resolved {@link ToolCallResult#completedAt()} instead (see ADR 008).
+   */
   public List<InputHistoryItem> inputHistoryItems(
-      Message message, Map<String, ToolCall> toolCallsById) {
+      Message message, Map<String, ToolCall> toolCallsById, OffsetDateTime turnIngestionTimestamp) {
     return switch (message) {
       case UserMessage userMessage ->
           List.of(
               new InputHistoryItem(
-                  AgentInstanceHistoryRole.USER, contentBlocks(userMessage.content()), null));
+                  AgentInstanceHistoryRole.USER,
+                  contentBlocks(userMessage.content()),
+                  null,
+                  turnIngestionTimestamp));
       case ToolCallResultMessage toolCallResultMessage ->
           toolCallResultMessage.results().stream()
               .map(result -> toolResultHistoryItem(result, toolCallsById))
@@ -93,7 +103,23 @@ public class AgentInstanceHistoryMapper {
                 .toolCallId(StringUtils.defaultString(result.id()))
                 .toolName(StringUtils.defaultString(result.name()))
                 .elementId(elementIdFor(result.elementId(), result.name()))
-                .arguments(argumentsForResult(result, toolCallsById))));
+                .arguments(argumentsForResult(result, toolCallsById))),
+        requireCompletedAt(result));
+  }
+
+  /**
+   * Ingestion normalization (ADR 008) must resolve {@code completedAt} on every tool call result
+   * before it reaches this mapper (engine timestamp, worker-observed time, or {@code now()} as last
+   * resort) — a missing value here is an invariant violation, not a case to silently default.
+   */
+  private OffsetDateTime requireCompletedAt(ToolCallResult result) {
+    final var completedAt = result.completedAt();
+    if (completedAt == null) {
+      throw new IllegalArgumentException(
+          "Tool call result with id '%s' has no completedAt"
+              .formatted(StringUtils.defaultString(result.id())));
+    }
+    return completedAt;
   }
 
   /**

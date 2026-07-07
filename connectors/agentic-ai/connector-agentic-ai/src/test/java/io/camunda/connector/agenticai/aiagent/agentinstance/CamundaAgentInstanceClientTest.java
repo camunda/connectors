@@ -64,6 +64,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.runtime.test.outbound.TestJobContext;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -520,6 +521,9 @@ class CamundaAgentInstanceClientTest {
   @Nested
   class HistoryItems {
 
+    private static final OffsetDateTime TURN_INGESTION_TIMESTAMP =
+        OffsetDateTime.parse("2026-07-02T10:00:00Z");
+
     @Captor private ArgumentCaptor<List<AgentInstanceHistoryContent>> contentCaptor;
 
     @Test
@@ -542,14 +546,15 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Optional.empty());
+          Optional.empty(),
+          TURN_INGESTION_TIMESTAMP);
 
-      // then
+      // then: the passed-in turn ingestion timestamp is used verbatim, not now()
       verify(historyCommand).elementInstanceKey(ELEMENT_INSTANCE_KEY);
       verify(historyCommand).jobKey(JOB_KEY);
       verify(historyCommand).role(AgentInstanceHistoryRole.USER);
       verify(historyCommand).iteration(3);
-      verify(historyCommand).producedAt(any());
+      verify(historyCommand).producedAt(TURN_INGESTION_TIMESTAMP);
       verify(historyCommand).content(contentCaptor.capture());
       verify(historyCommand, never()).toolCalls(any());
       verify(historyCommand, never()).metrics(any());
@@ -567,7 +572,10 @@ class CamundaAgentInstanceClientTest {
       givenHistoryCommand();
 
       // given: a single tool-call-result message carrying two results (elementId already resolved
-      // on the model upstream, == tool name for these ad-hoc tools)
+      // on the model upstream, == tool name for these ad-hoc tools), each with its own distinct
+      // completedAt, neither of which is the turn ingestion timestamp
+      final var fastCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:50Z");
+      final var slowCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:58Z");
       final var turn =
           new AgentConversationTurn(
               1,
@@ -580,11 +588,13 @@ class CamundaAgentInstanceClientTest {
                                   .name("getWeather")
                                   .content("sunny")
                                   .elementId("getWeather")
+                                  .completedAt(fastCompletedAt)
                                   .build(),
                               ToolCallResult.builder()
                                   .id("b")
                                   .name("getTime")
                                   .elementId("getTime")
+                                  .completedAt(slowCompletedAt)
                                   .build()))
                       .build()),
               null,
@@ -613,7 +623,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Optional.of(previousTurn));
+          Optional.of(previousTurn),
+          TURN_INGESTION_TIMESTAMP);
 
       // then: one TOOL_RESULT item per result, each with a single-entry toolCalls array correlating
       // it to the originating tool call. The first result carries its content block; the second has
@@ -621,6 +632,11 @@ class CamundaAgentInstanceClientTest {
       verify(historyCommand, times(2)).role(AgentInstanceHistoryRole.TOOL_RESULT);
       verify(historyCommand, times(2)).iteration(1);
       verify(historyCommand, times(2)).execute();
+
+      // each result's own completedAt is used, not the shared turn ingestion timestamp
+      verify(historyCommand).producedAt(fastCompletedAt);
+      verify(historyCommand).producedAt(slowCompletedAt);
+      verify(historyCommand, never()).producedAt(TURN_INGESTION_TIMESTAMP);
 
       verify(historyCommand, times(2)).content(contentCaptor.capture());
       final var contents = contentCaptor.getAllValues();
@@ -682,7 +698,8 @@ class CamundaAgentInstanceClientTest {
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn,
-                      Optional.empty()))
+                      Optional.empty(),
+                      TURN_INGESTION_TIMESTAMP))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("No originating tool call found")
           .hasMessageContaining("orphan");
@@ -704,6 +721,7 @@ class CamundaAgentInstanceClientTest {
                               ToolCallResult.builder()
                                   .elementId("getTime")
                                   .content("partial")
+                                  .completedAt(TURN_INGESTION_TIMESTAMP)
                                   .build()))
                       .build()),
               null,
@@ -714,7 +732,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Optional.empty());
+          Optional.empty(),
+          TURN_INGESTION_TIMESTAMP);
 
       final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
           ArgumentCaptor.forClass(List.class);
@@ -751,7 +770,8 @@ class CamundaAgentInstanceClientTest {
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn,
-                      Optional.empty()))
+                      Optional.empty(),
+                      TURN_INGESTION_TIMESTAMP))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("Cannot resolve element id");
     }
@@ -776,7 +796,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Optional.empty());
+          Optional.empty(),
+          TURN_INGESTION_TIMESTAMP);
 
       // then
       verify(historyCommand).content(contentCaptor.capture());
@@ -808,7 +829,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Optional.empty());
+          Optional.empty(),
+          TURN_INGESTION_TIMESTAMP);
 
       // then
       verify(historyCommand).content(contentCaptor.capture());
@@ -840,11 +862,15 @@ class CamundaAgentInstanceClientTest {
 
       // when
       client.createHistoryForAssistantMessage(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          TURN_INGESTION_TIMESTAMP);
 
       // then
       verify(historyCommand).role(AgentInstanceHistoryRole.ASSISTANT);
       verify(historyCommand).iteration(2);
+      verify(historyCommand).producedAt(TURN_INGESTION_TIMESTAMP);
 
       final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
           ArgumentCaptor.forClass(List.class);
@@ -895,7 +921,10 @@ class CamundaAgentInstanceClientTest {
 
       // when
       client.createHistoryForAssistantMessage(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          TURN_INGESTION_TIMESTAMP);
 
       // then
       final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
@@ -928,7 +957,10 @@ class CamundaAgentInstanceClientTest {
 
       // when
       client.createHistoryForAssistantMessage(
-          TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY), turn);
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          turn,
+          TURN_INGESTION_TIMESTAMP);
 
       // then: empty content is valid since the tool call carries the turn's intent
       verify(historyCommand).content(contentCaptor.capture());
@@ -963,7 +995,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
-          Optional.empty());
+          Optional.empty(),
+          TURN_INGESTION_TIMESTAMP);
 
       // then: document reference is built via the client library without throwing
       verify(historyCommand).content(contentCaptor.capture());
@@ -996,7 +1029,8 @@ class CamundaAgentInstanceClientTest {
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn,
-                      Optional.empty()))
+                      Optional.empty(),
+                      TURN_INGESTION_TIMESTAMP))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("Unsupported document reference type");
     }
@@ -1026,7 +1060,8 @@ class CamundaAgentInstanceClientTest {
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn,
-                      Optional.empty()))
+                      Optional.empty(),
+                      TURN_INGESTION_TIMESTAMP))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("External document reference requires both url and name");
     }
@@ -1047,7 +1082,8 @@ class CamundaAgentInstanceClientTest {
                   client.createHistoryForAssistantMessage(
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      turn))
+                      turn,
+                      TURN_INGESTION_TIMESTAMP))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("neither content nor tool calls");
     }
@@ -1073,7 +1109,8 @@ class CamundaAgentInstanceClientTest {
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       turn,
-                      Optional.empty()))
+                      Optional.empty(),
+                      TURN_INGESTION_TIMESTAMP))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e ->
@@ -1093,7 +1130,11 @@ class CamundaAgentInstanceClientTest {
               AgentMetrics.empty());
 
       client.createHistoryForInputMessages(
-          TestAgentExecutionContext.withLimits(), null, turn, Optional.empty());
+          TestAgentExecutionContext.withLimits(),
+          null,
+          turn,
+          Optional.empty(),
+          TURN_INGESTION_TIMESTAMP);
 
       verifyNoInteractions(historyCommand);
       verify(camundaClient, never()).newCreateAgentHistoryItemCommand(anyLong());
@@ -1108,7 +1149,8 @@ class CamundaAgentInstanceClientTest {
               AssistantMessage.builder().content(MessageUtil.singleTextContent("done")).build(),
               new AgentMetrics(1, TokenUsage.empty(), 0));
 
-      client.createHistoryForAssistantMessage(TestAgentExecutionContext.withLimits(), null, turn);
+      client.createHistoryForAssistantMessage(
+          TestAgentExecutionContext.withLimits(), null, turn, TURN_INGESTION_TIMESTAMP);
 
       verifyNoInteractions(historyCommand);
       verify(camundaClient, never()).newCreateAgentHistoryItemCommand(anyLong());
