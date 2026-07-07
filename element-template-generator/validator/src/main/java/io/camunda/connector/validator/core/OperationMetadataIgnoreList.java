@@ -41,16 +41,12 @@ public final class OperationMetadataIgnoreList {
           "aws-sns",
           "aws-sqs",
           "aws-textract",
-          "azure-open-ai",
-          "blue-prism",
-          "easy-post",
           "email-inbound",
           "email-message-start-event",
           "github",
           "gitlab",
           "google-drive",
           "google-gemini",
-          "google-maps-platform",
           "http",
           "hubspot",
           "hugging-face",
@@ -58,8 +54,6 @@ public final class OperationMetadataIgnoreList {
           "idp-extraction",
           "jdbc",
           "kafka",
-          "mail",
-          "openai",
           "operate",
           "orchestration",
           "power-automate",
@@ -70,10 +64,8 @@ public final class OperationMetadataIgnoreList {
           "servicenow",
           "slack-inbound",
           "soap",
-          "twilio",
-          "uipath",
-          "webhook",
-          "whatsapp");
+          "twilio-webhook",
+          "webhook");
 
   /**
    * Returns true if the given template file lives under any connector directory on the ignore list,

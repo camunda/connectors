@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Google Maps Platform Outbound Connector",
   "id": "io.camunda.connectors.GoogleMapsPlatform.v1",
-  "version": 7,
+  "version": 6,
   "engines": {
     "camunda": "^8.3"
   },
@@ -537,64 +537,6 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Hidden"
-    }
-  ],
-  "steps": [
-    {
-      "name": "Validate address",
-      "description": "Validate and standardize a postal address using the Google Maps Address Validation service.",
-      "keywords": [
-        "address",
-        "validate",
-        "verify",
-        "standardize",
-        "postal"
-      ],
-      "presetId": "operationType_validateAddress"
-    },
-    {
-      "name": "Get place ID",
-      "description": "Look up the Google Maps place ID for a given address or location.",
-      "keywords": [
-        "place",
-        "place id",
-        "lookup",
-        "geocode",
-        "location"
-      ],
-      "presetId": "operationType_getPlaceID"
-    },
-    {
-      "name": "Calculate distance",
-      "description": "Calculate the distance and travel time between origin and destination points.",
-      "keywords": [
-        "distance",
-        "route",
-        "travel time",
-        "directions",
-        "matrix"
-      ],
-      "presetId": "operationType_calculateDistance"
-    }
-  ],
-  "presets": [
-    {
-      "id": "operationType_validateAddress",
-      "properties": {
-        "operationType": "validateAddress"
-      }
-    },
-    {
-      "id": "operationType_getPlaceID",
-      "properties": {
-        "operationType": "getPlaceID"
-      }
-    },
-    {
-      "id": "operationType_calculateDistance",
-      "properties": {
-        "operationType": "calculateDistance"
-      }
     }
   ],
   "icon": {

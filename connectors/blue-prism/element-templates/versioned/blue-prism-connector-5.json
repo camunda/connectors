@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Blue Prism Outbound Connector",
   "id": "io.camunda.connectors.BluePrism.v1",
-  "version": 6,
+  "version": 5,
   "engines": {
     "camunda": "^8.3"
   },
@@ -562,46 +562,6 @@
         "oneOf": [
           "createItemInQueue"
         ]
-      }
-    }
-  ],
-  "steps": [
-    {
-      "name": "Get item from a queue by ID",
-      "description": "Fetch a single work queue item from Blue Prism using its queue item ID.",
-      "keywords": [
-        "get queue item",
-        "fetch item by id",
-        "read work queue item",
-        "retrieve queue item",
-        "lookup item"
-      ],
-      "presetId": "operationType_getItemFromQueueById"
-    },
-    {
-      "name": "Create work queue item",
-      "description": "Add a new item to a Blue Prism work queue with the given data, priority, and status.",
-      "keywords": [
-        "create queue item",
-        "add work item",
-        "add item to queue",
-        "new work queue item",
-        "enqueue item"
-      ],
-      "presetId": "operationType_createItemInQueue"
-    }
-  ],
-  "presets": [
-    {
-      "id": "operationType_getItemFromQueueById",
-      "properties": {
-        "operationType": "getItemFromQueueById"
-      }
-    },
-    {
-      "id": "operationType_createItemInQueue",
-      "properties": {
-        "operationType": "createItemInQueue"
       }
     }
   ],
