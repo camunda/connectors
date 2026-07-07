@@ -30,33 +30,60 @@ import org.slf4j.LoggerFactory;
 public class DisabledConnectorEnvVarsConfig {
   private static final Logger LOG = LoggerFactory.getLogger(DisabledConnectorEnvVarsConfig.class);
 
-  private final HashMap<ConnectorDirection, Set<String>> envVarCache = new HashMap<>();
+  private static final String ENABLED = "ENABLED";
+  private static final String DISABLED = "DISABLED";
+
+  private final HashMap<String, Set<String>> envVarCache = new HashMap<>();
 
   public static boolean isDiscoveryDisabled(ConnectorDirection direction) {
     return getConnectorEnvironmentVariable(direction.name(), "DISCOVERY_DISABLED").isPresent();
   }
 
   public boolean isConnectorDisabled(ConnectorConfiguration config) {
+    var direction = config.direction();
+    var type = config.type().toLowerCase();
+    // Presence (not parsed content) decides the mode: an env var set to an empty/whitespace value
+    // still counts as "set".
+    var enabledSet = getConnectorEnvironmentVariable(direction.name(), ENABLED).isPresent();
+    var disabledSet = getConnectorEnvironmentVariable(direction.name(), DISABLED).isPresent();
 
-    var isDisabled = isConnectorDisabled(config.direction(), config.type().toLowerCase());
-    if (isDisabled) {
-      LOG.info(
-          "Connector {} has been disabled by the CONNECTOR_{}_DISABLED environment variable",
-          config.type(),
-          config.direction().name());
+    // ENABLED (allowlist) and DISABLED (blocklist) are mutually exclusive per direction
+    if (enabledSet && disabledSet) {
+      throw new IllegalStateException(
+          "CONNECTOR_"
+              + direction.name()
+              + "_ENABLED and CONNECTOR_"
+              + direction.name()
+              + "_DISABLED are mutually exclusive, please use only one of them");
+    }
+
+    boolean isDisabled;
+    if (enabledSet) {
+      isDisabled = !getConnectorTypes(direction, true).contains(type);
+      if (isDisabled) {
+        LOG.info(
+            "Connector {} is not in the CONNECTOR_{}_ENABLED allowlist and has been disabled",
+            config.type(),
+            direction.name());
+      }
+    } else {
+      isDisabled = getConnectorTypes(direction, false).contains(type);
+      if (isDisabled) {
+        LOG.info(
+            "Connector {} has been disabled by the CONNECTOR_{}_DISABLED environment variable",
+            config.type(),
+            direction.name());
+      }
     }
     return isDisabled;
   }
 
-  private boolean isConnectorDisabled(ConnectorDirection connectorDirection, String type) {
-    return getDisabledConnectorTypes(connectorDirection).contains(type);
-  }
-
-  private Set<String> getDisabledConnectorTypes(ConnectorDirection direction) {
+  private Set<String> getConnectorTypes(ConnectorDirection direction, boolean enabled) {
+    var state = enabled ? ENABLED : DISABLED;
     return envVarCache.computeIfAbsent(
-        direction,
+        direction.name() + "_" + state,
         key ->
-            getConnectorEnvironmentVariable(key.name(), "DISABLED")
+            getConnectorEnvironmentVariable(direction.name(), state)
                 .map(
                     value ->
                         Arrays.stream(value.split(","))
