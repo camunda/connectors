@@ -11,6 +11,8 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResou
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceDescription;
 import io.modelcontextprotocol.client.McpSyncClient;
 import java.util.Collections;
+import java.util.Map;
+import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,10 +26,13 @@ final class ListResourcesRequest {
     this.clientId = clientId;
   }
 
-  public McpClientListResourcesResult execute(McpSyncClient client, AllowDenyList resourcesFilter) {
+  public McpClientListResourcesResult execute(
+      McpSyncClient client, AllowDenyList resourcesFilter, Map<String, Object> meta) {
     LOGGER.debug("MCP({}): Executing list resources", clientId);
 
-    var fetchedResources = client.listResources().resources();
+    var listResourcesResult =
+        MapUtils.isEmpty(meta) ? client.listResources() : client.listResources(null, meta);
+    var fetchedResources = listResourcesResult.resources();
 
     if (fetchedResources.isEmpty()) {
       LOGGER.debug("MCP({}): No resources found", clientId);
