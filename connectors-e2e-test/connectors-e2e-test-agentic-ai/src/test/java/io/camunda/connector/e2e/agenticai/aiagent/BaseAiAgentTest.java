@@ -43,6 +43,8 @@ import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -60,13 +62,49 @@ import org.springframework.core.io.Resource;
 @Import(CamundaDocumentTestConfiguration.class)
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
+  public static final String HTTPS_KEYSTORE_PASSWORD = "changeit";
+
+  /**
+   * Self-signed keystore backing the WireMock HTTPS port. Also usable as a truststore by clients
+   * that need to trust this same self-signed certificate, since it's a self-signed cert with no
+   * separate CA.
+   */
+  public static Path httpsKeystoreFile() {
+    final var resource =
+        BaseAiAgentTest.class.getResource("/wiremock-https/wiremock-https-keystore.p12");
+    if (resource == null) {
+      throw new IllegalStateException(
+          "Missing test resource /wiremock-https/wiremock-https-keystore.p12");
+    }
+    try {
+      return Path.of(resource.toURI());
+    } catch (URISyntaxException e) {
+      throw new IllegalStateException(
+          "Invalid URI for test resource /wiremock-https/wiremock-https-keystore.p12", e);
+    }
+  }
+
   // Programmatic registration (not @WireMockTest) so we can set a verbose notifier that logs the
   // request journal. We use ConsoleNotifier (stdout) because wiremock-standalone's Slf4jNotifier
   // is bound to its shaded SLF4J and never reaches our logback.
+  //
+  // The HTTPS port (self-signed keystore under wiremock-https/) is functionally needed only by
+  // ProviderWireFormatSmokeTests' AzureOpenAiCompletions row — Azure's SDK unconditionally rejects
+  // non-HTTPS endpoints for API-key auth. All other tests keep using the HTTP port. It's configured
+  // here rather than on a dedicated extension because this field is shared (and initialized once)
+  // across every subclass of BaseAiAgentTest.
   @RegisterExtension
   static WireMockExtension wireMockExtension =
       WireMockExtension.newInstance()
-          .options(options().dynamicPort().notifier(new ConsoleNotifier(true)))
+          .options(
+              options()
+                  .dynamicPort()
+                  .dynamicHttpsPort()
+                  .keystorePath(httpsKeystoreFile().toString())
+                  .keystorePassword(HTTPS_KEYSTORE_PASSWORD)
+                  .keyManagerPassword(HTTPS_KEYSTORE_PASSWORD)
+                  .keystoreType("PKCS12")
+                  .notifier(new ConsoleNotifier(true)))
           .configureStaticDsl(true)
           .build();
 

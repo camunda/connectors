@@ -51,11 +51,17 @@ public final class OpenAiCompletionsRecordedConversation {
 
   /** Reads and parses all recorded {@code POST /v1/chat/completions} requests, oldest first. */
   public static OpenAiCompletionsRecordedConversation recorded() {
+    return recorded(OpenAiCompletionsChatModelStubs.CHAT_COMPLETIONS_PATH);
+  }
+
+  /**
+   * Reads and parses all recorded chat completion requests at the given path, oldest first. Used by
+   * {@code AzureOpenAiCompletionsWireFormatFixture} to read requests recorded at Azure's
+   * deployment-based path instead of {@link OpenAiCompletionsChatModelStubs#CHAT_COMPLETIONS_PATH}.
+   */
+  public static OpenAiCompletionsRecordedConversation recorded(String path) {
     final List<LoggedRequest> loggedRequests =
-        new ArrayList<>(
-            findAll(
-                postRequestedFor(
-                    urlPathEqualTo(OpenAiCompletionsChatModelStubs.CHAT_COMPLETIONS_PATH))));
+        new ArrayList<>(findAll(postRequestedFor(urlPathEqualTo(path))));
 
     // WireMock does not guarantee ordering across versions; sort chronologically
     loggedRequests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
