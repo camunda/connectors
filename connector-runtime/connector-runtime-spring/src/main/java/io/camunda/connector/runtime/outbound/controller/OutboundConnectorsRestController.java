@@ -92,8 +92,14 @@ public class OutboundConnectorsRestController {
 
   /** Returns aggregated outbound connector metrics across all connector types. */
   @GetMapping("/metrics")
-  public OutboundConnectorMetrics getMetrics() {
-    return ConnectorMetricsAggregator.outbound(meterRegistry, null);
+  public List<OutboundConnectorMetrics> getMetrics(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        () -> List.of(ConnectorMetricsAggregator.outbound(meterRegistry, null, hostname)),
+        new TypeReference<>() {});
   }
 
   /**
@@ -102,8 +108,14 @@ public class OutboundConnectorsRestController {
    * @param connectorType connector type (e.g. {@code io.camunda:http-json:1})
    */
   @GetMapping("/metrics/{connectorType}")
-  public OutboundConnectorMetrics getMetricsByType(
+  public List<OutboundConnectorMetrics> getMetricsByType(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
       @PathVariable(name = "connectorType") String connectorType) {
-    return ConnectorMetricsAggregator.outbound(meterRegistry, connectorType);
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        () -> List.of(ConnectorMetricsAggregator.outbound(meterRegistry, connectorType, hostname)),
+        new TypeReference<>() {});
   }
 }

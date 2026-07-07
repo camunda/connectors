@@ -24,9 +24,14 @@ import io.camunda.connector.runtime.inbound.executable.*;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import io.camunda.connector.runtime.instances.service.InboundInstancesService;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
+import io.camunda.connector.runtime.metrics.ConnectorMetricsAggregator;
+import io.camunda.connector.runtime.metrics.InboundConnectorMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,17 +46,28 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/inbound-instances")
 public class InboundInstancesRestController {
 
+  private static final Logger LOG = LoggerFactory.getLogger(InboundInstancesRestController.class);
+
   private final InstanceForwardingRouter instanceForwardingRouter;
   private final InboundInstancesService inboundInstancesService;
+  // null when MeterRegistry is not in the application context (e.g. no Actuator)
+  private final MeterRegistry meterRegistry;
 
   @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
   private String hostname;
 
   public InboundInstancesRestController(
       InstanceForwardingRouter instanceForwardingRouter,
-      InboundInstancesService inboundInstancesService) {
+      InboundInstancesService inboundInstancesService,
+      Optional<MeterRegistry> meterRegistry) {
     this.instanceForwardingRouter = instanceForwardingRouter;
     this.inboundInstancesService = inboundInstancesService;
+    this.meterRegistry = meterRegistry.orElse(null);
+    if (this.meterRegistry == null) {
+      LOG.warn(
+          "No MeterRegistry bean found — inbound metrics endpoints will return empty results. "
+              + "Add spring-boot-starter-actuator to enable metrics.");
+    }
   }
 
   @GetMapping()
@@ -132,5 +148,34 @@ public class InboundInstancesRestController {
                 new TypeReference<>() {}))
         .orElseThrow(
             () -> new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId));
+  }
+
+  /** Returns aggregated inbound connector metrics across all connector types. */
+  @GetMapping("/metrics")
+  public List<InboundConnectorMetrics> getMetrics(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        () -> List.of(ConnectorMetricsAggregator.inbound(meterRegistry, null, hostname)),
+        new TypeReference<>() {});
+  }
+
+  /**
+   * Returns inbound connector metrics for a specific connector type.
+   *
+   * @param connectorType connector type (e.g. {@code io.camunda:webhook:1})
+   */
+  @GetMapping("/metrics/{connectorType}")
+  public List<InboundConnectorMetrics> getMetricsByType(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
+      @PathVariable(name = "connectorType") String connectorType) {
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        () -> List.of(ConnectorMetricsAggregator.inbound(meterRegistry, connectorType, hostname)),
+        new TypeReference<>() {});
   }
 }

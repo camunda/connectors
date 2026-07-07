@@ -22,12 +22,13 @@ import java.time.Instant;
 /**
  * Aggregated outbound connector metrics, grouped into three sections.
  *
+ * @param runtimeId hostname of the runtime node that reported these metrics
  * @param runtime process-level runtime information
  * @param job job execution counters, timing, and last-activity timestamps
  * @param worker Zeebe job-worker level counters
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record OutboundConnectorMetrics(Runtime runtime, Job job, Worker worker) {
+public record OutboundConnectorMetrics(String runtimeId, Runtime runtime, Job job, Worker worker) {
 
   /**
    * @param uptimeSeconds number of seconds the runtime process has been running
