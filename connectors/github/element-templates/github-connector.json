@@ -3927,7 +3927,7 @@
       "steps": [
         {
           "name": "Get branch",
-          "description": "Retrieve information about a single branch in a repository.",
+          "description": "Retrieve information about a single branch in a GitHub repository.",
           "keywords": [
             "get branch",
             "branch info",
@@ -3937,7 +3937,7 @@
         },
         {
           "name": "List branches",
-          "description": "List all branches in a repository.",
+          "description": "List all branches in a GitHub repository.",
           "keywords": [
             "list branches",
             "all branches",
@@ -3947,7 +3947,7 @@
         },
         {
           "name": "Merge branch",
-          "description": "Merge one branch into another in a repository.",
+          "description": "Merge one branch into another in a GitHub repository.",
           "keywords": [
             "merge branch",
             "combine branches",
@@ -3963,7 +3963,7 @@
       "steps": [
         {
           "name": "List alerts for repository",
-          "description": "List code scanning alerts for a repository.",
+          "description": "List code scanning alerts for a GitHub repository.",
           "keywords": [
             "code scanning alerts",
             "repo alerts",
@@ -3974,7 +3974,7 @@
         },
         {
           "name": "List alerts for organization",
-          "description": "List code scanning alerts across an organization.",
+          "description": "List code scanning alerts across a GitHub organization.",
           "keywords": [
             "code scanning alerts",
             "org alerts",
@@ -3991,7 +3991,7 @@
       "steps": [
         {
           "name": "List collaborators",
-          "description": "List the collaborators of a repository.",
+          "description": "List the collaborators of a GitHub repository.",
           "keywords": [
             "list collaborators",
             "repo members",
@@ -4007,7 +4007,7 @@
       "steps": [
         {
           "name": "Create issue",
-          "description": "Create a new issue in a repository.",
+          "description": "Create a new issue in a GitHub repository.",
           "keywords": [
             "create issue",
             "new issue",
@@ -4018,7 +4018,7 @@
         },
         {
           "name": "Create issue comment",
-          "description": "Add a comment to an existing issue.",
+          "description": "Add a comment to an existing GitHub issue.",
           "keywords": [
             "comment issue",
             "add comment",
@@ -4029,7 +4029,7 @@
         },
         {
           "name": "Get issue",
-          "description": "Retrieve a single issue from a repository.",
+          "description": "Retrieve a single issue from a GitHub repository.",
           "keywords": [
             "get issue",
             "read issue",
@@ -4040,7 +4040,7 @@
         },
         {
           "name": "List commits",
-          "description": "List commits associated with an issue or pull request.",
+          "description": "List commits associated with a GitHub issue or pull request.",
           "keywords": [
             "list commits",
             "issue commits",
@@ -4050,7 +4050,7 @@
         },
         {
           "name": "Search issues",
-          "description": "Search for issues matching a query.",
+          "description": "Search for issues on GitHub matching a query.",
           "keywords": [
             "search issues",
             "find issues",
@@ -4060,7 +4060,7 @@
         },
         {
           "name": "Update issue",
-          "description": "Update the fields of an existing issue.",
+          "description": "Update the fields of an existing GitHub issue.",
           "keywords": [
             "update issue",
             "edit issue",
@@ -4077,7 +4077,7 @@
       "steps": [
         {
           "name": "Create label",
-          "description": "Create a new label in a repository.",
+          "description": "Create a new label in a GitHub repository.",
           "keywords": [
             "create label",
             "new label",
@@ -4087,7 +4087,7 @@
         },
         {
           "name": "Delete label",
-          "description": "Delete a label from a repository.",
+          "description": "Delete a label from a GitHub repository.",
           "keywords": [
             "delete label",
             "remove label",
@@ -4097,7 +4097,7 @@
         },
         {
           "name": "Get label",
-          "description": "Retrieve a single label from a repository.",
+          "description": "Retrieve a single label from a GitHub repository.",
           "keywords": [
             "get label",
             "read label",
@@ -4107,7 +4107,7 @@
         },
         {
           "name": "List labels",
-          "description": "List all labels in a repository.",
+          "description": "List all labels in a GitHub repository.",
           "keywords": [
             "list labels",
             "all labels",
@@ -4117,7 +4117,7 @@
         },
         {
           "name": "Update label",
-          "description": "Update the name, color or description of a label.",
+          "description": "Update the name, color or description of a GitHub label.",
           "keywords": [
             "update label",
             "edit label",
@@ -4133,7 +4133,7 @@
       "steps": [
         {
           "name": "Create pull request",
-          "description": "Open a new pull request in a repository.",
+          "description": "Open a new pull request in a GitHub repository.",
           "keywords": [
             "create pull request",
             "open pr",
@@ -4150,7 +4150,7 @@
       "steps": [
         {
           "name": "Create reference",
-          "description": "Create a new Git reference (branch or tag) in a repository.",
+          "description": "Create a new Git reference (branch or tag) in a GitHub repository.",
           "keywords": [
             "create reference",
             "create ref",
@@ -4167,7 +4167,7 @@
       "steps": [
         {
           "name": "Create release",
-          "description": "Create a new release in a repository.",
+          "description": "Create a new release in a GitHub repository.",
           "keywords": [
             "create release",
             "new release",
@@ -4177,7 +4177,7 @@
         },
         {
           "name": "Delete release",
-          "description": "Delete a release from a repository.",
+          "description": "Delete a release from a GitHub repository.",
           "keywords": [
             "delete release",
             "remove release",
@@ -4187,7 +4187,7 @@
         },
         {
           "name": "List releases",
-          "description": "List all releases in a repository.",
+          "description": "List all releases in a GitHub repository.",
           "keywords": [
             "list releases",
             "all releases",
@@ -4197,7 +4197,7 @@
         },
         {
           "name": "Update release",
-          "description": "Update the details of an existing release.",
+          "description": "Update the details of an existing GitHub release.",
           "keywords": [
             "update release",
             "edit release",
@@ -4213,7 +4213,7 @@
       "steps": [
         {
           "name": "Organization invitation",
-          "description": "Invite a user to an organization.",
+          "description": "Invite a user to a GitHub organization.",
           "keywords": [
             "org invitation",
             "invite user",
@@ -4224,7 +4224,7 @@
         },
         {
           "name": "Create organization repository",
-          "description": "Create a new repository within an organization.",
+          "description": "Create a new repository within a GitHub organization.",
           "keywords": [
             "create org repo",
             "new organization repository",
@@ -4234,7 +4234,7 @@
         },
         {
           "name": "Upload file",
-          "description": "Create or update a file in a repository.",
+          "description": "Create or update a file in a GitHub repository.",
           "keywords": [
             "upload file",
             "commit file",
@@ -4245,7 +4245,7 @@
         },
         {
           "name": "Delete repository",
-          "description": "Delete a repository.",
+          "description": "Delete a GitHub repository.",
           "keywords": [
             "delete repo",
             "remove repository",
@@ -4255,7 +4255,7 @@
         },
         {
           "name": "Get repository",
-          "description": "Retrieve details about a repository.",
+          "description": "Retrieve details about a GitHub repository.",
           "keywords": [
             "get repo",
             "repository info",
@@ -4265,7 +4265,7 @@
         },
         {
           "name": "Get repository content",
-          "description": "Retrieve the content of a file or directory in a repository.",
+          "description": "Retrieve the content of a file or directory in a GitHub repository.",
           "keywords": [
             "get content",
             "read file",
@@ -4276,7 +4276,7 @@
         },
         {
           "name": "List organization repositories",
-          "description": "List the repositories of an organization.",
+          "description": "List the repositories of a GitHub organization.",
           "keywords": [
             "list org repos",
             "organization repositories",
@@ -4286,7 +4286,7 @@
         },
         {
           "name": "List repository contributors",
-          "description": "List the contributors of a repository.",
+          "description": "List the contributors of a GitHub repository.",
           "keywords": [
             "list contributors",
             "repo contributors",
@@ -4296,7 +4296,7 @@
         },
         {
           "name": "Update repository",
-          "description": "Update the settings of a repository.",
+          "description": "Update the settings of a GitHub repository.",
           "keywords": [
             "update repo",
             "edit repository",

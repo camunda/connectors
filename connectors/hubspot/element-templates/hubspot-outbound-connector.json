@@ -2381,19 +2381,19 @@
         },
         {
           "name": "Get contact by ID",
-          "description": "Fetch a single contact by its ID.",
+          "description": "Fetch a single contact from HubSpot by its ID.",
           "keywords": [ "get contact", "contact by id", "fetch contact", "read contact" ],
           "presetId": "contacts_getById"
         },
         {
           "name": "Batch read contacts",
-          "description": "Retrieve multiple contacts by their IDs in a single request.",
+          "description": "Retrieve multiple contacts from HubSpot by their IDs in a single request.",
           "keywords": [ "batch read contacts", "multiple contacts", "get contacts by id", "bulk contacts" ],
           "presetId": "contacts_batchRead"
         },
         {
           "name": "Search contacts",
-          "description": "Search contacts by a property value.",
+          "description": "Search contacts in HubSpot by a property value.",
           "keywords": [ "search contacts", "find contact", "query contacts", "filter contacts" ],
           "presetId": "contacts_search"
         },
@@ -2405,13 +2405,13 @@
         },
         {
           "name": "Update contact",
-          "description": "Update the properties of an existing contact.",
+          "description": "Update the properties of an existing contact in HubSpot.",
           "keywords": [ "update contact", "edit contact", "modify contact", "patch contact" ],
           "presetId": "contacts_update"
         },
         {
           "name": "Delete contact",
-          "description": "Delete a contact by its ID.",
+          "description": "Delete a contact from HubSpot by its ID.",
           "keywords": [ "delete contact", "remove contact", "archive contact", "drop contact" ],
           "presetId": "contacts_delete"
         }
@@ -2429,31 +2429,31 @@
         },
         {
           "name": "Get company by ID",
-          "description": "Fetch a single company by its ID.",
+          "description": "Fetch a single company from HubSpot by its ID.",
           "keywords": [ "get company", "company by id", "fetch company", "read company" ],
           "presetId": "companies_getById"
         },
         {
           "name": "Search companies",
-          "description": "Search companies by a property value.",
+          "description": "Search companies in HubSpot by a property value.",
           "keywords": [ "search companies", "find company", "query companies", "filter companies" ],
           "presetId": "companies_search"
         },
         {
           "name": "List company contacts",
-          "description": "Retrieve all contacts associated with a company.",
+          "description": "Retrieve all contacts associated with a company in HubSpot.",
           "keywords": [ "company contacts", "contacts of company", "associated contacts", "list contacts of company" ],
           "presetId": "companies_getContacts"
         },
         {
           "name": "Add contact to company",
-          "description": "Associate a contact with a company.",
+          "description": "Associate a contact with a company in HubSpot.",
           "keywords": [ "add contact to company", "associate contact", "link contact company", "create association" ],
           "presetId": "companies_addContact"
         },
         {
           "name": "Remove contact from company",
-          "description": "Remove the association between a contact and a company.",
+          "description": "Remove the association between a contact and a company in HubSpot.",
           "keywords": [ "remove contact from company", "unlink contact", "archive association", "detach contact" ],
           "presetId": "companies_removeContact"
         },
@@ -2465,7 +2465,7 @@
         },
         {
           "name": "Delete company",
-          "description": "Delete a company by its ID.",
+          "description": "Delete a company from HubSpot by its ID.",
           "keywords": [ "delete company", "remove company", "archive company", "drop company" ],
           "presetId": "companies_delete"
         }
@@ -2483,19 +2483,19 @@
         },
         {
           "name": "Get deal by ID",
-          "description": "Fetch a single deal by its ID.",
+          "description": "Fetch a single deal from HubSpot by its ID.",
           "keywords": [ "get deal", "deal by id", "fetch deal", "read deal" ],
           "presetId": "deals_getById"
         },
         {
           "name": "Search deals",
-          "description": "Search deals by a property value.",
+          "description": "Search deals in HubSpot by a property value.",
           "keywords": [ "search deals", "find deal", "query deals", "filter deals" ],
           "presetId": "deals_search"
         },
         {
           "name": "Delete deal",
-          "description": "Delete a deal by its ID.",
+          "description": "Delete a deal from HubSpot by its ID.",
           "keywords": [ "delete deal", "remove deal", "archive deal", "drop deal" ],
           "presetId": "deals_delete"
         }
@@ -2513,7 +2513,7 @@
         },
         {
           "name": "Add to list",
-          "description": "Add objects such as contacts or companies to a list.",
+          "description": "Add objects such as contacts or companies to a list in HubSpot.",
           "keywords": [ "add to list", "list membership", "add member", "join list" ],
           "presetId": "misc_addToList"
         },

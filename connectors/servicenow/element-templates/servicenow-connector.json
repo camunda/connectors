@@ -974,7 +974,7 @@
       "steps": [
         {
           "name": "Create requested item",
-          "description": "Create a new requested item record in ServiceNow.",
+          "description": "Create a requested item record in ServiceNow.",
           "keywords": [
             "create",
             "new",
@@ -985,7 +985,7 @@
         },
         {
           "name": "Create change request",
-          "description": "Create a new change request record in ServiceNow.",
+          "description": "Create a change request record in ServiceNow.",
           "keywords": [
             "create",
             "new",
@@ -996,7 +996,7 @@
         },
         {
           "name": "Create change task",
-          "description": "Create a new change task record in ServiceNow.",
+          "description": "Create a change task record in ServiceNow.",
           "keywords": [
             "create",
             "new",
@@ -1007,7 +1007,7 @@
         },
         {
           "name": "Create request",
-          "description": "Create a new request record in ServiceNow.",
+          "description": "Create a request record in ServiceNow.",
           "keywords": [
             "create",
             "new",
@@ -1018,7 +1018,7 @@
         },
         {
           "name": "Create catalog task",
-          "description": "Create a new catalog task record in ServiceNow.",
+          "description": "Create a catalog task record in ServiceNow.",
           "keywords": [
             "create",
             "new",
@@ -1029,7 +1029,7 @@
         },
         {
           "name": "Create incident",
-          "description": "Create a new incident record in ServiceNow.",
+          "description": "Create an incident record in ServiceNow.",
           "keywords": [
             "create",
             "new",
@@ -1040,7 +1040,7 @@
         },
         {
           "name": "Create custom table",
-          "description": "Create a new custom table record in ServiceNow.",
+          "description": "Create a record in a custom ServiceNow table.",
           "keywords": [
             "create",
             "new",
@@ -1057,7 +1057,7 @@
       "steps": [
         {
           "name": "Read requested item",
-          "description": "Read requested item records from ServiceNow.",
+          "description": "Read requested item records from a ServiceNow table.",
           "keywords": [
             "read",
             "get",
@@ -1068,7 +1068,7 @@
         },
         {
           "name": "Read change request",
-          "description": "Read change request records from ServiceNow.",
+          "description": "Read change request records from a ServiceNow table.",
           "keywords": [
             "read",
             "get",
@@ -1079,7 +1079,7 @@
         },
         {
           "name": "Read change task",
-          "description": "Read change task records from ServiceNow.",
+          "description": "Read change task records from a ServiceNow table.",
           "keywords": [
             "read",
             "get",
@@ -1090,7 +1090,7 @@
         },
         {
           "name": "Read request",
-          "description": "Read request records from ServiceNow.",
+          "description": "Read request records from a ServiceNow table.",
           "keywords": [
             "read",
             "get",
@@ -1101,7 +1101,7 @@
         },
         {
           "name": "Read catalog task",
-          "description": "Read catalog task records from ServiceNow.",
+          "description": "Read catalog task records from a ServiceNow table.",
           "keywords": [
             "read",
             "get",
@@ -1112,7 +1112,7 @@
         },
         {
           "name": "Read incident",
-          "description": "Read incident records from ServiceNow.",
+          "description": "Read incident records from a ServiceNow table.",
           "keywords": [
             "read",
             "get",
@@ -1123,7 +1123,7 @@
         },
         {
           "name": "Read custom table",
-          "description": "Read custom table records from ServiceNow.",
+          "description": "Read records from a custom ServiceNow table.",
           "keywords": [
             "read",
             "get",
@@ -1140,7 +1140,7 @@
       "steps": [
         {
           "name": "Update requested item",
-          "description": "Update an existing requested item record in ServiceNow.",
+          "description": "Update a requested item record in ServiceNow.",
           "keywords": [
             "update",
             "modify",
@@ -1151,7 +1151,7 @@
         },
         {
           "name": "Update change request",
-          "description": "Update an existing change request record in ServiceNow.",
+          "description": "Update a change request record in ServiceNow.",
           "keywords": [
             "update",
             "modify",
@@ -1162,7 +1162,7 @@
         },
         {
           "name": "Update change task",
-          "description": "Update an existing change task record in ServiceNow.",
+          "description": "Update a change task record in ServiceNow.",
           "keywords": [
             "update",
             "modify",
@@ -1173,7 +1173,7 @@
         },
         {
           "name": "Update request",
-          "description": "Update an existing request record in ServiceNow.",
+          "description": "Update a request record in ServiceNow.",
           "keywords": [
             "update",
             "modify",
@@ -1184,7 +1184,7 @@
         },
         {
           "name": "Update catalog task",
-          "description": "Update an existing catalog task record in ServiceNow.",
+          "description": "Update a catalog task record in ServiceNow.",
           "keywords": [
             "update",
             "modify",
@@ -1195,7 +1195,7 @@
         },
         {
           "name": "Update incident",
-          "description": "Update an existing incident record in ServiceNow.",
+          "description": "Update an incident record in ServiceNow.",
           "keywords": [
             "update",
             "modify",
@@ -1206,7 +1206,7 @@
         },
         {
           "name": "Update custom table",
-          "description": "Update an existing custom table record in ServiceNow.",
+          "description": "Update a record in a custom ServiceNow table.",
           "keywords": [
             "update",
             "modify",
@@ -1223,7 +1223,7 @@
       "steps": [
         {
           "name": "Delete requested item",
-          "description": "Delete a requested item record from ServiceNow.",
+          "description": "Delete a requested item record from a ServiceNow table.",
           "keywords": [
             "delete",
             "remove",
@@ -1234,7 +1234,7 @@
         },
         {
           "name": "Delete change request",
-          "description": "Delete a change request record from ServiceNow.",
+          "description": "Delete a change request record from a ServiceNow table.",
           "keywords": [
             "delete",
             "remove",
@@ -1245,7 +1245,7 @@
         },
         {
           "name": "Delete change task",
-          "description": "Delete a change task record from ServiceNow.",
+          "description": "Delete a change task record from a ServiceNow table.",
           "keywords": [
             "delete",
             "remove",
@@ -1256,7 +1256,7 @@
         },
         {
           "name": "Delete request",
-          "description": "Delete a request record from ServiceNow.",
+          "description": "Delete a request record from a ServiceNow table.",
           "keywords": [
             "delete",
             "remove",
@@ -1267,7 +1267,7 @@
         },
         {
           "name": "Delete catalog task",
-          "description": "Delete a catalog task record from ServiceNow.",
+          "description": "Delete a catalog task record from a ServiceNow table.",
           "keywords": [
             "delete",
             "remove",
@@ -1278,7 +1278,7 @@
         },
         {
           "name": "Delete incident",
-          "description": "Delete a incident record from ServiceNow.",
+          "description": "Delete an incident record from a ServiceNow table.",
           "keywords": [
             "delete",
             "remove",
@@ -1289,7 +1289,7 @@
         },
         {
           "name": "Delete custom table",
-          "description": "Delete a custom table record from ServiceNow.",
+          "description": "Delete a record from a custom ServiceNow table.",
           "keywords": [
             "delete",
             "remove",
