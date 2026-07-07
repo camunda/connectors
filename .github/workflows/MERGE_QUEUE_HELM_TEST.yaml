@@ -494,7 +494,7 @@ jobs:
           OPENAI_API_KEY: ${{ steps.secrets.outputs.OPENAI_API_KEY }}
         run: |
           ./mvnw verify \
-            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent-connector \
             -am \
             -Pit-real-llm \
             --batch-mode

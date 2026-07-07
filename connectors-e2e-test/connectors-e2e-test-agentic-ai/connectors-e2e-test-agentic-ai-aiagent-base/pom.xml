@@ -1,0 +1,65 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connectors-e2e-test-agentic-ai</artifactId>
+    <relativePath>../pom.xml</relativePath>
+    <version>8.10.0-SNAPSHOT</version>
+  </parent>
+
+  <description>Shared scaffolding for AI Agent E2E Tests (job worker + outbound connector)</description>
+  <name>Connectors E2e Test Agentic Ai - AI Agent Base</name>
+  <artifactId>connectors-e2e-test-agentic-ai-aiagent-base</artifactId>
+  <packaging>jar</packaging>
+
+  <!-- Shared AI-agent test classes live in src/main/java, so their libraries need compile scope. -->
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connectors-e2e-test-agentic-ai-base</artifactId>
+      <version>${project.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-agentic-ai</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!-- Compile scope overrides the parent's managed test scope so the shared classes compile. -->
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>camunda-process-test-spring</artifactId>
+      <version>${version.camunda}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <!-- Not compiled against, but required on the test runtime classpath of the leaf modules:
+         connector-http-json backs the HTTP tasks in the BPMNs, langchain4j backs the model. -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-http-json</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j</artifactId>
+    </dependency>
+  </dependencies>
+</project>
