@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.wiremock.azureopenai;
+package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.azureopenai.AzureOpenAiCompletionsChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.azureopenai.AzureOpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
@@ -31,9 +31,11 @@ import java.util.function.Function;
  * Plugs Azure OpenAI's Chat Completions wire format into the provider-agnostic {@link
  * ProviderWireFormatFixture} SPI.
  *
- * <p>The request/response body shape is identical to {@code OpenAiCompletionsWireFormatFixture};
- * see {@code AzureOpenAiCompletionsChatModelStubs} for details. Only the URL (deployment-based,
- * {@code {endpoint}/openai/deployments/{deploymentId}/chat/completions}) and authentication differ.
+ * <p>The request/response body shape is byte-for-byte identical to OpenAI's, so this fixture reuses
+ * {@link OpenAiCompletionsChatModelStubs}, {@link OpenAiCompletionsRecordedConversation} and {@link
+ * OpenAiCompletionsRecordedChatRequestAdapter} directly rather than duplicating them — only the URL
+ * (deployment-based, {@code {endpoint}/openai/deployments/{deploymentId}/chat/completions}) and
+ * authentication differ, which this class configures below.
  *
  * <p>Azure's SDK ({@code azure-core}'s {@code KeyCredentialPolicy}) unconditionally rejects
  * non-HTTPS endpoints when using API-key authentication (hardcoded, no builder-level bypass) — so
@@ -46,6 +48,9 @@ import java.util.function.Function;
  * OpenAI/Anthropic/Bedrock.
  */
 public final class AzureOpenAiCompletionsWireFormatFixture implements ProviderWireFormatFixture {
+
+  private static final String CHAT_COMPLETIONS_PATH =
+      "/openai/deployments/test-model/chat/completions";
 
   @Override
   public String apiName() {
@@ -71,7 +76,8 @@ public final class AzureOpenAiCompletionsWireFormatFixture implements ProviderWi
 
   @Override
   public void stubConversation(TurnStub... turns) {
-    AzureOpenAiCompletionsChatModelStubs.stubConversation(
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        CHAT_COMPLETIONS_PATH,
         Arrays.stream(turns)
             .map(AzureOpenAiCompletionsWireFormatFixture::toStubTurn)
             .toArray(Turn[]::new));
@@ -93,8 +99,8 @@ public final class AzureOpenAiCompletionsWireFormatFixture implements ProviderWi
 
   @Override
   public List<RecordedChatRequest> recordedRequests() {
-    return AzureOpenAiCompletionsRecordedConversation.recorded().requests().stream()
-        .<RecordedChatRequest>map(AzureOpenAiCompletionsRecordedChatRequestAdapter::new)
+    return OpenAiCompletionsRecordedConversation.recorded(CHAT_COMPLETIONS_PATH).requests().stream()
+        .<RecordedChatRequest>map(OpenAiCompletionsRecordedChatRequestAdapter::new)
         .toList();
   }
 }

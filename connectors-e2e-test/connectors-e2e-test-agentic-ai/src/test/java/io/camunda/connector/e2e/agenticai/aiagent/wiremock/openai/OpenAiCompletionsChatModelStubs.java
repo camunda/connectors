@@ -66,6 +66,15 @@ public final class OpenAiCompletionsChatModelStubs {
 
   /** Wires the scenario chain returning each turn's response in order. */
   public static void stubConversation(Turn... turns) {
+    stubConversation(CHAT_COMPLETIONS_PATH, turns);
+  }
+
+  /**
+   * Wires the scenario chain returning each turn's response in order, at the given path. Used by
+   * {@code AzureOpenAiCompletionsWireFormatFixture} to stub the same wire format at Azure's
+   * deployment-based path instead of {@link #CHAT_COMPLETIONS_PATH}.
+   */
+  public static void stubConversation(String path, Turn... turns) {
     final var turnList = Arrays.asList(turns);
     if (turnList.isEmpty()) {
       throw new IllegalArgumentException("At least one conversation turn is required");
@@ -75,7 +84,7 @@ public final class OpenAiCompletionsChatModelStubs {
       final String fromState = i == 0 ? Scenario.STARTED : stateName(i);
 
       ScenarioMappingBuilder mapping =
-          post(urlPathEqualTo(CHAT_COMPLETIONS_PATH))
+          post(urlPathEqualTo(path))
               .inScenario(SCENARIO_NAME)
               .whenScenarioStateIs(fromState)
               .willReturn(createResponse(turns[i]));
