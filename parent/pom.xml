@@ -158,7 +158,7 @@ limitations under the License.</license.inlineheader>
     
     <version.langchain4j>1.17.2</version.langchain4j>
     <!-- CVE-2026-9563: parsson transitive override — remove once langchain4j-opensearch ships parsson >= 1.1.8
-         Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/4192 -->
+         Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
     <version.parsson>1.1.9</version.parsson>
 
     <!-- maven plugins (not managed by parent) -->
@@ -190,8 +190,8 @@ limitations under the License.</license.inlineheader>
         <version>${version.jackson-datatype-jsr310}</version>
       </dependency>
 
-      <!-- CVE-2026-9563: override parsson transitive version brought in via langchain4j-opensearch.
-           Remove once langchain4j-opensearch ships parsson >= 1.1.8 (see version.parsson property). -->
+      <!-- CVE-2026-9563 (https://nvd.nist.gov/vuln/detail/CVE-2026-9563): override parsson transitive
+           version brought in via langchain4j-opensearch. Remove once it ships parsson >= 1.1.8. -->
       <dependency>
         <groupId>org.eclipse.parsson</groupId>
         <artifactId>parsson</artifactId>
@@ -867,12 +867,12 @@ limitations under the License.</license.inlineheader>
                    check whether the parsson override can be removed (see version.parsson). -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>1\.17\.2</regex>
+                <regex>^1\.17\.2$</regex>
                 <regexMessage>
-langchain4j version was bumped! Check if the parsson CVE override can be removed.
-If the new langchain4j-opensearch version ships parsson &gt;= 1.1.8, remove the version.parsson property
-and the parsson dependencyManagement entry from parent/pom.xml, then remove this enforcer rule.
-Ref: https://cve-registry.infosec.camunda-it.rocks/team/3/finding/4192
+version.langchain4j was changed! Check if the parsson CVE-2026-9563 override can be removed.
+If the new langchain4j-opensearch version ships parsson &gt;= 1.1.8, remove the version.parsson property,
+the parsson dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+See: https://nvd.nist.gov/vuln/detail/CVE-2026-9563
                 </regexMessage>
               </requireProperty>
             </rules>
