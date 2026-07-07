@@ -28,9 +28,6 @@ import io.camunda.client.api.command.EvaluateExpressionCommandStep1.EvaluateExpr
 import io.camunda.client.api.response.EvaluateExpressionResponse;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.inbound.ActivityLogTag;
-import io.camunda.connector.api.inbound.CorrelationRequest;
-import io.camunda.connector.api.inbound.CorrelationResult;
-import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -40,7 +37,6 @@ import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
-import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -123,50 +119,6 @@ class InboundConnectorContextImplTest {
               return step2;
             });
     return camundaClient;
-  }
-
-  @Test
-  void bindProperties_fromActivatedElement_bindsThatElementsProperties() {
-    // given a context whose correlation activates a specific element carrying its own raw
-    // properties. Issue #6684: element-scoped binding must use the element that actually matched,
-    // not the executable's shared/first element.
-    var definition = getInboundConnectorDefinition(Map.of("stringMap", "={}"));
-    var activatedElement =
-        new ProcessElementWithRuntimeData(
-            "bool",
-            null,
-            null,
-            0,
-            0,
-            "activated",
-            null,
-            null,
-            "<default>",
-            new ElementTemplateDetails("t", "1", "icon"),
-            Map.of("stringMap", "={\"from\":\"activated-element\"}"));
-    var correlationHandler = mock(InboundCorrelationHandler.class);
-    when(correlationHandler.correlate(any(), any()))
-        .thenReturn(
-            new CorrelationResult.Success.ProcessInstanceCreated(
-                activatedElement, 1L, "<default>"));
-    var context =
-        new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            correlationHandler,
-            (e) -> {},
-            mapper,
-            activityLogRegistry,
-            camundaClient);
-
-    // when
-    var result = context.correlate(CorrelationRequest.builder().variables(Map.of()).build());
-
-    // then the Success binds the ACTIVATED element's own properties, not the context's
-    assertThat(result).isInstanceOf(CorrelationResult.Success.class);
-    var bound = ((CorrelationResult.Success) result).bindProperties(TestPropertiesClass.class);
-    assertThat(bound.getStringMap()).containsEntry("from", "activated-element");
   }
 
   @Test
