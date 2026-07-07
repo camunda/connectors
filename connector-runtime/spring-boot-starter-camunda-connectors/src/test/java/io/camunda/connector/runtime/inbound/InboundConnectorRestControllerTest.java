@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
@@ -31,6 +32,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -65,15 +67,16 @@ class InboundConnectorRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/inbound/metrics/" + type))
+            .perform(get("/inbound-instances/metrics/" + type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    InboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
+    InboundConnectorMetrics m = metrics.getFirst();
     assertEquals(3L, m.activation().activated());
     assertEquals(0L, m.activation().deactivated());
     assertEquals(1L, m.activation().activationFailed());
@@ -102,15 +105,16 @@ class InboundConnectorRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/inbound/metrics/" + type))
+            .perform(get("/inbound-instances/metrics/" + type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    InboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
+    InboundConnectorMetrics m = metrics.getFirst();
     assertEquals(10L, m.trigger().triggered());
     assertEquals(9L, m.trigger().correlated());
     assertEquals(0L, m.trigger().correlationFailed());
@@ -134,16 +138,16 @@ class InboundConnectorRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/inbound/metrics/" + typeA))
+            .perform(get("/inbound-instances/metrics/" + typeA))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    InboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
-    assertEquals(5L, m.activation().activated());
+    assertEquals(5L, metrics.getFirst().activation().activated());
   }
 
   @Test
@@ -157,16 +161,16 @@ class InboundConnectorRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/inbound/metrics/" + type))
+            .perform(get("/inbound-instances/metrics/" + type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    InboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
-    assertEquals(4L, m.activation().activated());
+    assertEquals(4L, metrics.getFirst().activation().activated());
   }
 
   @Test
@@ -179,15 +183,16 @@ class InboundConnectorRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/inbound/metrics/" + type))
+            .perform(get("/inbound-instances/metrics/" + type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    InboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
+    InboundConnectorMetrics m = metrics.getFirst();
     assertEquals(Instant.ofEpochMilli(epochMs), m.activation().lastActivated());
     assertNull(m.trigger().lastTriggered());
   }
@@ -202,15 +207,16 @@ class InboundConnectorRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/inbound/metrics/" + type))
+            .perform(get("/inbound-instances/metrics/" + type))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    InboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
+    InboundConnectorMetrics m = metrics.getFirst();
     assertNull(m.activation().lastActivated());
     assertEquals(Instant.ofEpochMilli(epochMs), m.trigger().lastTriggered());
   }
@@ -232,16 +238,16 @@ class InboundConnectorRestControllerTest {
 
     var response =
         mockMvc
-            .perform(get("/inbound/metrics"))
+            .perform(get("/inbound-instances/metrics"))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    InboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(response, InboundConnectorMetrics.class);
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
     // activated must include at least the 8 (5+3) we just registered
-    assertTrue(m.activation().activated() >= 8L);
+    assertTrue(metrics.getFirst().activation().activated() >= 8L);
   }
 }

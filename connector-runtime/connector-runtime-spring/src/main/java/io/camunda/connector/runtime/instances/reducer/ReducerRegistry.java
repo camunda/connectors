@@ -20,6 +20,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
+import io.camunda.connector.runtime.metrics.InboundConnectorMetrics;
+import io.camunda.connector.runtime.metrics.OutboundConnectorMetrics;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import java.lang.reflect.Type;
 import java.util.Collection;
@@ -52,6 +54,12 @@ public class ReducerRegistry {
         Reducers.mergeListsReducer());
     reducers.put(
         new TypeReference<List<OutboundConnectorResponse>>() {}.getType(),
+        Reducers.mergeListsReducer());
+    reducers.put(
+        new TypeReference<List<OutboundConnectorMetrics>>() {}.getType(),
+        Reducers.mergeListsReducer());
+    reducers.put(
+        new TypeReference<List<InboundConnectorMetrics>>() {}.getType(),
         Reducers.mergeListsReducer());
   }
 
