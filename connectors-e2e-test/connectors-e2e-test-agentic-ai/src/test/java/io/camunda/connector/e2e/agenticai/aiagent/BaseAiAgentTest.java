@@ -43,6 +43,8 @@ import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -67,7 +69,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
    * (e.g. Azure's SDK) that need to trust this same self-signed certificate, since it's a
    * self-signed cert with no separate CA.
    */
-  public static java.nio.file.Path httpsKeystoreFile() {
+  public static Path httpsKeystoreFile() {
     final var resource =
         BaseAiAgentTest.class.getResource("/wiremock-https/azure-wiremock-https-keystore.p12");
     if (resource == null) {
@@ -75,8 +77,8 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
           "Missing test resource /wiremock-https/azure-wiremock-https-keystore.p12");
     }
     try {
-      return java.nio.file.Path.of(resource.toURI());
-    } catch (java.net.URISyntaxException e) {
+      return Path.of(resource.toURI());
+    } catch (URISyntaxException e) {
       throw new IllegalStateException(
           "Invalid URI for test resource /wiremock-https/azure-wiremock-https-keystore.p12", e);
     }
