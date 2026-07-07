@@ -197,10 +197,11 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    OutboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy()
-            .readValue(response, OutboundConnectorMetrics.class);
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
+    OutboundConnectorMetrics m = metrics.getFirst();
+    assertEquals("localhost", m.runtimeId());
     assertEquals(10L, m.job().completed());
     assertEquals(2L, m.job().failed());
     assertEquals(1L, m.job().bpmnError());
@@ -230,10 +231,10 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    OutboundConnectorMetrics worker =
-        ConnectorsObjectMapperSupplier.getCopy()
-            .readValue(response, OutboundConnectorMetrics.class);
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
+    OutboundConnectorMetrics worker = metrics.getFirst();
     assertEquals(5L, worker.worker().jobsActivated());
     assertEquals(4L, worker.worker().jobsHandled());
     assertEquals(1L, worker.worker().streamRecreations());
@@ -260,11 +261,10 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    OutboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy()
-            .readValue(response, OutboundConnectorMetrics.class);
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
-    assertEquals(3L, m.worker().jobsActivated());
+    assertEquals(3L, metrics.getFirst().worker().jobsActivated());
   }
 
   @Test
@@ -283,11 +283,10 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    OutboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy()
-            .readValue(response, OutboundConnectorMetrics.class);
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
-    assertEquals(6L, m.worker().jobsActivated());
+    assertEquals(6L, metrics.getFirst().worker().jobsActivated());
   }
 
   @Test
@@ -311,11 +310,10 @@ class OutboundConnectorsRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    OutboundConnectorMetrics m =
-        ConnectorsObjectMapperSupplier.getCopy()
-            .readValue(response, OutboundConnectorMetrics.class);
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
     // jobsActivated must include at least the 10 (3+7) we just registered
-    assertTrue(m.worker().jobsActivated() >= 10L);
+    assertTrue(metrics.getFirst().worker().jobsActivated() >= 10L);
   }
 }
