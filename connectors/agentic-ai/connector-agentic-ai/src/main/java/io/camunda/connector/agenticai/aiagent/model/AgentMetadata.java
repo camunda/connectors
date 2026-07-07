@@ -16,14 +16,20 @@ import org.jspecify.annotations.Nullable;
  * @param processDefinitionKey The key of the process definition this agent was initialized with
  * @param processInstanceKey The key of the process instance this agent is executing in
  * @param agentInstanceKey The key of the agent instance created on the engine, if any
+ * @param lastIterationKey The highest turn iterationKey persisted so far, if any. Authoritative
+ *     counter for the next turn's iterationKey; absent for conversations created before this field
+ *     was introduced, or right after a process definition migration reset.
  */
 @AgenticAiRecord
 public record AgentMetadata(
-    Long processDefinitionKey, Long processInstanceKey, @Nullable Long agentInstanceKey)
+    Long processDefinitionKey,
+    Long processInstanceKey,
+    @Nullable Long agentInstanceKey,
+    @Nullable Integer lastIterationKey)
     implements AgentMetadataBuilder.With {
 
   public static AgentMetadata of(JobContext jobContext) {
     return new AgentMetadata(
-        jobContext.getProcessDefinitionKey(), jobContext.getProcessInstanceKey(), null);
+        jobContext.getProcessDefinitionKey(), jobContext.getProcessInstanceKey(), null, null);
   }
 }

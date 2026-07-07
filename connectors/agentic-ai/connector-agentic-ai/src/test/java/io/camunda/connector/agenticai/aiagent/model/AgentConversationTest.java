@@ -52,6 +52,48 @@ class AgentConversationTest {
   }
 
   @Test
+  void rehydrate_usesStoredLastIterationKey_whenPresent() {
+    // stored key (5) disagrees with the reconstructed count (1 turn) on purpose: the stored value
+    // must win regardless
+    var contextWithStoredKey =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .metadata(new AgentMetadata(1L, 1L, null, 5))
+            .build();
+    var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
+    var history = TurnReconstructor.reconstruct(storedMessages);
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            contextWithStoredKey,
+            history,
+            systemMessage("sys"),
+            List.of(userMessage("next")));
+
+    assertThat(conv.currentTurn().iterationKey()).isEqualTo(6);
+  }
+
+  @Test
+  void rehydrate_fallsBackToReconstructedCount_whenStoredKeyAbsent() {
+    var contextWithMetadataNoKey =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .metadata(new AgentMetadata(1L, 1L, null, null))
+            .build();
+    var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
+    var history = TurnReconstructor.reconstruct(storedMessages);
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            contextWithMetadataNoKey,
+            history,
+            systemMessage("sys"),
+            List.of(userMessage("next")));
+
+    assertThat(conv.currentTurn().iterationKey()).isEqualTo(2);
+  }
+
+  @Test
   void rehydrate_createsPendingTurn_withInputMessages() {
     var inputMessages = List.<Message>of(userMessage("hello"));
     var conv = rehydrate(List.of(), inputMessages);
@@ -117,6 +159,37 @@ class AgentConversationTest {
             .ingest(assistantMessage("hello"), new AgentMetrics(1, new TokenUsage(10, 5), 0));
     var ctx = conv.toAgentContext();
     assertThat(ctx.metrics().modelCalls()).isEqualTo(1);
+  }
+
+  @Test
+  void toAgentContext_stampsLastIterationKeyOnMetadata() {
+    var contextWithMetadata =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .metadata(new AgentMetadata(1L, 1L, null, null))
+            .build();
+    var history = TurnReconstructor.reconstruct(List.of());
+    var conv =
+        AgentConversation.rehydrate(
+                CONFIG,
+                contextWithMetadata,
+                history,
+                systemMessage("sys"),
+                List.of(userMessage("hi")))
+            .ingest(assistantMessage("hello"), AgentMetrics.empty());
+
+    var ctx = conv.toAgentContext();
+    assertThat(ctx.metadata().lastIterationKey()).isEqualTo(1);
+  }
+
+  @Test
+  void toAgentContext_leavesMetadataNull_whenAbsent() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("hello"), AgentMetrics.empty());
+
+    var ctx = conv.toAgentContext();
+    assertThat(ctx.metadata()).isNull();
   }
 
   @Test

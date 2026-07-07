@@ -99,7 +99,7 @@ class AgentInitializerTest {
     private static final Long PROCESS_DEFINITION_KEY = 123456789L;
     private static final Long PROCESS_INSTANCE_KEY = 987654321L;
     private static final AgentMetadata EXECUTION_METADATA =
-        new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+        new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
 
     @BeforeEach
     void setUp() {
@@ -146,7 +146,7 @@ class AgentInitializerTest {
       final var result = agentInitializer.initializeAgent(executionContext);
 
       final var expectedMetadata =
-          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 12345L);
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 12345L, null);
       assertThat(result)
           .isInstanceOfSatisfying(
               ReadyToConverse.class,
@@ -189,7 +189,7 @@ class AgentInitializerTest {
     private static final AgentContext AGENT_CONTEXT =
         AgentContext.empty()
             .withProperty("hello", "world")
-            .withMetadata(new AgentMetadata(123456789L, 987654321L, 99999L));
+            .withMetadata(new AgentMetadata(123456789L, 987654321L, 99999L, null));
 
     @BeforeEach
     void setUp() {
@@ -494,7 +494,7 @@ class AgentInitializerTest {
       final var result = agentInitializer.initializeAgent(executionContext);
 
       final var expectedMetadata =
-          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       assertThat(result)
           .isInstanceOfSatisfying(
               ReadyToConverse.class,
@@ -507,7 +507,7 @@ class AgentInitializerTest {
     @Test
     void shouldTriggerToolUpdateWhenProcessDefinitionKeyChanged() {
       final var originalMetadata =
-          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       final var agentContext =
           AgentContext.empty()
               .withState(AgentState.READY)
@@ -525,7 +525,7 @@ class AgentInitializerTest {
       final var result = agentInitializer.initializeAgent(executionContext);
 
       final var expectedMetadata =
-          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       assertThat(result)
           .isInstanceOfSatisfying(
               ReadyToConverse.class,
@@ -538,7 +538,7 @@ class AgentInitializerTest {
     @Test
     void shouldSkipToolUpdateWhenProcessDefinitionKeyMatches() {
       final var metadata =
-          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       final var agentContext =
           AgentContext.empty()
               .withState(AgentState.READY)
@@ -594,7 +594,7 @@ class AgentInitializerTest {
     @Test
     void shouldSkipAgentInstanceCreationWhenKeyAlreadyPresent() {
       final var existingMetadata =
-          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 99L);
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 99L, null);
       final var agentContext =
           AgentContext.empty().withState(AgentState.INITIALIZING).withMetadata(existingMetadata);
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
@@ -610,7 +610,7 @@ class AgentInitializerTest {
     @Test
     void shouldSkipAgentInstanceCreationOnMissingAgentInstanceKeyInExistingAgentContext() {
       final var existingMetadata =
-          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       // one step ahead of the initialization state
       final var agentContext =
           AgentContext.empty().withState(AgentState.TOOL_DISCOVERY).withMetadata(existingMetadata);
@@ -645,7 +645,8 @@ class AgentInitializerTest {
 
     @Test
     void shouldResolveCompletedAtBeforeDispatchingAndUseTheResolvedResults() {
-      final var metadata = new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+      final var metadata =
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       final var agentContext =
           AgentContext.empty()
               .withState(AgentState.READY)
