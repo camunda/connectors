@@ -10,6 +10,7 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.csv.model.*;
 import io.camunda.connector.csv.model.ReadCsvRequest.RowType;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
@@ -195,6 +196,28 @@ public class CsvConnectorTests {
     assertNotNull(result);
     assertEquals(
         "name,role\r\nSimon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.content());
+  }
+
+  @Test
+  public void testWriteObjectsWithoutHeadersThrows() {
+    var context = OutboundConnectorContextBuilder.create().build();
+    var nullHeaders =
+        new WriteCsvRequest(
+            asList(Map.of("name", "Simon", "role", "Engineering Manager")),
+            false,
+            new CsvFormat(",", true, null));
+    assertThatThrownBy(() -> connector.writeCsv(nullHeaders, context))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("Headers must be defined");
+
+    var emptyHeaders =
+        new WriteCsvRequest(
+            asList(Map.of("name", "Simon", "role", "Engineering Manager")),
+            false,
+            new CsvFormat(",", true, List.of()));
+    assertThatThrownBy(() -> connector.writeCsv(emptyHeaders, context))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("Headers must be defined");
   }
 
   private static List<Map<String, Object>> toList(ReadCsvResult result) {
