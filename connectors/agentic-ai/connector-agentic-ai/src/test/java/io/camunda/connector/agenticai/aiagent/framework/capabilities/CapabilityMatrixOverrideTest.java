@@ -111,6 +111,6 @@ class CapabilityMatrixOverrideTest {
       ApplicationContext context, String apiFamily, String modelId) {
     return context
         .getBean(ModelCapabilitiesResolver.class)
-        .resolve(apiFamily, modelId, Optional.empty());
+        .resolve(apiFamily, modelId, null, Optional.empty());
   }
 }

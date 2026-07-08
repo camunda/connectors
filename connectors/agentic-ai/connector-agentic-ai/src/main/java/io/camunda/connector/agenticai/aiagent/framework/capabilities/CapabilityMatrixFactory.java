@@ -97,7 +97,7 @@ public final class CapabilityMatrixFactory {
             ? objectMapper.createObjectNode()
             : objectMapper.valueToTree(entry.capabilities());
 
-    return new ModelEntry(id, entry.aliases(), resolvedPatterns, capabilities);
+    return new ModelEntry(id, entry.aliases(), resolvedPatterns, entry.backend(), capabilities);
   }
 
   private static List<String> nonBlank(List<String> values) {

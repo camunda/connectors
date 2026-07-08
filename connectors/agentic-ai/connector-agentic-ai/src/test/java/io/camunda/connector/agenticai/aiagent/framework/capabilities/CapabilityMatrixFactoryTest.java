@@ -26,7 +26,8 @@ class CapabilityMatrixFactoryTest {
   @Test
   void rejectsEntryDeclaringBothIdAndPattern() {
     final var entry =
-        new ModelEntryProperties("claude-opus-4-7", List.of("claude-opus-*"), List.of(), null);
+        new ModelEntryProperties(
+            "claude-opus-4-7", List.of("claude-opus-*"), List.of(), null, null);
     final var properties =
         new AgenticAiFrameworkProperties(
             Map.of("anthropic-messages", new ApiFamilyProperties(null, Map.of("opus", entry))));
@@ -40,7 +41,7 @@ class CapabilityMatrixFactoryTest {
   void rejectsPatternEntryDeclaringAliases() {
     final var entry =
         new ModelEntryProperties(
-            null, List.of("claude-opus-*"), List.of("claude-opus-latest"), null);
+            null, List.of("claude-opus-*"), List.of("claude-opus-latest"), null, null);
     final var properties =
         new AgenticAiFrameworkProperties(
             Map.of("anthropic-messages", new ApiFamilyProperties(null, Map.of("opus", entry))));

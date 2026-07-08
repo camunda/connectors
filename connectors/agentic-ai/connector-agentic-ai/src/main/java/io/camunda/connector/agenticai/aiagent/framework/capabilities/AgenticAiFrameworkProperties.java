@@ -55,6 +55,7 @@ public record AgenticAiFrameworkProperties(Map<String, ApiFamilyProperties> capa
       @Nullable String id,
       List<String> pattern,
       List<String> aliases,
+      @Nullable String backend,
       @Nullable ModelCapabilitiesData capabilities) {
 
     public ModelEntryProperties {

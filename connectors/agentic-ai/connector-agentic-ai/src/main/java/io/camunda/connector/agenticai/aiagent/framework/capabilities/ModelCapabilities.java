@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.capabilities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -16,7 +17,12 @@ import org.jspecify.annotations.Nullable;
  * tool-result strategy selection, reasoning negotiation, and cache-marker placement. The vocabulary
  * for {@link Modality} is fixed; modality lists per location are symmetric so every location has an
  * explicit answer.
+ *
+ * <p>Not Jackson-deserialized directly (the resolver deserialises the sparse {@link
+ * ModelCapabilitiesData} DTO and projects it onto this shape), so {@link #builder()} exposes the
+ * plain generated {@code @AgenticAiRecord} builder without a Jackson proxy builder.
  */
+@AgenticAiRecord
 public record ModelCapabilities(
     List<Modality> userMessageModalities,
     List<Modality> toolResultModalities,
@@ -26,90 +32,11 @@ public record ModelCapabilities(
     boolean supportsPromptCaching,
     boolean supportsParallelToolCalls,
     @Nullable Integer contextWindow,
-    @Nullable Integer maxOutputTokens) {
+    @Nullable Integer maxOutputTokens)
+    implements ModelCapabilitiesBuilder.With {
 
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  /**
-   * Hand-written builder (not Jackson-bound; {@link ModelCapabilities} is a plain SPI value
-   * produced either by the resolver's YAML round-trip or directly by a {@link
-   * io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi} implementation). Defaults
-   * mirror the conservative baseline: empty modality lists, all capability flags {@code false}, no
-   * pinned token budgets.
-   */
-  public static final class Builder {
-    private List<Modality> userMessageModalities = List.of();
-    private List<Modality> toolResultModalities = List.of();
-    private List<Modality> assistantMessageModalities = List.of();
-    private boolean supportsReasoning = false;
-    private boolean supportsReasoningSignatureRoundtrip = false;
-    private boolean supportsPromptCaching = false;
-    private boolean supportsParallelToolCalls = false;
-    private @Nullable Integer contextWindow;
-    private @Nullable Integer maxOutputTokens;
-
-    private Builder() {}
-
-    public Builder userMessageModalities(List<Modality> userMessageModalities) {
-      this.userMessageModalities = userMessageModalities;
-      return this;
-    }
-
-    public Builder toolResultModalities(List<Modality> toolResultModalities) {
-      this.toolResultModalities = toolResultModalities;
-      return this;
-    }
-
-    public Builder assistantMessageModalities(List<Modality> assistantMessageModalities) {
-      this.assistantMessageModalities = assistantMessageModalities;
-      return this;
-    }
-
-    public Builder supportsReasoning(boolean supportsReasoning) {
-      this.supportsReasoning = supportsReasoning;
-      return this;
-    }
-
-    public Builder supportsReasoningSignatureRoundtrip(
-        boolean supportsReasoningSignatureRoundtrip) {
-      this.supportsReasoningSignatureRoundtrip = supportsReasoningSignatureRoundtrip;
-      return this;
-    }
-
-    public Builder supportsPromptCaching(boolean supportsPromptCaching) {
-      this.supportsPromptCaching = supportsPromptCaching;
-      return this;
-    }
-
-    public Builder supportsParallelToolCalls(boolean supportsParallelToolCalls) {
-      this.supportsParallelToolCalls = supportsParallelToolCalls;
-      return this;
-    }
-
-    public Builder contextWindow(@Nullable Integer contextWindow) {
-      this.contextWindow = contextWindow;
-      return this;
-    }
-
-    public Builder maxOutputTokens(@Nullable Integer maxOutputTokens) {
-      this.maxOutputTokens = maxOutputTokens;
-      return this;
-    }
-
-    public ModelCapabilities build() {
-      return new ModelCapabilities(
-          userMessageModalities,
-          toolResultModalities,
-          assistantMessageModalities,
-          supportsReasoning,
-          supportsReasoningSignatureRoundtrip,
-          supportsPromptCaching,
-          supportsParallelToolCalls,
-          contextWindow,
-          maxOutputTokens);
-    }
+  public static ModelCapabilitiesBuilder builder() {
+    return ModelCapabilitiesBuilder.builder();
   }
 
   /**

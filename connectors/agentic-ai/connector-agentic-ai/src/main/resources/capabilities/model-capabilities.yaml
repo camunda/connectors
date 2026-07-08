@@ -18,13 +18,23 @@
 #     defaults:    capability block applied to every model entry in the family
 #     models:      map of opaque identifiers to entries. Each entry has one of:
 #                    - `id`      (defaults to the map key when neither is set)
-#                    - `pattern` (glob using `*` only, or a list of globs;
-#                                 longest match wins at resolve-time)
-#                  plus an optional `aliases` list (id entries only) and a
-#                  `capabilities` overlay.
+#                    - `pattern` (a single glob string using `*` only, OR a
+#                                 list of glob strings; the entry matches when
+#                                 any glob in the list matches, and longest
+#                                 match wins at resolve-time)
+#                  plus an optional `aliases` list (id entries only), an
+#                  optional `backend` string, and a `capabilities` overlay.
 #                  NB: `*` and `.` in property keys interfere with Spring Boot's
 #                  map binding, so glob characters always live in the
 #                  `pattern` field, never in the map key.
+#
+# `backend` (optional, default unset = backend-agnostic): distinguishes how
+# the same model id is served (e.g. `azure-foundry`, `bedrock`) when that
+# changes its capabilities (typically context-window). A backend-specific
+# entry layers ON TOP OF the backend-agnostic entry matching the same model
+# id, which in turn layers on top of the family `defaults` — see "Resolution
+# chain" below. `backend` is orthogonal to the `id`/`pattern` discriminator
+# and may be combined with either.
 #
 # Merge semantics (Spring Boot config + capability matrix resolver):
 #   * Maps merge recursively (sub-keys of input-modalities / output-modalities
@@ -44,10 +54,16 @@
 #
 # Resolution chain:
 #   1. Connector config override (per-call, future)
-#   2. Exact id or alias match
-#   3. Pattern (longest-match wins)
+#   2. Backend-agnostic tier: exact id/alias match, else longest-pattern match,
+#      among entries with no `backend`
+#   3. Backend-specific tier (only when a backend is given): exact id/alias
+#      match, else longest-pattern match, among entries whose `backend`
+#      equals the requested one — LAYERED on top of the backend-agnostic tier
+#      result (fields it sets win; fields it leaves unset keep the
+#      backend-agnostic/family-default value)
 #   4. Family defaults (an unmatched model under a known api family still gets
-#      that family's `defaults` block, not the fully conservative baseline)
+#      that family's `defaults` block, not the fully conservative baseline) —
+#      applies when neither tier above found any candidate
 #   5. Conservative defaults (text-only, all flags false) — only when the api
 #      family itself is unknown
 #

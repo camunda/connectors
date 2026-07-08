@@ -37,6 +37,7 @@ public record CapabilityMatrix(Map<String, ApiFamily> families) {
       @Nullable String id,
       List<String> aliases,
       List<String> patterns,
+      @Nullable String backend,
       @Nullable JsonNode capabilities) {
     public ModelEntry {
       aliases = aliases == null ? List.of() : List.copyOf(aliases);

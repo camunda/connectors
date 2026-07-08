@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityM
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ModelEntry;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,7 +64,10 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
 
   @Override
   public ModelCapabilities resolve(
-      String apiFamily, String modelId, Optional<ModelCapabilities> override) {
+      String apiFamily,
+      String modelId,
+      @Nullable String backend,
+      Optional<ModelCapabilities> override) {
     // Partial/deep-merge of a per-element override is deferred to the chunk that wires the FEEL
     // capability override (a sparse override type will be introduced there).
     if (override.isPresent()) {
@@ -79,34 +83,68 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
       return CONSERVATIVE_DEFAULTS;
     }
 
-    final ModelEntry exact = findExact(family.models(), modelId);
-    if (exact != null) {
-      return merge(family.defaults(), exact.capabilities());
+    // Backend-agnostic tier: entries with no backend of their own.
+    final MatchedEntry agnostic = findBest(family.models(), modelId, null);
+    // Backend-specific tier: entries pinned to the requested backend, layered on top of the
+    // agnostic tier below.
+    final MatchedEntry specific =
+        backend == null ? null : findBest(family.models(), modelId, backend);
+
+    if (agnostic == null && specific == null) {
+      logOnce(
+          "default:" + apiFamily + ":" + modelId,
+          "No capability matrix entry for model '{}' under api family '{}'; using family defaults",
+          modelId,
+          apiFamily);
+      return merge(family.defaults());
     }
 
-    final MatchedPattern matched = findLongestPattern(family.models(), modelId);
-    if (matched != null) {
+    if (agnostic != null && !agnostic.isExact()) {
       logOnce(
           "pattern:" + apiFamily + ":" + modelId,
           "Capability matrix pattern '{}' matched model '{}' (api family '{}')",
-          matched.pattern(),
+          agnostic.pattern(),
           modelId,
           apiFamily);
-      return merge(family.defaults(), matched.entry().capabilities());
+    }
+    if (specific != null && !specific.isExact()) {
+      logOnce(
+          "pattern:" + apiFamily + ":" + backend + ":" + modelId,
+          "Capability matrix pattern '{}' matched model '{}' for backend '{}' (api family '{}')",
+          specific.pattern(),
+          modelId,
+          backend,
+          apiFamily);
     }
 
-    logOnce(
-        "default:" + apiFamily + ":" + modelId,
-        "No capability matrix entry for model '{}' under api family '{}'; using family defaults",
-        modelId,
-        apiFamily);
-    return merge(family.defaults(), null);
+    return merge(
+        family.defaults(),
+        agnostic == null ? null : agnostic.entry().capabilities(),
+        specific == null ? null : specific.entry().capabilities());
+  }
+
+  private static boolean matchesBackend(ModelEntry entry, @Nullable String backend) {
+    return Objects.equals(entry.backend(), backend);
   }
 
   @Nullable
-  private static ModelEntry findExact(List<ModelEntry> models, String modelId) {
+  private static MatchedEntry findBest(
+      List<ModelEntry> models, String modelId, @Nullable String backend) {
+    final ModelEntry exact = findExact(models, modelId, backend);
+    if (exact != null) {
+      return new MatchedEntry(exact, null);
+    }
+
+    final MatchedPattern pattern = findLongestPattern(models, modelId, backend);
+    return pattern == null ? null : new MatchedEntry(pattern.entry(), pattern.pattern());
+  }
+
+  @Nullable
+  private static ModelEntry findExact(
+      List<ModelEntry> models, String modelId, @Nullable String backend) {
     for (ModelEntry entry : models) {
-      if (modelId.equals(entry.id()) || entry.aliases().contains(modelId)) {
+      if (matchesBackend(entry, backend)
+          && (modelId.equals(entry.id()) || entry.aliases().contains(modelId))) {
         return entry;
       }
     }
@@ -114,9 +152,13 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
   }
 
   @Nullable
-  private static MatchedPattern findLongestPattern(List<ModelEntry> models, String modelId) {
+  private static MatchedPattern findLongestPattern(
+      List<ModelEntry> models, String modelId, @Nullable String backend) {
     MatchedPattern best = null;
     for (ModelEntry entry : models) {
+      if (!matchesBackend(entry, backend)) {
+        continue;
+      }
       for (String pattern : entry.patterns()) {
         if (matchesGlob(pattern, modelId)
             && (best == null || pattern.length() > best.pattern().length())) {
@@ -128,6 +170,17 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
   }
 
   private record MatchedPattern(ModelEntry entry, String pattern) {}
+
+  /**
+   * Best match within a single tier (backend-agnostic or backend-specific), together with the glob
+   * pattern it matched via, if any. {@code pattern == null} means an exact id/alias match (silent);
+   * a non-null pattern means a best-effort glob match (logged once).
+   */
+  private record MatchedEntry(ModelEntry entry, @Nullable String pattern) {
+    boolean isExact() {
+      return pattern == null;
+    }
+  }
 
   static boolean matchesGlob(String glob, String value) {
     final String[] parts = glob.split("\\*", -1);
@@ -142,9 +195,18 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
     return Pattern.matches(regex.toString(), value);
   }
 
+  /**
+   * Deep-merges an ordered chain of layers on top of {@link #conservativeBase}: {@code
+   * familyDefaults} first, then each of {@code overlays} in order (e.g. the backend-agnostic
+   * entry's capabilities, then the backend-specific entry's capabilities). Later layers win on
+   * conflicting fields; {@code null} entries are no-ops.
+   */
   private ModelCapabilities merge(
-      @Nullable JsonNode familyDefaults, @Nullable JsonNode modelOverrides) {
-    final JsonNode merged = deepMerge(deepMerge(conservativeBase, familyDefaults), modelOverrides);
+      @Nullable JsonNode familyDefaults, @Nullable JsonNode... overlays) {
+    JsonNode merged = deepMerge(conservativeBase, familyDefaults);
+    for (JsonNode overlay : overlays) {
+      merged = deepMerge(merged, overlay);
+    }
     try {
       return mapper.treeToValue(merged, ModelCapabilitiesData.class).toModelCapabilities();
     } catch (JsonProcessingException e) {
@@ -177,7 +239,7 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
     return merged;
   }
 
-  private void logOnce(String dedupKey, String format, Object... args) {
+  private void logOnce(String dedupKey, String format, @Nullable Object... args) {
     if (loggedKeys.add(dedupKey)) {
       LOG.info(format, args);
     }

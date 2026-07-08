@@ -66,7 +66,8 @@ class ModelCapabilitiesResolverTest {
             12345,
             6789);
 
-    final var result = resolver.resolve("anthropic-messages", "anything", Optional.of(override));
+    final var result =
+        resolver.resolve("anthropic-messages", "anything", null, Optional.of(override));
 
     assertThat(result).isSameAs(override);
   }
@@ -75,7 +76,7 @@ class ModelCapabilitiesResolverTest {
   void unknownApiFamilyFallsThroughToConservativeDefaults() {
     final var resolver = resolverFor(Map.of());
 
-    final var caps = resolver.resolve("does-not-exist", "claude-opus-4-7", Optional.empty());
+    final var caps = resolver.resolve("does-not-exist", "claude-opus-4-7", null, Optional.empty());
 
     assertThat(caps).isEqualTo(ModelCapabilitiesResolverImpl.CONSERVATIVE_DEFAULTS);
     assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT);
@@ -91,11 +92,12 @@ class ModelCapabilitiesResolverTest {
     final var defaults =
         node(fullDefaults(List.of(Modality.TEXT, Modality.IMAGE), List.of(Modality.TEXT)));
     final var entry =
-        new ModelEntry("claude-opus-4-7", List.of(), List.of(), mapper.createObjectNode());
+        new ModelEntry("claude-opus-4-7", List.of(), List.of(), null, mapper.createObjectNode());
     final var resolver =
         resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
 
-    final var caps = resolver.resolve("anthropic-messages", "claude-mystery", Optional.empty());
+    final var caps =
+        resolver.resolve("anthropic-messages", "claude-mystery", null, Optional.empty());
 
     // The family declares its own (non-conservative) defaults, so an unmatched model gets those,
     // not the fully conservative baseline.
@@ -114,14 +116,15 @@ class ModelCapabilitiesResolverTest {
     final var overlay =
         node(new ModelCapabilitiesData(null, null, true, null, null, null, null, null));
     final var entry =
-        new ModelEntry(null, List.of(), List.of("claude-opus-4-6*", "claude-opus-4-7*"), overlay);
+        new ModelEntry(
+            null, List.of(), List.of("claude-opus-4-6*", "claude-opus-4-7*"), null, overlay);
     final var resolver =
         resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
 
     final var byFirstPattern =
-        resolver.resolve("anthropic-messages", "claude-opus-4-6", Optional.empty());
+        resolver.resolve("anthropic-messages", "claude-opus-4-6", null, Optional.empty());
     final var bySecondPattern =
-        resolver.resolve("anthropic-messages", "claude-opus-4-7", Optional.empty());
+        resolver.resolve("anthropic-messages", "claude-opus-4-7", null, Optional.empty());
 
     assertThat(byFirstPattern.supportsReasoning()).isTrue();
     assertThat(bySecondPattern.supportsReasoning()).isTrue();
@@ -138,12 +141,13 @@ class ModelCapabilitiesResolverTest {
     final var overlay =
         node(new ModelCapabilitiesData(null, null, true, true, null, null, null, 32000));
     final var entry =
-        new ModelEntry("claude-opus-4-7", List.of("claude-opus-latest"), List.of(), overlay);
+        new ModelEntry("claude-opus-4-7", List.of("claude-opus-latest"), List.of(), null, overlay);
 
     final var resolver =
         resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
 
-    final var caps = resolver.resolve("anthropic-messages", "claude-opus-4-7", Optional.empty());
+    final var caps =
+        resolver.resolve("anthropic-messages", "claude-opus-4-7", null, Optional.empty());
 
     assertThat(caps.userMessageModalities())
         .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
@@ -161,13 +165,14 @@ class ModelCapabilitiesResolverTest {
     final var overlay =
         node(new ModelCapabilitiesData(null, null, null, null, null, null, null, 32000));
     final var entry =
-        new ModelEntry("claude-opus-4-7", List.of("claude-opus-latest"), List.of(), overlay);
+        new ModelEntry("claude-opus-4-7", List.of("claude-opus-latest"), List.of(), null, overlay);
     final var resolver =
         resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
 
     final var byAlias =
-        resolver.resolve("anthropic-messages", "claude-opus-latest", Optional.empty());
-    final var byId = resolver.resolve("anthropic-messages", "claude-opus-4-7", Optional.empty());
+        resolver.resolve("anthropic-messages", "claude-opus-latest", null, Optional.empty());
+    final var byId =
+        resolver.resolve("anthropic-messages", "claude-opus-4-7", null, Optional.empty());
 
     assertThat(byAlias).isEqualTo(byId);
   }
@@ -183,6 +188,7 @@ class ModelCapabilitiesResolverTest {
             null,
             List.of(),
             List.of("claude-*"),
+            null,
             node(new ModelCapabilitiesData(null, null, false, null, null, null, null, null))));
     models.put(
         "claude-opus",
@@ -190,13 +196,15 @@ class ModelCapabilitiesResolverTest {
             null,
             List.of(),
             List.of("claude-opus-*"),
+            null,
             node(new ModelCapabilitiesData(null, null, true, null, null, null, null, null))));
 
     final var resolver =
         resolverFor(
             Map.of("anthropic-messages", new ApiFamily(defaults, List.copyOf(models.values()))));
 
-    final var caps = resolver.resolve("anthropic-messages", "claude-opus-3-5", Optional.empty());
+    final var caps =
+        resolver.resolve("anthropic-messages", "claude-opus-3-5", null, Optional.empty());
 
     assertThat(caps.supportsReasoning()).isTrue();
   }
@@ -219,12 +227,13 @@ class ModelCapabilitiesResolverTest {
                 null,
                 null,
                 null));
-    final var entry = new ModelEntry(null, List.of(), List.of("claude-haiku-*"), overlay);
+    final var entry = new ModelEntry(null, List.of(), List.of("claude-haiku-*"), null, overlay);
 
     final var resolver =
         resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
 
-    final var caps = resolver.resolve("anthropic-messages", "claude-haiku-4-5", Optional.empty());
+    final var caps =
+        resolver.resolve("anthropic-messages", "claude-haiku-4-5", null, Optional.empty());
 
     assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT);
     assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
@@ -254,13 +263,116 @@ class ModelCapabilitiesResolverTest {
     final JsonNode overlay =
         mapper.readTree("{\"input_modalities\": {\"user_message\": [\"text\", \"image\"]}}");
     final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
-    final var entry = new ModelEntry("claude-x", List.of(), List.of(), overlay);
+    final var entry = new ModelEntry("claude-x", List.of(), List.of(), null, overlay);
 
     final var resolver =
         resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
 
-    final var caps = resolver.resolve("anthropic-messages", "claude-x", Optional.empty());
+    final var caps = resolver.resolve("anthropic-messages", "claude-x", null, Optional.empty());
 
     assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+  }
+
+  // --- Backend dimension tests ------------------------------------------
+
+  @Test
+  void backendNullResolvesBackendAgnosticEntryAsBefore() {
+    final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
+    final var overlay =
+        node(new ModelCapabilitiesData(null, null, true, null, null, null, null, null));
+    final var entry = new ModelEntry("claude-opus-4-7", List.of(), List.of(), null, overlay);
+    final var resolver =
+        resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
+
+    final var caps =
+        resolver.resolve("anthropic-messages", "claude-opus-4-7", null, Optional.empty());
+
+    assertThat(caps.supportsReasoning()).isTrue();
+  }
+
+  @Test
+  void backendSpecificEntryLayersOverBackendAgnosticEntry() {
+    // Reviewer's example: gpt-5* on Azure Foundry has a smaller context window than the direct
+    // API, everything else (reasoning, max-output-tokens) is inherited from the agnostic entry.
+    final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
+    final var gpt5 =
+        new ModelEntry(
+            null,
+            List.of(),
+            List.of("gpt-5*"),
+            null,
+            node(new ModelCapabilitiesData(null, null, true, null, null, null, 1050000, 128000)));
+    final var gpt5Foundry =
+        new ModelEntry(
+            null,
+            List.of(),
+            List.of("gpt-5*"),
+            "azure-foundry",
+            node(new ModelCapabilitiesData(null, null, null, null, null, null, 200000, null)));
+    final var resolver =
+        resolverFor(
+            Map.of("openai-responses", new ApiFamily(defaults, List.of(gpt5, gpt5Foundry))));
+
+    final var onFoundry =
+        resolver.resolve("openai-responses", "gpt-5.5", "azure-foundry", Optional.empty());
+
+    // Overridden by the backend-specific entry:
+    assertThat(onFoundry.contextWindow()).isEqualTo(200000);
+    // Carried through from the backend-agnostic entry (untouched by the foundry overlay):
+    assertThat(onFoundry.supportsReasoning()).isTrue();
+    assertThat(onFoundry.maxOutputTokens()).isEqualTo(128000);
+    // Carried through from family defaults (untouched by either entry):
+    assertThat(onFoundry.supportsPromptCaching()).isTrue();
+    assertThat(onFoundry.supportsParallelToolCalls()).isTrue();
+
+    final var direct = resolver.resolve("openai-responses", "gpt-5.5", "direct", Optional.empty());
+    final var noBackend = resolver.resolve("openai-responses", "gpt-5.5", null, Optional.empty());
+
+    // A different (or absent) backend never sees the foundry entry: both resolve to the plain
+    // gpt-5 values.
+    assertThat(direct.contextWindow()).isEqualTo(1050000);
+    assertThat(direct).isEqualTo(noBackend);
+  }
+
+  @Test
+  void backendWithNoSpecificEntryFallsBackToAgnosticEntry() {
+    final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
+    final var overlay =
+        node(new ModelCapabilitiesData(null, null, true, null, null, null, 1050000, 128000));
+    final var entry = new ModelEntry(null, List.of(), List.of("gpt-5*"), null, overlay);
+    final var resolver =
+        resolverFor(Map.of("openai-responses", new ApiFamily(defaults, List.of(entry))));
+
+    final var caps = resolver.resolve("openai-responses", "gpt-5.5", "bedrock", Optional.empty());
+
+    assertThat(caps.supportsReasoning()).isTrue();
+    assertThat(caps.contextWindow()).isEqualTo(1050000);
+    assertThat(caps.maxOutputTokens()).isEqualTo(128000);
+  }
+
+  @Test
+  void backendSpecificOnlyEntryLayersOnFamilyDefaultsWithNoAgnosticMatch() {
+    final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
+    final var overlay =
+        node(new ModelCapabilitiesData(null, null, null, null, null, null, 100000, null));
+    final var bedrockOnly =
+        new ModelEntry(null, List.of(), List.of("claude-*"), "bedrock", overlay);
+    final var resolver =
+        resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(bedrockOnly))));
+
+    final var caps =
+        resolver.resolve("anthropic-messages", "claude-mystery", "bedrock", Optional.empty());
+
+    // No backend-agnostic candidate exists at all; the backend-specific entry still layers on
+    // top of the family defaults.
+    assertThat(caps.contextWindow()).isEqualTo(100000);
+    assertThat(caps.supportsPromptCaching()).isTrue();
+    assertThat(caps.supportsParallelToolCalls()).isTrue();
+
+    // Without a backend, there's no agnostic candidate either, so it falls through to plain
+    // family defaults.
+    final var withoutBackend =
+        resolver.resolve("anthropic-messages", "claude-mystery", null, Optional.empty());
+    assertThat(withoutBackend.contextWindow()).isEqualTo(200000);
   }
 }

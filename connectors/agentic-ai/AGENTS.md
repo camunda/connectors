@@ -268,6 +268,14 @@ generated. When refreshing it as new model releases ship:
   output-modalities (assistant-message), is per-model overridable via an entry's `capabilities`
   overlay; the family `defaults` block is only the baseline a model falls back to when it doesn't
   pin its own value.
+- Each entry's `pattern` field accepts either a single glob string or a list of globs (matches when
+  any glob in the list matches; longest match wins at resolve-time).
+- Entries support an optional `backend` string (e.g. `azure-foundry`, `bedrock`) distinguishing how
+  the same model id is served when that changes its capabilities. A backend-specific entry layers on
+  top of the backend-agnostic entry matching the same model id, which in turn layers on top of the
+  family `defaults`; `backend` is orthogonal to the `id`/`pattern` discriminator. No bundled entries
+  use `backend` yet (no authoritative Bedrock/Azure Foundry data) — it's currently exercised only via
+  `ModelCapabilitiesResolverTest` fixtures.
 - See the YAML file's own header comment for the full structure, override mechanics, and resolution
   chain.
 
