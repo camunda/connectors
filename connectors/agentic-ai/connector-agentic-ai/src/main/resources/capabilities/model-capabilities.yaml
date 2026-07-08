@@ -45,11 +45,16 @@
 # rather than pinned point-release ids) so newer point releases keep matching
 # without a matrix update; each family also keeps a bare `<family>-*` fallback
 # so a model that predates any curated entry still gets family-level (not
-# fully-conservative) defaults. Verified against vendor docs as of 2026-07-08
-# (Anthropic: Claude Fable 5 / Mythos 5 / Opus 4.8 / Sonnet 5 / Haiku 4.5 are
-# current; Sonnet/Opus 4.x and Haiku remain available as legacy. OpenAI: GPT-5.x
-# is the current ChatGPT lineup; gpt-4o / gpt-4.1 / o1 / o3 / o4 remain
-# reachable via the API for existing integrations).
+# fully-conservative) defaults.
+#
+# PROVISIONAL DATA — the per-model context-window / max-output-tokens figures
+# and reasoning flags below are best-effort placeholders and have NOT been
+# confirmed against current vendor documentation. They are intentionally
+# conservative (a curated entry never claims a larger context window or output
+# limit than the family default unless independently verified) so an
+# unconfirmed value can only under-promise, never over-promise, a capability.
+# Replace with authoritative figures per flagship model before the matrix is
+# wired into runtime windowing/limit decisions.
 
 camunda:
   connector:
@@ -72,22 +77,15 @@ camunda:
                 context-window: 200000
                 max-output-tokens: 8192
               models:
-                # Frontier tier (Claude Fable 5 / Mythos 5): always-on adaptive
-                # thinking, 1M context, 128k max output.
+                # Curated flagship entries carry only capability FLAGS we are
+                # reasonably confident about (extended thinking); token budgets
+                # stay at the conservative family default until authoritatively
+                # curated. Globs are broad so point releases keep matching.
                 claude-fable:
                   pattern: claude-fable-*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
-                    context-window: 1000000
-                    max-output-tokens: 128000
-                claude-mythos:
-                  pattern: claude-mythos-*
-                  capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
-                    context-window: 1000000
-                    max-output-tokens: 128000
                 # Sonnet 5 is dateless (no trailing version segment), so it needs
                 # its own pattern rather than falling under claude-sonnet-4-*.
                 claude-sonnet-5:
@@ -95,29 +93,16 @@ camunda:
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
-                    context-window: 1000000
-                    max-output-tokens: 128000
                 claude-opus-4:
                   pattern: claude-opus-4-*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
-                    context-window: 1000000
-                    max-output-tokens: 128000
                 claude-sonnet-4:
                   pattern: claude-sonnet-4-*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
-                    context-window: 1000000
-                    max-output-tokens: 64000
-                claude-haiku:
-                  pattern: claude-haiku-*
-                  capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
-                    context-window: 200000
-                    max-output-tokens: 64000
                 claude-fallback:
                   pattern: claude-*
                   capabilities: {}
@@ -143,38 +128,24 @@ camunda:
                   pattern: gpt-5*
                   capabilities:
                     supports-reasoning: true
-                    context-window: 400000
-                    max-output-tokens: 128000
                 o1:
                   pattern: o1*
                   capabilities:
                     supports-reasoning: true
                     supports-parallel-tool-calls: false
-                    context-window: 200000
-                    max-output-tokens: 100000
                 o3:
                   pattern: o3*
                   capabilities:
                     supports-reasoning: true
-                    context-window: 200000
-                    max-output-tokens: 100000
                 o4:
                   pattern: o4*
                   capabilities:
                     supports-reasoning: true
-                    context-window: 200000
-                    max-output-tokens: 100000
                 gpt-4o:
                   pattern: gpt-4o*
                   capabilities:
                     input-modalities:
                       user-message: [text, image, audio]
-                    max-output-tokens: 16384
-                gpt-4-1:
-                  pattern: gpt-4.1*
-                  capabilities:
-                    context-window: 1000000
-                    max-output-tokens: 32768
                 gpt-fallback:
                   pattern: gpt-*
                   capabilities: {}
@@ -200,41 +171,27 @@ camunda:
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
-                    context-window: 400000
-                    max-output-tokens: 128000
                 o1:
                   pattern: o1*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
                     supports-parallel-tool-calls: false
-                    context-window: 200000
-                    max-output-tokens: 100000
                 o3:
                   pattern: o3*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
-                    context-window: 200000
-                    max-output-tokens: 100000
                 o4:
                   pattern: o4*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
-                    context-window: 200000
-                    max-output-tokens: 100000
                 gpt-4o:
                   pattern: gpt-4o*
                   capabilities:
                     input-modalities:
                       user-message: [text, image, audio]
-                    max-output-tokens: 16384
-                gpt-4-1:
-                  pattern: gpt-4.1*
-                  capabilities:
-                    context-window: 1000000
-                    max-output-tokens: 32768
                 gpt-fallback:
                   pattern: gpt-*
                   capabilities: {}

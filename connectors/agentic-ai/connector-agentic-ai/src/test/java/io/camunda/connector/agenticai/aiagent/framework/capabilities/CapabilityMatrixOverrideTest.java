@@ -88,18 +88,21 @@ class CapabilityMatrixOverrideTest {
   }
 
   @Test
-  void overrideTunesFamilyDefaultsForUnpinnedModelsButLeavesPinnedEntriesUntouched() {
+  void overrideFamilyDefaultScalarFlowsToModelsThatDoNotPinItWhileTheirPinnedFlagsSurvive() {
     baseRunner
         .withPropertyValues(PREFIX + ".openai-completions.defaults.max-output-tokens=7777")
         .run(
             context -> {
-              // Pinned entries (gpt-5*) keep their own override:
+              // gpt-5* pins only capability flags (reasoning), not the token budget, so it
+              // inherits the new family default while its pinned flag survives:
               final var gpt5 = resolve(context, "openai-completions", "gpt-5.5");
-              assertThat(gpt5.maxOutputTokens()).isEqualTo(128000);
+              assertThat(gpt5.maxOutputTokens()).isEqualTo(7777);
+              assertThat(gpt5.supportsReasoning()).isTrue();
 
-              // Models that match only the gpt-* fallback inherit the new default:
+              // A model matching only the gpt-* fallback also inherits the new default:
               final var generic = resolve(context, "openai-completions", "gpt-3.5-turbo");
               assertThat(generic.maxOutputTokens()).isEqualTo(7777);
+              assertThat(generic.supportsReasoning()).isFalse();
             });
   }
 

@@ -61,32 +61,23 @@ class BundledCapabilityMatrixTest {
           assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
           assertThat(caps.supportsPromptCaching()).isTrue();
           assertThat(caps.supportsParallelToolCalls()).isTrue();
-          assertThat(caps.maxOutputTokens()).isEqualTo(64000);
+          // Token budgets are not pinned per-model (provisional matrix): they inherit the
+          // conservative family default until authoritatively curated.
+          assertThat(caps.maxOutputTokens()).isEqualTo(8192);
         });
   }
 
   @Test
-  void claudeFableFlagshipResolvesReasoningAndLargeContext() {
+  void claudeFableFlagshipResolvesReasoningAndInheritsConservativeTokenBudgets() {
     contextRunner.run(
         context -> {
           final var caps = resolve(context, ANTHROPIC_MESSAGES, "claude-fable-5");
 
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
-          assertThat(caps.contextWindow()).isEqualTo(1000000);
-          assertThat(caps.maxOutputTokens()).isEqualTo(128000);
-        });
-  }
-
-  @Test
-  void claudeHaikuResolvesReasoningAndInheritsMultimodalFromDefaults() {
-    contextRunner.run(
-        context -> {
-          final var caps = resolve(context, ANTHROPIC_MESSAGES, "claude-haiku-4-5-20251001");
-
-          assertThat(caps.userMessageModalities())
-              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
-          assertThat(caps.supportsReasoning()).isTrue();
+          // Inherited family defaults (not pinned until authoritatively curated):
+          assertThat(caps.contextWindow()).isEqualTo(200000);
+          assertThat(caps.maxOutputTokens()).isEqualTo(8192);
         });
   }
 
@@ -111,7 +102,8 @@ class BundledCapabilityMatrixTest {
 
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
-          assertThat(caps.contextWindow()).isEqualTo(400000);
+          // Token budget inherited from the family default (not pinned per-model yet):
+          assertThat(caps.contextWindow()).isEqualTo(128000);
         });
   }
 
@@ -150,17 +142,6 @@ class BundledCapabilityMatrixTest {
 
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.supportsParallelToolCalls()).isFalse();
-        });
-  }
-
-  @Test
-  void gpt41OnResponsesHasLargeContextWindowDespiteDotInPattern() {
-    contextRunner.run(
-        context -> {
-          final var caps = resolve(context, OPENAI_RESPONSES, "gpt-4.1-mini");
-
-          assertThat(caps.contextWindow()).isEqualTo(1000000);
-          assertThat(caps.maxOutputTokens()).isEqualTo(32768);
         });
   }
 
