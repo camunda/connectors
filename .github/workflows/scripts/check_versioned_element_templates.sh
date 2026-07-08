@@ -3,15 +3,26 @@
 # non-versioned counterpart on main. Prevents version-bump PRs from silently
 # snapshotting a stale state when changes to the non-versioned file were already
 # merged to main without a corresponding version bump.
-set -euo pipefail
+#
+# Known edge case: in a merge queue that batches several PRs, the content is
+# always compared against the current tip of origin/main. If one queued PR
+# modifies foo.json while another (behind it) adds versioned/foo-1.json based on
+# that modified content, this check compares against the pre-queue foo.json and
+# may report a spurious mismatch. This is accepted as rare; re-running against an
+# updated main resolves it.
+#
+# Requires full git history (fetch-depth: 0) so the merge-base with origin/main
+# can be resolved for the three-dot diff below.
+set -e
 
 BASE_REF="origin/main"
 ERRORS=0
 CHECKED=0
 
-git fetch origin main --depth=1 --quiet
-
-VERSIONED_FILES=$(git diff --name-only --diff-filter=A "${BASE_REF}" HEAD | grep '/versioned/.*\.json$' || true)
+# Use a three-dot diff (merge-base..HEAD) so only files this branch actually
+# added are reported. A two-dot diff would classify a file that already exists at
+# the same path on main (with different content) as Modified and skip it.
+VERSIONED_FILES=$(git diff --name-only --diff-filter=A "${BASE_REF}...HEAD" | grep '/versioned/.*\.json$' || true)
 
 if [ -z "$VERSIONED_FILES" ]; then
   echo "No new versioned element templates found — check skipped."
@@ -23,8 +34,8 @@ while IFS= read -r versioned_file; do
 
   CHECKED=$((CHECKED + 1))
 
-  basename=$(basename "$versioned_file" .json)
-  base_name=$(echo "$basename" | sed 's/-[0-9]*$//')
+  file_stem=$(basename "$versioned_file" .json)
+  base_name=$(echo "$file_stem" | sed 's/-[0-9]*$//')
 
   versioned_dir=$(dirname "$versioned_file")
   parent_dir=$(dirname "$versioned_dir")
