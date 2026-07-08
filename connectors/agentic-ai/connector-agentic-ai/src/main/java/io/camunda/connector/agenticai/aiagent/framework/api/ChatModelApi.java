@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.api;
 
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+
 /**
  * Per-provider chat model. A single {@link #call(ChatModelRequest)} invocation performs exactly one
  * round-trip against the provider; implementations must not run their own internal (vendor)
@@ -14,4 +16,11 @@ package io.camunda.connector.agenticai.aiagent.framework.api;
 public interface ChatModelApi {
 
   ChatModelResult call(ChatModelRequest request);
+
+  /**
+   * The capability profile of this chat model, used by later chunks to drive runtime decisions like
+   * tool-result strategy selection and reasoning negotiation. Not yet consumed by the request
+   * handler.
+   */
+  ModelCapabilities capabilities();
 }

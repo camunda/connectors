@@ -877,6 +877,7 @@ public interface ChatModelApiRegistry {
 
 public interface ChatModelApi {
     ChatModelResult call(ChatModelRequest request);
+    ModelCapabilities capabilities();
 }
 
 public record ChatModelResult(AssistantMessage message, AgentMetrics metrics) {}
@@ -893,7 +894,12 @@ public interface ChatModelApiFactory {
 - **`ChatModelApi`** is a per-provider **chat model**. A single `call(request)` performs **exactly one**
   provider round-trip — implementations must not run their own vendor-SDK tool-calling auto-loop — and
   returns a `ChatModelResult(assistantMessage, per-turn metrics)`. The metrics carry the measured
-  `executionTime` for the call.
+  `executionTime` for the call. `capabilities()` (package
+  `aiagent.framework.capabilities`, resolved via the model capability matrix — see
+  [ADR 009](../adr/009-own-the-llm-layer.md)) returns the model's modality/reasoning/context-window
+  profile; it is additive scaffolding only, not yet consumed by the request handler — native-provider
+  wiring arrives in a later chunk. The LangChain4J bridge below returns a fixed conservative profile
+  instead of resolving one.
 - **`ChatModelApiConfiguration`** is the neutral descriptor the registry dispatches on — deliberately
   **not** the sealed `ProviderConfiguration`, so the chat-model layer stays connector-agnostic. Phase 0
   ships one impl, `ProviderChatModelApiConfiguration`, wrapping the built-in provider config; a second

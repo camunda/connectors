@@ -9,9 +9,32 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import java.util.List;
 
 /** Bridges the existing LangChain4J framework adapter behind the {@link ChatModelApi} SPI. */
 public class Langchain4JChatModelApi implements ChatModelApi {
+
+  /**
+   * Uniform conservative capability profile for every provider routed through this bridge.
+   * Deliberately NOT resolved via {@code ModelCapabilitiesResolver} — that resolver's own
+   * conservative default is {@code [TEXT]} for user messages, which would regress today's
+   * document-in-user-message support ({@code DocumentToContentConverterImpl} already accepts text,
+   * image and PDF content). This constant is distinct from that resolver default; do not conflate
+   * them.
+   */
+  private static final ModelCapabilities BRIDGE_CAPABILITIES =
+      new ModelCapabilities(
+          List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
+          List.of(Modality.TEXT),
+          List.of(Modality.TEXT),
+          false,
+          false,
+          false,
+          false,
+          null,
+          null);
 
   private final Langchain4JAiFrameworkAdapter adapter;
 
@@ -24,5 +47,10 @@ public class Langchain4JChatModelApi implements ChatModelApi {
     final var response =
         adapter.executeMeasuringTime(request.executionContext(), request.snapshot());
     return new ChatModelResult.Completed(response.assistantMessage(), response.metrics());
+  }
+
+  @Override
+  public ModelCapabilities capabilities() {
+    return BRIDGE_CAPABILITIES;
   }
 }

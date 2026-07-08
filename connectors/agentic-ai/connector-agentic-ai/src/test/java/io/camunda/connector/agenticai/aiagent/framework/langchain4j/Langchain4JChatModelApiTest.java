@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -50,6 +51,24 @@ class Langchain4JChatModelApiTest {
 
     assertThat(result).isInstanceOf(ChatModelResult.Completed.class);
     assertThat(result).isEqualTo(new ChatModelResult.Completed(msg, metrics));
+  }
+
+  @Test
+  void capabilitiesReturnsUniformConservativeBridgeProfileWithoutCallingResolver() {
+    final var api = new Langchain4JChatModelApi(adapter);
+
+    final var capabilities = api.capabilities();
+
+    assertThat(capabilities.userMessageModalities())
+        .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
+    assertThat(capabilities.toolResultModalities()).containsExactly(Modality.TEXT);
+    assertThat(capabilities.assistantMessageModalities()).containsExactly(Modality.TEXT);
+    assertThat(capabilities.supportsReasoning()).isFalse();
+    assertThat(capabilities.supportsReasoningSignatureRoundtrip()).isFalse();
+    assertThat(capabilities.supportsPromptCaching()).isFalse();
+    assertThat(capabilities.supportsParallelToolCalls()).isFalse();
+    assertThat(capabilities.contextWindow()).isNull();
+    assertThat(capabilities.maxOutputTokens()).isNull();
   }
 
   @Test
