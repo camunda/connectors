@@ -1,0 +1,240 @@
+# Model capability matrix for the agentic-ai connector.
+#
+# This file is loaded as a low-precedence Spring PropertySource by
+# `AgenticAiCapabilitiesConfiguration#setEnvironment` when the configuration
+# bean is instantiated. Library consumers can override or extend any value via
+# `application.yml` using the same property prefix, no full-file replacement
+# required:
+#
+#   camunda.connector.agenticai.aiagent.framework.capabilities:
+#     anthropic-messages:
+#       models:
+#         claude-opus-4:                  # map key reused -> override existing entry
+#           capabilities:
+#             max-output-tokens: 64000    # only this field overridden
+#
+# Structure under `capabilities`:
+#   <api-family>:
+#     defaults:    capability block applied to every model entry in the family
+#     models:      map of opaque identifiers to entries. Each entry has one of:
+#                    - `id`     (defaults to the map key when neither is set)
+#                    - `pattern` (glob using `*` only; longest match wins at
+#                                 resolve-time)
+#                  plus an optional `aliases` list (id entries only) and a
+#                  `capabilities` overlay.
+#                  NB: `*` and `.` in property keys interfere with Spring Boot's
+#                  map binding, so glob characters always live in the
+#                  `pattern` field, never in the map key.
+#
+# Merge semantics (Spring Boot config + capability matrix resolver):
+#   * Maps merge recursively (sub-keys of input-modalities / output-modalities
+#     are inherited individually)
+#   * Lists replace wholesale
+#   * Scalars and booleans replace
+#
+# Resolution chain:
+#   1. Connector config override (per-call, future)
+#   2. Exact id or alias match
+#   3. Pattern (longest-match wins)
+#   4. Conservative defaults (text-only, all flags false)
+#
+# Modality vocabulary: text | image | document | audio | video. Modality lists per
+# location (user-message, tool-result, assistant-message) are symmetric.
+#
+# Curated entries use broad globs on purpose (major-version / family prefixes
+# rather than pinned point-release ids) so newer point releases keep matching
+# without a matrix update; each family also keeps a bare `<family>-*` fallback
+# so a model that predates any curated entry still gets family-level (not
+# fully-conservative) defaults. Verified against vendor docs as of 2026-07-08
+# (Anthropic: Claude Fable 5 / Mythos 5 / Opus 4.8 / Sonnet 5 / Haiku 4.5 are
+# current; Sonnet/Opus 4.x and Haiku remain available as legacy. OpenAI: GPT-5.x
+# is the current ChatGPT lineup; gpt-4o / gpt-4.1 / o1 / o3 / o4 remain
+# reachable via the API for existing integrations).
+
+camunda:
+  connector:
+    agenticai:
+      aiagent:
+        framework:
+          capabilities:
+
+            anthropic-messages:
+              defaults:
+                input-modalities:
+                  user-message: [text, image, document]
+                  tool-result:  [text, image, document]
+                output-modalities:
+                  assistant-message: [text]
+                supports-reasoning: false
+                supports-reasoning-signature-roundtrip: false
+                supports-prompt-caching: true
+                supports-parallel-tool-calls: true
+                context-window: 200000
+                max-output-tokens: 8192
+              models:
+                # Frontier tier (Claude Fable 5 / Mythos 5): always-on adaptive
+                # thinking, 1M context, 128k max output.
+                claude-fable:
+                  pattern: claude-fable-*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 1000000
+                    max-output-tokens: 128000
+                claude-mythos:
+                  pattern: claude-mythos-*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 1000000
+                    max-output-tokens: 128000
+                # Sonnet 5 is dateless (no trailing version segment), so it needs
+                # its own pattern rather than falling under claude-sonnet-4-*.
+                claude-sonnet-5:
+                  pattern: claude-sonnet-5*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 1000000
+                    max-output-tokens: 128000
+                claude-opus-4:
+                  pattern: claude-opus-4-*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 1000000
+                    max-output-tokens: 128000
+                claude-sonnet-4:
+                  pattern: claude-sonnet-4-*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 1000000
+                    max-output-tokens: 64000
+                claude-haiku:
+                  pattern: claude-haiku-*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 200000
+                    max-output-tokens: 64000
+                claude-fallback:
+                  pattern: claude-*
+                  capabilities: {}
+
+            # Chat Completions tool messages are text-only (the SDK enforces
+            # ChatCompletionContentPartText for tool message content arrays);
+            # multimodal tool results require the Responses API.
+            openai-completions:
+              defaults:
+                input-modalities:
+                  user-message: [text, image, document]
+                  tool-result:  [text]
+                output-modalities:
+                  assistant-message: [text]
+                supports-reasoning: false
+                supports-reasoning-signature-roundtrip: false
+                supports-prompt-caching: true
+                supports-parallel-tool-calls: true
+                context-window: 128000
+                max-output-tokens: 4096
+              models:
+                gpt-5:
+                  pattern: gpt-5*
+                  capabilities:
+                    supports-reasoning: true
+                    context-window: 400000
+                    max-output-tokens: 128000
+                o1:
+                  pattern: o1*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-parallel-tool-calls: false
+                    context-window: 200000
+                    max-output-tokens: 100000
+                o3:
+                  pattern: o3*
+                  capabilities:
+                    supports-reasoning: true
+                    context-window: 200000
+                    max-output-tokens: 100000
+                o4:
+                  pattern: o4*
+                  capabilities:
+                    supports-reasoning: true
+                    context-window: 200000
+                    max-output-tokens: 100000
+                gpt-4o:
+                  pattern: gpt-4o*
+                  capabilities:
+                    input-modalities:
+                      user-message: [text, image, audio]
+                    max-output-tokens: 16384
+                gpt-4-1:
+                  pattern: gpt-4.1*
+                  capabilities:
+                    context-window: 1000000
+                    max-output-tokens: 32768
+                gpt-fallback:
+                  pattern: gpt-*
+                  capabilities: {}
+
+            # Responses API: function call outputs accept text, image and file
+            # content items per the SDK's FunctionCallOutput.Output union.
+            openai-responses:
+              defaults:
+                input-modalities:
+                  user-message: [text, image, document]
+                  tool-result:  [text, image, document]
+                output-modalities:
+                  assistant-message: [text]
+                supports-reasoning: false
+                supports-reasoning-signature-roundtrip: false
+                supports-prompt-caching: true
+                supports-parallel-tool-calls: true
+                context-window: 128000
+                max-output-tokens: 4096
+              models:
+                gpt-5:
+                  pattern: gpt-5*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 400000
+                    max-output-tokens: 128000
+                o1:
+                  pattern: o1*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    supports-parallel-tool-calls: false
+                    context-window: 200000
+                    max-output-tokens: 100000
+                o3:
+                  pattern: o3*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 200000
+                    max-output-tokens: 100000
+                o4:
+                  pattern: o4*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 200000
+                    max-output-tokens: 100000
+                gpt-4o:
+                  pattern: gpt-4o*
+                  capabilities:
+                    input-modalities:
+                      user-message: [text, image, audio]
+                    max-output-tokens: 16384
+                gpt-4-1:
+                  pattern: gpt-4.1*
+                  capabilities:
+                    context-window: 1000000
+                    max-output-tokens: 32768
+                gpt-fallback:
+                  pattern: gpt-*
+                  capabilities: {}
