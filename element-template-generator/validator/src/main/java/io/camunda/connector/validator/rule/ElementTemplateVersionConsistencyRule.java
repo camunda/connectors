@@ -77,7 +77,7 @@ public class ElementTemplateVersionConsistencyRule implements MultiFileRule {
                   path,
                   "/properties/" + i + "/value",
                   id(),
-                  "Hidden \""
+                  "The \""
                       + ELEMENT_TEMPLATE_VERSION_HEADER
                       + "\" header value is \""
                       + (actual == null ? "<missing>" : actual)
