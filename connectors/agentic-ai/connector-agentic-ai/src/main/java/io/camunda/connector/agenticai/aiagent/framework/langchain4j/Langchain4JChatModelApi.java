@@ -23,6 +23,6 @@ public class Langchain4JChatModelApi implements ChatModelApi {
   public ChatModelResult call(ChatModelRequest request) {
     final var response =
         adapter.executeMeasuringTime(request.executionContext(), request.snapshot());
-    return new ChatModelResult(response.assistantMessage(), response.metrics());
+    return new ChatModelResult.Completed(response.assistantMessage(), response.metrics());
   }
 }

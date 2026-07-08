@@ -48,7 +48,8 @@ class Langchain4JChatModelApiTest {
     final var api = new Langchain4JChatModelApi(adapter);
     final var result = api.call(new ChatModelRequest(executionContext, snapshot));
 
-    assertThat(result).isEqualTo(new ChatModelResult(msg, metrics));
+    assertThat(result).isInstanceOf(ChatModelResult.Completed.class);
+    assertThat(result).isEqualTo(new ChatModelResult.Completed(msg, metrics));
   }
 
   @Test

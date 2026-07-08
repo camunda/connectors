@@ -714,7 +714,7 @@ class JobWorkerAgentRequestHandlerTest {
             assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size(),
             EXECUTION_TIME);
     doReturn(chatModelApi).when(chatModelApiRegistry).resolve(any());
-    doReturn(new ChatModelResult(assistantMessage, metrics))
+    doReturn(new ChatModelResult.Completed(assistantMessage, metrics))
         .when(chatModelApi)
         .call(chatModelRequestCaptor.capture());
   }
