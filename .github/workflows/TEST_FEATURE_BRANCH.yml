@@ -125,7 +125,11 @@ jobs:
       # pinned and not overwritten on regeneration.
       - name: Verify element templates are in sync with Java source
         run: |
-          CHANGED=$(git diff --name-only -- '*element-templates*.json' ':(exclude)*/versioned/*')
+          set -euo pipefail
+          # --porcelain reports both modified tracked files AND new untracked
+          # ones, so a Java change that produces a brand-new template is caught
+          # too — not just edits to existing templates.
+          CHANGED=$(git status --porcelain -- '*element-templates*.json' ':(exclude)*/versioned/*')
           if [ -n "$CHANGED" ]; then
             echo "❌ Element templates are out of sync with their Java source."
             echo "   Run 'mvn install' (or 'mvn process-classes') locally and commit the regenerated templates."
