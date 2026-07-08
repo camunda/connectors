@@ -52,7 +52,7 @@ public class PresetCoverageRule implements Rule {
 
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    if (OperationMetadataIgnoreList.isIgnored(file)) {
+    if (OperationMetadataIgnoreList.isIgnored(file, template)) {
       return List.of();
     }
     JsonNode presetsNode = template.path(ElementTemplate.PRESETS);
