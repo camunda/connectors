@@ -4204,7 +4204,7 @@
     },
     {
       "name": "Pull requests",
-      "description": "Create pull requests",
+      "description": "Manage pull requests",
       "steps": [
         {
           "name": "Create pull request",
@@ -4216,6 +4216,17 @@
             "raise pr"
           ],
           "presetId": "pulls_createPullRequest"
+        },
+        {
+          "name": "Get a pull request",
+          "description": "Retrieve details of a specific pull request from a GitHub repository.",
+          "keywords": [
+            "get pull request",
+            "fetch pr",
+            "read pull request",
+            "pull request details"
+          ],
+          "presetId": "pulls_getPullRequest"
         }
       ]
     },
@@ -4514,6 +4525,13 @@
       "properties": {
         "operationGroup": "pulls",
         "pullRequestOperationType": "createPullRequest"
+      }
+    },
+    {
+      "id": "pulls_getPullRequest",
+      "properties": {
+        "operationGroup": "pulls",
+        "pullRequestOperationType": "getPullRequest"
       }
     },
     {

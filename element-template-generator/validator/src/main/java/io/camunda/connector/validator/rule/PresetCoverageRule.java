@@ -48,7 +48,7 @@ import java.util.TreeMap;
  */
 public class PresetCoverageRule implements Rule {
 
-  static final int MAX_CANDIDATES = 5_000_000;
+  static final int MAX_CANDIDATES = 10_000_000;
 
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
