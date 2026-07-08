@@ -32,6 +32,16 @@
 #   * Lists replace wholesale
 #   * Scalars and booleans replace
 #
+# Granularity: EVERY capability field is per-model overridable via an entry's
+# `capabilities` overlay — including each input-modalities location
+# (user-message, tool-result). The family `defaults` block is only the
+# baseline; a model that genuinely differs (e.g. a model that cannot accept
+# image tool results even though its API surface allows them) pins its own
+# `input-modalities.tool-result` in its entry. tool-result is left at the
+# family default below only because we have no authoritative per-model
+# tool-result data yet, and because OpenAI Chat Completions is a hard,
+# surface-wide text-only limit (see that family's note) that no model exceeds.
+#
 # Resolution chain:
 #   1. Connector config override (per-call, future)
 #   2. Exact id or alias match
