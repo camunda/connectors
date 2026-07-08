@@ -13,7 +13,9 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Re
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
+import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -53,7 +55,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentInitializer agentInitializer;
   private final ConversationStoreRegistry conversationStoreRegistry;
   private final AgentConversationTurnInputComposer agentInputComposer;
-  private final AiFrameworkAdapter<?> framework;
+  private final ChatModelApiRegistry chatModelApiRegistry;
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
@@ -62,14 +64,14 @@ public abstract class BaseAgentRequestHandler<
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentInputComposer,
-      AiFrameworkAdapter<?> framework,
+      ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
-    this.framework = framework;
+    this.chatModelApiRegistry = chatModelApiRegistry;
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
@@ -158,12 +160,16 @@ public abstract class BaseAgentRequestHandler<
         conversation.lastTurn(),
         OffsetDateTime.now());
 
-    LOGGER.debug("Executing chat request with AI framework");
-    final var chatResponse =
-        framework.executeMeasuringTime(
-            executionContext, conversation.window(agentConfiguration.contextWindowSize()));
+    LOGGER.debug("Executing chat request");
+    final var chatModel =
+        chatModelApiRegistry.resolve(
+            new ProviderChatModelApiConfiguration(executionContext.configuration().provider()));
+    final var chatResult =
+        chatModel.call(
+            new ChatModelRequest(
+                executionContext, conversation.window(agentConfiguration.contextWindowSize())));
     final var updatedConversation =
-        conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
+        conversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
 
     agentInstanceClient.createHistoryForAssistantMessage(
         executionContext,

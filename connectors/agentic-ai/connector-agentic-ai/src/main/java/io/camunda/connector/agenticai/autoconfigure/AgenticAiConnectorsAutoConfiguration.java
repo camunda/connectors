@@ -42,7 +42,9 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceToolMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -288,6 +290,13 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ChatModelApiRegistry chatModelApiRegistry(
+      List<ChatModelApiFactory> chatModelApiFactories) {
+    return new ChatModelApiRegistryImpl(chatModelApiFactories);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
@@ -295,7 +304,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentConversationTurnInputComposer,
-      AiFrameworkAdapter<?> aiFrameworkAdapter,
+      ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
@@ -303,7 +312,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         agentInitializer,
         conversationStoreRegistry,
         agentConversationTurnInputComposer,
-        aiFrameworkAdapter,
+        chatModelApiRegistry,
         systemPromptComposer,
         responseHandler,
         agentInstanceClient);
@@ -329,7 +338,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentConversationTurnInputComposer,
-      AiFrameworkAdapter<?> aiFrameworkAdapter,
+      ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
@@ -337,7 +346,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         agentInitializer,
         conversationStoreRegistry,
         agentConversationTurnInputComposer,
-        aiFrameworkAdapter,
+        chatModelApiRegistry,
         systemPromptComposer,
         responseHandler,
         agentInstanceClient);
