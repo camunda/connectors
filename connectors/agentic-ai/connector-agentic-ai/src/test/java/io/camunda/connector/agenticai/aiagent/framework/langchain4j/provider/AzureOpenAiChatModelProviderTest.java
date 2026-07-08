@@ -24,6 +24,7 @@ import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
@@ -64,7 +65,8 @@ class AzureOpenAiChatModelProviderTest {
   private final ChatModelHttpProxySupport proxySupport =
       spy(
           new ChatModelHttpProxySupport(
-              proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
+              new HttpTransportSupport(
+                  proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration))));
 
   private final AzureOpenAiChatModelProvider provider =
       new AzureOpenAiChatModelProvider(createDefaultChatModelProperties(), proxySupport);

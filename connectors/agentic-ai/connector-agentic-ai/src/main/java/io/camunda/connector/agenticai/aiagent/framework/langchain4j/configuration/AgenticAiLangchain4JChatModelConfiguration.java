@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Cha
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
@@ -24,7 +25,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVerte
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -36,10 +36,8 @@ public class AgenticAiLangchain4JChatModelConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ChatModelHttpProxySupport langchain4JChatModelHttpProxySupport(
-      AgenticAiHttpProxySupport httpProxySupport) {
-    return new ChatModelHttpProxySupport(
-        httpProxySupport.getProxyConfiguration(),
-        httpProxySupport.getJdkHttpClientProxyConfigurator());
+      HttpTransportSupport httpTransportSupport) {
+    return new ChatModelHttpProxySupport(httpTransportSupport);
   }
 
   @Bean

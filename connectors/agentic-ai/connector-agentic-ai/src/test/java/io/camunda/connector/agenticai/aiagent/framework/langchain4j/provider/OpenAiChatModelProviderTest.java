@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHtt
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
+import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
@@ -59,7 +60,8 @@ class OpenAiChatModelProviderTest {
   private final ChatModelHttpProxySupport proxySupport =
       spy(
           new ChatModelHttpProxySupport(
-              proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
+              new HttpTransportSupport(
+                  proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration))));
 
   private final OpenAiChatModelProvider provider =
       new OpenAiChatModelProvider(createDefaultChatModelProperties(), proxySupport);

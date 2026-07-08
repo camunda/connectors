@@ -47,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.Ope
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
@@ -87,6 +88,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
   private static final List<Class<?>> AGENTIC_AI_BEANS =
       List.of(
           AgenticAiHttpProxySupport.class,
+          HttpTransportSupport.class,
           AdHocToolElementParameterExtractor.class,
           AdHocToolSchemaGenerator.class,
           AdHocToolsSchemaResolver.class,
