@@ -395,6 +395,10 @@
         {
           "name": "Create a pull request",
           "value": "createPullRequest"
+        },
+        {
+          "name": "Get a pull request",
+          "value": "getPullRequest"
         }
       ],
       "condition": {
@@ -706,6 +710,22 @@
         "property": "pullRequestOperationType",
         "oneOf": [
           "createPullRequest"
+        ]
+      }
+    },
+    {
+      "id": "pullRequestMethodGet",
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "pullRequestOperationType",
+        "oneOf": [
+          "getPullRequest"
         ]
       }
     },
@@ -1172,7 +1192,8 @@
       "condition": {
         "property": "pullRequestOperationType",
         "oneOf": [
-          "createPullRequest"
+          "createPullRequest",
+          "getPullRequest"
         ]
       }
     },
@@ -1400,7 +1421,28 @@
       "condition": {
         "property": "pullRequestOperationType",
         "oneOf": [
-          "createPullRequest"
+          "createPullRequest",
+          "getPullRequest"
+        ]
+      }
+    },
+    {
+      "label": "Pull request number",
+      "description": "The number that identifies the pull request",
+      "feel": "optional",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "pullNumber"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "pullRequestOperationType",
+        "oneOf": [
+          "getPullRequest"
         ]
       }
     },
@@ -1520,7 +1562,7 @@
       "description": "The number that identifies the issue",
       "feel": "optional",
       "group": "input",
-      "type": "String",
+      "type": "Number",
       "binding": {
         "type": "zeebe:input",
         "name": "issueNumber"
@@ -3363,6 +3405,25 @@
     },
     {
       "label": "Result expression",
+      "id": "resultGetPullRequest",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={pullRequest: {number: response.body.number, title: response.body.title, body: response.body.body, state: response.body.state, merged: response.body.merged, labels: for l in response.body.labels return l.name, baseBranch: response.body.base.ref, url: response.body.html_url}}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "pullRequestOperationType",
+        "oneOf": [
+          "getPullRequest"
+        ]
+      }
+    },
+    {
+      "label": "Result expression",
       "id": "resultExpressionListCollaborators",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -3809,6 +3870,20 @@
     },
     {
       "type": "Hidden",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/pulls/\" + string(pullNumber)",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "pullRequestOperationType",
+        "oneOf": [
+          "getPullRequest"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
       "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/collaborators\"",
       "binding": {
         "type": "zeebe:input",
@@ -4129,7 +4204,7 @@
     },
     {
       "name": "Pull requests",
-      "description": "Create pull requests",
+      "description": "Manage pull requests",
       "steps": [
         {
           "name": "Create pull request",
@@ -4141,6 +4216,17 @@
             "raise pr"
           ],
           "presetId": "pulls_createPullRequest"
+        },
+        {
+          "name": "Get a pull request",
+          "description": "Retrieve details of a specific pull request from a GitHub repository.",
+          "keywords": [
+            "get pull request",
+            "fetch pr",
+            "read pull request",
+            "pull request details"
+          ],
+          "presetId": "pulls_getPullRequest"
         }
       ]
     },
@@ -4439,6 +4525,13 @@
       "properties": {
         "operationGroup": "pulls",
         "pullRequestOperationType": "createPullRequest"
+      }
+    },
+    {
+      "id": "pulls_getPullRequest",
+      "properties": {
+        "operationGroup": "pulls",
+        "pullRequestOperationType": "getPullRequest"
       }
     },
     {

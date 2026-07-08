@@ -88,8 +88,8 @@ public class HybridParityRule implements MultiFileRule {
       JsonNode mainTemplate,
       Path mainPath,
       List<Finding> findings) {
-    if (OperationMetadataIgnoreList.isIgnored(hybrid)
-        || OperationMetadataIgnoreList.isIgnored(mainPath)) {
+    if (OperationMetadataIgnoreList.isIgnored(hybrid, hybridTemplate)
+        || OperationMetadataIgnoreList.isIgnored(mainPath, mainTemplate)) {
       return;
     }
     compareField(hybrid, hybridTemplate, mainTemplate, mainPath, ElementTemplate.STEPS, findings);

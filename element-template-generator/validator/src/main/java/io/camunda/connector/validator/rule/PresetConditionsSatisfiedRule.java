@@ -40,7 +40,7 @@ public class PresetConditionsSatisfiedRule implements Rule {
 
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    if (OperationMetadataIgnoreList.isIgnored(file)) {
+    if (OperationMetadataIgnoreList.isIgnored(file, template)) {
       return List.of();
     }
     JsonNode presets = template.path(ElementTemplate.PRESETS);

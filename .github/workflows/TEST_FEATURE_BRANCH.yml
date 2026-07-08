@@ -320,3 +320,24 @@ jobs:
 
       - name: Check Format
         run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly
+
+  check-versioned-element-templates:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          # Full history so the merge-base with origin/main can be resolved for
+          # the three-dot diff used to find newly added versioned templates.
+          fetch-depth: 0
+
+      - name: Fetch main ref
+        run: git fetch origin main --quiet
+        shell: bash
+
+      - name: Check versioned element templates match main
+        run: |
+          chmod +x ./.github/workflows/scripts/check_versioned_element_templates.sh
+          ./.github/workflows/scripts/check_versioned_element_templates.sh
+        shell: bash
