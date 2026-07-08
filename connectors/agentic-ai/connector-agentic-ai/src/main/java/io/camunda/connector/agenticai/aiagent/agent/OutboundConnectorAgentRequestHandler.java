@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.AiAgentTaskConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -25,7 +25,7 @@ public class OutboundConnectorAgentRequestHandler
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentConversationTurnInputComposer agentInputComposer,
-      AiFrameworkAdapter<?> framework,
+      ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient) {
@@ -33,7 +33,7 @@ public class OutboundConnectorAgentRequestHandler
         agentInitializer,
         conversationStoreRegistry,
         agentInputComposer,
-        framework,
+        chatModelApiRegistry,
         systemPromptComposer,
         responseHandler,
         agentInstanceClient);

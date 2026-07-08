@@ -29,9 +29,10 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -55,7 +56,6 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -81,13 +81,14 @@ class OutboundConnectorAgentRequestHandlerTest {
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
   @Mock private AgentConversationTurnInputComposer agentInputComposer;
-  @Mock private AiFrameworkAdapter<?> framework;
+  @Mock private ChatModelApiRegistry chatModelApiRegistry;
+  @Mock private ChatModelApi chatModelApi;
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
   @Mock private OutboundConnectorAgentExecutionContext agentExecutionContext;
 
-  @Captor private ArgumentCaptor<ConversationSnapshot> snapshotCaptor;
+  @Captor private ArgumentCaptor<ChatModelRequest> chatModelRequestCaptor;
 
   @InjectMocks private OutboundConnectorAgentRequestHandler requestHandler;
 
@@ -115,7 +116,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(response.agentResponse().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.getFirst()));
 
-    verifyNoInteractions(agentInputComposer, framework, responseHandler);
+    verifyNoInteractions(agentInputComposer, chatModelApiRegistry, responseHandler);
   }
 
   @Test
@@ -177,7 +178,7 @@ class OutboundConnectorAgentRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response.agentResponse()).isNull();
 
-    verifyNoInteractions(agentInputComposer, framework, responseHandler);
+    verifyNoInteractions(agentInputComposer, chatModelApiRegistry, responseHandler);
   }
 
   @Test
@@ -201,13 +202,16 @@ class OutboundConnectorAgentRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     // snapshot is captured before the assistant message is ingested
-    assertThat(snapshotCaptor.getValue().messages()).containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
+    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
+        .containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
 
     var agentResponse = response.agentResponse();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(), 0));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -237,13 +241,16 @@ class OutboundConnectorAgentRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertThat(snapshotCaptor.getValue().messages()).containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
+    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
+        .containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
 
     var agentResponse = response.agentResponse();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 2));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(), 2));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -277,7 +284,7 @@ class OutboundConnectorAgentRequestHandlerTest {
                       "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
             });
 
-    verifyNoInteractions(framework, agentInstanceClient);
+    verifyNoInteractions(chatModelApiRegistry, agentInstanceClient);
   }
 
   @Test
@@ -308,7 +315,7 @@ class OutboundConnectorAgentRequestHandlerTest {
                     .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
 
     // limit is checked before the LLM call — no chat request is issued
-    verifyNoInteractions(framework);
+    verifyNoInteractions(chatModelApiRegistry);
   }
 
   @Test
@@ -343,7 +350,11 @@ class OutboundConnectorAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .delta(
+                        new AgentMetrics(
+                            1,
+                            TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
+                            0))
                     .build()));
     verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
@@ -385,7 +396,11 @@ class OutboundConnectorAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
+                    .delta(
+                        new AgentMetrics(
+                            1,
+                            TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
+                            2))
                     .build()));
     verifyHistoryItemsCreated();
     verifyNoMoreInteractions(agentInstanceClient);
@@ -419,7 +434,11 @@ class OutboundConnectorAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .delta(
+                        new AgentMetrics(
+                            1,
+                            TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
+                            0))
                     .build()));
   }
 
@@ -480,23 +499,12 @@ class OutboundConnectorAgentRequestHandlerTest {
     final var metrics =
         new AgentMetrics(
             1,
-            new TokenUsage(10, 20),
+            TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
             assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size(),
             EXECUTION_TIME);
-    doReturn(
-            new TestFrameworkChatResponse(
-                assistantMessage, metrics, Map.of("message", assistantMessage)))
-        .when(framework)
-        .executeMeasuringTime(eq(agentExecutionContext), snapshotCaptor.capture());
-  }
-
-  private record TestFrameworkChatResponse(
-      AssistantMessage assistantMessage, AgentMetrics metrics, Map<String, Object> rawChatResponse)
-      implements AiFrameworkChatResponse<Map<String, Object>> {
-    @Override
-    public TestFrameworkChatResponse withExecutionTimeMetrics(Duration executionTime) {
-      return new TestFrameworkChatResponse(
-          assistantMessage, metrics.withExecutionTime(executionTime), rawChatResponse);
-    }
+    doReturn(chatModelApi).when(chatModelApiRegistry).resolve(any());
+    doReturn(new ChatModelResult(assistantMessage, metrics))
+        .when(chatModelApi)
+        .call(chatModelRequestCaptor.capture());
   }
 }

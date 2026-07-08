@@ -34,9 +34,10 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -91,7 +92,8 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
   @Mock private AgentConversationTurnInputComposer agentInputComposer;
-  @Mock private AiFrameworkAdapter<?> framework;
+  @Mock private ChatModelApiRegistry chatModelApiRegistry;
+  @Mock private ChatModelApi chatModelApi;
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
@@ -99,7 +101,7 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private JobWorkerAgentExecutionContext agentExecutionContext;
 
-  @Captor private ArgumentCaptor<ConversationSnapshot> snapshotCaptor;
+  @Captor private ArgumentCaptor<ChatModelRequest> chatModelRequestCaptor;
   @Captor private ArgumentCaptor<AgentConversationTurn> turnCaptor;
 
   @InjectMocks private JobWorkerAgentRequestHandler requestHandler;
@@ -149,7 +151,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.getFirst()));
 
-    verifyNoInteractions(agentInputComposer, framework, responseHandler);
+    verifyNoInteractions(agentInputComposer, chatModelApiRegistry, responseHandler);
   }
 
   @Test
@@ -212,7 +214,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.responseValue()).isNull();
     assertThat(response.completionConditionFulfilled()).isFalse();
 
-    verifyNoInteractions(agentInputComposer, framework, responseHandler);
+    verifyNoInteractions(agentInputComposer, chatModelApiRegistry, responseHandler);
   }
 
   @Test
@@ -242,7 +244,9 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(), 0));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -255,7 +259,8 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.elementActivations()).isEmpty();
 
     // snapshot is captured before the assistant message is ingested
-    assertThat(snapshotCaptor.getValue().messages()).containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
+    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
+        .containsExactly(SYSTEM_MESSAGE, USER_MESSAGE);
   }
 
   @Test
@@ -282,7 +287,9 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 2));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(), 2));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -351,7 +358,9 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
-        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
+        .isEqualTo(
+            new AgentMetrics(
+                1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(), 0));
     assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
@@ -377,7 +386,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.cancelRemainingInstances()).isFalse();
     assertThat(response.elementActivations()).isEmpty();
 
-    verifyNoInteractions(framework);
+    verifyNoInteractions(chatModelApiRegistry);
   }
 
   @Test
@@ -392,7 +401,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.completionConditionFulfilled()).isFalse();
     assertThat(response.cancelRemainingInstances()).isFalse();
 
-    verifyNoInteractions(framework);
+    verifyNoInteractions(chatModelApiRegistry);
   }
 
   @Test
@@ -432,7 +441,11 @@ class JobWorkerAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.TOOL_CALLING)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 2))
+                    .delta(
+                        new AgentMetrics(
+                            1,
+                            TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
+                            2))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -470,7 +483,11 @@ class JobWorkerAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .delta(
+                        new AgentMetrics(
+                            1,
+                            TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
+                            0))
                     .build()));
     verifyHistoryItemsCreated(assistantMessage);
     verifyNoMoreInteractions(agentInstanceClient);
@@ -519,7 +536,11 @@ class JobWorkerAgentRequestHandlerTest {
             eq(
                 AgentInstanceUpdateRequest.builder()
                     .status(AgentInstanceUpdateStatus.IDLE)
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .delta(
+                        new AgentMetrics(
+                            1,
+                            TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
+                            0))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -562,7 +583,11 @@ class JobWorkerAgentRequestHandlerTest {
             any(),
             eq(
                 AgentInstanceUpdateRequest.builder()
-                    .delta(new AgentMetrics(1, new TokenUsage(10, 20), 0))
+                    .delta(
+                        new AgentMetrics(
+                            1,
+                            TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
+                            0))
                     .build()));
     verifyNoMoreInteractions(agentInstanceClient);
   }
@@ -587,7 +612,8 @@ class JobWorkerAgentRequestHandlerTest {
             InProcessConversationContext.class,
             c -> assertThat(c.messages()).containsExactly(USER_MESSAGE, assistantMessage));
     // no system message is sent to the LLM either
-    assertThat(snapshotCaptor.getValue().messages()).containsExactly(USER_MESSAGE);
+    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
+        .containsExactly(USER_MESSAGE);
   }
 
   @Test
@@ -624,7 +650,7 @@ class JobWorkerAgentRequestHandlerTest {
                     .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
 
     // limit is checked before the LLM call — no chat request is issued
-    verifyNoInteractions(framework);
+    verifyNoInteractions(chatModelApiRegistry);
   }
 
   private void mockSystemPrompt() {
@@ -684,23 +710,12 @@ class JobWorkerAgentRequestHandlerTest {
     final var metrics =
         new AgentMetrics(
             1,
-            new TokenUsage(10, 20),
+            TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
             assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size(),
             EXECUTION_TIME);
-    doReturn(
-            new TestFrameworkChatResponse(
-                assistantMessage, metrics, Map.of("message", assistantMessage)))
-        .when(framework)
-        .executeMeasuringTime(eq(agentExecutionContext), snapshotCaptor.capture());
-  }
-
-  private record TestFrameworkChatResponse(
-      AssistantMessage assistantMessage, AgentMetrics metrics, Map<String, Object> rawChatResponse)
-      implements AiFrameworkChatResponse<Map<String, Object>> {
-    @Override
-    public TestFrameworkChatResponse withExecutionTimeMetrics(Duration executionTime) {
-      return new TestFrameworkChatResponse(
-          assistantMessage, metrics.withExecutionTime(executionTime), rawChatResponse);
-    }
+    doReturn(chatModelApi).when(chatModelApiRegistry).resolve(any());
+    doReturn(new ChatModelResult(assistantMessage, metrics))
+        .when(chatModelApi)
+        .call(chatModelRequestCaptor.capture());
   }
 }
