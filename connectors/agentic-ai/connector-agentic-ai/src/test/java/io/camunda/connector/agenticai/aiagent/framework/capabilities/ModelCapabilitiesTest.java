@@ -45,4 +45,47 @@ class ModelCapabilitiesTest {
         .containsExactly(
             Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT, Modality.AUDIO, Modality.VIDEO);
   }
+
+  @Test
+  void builderDefaultsToEmptyModalitiesFalseFlagsAndNullTokenBudgets() {
+    final var capabilities = ModelCapabilities.builder().build();
+
+    assertThat(capabilities.userMessageModalities()).isEmpty();
+    assertThat(capabilities.toolResultModalities()).isEmpty();
+    assertThat(capabilities.assistantMessageModalities()).isEmpty();
+    assertThat(capabilities.supportsReasoning()).isFalse();
+    assertThat(capabilities.supportsReasoningSignatureRoundtrip()).isFalse();
+    assertThat(capabilities.supportsPromptCaching()).isFalse();
+    assertThat(capabilities.supportsParallelToolCalls()).isFalse();
+    assertThat(capabilities.contextWindow()).isNull();
+    assertThat(capabilities.maxOutputTokens()).isNull();
+  }
+
+  @Test
+  void builderChainProducesSameValuesAsCanonicalConstructor() {
+    final var expected =
+        new ModelCapabilities(
+            List.of(Modality.TEXT, Modality.IMAGE),
+            List.of(Modality.TEXT),
+            List.of(Modality.TEXT),
+            true,
+            true,
+            false,
+            false,
+            128000,
+            4096);
+
+    final var built =
+        ModelCapabilities.builder()
+            .userMessageModalities(List.of(Modality.TEXT, Modality.IMAGE))
+            .toolResultModalities(List.of(Modality.TEXT))
+            .assistantMessageModalities(List.of(Modality.TEXT))
+            .supportsReasoning(true)
+            .supportsReasoningSignatureRoundtrip(true)
+            .contextWindow(128000)
+            .maxOutputTokens(4096)
+            .build();
+
+    assertThat(built).isEqualTo(expected);
+  }
 }

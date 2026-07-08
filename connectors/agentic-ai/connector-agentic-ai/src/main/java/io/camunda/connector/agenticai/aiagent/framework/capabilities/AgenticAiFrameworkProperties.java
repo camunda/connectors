@@ -32,7 +32,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * inside an entry override the key derivation when needed.
  *
  * <p>Capability sub-trees ({@code defaults} and per-entry {@code capabilities}) are bound to the
- * sparse {@link ModelCapabilitiesYaml} record so Spring Boot's relaxed binding can rebuild modality
+ * sparse {@link ModelCapabilitiesData} record so Spring Boot's relaxed binding can rebuild modality
  * lists from indexed property keys; the resolver projects them onto a flat {@link
  * ModelCapabilities} via Jackson tree merge at lookup time.
  */
@@ -44,7 +44,7 @@ public record AgenticAiFrameworkProperties(Map<String, ApiFamilyProperties> capa
   }
 
   public record ApiFamilyProperties(
-      @Nullable ModelCapabilitiesYaml defaults, Map<String, ModelEntryProperties> models) {
+      @Nullable ModelCapabilitiesData defaults, Map<String, ModelEntryProperties> models) {
 
     public ApiFamilyProperties {
       models = models == null ? Map.of() : Map.copyOf(models);
@@ -55,7 +55,7 @@ public record AgenticAiFrameworkProperties(Map<String, ApiFamilyProperties> capa
       @Nullable String id,
       List<String> pattern,
       List<String> aliases,
-      @Nullable ModelCapabilitiesYaml capabilities) {
+      @Nullable ModelCapabilitiesData capabilities) {
 
     public ModelEntryProperties {
       aliases = aliases == null ? List.of() : List.copyOf(aliases);

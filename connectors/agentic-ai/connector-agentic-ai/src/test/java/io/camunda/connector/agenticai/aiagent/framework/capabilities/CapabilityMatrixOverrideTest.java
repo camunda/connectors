@@ -36,7 +36,7 @@ class CapabilityMatrixOverrideTest {
     baseRunner
         .withPropertyValues(
             PREFIX
-                + ".anthropic-messages.models.claude-sonnet-4.capabilities.max-output-tokens=999999")
+                + ".anthropic-messages.models.claude-sonnet-4-6-plus.capabilities.max-output-tokens=999999")
         .run(
             context -> {
               final var caps = resolve(context, "anthropic-messages", "claude-sonnet-4-6");
@@ -93,14 +93,14 @@ class CapabilityMatrixOverrideTest {
         .withPropertyValues(PREFIX + ".openai-completions.defaults.max-output-tokens=7777")
         .run(
             context -> {
-              // gpt-5* pins its own max-output-tokens (sourced from models.dev), so it keeps that
-              // value even when the family default changes:
+              // gpt-5* pins its own max-output-tokens (the conservative floor sourced from
+              // models.dev), so it keeps that value even when the family default changes:
               final var gpt5 = resolve(context, "openai-completions", "gpt-5.5");
-              assertThat(gpt5.maxOutputTokens()).isEqualTo(128000);
+              assertThat(gpt5.maxOutputTokens()).isEqualTo(16384);
               assertThat(gpt5.supportsReasoning()).isTrue();
 
-              // A model matching only the gpt-* fallback (no pinned budget) inherits the new
-              // default:
+              // A model matching no curated entry (no fallback glob exists anymore) falls through
+              // to the family defaults directly and inherits the new default:
               final var generic = resolve(context, "openai-completions", "gpt-3.5-turbo");
               assertThat(generic.maxOutputTokens()).isEqualTo(7777);
               assertThat(generic.supportsReasoning()).isFalse();

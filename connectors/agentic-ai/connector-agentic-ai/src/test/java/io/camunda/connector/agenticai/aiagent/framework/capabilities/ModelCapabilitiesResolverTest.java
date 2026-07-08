@@ -13,8 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ApiFamily;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ModelEntry;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesYaml.InputModalities;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesYaml.OutputModalities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesData.InputModalities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesData.OutputModalities;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +28,9 @@ class ModelCapabilitiesResolverTest {
   // --- Builder helpers -----------------------------------------------------
 
   /** A fully-populated capability block usable as an api-family default. */
-  private static ModelCapabilitiesYaml fullDefaults(
+  private static ModelCapabilitiesData fullDefaults(
       List<Modality> userMessage, List<Modality> toolResult) {
-    return new ModelCapabilitiesYaml(
+    return new ModelCapabilitiesData(
         new InputModalities(userMessage, toolResult),
         new OutputModalities(List.of(Modality.TEXT)),
         false,
@@ -41,7 +41,7 @@ class ModelCapabilitiesResolverTest {
         8192);
   }
 
-  private JsonNode node(ModelCapabilitiesYaml yaml) {
+  private JsonNode node(ModelCapabilitiesData yaml) {
     return mapper.valueToTree(yaml);
   }
 
@@ -87,7 +87,7 @@ class ModelCapabilitiesResolverTest {
   }
 
   @Test
-  void unknownModelFallsThroughToConservativeDefaultsWhenNoFallbackPattern() {
+  void unknownModelInKnownFamilyFallsThroughToFamilyDefaultsNotConservativeDefaults() {
     final var defaults =
         node(fullDefaults(List.of(Modality.TEXT, Modality.IMAGE), List.of(Modality.TEXT)));
     final var entry =
@@ -97,7 +97,35 @@ class ModelCapabilitiesResolverTest {
 
     final var caps = resolver.resolve("anthropic-messages", "claude-mystery", Optional.empty());
 
-    assertThat(caps).isEqualTo(ModelCapabilitiesResolverImpl.CONSERVATIVE_DEFAULTS);
+    // The family declares its own (non-conservative) defaults, so an unmatched model gets those,
+    // not the fully conservative baseline.
+    assertThat(caps).isNotEqualTo(ModelCapabilitiesResolverImpl.CONSERVATIVE_DEFAULTS);
+    assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+    assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
+    assertThat(caps.supportsPromptCaching()).isTrue();
+    assertThat(caps.supportsParallelToolCalls()).isTrue();
+    assertThat(caps.contextWindow()).isEqualTo(200000);
+    assertThat(caps.maxOutputTokens()).isEqualTo(8192);
+  }
+
+  @Test
+  void multiplePatternsOnOneEntryBothResolve() {
+    final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
+    final var overlay =
+        node(new ModelCapabilitiesData(null, null, true, null, null, null, null, null));
+    final var entry =
+        new ModelEntry(null, List.of(), List.of("claude-opus-4-6*", "claude-opus-4-7*"), overlay);
+    final var resolver =
+        resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
+
+    final var byFirstPattern =
+        resolver.resolve("anthropic-messages", "claude-opus-4-6", Optional.empty());
+    final var bySecondPattern =
+        resolver.resolve("anthropic-messages", "claude-opus-4-7", Optional.empty());
+
+    assertThat(byFirstPattern.supportsReasoning()).isTrue();
+    assertThat(bySecondPattern.supportsReasoning()).isTrue();
+    assertThat(byFirstPattern).isEqualTo(bySecondPattern);
   }
 
   @Test
@@ -108,7 +136,7 @@ class ModelCapabilitiesResolverTest {
                 List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
                 List.of(Modality.TEXT, Modality.IMAGE)));
     final var overlay =
-        node(new ModelCapabilitiesYaml(null, null, true, true, null, null, null, 32000));
+        node(new ModelCapabilitiesData(null, null, true, true, null, null, null, 32000));
     final var entry =
         new ModelEntry("claude-opus-4-7", List.of("claude-opus-latest"), List.of(), overlay);
 
@@ -131,7 +159,7 @@ class ModelCapabilitiesResolverTest {
   void aliasMatchResolvesToSameEntryAsExactId() {
     final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
     final var overlay =
-        node(new ModelCapabilitiesYaml(null, null, null, null, null, null, null, 32000));
+        node(new ModelCapabilitiesData(null, null, null, null, null, null, null, 32000));
     final var entry =
         new ModelEntry("claude-opus-4-7", List.of("claude-opus-latest"), List.of(), overlay);
     final var resolver =
@@ -155,14 +183,14 @@ class ModelCapabilitiesResolverTest {
             null,
             List.of(),
             List.of("claude-*"),
-            node(new ModelCapabilitiesYaml(null, null, false, null, null, null, null, null))));
+            node(new ModelCapabilitiesData(null, null, false, null, null, null, null, null))));
     models.put(
         "claude-opus",
         new ModelEntry(
             null,
             List.of(),
             List.of("claude-opus-*"),
-            node(new ModelCapabilitiesYaml(null, null, true, null, null, null, null, null))));
+            node(new ModelCapabilitiesData(null, null, true, null, null, null, null, null))));
 
     final var resolver =
         resolverFor(
@@ -182,7 +210,7 @@ class ModelCapabilitiesResolverTest {
                 List.of(Modality.TEXT, Modality.IMAGE), List.of(Modality.TEXT, Modality.IMAGE)));
     final var overlay =
         node(
-            new ModelCapabilitiesYaml(
+            new ModelCapabilitiesData(
                 new InputModalities(List.of(Modality.TEXT), null),
                 null,
                 null,
@@ -217,7 +245,7 @@ class ModelCapabilitiesResolverTest {
    * Guards the {@code @JsonProperty} lowercase annotations on {@link Modality}: this builds the
    * capability overlay from a raw {@link JsonNode} containing literal lowercase modality strings
    * (as the bundled YAML property source produces), not by serialising a {@link
-   * ModelCapabilitiesYaml} instance through the same mapper. Dropping the annotations would break
+   * ModelCapabilitiesData} instance through the same mapper. Dropping the annotations would break
    * this specific round-trip even though a valueToTree/treeToValue round-trip through the same
    * mapper instance would stay self-consistent either way.
    */

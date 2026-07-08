@@ -82,22 +82,46 @@ class BundledCapabilityMatrixTest {
   }
 
   @Test
-  void claudeHaikuResolvesReasoningWithFamilyDefaultContextWindow() {
+  void claudeOpusLegacyGenerationsPinTheirOwnTokenBudgets() {
+    contextRunner.run(
+        context -> {
+          // claude-opus-4-1 and claude-opus-4-5 are both 200k-context releases but pin different
+          // max-output-tokens (models.dev anthropic/claude-opus-4-1, anthropic/claude-opus-4-5) —
+          // a single claude-opus-4-* glob would over-promise for one of them, so each gets its own
+          // entry.
+          final var opus41 = resolve(context, ANTHROPIC_MESSAGES, "claude-opus-4-1");
+          assertThat(opus41.contextWindow()).isEqualTo(200000);
+          assertThat(opus41.maxOutputTokens()).isEqualTo(32000);
+
+          final var opus45 = resolve(context, ANTHROPIC_MESSAGES, "claude-opus-4-5");
+          assertThat(opus45.contextWindow()).isEqualTo(200000);
+          assertThat(opus45.maxOutputTokens()).isEqualTo(64000);
+
+          // claude-opus-4-6 and later moved to the 1M-context tier (models.dev
+          // anthropic/claude-opus-4-6):
+          final var opus46 = resolve(context, ANTHROPIC_MESSAGES, "claude-opus-4-6");
+          assertThat(opus46.contextWindow()).isEqualTo(1000000);
+          assertThat(opus46.maxOutputTokens()).isEqualTo(128000);
+        });
+  }
+
+  @Test
+  void claudeHaikuResolvesReasoningWithExplicitlyPinnedContextWindow() {
     contextRunner.run(
         context -> {
           final var caps = resolve(context, ANTHROPIC_MESSAGES, "claude-haiku-4-5");
 
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
-          // Pinned from models.dev anthropic/claude-haiku-4-5:
+          // Pinned from models.dev anthropic/claude-haiku-4-5. Context window happens to equal the
+          // family default (200000) but is still pinned explicitly on the entry:
           assertThat(caps.maxOutputTokens()).isEqualTo(64000);
-          // Context window matches the family default (not pinned per-model):
           assertThat(caps.contextWindow()).isEqualTo(200000);
         });
   }
 
   @Test
-  void unknownClaudeModelFallsThroughToFamilyCatchAll() {
+  void unknownClaudeModelFallsThroughToFamilyDefaults() {
     contextRunner.run(
         context -> {
           final var caps = resolve(context, ANTHROPIC_MESSAGES, "claude-some-future-model");
@@ -117,9 +141,11 @@ class BundledCapabilityMatrixTest {
 
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
-          // Pinned from models.dev openai/gpt-5.5:
-          assertThat(caps.contextWindow()).isEqualTo(1050000);
-          assertThat(caps.maxOutputTokens()).isEqualTo(128000);
+          // gpt-5* spans 128k-1.05M context / 16k-272k output on models.dev across its
+          // chat-latest/base/codex/pro variants; the entry pins the conservative floor across that
+          // whole lineage rather than gpt-5.5's own (higher) real budget:
+          assertThat(caps.contextWindow()).isEqualTo(128000);
+          assertThat(caps.maxOutputTokens()).isEqualTo(16384);
         });
   }
 
@@ -151,6 +177,21 @@ class BundledCapabilityMatrixTest {
           assertThat(caps.supportsReasoning()).isFalse();
           // Pinned from models.dev openai/gpt-4o:
           assertThat(caps.maxOutputTokens()).isEqualTo(16384);
+        });
+  }
+
+  @Test
+  void gpt4oInitialReleasePinsLowerMaxOutputTokensByExactId() {
+    contextRunner.run(
+        context -> {
+          // gpt-4o-2024-05-13's initial release capped max-output-tokens at 4096, below every
+          // later gpt-4o* release (models.dev openai/gpt-4o-2024-05-13). A gpt-4o* glob pinned at
+          // 16384 would over-promise for this one dated snapshot, so it gets its own exact-id
+          // entry that wins over the pattern match.
+          final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-4o-2024-05-13");
+
+          assertThat(caps.contextWindow()).isEqualTo(128000);
+          assertThat(caps.maxOutputTokens()).isEqualTo(4096);
         });
   }
 
@@ -197,7 +238,7 @@ class BundledCapabilityMatrixTest {
   }
 
   @Test
-  void unknownOpenAiModelFallsThroughToFamilyCatchAll() {
+  void unknownOpenAiModelFallsThroughToFamilyDefaults() {
     contextRunner.run(
         context -> {
           final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-3.5-turbo");

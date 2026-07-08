@@ -25,16 +25,11 @@ public class Langchain4JChatModelApi implements ChatModelApi {
    * them.
    */
   private static final ModelCapabilities BRIDGE_CAPABILITIES =
-      new ModelCapabilities(
-          List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
-          List.of(Modality.TEXT),
-          List.of(Modality.TEXT),
-          false,
-          false,
-          false,
-          false,
-          null,
-          null);
+      ModelCapabilities.builder()
+          .userMessageModalities(List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT))
+          .toolResultModalities(List.of(Modality.TEXT))
+          .assistantMessageModalities(List.of(Modality.TEXT))
+          .build();
 
   private final Langchain4JAiFrameworkAdapter adapter;
 

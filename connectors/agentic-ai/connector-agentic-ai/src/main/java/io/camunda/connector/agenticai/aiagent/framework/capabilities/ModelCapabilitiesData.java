@@ -25,7 +25,7 @@ import org.jspecify.annotations.Nullable;
  */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonInclude(JsonInclude.Include.ALWAYS) // keep null fields visible to deep-merge
-record ModelCapabilitiesYaml(
+record ModelCapabilitiesData(
     @Nullable InputModalities inputModalities,
     @Nullable OutputModalities outputModalities,
     @Nullable Boolean supportsReasoning,

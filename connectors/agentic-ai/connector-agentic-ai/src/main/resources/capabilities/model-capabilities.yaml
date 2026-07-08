@@ -9,17 +9,17 @@
 #   camunda.connector.agenticai.aiagent.framework.capabilities:
 #     anthropic-messages:
 #       models:
-#         claude-opus-4:                  # map key reused -> override existing entry
+#         claude-opus-4-6-plus:            # map key reused -> override existing entry
 #           capabilities:
-#             max-output-tokens: 64000    # only this field overridden
+#             max-output-tokens: 64000     # only this field overridden
 #
 # Structure under `capabilities`:
 #   <api-family>:
 #     defaults:    capability block applied to every model entry in the family
 #     models:      map of opaque identifiers to entries. Each entry has one of:
-#                    - `id`     (defaults to the map key when neither is set)
-#                    - `pattern` (glob using `*` only; longest match wins at
-#                                 resolve-time)
+#                    - `id`      (defaults to the map key when neither is set)
+#                    - `pattern` (glob using `*` only, or a list of globs;
+#                                 longest match wins at resolve-time)
 #                  plus an optional `aliases` list (id entries only) and a
 #                  `capabilities` overlay.
 #                  NB: `*` and `.` in property keys interfere with Spring Boot's
@@ -46,24 +46,27 @@
 #   1. Connector config override (per-call, future)
 #   2. Exact id or alias match
 #   3. Pattern (longest-match wins)
-#   4. Conservative defaults (text-only, all flags false)
+#   4. Family defaults (an unmatched model under a known api family still gets
+#      that family's `defaults` block, not the fully conservative baseline)
+#   5. Conservative defaults (text-only, all flags false) — only when the api
+#      family itself is unknown
 #
-# Modality vocabulary: text | image | document | audio | video. Modality lists per
-# location (user-message, tool-result, assistant-message) are symmetric.
+# Modality vocabulary: text | image | document | audio | video. Modality lists
+# per location (user-message, tool-result, assistant-message) are symmetric.
 #
 # Curated entries use broad globs on purpose (major-version / family prefixes
 # rather than pinned point-release ids) so newer point releases keep matching
-# without a matrix update; each family also keeps a bare `<family>-*` fallback
-# so a model that predates any curated entry still gets family-level (not
-# fully-conservative) defaults.
+# without a matrix update. A broad glob's pinned context-window /
+# max-output-tokens must stay accurate for every model it currently matches:
+# where matched models genuinely differ, split into narrower patterns/exact
+# ids (preferred) or pin the conservative minimum across the matched members —
+# never the maximum. See AGENTS.md "Model capability matrix" for the
+# maintenance rule and how to refresh this file.
 #
 # Per-model context-window / max-output-tokens figures and reasoning flags
-# below are sourced from models.dev (https://models.dev, api.json dataset) as
-# of 2026-07-08. Each curated bucket uses the values of the most current
-# (highest/newest) model.dev entry matching its glob at the time of sourcing;
-# refresh periodically as new point releases ship. Models that don't match any
-# curated pattern fall back to the family default, then to fully conservative
-# (text-only, all flags false) defaults.
+# below are sourced from models.dev (https://models.dev, api.json dataset).
+# Every named entry pins both fields explicitly, even when a value equals the
+# family default.
 
 camunda:
   connector:
@@ -86,14 +89,10 @@ camunda:
                 context-window: 200000
                 max-output-tokens: 8192
               models:
-                # Curated entries pin context-window / max-output-tokens /
-                # supports-reasoning from the most current models.dev entry
-                # matching the glob; supports-reasoning-signature-roundtrip is
-                # a design decision (Anthropic extended-thinking signatures),
-                # not sourced from models.dev. Globs are broad so point
-                # releases keep matching.
+                # supports-reasoning-signature-roundtrip is a design decision
+                # (Anthropic extended-thinking signatures), not sourced from
+                # models.dev.
                 claude-fable:
-                  # Source: models.dev anthropic/claude-fable-5
                   pattern: claude-fable-*
                   capabilities:
                     supports-reasoning: true
@@ -103,43 +102,58 @@ camunda:
                 # Sonnet 5 is dateless (no trailing version segment), so it needs
                 # its own pattern rather than falling under claude-sonnet-4-*.
                 claude-sonnet-5:
-                  # Source: models.dev anthropic/claude-sonnet-5
                   pattern: claude-sonnet-5*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
                     context-window: 1000000
                     max-output-tokens: 128000
-                claude-opus-4:
-                  # Source: models.dev anthropic/claude-opus-4-8 (most current
-                  # opus-4.x entry as of sourcing)
-                  pattern: claude-opus-4-*
+                claude-opus-4-1:
+                  pattern: claude-opus-4-1*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 200000
+                    max-output-tokens: 32000
+                claude-opus-4-5:
+                  pattern: claude-opus-4-5*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 200000
+                    max-output-tokens: 64000
+                # opus-4-1/-4-5 (above) are 200k-context releases; opus-4-6 and
+                # later moved to the 1M-context tier. Named explicitly (not
+                # claude-opus-4-*) so a 200k-tier point release is never swept
+                # into the higher figures below.
+                claude-opus-4-6-plus:
+                  pattern: [claude-opus-4-6*, claude-opus-4-7*, claude-opus-4-8*]
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
                     context-window: 1000000
                     max-output-tokens: 128000
-                claude-sonnet-4:
-                  # Source: models.dev anthropic/claude-sonnet-4-6 (most
-                  # current sonnet-4.x entry as of sourcing)
-                  pattern: claude-sonnet-4-*
+                claude-sonnet-4-5:
+                  pattern: claude-sonnet-4-5*
+                  capabilities:
+                    supports-reasoning: true
+                    supports-reasoning-signature-roundtrip: true
+                    context-window: 1000000
+                    max-output-tokens: 64000
+                claude-sonnet-4-6-plus:
+                  pattern: claude-sonnet-4-6*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
                     context-window: 1000000
                     max-output-tokens: 128000
                 claude-haiku:
-                  # Source: models.dev anthropic/claude-haiku-4-5. Context
-                  # window matches the family default (200000), so it is left
-                  # unpinned here.
                   pattern: claude-haiku-*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
+                    context-window: 200000
                     max-output-tokens: 64000
-                claude-fallback:
-                  pattern: claude-*
-                  capabilities: {}
 
             # Chat Completions tool messages are text-only (the SDK enforces
             # ChatCompletionContentPartText for tool message content arrays);
@@ -158,16 +172,34 @@ camunda:
                 context-window: 128000
                 max-output-tokens: 4096
               models:
+                # gpt-5* spans a wide range on models.dev (128k-1.05M context,
+                # 16k-272k output across chat-latest/base/codex/pro variants);
+                # pinned to the conservative floor across the whole matched
+                # lineage rather than over-promising for the low-end variants.
                 gpt-5:
-                  # Source: models.dev openai/gpt-5.5 (most current gpt-5.x
-                  # flagship entry as of sourcing)
                   pattern: gpt-5*
                   capabilities:
                     supports-reasoning: true
-                    context-window: 1050000
-                    max-output-tokens: 128000
+                    context-window: 128000
+                    max-output-tokens: 16384
+                gpt-4o:
+                  pattern: gpt-4o*
+                  capabilities:
+                    context-window: 128000
+                    max-output-tokens: 16384
+                # gpt-4o-2024-05-13's initial release capped max-output-tokens
+                # at 4096, below every later gpt-4o* release; pinned by exact
+                # id so it doesn't inherit the higher figure above.
+                gpt-4o-2024-05-13:
+                  capabilities:
+                    context-window: 128000
+                    max-output-tokens: 4096
+                gpt-4-1:
+                  pattern: gpt-4.1*
+                  capabilities:
+                    context-window: 1047576
+                    max-output-tokens: 32768
                 o1:
-                  # Source: models.dev openai/o1
                   pattern: o1*
                   capabilities:
                     supports-reasoning: true
@@ -175,17 +207,15 @@ camunda:
                     context-window: 200000
                     max-output-tokens: 100000
                 o3:
-                  # Source: models.dev openai/o3
                   pattern: o3*
                   capabilities:
                     supports-reasoning: true
                     context-window: 200000
                     max-output-tokens: 100000
+                # o4-mini is the only o4 family member on models.dev (no bare
+                # "o4" entry exists). Its input modalities lack PDF/document
+                # support, unlike the family default.
                 o4:
-                  # Source: models.dev openai/o4-mini (no bare "o4" entry
-                  # exists; -mini is the only o4 family member). Its input
-                  # modalities lack PDF/document support, unlike the family
-                  # default.
                   pattern: o4*
                   capabilities:
                     supports-reasoning: true
@@ -193,23 +223,6 @@ camunda:
                     max-output-tokens: 100000
                     input-modalities:
                       user-message: [text, image]
-                gpt-4o:
-                  # Source: models.dev openai/gpt-4o. Input modalities
-                  # (text/image/pdf) match the family default, so no override
-                  # is needed here (previous "audio" claim was not sourced and
-                  # has been removed).
-                  pattern: gpt-4o*
-                  capabilities:
-                    max-output-tokens: 16384
-                gpt-4-1:
-                  # Source: models.dev openai/gpt-4.1
-                  pattern: gpt-4.1*
-                  capabilities:
-                    context-window: 1047576
-                    max-output-tokens: 32768
-                gpt-fallback:
-                  pattern: gpt-*
-                  capabilities: {}
 
             # Responses API: function call outputs accept text, image and file
             # content items per the SDK's FunctionCallOutput.Output union.
@@ -227,17 +240,35 @@ camunda:
                 context-window: 128000
                 max-output-tokens: 4096
               models:
+                # gpt-5* spans a wide range on models.dev (128k-1.05M context,
+                # 16k-272k output across chat-latest/base/codex/pro variants);
+                # pinned to the conservative floor across the whole matched
+                # lineage rather than over-promising for the low-end variants.
                 gpt-5:
-                  # Source: models.dev openai/gpt-5.5 (most current gpt-5.x
-                  # flagship entry as of sourcing)
                   pattern: gpt-5*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
-                    context-window: 1050000
-                    max-output-tokens: 128000
+                    context-window: 128000
+                    max-output-tokens: 16384
+                gpt-4o:
+                  pattern: gpt-4o*
+                  capabilities:
+                    context-window: 128000
+                    max-output-tokens: 16384
+                # gpt-4o-2024-05-13's initial release capped max-output-tokens
+                # at 4096, below every later gpt-4o* release; pinned by exact
+                # id so it doesn't inherit the higher figure above.
+                gpt-4o-2024-05-13:
+                  capabilities:
+                    context-window: 128000
+                    max-output-tokens: 4096
+                gpt-4-1:
+                  pattern: gpt-4.1*
+                  capabilities:
+                    context-window: 1047576
+                    max-output-tokens: 32768
                 o1:
-                  # Source: models.dev openai/o1
                   pattern: o1*
                   capabilities:
                     supports-reasoning: true
@@ -246,18 +277,16 @@ camunda:
                     context-window: 200000
                     max-output-tokens: 100000
                 o3:
-                  # Source: models.dev openai/o3
                   pattern: o3*
                   capabilities:
                     supports-reasoning: true
                     supports-reasoning-signature-roundtrip: true
                     context-window: 200000
                     max-output-tokens: 100000
+                # o4-mini is the only o4 family member on models.dev (no bare
+                # "o4" entry exists). Its input modalities lack PDF/document
+                # support, unlike the family default.
                 o4:
-                  # Source: models.dev openai/o4-mini (no bare "o4" entry
-                  # exists; -mini is the only o4 family member). Its input
-                  # modalities lack PDF/document support, unlike the family
-                  # default.
                   pattern: o4*
                   capabilities:
                     supports-reasoning: true
@@ -266,20 +295,3 @@ camunda:
                     max-output-tokens: 100000
                     input-modalities:
                       user-message: [text, image]
-                gpt-4o:
-                  # Source: models.dev openai/gpt-4o. Input modalities
-                  # (text/image/pdf) match the family default, so no override
-                  # is needed here (previous "audio" claim was not sourced and
-                  # has been removed).
-                  pattern: gpt-4o*
-                  capabilities:
-                    max-output-tokens: 16384
-                gpt-4-1:
-                  # Source: models.dev openai/gpt-4.1
-                  pattern: gpt-4.1*
-                  capabilities:
-                    context-window: 1047576
-                    max-output-tokens: 32768
-                gpt-fallback:
-                  pattern: gpt-*
-                  capabilities: {}

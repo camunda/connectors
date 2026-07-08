@@ -252,6 +252,25 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
+## Model capability matrix
+
+`connector-agentic-ai/src/main/resources/capabilities/model-capabilities.yaml` (per-family/per-model
+LLM capability declarations consumed by `ModelCapabilitiesResolver`) is hand-maintained data, not
+generated. When refreshing it as new model releases ship:
+
+- Source context-window / max-output-tokens / reasoning figures from
+  [models.dev](https://models.dev) (`api.json` dataset); do not invent numbers.
+- A curated entry's glob (or pattern list) must never over-promise: its pinned numbers must be valid
+  for every model the glob currently matches. Where matched models genuinely differ, split into
+  narrower patterns/exact ids (preferred) or pin the conservative minimum across the matched
+  members — never the maximum.
+- Every capability field, including each input-modalities location (user-message, tool-result) and
+  output-modalities (assistant-message), is per-model overridable via an entry's `capabilities`
+  overlay; the family `defaults` block is only the baseline a model falls back to when it doesn't
+  pin its own value.
+- See the YAML file's own header comment for the full structure, override mechanics, and resolution
+  chain.
+
 ## Key entry points
 
 | File                                        | Purpose                                    |

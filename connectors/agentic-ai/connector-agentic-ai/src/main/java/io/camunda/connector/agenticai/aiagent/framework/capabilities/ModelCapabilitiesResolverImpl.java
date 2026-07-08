@@ -33,21 +33,16 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
   private static final Logger LOG = LoggerFactory.getLogger(ModelCapabilitiesResolverImpl.class);
 
   static final ModelCapabilities CONSERVATIVE_DEFAULTS =
-      new ModelCapabilities(
-          List.of(Modality.TEXT),
-          List.of(Modality.TEXT),
-          List.of(Modality.TEXT),
-          false,
-          false,
-          false,
-          false,
-          null,
-          null);
+      ModelCapabilities.builder()
+          .userMessageModalities(List.of(Modality.TEXT))
+          .toolResultModalities(List.of(Modality.TEXT))
+          .assistantMessageModalities(List.of(Modality.TEXT))
+          .build();
 
-  private static final ModelCapabilitiesYaml CONSERVATIVE_DEFAULTS_YAML =
-      new ModelCapabilitiesYaml(
-          new ModelCapabilitiesYaml.InputModalities(List.of(Modality.TEXT), List.of(Modality.TEXT)),
-          new ModelCapabilitiesYaml.OutputModalities(List.of(Modality.TEXT)),
+  private static final ModelCapabilitiesData CONSERVATIVE_DEFAULTS_DATA =
+      new ModelCapabilitiesData(
+          new ModelCapabilitiesData.InputModalities(List.of(Modality.TEXT), List.of(Modality.TEXT)),
+          new ModelCapabilitiesData.OutputModalities(List.of(Modality.TEXT)),
           false,
           false,
           false,
@@ -63,7 +58,7 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
   public ModelCapabilitiesResolverImpl(CapabilityMatrix matrix, ObjectMapper mapper) {
     this.matrix = matrix;
     this.mapper = mapper;
-    this.conservativeBase = mapper.valueToTree(CONSERVATIVE_DEFAULTS_YAML);
+    this.conservativeBase = mapper.valueToTree(CONSERVATIVE_DEFAULTS_DATA);
   }
 
   @Override
@@ -102,10 +97,10 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
 
     logOnce(
         "default:" + apiFamily + ":" + modelId,
-        "No capability matrix entry for model '{}' under api family '{}'; using conservative defaults",
+        "No capability matrix entry for model '{}' under api family '{}'; using family defaults",
         modelId,
         apiFamily);
-    return CONSERVATIVE_DEFAULTS;
+    return merge(family.defaults(), null);
   }
 
   @Nullable
@@ -151,7 +146,7 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
       @Nullable JsonNode familyDefaults, @Nullable JsonNode modelOverrides) {
     final JsonNode merged = deepMerge(deepMerge(conservativeBase, familyDefaults), modelOverrides);
     try {
-      return mapper.treeToValue(merged, ModelCapabilitiesYaml.class).toModelCapabilities();
+      return mapper.treeToValue(merged, ModelCapabilitiesData.class).toModelCapabilities();
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("Failed to materialise model capabilities", e);
     }
