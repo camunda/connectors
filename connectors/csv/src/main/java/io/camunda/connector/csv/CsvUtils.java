@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.csv;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.csv.model.CsvFormat;
 import io.camunda.connector.csv.model.ReadCsvRequest;
 import io.camunda.connector.csv.model.ReadCsvResult;
@@ -65,6 +66,10 @@ public class CsvUtils {
         if (record instanceof List<?> listValues) {
           printer.printRecord(listValues);
         } else if (record instanceof Map<?, ?> mapValues) {
+          if (!headersDefined(format)) {
+            throw new ConnectorInputException(
+                "Headers must be defined when writing object-based (Map) records to CSV.");
+          }
           var row = format.headers().stream().map(mapValues::get).toList();
           printer.printRecord(row);
         } else {
