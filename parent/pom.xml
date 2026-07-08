@@ -111,6 +111,9 @@ limitations under the License.</license.inlineheader>
     <version.okhttp>4.12.0</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
     <version.opensearch-client>2.26.0</version.opensearch-client>
+    <!-- CVE-2026-9563: parsson transitive override — remove once opensearch-java ships parsson >= 1.1.8
+         Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
+    <version.parsson>1.1.9</version.parsson>
 
     <version.google-api-client>2.9.0</version.google-api-client>
 
@@ -209,6 +212,14 @@ limitations under the License.</license.inlineheader>
         <groupId>com.fasterxml.jackson.datatype</groupId>
         <artifactId>jackson-datatype-jsr310</artifactId>
         <version>${version.jackson-datatype-jsr310}</version>
+      </dependency>
+
+      <!-- CVE-2026-9563 (https://nvd.nist.gov/vuln/detail/CVE-2026-9563): override parsson transitive
+           version brought in by opensearch-java. Remove once opensearch-java ships parsson >= 1.1.8. -->
+      <dependency>
+        <groupId>org.eclipse.parsson</groupId>
+        <artifactId>parsson</artifactId>
+        <version>${version.parsson}</version>
       </dependency>
 
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
@@ -969,6 +980,18 @@ limitations under the License.</license.inlineheader>
               <requirePluginVersions>
                 <banSnapshots>false</banSnapshots>
               </requirePluginVersions>
+              <!-- CVE-2026-9563 guard: fails if opensearch-java is bumped, as a reminder to
+                   check whether the parsson override can be removed (see version.parsson). -->
+              <requireProperty>
+                <property>version.opensearch-client</property>
+                <regex>^2\.26\.0$</regex>
+                <regexMessage>
+version.opensearch-client was changed! Check if the parsson CVE-2026-9563 override can be removed.
+If the new opensearch-java version ships parsson &gt;= 1.1.8, remove the version.parsson property,
+the parsson dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+See: https://nvd.nist.gov/vuln/detail/CVE-2026-9563
+                </regexMessage>
+              </requireProperty>
             </rules>
           </configuration>
           <executions>
