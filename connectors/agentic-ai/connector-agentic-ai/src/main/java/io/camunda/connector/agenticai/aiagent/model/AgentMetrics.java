@@ -73,21 +73,42 @@ public record AgentMetrics(
   @JsonPOJOBuilder(withPrefix = "")
   public static class AgentMetricsJacksonProxyBuilder extends AgentMetricsBuilder {}
 
+  /**
+   * Token usage for a model interaction.
+   *
+   * <p>Aggregation semantics: {@code cacheReadTokenCount} and {@code cacheCreationTokenCount} are
+   * subsets already counted within {@code inputTokenCount}; {@code reasoningTokenCount} is a subset
+   * already counted within {@code outputTokenCount}. {@link #totalTokenCount()} is therefore {@code
+   * input + output} and never double-counts. Populated per-round by the native provider
+   * implementations.
+   */
   @AgenticAiRecord
   @JsonDeserialize(builder = TokenUsage.AgentMetricsTokenUsageJacksonProxyBuilder.class)
-  public record TokenUsage(int inputTokenCount, int outputTokenCount)
+  public record TokenUsage(
+      int inputTokenCount,
+      int outputTokenCount,
+      @JsonInclude(JsonInclude.Include.NON_DEFAULT) int cacheReadTokenCount,
+      @JsonInclude(JsonInclude.Include.NON_DEFAULT) int cacheCreationTokenCount,
+      @JsonInclude(JsonInclude.Include.NON_DEFAULT) int reasoningTokenCount)
       implements AgentMetricsTokenUsageBuilder.With {
+
+    public TokenUsage(int inputTokenCount, int outputTokenCount) {
+      this(inputTokenCount, outputTokenCount, 0, 0, 0);
+    }
 
     public int totalTokenCount() {
       return inputTokenCount + outputTokenCount;
     }
 
-    public TokenUsage add(TokenUsage tokenUsage) {
+    public TokenUsage add(TokenUsage other) {
       return with(
-          builder ->
-              builder
-                  .inputTokenCount(builder.inputTokenCount() + tokenUsage.inputTokenCount())
-                  .outputTokenCount(builder.outputTokenCount() + tokenUsage.outputTokenCount()));
+          b ->
+              b.inputTokenCount(b.inputTokenCount() + other.inputTokenCount())
+                  .outputTokenCount(b.outputTokenCount() + other.outputTokenCount())
+                  .cacheReadTokenCount(b.cacheReadTokenCount() + other.cacheReadTokenCount())
+                  .cacheCreationTokenCount(
+                      b.cacheCreationTokenCount() + other.cacheCreationTokenCount())
+                  .reasoningTokenCount(b.reasoningTokenCount() + other.reasoningTokenCount()));
     }
 
     public static TokenUsage empty() {
