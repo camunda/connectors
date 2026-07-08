@@ -244,6 +244,44 @@ class AgentConversationTest {
   }
 
   @Test
+  void nextRound_movesIngestedTurnToPreviousTurns_andOpensPendingTurn() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("partial"), new AgentMetrics(1, new TokenUsage(10, 5), 0));
+
+    var next = conv.nextRound(List.of());
+
+    assertThat(next.turns()).hasSize(1);
+    assertThat(next.turns().getFirst().iterationKey()).isEqualTo(1);
+    assertThat(next.turns().getFirst().assistantMessage()).isEqualTo(assistantMessage("partial"));
+
+    assertThat(next.currentTurn().iterationKey()).isEqualTo(2);
+    assertThat(next.currentTurn().assistantMessage()).isNull();
+    assertThat(next.currentTurn().inputMessages()).isEmpty();
+  }
+
+  @Test
+  void nextRound_throwsWhenCurrentTurnStillPending() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+    assertThatThrownBy(() -> conv.nextRound(List.of())).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void totalMetrics_accumulatesAcrossRoundsWithinOneInvocation() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("partial"), new AgentMetrics(1, new TokenUsage(10, 5), 0))
+            .nextRound(List.of())
+            .ingest(assistantMessage("done"), new AgentMetrics(1, new TokenUsage(20, 8), 1));
+
+    var total = conv.totalMetrics();
+    assertThat(total.modelCalls()).isEqualTo(2);
+    assertThat(total.tokenUsage().inputTokenCount()).isEqualTo(30);
+    assertThat(total.tokenUsage().outputTokenCount()).isEqualTo(13);
+    assertThat(total.toolCalls()).isEqualTo(1);
+  }
+
+  @Test
   void lastTurn_whileCurrentPending_isTurnPrecedingCurrent() {
     // while the current turn is still pending, lastTurn() resolves to the turn preceding it — the
     // one whose assistant message requested the tools answered by the current turn's results
