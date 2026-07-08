@@ -55,6 +55,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
@@ -648,19 +649,21 @@ class CamundaAgentInstanceClientTest {
                   ToolCallResultMessage.builder()
                       .results(
                           List.of(
-                              ToolCallResult.builder()
-                                  .id("a")
-                                  .name("getWeather")
-                                  .content("sunny")
-                                  .elementId("getWeather")
-                                  .completedAt(fastCompletedAt)
-                                  .build(),
-                              ToolCallResult.builder()
-                                  .id("b")
-                                  .name("getTime")
-                                  .elementId("getTime")
-                                  .completedAt(slowCompletedAt)
-                                  .build()))
+                              ToolCallResultContent.from(
+                                  ToolCallResult.builder()
+                                      .id("a")
+                                      .name("getWeather")
+                                      .content("sunny")
+                                      .elementId("getWeather")
+                                      .completedAt(fastCompletedAt)
+                                      .build()),
+                              ToolCallResultContent.from(
+                                  ToolCallResult.builder()
+                                      .id("b")
+                                      .name("getTime")
+                                      .elementId("getTime")
+                                      .completedAt(slowCompletedAt)
+                                      .build())))
                       .build()),
               null,
               AgentMetrics.empty());
@@ -746,12 +749,13 @@ class CamundaAgentInstanceClientTest {
                   ToolCallResultMessage.builder()
                       .results(
                           List.of(
-                              ToolCallResult.builder()
-                                  .id("orphan")
-                                  .name("getWeather")
-                                  .elementId("getWeather")
-                                  .content("sunny")
-                                  .build()))
+                              ToolCallResultContent.from(
+                                  ToolCallResult.builder()
+                                      .id("orphan")
+                                      .name("getWeather")
+                                      .elementId("getWeather")
+                                      .content("sunny")
+                                      .build())))
                       .build()),
               null,
               AgentMetrics.empty());
@@ -783,11 +787,12 @@ class CamundaAgentInstanceClientTest {
                   ToolCallResultMessage.builder()
                       .results(
                           List.of(
-                              ToolCallResult.builder()
-                                  .elementId("getTime")
-                                  .content("partial")
-                                  .completedAt(TURN_INGESTION_TIMESTAMP)
-                                  .build()))
+                              ToolCallResultContent.from(
+                                  ToolCallResult.builder()
+                                      .elementId("getTime")
+                                      .content("partial")
+                                      .completedAt(TURN_INGESTION_TIMESTAMP)
+                                      .build())))
                       .build()),
               null,
               AgentMetrics.empty());
@@ -823,7 +828,10 @@ class CamundaAgentInstanceClientTest {
               1,
               List.of(
                   ToolCallResultMessage.builder()
-                      .results(List.of(ToolCallResult.builder().content("partial").build()))
+                      .results(
+                          List.of(
+                              ToolCallResultContent.from(
+                                  ToolCallResult.builder().content("partial").build())))
                       .build()),
               null,
               AgentMetrics.empty());

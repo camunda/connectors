@@ -27,10 +27,13 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -164,7 +167,8 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(nextTurn.messages().getFirst()).isInstanceOf(ToolCallResultMessage.class);
     var toolResults = ((ToolCallResultMessage) nextTurn.messages().getFirst()).results();
     assertThat(toolResults).hasSize(2);
-    assertThat(toolResults.get(1).content()).isEqualTo(ToolCallResult.CONTENT_CANCELLED);
+    assertThat(toolResults.get(1).content())
+        .containsExactly(TextContent.textContent(ToolCallResult.CONTENT_CANCELLED));
     assertThat(nextTurn.messages().getLast()).isInstanceOf(UserMessage.class);
   }
 
@@ -200,7 +204,7 @@ class AgentConversationTurnInputComposerImplTest {
         (ToolCallResultMessage) ((CompositionResult.NextTurn) result).messages().getFirst();
     // ordered to match the tool calls (getWeather=abcdef, getDateTime=fedcba), not input order
     assertThat(message.results())
-        .extracting(ToolCallResult::id)
+        .extracting(ToolCallResultContent::id)
         .containsExactly("abcdef", "fedcba");
   }
 
@@ -330,7 +334,9 @@ class AgentConversationTurnInputComposerImplTest {
 
     var message =
         (ToolCallResultMessage) ((CompositionResult.NextTurn) result).messages().getFirst();
-    assertThat(message.results()).containsExactlyElementsOf(transformedResults);
+    assertThat(message.results())
+        .containsExactlyElementsOf(
+            transformedResults.stream().map(ToolCallResultContent::from).toList());
   }
 
   @Test
@@ -359,6 +365,23 @@ class AgentConversationTurnInputComposerImplTest {
     var messages = ((CompositionResult.NextTurn) result).messages();
     assertThat(messages).hasSize(2);
     assertThat(messages.getFirst()).isInstanceOf(ToolCallResultMessage.class);
+    // the ToolCallResultMessage itself carries ToolCallResultContent entries with the mixed
+    // content shapes lifted from the raw tool results (map-with-document -> ObjectContent,
+    // string -> TextContent) — the separate <doc/> extraction below is unaffected by this shape
+    var toolCallResultMessage = (ToolCallResultMessage) messages.getFirst();
+    assertThat(toolCallResultMessage.results())
+        .satisfiesExactly(
+            weatherResult ->
+                assertThat(weatherResult.content())
+                    .singleElement()
+                    .isInstanceOfSatisfying(
+                        ObjectContent.class,
+                        objectContent ->
+                            assertThat(objectContent.content())
+                                .isEqualTo(Map.of("result", "Sunny", "attachment", weatherDoc))),
+            dateTimeResult ->
+                assertThat(dateTimeResult.content())
+                    .containsExactly(TextContent.textContent("15:00")));
     assertThat(messages.get(1))
         .isInstanceOfSatisfying(
             UserMessage.class,

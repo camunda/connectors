@@ -27,7 +27,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectConten
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -69,7 +69,7 @@ public class AgentInstanceHistoryMapper {
   /**
    * @param turnIngestionTimestamp the timestamp for non-tool-result items (e.g. a {@link
    *     UserMessage}), passed in by the caller so this mapper stays clock-free. Tool-call results
-   *     use their own resolved {@link ToolCallResult#completedAt()} instead (see ADR 008).
+   *     use their own resolved {@link ToolCallResultContent#completedAt()} instead (see ADR 008).
    */
   public List<InputHistoryItem> inputHistoryItems(
       Message message, Map<String, ToolCall> toolCallsById, OffsetDateTime turnIngestionTimestamp) {
@@ -93,12 +93,12 @@ public class AgentInstanceHistoryMapper {
   }
 
   private InputHistoryItem toolResultHistoryItem(
-      ToolCallResult result, Map<String, ToolCall> toolCallsById) {
+      ToolCallResultContent result, Map<String, ToolCall> toolCallsById) {
     // tool-call result id/name are nullable on the model (and partial/malformed results may omit
     // them); default to empty strings, which the client model accepts
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
-        toolResultContent(result.content()),
+        contentBlocks(result.content()),
         List.of(
             new AgentInstanceHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
@@ -113,7 +113,7 @@ public class AgentInstanceHistoryMapper {
    * before it reaches this mapper (engine timestamp, worker-observed time, or {@code now()} as last
    * resort) — a missing value here is an invariant violation, not a case to silently default.
    */
-  private OffsetDateTime requireCompletedAt(ToolCallResult result) {
+  private OffsetDateTime requireCompletedAt(ToolCallResultContent result) {
     final var completedAt = result.completedAt();
     if (completedAt == null) {
       throw new IllegalArgumentException(
@@ -130,7 +130,7 @@ public class AgentInstanceHistoryMapper {
    * invariant violation.
    */
   private Map<String, Object> argumentsForResult(
-      ToolCallResult result, Map<String, ToolCall> toolCallsById) {
+      ToolCallResultContent result, Map<String, ToolCall> toolCallsById) {
     if (result.id() == null) {
       return Map.of();
     }
@@ -202,16 +202,6 @@ public class AgentInstanceHistoryMapper {
       // object block for now (follow-up: team decision).
       case ReasoningContent reasoningContent -> objectHistoryContent(reasoningContent);
     };
-  }
-
-  private List<AgentInstanceHistoryContent> toolResultContent(@Nullable Object resultContent) {
-    if (resultContent == null) {
-      return List.of();
-    }
-    if (resultContent instanceof String s) {
-      return StringUtils.isBlank(s) ? List.of() : List.of(AgentInstanceHistoryContent.text(s));
-    }
-    return List.of(objectHistoryContent(resultContent));
   }
 
   private AgentInstanceHistoryContent objectHistoryContent(Object value) {

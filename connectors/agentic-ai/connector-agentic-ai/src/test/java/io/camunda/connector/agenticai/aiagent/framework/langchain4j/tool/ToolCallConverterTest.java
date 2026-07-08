@@ -14,6 +14,7 @@ import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -131,7 +132,9 @@ class ToolCallConverterTest {
       final ToolCallResult toolCallResult =
           ToolCallResult.builder().id("toolId").name("toolName").content("result").build();
 
-      final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
+      final var resultMessage =
+          toolCallConverter.asToolExecutionResultMessage(
+              ToolCallResultContent.from(toolCallResult));
 
       assertThat(resultMessage)
           .extracting(
@@ -150,7 +153,9 @@ class ToolCallConverterTest {
       final ToolCallResult toolCallResult =
           ToolCallResult.builder().id("toolId").name("toolName").content(content).build();
 
-      final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
+      final var resultMessage =
+          toolCallConverter.asToolExecutionResultMessage(
+              ToolCallResultContent.from(toolCallResult));
 
       assertThat(resultMessage)
           .extracting(
@@ -178,7 +183,9 @@ class ToolCallConverterTest {
       final ToolCallResult toolCallResult =
           ToolCallResult.builder().id("toolId").name("toolName").content(content).build();
 
-      final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
+      final var resultMessage =
+          toolCallConverter.asToolExecutionResultMessage(
+              ToolCallResultContent.from(toolCallResult));
 
       assertThat(resultMessage.id()).isEqualTo("toolId");
       assertThat(resultMessage.toolName()).isEqualTo("toolName");
@@ -227,7 +234,9 @@ class ToolCallConverterTest {
     void defaultsIdAndToolNameToEmptyIfMissing() {
       final ToolCallResult toolCallResult = ToolCallResult.builder().content("result").build();
 
-      final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
+      final var resultMessage =
+          toolCallConverter.asToolExecutionResultMessage(
+              ToolCallResultContent.from(toolCallResult));
 
       assertThat(resultMessage)
           .extracting(
@@ -242,7 +251,9 @@ class ToolCallConverterTest {
       final ToolCallResult toolCallResult =
           ToolCallResult.builder().id(null).name(null).content("result").build();
 
-      final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
+      final var resultMessage =
+          toolCallConverter.asToolExecutionResultMessage(
+              ToolCallResultContent.from(toolCallResult));
 
       assertThat(resultMessage)
           .extracting(
@@ -257,7 +268,10 @@ class ToolCallConverterTest {
       final ToolCallResult toolCallResult =
           ToolCallResult.builder().id("toolId").name("toolName").content(new DummyClass()).build();
 
-      assertThatThrownBy(() -> toolCallConverter.asToolExecutionResultMessage(toolCallResult))
+      assertThatThrownBy(
+              () ->
+                  toolCallConverter.asToolExecutionResultMessage(
+                      ToolCallResultContent.from(toolCallResult)))
           .isInstanceOf(ConnectorException.class)
           .hasMessageStartingWith(
               "Failed to convert result of tool call 'toolName' to string: No serializer found for class %s and no properties discovered to create BeanSerializer"
@@ -271,7 +285,9 @@ class ToolCallConverterTest {
       final ToolCallResult toolCallResult =
           ToolCallResult.builder().id("toolId").name("toolName").content(content).build();
 
-      final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
+      final var resultMessage =
+          toolCallConverter.asToolExecutionResultMessage(
+              ToolCallResultContent.from(toolCallResult));
 
       assertThat(resultMessage)
           .extracting(
