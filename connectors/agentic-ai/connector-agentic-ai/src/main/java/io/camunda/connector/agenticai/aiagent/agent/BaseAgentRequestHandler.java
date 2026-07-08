@@ -197,6 +197,17 @@ public abstract class BaseAgentRequestHandler<
         break;
       }
 
+      // continuation round (e.g. Anthropic pause_turn): report this round's own metrics now,
+      // since its assistant history item and metrics are rolled into previousTurns and would
+      // otherwise never reach the instance-level counters (only the final round's delta is
+      // pushed after the loop). No status change — the agent is still mid-turn (THINKING).
+      notifyMetrics(
+          executionContext,
+          workingConversation.toAgentContext(),
+          workingConversation.currentTurnMetrics(),
+          null,
+          false);
+
       throwIfLimitsReached(workingConversation, agentConfiguration);
       workingConversation = workingConversation.nextRound(List.of());
     }

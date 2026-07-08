@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -92,6 +93,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   @Captor private ArgumentCaptor<ChatModelRequest> chatModelRequestCaptor;
   @Captor private ArgumentCaptor<AgentConversationTurn> turnCaptor;
+  @Captor private ArgumentCaptor<AgentInstanceUpdateRequest> agentInstanceUpdateRequestCaptor;
 
   @InjectMocks private OutboundConnectorAgentRequestHandler requestHandler;
 
@@ -372,6 +374,60 @@ class OutboundConnectorAgentRequestHandlerTest {
     // rounds carry no new input
     verify(agentInstanceClient)
         .createHistoryForInputMessages(eq(agentExecutionContext), any(), any(), any(), any());
+
+    // intermediate continuation round pushes its own counters-only delta (no status change —
+    // the agent stays THINKING mid-turn); the final round's push (with the real end status)
+    // fires synchronously during handleRequest (task flavor always updates before completion)
+    verify(agentInstanceClient, times(3))
+        .update(eq(agentExecutionContext), any(), agentInstanceUpdateRequestCaptor.capture());
+    final var updates = agentInstanceUpdateRequestCaptor.getAllValues();
+    // [0] THINKING patch before the LLM call
+    assertThat(updates.get(0).status()).isEqualTo(AgentInstanceUpdateStatus.THINKING);
+    // [1] intermediate continuation round: counters-only delta, no status
+    assertThat(updates.get(1).status()).isNull();
+    assertThat(updates.get(1).delta()).isEqualTo(continuationMetrics);
+    // [2] final round: synchronous end-of-turn push with real status + final round's metrics
+    assertThat(updates.get(2).status()).isEqualTo(AgentInstanceUpdateStatus.IDLE);
+    assertThat(updates.get(2).delta()).isEqualTo(completedMetrics);
+  }
+
+  @Test
+  void intermediateContinuationMetricsPushFailureDoesNotAbortTheLoop() {
+    // a telemetry PATCH must not fail a running agent (rethrowOnFailure=false) — even if the
+    // intermediate push throws, the loop must still proceed to the next round and complete
+    mockConfiguration();
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialMessage = assistantMessage("partial thinking");
+    final var doneMessage = assistantMessage("done");
+    final var continuationMetrics = new AgentMetrics(1, TokenUsage.empty(), 0);
+    final var completedMetrics = new AgentMetrics(1, TokenUsage.empty(), 0);
+
+    doReturn(chatModelApi).when(chatModelApiRegistry).resolve(any());
+    doReturn(new ChatModelResult.Continuation(partialMessage, continuationMetrics))
+        .doReturn(new ChatModelResult.Completed(doneMessage, completedMetrics))
+        .when(chatModelApi)
+        .call(any());
+
+    // first update() call is the THINKING patch (must succeed), second is the intermediate
+    // continuation push (fails), remaining calls proceed normally
+    doNothing()
+        .doThrow(new RuntimeException("agent instance service unavailable"))
+        .doNothing()
+        .when(agentInstanceClient)
+        .update(any(), any(), any());
+
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // loop still completed both rounds despite the failed intermediate push
+    verify(chatModelApi, times(2)).call(any());
+    assertThat(response.agentResponse()).isNotNull();
+    assertThat(response.agentResponse().responseMessage()).isEqualTo(doneMessage);
   }
 
   @Test
