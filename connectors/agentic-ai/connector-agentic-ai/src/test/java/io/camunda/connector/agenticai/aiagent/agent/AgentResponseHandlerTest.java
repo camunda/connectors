@@ -231,7 +231,11 @@ class AgentResponseHandlerTest {
 
     static Stream<AssistantMessage> emptyAssistantMessages() {
       return Stream.of(
-          new AssistantMessage(List.of(), List.of(), Map.of()),
+          AssistantMessage.builder()
+              .content(List.of())
+              .toolCalls(List.of())
+              .metadata(Map.of())
+              .build(),
           assistantMessage(List.of(DocumentContent.documentContent(mock(Document.class)))));
     }
   }
