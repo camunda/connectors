@@ -126,21 +126,28 @@ jobs:
       - name: Verify element templates are in sync with Java source
         run: |
           set -euo pipefail
-          # --porcelain reports both modified tracked files AND new untracked
-          # ones, so a Java change that produces a brand-new template is caught
-          # too — not just edits to existing templates.
-          CHANGED=$(git status --porcelain -- '*element-templates*.json' ':(exclude)*/versioned/*')
-          if [ -n "$CHANGED" ]; then
+          # Directory-anchored pathspecs: root templates and hybrid/ variants,
+          # excluding pinned versioned/ snapshots.
+          PATHSPEC=(
+            '*/element-templates/*.json'
+            '*/element-templates/hybrid/*.json'
+            ':(exclude)*/element-templates/versioned/*'
+          )
+          # Register intent-to-add for any brand-new (untracked) generated
+          # templates so a single `git diff` reports — with content — both
+          # modified and newly created files. This stages no file content.
+          git add -N -- "${PATHSPEC[@]}"
+          if git diff --quiet -- "${PATHSPEC[@]}"; then
+            echo "✅ All element templates match their Java source."
+          else
             echo "❌ Element templates are out of sync with their Java source."
             echo "   Run 'mvn install' (or 'mvn process-classes') locally and commit the regenerated templates."
             echo ""
-            echo "Affected files:"
-            echo "$CHANGED"
+            git diff --stat -- "${PATHSPEC[@]}"
             echo ""
-            git diff -- '*element-templates*.json' ':(exclude)*/versioned/*'
+            git diff -- "${PATHSPEC[@]}"
             exit 1
           fi
-          echo "✅ All element templates match their Java source."
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
