@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "OpenAI Outbound Connector",
   "id": "io.camunda.connectors.OpenAI.v1",
-  "version": 8,
+  "version": 7,
   "engines": {
     "camunda": "^8.3"
   },
@@ -36,10 +36,6 @@
     "value": "bpmn:ServiceTask"
   },
   "groups": [
-    {
-      "id": "operation",
-      "label": "Operation"
-    },
     {
       "id": "authentication",
       "label": "Authentication"
@@ -116,7 +112,7 @@
     },
     {
       "label": "Operation",
-      "group": "operation",
+      "group": "input",
       "description": "OpenAI API operation",
       "type": "Dropdown",
       "id": "operation",
@@ -431,7 +427,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "8",
+      "value": "7",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -450,46 +446,6 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Hidden"
-    }
-  ],
-  "steps": [
-    {
-      "name": "Chat",
-      "description": "Generate a chat completion response using OpenAI",
-      "keywords": [
-        "chat completion",
-        "generate text",
-        "GPT",
-        "prompt",
-        "conversation"
-      ],
-      "presetId": "operation_chat"
-    },
-    {
-      "name": "Moderation",
-      "description": "Analyze text for policy violations with OpenAI",
-      "keywords": [
-        "content moderation",
-        "moderate text",
-        "policy check",
-        "flag content",
-        "safety filter"
-      ],
-      "presetId": "operation_moderation"
-    }
-  ],
-  "presets": [
-    {
-      "id": "operation_chat",
-      "properties": {
-        "operation": "chat"
-      }
-    },
-    {
-      "id": "operation_moderation",
-      "properties": {
-        "operation": "moderation"
-      }
     }
   ]
 }

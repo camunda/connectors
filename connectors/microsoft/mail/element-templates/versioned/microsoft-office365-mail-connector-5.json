@@ -16,7 +16,7 @@
     "email notification"
   ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail/",
-  "version": 6,
+  "version": 5,
   "engines": {
     "camunda": "^8.4"
   },
@@ -32,16 +32,16 @@
   },
   "groups": [
     {
-      "id": "operation",
-      "label": "Operation"
-    },
-    {
       "id": "server",
       "label": "Server"
     },
     {
       "id": "authentication",
       "label": "Authentication"
+    },
+    {
+      "id": "operation",
+      "label": "Operation"
     },
     {
       "id": "requestBody",
@@ -961,7 +961,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "6",
+      "value": "5",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -980,82 +980,6 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Hidden"
-    }
-  ],
-  "steps": [
-    {
-      "name": "Get user's folders",
-      "description": "List the mail folders in a user's mailbox with Microsoft 365 Mail",
-      "keywords": [
-        "list mail folders",
-        "get folders",
-        "mailbox folders",
-        "browse folders",
-        "inbox folders"
-      ],
-      "presetId": "operationId_users.ListMailFolders"
-    },
-    {
-      "name": "Create mail folder for user",
-      "description": "Create a new mail folder in a user's mailbox with Microsoft 365 Mail",
-      "keywords": [
-        "create mail folder",
-        "new folder",
-        "add folder",
-        "make folder",
-        "organize mailbox"
-      ],
-      "presetId": "operationId_users.CreateMailFolders"
-    },
-    {
-      "name": "Get user's messages",
-      "description": "List the email messages in a user's mailbox with Microsoft 365 Mail",
-      "keywords": [
-        "list messages",
-        "get messages",
-        "read emails",
-        "fetch mail",
-        "inbox messages"
-      ],
-      "presetId": "operationId_users.ListMessages"
-    },
-    {
-      "name": "Send mail on behalf of user",
-      "description": "Send an email message on behalf of a user with Microsoft 365 Mail",
-      "keywords": [
-        "send mail",
-        "send email",
-        "compose email",
-        "deliver message",
-        "email notification"
-      ],
-      "presetId": "operationId_users.user.sendMail"
-    }
-  ],
-  "presets": [
-    {
-      "id": "operationId_users.ListMailFolders",
-      "properties": {
-        "operationId": "users.ListMailFolders"
-      }
-    },
-    {
-      "id": "operationId_users.CreateMailFolders",
-      "properties": {
-        "operationId": "users.CreateMailFolders"
-      }
-    },
-    {
-      "id": "operationId_users.ListMessages",
-      "properties": {
-        "operationId": "users.ListMessages"
-      }
-    },
-    {
-      "id": "operationId_users.user.sendMail",
-      "properties": {
-        "operationId": "users.user.sendMail"
-      }
     }
   ],
   "icon": {
