@@ -553,7 +553,7 @@ class CamundaAgentInstanceClientTest {
       verify(historyCommand).elementInstanceKey(ELEMENT_INSTANCE_KEY);
       verify(historyCommand).jobKey(JOB_KEY);
       verify(historyCommand).role(AgentInstanceHistoryRole.USER);
-      verify(historyCommand).iteration(3);
+      verify(historyCommand).loopIteration(3);
       verify(historyCommand).producedAt(TURN_INGESTION_TIMESTAMP);
       verify(historyCommand).content(contentCaptor.capture());
       verify(historyCommand, never()).toolCalls(any());
@@ -630,7 +630,7 @@ class CamundaAgentInstanceClientTest {
       // it to the originating tool call. The first result carries its content block; the second has
       // no content, yielding an empty (now valid) content list rather than a placeholder block.
       verify(historyCommand, times(2)).role(AgentInstanceHistoryRole.TOOL_RESULT);
-      verify(historyCommand, times(2)).iteration(1);
+      verify(historyCommand, times(2)).loopIteration(1);
       verify(historyCommand, times(2)).execute();
 
       // each result's own completedAt is used, not the shared turn ingestion timestamp
@@ -869,7 +869,7 @@ class CamundaAgentInstanceClientTest {
 
       // then
       verify(historyCommand).role(AgentInstanceHistoryRole.ASSISTANT);
-      verify(historyCommand).iteration(2);
+      verify(historyCommand).loopIteration(2);
       verify(historyCommand).producedAt(TURN_INGESTION_TIMESTAMP);
 
       final ArgumentCaptor<List<AgentInstanceHistoryToolCall>> toolCallsCaptor =
