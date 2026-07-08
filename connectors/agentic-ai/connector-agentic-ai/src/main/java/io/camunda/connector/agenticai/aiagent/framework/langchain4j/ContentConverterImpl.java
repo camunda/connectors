@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.Doc
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -37,6 +38,11 @@ public class ContentConverterImpl implements ContentConverter {
       case ObjectContent objectContent ->
           new dev.langchain4j.data.message.TextContent(
               Objects.requireNonNull(convertToString(objectContent.content())));
+      case ReasoningContent reasoningContent ->
+          // LangChain4J has no wire representation for provider-opaque reasoning content; this
+          // legacy framework path is not expected to round-trip it (follow-up: team decision).
+          throw new UnsupportedOperationException(
+              "Reasoning content is not supported by the LangChain4J framework abstraction");
     };
   }
 

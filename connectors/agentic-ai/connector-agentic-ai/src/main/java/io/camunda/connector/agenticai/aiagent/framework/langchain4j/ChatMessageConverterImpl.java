@@ -15,10 +15,12 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.internal.Json;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessageBuilder;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -133,10 +135,21 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     final var builder = AssistantMessage.builder();
 
     if (chatResponse.metadata() != null) {
+      final var responseMetadata = chatResponse.metadata();
       builder.metadata(
           Map.of(
               "timestamp", ZonedDateTime.now(),
-              "framework", serializedChatResponseMetadata(chatResponse.metadata())));
+              "framework", serializedChatResponseMetadata(responseMetadata)));
+
+      Optional.ofNullable(responseMetadata.modelName())
+          .filter(StringUtils::isNotBlank)
+          .ifPresent(builder::modelId);
+      Optional.ofNullable(responseMetadata.id())
+          .filter(StringUtils::isNotBlank)
+          .ifPresent(builder::messageId);
+      Optional.ofNullable(responseMetadata.finishReason())
+          .map(ChatMessageConverterImpl::toStopReason)
+          .ifPresent(builder::stopReason);
     }
 
     final var aiMessage = chatResponse.aiMessage();
@@ -150,6 +163,16 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     builder.toolCalls(toolCalls);
 
     return builder;
+  }
+
+  private static StopReason toStopReason(FinishReason finishReason) {
+    return switch (finishReason) {
+      case STOP -> StopReason.STOP;
+      case LENGTH -> StopReason.LENGTH;
+      case TOOL_EXECUTION -> StopReason.TOOL_USE;
+      case CONTENT_FILTER -> StopReason.CONTENT_FILTERED;
+      case OTHER -> StopReason.UNKNOWN;
+    };
   }
 
   protected Map<String, Object> serializedChatResponseMetadata(
