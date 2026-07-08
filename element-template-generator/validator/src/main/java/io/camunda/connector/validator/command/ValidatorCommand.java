@@ -29,6 +29,7 @@ import io.camunda.connector.validator.rule.ConditionTargetExistsRule;
 import io.camunda.connector.validator.rule.ConditionValueInChoicesRule;
 import io.camunda.connector.validator.rule.CurrentVersionBumpRule;
 import io.camunda.connector.validator.rule.DefaultValueInChoicesRule;
+import io.camunda.connector.validator.rule.ElementTemplateVersionConsistencyRule;
 import io.camunda.connector.validator.rule.EmptyGroupRule;
 import io.camunda.connector.validator.rule.GroupTargetExistsRule;
 import io.camunda.connector.validator.rule.HybridParityRule;
@@ -202,6 +203,7 @@ public class ValidatorCommand implements Callable<Integer> {
         List.of(
             new HybridParityRule(),
             new VersionedTemplateConsistencyRule(),
+            new ElementTemplateVersionConsistencyRule(),
             new CurrentVersionBumpRule(),
             new UniqueIdVersionRule());
     List<Finding> findings = new ArrayList<>();
