@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.*;
 import io.camunda.connector.inbound.model.DynamicWebhookProperties;
@@ -101,16 +102,9 @@ class HttpWebhookExecutableTest {
   @Test
   void activate_deprecatedResponseBodyExpression_failsDeploymentWithMigrationHint() {
     InboundConnectorContext ctx =
-        InboundConnectorContextBuilder.create()
-            .properties(
-                Map.of(
-                    "inbound",
-                    Map.of(
-                        "context", "webhookContext",
-                        "method", "any",
-                        "auth", Map.of("type", "NONE"),
-                        "responseBodyExpression", "={\"foo\": \"bar\"}")))
-            .build();
+        contextWithElements(
+            elementWithRawProperties(
+                Map.of("inbound.responseBodyExpression", "={\"foo\": \"bar\"}")));
 
     var exception = catchException(() -> testObject.activate(ctx));
 
@@ -121,18 +115,26 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
+  void activate_deprecatedResponseBodyExpressionOnNonFirstDeduplicatedElement_failsDeployment() {
+    // The representative (first) element only uses responseExpression; a second element in the same
+    // deduplication group carries the legacy property. Deployment must still fail, even though
+    // context.getProperties() only reflects the first element.
+    InboundConnectorContext ctx =
+        contextWithElements(
+            elementWithRawProperties(Map.of("inbound.responseExpression", "={body: request.body}")),
+            elementWithRawProperties(
+                Map.of("inbound.responseBodyExpression", "={\"foo\": \"bar\"}")));
+
+    var exception = catchException(() -> testObject.activate(ctx));
+
+    assertThat(exception).isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
   void activate_blankResponseBodyExpression_doesNotFailDeployment() {
     InboundConnectorContext ctx =
-        InboundConnectorContextBuilder.create()
-            .properties(
-                Map.of(
-                    "inbound",
-                    Map.of(
-                        "context", "webhookContext",
-                        "method", "any",
-                        "auth", Map.of("type", "NONE"),
-                        "responseBodyExpression", "   ")))
-            .build();
+        contextWithElements(
+            elementWithRawProperties(Map.of("inbound.responseBodyExpression", "   ")));
 
     assertThat(catchException(() -> testObject.activate(ctx))).isNull();
   }
@@ -140,18 +142,33 @@ class HttpWebhookExecutableTest {
   @Test
   void activate_responseExpressionOnly_doesNotFailDeployment() {
     InboundConnectorContext ctx =
-        InboundConnectorContextBuilder.create()
-            .properties(
-                Map.of(
-                    "inbound",
-                    Map.of(
-                        "context", "webhookContext",
-                        "method", "any",
-                        "auth", Map.of("type", "NONE"),
-                        "responseExpression", "={body: request.body}")))
-            .build();
+        contextWithElements(
+            elementWithRawProperties(
+                Map.of("inbound.responseExpression", "={body: request.body}")));
 
     assertThat(catchException(() -> testObject.activate(ctx))).isNull();
+  }
+
+  private static ProcessElement elementWithRawProperties(Map<String, String> rawProperties) {
+    var element = Mockito.mock(ProcessElement.class);
+    Mockito.when(element.properties()).thenReturn(rawProperties);
+    return element;
+  }
+
+  private static InboundConnectorContext contextWithElements(ProcessElement... elements) {
+    var definition =
+        new InboundConnectorDefinition(
+            "io.camunda:webhook:1", "<default>", "dedup-id", List.of(elements));
+    return InboundConnectorContextBuilder.create()
+        .properties(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "webhookContext",
+                    "method", "any",
+                    "auth", Map.of("type", "NONE"))))
+        .definition(definition)
+        .build();
   }
 
   @Test

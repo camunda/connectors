@@ -12,6 +12,7 @@ import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -33,6 +34,7 @@ import io.camunda.connector.inbound.signature.HMACVerifier;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import java.util.Map;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,15 +109,13 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);
 
-  /** Wrapper key under which the element-scoped inbound properties are nested. */
-  private static final String INBOUND_PROPERTIES_KEY = "inbound";
-
   /**
-   * Legacy, deprecated response property, superseded by {@code responseExpression}. Its presence on
-   * a deployed element is rejected at activation time (see {@link
-   * #rejectDeprecatedResponseBodyExpression}).
+   * Raw (flattened) key of the legacy, deprecated response property, superseded by {@code
+   * responseExpression}. Its presence on any deployed element is rejected at activation time (see
+   * {@link #rejectDeprecatedResponseBodyExpression}).
    */
-  private static final String LEGACY_RESPONSE_BODY_EXPRESSION_KEY = "responseBodyExpression";
+  private static final String LEGACY_RESPONSE_BODY_EXPRESSION_PROPERTY =
+      "inbound.responseBodyExpression";
 
   private WebhookConnectorProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
@@ -137,19 +137,32 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   /**
    * Fails webhook deployment (activation) when the legacy, deprecated {@code
-   * responseBodyExpression} property is present on the element. It was superseded by {@code
-   * responseExpression} — which can return a full HTTP response — and removed from element
+   * responseBodyExpression} property is present on <em>any</em> element. It was superseded by
+   * {@code responseExpression} — which can return a full HTTP response — and removed from element
    * templates long ago, but was still silently honored at runtime. Deployments must migrate to
    * {@code responseExpression}.
+   *
+   * <p>Every element is inspected, not just the representative one exposed by {@link
+   * InboundConnectorContext#getProperties()}: element-scoped response properties are excluded from
+   * deduplication, so elements sharing a single executable may each carry a different (or legacy)
+   * response expression, and the runtime honors the one from the element that actually matched.
    *
    * <p>Throwing here causes the runtime to report the connector as {@code DOWN} with this message,
    * which surfaces in the Manage &amp; Run UI. See
    * https://github.com/camunda/connectors/issues/7468.
    */
   private static void rejectDeprecatedResponseBodyExpression(InboundConnectorContext context) {
-    if (context.getProperties().get(INBOUND_PROPERTIES_KEY) instanceof Map<?, ?> inbound
-        && inbound.get(LEGACY_RESPONSE_BODY_EXPRESSION_KEY) instanceof String expression
-        && !expression.isBlank()) {
+    var definition = context.getDefinition();
+    if (definition == null) {
+      return;
+    }
+    boolean anyElementUsesLegacyProperty =
+        definition.elements().stream()
+            .map(ProcessElement::properties)
+            .filter(Objects::nonNull)
+            .map(properties -> properties.get(LEGACY_RESPONSE_BODY_EXPRESSION_PROPERTY))
+            .anyMatch(expression -> expression != null && !expression.isBlank());
+    if (anyElementUsesLegacyProperty) {
       throw new ConnectorInputException(
           "The webhook property 'responseBodyExpression' is deprecated and no longer supported. "
               + "Replace it with 'responseExpression', which returns a full HTTP response, e.g. "
