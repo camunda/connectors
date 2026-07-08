@@ -120,19 +120,22 @@ public final class AgentConversation {
   /**
    * Closes the current (already-ingested) turn into {@link #previousTurns} and opens a new pending
    * turn for a continuation round within this same invocation (e.g. an Anthropic-style {@code
-   * pause_turn}). The new turn's iterationKey continues from the closed turn's.
+   * pause_turn}). A continuation round carries no new input messages — the model resumes on the
+   * existing conversation state — so the new pending turn starts empty; its iterationKey continues
+   * from the closed turn's.
    *
    * @throws IllegalStateException if the current turn has not been ingested yet
    */
-  public AgentConversation nextRound(List<Message> inputMessages) {
+  public AgentConversation nextContinuationRound() {
     if (currentTurn.assistantMessage() == null) {
-      throw new IllegalStateException("nextRound() called before the current turn was ingested");
+      throw new IllegalStateException(
+          "nextContinuationRound() called before the current turn was ingested");
     }
     var updatedPreviousTurns = new ArrayList<>(previousTurns);
     updatedPreviousTurns.add(currentTurn);
     var nextTurn =
         new AgentConversationTurn(
-            currentTurn.iterationKey() + 1, inputMessages, null, AgentMetrics.empty());
+            currentTurn.iterationKey() + 1, List.of(), null, AgentMetrics.empty());
     return new AgentConversation(
         configuration, currentContext, systemMessage, updatedPreviousTurns, nextTurn);
   }
@@ -243,7 +246,7 @@ public final class AgentConversation {
    * the current turn's delta. Durable turns reconstructed by {@link TurnReconstructor} always carry
    * empty metrics (the cumulative counter lives on the base context instead), so they contribute
    * zero here; the only {@link #previousTurns} entries with non-empty metrics are those rolled in
-   * by {@link #nextRound} within this invocation.
+   * by {@link #nextContinuationRound} within this invocation.
    */
   public AgentMetrics totalMetrics() {
     var sum = currentContext.metrics();

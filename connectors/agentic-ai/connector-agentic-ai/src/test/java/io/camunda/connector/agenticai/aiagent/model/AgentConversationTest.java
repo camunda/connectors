@@ -244,12 +244,12 @@ class AgentConversationTest {
   }
 
   @Test
-  void nextRound_movesIngestedTurnToPreviousTurns_andOpensPendingTurn() {
+  void nextContinuationRound_movesIngestedTurnToPreviousTurns_andOpensPendingTurn() {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("partial"), new AgentMetrics(1, new TokenUsage(10, 5), 0));
 
-    var next = conv.nextRound(List.of());
+    var next = conv.nextContinuationRound();
 
     assertThat(next.turns()).hasSize(1);
     assertThat(next.turns().getFirst().iterationKey()).isEqualTo(1);
@@ -261,9 +261,10 @@ class AgentConversationTest {
   }
 
   @Test
-  void nextRound_throwsWhenCurrentTurnStillPending() {
+  void nextContinuationRound_throwsWhenCurrentTurnStillPending() {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
-    assertThatThrownBy(() -> conv.nextRound(List.of())).isInstanceOf(IllegalStateException.class);
+    assertThatThrownBy(() -> conv.nextContinuationRound())
+        .isInstanceOf(IllegalStateException.class);
   }
 
   @Test
@@ -271,7 +272,7 @@ class AgentConversationTest {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("partial"), new AgentMetrics(1, new TokenUsage(10, 5), 0))
-            .nextRound(List.of())
+            .nextContinuationRound()
             .ingest(assistantMessage("done"), new AgentMetrics(1, new TokenUsage(20, 8), 1));
 
     var total = conv.totalMetrics();

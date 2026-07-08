@@ -166,19 +166,13 @@ public abstract class BaseAgentRequestHandler<
         chatModelApiRegistry.resolve(
             new ProviderChatModelApiConfiguration(executionContext.configuration().provider()));
 
-    // Internal continuation loop (ADR-009): a native provider may pause mid-turn (e.g. Anthropic's
-    // pause_turn) and hand back a Continuation instead of a Completed result. Each Continuation is
-    // ingested as its own persisted turn (own assistant history item, own metrics) and the model is
-    // called again with no new input until a Completed result ends the loop. The LangChain4J bridge
-    // always returns Completed, so this loop body runs exactly once on that path.
-    //
-    // Intermediate continuation rounds' tool-call state is intentionally never surfaced to the
-    // job-completion logic below (shouldUpdateAgentInstanceBeforeJobCompletion / cancel-remaining-
-    // instances) — those decisions are made from the FINAL round's turn only. A future native
-    // provider that puts tool calls on a non-terminal continuation round would have them silently
-    // ignored here (a known C7-era trap).
+    // Continuation loop (ADR-009): a provider may pause mid-turn (e.g. Anthropic pause_turn) and
+    // return a Continuation rather than a Completed result. Each Continuation becomes its own
+    // persisted turn and the model is re-called until a Completed ends the loop. The LangChain4J
+    // bridge always returns Completed, so this runs exactly once on that path.
     var workingConversation = conversation;
-    while (true) {
+    boolean continued;
+    do {
       final var chatResult =
           chatModel.call(
               new ChatModelRequest(
@@ -193,24 +187,24 @@ public abstract class BaseAgentRequestHandler<
           workingConversation.currentTurn(),
           OffsetDateTime.now());
 
-      if (chatResult instanceof ChatModelResult.Completed) {
-        break;
+      // A Continuation means we re-call the model with the same conversation and no new input
+      // messages — the model resumes the paused turn on the existing state.
+      continued = chatResult instanceof ChatModelResult.Continuation;
+      if (continued) {
+        // Report this round's own metrics now: its history item and metrics are rolled into
+        // previousTurns and would otherwise never reach the instance-level counters (only the
+        // final round's delta is pushed after the loop). No status change — still mid-turn.
+        notifyMetrics(
+            executionContext,
+            workingConversation.toAgentContext(),
+            workingConversation.currentTurnMetrics(),
+            null,
+            false);
+
+        throwIfLimitsReached(workingConversation, agentConfiguration);
+        workingConversation = workingConversation.nextContinuationRound();
       }
-
-      // continuation round (e.g. Anthropic pause_turn): report this round's own metrics now,
-      // since its assistant history item and metrics are rolled into previousTurns and would
-      // otherwise never reach the instance-level counters (only the final round's delta is
-      // pushed after the loop). No status change — the agent is still mid-turn (THINKING).
-      notifyMetrics(
-          executionContext,
-          workingConversation.toAgentContext(),
-          workingConversation.currentTurnMetrics(),
-          null,
-          false);
-
-      throwIfLimitsReached(workingConversation, agentConfiguration);
-      workingConversation = workingConversation.nextRound(List.of());
-    }
+    } while (continued);
     final var updatedConversation = workingConversation;
 
     LOGGER.debug("Storing conversation messages to session");
