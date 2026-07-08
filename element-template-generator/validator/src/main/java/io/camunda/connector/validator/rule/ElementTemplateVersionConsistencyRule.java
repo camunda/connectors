@@ -26,16 +26,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * When a template declares a {@code Hidden} property bound to the {@code elementTemplateVersion}
- * task header ({@code binding.key == "elementTemplateVersion"}, {@code binding.type ==
- * "zeebe:taskHeader"}), that property's {@code value} must equal the template's top-level {@code
- * version} field rendered as a string.
+ * When a template declares a property bound to the {@code elementTemplateVersion} task header
+ * ({@code binding.key == "elementTemplateVersion"}, {@code binding.type == "zeebe:taskHeader"}),
+ * that property's {@code value} must equal the template's top-level {@code version} field rendered
+ * as a string. In practice this property is a {@code Hidden} one, but the rule keys off the binding
+ * alone so the check does not depend on the property's presentation type.
  *
  * <p>Hand-authored element-template-only connectors repeatedly drifted here: the top-level {@code
- * version} got bumped while the hidden header value lagged behind (e.g. top=6 / hidden=4).
- * ETG-generated templates keep the two in sync, but nothing enforced it for hand-written ones.
+ * version} got bumped while the header value lagged behind (e.g. top=6 / hidden=4). ETG-generated
+ * templates keep the two in sync, but nothing enforced it for hand-written ones.
  *
- * <p>The rule only fires when the hidden property is present — connectors that never declare it are
+ * <p>The rule only fires when the bound property is present — connectors that never declare it are
  * left alone rather than forced into a migration. It runs on {@code versioned/} snapshots too,
  * where the value must equal the snapshot's own top-level {@code version}, consistent with how
  * {@link VersionedTemplateConsistencyRule} treats the {@code version} field.
