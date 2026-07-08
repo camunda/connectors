@@ -61,23 +61,38 @@ class BundledCapabilityMatrixTest {
           assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
           assertThat(caps.supportsPromptCaching()).isTrue();
           assertThat(caps.supportsParallelToolCalls()).isTrue();
-          // Token budgets are not pinned per-model (provisional matrix): they inherit the
-          // conservative family default until authoritatively curated.
-          assertThat(caps.maxOutputTokens()).isEqualTo(8192);
+          // Pinned from models.dev anthropic/claude-sonnet-4-6:
+          assertThat(caps.contextWindow()).isEqualTo(1000000);
+          assertThat(caps.maxOutputTokens()).isEqualTo(128000);
         });
   }
 
   @Test
-  void claudeFableFlagshipResolvesReasoningAndInheritsConservativeTokenBudgets() {
+  void claudeFableFlagshipResolvesReasoningAndTokenBudgets() {
     contextRunner.run(
         context -> {
           final var caps = resolve(context, ANTHROPIC_MESSAGES, "claude-fable-5");
 
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
-          // Inherited family defaults (not pinned until authoritatively curated):
+          // Pinned from models.dev anthropic/claude-fable-5:
+          assertThat(caps.contextWindow()).isEqualTo(1000000);
+          assertThat(caps.maxOutputTokens()).isEqualTo(128000);
+        });
+  }
+
+  @Test
+  void claudeHaikuResolvesReasoningWithFamilyDefaultContextWindow() {
+    contextRunner.run(
+        context -> {
+          final var caps = resolve(context, ANTHROPIC_MESSAGES, "claude-haiku-4-5");
+
+          assertThat(caps.supportsReasoning()).isTrue();
+          assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
+          // Pinned from models.dev anthropic/claude-haiku-4-5:
+          assertThat(caps.maxOutputTokens()).isEqualTo(64000);
+          // Context window matches the family default (not pinned per-model):
           assertThat(caps.contextWindow()).isEqualTo(200000);
-          assertThat(caps.maxOutputTokens()).isEqualTo(8192);
         });
   }
 
@@ -102,8 +117,9 @@ class BundledCapabilityMatrixTest {
 
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
-          // Token budget inherited from the family default (not pinned per-model yet):
-          assertThat(caps.contextWindow()).isEqualTo(128000);
+          // Pinned from models.dev openai/gpt-5.5:
+          assertThat(caps.contextWindow()).isEqualTo(1050000);
+          assertThat(caps.maxOutputTokens()).isEqualTo(128000);
         });
   }
 
@@ -121,16 +137,20 @@ class BundledCapabilityMatrixTest {
   }
 
   @Test
-  void gpt4oAddsAudioToUserMessageButKeepsToolResultFromDefaults() {
+  void gpt4oInheritsDefaultModalitiesAndPinsMaxOutputTokens() {
     contextRunner.run(
         context -> {
           final var caps = resolve(context, OPENAI_RESPONSES, "gpt-4o-mini");
 
+          // models.dev openai/gpt-4o input modalities are text/image/pdf, matching the family
+          // default, so no override is needed (no audio support, unlike a previous placeholder).
           assertThat(caps.userMessageModalities())
-              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.AUDIO);
+              .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
           assertThat(caps.toolResultModalities())
               .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
           assertThat(caps.supportsReasoning()).isFalse();
+          // Pinned from models.dev openai/gpt-4o:
+          assertThat(caps.maxOutputTokens()).isEqualTo(16384);
         });
   }
 
@@ -142,6 +162,37 @@ class BundledCapabilityMatrixTest {
 
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.supportsParallelToolCalls()).isFalse();
+          // Pinned from models.dev openai/o1:
+          assertThat(caps.contextWindow()).isEqualTo(200000);
+          assertThat(caps.maxOutputTokens()).isEqualTo(100000);
+        });
+  }
+
+  @Test
+  void o4DropsDocumentSupportFromUserMessageModalities() {
+    contextRunner.run(
+        context -> {
+          final var caps = resolve(context, OPENAI_COMPLETIONS, "o4-mini");
+
+          assertThat(caps.supportsReasoning()).isTrue();
+          // models.dev openai/o4-mini input modalities are text/image only (no pdf), unlike the
+          // family default which includes document:
+          assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+          assertThat(caps.contextWindow()).isEqualTo(200000);
+          assertThat(caps.maxOutputTokens()).isEqualTo(100000);
+        });
+  }
+
+  @Test
+  void gpt41ResolvesLargeContextWithoutReasoning() {
+    contextRunner.run(
+        context -> {
+          final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-4.1");
+
+          assertThat(caps.supportsReasoning()).isFalse();
+          // Pinned from models.dev openai/gpt-4.1:
+          assertThat(caps.contextWindow()).isEqualTo(1047576);
+          assertThat(caps.maxOutputTokens()).isEqualTo(32768);
         });
   }
 
