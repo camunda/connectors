@@ -22,7 +22,16 @@ CHECKED=0
 # Use a three-dot diff (merge-base..HEAD) so only files this branch actually
 # added are reported. A two-dot diff would classify a file that already exists at
 # the same path on main (with different content) as Modified and skip it.
-VERSIONED_FILES=$(git diff --name-only --diff-filter=A "${BASE_REF}...HEAD" | grep '/versioned/.*\.json$' || true)
+#
+# git diff is checked explicitly so a real failure (e.g. an unresolvable base
+# ref) aborts the script instead of being masked. Only the grep no-match case is
+# tolerated with `|| true`, so the check can never be silently skipped by a git
+# error.
+if ! ADDED_FILES=$(git diff --name-only --diff-filter=A "${BASE_REF}...HEAD"); then
+  echo "ERROR: failed to diff against ${BASE_REF}. Ensure it is fetched (fetch-depth: 0)." >&2
+  exit 1
+fi
+VERSIONED_FILES=$(printf '%s\n' "$ADDED_FILES" | grep '/versioned/.*\.json$' || true)
 
 if [ -z "$VERSIONED_FILES" ]; then
   echo "No new versioned element templates found — check skipped."
@@ -47,10 +56,10 @@ while IFS= read -r versioned_file; do
     continue
   fi
 
-  main_content=$(git show "${BASE_REF}:${non_versioned}")
-  branch_content=$(cat "$versioned_file")
-
-  if [ "$main_content" = "$branch_content" ]; then
+  # Byte-for-byte comparison via cmp on the raw git blob stream. Command
+  # substitution would strip trailing newlines and buffer the whole file, so it
+  # cannot guarantee an exact match.
+  if git show "${BASE_REF}:${non_versioned}" | cmp -s - "$versioned_file"; then
     echo "✅ ${versioned_file} matches ${non_versioned} on main"
   else
     echo "❌ MISMATCH: ${versioned_file} does not match ${non_versioned} on main"
