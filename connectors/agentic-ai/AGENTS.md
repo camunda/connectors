@@ -41,7 +41,7 @@ Deep architecture lives in the reference docs, linked instead of copied:
 | Tool completion, partial results, no-op completion                       | [§9](docs/reference/ai-agent.md#9-tool-completion)                                      |
 | Concurrency & race conditions (supersession, store-ahead-of-Zeebe)       | [§10](docs/reference/ai-agent.md#10-concurrency)                                        |
 | Event handling (sub-process only)                                        | [§11](docs/reference/ai-agent.md#11-event-handling)                                     |
-| Framework abstraction & LangChain4J converter chain                      | [§12](docs/reference/ai-agent.md#12-framework-abstraction)                              |
+| Chat model SPI & LangChain4J bridge implementation                       | [§12](docs/reference/ai-agent.md#12-framework-abstraction)                              |
 | System prompt composition / contributors                                 | [§13](docs/reference/ai-agent.md#13-system-prompt-composition)                          |
 | Response handling (text / JSON / full message)                           | [§14](docs/reference/ai-agent.md#14-response-handling)                                  |
 | Error codes                                                              | [§15](docs/reference/ai-agent.md#15-error-codes)                                        |
@@ -121,7 +121,10 @@ suite will enforce (epic #7537):
 
 - **Framework-agnostic core.** Only `aiagent/framework/langchain4j/**` may import `dev.langchain4j.*`.
   The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
-  framework-neutral.
+  framework-neutral. `aiagent/framework/api/**` is the provider-neutral chat model SPI
+  (`ChatModelApi`, `ChatModelApiFactory`, `ChatModelApiRegistry`, …) and must import no vendor SDK;
+  future native chat model implementations live under their own `aiagent/framework/<provider>/**`
+  package, each importing only its own vendor SDK.
 - **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
   (`io.camunda.connector.agenticai.model.*`) is translated to/from LangChain4J only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
