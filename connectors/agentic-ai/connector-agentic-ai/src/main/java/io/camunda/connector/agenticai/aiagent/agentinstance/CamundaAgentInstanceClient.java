@@ -273,7 +273,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             .role(role)
             .content(content)
             .producedAt(producedAt)
-            .iteration(iteration);
+            .loopIteration(iteration);
 
     if (toolCalls != null && !toolCalls.isEmpty()) {
       cmd = cmd.toolCalls(toolCalls);
