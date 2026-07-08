@@ -22,6 +22,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -651,6 +652,96 @@ class JobWorkerAgentRequestHandlerTest {
 
     // limit is checked before the LLM call — no chat request is issued
     verifyNoInteractions(chatModelApiRegistry);
+  }
+
+  @Test
+  void proceedsThroughContinuationRoundsAsSeparatePersistedTurns() {
+    // a provider Continuation (e.g. Anthropic pause_turn) is ingested as its own persisted turn,
+    // and the loop keeps calling the chat model until a Completed result ends it
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialMessage = assistantMessage("partial thinking");
+    final var doneMessage =
+        assistantMessage(
+            "Endless waves whisper | moonlight dances on the tide | secrets drift below.");
+    final var continuationMetrics =
+        new AgentMetrics(
+            1, TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(), 0);
+    final var completedMetrics =
+        new AgentMetrics(1, TokenUsage.builder().inputTokenCount(5).outputTokenCount(8).build(), 0);
+
+    doReturn(chatModelApi).when(chatModelApiRegistry).resolve(any());
+    doReturn(new ChatModelResult.Continuation(partialMessage, continuationMetrics))
+        .doReturn(new ChatModelResult.Completed(doneMessage, completedMetrics))
+        .when(chatModelApi)
+        .call(chatModelRequestCaptor.capture());
+
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModelApi, times(2)).call(any());
+
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.responseMessage()).isEqualTo(doneMessage);
+    assertThat(agentResponse.context().metrics())
+        .isEqualTo(
+            new AgentMetrics(
+                2, TokenUsage.builder().inputTokenCount(15).outputTokenCount(28).build(), 0));
+
+    verify(agentInstanceClient, times(2))
+        .createHistoryForAssistantMessage(
+            eq(agentExecutionContext), any(), turnCaptor.capture(), any());
+    assertThat(turnCaptor.getAllValues())
+        .extracting(AgentConversationTurn::assistantMessage)
+        .containsExactly(partialMessage, doneMessage);
+
+    // createHistoryForInputMessages is only called once, at the top of proceed() — continuation
+    // rounds carry no new input
+    verify(agentInstanceClient)
+        .createHistoryForInputMessages(eq(agentExecutionContext), any(), any(), any(), any());
+  }
+
+  @Test
+  void throwsWhenModelCallLimitReachedBetweenContinuationRounds() {
+    // the limit is re-checked before starting the next round: hitting the cap after a Continuation
+    // blocks the next call, it does not abort the round just completed
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(
+                new OpenAiProviderConfiguration(null),
+                new PromptConfiguration.SystemPromptConfiguration(null),
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                new LimitsConfiguration(1),
+                null,
+                null));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialMessage = assistantMessage("partial thinking");
+    final var continuationMetrics = new AgentMetrics(1, TokenUsage.empty(), 0);
+
+    doReturn(chatModelApi).when(chatModelApiRegistry).resolve(any());
+    doReturn(new ChatModelResult.Continuation(partialMessage, continuationMetrics))
+        .when(chatModelApi)
+        .call(any());
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
+
+    // limit blocks the 2nd round — the chat model is called exactly once
+    verify(chatModelApi, times(1)).call(any());
   }
 
   private void mockSystemPrompt() {

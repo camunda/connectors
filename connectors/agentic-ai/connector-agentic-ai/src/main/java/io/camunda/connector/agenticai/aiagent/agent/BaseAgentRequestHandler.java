@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -164,18 +165,42 @@ public abstract class BaseAgentRequestHandler<
     final var chatModel =
         chatModelApiRegistry.resolve(
             new ProviderChatModelApiConfiguration(executionContext.configuration().provider()));
-    final var chatResult =
-        chatModel.call(
-            new ChatModelRequest(
-                executionContext, conversation.window(agentConfiguration.contextWindowSize())));
-    final var updatedConversation =
-        conversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
 
-    agentInstanceClient.createHistoryForAssistantMessage(
-        executionContext,
-        agentInstanceKey,
-        updatedConversation.currentTurn(),
-        OffsetDateTime.now());
+    // Internal continuation loop (ADR-009): a native provider may pause mid-turn (e.g. Anthropic's
+    // pause_turn) and hand back a Continuation instead of a Completed result. Each Continuation is
+    // ingested as its own persisted turn (own assistant history item, own metrics) and the model is
+    // called again with no new input until a Completed result ends the loop. The LangChain4J bridge
+    // always returns Completed, so this loop body runs exactly once on that path.
+    //
+    // Intermediate continuation rounds' tool-call state is intentionally never surfaced to the
+    // job-completion logic below (shouldUpdateAgentInstanceBeforeJobCompletion / cancel-remaining-
+    // instances) — those decisions are made from the FINAL round's turn only. A future native
+    // provider that puts tool calls on a non-terminal continuation round would have them silently
+    // ignored here (a known C7-era trap).
+    var workingConversation = conversation;
+    while (true) {
+      final var chatResult =
+          chatModel.call(
+              new ChatModelRequest(
+                  executionContext,
+                  workingConversation.window(agentConfiguration.contextWindowSize())));
+      workingConversation =
+          workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
+
+      agentInstanceClient.createHistoryForAssistantMessage(
+          executionContext,
+          agentInstanceKey,
+          workingConversation.currentTurn(),
+          OffsetDateTime.now());
+
+      if (chatResult instanceof ChatModelResult.Completed) {
+        break;
+      }
+
+      throwIfLimitsReached(workingConversation, agentConfiguration);
+      workingConversation = workingConversation.nextRound(List.of());
+    }
+    final var updatedConversation = workingConversation;
 
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =
