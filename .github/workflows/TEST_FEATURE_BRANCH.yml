@@ -113,8 +113,30 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       # Build and test (format and javadoc run in parallel jobs)
+      # The build above regenerates all element template JSON files as part of
+      # the `process-classes` phase (element-template-generator-maven-plugin),
+      # writing them back into each connector's element-templates/ source dir.
       - name: Build Connectors
         run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C
+
+      # Fail if the regenerated templates differ from what's committed. This is a
+      # diff check only — CI never commits or modifies files. Versioned snapshots
+      # (element-templates/versioned/) are intentionally excluded, as they are
+      # pinned and not overwritten on regeneration.
+      - name: Verify element templates are in sync with Java source
+        run: |
+          CHANGED=$(git diff --name-only -- '*element-templates*.json' ':(exclude)*/versioned/*')
+          if [ -n "$CHANGED" ]; then
+            echo "❌ Element templates are out of sync with their Java source."
+            echo "   Run 'mvn install' (or 'mvn process-classes') locally and commit the regenerated templates."
+            echo ""
+            echo "Affected files:"
+            echo "$CHANGED"
+            echo ""
+            git diff -- '*element-templates*.json' ':(exclude)*/versioned/*'
+            exit 1
+          fi
+          echo "✅ All element templates match their Java source."
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
