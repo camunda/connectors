@@ -18,7 +18,7 @@ Replace LangChain4j as the LLM layer **for two providers first, end to end**, in
 
 These apply to every section below.
 
-1. **Backward compatibility on stored data is the top priority.** Conversations and `agentContext` persisted by the Camunda 8.9 connector MUST deserialize and continue transparently on the new runtime — no migration, no user action — across all three conversation stores (in-process process variable, Camunda document, AWS AgentCore). Enforced by golden 8.9 fixtures per store.
+1. **Backward compatibility on stored data is the top priority.** Conversations and `agentContext` persisted by the Camunda 8.9 connector MUST keep working transparently on the new runtime. The **only stored-format *shape* change** in this pilot is the tool-call-result model (§7); every other domain addition is additive/nullable and deserializes unchanged. A **fast-forward migration is acceptable** — legacy data is lifted to the new shape on read (and may be re-persisted in the upgraded shape) — **provided it never silently fails or drops data**: any unrecognized/unmappable legacy shape fails loud. Enforced by golden 8.9 fixtures per store (in-process process variable, Camunda document, AWS AgentCore).
 2. Existing **v1 connector types and element templates are untouched** and keep running on the LangChain4j bridge.
 3. The **single `BaseAgentRequestHandler` is enriched** to serve both entry points (legacy v1 + native v2). No parallel handler.
 4. Only `framework/langchain4j/**` may import `dev.langchain4j.*`.
@@ -31,12 +31,22 @@ These apply to every section below.
 | OpenAI Chat Completions | `direct`, `compatible` |
 | OpenAI Responses | `direct`, `compatible` |
 
-`compatible` is a client-construction concern (custom base URL + optional key), orthogonal to the wire format — so it applies to both OpenAI wire formats for free. Everything else (Azure, Bedrock-Converse for non-Anthropic models, Google) stays on the LangChain4j bridge.
+`compatible` is a client-construction concern (custom base URL, headers, query/request params, and authentication — see §2), orthogonal to the wire format — so it applies to both OpenAI wire formats for free. Everything else (Azure, Bedrock-Converse for non-Anthropic models, Google) stays on the LangChain4j bridge.
 
 ## 2. Config and connector types
 
-- New **v2 connector types**: `AI Agent Task v2` and `AI Agent Sub-process v2` — new connector type strings, new `@ElementTemplate` IDs, new template files. Real v2 templates (not hidden/experimental).
+**Connector types + element templates (locked — the outbound-connector/job-worker naming split has caused trouble before, so we fix it now):**
+
+| Variant | Element template ID | Connector (job worker) type |
+|---|---|---|
+| AI Agent Task v2 | `io.camunda.connectors.agenticai.ai-agent-task.v2` | `io.camunda.agenticai:aiagent:task:2` |
+| AI Agent Sub-process v2 | `io.camunda.connectors.agenticai.ai-agent-subprocess.v2` | `io.camunda.agenticai:aiagent:subprocess:2` |
+
+v2 splits the single v1 type (`io.camunda.agenticai:aiagent:1`) into explicit `task` / `subprocess` types. Real v2 templates (not hidden/experimental).
+
 - New **wire-format-first sealed `ProviderConfiguration`** in the #7224 target shape, but only the `Anthropic` and `OpenAi` members present for now (others additive later, non-breaking). Each member carries a `backend` field; `OpenAi` also carries `apiFamily` (`completions | responses`); auth shape is conditional on backend.
+- **Authentication is a dropdown** (sealed discriminator), modeled on the REST connector / MCP remote client auth: ship **`none` + `apiKey`** now, with the shape ready to add schemes (e.g. OAuth 2.0 client credentials) without breaking existing configs. (Anthropic `direct` = API key; `bedrock` = AWS credential chain; OpenAI `direct` = API key; `compatible` = the `none`/`apiKey` dropdown.)
+- The **`compatible` backend** carries request customization beyond base URL — custom **headers**, **query parameters**, and additional **request (body) parameters** (same surface pattern as the REST connector) — so users can target arbitrary OpenAI-compatible gateways.
 - The v2 request data surfaces a **new `ChatModelApiConfiguration`** implementation (distinct from the legacy `ProviderChatModelApiConfiguration`) that the registry dispatches on.
 
 ## 3. Routing / registry
@@ -57,14 +67,15 @@ These apply to every section below.
 
 - New `framework/anthropic/**` and `framework/openai/**` implementations over the official vendor SDKs (`anthropic-java`, `openai-java`).
 - **Neutral HTTP transport/proxy** (#7217): lift `ChatModelHttpProxySupport` out of `framework/langchain4j/` into a provider-neutral package; every native client is built through it (JDK `java.net.http.HttpClient`; AWS-Apache client for Bedrock). Proxy parity from day one.
-- Anthropic backends: `direct` and `bedrock` (SDK platform module / AWS credential chain). OpenAI backends: `direct` and `compatible` (custom base URL + optional key); `apiFamily` `completions` and `responses`.
+- Anthropic backends: `direct` and `bedrock` (SDK platform module / AWS credential chain). OpenAI backends: `direct` and `compatible` (custom base URL, headers, query/request params, `none`/`apiKey` auth — see §2); `apiFamily` `completions` and `responses`.
 - `ReasoningContent` is preserved on the assistant response and round-tripped (opaque provider payload) — the state the `pause_turn` loop replays. This is independent of the modality matrix.
 
 ## 6. Capability matrix (native path — full #7151 design)
 
 The **native path gets the full capability matrix**; the bridge keeps a hardcoded profile (§8).
 
-- **`ModelCapabilities`**: per-location modality lists (`userMessage`, `toolResult`, `assistantMessage`), flags (`supportsReasoning`, `supportsReasoningSignatureRoundtrip`, `supportsPromptCaching`, `supportsParallelToolCalls`), and nullable `contextWindow` / `maxOutputTokens`. `Modality = {TEXT, IMAGE, DOCUMENT, AUDIO, VIDEO}`. The `assistantMessage` (output) location is declared but not consumed — assistant responses stay text + tool calls (+ reasoning); no output-modality gating in the pilot.
+- **`ModelCapabilities`**: modality lists split by location — **input (`userMessage`)**, **`toolResult`**, and **output (`assistantMessage`)** — plus flags (`supportsReasoning`, `supportsReasoningSignatureRoundtrip`, `supportsPromptCaching`, `supportsParallelToolCalls`) and nullable `contextWindow` / `maxOutputTokens`. `Modality = {TEXT, IMAGE, DOCUMENT, AUDIO, VIDEO}`. The `assistantMessage` (output) location is declared but not consumed in the pilot — assistant responses stay text + tool calls (+ reasoning); no output-modality gating yet.
+- **Matrix data scope:** start small — a per-family **generic fallback** entry (glob catch-all, conservative like the L4J default) plus **curated, accurate entries for the latest flagship models** (Claude Sonnet 4.6+, GPT-5.4+ class). Breadth across older/rarer models can grow later; correctness for current-generation models is what matters for the pilot.
 - **`model-capabilities.yaml`**: bundled on the classpath as a **low-precedence Spring property source**; keyed `apiFamily → {defaults, models}` with `id` / `alias` / glob-`pattern` entries and a per-entry `capabilities` overlay. Ships three families: `anthropic-messages`, `openai-completions`, `openai-responses`.
 - **`ModelCapabilitiesResolver.resolve(apiFamily, modelId, override)`**: 4-step chain — override → exact id/alias → longest-glob pattern → conservative defaults — deep-merging `conservativeBase → familyDefaults → modelOverrides`. Resolved at factory `create()` time and baked into the `ChatModelApi`; native impls emit blindly from the resolved caps.
 - **Override precedence (three layers):** bundled yaml → operator `application.yml` (deep-merged under the same prefix) → **per-element override**.
@@ -95,10 +106,10 @@ The **native path gets the full capability matrix**; the bridge keeps a hardcode
 
 ## 9. Testing
 
-- Extend the WireMock **wire-format e2e harness** (#7400) with native fixtures for all six matrix cells.
+- **Keep the separate `connectors-e2e-test/connectors-e2e-test-agentic-ai` module green with every chunk** — both compiling *and* passing. Never let it drift (model/serialization changes silently break it).
+- Extend the WireMock **wire-format e2e harness** (#7400) with a **small smoke test per native wire format** (Anthropic Messages, OpenAI Completions, OpenAI Responses) — enough to prove the wire format end-to-end. **Full e2e coverage for the new variants is an explicit follow-up**, not part of the pilot.
 - **BC golden fixtures:** real 8.9-persisted `agentContext` samples per store, asserted to deserialize and continue on the new runtime.
-- Live e2e for the pilot providers.
-- Cross-build the separate `connectors-e2e-test/connectors-e2e-test-agentic-ai` module.
+- Unit + module tests carry each chunk (the BC deserializer especially).
 
 ## 10. Sub-issue mapping
 
@@ -109,7 +120,7 @@ The **native path gets the full capability matrix**; the bridge keeps a hardcode
 ## Out of scope / deferred decisions
 
 - Response/output multimodality (non-text model output) — `assistantMessage` modalities stay declared-but-unused.
-- Per-provider bridge capability profiles.
+- **Per-provider bridge capability profiles** — giving the L4J bridge *different* capability profiles per underlying provider (e.g. narrower modalities for a provider that rejects PDFs) instead of the single uniform profile in §8. Not needed now (today's converter has no per-provider gating); an accuracy enhancement for later.
 - Deprecating or migrating v1 connector types — the two paths coexist; no migration during the pilot.
 - The final cutover mechanism is designed (broaden `supports()` per provider) but executed post-pilot.
 
