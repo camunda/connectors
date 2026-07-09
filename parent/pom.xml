@@ -98,7 +98,7 @@ limitations under the License.</license.inlineheader>
     <tomcat.version>11.0.23</tomcat.version>
     <version.netty>4.2.16.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.0.4</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.37</version.logback>
+    <version.logback>1.5.38</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
     <version.aws-sdk2>2.47.3</version.aws-sdk2>
@@ -150,7 +150,7 @@ limitations under the License.</license.inlineheader>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
     <version.bouncycastle>1.84</version.bouncycastle>
-    <version.box-sdk>5.13.0</version.box-sdk>
+    <version.box-sdk>5.14.0</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
