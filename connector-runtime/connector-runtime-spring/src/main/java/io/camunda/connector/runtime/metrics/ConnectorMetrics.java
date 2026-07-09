@@ -57,6 +57,13 @@ public class ConnectorMetrics {
     public static final String METRIC_NAME_LAST_FAILED = "camunda.connector.outbound.last-failed";
 
     /**
+     * All-time maximum execution duration in milliseconds, per connector type. Unlike the Timer's
+     * built-in max (which decays after ~2 minutes of inactivity), this gauge is never reset.
+     */
+    public static final String METRIC_NAME_MAX_EXECUTION_TIME =
+        "camunda.connector.outbound.max-execution-time";
+
+    /**
      * Number of times a job-stream was recreated due to inactivity, tagged by connector {@code
      * type}. Spikes indicate broker connectivity instability.
      */

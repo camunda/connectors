@@ -24,6 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.metrics.OutboundConnectorMetrics;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
 import java.util.List;
@@ -154,5 +157,37 @@ class OutboundConnectorsRestControllerMultiInstancesTest extends BaseOutboundMul
         response.getBody(),
         containsString(
             "Data of type 'OutboundConnectorResponse' with id 'unknown-type' not found"));
+  }
+
+  @Test
+  void shouldReturnMetricsFromBothInstances_withCorrectRuntimeId() throws Exception {
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "http://localhost:" + port1 + "/outbound/metrics", HttpMethod.GET, null, String.class);
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response.getBody(), new TypeReference<>() {});
+    assertEquals(2, metrics.size());
+    assertTrue(metrics.stream().anyMatch(m -> "instance1".equals(m.runtimeId())));
+    assertTrue(metrics.stream().anyMatch(m -> "instance2".equals(m.runtimeId())));
+  }
+
+  @Test
+  void shouldReturnMetricsByType_fromBothInstances() throws Exception {
+    // TYPE_1 is registered on both instances
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "http://localhost:" + port1 + "/outbound/metrics/" + TYPE_1,
+            HttpMethod.GET,
+            null,
+            String.class);
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response.getBody(), new TypeReference<>() {});
+    assertEquals(2, metrics.size());
+    assertTrue(metrics.stream().anyMatch(m -> "instance1".equals(m.runtimeId())));
+    assertTrue(metrics.stream().anyMatch(m -> "instance2".equals(m.runtimeId())));
   }
 }

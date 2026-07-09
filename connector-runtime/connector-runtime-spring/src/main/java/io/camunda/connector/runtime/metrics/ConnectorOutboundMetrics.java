@@ -37,6 +37,7 @@ public class ConnectorOutboundMetrics {
   private final MeterRegistry meterRegistry;
   private final ConcurrentHashMap<String, AtomicLong> lastCompleted = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, AtomicLong> lastFailed = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, AtomicLong> allTimeMaxMs = new ConcurrentHashMap<>();
 
   public ConnectorOutboundMetrics(MetricsRecorder delegate, MeterRegistry meterRegistry) {
     this.delegate = delegate;
@@ -58,7 +59,17 @@ public class ConnectorOutboundMetrics {
   public void executeWithTimer(
       MetricsRecorder.TimerMetricsContext ctx, java.util.concurrent.Callable<Void> callable)
       throws Exception {
-    delegate.executeWithTimer(ctx, callable);
+    long start = System.currentTimeMillis();
+    try {
+      delegate.executeWithTimer(ctx, callable);
+    } finally {
+      long durationMs = System.currentTimeMillis() - start;
+      String type = ctx.tags().get(ConnectorMetrics.Tag.TYPE);
+      if (type != null) {
+        getOrCreate(allTimeMaxMs, ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME, type)
+            .accumulateAndGet(durationMs, Math::max);
+      }
+    }
   }
 
   // -------------------------------------------------------------------------

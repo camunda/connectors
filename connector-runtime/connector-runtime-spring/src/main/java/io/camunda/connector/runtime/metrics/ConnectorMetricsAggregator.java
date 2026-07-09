@@ -107,8 +107,8 @@ public final class ConnectorMetricsAggregator {
               .timers()) {
         totalMs += t.totalTime(TimeUnit.MILLISECONDS);
         totalCount += t.count();
-        maxMs = Math.max(maxMs, t.max(TimeUnit.MILLISECONDS));
       }
+      maxMs += readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME, type);
       maxLastCompleted =
           Math.max(
               maxLastCompleted,
@@ -199,15 +199,15 @@ public final class ConnectorMetricsAggregator {
 
     double totalMs = 0.0;
     long totalCount = 0L;
-    double maxMs = 0.0;
 
     for (Timer t : timers) {
       totalMs += t.totalTime(TimeUnit.MILLISECONDS);
       totalCount += t.count();
-      maxMs = Math.max(maxMs, t.max(TimeUnit.MILLISECONDS));
     }
 
     double meanMs = totalCount > 0 ? totalMs / totalCount : 0.0;
+    double maxMs =
+        readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME, type);
     return new OutboundConnectorMetrics.ExecutionTime(meanMs, maxMs);
   }
 
@@ -432,6 +432,7 @@ public final class ConnectorMetricsAggregator {
     return List.of(
         ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
         ConnectorMetrics.Outbound.METRIC_NAME_TIME,
+        ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME,
         ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED,
         ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED,
         ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED);
