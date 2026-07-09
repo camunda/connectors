@@ -45,6 +45,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistory
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceToolMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.ChatModelApiRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.configuration.AgenticAiAnthropicFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiCapabilitiesConfiguration;
@@ -92,6 +93,7 @@ import org.springframework.context.annotation.Import;
 @Import({
   AgenticAiCapabilitiesConfiguration.class,
   AgenticAiLangchain4JFrameworkConfiguration.class,
+  AgenticAiAnthropicFrameworkConfiguration.class,
   McpDiscoveryConfiguration.class,
   McpClientConfiguration.class,
   McpRemoteClientConfiguration.class,

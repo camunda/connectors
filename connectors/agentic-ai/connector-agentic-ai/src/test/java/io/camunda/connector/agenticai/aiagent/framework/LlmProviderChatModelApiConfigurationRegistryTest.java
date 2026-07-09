@@ -9,20 +9,31 @@ package io.camunda.connector.agenticai.aiagent.framework;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicChatModelApi;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicBedrockBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication.AwsApiKeyAuthentication;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 class LlmProviderChatModelApiConfigurationRegistryTest {
 
@@ -42,13 +53,13 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
   }
 
   @Test
-  void registryFailsLoudWhenNoFactorySupportsLlmProviderConfiguration() {
-    // Only the bridge factory is registered; it supports ProviderChatModelApiConfiguration only.
-    final ChatModelApiFactory bridge =
-        new Langchain4JChatModelApiFactory(mock(Langchain4JAiFrameworkAdapter.class));
-    final var registry = new ChatModelApiRegistryImpl(List.of(bridge));
+  void directAnthropicV2ConfigResolvesToNativeChatModelApi() {
+    // Both the bridge factory and the native Anthropic factory are registered; the native
+    // factory has lower getOrder() precedence and supports the direct backend.
+    final var registry =
+        new ChatModelApiRegistryImpl(List.of(bridgeFactory(), nativeAnthropicFactory()));
 
-    final ChatModelApiConfiguration llmProviderConfig =
+    final ChatModelApiConfiguration directConfig =
         new LlmProviderChatModelApiConfiguration(
             new AnthropicChatModel(
                 new AnthropicConnection(
@@ -57,10 +68,47 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
                     null,
                     null)));
 
-    assertThatThrownBy(() -> registry.resolve(llmProviderConfig))
+    assertThat(registry.resolve(directConfig)).isInstanceOf(AnthropicChatModelApi.class);
+  }
+
+  @Test
+  void bedrockAnthropicV2ConfigStillFailsLoud() {
+    // Neither the native factory (direct-only) nor the bridge (ProviderChatModelApiConfiguration
+    // only) supports a bedrock-backed LlmProviderChatModelApiConfiguration.
+    final var registry =
+        new ChatModelApiRegistryImpl(List.of(bridgeFactory(), nativeAnthropicFactory()));
+
+    final ChatModelApiConfiguration bedrockConfig =
+        new LlmProviderChatModelApiConfiguration(
+            new AnthropicChatModel(
+                new AnthropicConnection(
+                    new AnthropicBedrockBackend(
+                        "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
+                    new AnthropicModel("claude-sonnet-4-6", null),
+                    null,
+                    null)));
+
+    assertThatThrownBy(() -> registry.resolve(bedrockConfig))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("No chat model registered for configuration")
         .extracting(e -> ((ConnectorException) e).getErrorCode())
         .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  private static ChatModelApiFactory bridgeFactory() {
+    return new Langchain4JChatModelApiFactory(mock(Langchain4JAiFrameworkAdapter.class));
+  }
+
+  private static ChatModelApiFactory nativeAnthropicFactory() {
+    final var transport = mock(HttpTransportSupport.class);
+    when(transport.okHttpProxy(ArgumentMatchers.any())).thenReturn(Optional.empty());
+    final var capabilitiesResolver = mock(ModelCapabilitiesResolver.class);
+    when(capabilitiesResolver.resolve(
+            ArgumentMatchers.any(),
+            ArgumentMatchers.any(),
+            ArgumentMatchers.any(),
+            ArgumentMatchers.any()))
+        .thenReturn(ModelCapabilities.builder().build());
+    return new AnthropicChatModelApiFactory(transport, capabilitiesResolver, new ObjectMapper());
   }
 }
