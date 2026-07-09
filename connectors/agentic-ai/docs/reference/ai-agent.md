@@ -925,6 +925,29 @@ public interface ChatModelApiFactory {
 `List<ChatModelApiFactory>` is auto-collected by Spring, so adding a factory bean anywhere on the
 classpath registers it with no other wiring change (see [§25.4](#254-add-a-native-chat-model-implementation)).
 
+### v2 (own LLM layer) config surface
+
+The v2 connectors (`AiAgentTaskV2`, `AiAgentSubProcessV2`; connector types
+`io.camunda.agenticai:aiagent:task:2` / `io.camunda.agenticai:aiagent:subprocess:2`) carry a
+wire-format-first config surface in package
+`io.camunda.connector.agenticai.aiagent.model.request.chatmodel`:
+
+- **`LlmProviderConfiguration`** — the sealed root, `@JsonTypeInfo`/`@JsonSubTypes` on a provider
+  discriminator, currently with members `AnthropicChatModel` (Anthropic Messages wire format;
+  backends `direct`/`bedrock`) and `OpenAiChatModel` (OpenAI wire formats; backends
+  `direct`/`compatible`, api-family `completions`/`responses`). Each member nests all its fields
+  under a single provider-named component (`anthropic` / `openai`) so generated template property
+  ids are namespaced (`configuration.anthropic.*` / `configuration.openai.*`), avoiding
+  cross-provider id collisions.
+- **`LlmProviderChatModelApiConfiguration(LlmProviderConfiguration)`** — the v2
+  `ChatModelApiConfiguration` impl the entry points wrap the request's `configuration` in and hand
+  to the registry.
+
+Because no LLM-provider `ChatModelApiFactory` is registered yet, the registry has no factory that
+`supports(...)` a `LlmProviderChatModelApiConfiguration`, so the v2 path **fails loud** with a clear
+`ConnectorException(ERROR_CODE_FAILED_MODEL_CALL)` (never an NPE) until the native provider
+factories arrive in a later chunk (C7+). See [ADR 009](../adr/009-own-the-llm-layer.md).
+
 ### The LangChain4J Bridge Implementation
 
 In Phase 0, LangChain4J is demoted to **one `ChatModelApi` implementation** behind the SPI above, not
@@ -1132,8 +1155,29 @@ Imports:
 | `camunda.connector.agenticai.enabled`                             | `true`       | Master switch                      |
 | `camunda.connector.agenticai.aiagent.outbound-connector.enabled`  | `true`       | AI Agent Task connector            |
 | `camunda.connector.agenticai.aiagent.job-worker.enabled`          | `true`       | AI Agent Sub-process job worker    |
+| `camunda.connector.agenticai.aiagent.task-v2.enabled`             | `true`       | AI Agent Task v2 connector         |
+| `camunda.connector.agenticai.aiagent.subprocess-v2.enabled`       | `true`       | AI Agent Sub-process v2 connector  |
 | `camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled` | `true`     | Ad-Hoc Tools Schema connector     |
 | `camunda.connector.agenticai.framework`                           | `langchain4j` | AI framework implementation      |
+
+#### v2 (own LLM layer) beans
+
+`AgenticAiConnectorsAutoConfiguration` registers four beans for the own-LLM-layer connectors:
+the shared handlers are reused (no v2 handler subclasses), and the v2 connector beans depend on
+them:
+
+- `aiAgentTaskV2` (`AiAgentTaskV2`) — `@ConditionalOnBean(OutboundConnectorAgentRequestHandler.class)`,
+  toggled by `...aiagent.task-v2.enabled`.
+- `aiAgentSubProcessV2` (`AiAgentSubProcessV2`) — `@ConditionalOnBean(JobWorkerAgentRequestHandler.class)`,
+  toggled by `...aiagent.subprocess-v2.enabled`.
+
+**Operator coupling:** because each v2 bean `@ConditionalOnBean`s the shared flavor handler, and
+that handler is created only when its v1 flavor toggle is on, disabling a v1 flavor also disables
+its v2 counterpart. Disabling `...aiagent.outbound-connector.enabled` removes
+`OutboundConnectorAgentRequestHandler` and thus also disables the v2 Task; disabling
+`...aiagent.job-worker.enabled` removes `JobWorkerAgentRequestHandler` and thus also disables the
+v2 Sub-process. The `task-v2`/`subprocess-v2` toggles only turn the v2 connectors off
+independently; they cannot turn them on when the shared handler is absent.
 
 ### Key Configuration Defaults
 
@@ -1806,3 +1850,11 @@ provider's config at default precedence; the bridge covers the rest. Only the ve
 may import that vendor's SDK — keep a native chat model in its own `aiagent.framework.<provider>.**`
 package (invariant I1). Custom providers follow the same shape with their own `ChatModelApiConfiguration`
 implementation (analogous to the memory `custom` store).
+
+The v2 (own LLM layer) connectors already contribute their wire-format-first config surface in
+package `io.camunda.connector.agenticai.aiagent.model.request.chatmodel` (`LlmProviderConfiguration`
+and its `AnthropicChatModel`/`OpenAiChatModel` members), wrapped by
+`LlmProviderChatModelApiConfiguration` at the connector entry points. A native provider added here
+should `supports(...)` a `LlmProviderChatModelApiConfiguration` (matching on the provider
+discriminator) — until such a factory is registered the v2 path fails loud
+(see [§12, v2 config surface](#12-framework-abstraction)).

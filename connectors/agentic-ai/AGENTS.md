@@ -231,7 +231,9 @@ fields), so the source of truth is the Java, not the JSON. The template version 
 annotation's `version` attribute on the connector function; bumping it there bumps the generated
 template. The AI Agent Sub-process template is in turn derived from the AI Agent Task
 template via `connector-agentic-ai/bin/transform-ai-agent-job-worker-template.groovy` (gmavenplus-plugin, `process-classes`
-phase).
+phase). The v2 (own LLM layer) connectors follow the same pattern: `AiAgentTaskV2` is generated
+from its annotations, and the v2 Sub-process template is derived from it via
+`connector-agentic-ai/bin/transform-ai-agent-subprocess-v2-template.groovy`.
 
 To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
@@ -281,12 +283,14 @@ generated. When refreshing it as new model releases ship:
 
 ## Key entry points
 
-| File                                        | Purpose                                    |
-|---------------------------------------------|--------------------------------------------|
-| `AiAgentFunction.java`                      | Connector (Task) entry point               |
-| `AiAgentJobWorker.java`                     | Job worker (Sub-process) entry point       |
-| `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
-| `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                         |
+| File                                        | Purpose                                            |
+|---------------------------------------------|----------------------------------------------------|
+| `AiAgentFunction.java`                      | Connector (Task) entry point                       |
+| `AiAgentJobWorker.java`                     | Job worker (Sub-process) entry point               |
+| `AiAgentTaskV2.java`                        | v2 (own LLM layer) Task entry point                |
+| `AiAgentSubProcessV2.java`                  | v2 (own LLM layer) Sub-process entry point         |
+| `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors/versions)|
+| `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                                 |
 
 Full code-path reference and class diagram: `ai-agent.md` §18.
 

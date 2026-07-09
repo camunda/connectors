@@ -90,6 +90,8 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
     record AnthropicDirectBackend(
         @HttpUrl
             @TemplateProperty(
+                id = "direct.endpoint",
+                binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
                 group = "provider",
                 label = "Custom API endpoint",
                 description = "Optional custom API endpoint",
@@ -130,6 +132,8 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
         @HttpUrl
             @FEEL
             @TemplateProperty(
+                id = "bedrock.endpoint",
+                binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
                 group = "provider",
                 label = "Custom API endpoint",
                 description =

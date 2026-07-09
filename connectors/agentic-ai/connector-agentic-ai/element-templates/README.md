@@ -22,21 +22,28 @@ if you are on Camunda 8.10, use version `11`.
 See the [AI Agent connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
 The AI Agent ships in two flavors that share the same versioning scheme.
 
+The `v2` templates are a distinct, next-generation connector type (own LLM layer) offered
+alongside the existing ones. They carry their own connector ids/types
+(`io.camunda.agenticai:aiagent:task:2` / `io.camunda.agenticai:aiagent:subprocess:2`) and are
+versioned independently, starting at template version `1`.
+
 ### AI Agent Task
 
-| Connector     | Minimum Camunda version | Template version | File |
+| Connector        | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| AI Agent Task | 8.10 | 11 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
-| AI Agent Task | 8.9  | 7  | [`versioned/agenticai-aiagent-outbound-connector-7.json`](./versioned/agenticai-aiagent-outbound-connector-7.json) |
-| AI Agent Task | 8.8  | 5  | [`versioned/agenticai-aiagent-outbound-connector-5.json`](./versioned/agenticai-aiagent-outbound-connector-5.json) |
+| AI Agent Task v2 | 8.10 | 1  | [`agenticai-ai-agent-task.v2.json`](./agenticai-ai-agent-task.v2.json) |
+| AI Agent Task    | 8.10 | 11 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
+| AI Agent Task    | 8.9  | 7  | [`versioned/agenticai-aiagent-outbound-connector-7.json`](./versioned/agenticai-aiagent-outbound-connector-7.json) |
+| AI Agent Task    | 8.8  | 5  | [`versioned/agenticai-aiagent-outbound-connector-5.json`](./versioned/agenticai-aiagent-outbound-connector-5.json) |
 
 ### AI Agent Sub-process
 
-| Connector            | Minimum Camunda version | Template version | File |
+| Connector               | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| AI Agent Sub-process | 8.10 | 11 | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
-| AI Agent Sub-process | 8.9  | 7  | [`versioned/agenticai-aiagent-job-worker-7.json`](./versioned/agenticai-aiagent-job-worker-7.json) |
-| AI Agent Sub-process | 8.8  | 5  | [`versioned/agenticai-aiagent-job-worker-5.json`](./versioned/agenticai-aiagent-job-worker-5.json) |
+| AI Agent Sub-process v2 | 8.10 | 1  | [`agenticai-ai-agent-subprocess.v2.json`](./agenticai-ai-agent-subprocess.v2.json) |
+| AI Agent Sub-process    | 8.10 | 11 | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
+| AI Agent Sub-process    | 8.9  | 7  | [`versioned/agenticai-aiagent-job-worker-7.json`](./versioned/agenticai-aiagent-job-worker-7.json) |
+| AI Agent Sub-process    | 8.8  | 5  | [`versioned/agenticai-aiagent-job-worker-5.json`](./versioned/agenticai-aiagent-job-worker-5.json) |
 
 ## MCP Client connectors
 
