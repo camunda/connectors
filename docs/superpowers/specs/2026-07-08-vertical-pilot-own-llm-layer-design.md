@@ -98,11 +98,11 @@ The **native path gets the full capability matrix**; the bridge keeps a hardcode
 
 ## 8. LangChain4j bridge fallback
 
-- The bridge reports a **uniform hardcoded `ModelCapabilities`** that mirrors today's behavior exactly (`DocumentToContentConverterImpl`): `userMessage: [text, image, document]`, `toolResult: [text]`, `assistantMessage: [text]`, all advanced flags `false`.
-  - `userMessage: [text, image, document]` (not `[text]`) prevents a regression — today's converter accepts images and PDFs in user/event messages provider-agnostically. A provider that cannot take a given modality still errors downstream at call time, exactly as today.
-  - `toolResult: [text]` matches today — tool-result documents already take the XML/synthetic-`UserMessage` fallback, never native emission.
+- The three modality lists mean **"document modalities embeddable natively at that location"** (C5 refinement). The bridge reports a **uniform hardcoded `ModelCapabilities`**: `userMessage: [text, image, document]`, `toolResult: []`, `assistantMessage: [text]`, all advanced flags `false`.
+  - `userMessage: [text, image, document]` (not `[text]`) prevents a regression — today's converter (`DocumentToContentConverterImpl`) embeds text/image/PDF documents in user/event messages provider-agnostically. A provider that cannot take a given modality still errors downstream at call time, exactly as today.
+  - `toolResult: []` matches today — the bridge's `ToolCallConverterImpl` serializes any tool-result `DocumentContent` as a JSON reference (it embeds **no** document natively in a tool-result block), so every tool-result document takes the synthetic-`UserMessage` `<doc/>` fallback. The C5 `ToolCallResultStrategy` routes purely on `toolResultModalities.contains(modality)` — no per-modality special-case — so an empty list means "always fall back".
 - The bridge tolerates-and-drops `ReasoningContent` (LangChain4j cannot emit it), flattens content blocks back to today's text/XML behavior, and leaves `modelId`/`messageId`/`stopReason` best-effort/null. Nothing downstream hard-depends on native-only fields (control flow keys off `hasToolCalls()`).
-- Per-provider bridge profiles are explicitly **not** built now (today's converter has no per-provider gating); they can be added later as an accuracy enhancement.
+- **Model-aware bridge profiles** are not built now (the profile is uniform), but the C5 capability reframe makes them a clean future enhancement: as LangChain4j gains per-provider tool-result content-block support (e.g. images in Anthropic `tool_result`), a model-aware bridge profile can declare the corresponding `toolResultModalities` and `ToolCallConverterImpl` can emit those as native L4J tool-result content blocks — with no `ToolCallResultStrategy` change (strategy is already purely capability-driven).
 
 ## 9. Testing
 
