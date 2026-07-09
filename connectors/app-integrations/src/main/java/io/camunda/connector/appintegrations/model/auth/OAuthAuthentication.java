@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.appintegrations.model.auth;
 
-import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
@@ -16,8 +15,7 @@ import jakarta.validation.constraints.Pattern;
 
 @TemplateSubType(id = OAuthAuthentication.TYPE, label = "OAuth 2.0 (client credentials)")
 public record OAuthAuthentication(
-    @FEEL
-        @Pattern(
+    @Pattern(
             regexp = "^($|=|(http://|https://|secrets|\\{\\{).*$)",
             message = "Must be a http(s) URL")
         @TemplateProperty(
@@ -25,27 +23,23 @@ public record OAuthAuthentication(
             label = "OAuth 2.0 token endpoint",
             description = "The OAuth token endpoint")
         String oauthTokenEndpoint,
-    @FEEL
-        @TemplateProperty(
+    @TemplateProperty(
             group = "authentication",
             label = "Client ID",
             description = "Your application's client ID from the OAuth client")
         String clientId,
-    @FEEL
-        @TemplateProperty(
+    @TemplateProperty(
             group = "authentication",
             label = "Client secret",
             description = "Your application's client secret from the OAuth client")
         String clientSecret,
-    @FEEL
-        @TemplateProperty(
+    @TemplateProperty(
             group = "authentication",
             label = "Audience",
             description = "The unique identifier of the target API you want to access",
             optional = true)
         String audience,
-    @FEEL
-        @TemplateProperty(
+    @TemplateProperty(
             group = "authentication",
             label = "Client authentication",
             type = PropertyType.Dropdown,

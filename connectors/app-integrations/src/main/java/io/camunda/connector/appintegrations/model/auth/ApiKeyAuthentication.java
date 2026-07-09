@@ -6,20 +6,18 @@
  */
 package io.camunda.connector.appintegrations.model.auth;
 
-import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateSubType(id = ApiKeyAuthentication.TYPE, label = "API key")
 public record ApiKeyAuthentication(
-    @FEEL
-        @TemplateProperty(
+    @TemplateProperty(
             group = "authentication",
             label = "API key",
             description =
                 "Shared API key for authenticating to the App Integrations backend (self-managed).",
             tooltip =
-                "Tip: store the API key as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_API_KEY</code>.")
+                "Tip: store the API key as a secret, e.g. <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.")
         String apiKey)
     implements AppIntegrationsAuthentication {
 

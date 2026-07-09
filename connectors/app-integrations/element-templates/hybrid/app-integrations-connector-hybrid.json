@@ -14,7 +14,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.8"
+    "camunda" : "^8.9"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -166,7 +166,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Tip: store the API key as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_API_KEY</code>.",
+    "tooltip" : "Tip: store the API key as a secret, e.g. <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.",
     "type" : "String"
   }, {
     "id" : "createChannel:configuration.authentication.oauthTokenEndpoint",
@@ -366,7 +366,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Tip: store the API key as a secret, e.g. <code>= secrets.APP_INTEGRATIONS_API_KEY</code>.",
+    "tooltip" : "Tip: store the API key as a secret, e.g. <code>{{secrets.APP_INTEGRATIONS_API_KEY}}</code>.",
     "type" : "String"
   }, {
     "id" : "sendMessage:configuration.authentication.oauthTokenEndpoint",
