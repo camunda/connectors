@@ -16,9 +16,6 @@
  */
 package io.camunda.connector.runtime.saas;
 
-import dev.failsafe.Failsafe;
-import dev.failsafe.RetryPolicy;
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -26,6 +23,7 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
 /**
@@ -49,6 +48,11 @@ import org.springframework.stereotype.Component;
  * fleet-level values that address and authenticate the reporting endpoint (including the
  * disable/{@code DELETE} case). "Settings present" therefore refers to the per-cluster connector
  * configuration, detected by the presence of the connector's OAuth client credentials.
+ *
+ * <p>The report runs off the startup thread as a one-time scheduled task. A transient failure (I/O
+ * error or {@code 5xx}) reschedules the task with a capped exponential backoff, so the runtime
+ * keeps trying until the report succeeds. A client error ({@code 4xx}) is treated as permanent and
+ * is not retried. Nothing here can prevent the runtime from starting.
  */
 @Component
 @Profile("!test")
@@ -59,8 +63,8 @@ public class AppIntegrationsClusterRegistration {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(AppIntegrationsClusterRegistration.class);
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
-  private static final int MAX_RETRIES = 3;
-  private static final Duration RETRY_DELAY = Duration.ofSeconds(2);
+  private static final Duration INITIAL_RETRY_DELAY = Duration.ofSeconds(5);
+  private static final Duration MAX_RETRY_DELAY = Duration.ofMinutes(5);
 
   private final String baseUrl;
   private final String apiKey;
@@ -68,8 +72,9 @@ public class AppIntegrationsClusterRegistration {
   private final String organizationId;
   private final String clusterId;
   private final HttpClient httpClient;
-  private final int maxRetries;
-  private final Duration retryDelay;
+  private final TaskScheduler taskScheduler;
+  private final Duration initialRetryDelay;
+  private final Duration maxRetryDelay;
 
   @Autowired
   public AppIntegrationsClusterRegistration(
@@ -78,7 +83,8 @@ public class AppIntegrationsClusterRegistration {
       @Value("${APP_INTEGRATIONS_OAUTH_CLIENT_ID:}") String oauthClientId,
       @Value("${APP_INTEGRATIONS_OAUTH_CLIENT_SECRET:}") String oauthClientSecret,
       @Value("${camunda.connector.cloud.organization.id:}") String organizationId,
-      @Value("${camunda.client.cloud.clusterId:}") String clusterId) {
+      @Value("${camunda.client.cloud.clusterId:}") String clusterId,
+      TaskScheduler taskScheduler) {
     this(
         baseUrl,
         apiKey,
@@ -88,27 +94,9 @@ public class AppIntegrationsClusterRegistration {
         organizationId,
         clusterId,
         HttpClient.newBuilder().connectTimeout(TIMEOUT).build(),
-        MAX_RETRIES,
-        RETRY_DELAY);
-  }
-
-  AppIntegrationsClusterRegistration(
-      String baseUrl,
-      String apiKey,
-      boolean settingsPresent,
-      String organizationId,
-      String clusterId,
-      HttpClient httpClient) {
-    // Convenience for tests: short retry delay so the retry path runs quickly.
-    this(
-        baseUrl,
-        apiKey,
-        settingsPresent,
-        organizationId,
-        clusterId,
-        httpClient,
-        2,
-        Duration.ofMillis(1));
+        taskScheduler,
+        INITIAL_RETRY_DELAY,
+        MAX_RETRY_DELAY);
   }
 
   AppIntegrationsClusterRegistration(
@@ -118,16 +106,39 @@ public class AppIntegrationsClusterRegistration {
       String organizationId,
       String clusterId,
       HttpClient httpClient,
-      int maxRetries,
-      Duration retryDelay) {
+      TaskScheduler taskScheduler) {
+    // Convenience for tests: short retry delays so the backoff numbers stay small.
+    this(
+        baseUrl,
+        apiKey,
+        settingsPresent,
+        organizationId,
+        clusterId,
+        httpClient,
+        taskScheduler,
+        Duration.ofMillis(1),
+        Duration.ofMillis(10));
+  }
+
+  AppIntegrationsClusterRegistration(
+      String baseUrl,
+      String apiKey,
+      boolean settingsPresent,
+      String organizationId,
+      String clusterId,
+      HttpClient httpClient,
+      TaskScheduler taskScheduler,
+      Duration initialRetryDelay,
+      Duration maxRetryDelay) {
     this.baseUrl = baseUrl;
     this.apiKey = apiKey;
     this.settingsPresent = settingsPresent;
     this.organizationId = organizationId;
     this.clusterId = clusterId;
     this.httpClient = httpClient;
-    this.maxRetries = maxRetries;
-    this.retryDelay = retryDelay;
+    this.taskScheduler = taskScheduler;
+    this.initialRetryDelay = initialRetryDelay;
+    this.maxRetryDelay = maxRetryDelay;
   }
 
   @EventListener(ApplicationReadyEvent.class)
@@ -142,62 +153,76 @@ public class AppIntegrationsClusterRegistration {
       return;
     }
 
-    var uri =
-        URI.create(
-            baseUrl.replaceAll("/+$", "") + "/api/connector/" + organizationId + "/" + clusterId);
+    // Build the request up front so a malformed base URL (or invalid org/cluster id) fails fast
+    // here rather than escaping the startup thread or looping forever on the scheduler.
+    final HttpRequest request;
     var method = settingsPresent ? "PUT" : "DELETE";
-    var request =
-        HttpRequest.newBuilder(uri)
-            .timeout(TIMEOUT)
-            .header(API_KEY_HEADER, apiKey)
-            .method(method, BodyPublishers.noBody())
-            .build();
-
-    // Retry transient failures (I/O errors and 5xx responses) with a bounded, backing-off policy,
-    // mirroring the Failsafe usage elsewhere in the runtime. Client errors (4xx) are not retried.
-    RetryPolicy<HttpResponse<String>> retryPolicy =
-        RetryPolicy.<HttpResponse<String>>builder()
-            .handle(IOException.class)
-            .handleResultIf(response -> response != null && response.statusCode() >= 500)
-            .withBackoff(retryDelay, retryDelay.multipliedBy(8))
-            .withMaxRetries(maxRetries)
-            .onRetry(
-                event ->
-                    LOGGER.warn(
-                        "Retrying App Integrations cluster registration ({} {}) after attempt {} failed",
-                        method,
-                        uri,
-                        event.getAttemptCount()))
-            .build();
-
     try {
-      HttpResponse<String> response =
-          Failsafe.with(retryPolicy).get(() -> httpClient.send(request, BodyHandlers.ofString()));
-      if (response.statusCode() >= 400) {
-        LOGGER.warn(
-            "App Integrations cluster registration ({} {}) returned status {}",
-            method,
-            uri,
-            response.statusCode());
-      } else {
+      var uri =
+          URI.create(
+              baseUrl.replaceAll("/+$", "") + "/api/connector/" + organizationId + "/" + clusterId);
+      request =
+          HttpRequest.newBuilder(uri)
+              .timeout(TIMEOUT)
+              .header(API_KEY_HEADER, apiKey)
+              .method(method, BodyPublishers.noBody())
+              .build();
+    } catch (RuntimeException e) {
+      LOGGER.warn(
+          "Skipping App Integrations cluster registration: cannot build request for base URL '{}': {}",
+          baseUrl,
+          e.getMessage());
+      return;
+    }
+
+    // Run off the startup thread; retry transient failures until the report succeeds.
+    taskScheduler.schedule(() -> attempt(request, method, initialRetryDelay), Instant.now());
+  }
+
+  private void attempt(HttpRequest request, String method, Duration retryDelay) {
+    try {
+      HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+      int status = response.statusCode();
+      if (status < 400) {
         LOGGER.info(
-            "Reported App Integrations availability: {} {} -> {}",
-            method,
-            uri,
-            response.statusCode());
+            "Reported App Integrations availability: {} {} -> {}", method, request.uri(), status);
+        return;
       }
-    } catch (Exception e) {
-      // Never let a reporting failure prevent the runtime from starting.
-      if (e instanceof InterruptedException || e.getCause() instanceof InterruptedException) {
-        Thread.currentThread().interrupt();
+      if (status < 500) {
+        // Client error — retrying will not help, so stop.
+        LOGGER.warn(
+            "App Integrations cluster registration ({} {}) returned client error {}; giving up",
+            method,
+            request.uri(),
+            status);
+        return;
       }
       LOGGER.warn(
-          "Failed to report App Integrations availability ({} {}): {}",
+          "App Integrations cluster registration ({} {}) returned {}; retrying in {}",
           method,
-          uri,
-          e.getMessage(),
-          e);
+          request.uri(),
+          status,
+          retryDelay);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      LOGGER.warn(
+          "Interrupted while reporting App Integrations availability ({} {})",
+          method,
+          request.uri());
+      return;
+    } catch (Exception e) {
+      LOGGER.warn(
+          "Failed to report App Integrations availability ({} {}); retrying in {}: {}",
+          method,
+          request.uri(),
+          retryDelay,
+          e.getMessage());
     }
+
+    var doubled = retryDelay.multipliedBy(2);
+    var nextDelay = doubled.compareTo(maxRetryDelay) > 0 ? maxRetryDelay : doubled;
+    taskScheduler.schedule(
+        () -> attempt(request, method, nextDelay), Instant.now().plus(retryDelay));
   }
 
   private static boolean isPresent(String value) {

@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.saas;
 
 import static io.camunda.connector.runtime.saas.AppIntegrationsClusterRegistration.API_KEY_HEADER;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -32,9 +31,12 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.scheduling.TaskScheduler;
 
 class AppIntegrationsClusterRegistrationTest {
 
@@ -46,18 +48,27 @@ class AppIntegrationsClusterRegistrationTest {
       "https://app-integrations.example.com/api/connector/org-1/cluster-1";
 
   private HttpClient httpClient;
+  private TaskScheduler scheduler;
 
   @BeforeEach
-  void setUp() throws Exception {
+  void setUp() {
     httpClient = mock(HttpClient.class);
-    HttpResponse<?> response = mock(HttpResponse.class);
-    when(response.statusCode()).thenReturn(200);
-    doReturn(response).when(httpClient).send(any(HttpRequest.class), any());
+    scheduler = mock(TaskScheduler.class);
+  }
+
+  @Test
+  void schedulesReportOnStartupWithoutBlocking() {
+    registration(true).reportAvailability();
+
+    verify(scheduler, times(1)).schedule(any(Runnable.class), any(Instant.class));
+    verifyNoInteractions(httpClient);
   }
 
   @Test
   void sendsPutWithApiKeyWhenSettingsPresent() throws Exception {
+    stubResponse(200);
     registration(true).reportAvailability();
+    runScheduledTasks(1).get(0).run();
 
     HttpRequest request = capturedRequest();
     assertThat(request.method()).isEqualTo("PUT");
@@ -67,7 +78,9 @@ class AppIntegrationsClusterRegistrationTest {
 
   @Test
   void sendsDeleteWhenSettingsAbsent() throws Exception {
+    stubResponse(200);
     registration(false).reportAvailability();
+    runScheduledTasks(1).get(0).run();
 
     HttpRequest request = capturedRequest();
     assertThat(request.method()).isEqualTo("DELETE");
@@ -76,49 +89,108 @@ class AppIntegrationsClusterRegistrationTest {
   }
 
   @Test
-  void skipsWhenBaseUrlMissing() {
-    new AppIntegrationsClusterRegistration("", API_KEY, true, ORG_ID, CLUSTER_ID, httpClient)
+  void trimsTrailingSlashesFromBaseUrl() throws Exception {
+    stubResponse(200);
+    new AppIntegrationsClusterRegistration(
+            BASE_URL + "///", API_KEY, true, ORG_ID, CLUSTER_ID, httpClient, scheduler)
         .reportAvailability();
+    runScheduledTasks(1).get(0).run();
+
+    assertThat(capturedRequest().uri()).hasToString(EXPECTED_URI);
+  }
+
+  @Test
+  void skipsWhenBaseUrlMissing() {
+    new AppIntegrationsClusterRegistration(
+            "", API_KEY, true, ORG_ID, CLUSTER_ID, httpClient, scheduler)
+        .reportAvailability();
+    verifyNoInteractions(scheduler);
     verifyNoInteractions(httpClient);
   }
 
   @Test
   void skipsWhenApiKeyMissing() {
-    new AppIntegrationsClusterRegistration(BASE_URL, "  ", true, ORG_ID, CLUSTER_ID, httpClient)
+    new AppIntegrationsClusterRegistration(
+            BASE_URL, "  ", true, ORG_ID, CLUSTER_ID, httpClient, scheduler)
         .reportAvailability();
+    verifyNoInteractions(scheduler);
     verifyNoInteractions(httpClient);
   }
 
   @Test
   void skipsWhenOrgIdMissing() {
-    new AppIntegrationsClusterRegistration(BASE_URL, API_KEY, true, null, CLUSTER_ID, httpClient)
+    new AppIntegrationsClusterRegistration(
+            BASE_URL, API_KEY, true, null, CLUSTER_ID, httpClient, scheduler)
         .reportAvailability();
+    verifyNoInteractions(scheduler);
     verifyNoInteractions(httpClient);
   }
 
   @Test
   void skipsWhenClusterIdMissing() {
-    new AppIntegrationsClusterRegistration(BASE_URL, API_KEY, true, ORG_ID, null, httpClient)
+    new AppIntegrationsClusterRegistration(
+            BASE_URL, API_KEY, true, ORG_ID, null, httpClient, scheduler)
         .reportAvailability();
+    verifyNoInteractions(scheduler);
     verifyNoInteractions(httpClient);
   }
 
   @Test
-  void trimsTrailingSlashesFromBaseUrl() throws Exception {
+  void skipsWhenBaseUrlIsMalformed() {
     new AppIntegrationsClusterRegistration(
-            BASE_URL + "///", API_KEY, true, ORG_ID, CLUSTER_ID, httpClient)
+            "http://space in url", API_KEY, true, ORG_ID, CLUSTER_ID, httpClient, scheduler)
         .reportAvailability();
-    assertThat(capturedRequest().uri()).hasToString(EXPECTED_URI);
+    // A malformed base URL fails fast on the startup thread: nothing is scheduled or sent, and no
+    // exception escapes.
+    verifyNoInteractions(scheduler);
+    verifyNoInteractions(httpClient);
   }
 
   @Test
-  void doesNotThrowWhenHttpCallFails() throws Exception {
-    doThrow(new IOException("boom")).when(httpClient).send(any(HttpRequest.class), any());
-    assertThatCode(() -> registration(true).reportAvailability()).doesNotThrowAnyException();
+  void reschedulesOnTransientIoError() throws Exception {
+    doThrow(new IOException("transient")).when(httpClient).send(any(HttpRequest.class), any());
+
+    registration(true).reportAvailability();
+    runScheduledTasks(1).get(0).run();
+
+    // First attempt failed -> a retry was scheduled.
+    verify(scheduler, times(2)).schedule(any(Runnable.class), any(Instant.class));
   }
 
   @Test
-  void retriesTransientIoErrorThenSucceeds() throws Exception {
+  void reschedulesOnServerError() throws Exception {
+    stubResponse(503);
+
+    registration(true).reportAvailability();
+    runScheduledTasks(1).get(0).run();
+
+    verify(scheduler, times(2)).schedule(any(Runnable.class), any(Instant.class));
+  }
+
+  @Test
+  void doesNotRescheduleOnClientError() throws Exception {
+    stubResponse(404);
+
+    registration(true).reportAvailability();
+    runScheduledTasks(1).get(0).run();
+
+    // Only the initial schedule; a 4xx is treated as permanent.
+    verify(scheduler, times(1)).schedule(any(Runnable.class), any(Instant.class));
+    verify(httpClient, times(1)).send(any(HttpRequest.class), any());
+  }
+
+  @Test
+  void doesNotRescheduleOnSuccess() throws Exception {
+    stubResponse(200);
+
+    registration(true).reportAvailability();
+    runScheduledTasks(1).get(0).run();
+
+    verify(scheduler, times(1)).schedule(any(Runnable.class), any(Instant.class));
+  }
+
+  @Test
+  void retriesUntilItSucceeds() throws Exception {
     HttpResponse<?> ok = responseWithStatus(200);
     doThrow(new IOException("transient"))
         .doReturn(ok)
@@ -126,49 +198,36 @@ class AppIntegrationsClusterRegistrationTest {
         .send(any(HttpRequest.class), any());
 
     registration(true).reportAvailability();
+    List<Runnable> tasks = runScheduledTasks(1);
+    tasks.get(0).run(); // fails, reschedules
+    runScheduledTasks(2).get(1).run(); // succeeds, no further reschedule
 
+    verify(scheduler, times(2)).schedule(any(Runnable.class), any(Instant.class));
     verify(httpClient, times(2)).send(any(HttpRequest.class), any());
-  }
-
-  @Test
-  void retriesServerErrorThenSucceeds() throws Exception {
-    HttpResponse<?> serverError = responseWithStatus(503);
-    HttpResponse<?> ok = responseWithStatus(200);
-    doReturn(serverError).doReturn(ok).when(httpClient).send(any(HttpRequest.class), any());
-
-    registration(true).reportAvailability();
-
-    verify(httpClient, times(2)).send(any(HttpRequest.class), any());
-  }
-
-  @Test
-  void doesNotRetryClientError() throws Exception {
-    HttpResponse<?> clientError = responseWithStatus(404);
-    doReturn(clientError).when(httpClient).send(any(HttpRequest.class), any());
-
-    registration(true).reportAvailability();
-
-    verify(httpClient, times(1)).send(any(HttpRequest.class), any());
-  }
-
-  @Test
-  void givesUpAfterExhaustingRetries() throws Exception {
-    doThrow(new IOException("boom")).when(httpClient).send(any(HttpRequest.class), any());
-
-    // Default test constructor allows 2 retries, i.e. 3 attempts in total.
-    assertThatCode(() -> registration(true).reportAvailability()).doesNotThrowAnyException();
-    verify(httpClient, times(3)).send(any(HttpRequest.class), any());
   }
 
   private AppIntegrationsClusterRegistration registration(boolean settingsPresent) {
     return new AppIntegrationsClusterRegistration(
-        BASE_URL, API_KEY, settingsPresent, ORG_ID, CLUSTER_ID, httpClient);
+        BASE_URL, API_KEY, settingsPresent, ORG_ID, CLUSTER_ID, httpClient, scheduler);
+  }
+
+  private void stubResponse(int status) throws Exception {
+    doReturn(responseWithStatus(status)).when(httpClient).send(any(HttpRequest.class), any());
   }
 
   private static HttpResponse<?> responseWithStatus(int status) {
     HttpResponse<?> response = mock(HttpResponse.class);
     when(response.statusCode()).thenReturn(status);
     return response;
+  }
+
+  /**
+   * Captures the tasks scheduled so far (expects exactly {@code expectedCount}) without running.
+   */
+  private List<Runnable> runScheduledTasks(int expectedCount) {
+    ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
+    verify(scheduler, times(expectedCount)).schedule(captor.capture(), any(Instant.class));
+    return captor.getAllValues();
   }
 
   private HttpRequest capturedRequest() throws Exception {
