@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JA
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
@@ -30,10 +31,11 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
     final var config =
         new LlmProviderChatModelApiConfiguration(
             new AnthropicChatModel(
-                new AnthropicDirectBackend(null, "sk-ant"),
-                new AnthropicModel("claude-sonnet-4-6", null),
-                null,
-                null));
+                new AnthropicConnection(
+                    new AnthropicDirectBackend(null, "sk-ant"),
+                    new AnthropicModel("claude-sonnet-4-6", null),
+                    null,
+                    null)));
 
     assertThat(config.configuration()).isInstanceOf(AnthropicChatModel.class);
     assertThat(config.configuration().capabilityOverride()).isNull();
@@ -49,10 +51,11 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
     final ChatModelApiConfiguration llmProviderConfig =
         new LlmProviderChatModelApiConfiguration(
             new AnthropicChatModel(
-                new AnthropicDirectBackend(null, "sk-ant"),
-                new AnthropicModel("claude-sonnet-4-6", null),
-                null,
-                null));
+                new AnthropicConnection(
+                    new AnthropicDirectBackend(null, "sk-ant"),
+                    new AnthropicModel("claude-sonnet-4-6", null),
+                    null,
+                    null)));
 
     assertThatThrownBy(() -> registry.resolve(llmProviderConfig))
         .isInstanceOf(ConnectorException.class)

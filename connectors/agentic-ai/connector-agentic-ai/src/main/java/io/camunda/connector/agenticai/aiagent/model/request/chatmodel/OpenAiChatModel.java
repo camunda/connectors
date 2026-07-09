@@ -30,64 +30,69 @@ import org.jspecify.annotations.Nullable;
  * compatible}.
  */
 @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
-public record OpenAiChatModel(
-    @NotNull
-        @TemplateProperty(
-            group = "provider",
-            label = "API family",
-            description = "OpenAI wire format to use.",
-            type = TemplateProperty.PropertyType.Dropdown,
-            defaultValue = "completions",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "completions",
-                  label = "Chat Completions"),
-              @TemplateProperty.DropdownPropertyChoice(value = "responses", label = "Responses")
-            })
-        OpenAiApiFamily apiFamily,
-    @Valid @NotNull OpenAiBackend backend,
-    @Valid @NotNull OpenAiModel model,
-    @Valid @Nullable TimeoutConfiguration timeouts,
-    @FEEL
-        @Valid
-        @TemplateProperty(
-            group = "capabilities",
-            label = "Model capability overrides",
-            description =
-                "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
-            feel = FeelMode.required,
-            optional = true)
-        @Nullable ModelCapabilitiesOverride capabilityOverride)
+public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
     implements LlmProviderConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String OPENAI_ID = "openai";
 
   @Override
-  public String type() {
+  public String providerType() {
     return OPENAI_ID;
   }
 
   @Override
-  public String modelId() {
-    return model.model();
+  public String model() {
+    return openai.model().model();
   }
 
   @Override
-  public String backendType() {
-    return backend.type();
+  public String backend() {
+    return openai.backend().type();
   }
 
-  // capabilityOverride() is satisfied by the record component accessor (same name + return type as
-  // the interface method), so no explicit override is declared. The structured backend record is
-  // reached via the component accessor backend(); the discriminator string via backendType().
+  @Override
+  public @Nullable ModelCapabilitiesOverride capabilityOverride() {
+    return openai.capabilityOverride();
+  }
 
   /**
    * The capability-matrix api-family key ({@code openai-completions} / {@code openai-responses}).
    */
   public String apiFamilyKey() {
-    return apiFamily.familyKey();
+    return openai.apiFamily().familyKey();
   }
+
+  /** All OpenAI-specific configuration, nested under the {@code openai} wire key. */
+  public record OpenAiConnection(
+      @NotNull
+          @TemplateProperty(
+              group = "provider",
+              label = "API family",
+              description = "OpenAI wire format to use.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              defaultValue = "completions",
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(
+                    value = "completions",
+                    label = "Chat Completions"),
+                @TemplateProperty.DropdownPropertyChoice(value = "responses", label = "Responses")
+              })
+          OpenAiApiFamily apiFamily,
+      @Valid @NotNull OpenAiBackend backend,
+      @Valid @NotNull OpenAiModel model,
+      @Valid @Nullable TimeoutConfiguration timeouts,
+      @FEEL
+          @Valid
+          @TemplateProperty(
+              group = "capabilities",
+              label = "Model capability overrides",
+              description =
+                  "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+              type = TemplateProperty.PropertyType.Text,
+              feel = FeelMode.required,
+              optional = true)
+          @Nullable ModelCapabilitiesOverride capabilityOverride) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({

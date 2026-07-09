@@ -27,43 +27,48 @@ import org.jspecify.annotations.Nullable;
 
 /** Anthropic Messages wire format. Backends: {@code direct} (API key) and {@code bedrock} (AWS). */
 @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
-public record AnthropicChatModel(
-    @Valid @NotNull AnthropicBackend backend,
-    @Valid @NotNull AnthropicModel model,
-    @Valid @Nullable TimeoutConfiguration timeouts,
-    @FEEL
-        @Valid
-        @TemplateProperty(
-            group = "capabilities",
-            label = "Model capability overrides",
-            description =
-                "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
-            feel = FeelMode.required,
-            optional = true)
-        @Nullable ModelCapabilitiesOverride capabilityOverride)
+public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
     implements LlmProviderConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String ANTHROPIC_ID = "anthropic";
 
   @Override
-  public String type() {
+  public String providerType() {
     return ANTHROPIC_ID;
   }
 
   @Override
-  public String modelId() {
-    return model.model();
+  public String model() {
+    return anthropic.model().model();
   }
 
   @Override
-  public String backendType() {
-    return backend.type();
+  public String backend() {
+    return anthropic.backend().type();
   }
 
-  // capabilityOverride() is satisfied by the record component accessor (same name + return type
-  // as the interface method), so no explicit override is declared. The structured backend record
-  // is reached via the component accessor backend(); the discriminator string via backendType().
+  @Override
+  public @Nullable ModelCapabilitiesOverride capabilityOverride() {
+    return anthropic.capabilityOverride();
+  }
+
+  /** All Anthropic-specific configuration, nested under the {@code anthropic} wire key. */
+  public record AnthropicConnection(
+      @Valid @NotNull AnthropicBackend backend,
+      @Valid @NotNull AnthropicModel model,
+      @Valid @Nullable TimeoutConfiguration timeouts,
+      @FEEL
+          @Valid
+          @TemplateProperty(
+              group = "capabilities",
+              label = "Model capability overrides",
+              description =
+                  "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+              type = TemplateProperty.PropertyType.Text,
+              feel = FeelMode.required,
+              optional = true)
+          @Nullable ModelCapabilitiesOverride capabilityOverride) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({

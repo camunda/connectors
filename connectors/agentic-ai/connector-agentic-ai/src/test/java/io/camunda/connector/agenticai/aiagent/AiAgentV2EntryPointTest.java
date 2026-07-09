@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAge
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequestV2;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -30,10 +31,11 @@ class AiAgentV2EntryPointTest {
 
   private AnthropicChatModel anthropicConfig() {
     return new AnthropicChatModel(
-        new AnthropicDirectBackend(null, "sk-ant"),
-        new AnthropicModel("claude-sonnet-4-6", null),
-        null,
-        null);
+        new AnthropicConnection(
+            new AnthropicDirectBackend(null, "sk-ant"),
+            new AnthropicModel("claude-sonnet-4-6", null),
+            null,
+            null));
   }
 
   @Test
@@ -50,8 +52,8 @@ class AiAgentV2EntryPointTest {
             mock(JobContext.class),
             request.data(),
             new LlmProviderChatModelApiConfiguration(request.configuration()),
-            request.configuration().modelId(),
-            request.configuration().type(),
+            request.configuration().model(),
+            request.configuration().providerType(),
             mock(ProcessDefinitionAdHocToolElementsResolver.class));
 
     assertThat(ctx.configuration().chatModelApiConfiguration())

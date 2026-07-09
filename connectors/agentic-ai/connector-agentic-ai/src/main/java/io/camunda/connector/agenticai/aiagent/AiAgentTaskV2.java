@@ -98,8 +98,8 @@ public class AiAgentTaskV2 implements AgentConnectorFunction {
             context.getJobContext(),
             request.data(),
             new LlmProviderChatModelApiConfiguration(config),
-            config.modelId(),
-            config.type(),
+            config.model(),
+            config.providerType(),
             toolElementsResolver);
     return agentRequestHandler.handleRequest(executionContext);
   }

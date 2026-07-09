@@ -17,9 +17,11 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Wire-format-first chat-model configuration surfaced by the v2 connectors (the #7224 target
- * shape). Only the {@code anthropic} and {@code openai} members exist in the pilot; other providers
- * are additive later. Polymorphism is by the {@code type} discriminator; the concrete member owns
- * its backend-conditional authentication.
+ * shape). Each provider member nests its fields under a single provider-named component (mirroring
+ * {@code ProviderConfiguration}), so generated element-template property ids are namespaced ({@code
+ * provider.anthropic.*} / {@code provider.openai.*}) and the interface accessors below compute from
+ * the nested data without colliding with a record component. Polymorphism is by the {@code type}
+ * discriminator; the concrete member owns its backend-conditional authentication.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -35,24 +37,17 @@ import org.jspecify.annotations.Nullable;
 public sealed interface LlmProviderConfiguration permits AnthropicChatModel, OpenAiChatModel {
 
   /** Discriminator string identifying the provider (e.g. {@code anthropic}, {@code openai}). */
-  String type();
+  String providerType();
 
-  /**
-   * The model id / deployment the request targets. Named {@code modelId()} (not {@code model()})
-   * because concrete members expose a structured {@code model} record component.
-   */
-  String modelId();
+  /** The model id / deployment the request targets. */
+  String model();
 
-  /**
-   * The backend discriminator (e.g. {@code direct}, {@code bedrock}, {@code compatible}). Named
-   * {@code backendType()} (not {@code backend()}) because concrete members expose a structured
-   * {@code backend} record component.
-   */
-  @Nullable String backendType();
+  /** The backend discriminator (e.g. {@code direct}, {@code bedrock}, {@code compatible}). */
+  @Nullable String backend();
 
   /**
    * Optional sparse per-element capability override, the highest-precedence overlay for the matrix.
-   * Raw-nullable here; the resolver boundary (Task 5) wraps it in {@link java.util.Optional}.
+   * Raw-nullable; the resolver boundary wraps it in {@link java.util.Optional}.
    */
   @Nullable ModelCapabilitiesOverride capabilityOverride();
 }

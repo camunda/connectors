@@ -54,8 +54,8 @@ public class AiAgentSubProcessV2 implements AgentConnectorFunction {
             request.toolCallResults(),
             request.toolElements(),
             new LlmProviderChatModelApiConfiguration(config),
-            config.modelId(),
-            config.type());
+            config.model(),
+            config.providerType());
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

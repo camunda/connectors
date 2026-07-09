@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicBedrockBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.AnthropicModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication.AwsStaticCredentialsAuthentication;
@@ -29,22 +30,24 @@ class AnthropicChatModelTest {
         """
         {
           "type": "anthropic",
-          "backend": { "type": "direct", "apiKey": "sk-ant-123" },
-          "model": { "model": "claude-sonnet-4-6", "parameters": { "maxTokens": 1024 } }
+          "anthropic": {
+            "backend": { "type": "direct", "apiKey": "sk-ant-123" },
+            "model": { "model": "claude-sonnet-4-6", "parameters": { "maxTokens": 1024 } }
+          }
         }
         """;
 
     final LlmProviderConfiguration parsed = mapper.readValue(json, LlmProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(AnthropicChatModel.class);
-    assertThat(parsed.type()).isEqualTo("anthropic");
-    assertThat(parsed.modelId()).isEqualTo("claude-sonnet-4-6");
-    assertThat(parsed.backendType()).isEqualTo("direct");
+    assertThat(parsed.providerType()).isEqualTo("anthropic");
+    assertThat(parsed.model()).isEqualTo("claude-sonnet-4-6");
+    assertThat(parsed.backend()).isEqualTo("direct");
     assertThat(parsed.capabilityOverride()).isNull();
 
     final AnthropicChatModel anthropic = (AnthropicChatModel) parsed;
-    assertThat(anthropic.backendType()).isEqualTo("direct");
-    assertThat(anthropic.backend()).isInstanceOf(AnthropicDirectBackend.class);
+    assertThat(anthropic.backend()).isEqualTo("direct");
+    assertThat(anthropic.anthropic().backend()).isInstanceOf(AnthropicDirectBackend.class);
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, LlmProviderConfiguration.class)).isEqualTo(parsed);
@@ -56,21 +59,23 @@ class AnthropicChatModelTest {
         """
         {
           "type": "anthropic",
-          "backend": {
-            "type": "bedrock",
-            "region": "eu-west-1",
-            "authentication": { "type": "credentials", "accessKey": "AKIA", "secretKey": "shh" }
-          },
-          "model": { "model": "claude-sonnet-4-6" }
+          "anthropic": {
+            "backend": {
+              "type": "bedrock",
+              "region": "eu-west-1",
+              "authentication": { "type": "credentials", "accessKey": "AKIA", "secretKey": "shh" }
+            },
+            "model": { "model": "claude-sonnet-4-6" }
+          }
         }
         """;
 
     final AnthropicChatModel parsed =
         (AnthropicChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
 
-    assertThat(parsed.backendType()).isEqualTo("bedrock");
-    assertThat(parsed.backend()).isInstanceOf(AnthropicBedrockBackend.class);
-    final AnthropicBedrockBackend bedrock = (AnthropicBedrockBackend) parsed.backend();
+    assertThat(parsed.backend()).isEqualTo("bedrock");
+    assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicBedrockBackend.class);
+    final AnthropicBedrockBackend bedrock = (AnthropicBedrockBackend) parsed.anthropic().backend();
     assertThat(bedrock.region()).isEqualTo("eu-west-1");
     assertThat(bedrock.authentication()).isInstanceOf(AwsStaticCredentialsAuthentication.class);
     // secrets redacted in toString
@@ -81,11 +86,12 @@ class AnthropicChatModelTest {
   void directBackendRejectsBlankApiKey() {
     final var model =
         new AnthropicChatModel(
-            new AnthropicDirectBackend(null, "  "),
-            new AnthropicModel(
-                "claude-sonnet-4-6", new AnthropicModelParameters(1, null, null, null)),
-            null,
-            null);
+            new AnthropicConnection(
+                new AnthropicDirectBackend(null, "  "),
+                new AnthropicModel(
+                    "claude-sonnet-4-6", new AnthropicModelParameters(1, null, null, null)),
+                null,
+                null));
 
     final var violations = validator.validate(model);
     assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().contains("apiKey"));
@@ -95,10 +101,11 @@ class AnthropicChatModelTest {
   void validAnthropicModelHasNoViolations() {
     final var model =
         new AnthropicChatModel(
-            new AnthropicDirectBackend(null, "sk-ant-123"),
-            new AnthropicModel("claude-sonnet-4-6", null),
-            null,
-            null);
+            new AnthropicConnection(
+                new AnthropicDirectBackend(null, "sk-ant-123"),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null,
+                null));
 
     assertThat(validator.validate(model)).isEmpty();
     assertThat(model.capabilityOverride()).isNull();
