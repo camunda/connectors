@@ -140,6 +140,18 @@
       <artifactId>anthropic-java</artifactId>
       <version>${version.anthropic-java}</version>
     </dependency>
+    <!--
+      OkHttp 5 split into multi-platform modules: the `okhttp` artifact's pom is now an empty shell
+      (classes ship in `okhttp-jvm`), see the comment in parent/pom.xml. anthropic-java-client-okhttp
+      only depends on the empty `okhttp` shell, so AnthropicOkHttpClient.builder().build() throws
+      NoClassDefFoundError at runtime unless we add `okhttp-jvm` explicitly (same pattern as
+      connectors/slack and connectors/microsoft/common).
+    -->
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-jvm</artifactId>
+      <version>${version.okhttp}</version>
+    </dependency>
 
     <!-- Native MCP Java SDK -->
     <dependency>
@@ -432,6 +444,10 @@
                 <ignoredDependency>com.anthropic:anthropic-java</ignoredDependency>
                 <ignoredDependency>com.anthropic:anthropic-java-core</ignoredDependency>
                 <ignoredDependency>com.anthropic:anthropic-java-client-okhttp</ignoredDependency>
+                <!-- okhttp-jvm has no direct source import (it's only reflectively required by
+                     anthropic-java-client-okhttp's AnthropicOkHttpClient at runtime, see the
+                     dependency declaration above); the analyzer would otherwise flag it unused. -->
+                <ignoredDependency>com.squareup.okhttp3:okhttp-jvm</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
