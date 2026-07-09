@@ -32,6 +32,10 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Set up Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: '24'
     - name: Install dependencies
       shell: bash
       working-directory: ${{ github.action_path }}

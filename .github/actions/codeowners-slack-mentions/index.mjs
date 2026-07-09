@@ -12,6 +12,10 @@ import {minimatch} from 'minimatch';
 
 const SEP = '/';
 
+// ---------------------------------------------------------------------------
+// CODEOWNERS glob matching
+// ---------------------------------------------------------------------------
+
 // GitHub CODEOWNERS (gitignore-style) matching. The glob mechanics (`*`,
 // `**`, `?`, escaping) are delegated to minimatch; CODEOWNERS-specific
 // anchoring/ownership rules stay here. minimatch extensions CODEOWNERS
@@ -68,6 +72,10 @@ export function patternToMatcher(pattern) {
   return (subject) => baseRe.test(subject) || Boolean(descendantRe?.test(subject));
 }
 
+// ---------------------------------------------------------------------------
+// CODEOWNERS parsing & owner resolution
+// ---------------------------------------------------------------------------
+
 export function parseCodeowners(text) {
   const rules = [];
   for (const rawLine of text.split('\n')) {
@@ -77,8 +85,8 @@ export function parseCodeowners(text) {
     const [pattern, ...owners] = line.split(/\s+/);
     try {
       rules.push({pattern, owners, matches: patternToMatcher(pattern)});
-    } catch {
-      // skip malformed pattern
+    } catch (error) {
+      console.warn(`[codeowners-slack-mentions] skipping malformed pattern "${pattern}": ${error.message}`);
     }
   }
   return rules;
@@ -94,9 +102,12 @@ export function ownersFor(path, rules) {
   return owners;
 }
 
+// ---------------------------------------------------------------------------
+// Slack mention derivation
+// ---------------------------------------------------------------------------
+
 function pushUnique(list, value) {
   if (value && !list.includes(value)) list.push(value);
-  return list;
 }
 
 // Map values and always-include are already-formatted mentions, used verbatim.
@@ -126,6 +137,10 @@ export function parseTeamMap(input) {
   if (value.startsWith('{')) return JSON.parse(value);
   return JSON.parse(readFileSync(value, 'utf8'));
 }
+
+// ---------------------------------------------------------------------------
+// CLI / GitHub Actions glue
+// ---------------------------------------------------------------------------
 
 function setOutput(name, value) {
   const outputFile = process.env.GITHUB_OUTPUT;

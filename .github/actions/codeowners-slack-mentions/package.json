@@ -2,6 +2,12 @@
   "name": "codeowners-slack-mentions",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "18 || 20 || >=22"
+  },
+  "scripts": {
+    "test": "node --test index.test.mjs"
+  },
   "dependencies": {
     "minimatch": "10.2.5"
   }

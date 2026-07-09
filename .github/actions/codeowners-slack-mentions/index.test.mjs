@@ -126,7 +126,7 @@ describe('patternToMatcher', () => {
   });
 
   it('throws on three consecutive asterisks', () => {
-    assert.throws(() => patternToRegExp('a/***/b'));
+    assert.throws(() => patternToMatcher('a/***/b'));
   });
 });
 
@@ -156,56 +156,33 @@ ${GLOBAL}
     '@doctocat': '<!subteam^S_DOC>',
     '@octocat': '<!subteam^S_OCT>',
   };
+  const MEDIC = '<!subteam^MEDIC>';
+  const derive = (overrides) =>
+    deriveMentions({paths: [], rules, teamMap, alwaysInclude: [MEDIC], ...overrides});
 
   it('inserts map mentions verbatim, leads with always-include, dedupes, preserves order', () => {
-    const {mentions} = deriveMentions({
-      paths: ['app.js', 'scripts/deploy.sh', 'README'],
-      rules,
-      teamMap,
-      alwaysInclude: ['<!subteam^MEDIC>'],
-    });
-    assert.deepEqual(mentions, [
-      '<!subteam^MEDIC>',
-      '<!subteam^S_JS>',
-      '<!subteam^S_DOC>',
-      '<!subteam^S_OCT>',
-    ]);
+    const {mentions} = derive({paths: ['app.js', 'scripts/deploy.sh', 'README']});
+    assert.deepEqual(mentions, [MEDIC, '<!subteam^S_JS>', '<!subteam^S_DOC>', '<!subteam^S_OCT>']);
   });
 
   it('empty paths yields just always-include', () => {
-    const {mentions} = deriveMentions({paths: [], rules, teamMap, alwaysInclude: ['<!subteam^MEDIC>']});
-    assert.deepEqual(mentions, ['<!subteam^MEDIC>']);
+    assert.deepEqual(derive().mentions, [MEDIC]);
   });
 
   it('a no-owner path contributes nothing beyond always-include', () => {
-    const {owners: o, mentions} = deriveMentions({
-      paths: ['apps/github/server.js'],
-      rules,
-      teamMap,
-      alwaysInclude: ['<!subteam^MEDIC>'],
-    });
-    assert.deepEqual(o, []);
-    assert.deepEqual(mentions, ['<!subteam^MEDIC>']);
+    const {owners, mentions} = derive({paths: ['apps/github/server.js']});
+    assert.deepEqual(owners, []);
+    assert.deepEqual(mentions, [MEDIC]);
   });
 
   it('empty map value is skipped (no broken mention)', () => {
-    const {mentions} = deriveMentions({
-      paths: ['app.js'],
-      rules,
-      teamMap: {'@js-owner': ''},
-      alwaysInclude: ['<!subteam^MEDIC>'],
-    });
-    assert.deepEqual(mentions, ['<!subteam^MEDIC>']);
+    const {mentions} = derive({paths: ['app.js'], teamMap: {'@js-owner': ''}});
+    assert.deepEqual(mentions, [MEDIC]);
   });
 
   it('always-include is deduped against itself', () => {
-    const {mentions} = deriveMentions({
-      paths: [],
-      rules,
-      teamMap: {},
-      alwaysInclude: ['<!subteam^MEDIC>', '<!subteam^MEDIC>'],
-    });
-    assert.deepEqual(mentions, ['<!subteam^MEDIC>']);
+    const {mentions} = derive({teamMap: {}, alwaysInclude: [MEDIC, MEDIC]});
+    assert.deepEqual(mentions, [MEDIC]);
   });
 });
 
