@@ -20,6 +20,7 @@ import io.camunda.client.metrics.MetricsRecorder;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -37,6 +38,7 @@ public class ConnectorOutboundMetrics {
   private final MeterRegistry meterRegistry;
   private final ConcurrentHashMap<String, AtomicLong> lastCompleted = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, AtomicLong> lastFailed = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, AtomicLong> allTimeMaxMs = new ConcurrentHashMap<>();
 
   public ConnectorOutboundMetrics(MetricsRecorder delegate, MeterRegistry meterRegistry) {
     this.delegate = delegate;
@@ -58,7 +60,17 @@ public class ConnectorOutboundMetrics {
   public void executeWithTimer(
       MetricsRecorder.TimerMetricsContext ctx, java.util.concurrent.Callable<Void> callable)
       throws Exception {
-    delegate.executeWithTimer(ctx, callable);
+    long start = System.nanoTime();
+    try {
+      delegate.executeWithTimer(ctx, callable);
+    } finally {
+      long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+      String type = ctx.tags().get(ConnectorMetrics.Tag.TYPE);
+      if (type != null) {
+        getOrCreate(allTimeMaxMs, ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME, type)
+            .accumulateAndGet(durationMs, Math::max);
+      }
+    }
   }
 
   // -------------------------------------------------------------------------

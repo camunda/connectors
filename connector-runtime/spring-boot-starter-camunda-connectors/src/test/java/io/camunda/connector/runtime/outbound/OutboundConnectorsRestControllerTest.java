@@ -36,8 +36,10 @@ import io.camunda.connector.runtime.metrics.OutboundConnectorMetrics;
 import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerConnectivityState;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -315,5 +317,72 @@ class OutboundConnectorsRestControllerTest {
 
     // jobsActivated must include at least the 10 (3+7) we just registered
     assertTrue(metrics.getFirst().worker().jobsActivated() >= 10L);
+  }
+
+  @Test
+  void shouldReturnAllTimeMaxMs_groupedByType() throws Exception {
+    String type = "outbound-test-max-ms";
+    AtomicLong maxMs = new AtomicLong(456);
+    Gauge.builder(
+            ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME,
+            maxMs,
+            AtomicLong::doubleValue)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .register(meterRegistry);
+    io.micrometer.core.instrument.Timer.builder(ConnectorMetrics.Outbound.METRIC_NAME_TIME)
+        .tag(ConnectorMetrics.Tag.TYPE, type)
+        .register(meterRegistry)
+        .record(java.time.Duration.ofMillis(200));
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics/" + type))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    assertEquals(456.0, metrics.getFirst().job().executionTime().maxMs());
+  }
+
+  @Test
+  void shouldReturnMaxOfMaxMsAcrossTypes_whenNoConnectorTypeProvided() throws Exception {
+    String typeA = "outbound-test-max-agg-a";
+    String typeB = "outbound-test-max-agg-b";
+    AtomicLong maxA = new AtomicLong(300);
+    AtomicLong maxB = new AtomicLong(500);
+    Gauge.builder(
+            ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME, maxA, AtomicLong::doubleValue)
+        .tag(ConnectorMetrics.Tag.TYPE, typeA)
+        .register(meterRegistry);
+    Gauge.builder(
+            ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME, maxB, AtomicLong::doubleValue)
+        .tag(ConnectorMetrics.Tag.TYPE, typeB)
+        .register(meterRegistry);
+    io.micrometer.core.instrument.Timer.builder(ConnectorMetrics.Outbound.METRIC_NAME_TIME)
+        .tag(ConnectorMetrics.Tag.TYPE, typeA)
+        .register(meterRegistry)
+        .record(java.time.Duration.ofMillis(300));
+    io.micrometer.core.instrument.Timer.builder(ConnectorMetrics.Outbound.METRIC_NAME_TIME)
+        .tag(ConnectorMetrics.Tag.TYPE, typeB)
+        .register(meterRegistry)
+        .record(java.time.Duration.ofMillis(500));
+
+    var response =
+        mockMvc
+            .perform(get("/outbound/metrics"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<OutboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+
+    // maxMs is the max across all per-type all-time maxima (max of 300 and 500 = 500)
+    assertTrue(metrics.getFirst().job().executionTime().maxMs() >= 500.0);
   }
 }

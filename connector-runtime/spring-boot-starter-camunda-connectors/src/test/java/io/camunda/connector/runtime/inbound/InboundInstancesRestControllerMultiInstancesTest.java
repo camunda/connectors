@@ -22,11 +22,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.api.inbound.*;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
+import io.camunda.connector.runtime.metrics.InboundConnectorMetrics;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Stream;
@@ -360,5 +363,40 @@ class InboundInstancesRestControllerMultiInstancesTest extends BaseMultiInstance
             String.class);
 
     assertThat(404, equalTo(response.getStatusCode().value()));
+  }
+
+  @Test
+  public void shouldReturnMetricsFromBothInstances_withCorrectRuntimeId() throws Exception {
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "http://localhost:" + port1 + "/inbound-instances/metrics",
+            HttpMethod.GET,
+            null,
+            String.class);
+
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response.getBody(), new TypeReference<>() {});
+    assertEquals(2, metrics.size());
+    assertTrue(metrics.stream().anyMatch(m -> "instance1".equals(m.runtimeId())));
+    assertTrue(metrics.stream().anyMatch(m -> "instance2".equals(m.runtimeId())));
+  }
+
+  @Test
+  public void shouldReturnMetricsByType_fromBothInstances() throws Exception {
+    // TYPE_1 is present on both instances
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            "http://localhost:" + port1 + "/inbound-instances/metrics/" + TYPE_1,
+            HttpMethod.GET,
+            null,
+            String.class);
+
+    List<InboundConnectorMetrics> metrics =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response.getBody(), new TypeReference<>() {});
+    assertEquals(2, metrics.size());
+    assertTrue(metrics.stream().anyMatch(m -> "instance1".equals(m.runtimeId())));
+    assertTrue(metrics.stream().anyMatch(m -> "instance2".equals(m.runtimeId())));
   }
 }
