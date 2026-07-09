@@ -253,7 +253,6 @@ class WebhookControllerTestExceptionZeebeTest {
             webhookContext,
             ExecutableId.fromDeduplicationId("random")));
 
-    return controller.inbound(
-        "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+    return controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
   }
 }
