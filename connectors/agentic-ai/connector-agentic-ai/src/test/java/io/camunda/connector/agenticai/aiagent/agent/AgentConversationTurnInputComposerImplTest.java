@@ -61,7 +61,7 @@ class AgentConversationTurnInputComposerImplTest {
           .conversation(InProcessConversationContext.builder("conv").build())
           .build();
   private static final AgentConfiguration CONFIG =
-      new AgentConfiguration(null, null, null, null, null, null, null);
+      new AgentConfiguration(null, "model", "anthropic", null, null, null, null, null, null);
 
   @BeforeEach
   void setUp() {
@@ -143,6 +143,8 @@ class AgentConversationTurnInputComposerImplTest {
     var config =
         new AgentConfiguration(
             null,
+            "model",
+            "anthropic",
             null,
             null,
             null,
@@ -213,6 +215,8 @@ class AgentConversationTurnInputComposerImplTest {
     var config =
         new AgentConfiguration(
             null,
+            "model",
+            "anthropic",
             null,
             null,
             null,
@@ -246,6 +250,8 @@ class AgentConversationTurnInputComposerImplTest {
     var config =
         new AgentConfiguration(
             null,
+            "model",
+            "anthropic",
             null,
             null,
             null,
@@ -272,6 +278,8 @@ class AgentConversationTurnInputComposerImplTest {
     var config =
         new AgentConfiguration(
             null,
+            "model",
+            "anthropic",
             null,
             null,
             null,
@@ -382,6 +390,8 @@ class AgentConversationTurnInputComposerImplTest {
     var config =
         new AgentConfiguration(
             null,
+            "model",
+            "anthropic",
             null,
             null,
             null,

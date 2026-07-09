@@ -18,6 +18,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
@@ -66,7 +67,10 @@ public class Langchain4JAiFrameworkAdapter
         ChatRequest.builder().messages(messages).toolSpecifications(toolSpecifications);
     configureResponseFormat(chatRequestBuilder, configuration.response());
 
-    try (final var chatModel = chatModelFactory.createChatModel(configuration.provider())) {
+    final var providerConfiguration =
+        ((ProviderChatModelApiConfiguration) configuration.chatModelApiConfiguration())
+            .providerConfiguration();
+    try (final var chatModel = chatModelFactory.createChatModel(providerConfiguration)) {
       final ChatResponse chatResponse = doChat(chatModel, chatRequestBuilder);
       if (chatResponse.metadata() != null
           && chatResponse.metadata().finishReason() == FinishReason.CONTENT_FILTER) {

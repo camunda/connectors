@@ -8,7 +8,8 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -18,10 +19,11 @@ import java.util.List;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
+/** Version-agnostic execution context for the AI Agent Task flavor (serves v1 and v2). */
 public class OutboundConnectorAgentExecutionContext implements AgentExecutionContext {
 
   private final JobContext jobContext;
-  private final OutboundConnectorAgentRequest request;
+  private final OutboundConnectorAgentRequestData data;
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentConfiguration configuration;
 
@@ -29,21 +31,26 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
 
   public OutboundConnectorAgentExecutionContext(
       JobContext jobContext,
-      OutboundConnectorAgentRequest request,
+      OutboundConnectorAgentRequestData data,
+      ChatModelApiConfiguration chatModelApiConfiguration,
+      String modelName,
+      String modelProvider,
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
     this.jobContext = jobContext;
-    this.request = request;
+    this.data = data;
     this.toolElementsResolver = toolElementsResolver;
     this.configuration =
         new AgentConfiguration(
-            request.provider(),
-            request.data().systemPrompt(),
-            request.data().userPrompt(),
-            request.data().memory(),
-            request.data().limits(),
+            chatModelApiConfiguration,
+            modelName,
+            modelProvider,
+            data.systemPrompt(),
+            data.userPrompt(),
+            data.memory(),
+            data.limits(),
             // the outbound connector flavor does not support event handling
             null,
-            request.data().response());
+            data.response());
   }
 
   @Override
@@ -53,12 +60,12 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
 
   @Override
   public AgentContext initialAgentContext() {
-    return request.data().context();
+    return data.context();
   }
 
   @Override
   public List<ToolCallResult> initialToolCallResults() {
-    return Optional.ofNullable(request.data().tools())
+    return Optional.ofNullable(data.tools())
         .map(ToolsConfiguration::toolCallResults)
         .orElseGet(Collections::emptyList);
   }
@@ -68,13 +75,12 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
     if (toolElements != null) {
       return toolElements;
     }
-
     return toolElements = resolveToolElements();
   }
 
   private List<AdHocToolElement> resolveToolElements() {
     final var toolsContainerElementId =
-        Optional.ofNullable(request.data().tools())
+        Optional.ofNullable(data.tools())
             .map(ToolsConfiguration::containerElementId)
             .filter(id -> !id.isBlank())
             .orElse(null);
@@ -89,11 +95,11 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
 
   @Override
   public UserPromptConfiguration userPrompt() {
-    return request.data().userPrompt();
+    return data.userPrompt();
   }
 
   public @Nullable ToolsConfiguration tools() {
-    return request.data().tools();
+    return data.tools();
   }
 
   @Override

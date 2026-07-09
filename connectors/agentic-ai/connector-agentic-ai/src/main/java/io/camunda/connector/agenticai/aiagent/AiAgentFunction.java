@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
@@ -97,9 +98,15 @@ public class AiAgentFunction implements AgentConnectorFunction {
   @Override
   public AiAgentTaskConnectorResponse execute(OutboundConnectorContext context) {
     var request = context.bindVariables(OutboundConnectorAgentRequest.class);
+    var provider = request.provider();
     var executionContext =
         new OutboundConnectorAgentExecutionContext(
-            context.getJobContext(), request, toolElementsResolver);
+            context.getJobContext(),
+            request.data(),
+            new ProviderChatModelApiConfiguration(provider),
+            provider.model(),
+            provider.providerType(),
+            toolElementsResolver);
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

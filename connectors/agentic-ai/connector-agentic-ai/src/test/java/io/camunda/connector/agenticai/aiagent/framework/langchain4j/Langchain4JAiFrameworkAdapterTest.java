@@ -31,6 +31,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
@@ -43,6 +44,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorRes
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
@@ -89,6 +94,14 @@ class Langchain4JAiFrameworkAdapterTest {
 
   private static final ConversationSnapshot SNAPSHOT =
       new ConversationSnapshot(INPUT_MESSAGES, TOOL_DEFINITIONS);
+
+  private static final AnthropicProviderConfiguration PROVIDER =
+      new AnthropicProviderConfiguration(
+          new AnthropicConnection(
+              null,
+              new AnthropicAuthentication("api-key"),
+              null,
+              new AnthropicModel("claude", null)));
 
   @Mock private ChatModelFactory chatModelFactory;
   @Mock private ChatMessageConverter chatMessageConverter;
@@ -319,7 +332,16 @@ class Langchain4JAiFrameworkAdapterTest {
     final var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.configuration())
         .thenReturn(
-            new AgentConfiguration(null, null, null, null, null, null, responseConfiguration));
+            new AgentConfiguration(
+                new ProviderChatModelApiConfiguration(PROVIDER),
+                PROVIDER.model(),
+                PROVIDER.providerType(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                responseConfiguration));
 
     return executionContext;
   }

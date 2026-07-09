@@ -96,15 +96,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     LOGGER.debug(
         "Creating agent instance for element instance {}: model={}, provider={}",
         elementInstanceKey,
-        configuration.provider().model(),
-        configuration.provider().providerType());
+        configuration.modelName(),
+        configuration.modelProvider());
 
     var command =
         camundaClient
             .newCreateAgentInstanceCommand()
             .elementInstanceKey(elementInstanceKey)
-            .model(configuration.provider().model())
-            .provider(configuration.provider().providerType())
+            .model(configuration.modelName())
+            .provider(configuration.modelProvider())
             .systemPrompt(configuration.systemPrompt().prompt());
 
     final var limits = configuration.limits();

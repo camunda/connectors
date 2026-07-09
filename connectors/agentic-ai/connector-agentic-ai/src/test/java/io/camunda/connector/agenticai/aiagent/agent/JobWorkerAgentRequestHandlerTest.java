@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
+import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.CapabilityAwareToolCallResultStrategy;
@@ -145,7 +146,9 @@ class JobWorkerAgentRequestHandlerTest {
     lenient()
         .doReturn(
             new AgentConfiguration(
-                new OpenAiProviderConfiguration(null),
+                new ProviderChatModelApiConfiguration(new OpenAiProviderConfiguration(null)),
+                "model",
+                OpenAiProviderConfiguration.OPENAI_ID,
                 new PromptConfiguration.SystemPromptConfiguration(null),
                 new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
                 null,
@@ -659,6 +662,8 @@ class JobWorkerAgentRequestHandlerTest {
         .thenReturn(
             new AgentConfiguration(
                 null,
+                "model",
+                "anthropic",
                 null,
                 new UserPromptConfiguration("user input", List.of()),
                 null,
@@ -800,7 +805,9 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                new OpenAiProviderConfiguration(null),
+                new ProviderChatModelApiConfiguration(new OpenAiProviderConfiguration(null)),
+                "model",
+                OpenAiProviderConfiguration.OPENAI_ID,
                 new PromptConfiguration.SystemPromptConfiguration(null),
                 new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
                 null,

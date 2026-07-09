@@ -7,31 +7,48 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
+import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest.JobWorkerAgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 
+/** Version-agnostic execution context for the AI Agent Sub-process flavor (serves v1 and v2). */
 public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   private final JobContext jobContext;
-  private final JobWorkerAgentRequest request;
+  private final JobWorkerAgentRequestData data;
+  private final AgentContext initialAgentContext;
+  private final List<ToolCallResult> initialToolCallResults;
+  private final List<AdHocToolElement> toolElements;
   private final AgentConfiguration configuration;
 
   public JobWorkerAgentExecutionContext(
-      final JobContext jobContext, final JobWorkerAgentRequest request) {
+      JobContext jobContext,
+      JobWorkerAgentRequestData data,
+      AgentContext initialAgentContext,
+      List<ToolCallResult> initialToolCallResults,
+      List<AdHocToolElement> toolElements,
+      ChatModelApiConfiguration chatModelApiConfiguration,
+      String modelName,
+      String modelProvider) {
     this.jobContext = jobContext;
-    this.request = request;
+    this.data = data;
+    this.initialAgentContext = initialAgentContext;
+    this.initialToolCallResults = initialToolCallResults;
+    this.toolElements = toolElements;
     this.configuration =
         new AgentConfiguration(
-            request.provider(),
-            request.data().systemPrompt(),
-            request.data().userPrompt(),
-            request.data().memory(),
-            request.data().limits(),
-            request.data().events(),
-            request.data().response());
+            chatModelApiConfiguration,
+            modelName,
+            modelProvider,
+            data.systemPrompt(),
+            data.userPrompt(),
+            data.memory(),
+            data.limits(),
+            data.events(),
+            data.response());
   }
 
   @Override
@@ -41,22 +58,22 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
 
   @Override
   public AgentContext initialAgentContext() {
-    return request.agentContext();
+    return initialAgentContext;
   }
 
   @Override
   public List<ToolCallResult> initialToolCallResults() {
-    return request.toolCallResults();
+    return initialToolCallResults;
   }
 
   @Override
   public List<AdHocToolElement> toolElements() {
-    return request.toolElements();
+    return toolElements;
   }
 
   @Override
   public UserPromptConfiguration userPrompt() {
-    return request.data().userPrompt();
+    return data.userPrompt();
   }
 
   @Override
@@ -70,6 +87,6 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
    * io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration}.
    */
   public JobWorkerResponseConfiguration response() {
-    return request.data().response();
+    return data.response();
   }
 }

@@ -335,7 +335,15 @@ class OutboundConnectorAgentRequestHandlerTest {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                null, null, USER_PROMPT, null, new LimitsConfiguration(2), null, null));
+                null,
+                "model",
+                "anthropic",
+                null,
+                USER_PROMPT,
+                null,
+                new LimitsConfiguration(2),
+                null,
+                null));
 
     final var contextAtLimit =
         AgentContext.builder()
@@ -473,7 +481,15 @@ class OutboundConnectorAgentRequestHandlerTest {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
-                null, null, USER_PROMPT, null, new LimitsConfiguration(1), null, null));
+                null,
+                "model",
+                "anthropic",
+                null,
+                USER_PROMPT,
+                null,
+                new LimitsConfiguration(1),
+                null,
+                null));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
@@ -700,7 +716,9 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   private void mockConfiguration() {
     when(agentExecutionContext.configuration())
-        .thenReturn(new AgentConfiguration(null, null, USER_PROMPT, null, null, null, null));
+        .thenReturn(
+            new AgentConfiguration(
+                null, "model", "anthropic", null, USER_PROMPT, null, null, null, null));
   }
 
   private void mockSystemPrompt() {

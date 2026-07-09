@@ -16,7 +16,6 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceUpdateR
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
-import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.ToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -167,8 +166,7 @@ public abstract class BaseAgentRequestHandler<
 
     LOGGER.debug("Executing chat request");
     final var chatModel =
-        chatModelApiRegistry.resolve(
-            new ProviderChatModelApiConfiguration(executionContext.configuration().provider()));
+        chatModelApiRegistry.resolve(agentConfiguration.chatModelApiConfiguration());
 
     // Continuation loop (ADR-009): a provider may pause mid-turn (e.g. Anthropic pause_turn) and
     // return a Continuation rather than a Completed result. Each Continuation becomes its own

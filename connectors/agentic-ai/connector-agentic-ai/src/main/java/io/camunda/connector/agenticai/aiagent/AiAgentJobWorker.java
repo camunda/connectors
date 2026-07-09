@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -56,7 +57,17 @@ public class AiAgentJobWorker implements AgentConnectorFunction {
   public AiAgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(JobWorkerAgentRequest.class);
-    var executionContext = new JobWorkerAgentExecutionContext(context.getJobContext(), request);
+    var provider = request.provider();
+    var executionContext =
+        new JobWorkerAgentExecutionContext(
+            context.getJobContext(),
+            request.data(),
+            request.agentContext(),
+            request.toolCallResults(),
+            request.toolElements(),
+            new ProviderChatModelApiConfiguration(provider),
+            provider.model(),
+            provider.providerType());
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

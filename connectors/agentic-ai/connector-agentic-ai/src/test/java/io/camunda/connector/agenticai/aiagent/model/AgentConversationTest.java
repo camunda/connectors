@@ -21,7 +21,7 @@ class AgentConversationTest {
       AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
 
   private static final AgentConfiguration CONFIG =
-      new AgentConfiguration(null, null, null, null, null, null, null);
+      new AgentConfiguration(null, "model", "anthropic", null, null, null, null, null, null);
 
   private static AgentConversation rehydrate(
       List<Message> storedMessages, List<Message> inputMessages) {

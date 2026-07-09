@@ -86,7 +86,7 @@ class AwsAgentCoreConversationStoreReasoningRoundTripTest {
   }
 
   private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {
-    return new AgentConfiguration(null, null, null, memory, null, null, null);
+    return new AgentConfiguration(null, "model", "anthropic", null, null, memory, null, null, null);
   }
 
   @Test
