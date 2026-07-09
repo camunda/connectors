@@ -76,7 +76,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.82.1</version.grpc>
+    <version.grpc>1.82.2</version.grpc>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
@@ -89,15 +89,15 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>3.5.16</version.spring-boot>
+    <version.spring-boot>3.5.16-spring-boot-3.5.17</version.spring-boot>
     <tomcat.version>10.1.56</tomcat.version>
     <version.spring-cloud-gcp-starter-logging>7.4.9</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.38</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.47.3</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.47.4</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.47.3</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.47.4</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
     <version.aws-sdk-secretsmanager>2.47.3</version.aws-sdk-secretsmanager>
