@@ -113,8 +113,41 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       # Build and test (format and javadoc run in parallel jobs)
+      # The build above regenerates all element template JSON files as part of
+      # the `process-classes` phase (element-template-generator-maven-plugin),
+      # writing them back into each connector's element-templates/ source dir.
       - name: Build Connectors
         run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C
+
+      # Fail if the regenerated templates differ from what's committed. This is a
+      # diff check only — CI never commits or modifies files. Versioned snapshots
+      # (element-templates/versioned/) are intentionally excluded, as they are
+      # pinned and not overwritten on regeneration.
+      - name: Verify element templates are in sync with Java source
+        run: |
+          set -euo pipefail
+          # Directory-anchored pathspecs: root templates and hybrid/ variants,
+          # excluding pinned versioned/ snapshots.
+          PATHSPEC=(
+            '*/element-templates/*.json'
+            '*/element-templates/hybrid/*.json'
+            ':(exclude)*/element-templates/versioned/*'
+          )
+          # Register intent-to-add for any brand-new (untracked) generated
+          # templates so a single `git diff` reports — with content — both
+          # modified and newly created files. This stages no file content.
+          git add -N -- "${PATHSPEC[@]}"
+          if git diff --quiet -- "${PATHSPEC[@]}"; then
+            echo "✅ All element templates match their Java source."
+          else
+            echo "❌ Element templates are out of sync with their Java source."
+            echo "   Run 'mvn install' (or 'mvn process-classes') locally and commit the regenerated templates."
+            echo ""
+            git diff --stat -- "${PATHSPEC[@]}"
+            echo ""
+            git diff -- "${PATHSPEC[@]}"
+            exit 1
+          fi
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
