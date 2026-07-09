@@ -41,6 +41,24 @@ class ModelCapabilitiesResolverTest {
         8192);
   }
 
+  /**
+   * A distinctive, non-conservative family-defaults block for the override-merge tests: every field
+   * differs from both {@link #fullDefaults} and the conservative fallback so an inheritance
+   * assertion actually proves the value came from this base rather than from some other layer.
+   */
+  private static ModelCapabilitiesData richDefaults() {
+    return new ModelCapabilitiesData(
+        new InputModalities(
+            List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT), List.of(Modality.TEXT)),
+        new OutputModalities(List.of(Modality.TEXT, Modality.IMAGE)),
+        true,
+        true,
+        true,
+        true,
+        500000,
+        64000);
+  }
+
   private JsonNode node(ModelCapabilitiesData yaml) {
     return mapper.valueToTree(yaml);
   }
@@ -52,24 +70,84 @@ class ModelCapabilitiesResolverTest {
   // --- Tests -----------------------------------------------------------
 
   @Test
-  void overridePresentShortCircuitsResolutionAndReturnsVerbatim() {
+  void overrideDeepMergesOnTopOfResolvedBaseWithSparseFieldsWinning() {
+    // No entry matches "claude-opus-4-7" here, so the resolved base is exactly the family
+    // defaults below: supportsReasoning=true, toolResult=[text] (plus the other distinctive,
+    // non-conservative values from richDefaults()). The sparse override flips supportsReasoning
+    // off and widens toolResult, leaving every other field to inherit from that resolved base.
+    final var defaults = node(richDefaults());
+    final var resolver =
+        resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of())));
+
+    final var override =
+        new ModelCapabilitiesOverride(
+            null,
+            List.of(Modality.TEXT, Modality.IMAGE),
+            null,
+            false,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    final var base =
+        resolver.resolve("anthropic-messages", "claude-opus-4-7", null, Optional.empty());
+    final var merged =
+        resolver.resolve("anthropic-messages", "claude-opus-4-7", null, Optional.of(override));
+
+    // sanity-check the base actually is the distinctive, non-conservative family defaults
+    assertThat(base.supportsReasoning()).isTrue();
+    assertThat(base.toolResultModalities()).containsExactly(Modality.TEXT);
+
+    // overridden fields win
+    assertThat(merged.toolResultModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+    assertThat(merged.supportsReasoning()).isFalse();
+    // untouched fields inherit from the resolved base verbatim
+    assertThat(merged.userMessageModalities()).isEqualTo(base.userMessageModalities());
+    assertThat(merged.assistantMessageModalities()).isEqualTo(base.assistantMessageModalities());
+    assertThat(merged.supportsPromptCaching()).isEqualTo(base.supportsPromptCaching());
+    assertThat(merged.contextWindow()).isEqualTo(base.contextWindow());
+    assertThat(merged.maxOutputTokens()).isEqualTo(base.maxOutputTokens());
+  }
+
+  @Test
+  void overrideScalarFieldsWinAndOthersInherit() {
+    // Same distinctive, non-conservative family defaults as above (no entry matches the model
+    // id, so the resolved base is exactly these defaults) - used here to prove that untouched
+    // fields inherit the actual base values rather than merely happening to match a fallback.
+    final var defaults = node(richDefaults());
+    final var resolver =
+        resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of())));
+    final var base =
+        resolver.resolve("anthropic-messages", "claude-opus-4-7", null, Optional.empty());
+
+    final var override =
+        new ModelCapabilitiesOverride(null, null, null, null, null, null, null, 4242, 777);
+    final var merged =
+        resolver.resolve("anthropic-messages", "claude-opus-4-7", null, Optional.of(override));
+
+    assertThat(merged.contextWindow()).isEqualTo(4242);
+    assertThat(merged.maxOutputTokens()).isEqualTo(777);
+    assertThat(base.supportsReasoning()).isTrue();
+    assertThat(merged.supportsReasoning()).isEqualTo(base.supportsReasoning());
+    assertThat(merged.userMessageModalities()).isEqualTo(base.userMessageModalities());
+  }
+
+  @Test
+  void overrideAppliesOverConservativeDefaultsWhenFamilyUnknown() {
     final var resolver = resolverFor(Map.of());
     final var override =
-        new ModelCapabilities(
-            List.of(Modality.TEXT, Modality.IMAGE, Modality.AUDIO),
-            List.of(Modality.TEXT),
-            List.of(Modality.TEXT),
-            true,
-            true,
-            true,
-            true,
-            12345,
-            6789);
+        new ModelCapabilitiesOverride(
+            List.of(Modality.TEXT, Modality.IMAGE), null, null, true, null, null, null, null, null);
 
-    final var result =
-        resolver.resolve("anthropic-messages", "anything", null, Optional.of(override));
+    final var merged = resolver.resolve("does-not-exist", "whatever", null, Optional.of(override));
 
-    assertThat(result).isSameAs(override);
+    // conservative base is text-only, everything false; override widens userMessage + reasoning
+    assertThat(merged.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+    assertThat(merged.supportsReasoning()).isTrue();
+    assertThat(merged.toolResultModalities()).containsExactly(Modality.TEXT);
+    assertThat(merged.supportsPromptCaching()).isFalse();
   }
 
   @Test

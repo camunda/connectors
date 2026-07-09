@@ -67,26 +67,33 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
       String apiFamily,
       String modelId,
       @Nullable String backend,
-      Optional<ModelCapabilities> override) {
-    // Partial/deep-merge of a per-element override is deferred to the chunk that wires the FEEL
-    // capability override (a sparse override type will be introduced there).
+      Optional<ModelCapabilitiesOverride> override) {
+
+    JsonNode merged = mergedBaseTree(apiFamily, modelId, backend);
+
     if (override.isPresent()) {
-      return override.get();
+      merged = deepMerge(merged, override.get().toSparseJsonNode(mapper));
     }
 
+    return materialise(merged);
+  }
+
+  /**
+   * Deep-merges {@code conservativeBase -> familyDefaults -> backend-agnostic entry -> backend-
+   * specific entry} into a single tree (the pre-override base), logging pattern/default
+   * fall-throughs once per (api family, model id).
+   */
+  private JsonNode mergedBaseTree(String apiFamily, String modelId, @Nullable String backend) {
     final ApiFamily family = matrix.families().get(apiFamily);
     if (family == null) {
       logOnce(
           "missing-family:" + apiFamily,
           "No capability matrix entry for api family '{}'; using conservative defaults",
           apiFamily);
-      return CONSERVATIVE_DEFAULTS;
+      return conservativeBase;
     }
 
-    // Backend-agnostic tier: entries with no backend of their own.
     final MatchedEntry agnostic = findBest(family.models(), modelId, null);
-    // Backend-specific tier: entries pinned to the requested backend, layered on top of the
-    // agnostic tier below.
     final MatchedEntry specific =
         backend == null ? null : findBest(family.models(), modelId, backend);
 
@@ -96,7 +103,7 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
           "No capability matrix entry for model '{}' under api family '{}'; using family defaults",
           modelId,
           apiFamily);
-      return merge(family.defaults());
+      return deepMerge(conservativeBase, family.defaults());
     }
 
     if (agnostic != null && !agnostic.isExact()) {
@@ -117,10 +124,22 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
           apiFamily);
     }
 
-    return merge(
-        family.defaults(),
-        agnostic == null ? null : agnostic.entry().capabilities(),
-        specific == null ? null : specific.entry().capabilities());
+    JsonNode merged = deepMerge(conservativeBase, family.defaults());
+    if (agnostic != null) {
+      merged = deepMerge(merged, agnostic.entry().capabilities());
+    }
+    if (specific != null) {
+      merged = deepMerge(merged, specific.entry().capabilities());
+    }
+    return merged;
+  }
+
+  private ModelCapabilities materialise(JsonNode merged) {
+    try {
+      return mapper.treeToValue(merged, ModelCapabilitiesData.class).toModelCapabilities();
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Failed to materialise model capabilities", e);
+    }
   }
 
   private static boolean matchesBackend(ModelEntry entry, @Nullable String backend) {
@@ -193,25 +212,6 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
     }
     regex.append('$');
     return Pattern.matches(regex.toString(), value);
-  }
-
-  /**
-   * Deep-merges an ordered chain of layers on top of {@link #conservativeBase}: {@code
-   * familyDefaults} first, then each of {@code overlays} in order (e.g. the backend-agnostic
-   * entry's capabilities, then the backend-specific entry's capabilities). Later layers win on
-   * conflicting fields; {@code null} entries are no-ops.
-   */
-  private ModelCapabilities merge(
-      @Nullable JsonNode familyDefaults, @Nullable JsonNode... overlays) {
-    JsonNode merged = deepMerge(conservativeBase, familyDefaults);
-    for (JsonNode overlay : overlays) {
-      merged = deepMerge(merged, overlay);
-    }
-    try {
-      return mapper.treeToValue(merged, ModelCapabilitiesData.class).toModelCapabilities();
-    } catch (JsonProcessingException e) {
-      throw new IllegalStateException("Failed to materialise model capabilities", e);
-    }
   }
 
   /**

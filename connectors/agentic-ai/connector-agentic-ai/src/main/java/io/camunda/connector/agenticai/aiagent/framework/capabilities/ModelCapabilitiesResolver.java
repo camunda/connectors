@@ -37,5 +37,5 @@ public interface ModelCapabilitiesResolver {
       String apiFamily,
       String modelId,
       @Nullable String backend,
-      Optional<ModelCapabilities> override);
+      Optional<ModelCapabilitiesOverride> override);
 }
