@@ -108,7 +108,10 @@ public final class ConnectorMetricsAggregator {
         totalMs += t.totalTime(TimeUnit.MILLISECONDS);
         totalCount += t.count();
       }
-      maxMs += readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME, type);
+      maxMs =
+          Math.max(
+              maxMs,
+              readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME, type));
       maxLastCompleted =
           Math.max(
               maxLastCompleted,

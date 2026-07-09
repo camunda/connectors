@@ -349,7 +349,7 @@ class OutboundConnectorsRestControllerTest {
   }
 
   @Test
-  void shouldSumMaxMsAcrossTypes_whenNoConnectorTypeProvided() throws Exception {
+  void shouldReturnMaxOfMaxMsAcrossTypes_whenNoConnectorTypeProvided() throws Exception {
     String typeA = "outbound-test-max-agg-a";
     String typeB = "outbound-test-max-agg-b";
     AtomicLong maxA = new AtomicLong(300);
@@ -382,7 +382,7 @@ class OutboundConnectorsRestControllerTest {
     List<OutboundConnectorMetrics> metrics =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
 
-    // maxMs is the sum of all per-type all-time maxima (300 + 500 = 800)
-    assertTrue(metrics.getFirst().job().executionTime().maxMs() >= 800.0);
+    // maxMs is the max across all per-type all-time maxima (max of 300 and 500 = 500)
+    assertTrue(metrics.getFirst().job().executionTime().maxMs() >= 500.0);
   }
 }
