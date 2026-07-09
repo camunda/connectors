@@ -13,7 +13,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
-import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -82,8 +81,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
       @Valid @NotNull OpenAiBackend backend,
       @Valid @NotNull OpenAiModel model,
       @Valid @Nullable TimeoutConfiguration timeouts,
-      @FEEL
-          @Valid
+      @Valid
           @TemplateProperty(
               group = "capabilities",
               label = "Model capability overrides",
@@ -164,16 +162,14 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
                 feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String endpoint,
-        @FEEL
-            @TemplateProperty(
+        @TemplateProperty(
                 group = "provider",
                 label = "Headers",
                 description = "Map of HTTP headers to add to the request.",
                 feel = FeelMode.required,
                 optional = true)
             @Nullable Map<String, String> headers,
-        @FEEL
-            @Valid
+        @Valid
             @TemplateProperty(
                 group = "provider",
                 label = "Query parameters",
@@ -181,8 +177,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
                 feel = FeelMode.required,
                 optional = true)
             @Nullable Map<@NotBlank String, String> queryParameters,
-        @FEEL
-            @TemplateProperty(
+        @TemplateProperty(
                 group = "provider",
                 label = "Request parameters",
                 description = "Map of additional request (body) parameters to include.",

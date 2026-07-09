@@ -14,7 +14,6 @@ import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabi
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
-import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -58,8 +57,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
       @Valid @NotNull AnthropicBackend backend,
       @Valid @NotNull AnthropicModel model,
       @Valid @Nullable TimeoutConfiguration timeouts,
-      @FEEL
-          @Valid
+      @Valid
           @TemplateProperty(
               group = "capabilities",
               label = "Model capability overrides",
@@ -130,7 +128,6 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String region,
         @HttpUrl
-            @FEEL
             @TemplateProperty(
                 id = "bedrock.endpoint",
                 binding = @TemplateProperty.PropertyBinding(name = "endpoint"),

@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.aiagent.model.request.chatmodel;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.CompatibleAuthentication.CompatibleApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.CompatibleAuthentication.CompatibleNoAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend;
@@ -160,5 +162,45 @@ class OpenAiChatModelTest {
                 null,
                 null));
     assertThat(validator.validate(model)).isEmpty();
+  }
+
+  @Test
+  void deserialisesPopulatedCapabilityOverrideAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "apiFamily": "completions",
+            "backend": { "type": "direct", "apiKey": "sk-oai" },
+            "model": { "model": "gpt-5.4" },
+            "capabilityOverride": {
+              "userMessageModalities": ["text", "image"],
+              "supportsReasoning": false,
+              "contextWindow": 4242
+            }
+          }
+        }
+        """;
+
+    final OpenAiChatModel parsed =
+        (OpenAiChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+
+    final ModelCapabilitiesOverride override = parsed.capabilityOverride();
+    assertThat(override).isNotNull();
+    assertThat(override.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+    assertThat(override.supportsReasoning()).isFalse();
+    assertThat(override.contextWindow()).isEqualTo(4242);
+    assertThat(override.maxOutputTokens()).isNull();
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, LlmProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void directBackendRedactsApiKeyInToString() {
+    final var direct = new OpenAiDirectBackend("sk-oai-super-secret", null, null);
+
+    assertThat(direct.toString()).doesNotContain("sk-oai-super-secret").contains("[REDACTED]");
   }
 }
