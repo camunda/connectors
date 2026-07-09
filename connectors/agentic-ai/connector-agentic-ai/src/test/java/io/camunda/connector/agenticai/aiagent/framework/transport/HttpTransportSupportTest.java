@@ -413,4 +413,32 @@ class HttpTransportSupportTest {
       }
     }
   }
+
+  @Nested
+  class OkHttpProxyTests {
+
+    @Test
+    void returnsProxyWithCredentialsForConfiguredScheme() {
+      final var details =
+          new ProxyDetails(SCHEME_HTTP, PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASSWORD);
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.of(details));
+
+      final var result = transport.okHttpProxy(SCHEME_HTTPS);
+
+      assertThat(result).isPresent();
+      final var okHttpProxy = result.get();
+      assertThat(okHttpProxy.proxy().type()).isEqualTo(java.net.Proxy.Type.HTTP);
+      assertThat(okHttpProxy.proxy().address())
+          .isEqualTo(new java.net.InetSocketAddress(PROXY_HOST, PROXY_PORT));
+      assertThat(okHttpProxy.hasCredentials()).isTrue();
+      assertThat(okHttpProxy.username()).isEqualTo(PROXY_USER);
+      assertThat(okHttpProxy.password()).isEqualTo(PROXY_PASSWORD);
+    }
+
+    @Test
+    void returnsEmptyWhenNoProxyConfiguredForScheme() {
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
+      assertThat(transport.okHttpProxy(SCHEME_HTTPS)).isEmpty();
+    }
+  }
 }

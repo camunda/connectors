@@ -11,6 +11,7 @@ import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfi
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.util.Optional;
@@ -142,5 +143,38 @@ public class HttpTransportSupport {
   private static URI toUri(ProxyConfiguration.ProxyDetails proxyDetails) {
     return URI.create(
         proxyDetails.scheme() + "://" + proxyDetails.host() + ":" + proxyDetails.port());
+  }
+
+  /**
+   * Provider-neutral proxy resolution for OkHttp-based vendor SDKs (anthropic-java, openai-java),
+   * which accept a {@link Proxy} rather than a pre-built HTTP client. Returns the proxy configured
+   * for the target scheme, if any, together with any credentials for the SDK's own proxy
+   * authenticator. Shared design so C8's OpenAI native reuses it unchanged.
+   */
+  public Optional<OkHttpProxy> okHttpProxy(String scheme) {
+    return proxyConfiguration
+        .getProxyDetails(scheme)
+        .map(
+            proxyDetails -> {
+              LOG.debug(
+                  "Using proxy for target scheme [{}] => [{}:{}]",
+                  scheme,
+                  proxyDetails.host(),
+                  proxyDetails.port());
+              final var proxy =
+                  new Proxy(
+                      Proxy.Type.HTTP,
+                      new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
+              return proxyDetails.hasCredentials()
+                  ? new OkHttpProxy(proxy, proxyDetails.user(), proxyDetails.password())
+                  : new OkHttpProxy(proxy, null, null);
+            });
+  }
+
+  /** Proxy plus optional credentials in a form neutral to any OkHttp-based SDK. */
+  public record OkHttpProxy(Proxy proxy, @Nullable String username, @Nullable String password) {
+    public boolean hasCredentials() {
+      return username != null && !username.isBlank();
+    }
   }
 }

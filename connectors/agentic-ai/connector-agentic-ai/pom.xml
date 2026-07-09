@@ -19,6 +19,7 @@
 
   <properties>
     <version.record-builder>53</version.record-builder>
+    <version.anthropic-java>2.48.0</version.anthropic-java>
     <version.groovy>5.0.7</version.groovy>
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
@@ -132,6 +133,12 @@
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-http-client-jdk</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java</artifactId>
+      <version>${version.anthropic-java}</version>
     </dependency>
 
     <!-- Native MCP Java SDK -->
@@ -414,6 +421,9 @@
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-core</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-json</ignoredDependency>
+                <!-- Added ahead of the native Anthropic client implementation (subsequent C7 tasks);
+                     not yet referenced by production code. -->
+                <ignoredDependency>com.anthropic:anthropic-java</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
