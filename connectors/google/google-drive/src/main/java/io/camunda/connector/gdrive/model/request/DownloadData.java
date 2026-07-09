@@ -14,9 +14,5 @@ public record DownloadData(
             group = "operationDetails",
             label = "File ID",
             feel = FeelMode.optional,
-            condition =
-                @TemplateProperty.PropertyCondition(
-                    property = "resource.type",
-                    equals = "download"),
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String fileId) {}

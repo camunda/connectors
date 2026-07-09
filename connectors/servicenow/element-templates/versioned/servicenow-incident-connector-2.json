@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "ServiceNow Incident Handler",
   "id": "io.camunda.connectors.ServiceNowIncident.v1",
-  "version": 3,
+  "version": 2,
   "description": "Create and manage incidents in ServiceNow directly from a Camunda process",
   "keywords": [
     "create incident",
@@ -26,10 +26,6 @@
     "value": "bpmn:ServiceTask"
   },
   "groups": [
-    {
-      "id": "operation",
-      "label": "Operation"
-    },
     {
       "id": "sn",
       "label": "ServiceNow"
@@ -91,7 +87,7 @@
     {
       "id": "operationGroup",
       "label": "Operation",
-      "group": "operation",
+      "group": "sn",
       "description": "Choose operation type",
       "type": "Dropdown",
       "value": "create",
@@ -998,58 +994,6 @@
         "type": "zeebe:taskHeader"
       },
       "type": "String"
-    }
-  ],
-  "steps": [
-    {
-      "name": "Create",
-      "description": "Create a new record in ServiceNow.",
-      "keywords": ["create", "new", "insert", "add record", "servicenow incident"],
-      "presetId": "operationGroup_create"
-    },
-    {
-      "name": "Read",
-      "description": "Read an existing record from ServiceNow.",
-      "keywords": ["read", "get", "fetch", "retrieve", "query", "servicenow incident"],
-      "presetId": "operationGroup_read"
-    },
-    {
-      "name": "Update",
-      "description": "Update an existing record in ServiceNow.",
-      "keywords": ["update", "modify", "change", "edit", "patch", "servicenow incident"],
-      "presetId": "operationGroup_update"
-    },
-    {
-      "name": "Delete",
-      "description": "Delete a record from ServiceNow.",
-      "keywords": ["delete", "remove", "destroy", "servicenow incident"],
-      "presetId": "operationGroup_delete"
-    }
-  ],
-  "presets": [
-    {
-      "id": "operationGroup_create",
-      "properties": {
-        "operationGroup": "create"
-      }
-    },
-    {
-      "id": "operationGroup_read",
-      "properties": {
-        "operationGroup": "read"
-      }
-    },
-    {
-      "id": "operationGroup_update",
-      "properties": {
-        "operationGroup": "update"
-      }
-    },
-    {
-      "id": "operationGroup_delete",
-      "properties": {
-        "operationGroup": "delete"
-      }
     }
   ],
   "icon": {

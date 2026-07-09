@@ -9,7 +9,6 @@ package io.camunda.connector.gdrive.model.request;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import jakarta.validation.constraints.NotEmpty;
 
 public record Template(
@@ -17,8 +16,7 @@ public record Template(
             id = "id",
             label = "Template ID",
             group = "operationDetails",
-            feel = FeelMode.optional,
-            condition = @PropertyCondition(property = "resource.type", equals = "file"))
+            feel = FeelMode.optional)
         @NotEmpty
         String id,
     @NestedProperties(addNestedPath = false) Variables variables) {}

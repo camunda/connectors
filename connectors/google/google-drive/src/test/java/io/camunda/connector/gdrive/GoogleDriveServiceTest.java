@@ -89,7 +89,7 @@ class GoogleDriveServiceTest extends BaseTest {
     // Given
     var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
-    String templateId = request.getResource().template().id();
+    String templateId = ((FileResource) request.getResource()).template().id();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
@@ -110,7 +110,7 @@ class GoogleDriveServiceTest extends BaseTest {
     // Given
     var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
-    String templateId = request.getResource().template().id();
+    String templateId = ((FileResource) request.getResource()).template().id();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
@@ -136,7 +136,7 @@ class GoogleDriveServiceTest extends BaseTest {
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
 
     file.setMimeType(MimeTypeUrl.DOCUMENT.getMimeType());
-    String templateId = request.getResource().template().id();
+    String templateId = ((FileResource) request.getResource()).template().id();
     BatchUpdateDocumentResponse response = new BatchUpdateDocumentResponse();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     Mockito.when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);
@@ -160,7 +160,7 @@ class GoogleDriveServiceTest extends BaseTest {
     var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
     file.setMimeType(MimeTypeUrl.PRESENTATION.getMimeType());
-    String templateId = request.getResource().template().id();
+    String templateId = ((FileResource) request.getResource()).template().id();
     BatchUpdateDocumentResponse response = new BatchUpdateDocumentResponse();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     Mockito.when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);
@@ -173,8 +173,7 @@ class GoogleDriveServiceTest extends BaseTest {
   @Test
   void execute_shouldThrowExWhileUploading() throws IOException {
     var document = prepareMockedDocument();
-    var resource =
-        new Resource(Type.UPLOAD, null, null, null, null, null, new UploadData(document));
+    var resource = new UploadResource(null, new UploadData(document));
 
     Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
     Drive.Files files = mock(Drive.Files.class);
@@ -192,7 +191,7 @@ class GoogleDriveServiceTest extends BaseTest {
 
   @Test
   void execute_shouldThrowExWhileDownloading() throws IOException {
-    var resource = new Resource(Type.DOWNLOAD, null, null, null, null, new DownloadData("1"), null);
+    var resource = new DownloadResource(new DownloadData("1"));
 
     Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
     Drive.Files.Get getFile = mock(Drive.Files.Get.class);
@@ -215,8 +214,7 @@ class GoogleDriveServiceTest extends BaseTest {
   void execute_shouldUploadFile() throws IOException {
     var document = prepareMockedDocument();
 
-    var resource =
-        new Resource(Type.UPLOAD, null, null, null, null, null, new UploadData(document));
+    var resource = new UploadResource(null, new UploadData(document));
 
     Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
     Drive.Files files = mock(Drive.Files.class);
@@ -236,7 +234,7 @@ class GoogleDriveServiceTest extends BaseTest {
 
   @Test
   void execute_shouldDownloadFile() throws IOException {
-    var resource = new Resource(Type.DOWNLOAD, null, null, null, null, new DownloadData("1"), null);
+    var resource = new DownloadResource(new DownloadData("1"));
 
     when(documentMapper.mapToDocument(any(), any(File.class))).thenReturn(mock(Document.class));
     Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);

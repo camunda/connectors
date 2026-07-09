@@ -5,7 +5,7 @@
   "description" : "Manage Google Drive files and folders",
   "keywords" : [ "create file", "create file from template", "create folder", "upload file", "download file", "file storage", "document management" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
-  "version" : 7,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,11 +18,11 @@
     "camunda" : "^8.10"
   },
   "groups" : [ {
-    "id" : "operation",
-    "label" : "Select operation"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
+  }, {
+    "id" : "operation",
+    "label" : "Select operation"
   }, {
     "id" : "operationDetails",
     "label" : "Operation details"
@@ -46,30 +46,6 @@
       "type" : "zeebe:taskDefinition"
     },
     "type" : "Hidden"
-  }, {
-    "id" : "resource.type",
-    "label" : "Operation",
-    "description" : "Select the Google Drive operation to perform",
-    "value" : "folder",
-    "group" : "operation",
-    "binding" : {
-      "name" : "resource.type",
-      "type" : "zeebe:input"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Create folder",
-      "value" : "folder"
-    }, {
-      "name" : "Create file from template",
-      "value" : "file"
-    }, {
-      "name" : "Upload file",
-      "value" : "upload"
-    }, {
-      "name" : "Download file",
-      "value" : "download"
-    } ]
   }, {
     "id" : "authentication.authType",
     "label" : "Type",
@@ -172,7 +148,34 @@
     },
     "type" : "String"
   }, {
-    "id" : "resource.folderName",
+    "id" : "resource.type",
+    "label" : "Operation",
+    "optional" : false,
+    "value" : "folder",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "operation",
+    "binding" : {
+      "name" : "resource.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Create folder",
+      "value" : "folder"
+    }, {
+      "name" : "Create file from template",
+      "value" : "file"
+    }, {
+      "name" : "Upload file",
+      "value" : "upload"
+    }, {
+      "name" : "Download file",
+      "value" : "download"
+    } ]
+  }, {
+    "id" : "resource.name",
     "label" : "New resource name",
     "optional" : false,
     "constraints" : {
@@ -186,12 +189,12 @@
     },
     "condition" : {
       "property" : "resource.type",
-      "equals" : "folder",
+      "oneOf" : [ "folder", "file" ],
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "resource.folderParent",
+    "id" : "resource.parent",
     "label" : "Parent folder ID",
     "description" : "Your resources will be created here. If left empty, a new resource will appear in the root folder",
     "optional" : true,
@@ -203,7 +206,7 @@
     },
     "condition" : {
       "property" : "resource.type",
-      "equals" : "folder",
+      "oneOf" : [ "folder", "file", "upload" ],
       "type" : "simple"
     },
     "type" : "String"
@@ -220,42 +223,6 @@
     "condition" : {
       "property" : "resource.type",
       "equals" : "folder",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "resource.fileName",
-    "label" : "New resource name",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "operationDetails",
-    "binding" : {
-      "name" : "resource.name",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "resource.type",
-      "equals" : "file",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "resource.fileParent",
-    "label" : "Parent folder ID",
-    "description" : "Your resources will be created here. If left empty, a new resource will appear in the root folder",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "operationDetails",
-    "binding" : {
-      "name" : "resource.parent",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "resource.type",
-      "equals" : "file",
       "type" : "simple"
     },
     "type" : "String"
@@ -295,19 +262,21 @@
     },
     "type" : "String"
   }, {
-    "id" : "resource.uploadParent",
-    "label" : "Parent folder ID",
-    "description" : "Your resources will be created here. If left empty, a new resource will appear in the root folder",
-    "optional" : true,
+    "id" : "resource.downloadData.fileId",
+    "label" : "File ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operationDetails",
     "binding" : {
-      "name" : "resource.parent",
+      "name" : "resource.downloadData.fileId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "resource.type",
-      "equals" : "upload",
+      "equals" : "download",
       "type" : "simple"
     },
     "type" : "String"
@@ -351,12 +320,12 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "resource.uploadData.document_documentSource",
-        "equals" : "camunda",
-        "type" : "simple"
-      }, {
         "property" : "resource.type",
         "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "camunda",
         "type" : "simple"
       } ]
     },
@@ -375,12 +344,12 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "resource.uploadData.document_documentSource",
-        "equals" : "inline",
-        "type" : "simple"
-      }, {
         "property" : "resource.type",
         "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "inline",
         "type" : "simple"
       } ]
     },
@@ -396,12 +365,12 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "resource.uploadData.document_documentSource",
-        "equals" : "inline",
-        "type" : "simple"
-      }, {
         "property" : "resource.type",
         "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "inline",
         "type" : "simple"
       } ]
     },
@@ -417,12 +386,12 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "resource.uploadData.document_documentSource",
-        "equals" : "inline",
-        "type" : "simple"
-      }, {
         "property" : "resource.type",
         "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "inline",
         "type" : "simple"
       } ]
     },
@@ -441,12 +410,12 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "resource.uploadData.document_documentSource",
-        "equals" : "external",
-        "type" : "simple"
-      }, {
         "property" : "resource.type",
         "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "external",
         "type" : "simple"
       } ]
     },
@@ -462,12 +431,12 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "resource.uploadData.document_documentSource",
-        "equals" : "external",
-        "type" : "simple"
-      }, {
         "property" : "resource.type",
         "equals" : "upload",
+        "type" : "simple"
+      }, {
+        "property" : "resource.uploadData.document_documentSource",
+        "equals" : "external",
         "type" : "simple"
       } ]
     },
@@ -487,29 +456,10 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "resource.downloadData.fileId",
-    "label" : "File ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "operationDetails",
-    "binding" : {
-      "name" : "resource.downloadData.fileId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "resource.type",
-      "equals" : "download",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "7",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -582,48 +532,6 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
-  } ],
-  "steps" : [ {
-    "name" : "Create folder",
-    "description" : "Create a new folder in Google Drive",
-    "keywords" : [ "create folder", "new folder", "google drive", "folder", "directory" ],
-    "presetId" : "type_folder"
-  }, {
-    "name" : "Create file from template",
-    "description" : "Create a new file in Google Drive from a template",
-    "keywords" : [ "create file", "template", "google drive", "file from template", "document", "generate file" ],
-    "presetId" : "type_file"
-  }, {
-    "name" : "Upload file",
-    "description" : "Upload a file to Google Drive",
-    "keywords" : [ "upload", "upload file", "google drive", "file upload", "store file", "add file" ],
-    "presetId" : "type_upload"
-  }, {
-    "name" : "Download file",
-    "description" : "Download a file from Google Drive",
-    "keywords" : [ "download", "download file", "google drive", "retrieve file", "get file", "export file" ],
-    "presetId" : "type_download"
-  } ],
-  "presets" : [ {
-    "id" : "type_folder",
-    "properties" : {
-      "resource.type" : "folder"
-    }
-  }, {
-    "id" : "type_file",
-    "properties" : {
-      "resource.type" : "file"
-    }
-  }, {
-    "id" : "type_upload",
-    "properties" : {
-      "resource.type" : "upload"
-    }
-  }, {
-    "id" : "type_download",
-    "properties" : {
-      "resource.type" : "download"
-    }
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgODcuMyA3OCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KCTxwYXRoIGQ9Im02LjYgNjYuODUgMy44NSA2LjY1Yy44IDEuNCAxLjk1IDIuNSAzLjMgMy4zbDEzLjc1LTIzLjhoLTI3LjVjMCAxLjU1LjQgMy4xIDEuMiA0LjV6IiBmaWxsPSIjMDA2NmRhIi8+Cgk8cGF0aCBkPSJtNDMuNjUgMjUtMTMuNzUtMjMuOGMtMS4zNS44LTIuNSAxLjktMy4zIDMuM2wtMjUuNCA0NGE5LjA2IDkuMDYgMCAwIDAgLTEuMiA0LjVoMjcuNXoiIGZpbGw9IiMwMGFjNDciLz4KCTxwYXRoIGQ9Im03My41NSA3Ni44YzEuMzUtLjggMi41LTEuOSAzLjMtMy4zbDEuNi0yLjc1IDcuNjUtMTMuMjVjLjgtMS40IDEuMi0yLjk1IDEuMi00LjVoLTI3LjUwMmw1Ljg1MiAxMS41eiIgZmlsbD0iI2VhNDMzNSIvPgoJPHBhdGggZD0ibTQzLjY1IDI1IDEzLjc1LTIzLjhjLTEuMzUtLjgtMi45LTEuMi00LjUtMS4yaC0xOC41Yy0xLjYgMC0zLjE1LjQ1LTQuNSAxLjJ6IiBmaWxsPSIjMDA4MzJkIi8+Cgk8cGF0aCBkPSJtNTkuOCA1M2gtMzIuM2wtMTMuNzUgMjMuOGMxLjM1LjggMi45IDEuMiA0LjUgMS4yaDUwLjhjMS42IDAgMy4xNS0uNDUgNC41LTEuMnoiIGZpbGw9IiMyNjg0ZmMiLz4KCTxwYXRoIGQ9Im03My40IDI2LjUtMTIuNy0yMmMtLjgtMS40LTEuOTUtMi41LTMuMy0zLjNsLTEzLjc1IDIzLjggMTYuMTUgMjhoMjcuNDVjMC0xLjU1LS40LTMuMS0xLjItNC41eiIgZmlsbD0iI2ZmYmEwMCIvPgo8L3N2Zz4="
