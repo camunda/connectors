@@ -8,12 +8,15 @@
 
 import {readFileSync, appendFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {minimatch} from 'minimatch';
 
 const SEP = '/';
 
-const quoteMeta = (char) => char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-// GitHub CODEOWNERS (gitignore-style) matching, compiled to a regexp.
+// GitHub CODEOWNERS (gitignore-style) matching. The glob mechanics (`*`,
+// `**`, `?`, escaping) are delegated to minimatch; CODEOWNERS-specific
+// anchoring/ownership rules stay here. minimatch extensions CODEOWNERS
+// doesn't define (brace expansion, extglob) are disabled.
+const MINIMATCH_OPTS = {dot: true, nobrace: true, noext: true};
 
 // Anchoring rules: leading slash → root; single segment → any depth; trailing
 // slash → directory.
@@ -33,66 +36,36 @@ function normalizePatternSegments(pattern) {
   return segments;
 }
 
-// `needSlash` = whether the next concrete segment must emit its own separator.
-function doubleStarToRegExp(isFirst, isLast) {
-  if (isFirst && isLast) return {fragment: '.+', needSlash: false};
-  if (isFirst) return {fragment: `(?:.+${SEP})?`, needSlash: false};
-  if (isLast) return {fragment: `${SEP}.*`, needSlash: false};
-  return {fragment: `(?:${SEP}.+)?`, needSlash: true};
+// Unlike plain gitignore/minimatch, CODEOWNERS doesn't support "[...]"
+// character ranges (matched literally) or leading "!" negation.
+const escapeGlobChars = (segment) => segment.replace(/[[\]]/g, '\\$&');
+
+function toGlobPattern(segments) {
+  const glob = segments.map((s) => (s === '**' ? s : escapeGlobChars(s))).join(SEP);
+  return glob.startsWith('!') ? `\\${glob}` : glob;
 }
 
-function segmentToRegExp(segment) {
-  let fragment = '';
-  let escaped = false;
-  for (const char of segment) {
-    if (escaped) {
-      escaped = false;
-      fragment += quoteMeta(char);
-    } else if (char === '\\') {
-      escaped = true;
-    } else if (char === '*') {
-      fragment += `[^${SEP}]*`;
-    } else if (char === '?') {
-      fragment += `[^${SEP}]`;
-    } else {
-      fragment += quoteMeta(char);
-    }
-  }
-  return fragment;
-}
-
-export function patternToRegExp(pattern) {
+export function patternToMatcher(pattern) {
   if (pattern.includes('***'))
     throw new Error('pattern cannot contain three consecutive asterisks');
   if (pattern === '') throw new Error('empty pattern');
-  if (pattern === '/') return /^$/;
+  if (pattern === '/') return () => false;
 
   const segments = normalizePatternSegments(pattern);
-  const lastIndex = segments.length - 1;
-  let source = '^';
-  let needSlash = false;
+  const glob = toGlobPattern(segments);
+  const lastSegment = segments[segments.length - 1];
 
-  segments.forEach((segment, i) => {
-    const isLast = i === lastIndex;
+  // A final segment with no wildcard could be a directory, so it also owns
+  // everything beneath it; a final "*"/"**" already means "everything here".
+  const alsoOwnsDescendants = lastSegment !== '*' && lastSegment !== '**';
 
-    if (segment === '**') {
-      const {fragment, needSlash: next} = doubleStarToRegExp(i === 0, isLast);
-      source += fragment;
-      needSlash = next;
-      return;
-    }
+  const baseRe = minimatch.makeRe(glob, MINIMATCH_OPTS);
+  if (!baseRe) throw new Error(`invalid pattern: ${pattern}`);
+  const descendantRe = alsoOwnsDescendants
+    ? minimatch.makeRe(`${glob}/**`, MINIMATCH_OPTS)
+    : null;
 
-    if (needSlash) source += SEP;
-    if (segment === '*') {
-      source += `[^${SEP}]+`; // whole-segment "*" requires at least one char
-    } else {
-      source += segmentToRegExp(segment);
-      if (isLast) source += `(?:${SEP}.*)?`; // final segment also owns its descendants
-    }
-    needSlash = true;
-  });
-
-  return new RegExp(`${source}$`);
+  return (subject) => baseRe.test(subject) || Boolean(descendantRe?.test(subject));
 }
 
 export function parseCodeowners(text) {
@@ -103,7 +76,7 @@ export function parseCodeowners(text) {
 
     const [pattern, ...owners] = line.split(/\s+/);
     try {
-      rules.push({pattern, owners, regex: patternToRegExp(pattern)});
+      rules.push({pattern, owners, matches: patternToMatcher(pattern)});
     } catch {
       // skip malformed pattern
     }
@@ -117,7 +90,7 @@ const stripLeadingSlashes = (path) => path.replace(/^\/+/, '');
 export function ownersFor(path, rules) {
   const subject = stripLeadingSlashes(path);
   let owners = [];
-  for (const rule of rules) if (rule.regex.test(subject)) owners = rule.owners;
+  for (const rule of rules) if (rule.matches(subject)) owners = rule.owners;
   return owners;
 }
 

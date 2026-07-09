@@ -32,6 +32,10 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --omit=dev
     - name: Derive mentions
       id: derive
       shell: bash

@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
   parseCodeowners,
-  patternToRegExp,
+  patternToMatcher,
   parseTeamMap,
   ownersFor,
   deriveMentions,
@@ -107,8 +107,8 @@ describe('CODEOWNERS reference examples', () => {
   });
 });
 
-describe('patternToRegExp', () => {
-  const matches = (pattern, path) => patternToRegExp(pattern).test(path);
+describe('patternToMatcher', () => {
+  const matches = (pattern, path) => patternToMatcher(pattern)(path);
 
   it('a whole-segment "*" requires at least one char; embedded "*" allows zero', () => {
     assert.ok(matches('docs/*', 'docs/x'));

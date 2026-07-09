@@ -1,0 +1,8 @@
+{
+  "name": "codeowners-slack-mentions",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "minimatch": "10.2.5"
+  }
+}

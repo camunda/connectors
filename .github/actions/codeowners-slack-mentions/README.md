@@ -5,7 +5,8 @@ mentions**, with optional always-include mentions, deduped.
 
 Pure derivation — it makes **no GitHub API calls** and **does not post to Slack**.
 You give it paths + a team→mention map; it gives you back the mentions to ping.
-Dependency-free (Node builtins only), so it runs without a build step.
+Its only dependency is [`minimatch`](https://www.npmjs.com/package/minimatch)
+(see "Why minimatch" below); the action installs it via `npm ci` before running.
 
 ## Inputs
 
@@ -32,6 +33,19 @@ Dependency-free (Node builtins only), so it runs without a build step.
 - An owner that isn't present in `team-slack-map`, or whose value is empty, contributes
   no mention (never a broken reference) — use `always-include` (e.g. a medic group)
   as the catch-all so nothing is silent.
+
+## Why minimatch
+
+Pattern matching used to be a hand-rolled glob-to-regex compiler. It's now
+delegated to [`minimatch`](https://www.npmjs.com/package/minimatch) (npm's own
+glob matcher; one transitive dependency, `brace-expansion`, itself dependency-free)
+instead of a generic gitignore library, because plain gitignore engines (e.g.
+`ignore`) recurse into matched directories even for bare wildcard patterns like
+`docs/*` — GitHub's CODEOWNERS docs explicitly say that pattern must *not* match
+nested files. Anchoring and "does this pattern also own its descendants" stay as
+our own small CODEOWNERS-specific rules; `[...]` ranges and leading `!` are
+escaped before matching, since CODEOWNERS treats both literally, unlike
+`.gitignore`/minimatch defaults.
 
 ## Example
 
