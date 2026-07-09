@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.request.chatmodel;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OPENAI_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -21,14 +22,17 @@ import org.jspecify.annotations.Nullable;
  * its backend-conditional authentication.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes({@JsonSubTypes.Type(value = AnthropicChatModel.class, name = ANTHROPIC_ID)})
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = AnthropicChatModel.class, name = ANTHROPIC_ID),
+  @JsonSubTypes.Type(value = OpenAiChatModel.class, name = OPENAI_ID)
+})
 @TemplateDiscriminatorProperty(
     label = "Provider",
     group = "provider",
     name = "type",
     description = "Specify the LLM provider to use.",
     defaultValue = ANTHROPIC_ID)
-public sealed interface LlmProviderConfiguration permits AnthropicChatModel {
+public sealed interface LlmProviderConfiguration permits AnthropicChatModel, OpenAiChatModel {
 
   /** Discriminator string identifying the provider (e.g. {@code anthropic}, {@code openai}). */
   String type();
