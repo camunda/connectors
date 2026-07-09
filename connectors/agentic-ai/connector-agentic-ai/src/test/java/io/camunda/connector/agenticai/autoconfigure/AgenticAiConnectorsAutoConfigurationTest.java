@@ -20,6 +20,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGen
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessV2;
+import io.camunda.connector.agenticai.aiagent.AiAgentTaskV2;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
@@ -108,8 +110,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentResponseHandler.class,
           OutboundConnectorAgentRequestHandler.class,
           AiAgentFunction.class,
+          AiAgentTaskV2.class,
           JobWorkerAgentRequestHandler.class,
           AiAgentJobWorker.class,
+          AiAgentSubProcessV2.class,
           AgentInstanceClient.class,
           ChatModelApiRegistry.class,
           CapabilityMatrix.class,
@@ -160,6 +164,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   @Test
   void whenAiAgentConnectorDisabled_thenNoAiAgentFunctionIsCreated() {
+    // AiAgentTaskV2 depends on the same OutboundConnectorAgentRequestHandler bean as v1, so
+    // disabling the v1 flavor toggle also prevents the v2 connector bean from being created.
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.aiagent.outbound-connector.enabled=false")
         .run(
@@ -169,16 +175,21 @@ class AgenticAiConnectorsAutoConfigurationTest {
                   ALL_BEANS.stream()
                       .filter(
                           notAnyOf(
-                              OutboundConnectorAgentRequestHandler.class, AiAgentFunction.class))
+                              OutboundConnectorAgentRequestHandler.class,
+                              AiAgentFunction.class,
+                              AiAgentTaskV2.class))
                       .toList());
               assertThat(context)
                   .doesNotHaveBean(OutboundConnectorAgentRequestHandler.class)
-                  .doesNotHaveBean(AiAgentFunction.class);
+                  .doesNotHaveBean(AiAgentFunction.class)
+                  .doesNotHaveBean(AiAgentTaskV2.class);
             });
   }
 
   @Test
   void whenAiAgentJobWorkerConnectorDisabled_thenNoAiAgentJobWorkerIsCreated() {
+    // AiAgentSubProcessV2 depends on the same JobWorkerAgentRequestHandler bean as v1, so
+    // disabling the v1 flavor toggle also prevents the v2 connector bean from being created.
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.aiagent.job-worker.enabled=false")
         .run(
@@ -186,11 +197,16 @@ class AgenticAiConnectorsAutoConfigurationTest {
               assertHasAllBeansOf(
                   context,
                   ALL_BEANS.stream()
-                      .filter(notAnyOf(JobWorkerAgentRequestHandler.class, AiAgentJobWorker.class))
+                      .filter(
+                          notAnyOf(
+                              JobWorkerAgentRequestHandler.class,
+                              AiAgentJobWorker.class,
+                              AiAgentSubProcessV2.class))
                       .toList());
               assertThat(context)
                   .doesNotHaveBean(JobWorkerAgentRequestHandler.class)
-                  .doesNotHaveBean(AiAgentJobWorker.class);
+                  .doesNotHaveBean(AiAgentJobWorker.class)
+                  .doesNotHaveBean(AiAgentSubProcessV2.class);
             });
   }
 
