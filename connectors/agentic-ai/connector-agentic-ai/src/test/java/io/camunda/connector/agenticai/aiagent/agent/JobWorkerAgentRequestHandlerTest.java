@@ -40,6 +40,10 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.framework.multimodal.CapabilityAwareToolCallResultStrategy;
+import io.camunda.connector.agenticai.aiagent.framework.multimodal.ToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -55,6 +59,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
@@ -63,11 +70,18 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -99,6 +113,7 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
+  @Mock private ToolCallResultStrategy toolCallResultStrategy;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private JobWorkerAgentExecutionContext agentExecutionContext;
@@ -108,6 +123,17 @@ class JobWorkerAgentRequestHandlerTest {
   @Captor private ArgumentCaptor<AgentInstanceUpdateRequest> agentInstanceUpdateRequestCaptor;
 
   @InjectMocks private JobWorkerAgentRequestHandler requestHandler;
+
+  private final DocumentFactoryImpl documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+
+  private Document createDocument(String content, String contentType, String fileName) {
+    return documentFactory.create(
+        DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
+            .contentType(contentType)
+            .fileName(fileName)
+            .build());
+  }
 
   @BeforeEach
   void setUp() {
@@ -131,6 +157,10 @@ class JobWorkerAgentRequestHandlerTest {
     // avoid deep-stubbing a mock UserPromptConfiguration (these tests drive the turn via the
     // composer mock and don't rely on the user prompt)
     lenient().doReturn(null).when(agentExecutionContext).userPrompt();
+    // identity by default (pre-existing tests carry no tool-result documents)
+    lenient()
+        .when(toolCallResultStrategy.apply(any(), any()))
+        .thenAnswer(inv -> inv.getArgument(0));
   }
 
   @Test
@@ -797,6 +827,83 @@ class JobWorkerAgentRequestHandlerTest {
 
     // limit blocks the 2nd round — the chat model is called exactly once
     verify(chatModelApi, times(1)).call(any());
+  }
+
+  @Test
+  void proceedAppliesToolCallResultStrategyBeforeModelCallAndPersistsSelfDescribingMessage() {
+    // a tool-result document routed through the real strategy against bridge-like capabilities
+    // ([TEXT] only for tool results) must be stripped from the outgoing snapshot and replaced by a
+    // trailing synthetic <doc/> message, while the persisted conversation keeps the document
+    // inside the ToolCallResultMessage (self-describing) with no synthetic message added.
+    mockSystemPrompt();
+
+    var pdf = createDocument("pdf-bytes", "application/pdf", "report.pdf");
+    var base =
+        ToolCallResultContent.from(
+            ToolCallResult.builder()
+                .id("call_1")
+                .name("getReport")
+                .content(Map.of("k", "v"))
+                .build());
+    var selfDescribingContent = new ArrayList<>(base.content());
+    selfDescribingContent.add(DocumentContent.documentContent(pdf));
+    var toolResultMessage =
+        ToolCallResultMessage.builder()
+            .results(List.of(base.withContent(selfDescribingContent)))
+            .build();
+    mockProceed(toolResultMessage);
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    var bridgeCaps =
+        ModelCapabilities.builder()
+            .userMessageModalities(List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT))
+            .toolResultModalities(List.of(Modality.TEXT))
+            .assistantMessageModalities(List.of(Modality.TEXT))
+            .build();
+    when(chatModelApi.capabilities()).thenReturn(bridgeCaps);
+    when(toolCallResultStrategy.apply(any(), any()))
+        .thenAnswer(
+            inv ->
+                new CapabilityAwareToolCallResultStrategy()
+                    .apply(inv.getArgument(0), inv.getArgument(1)));
+
+    var assistantMessage = assistantMessage("ok");
+    mockFrameworkExecution(assistantMessage);
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // sent-to-model snapshot: document stripped, trailing synthetic user message inserted
+    var sentMessages = chatModelRequestCaptor.getValue().snapshot().messages();
+    assertThat(sentMessages).hasSize(3);
+    assertThat(sentMessages.get(0)).isEqualTo(SYSTEM_MESSAGE);
+    var strippedTrm = (ToolCallResultMessage) sentMessages.get(1);
+    assertThat(strippedTrm.results().getFirst().content())
+        .noneMatch(DocumentContent.class::isInstance);
+    var synthetic = (UserMessage) sentMessages.get(2);
+    assertThat(synthetic.metadata()).containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+    assertThat(synthetic.content()).contains(DocumentContent.documentContent(pdf));
+
+    // persisted conversation: self-describing message unchanged (document still inline), no
+    // synthetic message ever persisted
+    var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    var persistedMessages =
+        ((InProcessConversationContext) agentResponse.context().conversation()).messages();
+    assertThat(persistedMessages).hasSize(3);
+    assertThat(persistedMessages.get(0)).isEqualTo(SYSTEM_MESSAGE);
+    var persistedTrm = (ToolCallResultMessage) persistedMessages.get(1);
+    assertThat(persistedTrm.results().getFirst().content())
+        .anyMatch(DocumentContent.class::isInstance);
+    assertThat(persistedMessages)
+        .noneMatch(
+            m ->
+                m instanceof UserMessage um
+                    && um.metadata() != null
+                    && Boolean.TRUE.equals(
+                        um.metadata().get(UserMessage.METADATA_TOOL_CALL_DOCUMENTS)));
   }
 
   private void mockSystemPrompt() {

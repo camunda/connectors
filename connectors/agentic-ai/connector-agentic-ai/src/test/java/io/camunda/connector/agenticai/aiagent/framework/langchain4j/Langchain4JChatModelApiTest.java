@@ -61,7 +61,7 @@ class Langchain4JChatModelApiTest {
 
     assertThat(capabilities.userMessageModalities())
         .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
-    assertThat(capabilities.toolResultModalities()).containsExactly(Modality.TEXT);
+    assertThat(capabilities.toolResultModalities()).isEmpty();
     assertThat(capabilities.assistantMessageModalities()).containsExactly(Modality.TEXT);
     assertThat(capabilities.supportsReasoning()).isFalse();
     assertThat(capabilities.supportsReasoningSignatureRoundtrip()).isFalse();

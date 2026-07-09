@@ -47,6 +47,8 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiCapabilitiesConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.multimodal.CapabilityAwareToolCallResultStrategy;
+import io.camunda.connector.agenticai.aiagent.framework.multimodal.ToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -114,7 +116,7 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public HttpTransportSupport httpTransportSupport(AgenticAiHttpProxySupport proxySupport) {
+  public HttpTransportSupport aiAgentHttpTransportSupport(AgenticAiHttpProxySupport proxySupport) {
     return new HttpTransportSupport(
         proxySupport.getProxyConfiguration(), proxySupport.getJdkHttpClientProxyConfigurator());
   }
@@ -307,6 +309,12 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ToolCallResultStrategy aiAgentToolCallResultStrategy() {
+    return new CapabilityAwareToolCallResultStrategy();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
@@ -317,7 +325,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ToolCallResultStrategy toolCallResultStrategy) {
     return new OutboundConnectorAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -325,7 +334,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         chatModelApiRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        toolCallResultStrategy);
   }
 
   @Bean
@@ -351,7 +361,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ToolCallResultStrategy toolCallResultStrategy) {
     return new JobWorkerAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -359,7 +370,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         chatModelApiRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        toolCallResultStrategy);
   }
 
   @Bean

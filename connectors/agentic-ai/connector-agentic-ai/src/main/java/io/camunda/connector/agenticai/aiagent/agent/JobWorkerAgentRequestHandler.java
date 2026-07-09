@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse
 import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
+import io.camunda.connector.agenticai.aiagent.framework.multimodal.ToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -38,7 +39,8 @@ public class JobWorkerAgentRequestHandler
       ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ToolCallResultStrategy toolCallResultStrategy) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -46,7 +48,8 @@ public class JobWorkerAgentRequestHandler
         chatModelApiRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        toolCallResultStrategy);
   }
 
   @Override

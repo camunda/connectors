@@ -21,6 +21,14 @@ import org.jspecify.annotations.Nullable;
  * <p>Not Jackson-deserialized directly (the resolver deserialises the sparse {@link
  * ModelCapabilitiesData} DTO and projects it onto this shape), so {@link #builder()} exposes the
  * plain generated {@code @AgenticAiRecord} builder without a Jackson proxy builder.
+ *
+ * @param userMessageModalities document modalities that can be embedded natively in a user message;
+ *     empty means documents must be surfaced elsewhere.
+ * @param toolResultModalities document modalities that can be embedded natively in a tool-result
+ *     content block; empty means tool-result documents fall back to a synthetic user message
+ *     ({@code CapabilityAwareToolCallResultStrategy}).
+ * @param assistantMessageModalities document modalities that can be embedded natively in an
+ *     assistant message; empty means documents must be surfaced elsewhere.
  */
 @AgenticAiRecord
 public record ModelCapabilities(

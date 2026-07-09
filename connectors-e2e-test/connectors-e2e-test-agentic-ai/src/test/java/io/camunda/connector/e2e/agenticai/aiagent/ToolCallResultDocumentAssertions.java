@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.framework.multimodal.CapabilityAwareToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
@@ -46,7 +47,7 @@ import java.util.function.Consumer;
 public final class ToolCallResultDocumentAssertions {
 
   public static final String EXTRACTED_DOCUMENTS_PREAMBLE =
-      "Documents extracted from tool calls (<doc /> tag + content pair):";
+      CapabilityAwareToolCallResultStrategy.TOOL_CALL_DOCUMENTS_PREAMBLE;
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

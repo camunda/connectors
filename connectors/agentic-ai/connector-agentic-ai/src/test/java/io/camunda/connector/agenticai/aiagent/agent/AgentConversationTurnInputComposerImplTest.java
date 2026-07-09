@@ -363,39 +363,18 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
     var messages = ((CompositionResult.NextTurn) result).messages();
-    assertThat(messages).hasSize(2);
-    assertThat(messages.getFirst()).isInstanceOf(ToolCallResultMessage.class);
-    // the ToolCallResultMessage itself carries ToolCallResultContent entries with the mixed
-    // content shapes lifted from the raw tool results (map-with-document -> ObjectContent,
-    // string -> TextContent) — the separate <doc/> extraction below is unaffected by this shape
-    var toolCallResultMessage = (ToolCallResultMessage) messages.getFirst();
-    assertThat(toolCallResultMessage.results())
+    assertThat(messages).hasSize(1);
+    var trm = (ToolCallResultMessage) messages.getFirst();
+    assertThat(trm.results())
         .satisfiesExactly(
-            weatherResult ->
-                assertThat(weatherResult.content())
-                    .singleElement()
-                    .isInstanceOfSatisfying(
-                        ObjectContent.class,
-                        objectContent ->
-                            assertThat(objectContent.content())
-                                .isEqualTo(Map.of("result", "Sunny", "attachment", weatherDoc))),
-            dateTimeResult ->
-                assertThat(dateTimeResult.content())
-                    .containsExactly(TextContent.textContent("15:00")));
-    assertThat(messages.get(1))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            documentMessage -> {
-              assertThat(documentMessage.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-              assertThat(documentMessage.content())
-                  .first()
-                  .isEqualTo(
-                      textContent(
-                          AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
-              assertThat(documentMessage.content())
-                  .contains(DocumentContent.documentContent(weatherDoc));
-            });
+            weather ->
+                assertThat(weather.content())
+                    .containsExactly(
+                        ObjectContent.objectContent(
+                            Map.of("result", "Sunny", "attachment", weatherDoc)),
+                        DocumentContent.documentContent(weatherDoc)),
+            dateTime ->
+                assertThat(dateTime.content()).containsExactly(TextContent.textContent("15:00")));
   }
 
   @Test
@@ -430,25 +409,21 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
 
-    // order: tool call results -> tool-call documents -> event (with its documents)
+    // order: tool call results (self-describing, doc lifted inside) -> event (with its documents)
     var messages = ((CompositionResult.NextTurn) result).messages();
-    assertThat(messages).hasSize(3);
+    assertThat(messages).hasSize(2);
     assertThat(messages.get(0)).isInstanceOf(ToolCallResultMessage.class);
+    var toolCallResultMessage = (ToolCallResultMessage) messages.get(0);
+    assertThat(toolCallResultMessage.results())
+        .satisfiesExactly(
+            weather ->
+                assertThat(weather.content())
+                    .containsExactly(
+                        ObjectContent.objectContent(Map.of("file", toolDoc)),
+                        DocumentContent.documentContent(toolDoc)),
+            dateTime ->
+                assertThat(dateTime.content()).containsExactly(TextContent.textContent("15:00")));
     assertThat(messages.get(1))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            toolCallDocuments -> {
-              assertThat(toolCallDocuments.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-              assertThat(toolCallDocuments.content())
-                  .first()
-                  .isEqualTo(
-                      textContent(
-                          AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
-              assertThat(toolCallDocuments.content())
-                  .contains(DocumentContent.documentContent(toolDoc));
-            });
-    assertThat(messages.get(2))
         .isInstanceOfSatisfying(
             UserMessage.class,
             eventMessage -> {

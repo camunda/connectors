@@ -27,7 +27,11 @@ public class Langchain4JChatModelApi implements ChatModelApi {
   private static final ModelCapabilities BRIDGE_CAPABILITIES =
       ModelCapabilities.builder()
           .userMessageModalities(List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT))
-          .toolResultModalities(List.of(Modality.TEXT))
+          // The bridge embeds no document natively in a tool result — its
+          // ToolCallConverterImpl.contentElementAsString serializes every DocumentContent as a JSON
+          // document reference regardless of MIME type, so every tool-result document must take the
+          // synthetic <doc/> fallback (CapabilityAwareToolCallResultStrategy).
+          .toolResultModalities(List.of())
           .assistantMessageModalities(List.of(Modality.TEXT))
           .build();
 

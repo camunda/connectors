@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.multimodal.ToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -60,6 +61,7 @@ public abstract class BaseAgentRequestHandler<
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
+  private final ToolCallResultStrategy toolCallResultStrategy;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -68,7 +70,8 @@ public abstract class BaseAgentRequestHandler<
       ChatModelApiRegistry chatModelApiRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ToolCallResultStrategy toolCallResultStrategy) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -76,6 +79,7 @@ public abstract class BaseAgentRequestHandler<
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
+    this.toolCallResultStrategy = toolCallResultStrategy;
   }
 
   @Override
@@ -173,11 +177,12 @@ public abstract class BaseAgentRequestHandler<
     var workingConversation = conversation;
     boolean continued;
     do {
+      final var windowedSnapshot =
+          workingConversation.window(agentConfiguration.contextWindowSize());
+      final var toolResultRoutedSnapshot =
+          toolCallResultStrategy.apply(windowedSnapshot, chatModel.capabilities());
       final var chatResult =
-          chatModel.call(
-              new ChatModelRequest(
-                  executionContext,
-                  workingConversation.window(agentConfiguration.contextWindowSize())));
+          chatModel.call(new ChatModelRequest(executionContext, toolResultRoutedSnapshot));
       workingConversation =
           workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
 
