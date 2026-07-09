@@ -421,9 +421,14 @@
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-core</ignoredDependency>
                 <ignoredDependency>io.modelcontextprotocol.sdk:mcp-json</ignoredDependency>
-                <!-- Added ahead of the native Anthropic client implementation (subsequent C7 tasks);
-                     not yet referenced by production code. -->
+                <!-- anthropic-java is a pure aggregator POM (no classes of its own): it pulls in
+                     anthropic-java-core (where the com.anthropic.models.* classes actually live)
+                     transitively. The analyzer sees anthropic-java as declared-but-unused and
+                     anthropic-java-core as used-but-undeclared; ignore both rather than declaring
+                     the transitive core artifact directly, since the aggregator is still the
+                     intended/managed dependency surface. -->
                 <ignoredDependency>com.anthropic:anthropic-java</ignoredDependency>
+                <ignoredDependency>com.anthropic:anthropic-java-core</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>
