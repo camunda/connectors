@@ -145,7 +145,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
                 activity
                     .withSeverity(Severity.ERROR)
                     .withTag("JSON Parsing")
-                    .withMessage("Failed to parse 'payload' as JSON: " + e.getMessage()));
+                    .withMessage("Failed to parse 'payload' as JSON", e));
       }
       return new SlackWebhookProcessingResult(
           new MappedHttpRequest(
@@ -206,9 +206,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
                 activity
                     .withSeverity(Severity.ERROR)
                     .withTag("JSON Parsing")
-                    .withMessage(
-                        "Failed to parse JSON from raw body due to an IOException: "
-                            + e.getMessage()));
+                    .withMessage("Failed to parse JSON from raw body due to an IOException", e));
         throw new RuntimeException(e);
       }
     }

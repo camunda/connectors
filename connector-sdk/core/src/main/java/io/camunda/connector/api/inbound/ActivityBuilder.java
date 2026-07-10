@@ -106,9 +106,18 @@ public class ActivityBuilder {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
     exception.printStackTrace(pw);
-    if (message == null) {
-      return sw.toString();
+
+    StringBuilder result = new StringBuilder();
+    if (message != null && !message.isEmpty()) {
+      result.append(message).append("\n");
     }
-    return message + "\n" + sw;
+    // The exception message usually carries the most meaningful information, so surface it
+    // explicitly in addition to the stack trace.
+    String exceptionMessage = exception.getMessage();
+    if (exceptionMessage != null && !exceptionMessage.isEmpty()) {
+      result.append(exceptionMessage).append("\n");
+    }
+    result.append(sw);
+    return result.toString();
   }
 }
