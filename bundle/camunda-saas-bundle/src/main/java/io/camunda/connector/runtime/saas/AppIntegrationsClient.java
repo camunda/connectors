@@ -34,12 +34,12 @@ import org.springframework.stereotype.Component;
  *
  * <p>{@code registerCluster} performs a single {@code PUT} (settings present) or {@code DELETE}
  * (settings absent) against {@code /api/connector/{orgId}/{clusterId}}, authenticated with the
- * shared {@code APP_INTEGRATIONS_CONNECTOR_SECRET} sent in the {@code X-API-KEY} header. It never
+ * shared {@code APP_INTEGRATIONS_CONNECTOR_API_KEY} sent in the {@code X-API-KEY} header. It never
  * throws — the returned {@link RegistrationOutcome} tells the caller whether the failure was
  * transient and worth retrying. Scheduling/retrying is the caller's concern (see {@link
  * AppIntegrationsClusterRegistration}).
  *
- * <p>{@code APP_INTEGRATIONS_BASE_URL} and {@code APP_INTEGRATIONS_CONNECTOR_SECRET} are
+ * <p>{@code APP_INTEGRATIONS_BASE_URL} and {@code APP_INTEGRATIONS_CONNECTOR_API_KEY} are
  * fleet-level values that address and authenticate the endpoint (including the disable/{@code
  * DELETE} case).
  */
@@ -66,7 +66,7 @@ public class AppIntegrationsClient {
   @Autowired
   public AppIntegrationsClient(
       @Value("${APP_INTEGRATIONS_BASE_URL:}") String baseUrl,
-      @Value("${APP_INTEGRATIONS_CONNECTOR_SECRET:}") String apiKey) {
+      @Value("${APP_INTEGRATIONS_CONNECTOR_API_KEY:}") String apiKey) {
     this(baseUrl, apiKey, HttpClient.newBuilder().connectTimeout(TIMEOUT).build());
   }
 
