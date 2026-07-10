@@ -70,6 +70,7 @@ public final class OperationMetadataIgnoreList {
   private static final Set<String> CONNECTORS_SKIPPING_NATIVE_OPERATIONS_FEATURE =
       Set.of(
           "agentic-ai",
+          "app-integrations",
           "aws-base",
           "google-drive",
           "http",

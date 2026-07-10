@@ -126,6 +126,7 @@ public class OperationBasedConnectorUtil {
     if (annotations.length == 0) {
       return List.of();
     }
+
     String operationId = getOperationId(operation);
     String idPrefix = operationId + OPERATION_PROPERTY_SEPARATOR;
     PropertyCondition.Equals baseCondition =
