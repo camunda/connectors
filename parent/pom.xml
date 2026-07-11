@@ -134,7 +134,7 @@ limitations under the License.</license.inlineheader>
     <version.httpclient5>5.6.2</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
     <version.ayza>10.0.5</version.ayza>
-    <version.pdfbox>3.0.7</version.pdfbox>
+    <version.pdfbox>3.0.8</version.pdfbox>
     <version.collections4>4.5.0</version.collections4>
 
     <version.commons-io>2.22.0</version.commons-io>
