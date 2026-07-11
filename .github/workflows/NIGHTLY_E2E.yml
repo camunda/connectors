@@ -121,7 +121,7 @@ jobs:
 
       - name: Send Slack notification on failure
         if: failure() && (matrix.branch == 'main' || startsWith(matrix.branch, 'stable/'))
-        uses: slackapi/slack-github-action@v3.0.3
+        uses: slackapi/slack-github-action@v3.0.5
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           method: chat.postMessage
