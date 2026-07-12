@@ -132,7 +132,7 @@ limitations under the License.</license.inlineheader>
     <version.azure-identity>1.18.4</version.azure-identity>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
-    <version.bouncycastle>1.84</version.bouncycastle>
+    <version.bouncycastle>1.85</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
