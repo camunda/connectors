@@ -149,7 +149,7 @@ limitations under the License.</license.inlineheader>
     <version.azure-core>1.58.1</version.azure-core>
     <version.azure-cosmos>4.81.0</version.azure-cosmos>
 
-    <version.bouncycastle>1.84</version.bouncycastle>
+    <version.bouncycastle>1.85</version.bouncycastle>
     <version.box-sdk>5.14.1</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
