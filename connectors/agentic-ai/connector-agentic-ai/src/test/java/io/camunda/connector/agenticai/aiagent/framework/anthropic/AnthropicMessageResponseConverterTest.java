@@ -33,6 +33,7 @@ import com.anthropic.models.beta.messages.BetaToolUseBlock;
 import com.anthropic.models.beta.messages.BetaUsage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -147,6 +148,116 @@ class AnthropicMessageResponseConverterTest {
         .containsExactly(
             new ReasoningContent("Let me think it through", "sig-123", null),
             TextContent.textContent("the answer"));
+  }
+
+  @Test
+  void mapsServerToolBlocksToProviderContentPreservingOrder() {
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_srv",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [
+                {"type": "text", "text": "working"},
+                {
+                  "type": "server_tool_use",
+                  "id": "srvtoolu_01",
+                  "name": "code_execution",
+                  "input": {"code": "print(1)"}
+                },
+                {
+                  "type": "code_execution_tool_result",
+                  "tool_use_id": "srvtoolu_01",
+                  "content": {
+                    "type": "code_execution_result",
+                    "stdout": "1\\n",
+                    "stderr": "",
+                    "return_code": 0
+                  }
+                },
+                {"type": "text", "text": "done"}
+              ],
+              "stop_reason": "end_turn",
+              "usage": {"input_tokens": 1, "output_tokens": 1}
+            }
+            """);
+
+    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+
+    assertThat(assistantMessage.content())
+        .containsExactly(
+            TextContent.textContent("working"),
+            new ProviderContent(
+                "anthropic",
+                "server_tool_use",
+                Map.of(
+                    "id",
+                    "srvtoolu_01",
+                    "name",
+                    "code_execution",
+                    "type",
+                    "server_tool_use",
+                    "input",
+                    Map.of("code", "print(1)")),
+                null),
+            new ProviderContent(
+                "anthropic",
+                "code_execution_tool_result",
+                Map.of(
+                    "tool_use_id",
+                    "srvtoolu_01",
+                    "type",
+                    "code_execution_tool_result",
+                    "content",
+                    Map.of(
+                        "type",
+                        "code_execution_result",
+                        "stdout",
+                        "1\n",
+                        "stderr",
+                        "",
+                        "return_code",
+                        0L)),
+                null),
+            TextContent.textContent("done"));
+    assertThat(assistantMessage.toolCalls()).isEmpty();
+  }
+
+  @Test
+  void mapsClientToolUseToToolCallsEvenAlongsideServerToolUseBlocks() {
+    // Guards the if/else ordering in the block loop: a client tool_use block must still be routed
+    // to toolCalls (and NOT captured as ProviderContent) even when a server_tool_use block --
+    // handled by the same catch-all branch as other non-core blocks -- is also present.
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_mixed",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [
+                {
+                  "type": "server_tool_use",
+                  "id": "srvtoolu_01",
+                  "name": "code_execution",
+                  "input": {"code": "print(1)"}
+                },
+                {"type": "tool_use", "id": "toolu_1", "name": "get_weather", "input": {"city": "Berlin"}}
+              ],
+              "stop_reason": "tool_use",
+              "usage": {"input_tokens": 1, "output_tokens": 1}
+            }
+            """);
+
+    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+
+    assertThat(assistantMessage.toolCalls())
+        .containsExactly(new ToolCall("toolu_1", "get_weather", Map.of("city", "Berlin")));
+    assertThat(assistantMessage.content()).hasSize(1).first().isInstanceOf(ProviderContent.class);
   }
 
   @Test

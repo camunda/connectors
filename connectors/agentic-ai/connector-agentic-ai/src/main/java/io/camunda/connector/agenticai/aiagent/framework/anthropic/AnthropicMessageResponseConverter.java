@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
 import com.anthropic.core.JsonObject;
 import com.anthropic.core.JsonValue;
+import com.anthropic.core.ObjectMappers;
 import com.anthropic.models.beta.messages.BetaContentBlock;
 import com.anthropic.models.beta.messages.BetaMessage;
 import com.anthropic.models.beta.messages.BetaStopReason;
@@ -19,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -37,7 +39,11 @@ import org.jspecify.annotations.Nullable;
  * redacted_thinking} blocks become read-only {@link ReasoningContent} (thinking text plus the
  * signature/redacted payload preserved in {@code providerPayload} for potential future
  * round-tripping). Reasoning content is deliberately never re-emitted back to Anthropic on the
- * request side (see {@link AnthropicContentConverter}) — that is a deferred follow-up.
+ * request side (see {@link AnthropicContentConverter}) — that is a deferred follow-up. Every other
+ * block type (server-tool and code-execution blocks such as {@code server_tool_use}, {@code
+ * code_execution_tool_result}, {@code web_search_tool_result}, {@code container_upload}, etc.) is
+ * captured losslessly as {@link ProviderContent}, kept inline in original order, and never added to
+ * {@code toolCalls} since these are server-side blocks the caller is never expected to act on.
  *
  * <p>The {@code pause_turn} stop reason surfaces as a {@link ChatModelResult.Continuation}
  * (Anthropic paused a long-running turn and expects to be called again without new input); every
@@ -90,6 +96,18 @@ public class AnthropicMessageResponseConverter {
       } else if (block.isRedactedThinking()) {
         final var redactedThinking = block.redactedThinking().orElseThrow();
         content.add(new ReasoningContent(null, redactedThinking.data(), null));
+      } else {
+        // Server-tool / provider-specific blocks (server_tool_use, code_execution_tool_result,
+        // web_search_tool_result, container_upload, etc.) have no provider-neutral
+        // representation. Preserve them losslessly and in original order as ProviderContent
+        // rather than silently dropping them; they are never client tool calls (the caller is
+        // never expected to act on them), so they are kept out of toolCalls. Uses the SDK's own
+        // mapper (not the injected app ObjectMapper) since only it knows how to serialize the raw
+        // block's JsonValue/JsonField internals.
+        final Map<String, Object> raw =
+            ObjectMappers.jsonMapper()
+                .convertValue(block, new TypeReference<Map<String, Object>>() {});
+        content.add(new ProviderContent("anthropic", String.valueOf(raw.get("type")), raw, null));
       }
     }
 
