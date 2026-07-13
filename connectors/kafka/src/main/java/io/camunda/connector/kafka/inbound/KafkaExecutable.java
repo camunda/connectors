@@ -156,7 +156,7 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage("Subscription activation failed: " + ex.getMessage()));
+                  .withMessage("Subscription activation failed", ex));
       context.reportHealth(Health.down(ex));
       throw ex;
     }

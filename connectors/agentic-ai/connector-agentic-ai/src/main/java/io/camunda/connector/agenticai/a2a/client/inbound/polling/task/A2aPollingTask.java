@@ -148,8 +148,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag("a2a-polling")
-                  .withMessage(
-                      "Failed to poll A2A task %s: %s".formatted(task.id(), e.getMessage())));
+                  .withMessage("Failed to poll A2A task %s".formatted(task.id()), e));
     }
   }
 
@@ -163,7 +162,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag("a2a-polling-runtime-properties")
-                  .withMessage("Failed to bind A2A polling runtime properties: " + e.getMessage()));
+                  .withMessage("Failed to bind A2A polling runtime properties", e));
     }
 
     return null;
@@ -181,7 +180,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag("a2a-polling-response")
-                  .withMessage("Error loading A2A client response: " + e.getMessage()));
+                  .withMessage("Error loading A2A client response", e));
     }
 
     return null;
@@ -205,7 +204,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
                 activity
                     .withSeverity(Severity.ERROR)
                     .withTag("a2a-polling-client")
-                    .withMessage("Failed to create A2A client: " + e.getMessage()));
+                    .withMessage("Failed to create A2A client", e));
       }
     }
 

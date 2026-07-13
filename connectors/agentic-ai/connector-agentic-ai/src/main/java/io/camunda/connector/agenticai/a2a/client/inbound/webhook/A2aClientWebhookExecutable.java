@@ -131,7 +131,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag("a2a-webhook-request")
-                  .withMessage("Error deserializing A2A Webhook payload: " + e.getMessage()));
+                  .withMessage("Error deserializing A2A Webhook payload", e));
       throw new RuntimeException(e);
     }
   }
