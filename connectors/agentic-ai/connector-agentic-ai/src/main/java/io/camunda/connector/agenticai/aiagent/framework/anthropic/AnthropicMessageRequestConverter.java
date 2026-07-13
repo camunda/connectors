@@ -18,6 +18,8 @@ import com.anthropic.models.beta.messages.BetaSkillParams;
 import com.anthropic.models.beta.messages.BetaTool;
 import com.anthropic.models.beta.messages.BetaToolResultBlockParam;
 import com.anthropic.models.beta.messages.BetaToolUseBlockParam;
+import com.anthropic.models.beta.messages.BetaWebFetchTool20260318;
+import com.anthropic.models.beta.messages.BetaWebSearchTool20260318;
 import com.anthropic.models.beta.messages.MessageCreateParams;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
@@ -62,6 +64,15 @@ public class AnthropicMessageRequestConverter {
   // string beta overload for this one and the typed enum for the other two skill-related betas.
   static final String CODE_EXECUTION_BETA = "code-execution-2025-08-25";
 
+  // Web search and web fetch are General Availability, not beta, features as of anthropic-java
+  // 2.48.0: both BetaWebSearchTool20260318/BetaWebFetchTool20260318 (used here) AND their
+  // equivalents in the STABLE com.anthropic.models.messages package accept them directly, and no
+  // com.anthropic.models.beta.AnthropicBeta constant (nor any raw string in the SDK sources)
+  // references either tool. No anthropic-beta header is added for them. Using the newest (2026-03-
+  // 18) tool revision of each, verified via javap against the same jar, since it is a strict
+  // superset of the earlier revisions (response inclusion controls, still zero required builder
+  // args) and both accept a no-arg builder().build() matching this connector's plain on/off toggle.
+
   /** Documented maximum number of skills that may be configured per request. */
   static final int MAX_SKILLS = 8;
 
@@ -88,7 +99,7 @@ public class AnthropicMessageRequestConverter {
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
     applyResponseFormat(builder, ctx.configuration().response());
-    applySkills(builder, model.anthropic().skills());
+    applySkillsAndBuiltInTools(builder, model.anthropic());
 
     return builder.build();
   }
@@ -231,42 +242,60 @@ public class AnthropicMessageRequestConverter {
   }
 
   /**
-   * Wires the beta container with the configured Agent Skills, the {@code code_execution} tool
-   * skills require to run, and the beta headers both features need. A no-op (no container, no
-   * auto-added tool, no beta headers) when no skills are configured, keeping behavior identical to
-   * before Skills support was added.
+   * Wires the beta container with the configured Agent Skills, the built-in {@code
+   * code_execution}/{@code web_search}/{@code web_fetch} server tools (auto-added for skills, or
+   * added when their respective toggle is enabled), and the beta headers skills and code execution
+   * need. A no-op (no container, no added tool, no beta headers) when no skills are configured and
+   * every toggle is absent/false, keeping behavior identical to before Skills/tool-toggle support
+   * was added.
+   *
+   * <p>{@code code_execution} is added and its beta header emitted AT MOST ONCE: skills
+   * auto-require it to execute, and the explicit toggle may independently request it, but both
+   * routes share this single addition so enabling both never emits a duplicate tool or beta.
    */
-  private void applySkills(MessageCreateParams.Builder builder, @Nullable List<String> skills) {
-    if (skills == null || skills.isEmpty()) {
-      return;
-    }
-    if (skills.size() > MAX_SKILLS) {
-      throw new IllegalArgumentException(
-          "At most %d Anthropic skills may be configured, got %d"
-              .formatted(MAX_SKILLS, skills.size()));
-    }
+  private void applySkillsAndBuiltInTools(
+      MessageCreateParams.Builder builder, AnthropicChatModel.AnthropicConnection connection) {
+    final List<String> skills = connection.skills();
+    final boolean hasSkills = skills != null && !skills.isEmpty();
 
-    final var containerBuilder = BetaContainerParams.builder();
-    for (final String raw : skills) {
-      final AnthropicSkillReference skill = AnthropicSkillReference.parse(raw);
-      containerBuilder.addSkill(
-          BetaSkillParams.builder()
-              .type(skill.type())
-              .skillId(skill.skillId())
-              .version(skill.version())
-              .build());
+    if (skills != null && !skills.isEmpty()) {
+      if (skills.size() > MAX_SKILLS) {
+        throw new IllegalArgumentException(
+            "At most %d Anthropic skills may be configured, got %d"
+                .formatted(MAX_SKILLS, skills.size()));
+      }
+
+      final var containerBuilder = BetaContainerParams.builder();
+      for (final String raw : skills) {
+        final AnthropicSkillReference skill = AnthropicSkillReference.parse(raw);
+        containerBuilder.addSkill(
+            BetaSkillParams.builder()
+                .type(skill.type())
+                .skillId(skill.skillId())
+                .version(skill.version())
+                .build());
+      }
+      builder.container(containerBuilder.build());
+
+      builder.addBeta(AnthropicBeta.SKILLS_2025_10_02).addBeta(AnthropicBeta.FILES_API_2025_04_14);
     }
-    builder.container(containerBuilder.build());
 
     // Skills execute inside the beta container via the code_execution tool; auto-add it so users
-    // don't have to separately enable it (dedup against an explicitly enabled code_execution tool
-    // is the responsibility of whichever built-in-tool-toggle feature adds it).
-    builder.addTool(BetaCodeExecutionTool20250825.builder().build());
+    // don't have to separately enable it. An explicit "enable code execution" toggle requests the
+    // same tool independently. Route both through this single addition so the tool/beta are never
+    // duplicated when skills are configured AND the toggle is enabled.
+    if (hasSkills || Boolean.TRUE.equals(connection.enableCodeExecution())) {
+      builder.addTool(BetaCodeExecutionTool20250825.builder().build());
+      builder.addBeta(CODE_EXECUTION_BETA);
+    }
 
-    builder
-        .addBeta(CODE_EXECUTION_BETA)
-        .addBeta(AnthropicBeta.SKILLS_2025_10_02)
-        .addBeta(AnthropicBeta.FILES_API_2025_04_14);
+    if (Boolean.TRUE.equals(connection.enableWebSearch())) {
+      builder.addTool(BetaWebSearchTool20260318.builder().build());
+    }
+
+    if (Boolean.TRUE.equals(connection.enableWebFetch())) {
+      builder.addTool(BetaWebFetchTool20260318.builder().build());
+    }
   }
 
   private void applyResponseFormat(

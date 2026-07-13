@@ -42,6 +42,9 @@ class AiAgentV2EntryPointTest {
             new AnthropicModel("claude-sonnet-4-6", null),
             null,
             null,
+            null,
+            null,
+            null,
             null));
   }
 

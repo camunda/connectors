@@ -78,7 +78,31 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               type = TemplateProperty.PropertyType.Text,
               feel = FeelMode.required,
               optional = true)
-          @Nullable List<@NotBlank String> skills) {}
+          @Nullable List<@NotBlank String> skills,
+      @TemplateProperty(
+              group = "skills",
+              label = "Enable code execution",
+              description =
+                  "Enables Anthropic's built-in <code>code_execution</code> server tool, letting the model run code in a sandboxed container. Already enabled automatically when Skills are configured above (no duplicate tool/beta header is emitted in that case).",
+              type = TemplateProperty.PropertyType.Boolean,
+              optional = true)
+          @Nullable Boolean enableCodeExecution,
+      @TemplateProperty(
+              group = "skills",
+              label = "Enable web search",
+              description =
+                  "Enables Anthropic's built-in <code>web_search</code> server tool, letting the model search the web for up-to-date information.",
+              type = TemplateProperty.PropertyType.Boolean,
+              optional = true)
+          @Nullable Boolean enableWebSearch,
+      @TemplateProperty(
+              group = "skills",
+              label = "Enable web fetch",
+              description =
+                  "Enables Anthropic's built-in <code>web_fetch</code> server tool, letting the model retrieve the full content of a URL.",
+              type = TemplateProperty.PropertyType.Boolean,
+              optional = true)
+          @Nullable Boolean enableWebFetch) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({

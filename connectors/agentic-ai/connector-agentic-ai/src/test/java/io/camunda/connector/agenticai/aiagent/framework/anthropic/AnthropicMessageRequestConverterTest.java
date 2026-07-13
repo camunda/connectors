@@ -60,13 +60,25 @@ class AnthropicMessageRequestConverterTest {
 
   private static AnthropicChatModel model(
       @Nullable AnthropicModelParameters parameters, @Nullable List<String> skills) {
+    return model(parameters, skills, null, null, null);
+  }
+
+  private static AnthropicChatModel model(
+      @Nullable AnthropicModelParameters parameters,
+      @Nullable List<String> skills,
+      @Nullable Boolean enableCodeExecution,
+      @Nullable Boolean enableWebSearch,
+      @Nullable Boolean enableWebFetch) {
     return new AnthropicChatModel(
         new AnthropicConnection(
             new AnthropicDirectBackend(null, "sk-ant-test"),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null,
             null,
-            skills));
+            skills,
+            enableCodeExecution,
+            enableWebSearch,
+            enableWebFetch));
   }
 
   private static AgentExecutionContext ctx(
@@ -369,6 +381,112 @@ class AnthropicMessageRequestConverterTest {
             ctx(model(null, List.of("pptx")), null), snapshot, ModelCapabilities.builder().build());
 
     assertThat(params.tools().orElseThrow()).hasSize(2);
+  }
+
+  @Test
+  void allToggleFalseAndNoSkillsEmitsNothingNew() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, false, false, false), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    assertThat(params.container()).isEmpty();
+    assertThat(params.betas()).isEmpty();
+    assertThat(params.tools()).isEmpty();
+  }
+
+  @Test
+  void enableCodeExecutionAddsCodeExecutionToolAndBetaHeaderWithoutSkills() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, true, null, null), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    assertThat(params.container()).isEmpty();
+    assertThat(params.tools().orElseThrow())
+        .hasSize(1)
+        .anyMatch(tool -> tool.codeExecutionTool20250825().isPresent());
+    assertThat(params.betas().orElseThrow())
+        .anyMatch(beta -> "code-execution-2025-08-25".equals(beta.asString()));
+  }
+
+  @Test
+  void enableWebSearchAddsWebSearchToolWithoutBetaHeader() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, null, true, null), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    assertThat(params.tools().orElseThrow())
+        .hasSize(1)
+        .anyMatch(tool -> tool.webSearchTool20260318().isPresent());
+    // web_search is GA: no anthropic-beta header required.
+    assertThat(params.betas()).isEmpty();
+  }
+
+  @Test
+  void enableWebFetchAddsWebFetchToolWithoutBetaHeader() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, null, null, true), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    assertThat(params.tools().orElseThrow())
+        .hasSize(1)
+        .anyMatch(tool -> tool.webFetchTool20260318().isPresent());
+    // web_fetch is GA: no anthropic-beta header required.
+    assertThat(params.betas()).isEmpty();
+  }
+
+  @Test
+  void enableWebSearchAndWebFetchTogetherAddsBothTools() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, null, true, true), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    assertThat(params.tools().orElseThrow()).hasSize(2);
+    assertThat(params.tools().orElseThrow())
+        .anyMatch(tool -> tool.webSearchTool20260318().isPresent());
+    assertThat(params.tools().orElseThrow())
+        .anyMatch(tool -> tool.webFetchTool20260318().isPresent());
+    assertThat(params.betas()).isEmpty();
+  }
+
+  @Test
+  void skillsPlusEnabledCodeExecutionToggleYieldsExactlyOneCodeExecutionToolAndNoDuplicateBeta() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, List.of("pptx"), true, null, null), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    assertThat(params.tools().orElseThrow())
+        .filteredOn(tool -> tool.codeExecutionTool20250825().isPresent())
+        .hasSize(1);
+
+    final var codeExecutionBetaOccurrences =
+        params.betas().orElseThrow().stream()
+            .filter(beta -> "code-execution-2025-08-25".equals(beta.asString()))
+            .count();
+    assertThat(codeExecutionBetaOccurrences).isEqualTo(1);
   }
 
   @Test

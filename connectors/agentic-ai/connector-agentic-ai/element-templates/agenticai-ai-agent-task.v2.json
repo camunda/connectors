@@ -60,8 +60,8 @@
     "openByDefault" : false
   }, {
     "id" : "skills",
-    "label" : "Skills",
-    "tooltip" : "Anthropic Agent Skills available to the model (Anthropic provider only).",
+    "label" : "Skills & tools",
+    "tooltip" : "Anthropic Agent Skills and built-in server tools (code execution, web search, web fetch) available to the model (Anthropic provider only).",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -1307,6 +1307,57 @@
       "type" : "simple"
     },
     "type" : "Text"
+  }, {
+    "id" : "configuration.anthropic.enableCodeExecution",
+    "label" : "Enable code execution",
+    "description" : "Enables Anthropic's built-in <code>code_execution</code> server tool, letting the model run code in a sandboxed container. Already enabled automatically when Skills are configured above (no duplicate tool/beta header is emitted in that case).",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.enableCodeExecution",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "configuration.anthropic.enableWebSearch",
+    "label" : "Enable web search",
+    "description" : "Enables Anthropic's built-in <code>web_search</code> server tool, letting the model search the web for up-to-date information.",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.enableWebSearch",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "configuration.anthropic.enableWebFetch",
+    "label" : "Enable web fetch",
+    "description" : "Enables Anthropic's built-in <code>web_fetch</code> server tool, letting the model retrieve the full content of a URL.",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.enableWebFetch",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "Boolean"
   }, {
     "id" : "version",
     "label" : "Version",

@@ -78,8 +78,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
       @PropertyGroup(id = "capabilities", label = "Model capabilities", openByDefault = false),
       @PropertyGroup(
           id = "skills",
-          label = "Skills",
-          tooltip = "Anthropic Agent Skills available to the model (Anthropic provider only).",
+          label = "Skills & tools",
+          tooltip =
+              "Anthropic Agent Skills and built-in server tools (code execution, web search, web fetch) available to the model (Anthropic provider only).",
           openByDefault = false)
     },
     icon = "aiagent.svg")
