@@ -41,6 +41,7 @@ class AiAgentV2EntryPointTest {
             new AnthropicDirectBackend(null, "sk-ant"),
             new AnthropicModel("claude-sonnet-4-6", null),
             null,
+            null,
             null));
   }
 

@@ -7,11 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
+import com.anthropic.models.beta.AnthropicBeta;
 import com.anthropic.models.beta.messages.BetaMessageParam;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,12 +55,18 @@ class AnthropicMessageRequestConverterTest {
       new AnthropicMessageRequestConverter(contentConverter);
 
   private static AnthropicChatModel model(@Nullable AnthropicModelParameters parameters) {
+    return model(parameters, null);
+  }
+
+  private static AnthropicChatModel model(
+      @Nullable AnthropicModelParameters parameters, @Nullable List<String> skills) {
     return new AnthropicChatModel(
         new AnthropicConnection(
             new AnthropicDirectBackend(null, "sk-ant-test"),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null,
-            null));
+            null,
+            skills));
   }
 
   private static AgentExecutionContext ctx(
@@ -284,5 +292,95 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.maxTokens()).isEqualTo(AnthropicMessageRequestConverter.DEFAULT_MAX_TOKENS);
     assertThat(params.maxTokens()).isEqualTo(4096L);
+  }
+
+  @Test
+  void emitsNoContainerToolOrBetasWhenSkillsAreEmpty() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, List.of()), null), snapshot, ModelCapabilities.builder().build());
+
+    assertThat(params.container()).isEmpty();
+    assertThat(params.betas()).isEmpty();
+    assertThat(params.tools()).isEmpty();
+  }
+
+  @Test
+  void emitsNoContainerToolOrBetasWhenSkillsAreNull() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null), null), snapshot, ModelCapabilities.builder().build());
+
+    assertThat(params.container()).isEmpty();
+    assertThat(params.betas()).isEmpty();
+    assertThat(params.tools()).isEmpty();
+  }
+
+  @Test
+  void emitsContainerSkillsCodeExecutionToolAndBetaHeadersWhenSkillsConfigured() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, List.of("pptx", "custom:my-skill:v2")), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    final var containerSkills =
+        params.container().orElseThrow().asBetaContainerParams().skills().orElseThrow();
+    assertThat(containerSkills).hasSize(2);
+    assertThat(containerSkills.get(0).type().asString()).isEqualTo("anthropic");
+    assertThat(containerSkills.get(0).skillId()).isEqualTo("pptx");
+    assertThat(containerSkills.get(0).version()).contains("latest");
+    assertThat(containerSkills.get(1).type().asString()).isEqualTo("custom");
+    assertThat(containerSkills.get(1).skillId()).isEqualTo("my-skill");
+    assertThat(containerSkills.get(1).version()).contains("v2");
+
+    assertThat(params.tools()).isPresent();
+    assertThat(params.tools().orElseThrow())
+        .anyMatch(tool -> tool.codeExecutionTool20250825().isPresent());
+
+    assertThat(params.betas()).isPresent();
+    assertThat(params.betas().orElseThrow())
+        .contains(AnthropicBeta.SKILLS_2025_10_02, AnthropicBeta.FILES_API_2025_04_14)
+        .anyMatch(beta -> "code-execution-2025-08-25".equals(beta.asString()));
+  }
+
+  @Test
+  void combinesAutoAddedCodeExecutionToolWithUserConfiguredToolDefinitions() {
+    // the auto-added code_execution tool is a distinct wire type (BetaCodeExecutionTool20250825)
+    // from user-configured ToolDefinitions (BetaTool); both coexist on the wire regardless of
+    // name overlap.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(),
+            List.of(
+                ToolDefinition.builder()
+                    .name("code_execution")
+                    .inputSchema(Map.of("type", "object"))
+                    .build()));
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, List.of("pptx")), null), snapshot, ModelCapabilities.builder().build());
+
+    assertThat(params.tools().orElseThrow()).hasSize(2);
+  }
+
+  @Test
+  void failsLoudlyWhenMoreThanEightSkillsAreConfigured() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var skills = List.of("s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9");
+
+    assertThatThrownBy(
+            () ->
+                converter.toMessageCreateParams(
+                    ctx(model(null, skills), null), snapshot, ModelCapabilities.builder().build()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("8");
   }
 }

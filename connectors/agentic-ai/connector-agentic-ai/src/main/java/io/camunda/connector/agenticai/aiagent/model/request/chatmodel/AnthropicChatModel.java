@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabi
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -22,6 +23,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /** Anthropic Messages wire format. Backends: {@code direct} (API key) and {@code bedrock} (AWS). */
@@ -66,7 +68,17 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               type = TemplateProperty.PropertyType.Text,
               feel = FeelMode.required,
               optional = true)
-          @Nullable ModelCapabilitiesOverride capabilityOverride) {}
+          @Nullable ModelCapabilitiesOverride capabilityOverride,
+      @FEEL
+          @TemplateProperty(
+              group = "skills",
+              label = "Skills",
+              description =
+                  "List of Anthropic Agent Skills to make available to the model, as <code>type:skill:version</code> strings (e.g. <code>pptx</code>, <code>custom:my-skill:v2</code>; type/version default to <code>anthropic</code>/<code>latest</code>). Configuring skills automatically enables the <code>code_execution</code> tool and the required beta headers. Maximum of 8 skills.",
+              type = TemplateProperty.PropertyType.Text,
+              feel = FeelMode.required,
+              optional = true)
+          @Nullable List<@NotBlank String> skills) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({

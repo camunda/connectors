@@ -46,6 +46,7 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
                     new AnthropicDirectBackend(null, "sk-ant"),
                     new AnthropicModel("claude-sonnet-4-6", null),
                     null,
+                    null,
                     null)));
 
     assertThat(config.configuration()).isInstanceOf(AnthropicChatModel.class);
@@ -66,6 +67,7 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
                     new AnthropicDirectBackend(null, "sk-ant"),
                     new AnthropicModel("claude-sonnet-4-6", null),
                     null,
+                    null,
                     null)));
 
     assertThat(registry.resolve(directConfig)).isInstanceOf(AnthropicChatModelApi.class);
@@ -85,6 +87,7 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
                     new AnthropicBedrockBackend(
                         "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
                     new AnthropicModel("claude-sonnet-4-6", null),
+                    null,
                     null,
                     null)));
 

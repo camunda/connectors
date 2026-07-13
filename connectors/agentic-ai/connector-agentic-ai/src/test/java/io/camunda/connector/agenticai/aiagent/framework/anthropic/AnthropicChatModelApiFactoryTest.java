@@ -67,6 +67,7 @@ class AnthropicChatModelApiFactoryTest {
                         "eu-west-1", null, new AwsApiKeyAuthentication("api-key")),
                     new AnthropicModel(MODEL_ID, null),
                     null,
+                    null,
                     null)));
 
     assertThat(factory.supports(config)).isFalse();
@@ -113,6 +114,7 @@ class AnthropicChatModelApiFactoryTest {
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "sk-ant"),
                 new AnthropicModel(modelId, null),
+                null,
                 null,
                 null)));
   }

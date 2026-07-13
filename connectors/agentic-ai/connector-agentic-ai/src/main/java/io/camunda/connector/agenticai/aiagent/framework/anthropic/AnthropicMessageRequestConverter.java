@@ -7,10 +7,14 @@
 package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
 import com.anthropic.core.JsonValue;
+import com.anthropic.models.beta.AnthropicBeta;
+import com.anthropic.models.beta.messages.BetaCodeExecutionTool20250825;
+import com.anthropic.models.beta.messages.BetaContainerParams;
 import com.anthropic.models.beta.messages.BetaContentBlockParam;
 import com.anthropic.models.beta.messages.BetaJsonOutputFormat;
 import com.anthropic.models.beta.messages.BetaMessageParam;
 import com.anthropic.models.beta.messages.BetaOutputConfig;
+import com.anthropic.models.beta.messages.BetaSkillParams;
 import com.anthropic.models.beta.messages.BetaTool;
 import com.anthropic.models.beta.messages.BetaToolResultBlockParam;
 import com.anthropic.models.beta.messages.BetaToolUseBlockParam;
@@ -53,6 +57,14 @@ public class AnthropicMessageRequestConverter {
 
   static final long DEFAULT_MAX_TOKENS = 4096L;
 
+  // No typed com.anthropic.models.beta.AnthropicBeta constant exists for this beta identifier in
+  // anthropic-java-core 2.48.0 (only the older CODE_EXECUTION_2025_05_22 is present); use the raw
+  // string beta overload for this one and the typed enum for the other two skill-related betas.
+  static final String CODE_EXECUTION_BETA = "code-execution-2025-08-25";
+
+  /** Documented maximum number of skills that may be configured per request. */
+  static final int MAX_SKILLS = 8;
+
   private final AnthropicContentConverter contentConverter;
 
   public AnthropicMessageRequestConverter(AnthropicContentConverter contentConverter) {
@@ -76,6 +88,7 @@ public class AnthropicMessageRequestConverter {
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
     applyResponseFormat(builder, ctx.configuration().response());
+    applySkills(builder, model.anthropic().skills());
 
     return builder.build();
   }
@@ -215,6 +228,45 @@ public class AnthropicMessageRequestConverter {
           }
         });
     return BetaTool.InputSchema.builder().additionalProperties(additional).build();
+  }
+
+  /**
+   * Wires the beta container with the configured Agent Skills, the {@code code_execution} tool
+   * skills require to run, and the beta headers both features need. A no-op (no container, no
+   * auto-added tool, no beta headers) when no skills are configured, keeping behavior identical to
+   * before Skills support was added.
+   */
+  private void applySkills(MessageCreateParams.Builder builder, @Nullable List<String> skills) {
+    if (skills == null || skills.isEmpty()) {
+      return;
+    }
+    if (skills.size() > MAX_SKILLS) {
+      throw new IllegalArgumentException(
+          "At most %d Anthropic skills may be configured, got %d"
+              .formatted(MAX_SKILLS, skills.size()));
+    }
+
+    final var containerBuilder = BetaContainerParams.builder();
+    for (final String raw : skills) {
+      final AnthropicSkillReference skill = AnthropicSkillReference.parse(raw);
+      containerBuilder.addSkill(
+          BetaSkillParams.builder()
+              .type(skill.type())
+              .skillId(skill.skillId())
+              .version(skill.version())
+              .build());
+    }
+    builder.container(containerBuilder.build());
+
+    // Skills execute inside the beta container via the code_execution tool; auto-add it so users
+    // don't have to separately enable it (dedup against an explicitly enabled code_execution tool
+    // is the responsibility of whichever built-in-tool-toggle feature adds it).
+    builder.addTool(BetaCodeExecutionTool20250825.builder().build());
+
+    builder
+        .addBeta(CODE_EXECUTION_BETA)
+        .addBeta(AnthropicBeta.SKILLS_2025_10_02)
+        .addBeta(AnthropicBeta.FILES_API_2025_04_14);
   }
 
   private void applyResponseFormat(

@@ -59,6 +59,11 @@
     "label" : "Model capabilities",
     "openByDefault" : false
   }, {
+    "id" : "skills",
+    "label" : "Skills",
+    "tooltip" : "Anthropic Agent Skills available to the model (Anthropic provider only).",
+    "openByDefault" : false
+  }, {
     "id" : "connector",
     "label" : "Connector"
   }, {
@@ -1282,6 +1287,23 @@
     "condition" : {
       "property" : "configuration.type",
       "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "configuration.anthropic.skills",
+    "label" : "Skills",
+    "description" : "List of Anthropic Agent Skills to make available to the model, as <code>type:skill:version</code> strings (e.g. <code>pptx</code>, <code>custom:my-skill:v2</code>; type/version default to <code>anthropic</code>/<code>latest</code>). Configuring skills automatically enables the <code>code_execution</code> tool and the required beta headers. Maximum of 8 skills.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.skills",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
       "type" : "simple"
     },
     "type" : "Text"
