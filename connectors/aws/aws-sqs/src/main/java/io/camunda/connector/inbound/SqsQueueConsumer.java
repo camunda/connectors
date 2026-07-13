@@ -82,7 +82,7 @@ public class SqsQueueConsumer implements Runnable {
                 activity
                     .withSeverity(Severity.WARNING)
                     .withTag(ActivityLogTag.MESSAGE)
-                    .withMessage("NACK - failed to correlate event : " + e.getMessage()));
+                    .withMessage("NACK - failed to correlate event", e));
       }
     } while (queueConsumerActive.get());
     LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().url());
