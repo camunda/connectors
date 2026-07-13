@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
@@ -238,6 +239,142 @@ class AnthropicMessageRequestConverterTest {
     assertThat(
             toolResultBlock.content().orElseThrow().asBlocks().get(0).text().orElseThrow().text())
         .isEqualTo("result");
+  }
+
+  @Test
+  void roundTripsProviderContentBackToServerToolBlockParams() {
+    // Same fixture shape as AnthropicMessageResponseConverterTest
+    // .mapsServerToolBlocksToProviderContentPreservingOrder (Task 2): a code-execution
+    // server_tool_use block followed by its code_execution_tool_result, referencing the same id.
+    // This test proves the request-side round-trip: the response converter's ProviderContent
+    // capture, when replayed as history on a subsequent request, must reproduce the identical
+    // native content blocks (id and order preserved) -- load-bearing for pause_turn continuations
+    // and code-execution container continuity.
+    final var serverToolUse =
+        new ProviderContent(
+            "anthropic",
+            "server_tool_use",
+            Map.of(
+                "id",
+                "srvtoolu_01",
+                "name",
+                "code_execution",
+                "type",
+                "server_tool_use",
+                "input",
+                Map.of("code", "print(1)")),
+            null);
+    final var codeExecutionToolResult =
+        new ProviderContent(
+            "anthropic",
+            "code_execution_tool_result",
+            Map.of(
+                "tool_use_id",
+                "srvtoolu_01",
+                "type",
+                "code_execution_tool_result",
+                "content",
+                Map.of(
+                    "type",
+                    "code_execution_result",
+                    "stdout",
+                    "1\n",
+                    "stderr",
+                    "",
+                    "return_code",
+                    0L)),
+            null);
+
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                UserMessage.builder()
+                    .content(List.of(TextContent.textContent("run some code")))
+                    .build(),
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            TextContent.textContent("working"),
+                            serverToolUse,
+                            codeExecutionToolResult,
+                            TextContent.textContent("done")))
+                    .build()),
+            List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null), null), snapshot, ModelCapabilities.builder().build());
+
+    assertThat(params.messages()).hasSize(2);
+
+    final var assistantMessage = params.messages().get(1);
+    assertThat(assistantMessage.role()).isEqualTo(BetaMessageParam.Role.ASSISTANT);
+
+    final var blocks = assistantMessage.content().asBetaContentBlockParams();
+    assertThat(blocks).hasSize(4);
+
+    assertThat(blocks.get(0).text().orElseThrow().text()).isEqualTo("working");
+
+    final var serverToolUseBlock = blocks.get(1).serverToolUse().orElseThrow();
+    assertThat(serverToolUseBlock.id()).isEqualTo("srvtoolu_01");
+    assertThat(serverToolUseBlock.name().toString()).isEqualTo("code_execution");
+
+    final var codeExecutionToolResultBlock = blocks.get(2).codeExecutionToolResult().orElseThrow();
+    assertThat(codeExecutionToolResultBlock.toolUseId()).isEqualTo("srvtoolu_01");
+
+    assertThat(blocks.get(3).text().orElseThrow().text()).isEqualTo("done");
+  }
+
+  @Test
+  void appendsClientToolCallsAfterProviderContentBlocksRegardlessOfOriginalInterleaving() {
+    // Documents a known limitation: assistantParam() always emits `content` blocks (including any
+    // ProviderContent server-tool blocks, in their original order) BEFORE appending `toolCalls` as
+    // trailing tool_use blocks (see AnthropicMessageRequestConverter#assistantParam). This mirrors
+    // the domain model split -- ProviderContent lives in `content`, client tool calls live in the
+    // separate `toolCalls` list -- and is order-preserving *within* each of those two groups, but
+    // NOT globally: a real Anthropic response that interleaves a client tool_use BETWEEN two server
+    // blocks (e.g. server_tool_use, client tool_use, code_execution_tool_result) cannot be
+    // reconstructed with that exact interleaving on the request side, since the domain model has
+    // already split them into two ordered lists that don't record their relative position.
+    //
+    // This is a deliberate simplification, not a bug: Anthropic's own documented patterns for
+    // code execution / Skills do not interleave a client tool_use in the middle of a server-tool
+    // pair, so grouping (server blocks together, then client tool_use blocks) reproduces every
+    // known real scenario. Revisit only if a genuine interleaving scenario is identified.
+    final var serverToolUse =
+        new ProviderContent(
+            "anthropic",
+            "server_tool_use",
+            Map.of(
+                "id", "srvtoolu_01",
+                "name", "code_execution",
+                "type", "server_tool_use",
+                "input", Map.of("code", "print(1)")),
+            null);
+
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(serverToolUse))
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("toolu_1")
+                                .name("get_weather")
+                                .arguments(Map.of("city", "Berlin"))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null), null), snapshot, ModelCapabilities.builder().build());
+
+    final var blocks = params.messages().get(0).content().asBetaContentBlockParams();
+    assertThat(blocks).hasSize(2);
+    assertThat(blocks.get(0).serverToolUse()).isPresent();
+    assertThat(blocks.get(1).toolUse().orElseThrow().id()).isEqualTo("toolu_1");
   }
 
   @Test

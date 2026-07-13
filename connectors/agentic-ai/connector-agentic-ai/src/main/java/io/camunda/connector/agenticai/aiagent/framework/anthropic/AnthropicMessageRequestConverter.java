@@ -205,6 +205,16 @@ public class AnthropicMessageRequestConverter {
     }
   }
 
+  // Known limitation: `content` (including any ProviderContent server-tool blocks, e.g.
+  // server_tool_use/code_execution_tool_result, in their original order) is always emitted BEFORE
+  // `toolCalls` (client tool_use blocks) below, since the domain model splits an assistant
+  // message's server-tool blocks and client tool calls into two separate ordered lists that don't
+  // record their relative position. A response that interleaves a client tool_use BETWEEN two
+  // server blocks therefore cannot be replayed with that exact interleaving on the request side.
+  // No known real Anthropic Skills/code-execution scenario interleaves this way -- server blocks
+  // and client tool_use blocks are documented as appearing in separate, non-interleaved groups --
+  // so this grouping is intentional; only restructure if a genuine interleaving case surfaces (see
+  // AnthropicMessageRequestConverterTest#appendsClientToolCallsAfterProviderContentBlocksRegardlessOfOriginalInterleaving).
   private BetaMessageParam assistantParam(AssistantMessage assistant) {
     final List<BetaContentBlockParam> blocks =
         new ArrayList<>(contentConverter.toContentBlockParams(assistant.content()));
