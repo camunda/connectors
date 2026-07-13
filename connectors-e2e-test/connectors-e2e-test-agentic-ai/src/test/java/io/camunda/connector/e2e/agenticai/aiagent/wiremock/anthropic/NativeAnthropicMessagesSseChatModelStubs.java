@@ -25,6 +25,8 @@ import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.Anth
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
 import com.anthropic.models.beta.messages.BetaCacheCreation;
+import com.anthropic.models.beta.messages.BetaCodeExecutionResultBlock;
+import com.anthropic.models.beta.messages.BetaCodeExecutionToolResultBlock;
 import com.anthropic.models.beta.messages.BetaContainer;
 import com.anthropic.models.beta.messages.BetaContextManagementResponse;
 import com.anthropic.models.beta.messages.BetaDiagnostics;
@@ -40,6 +42,7 @@ import com.anthropic.models.beta.messages.BetaRawMessageStartEvent;
 import com.anthropic.models.beta.messages.BetaRawMessageStopEvent;
 import com.anthropic.models.beta.messages.BetaRefusalStopDetails;
 import com.anthropic.models.beta.messages.BetaServerToolUsage;
+import com.anthropic.models.beta.messages.BetaServerToolUseBlock;
 import com.anthropic.models.beta.messages.BetaStopReason;
 import com.anthropic.models.beta.messages.BetaTextBlock;
 import com.anthropic.models.beta.messages.BetaToolUseBlock;
@@ -52,6 +55,8 @@ import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -89,6 +94,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  *       else {@code end_turn}) plus the final {@code usage.output_tokens}.
  *   <li>{@code message_stop}.
  * </ol>
+ *
+ * <p>{@link #stubServerToolUseConversation(ServerToolUseTurnStub, TurnStub...)} additionally stubs
+ * a Skills/code-execution turn - a {@code server_tool_use} block plus its {@code
+ * code_execution_tool_result} block, framed the same way - closing the e2e coverage gap that let an
+ * earlier native-path bug in that block-mapping ship undetected (see {@link
+ * ServerToolUseTurnStub}).
  */
 final class NativeAnthropicMessagesSseChatModelStubs {
 
@@ -103,17 +114,48 @@ final class NativeAnthropicMessagesSseChatModelStubs {
     if (turns.length == 0) {
       throw new IllegalArgumentException("At least one conversation turn is required");
     }
+    stubScenario(
+        Arrays.stream(turns).map(NativeAnthropicMessagesSseChatModelStubs::sseBody).toList());
+  }
 
-    for (int i = 0; i < turns.length; i++) {
+  /**
+   * Wires a scenario chain whose first turn is a {@link ServerToolUseTurnStub} - assistant text, an
+   * Anthropic {@code server_tool_use} (code_execution) block, the corresponding {@code
+   * code_execution_tool_result} block, and trailing text, exactly the shape a real Skills/
+   * code-execution turn returns (see {@code AnthropicMessageResponseConverterTest
+   * #mapsServerToolBlocksToProviderContentPreservingOrder}) - followed by any number of ordinary
+   * {@link TurnStub} turns.
+   *
+   * <p>Deliberately NOT expressed as a {@link TurnStub} case: {@code TurnStub} is the
+   * provider-agnostic SPI shared by every provider's fixture (OpenAI, Azure OpenAI, Bedrock,
+   * Anthropic), each with its own exhaustive switch over it. Server-tool blocks are an
+   * Anthropic-native-only wire concept with no cross-provider equivalent, so adding a case here
+   * would force an unrelated edit onto every other provider's stub for a shape they can never
+   * produce. This method - and {@link ServerToolUseTurnStub} - live only on this native-Anthropic
+   * SSE stub instead.
+   */
+  static void stubServerToolUseConversation(
+      ServerToolUseTurnStub serverToolUseTurn, TurnStub... followUpTurns) {
+    final List<String> bodies = new ArrayList<>();
+    bodies.add(serverToolUseSseBody(serverToolUseTurn));
+    for (final TurnStub turn : followUpTurns) {
+      bodies.add(sseBody(turn));
+    }
+    stubScenario(bodies);
+  }
+
+  /** Shared scenario-chaining plumbing: returns each pre-rendered SSE body in order. */
+  private static void stubScenario(List<String> bodies) {
+    for (int i = 0; i < bodies.size(); i++) {
       final String fromState = i == 0 ? Scenario.STARTED : stateName(i);
 
       ScenarioMappingBuilder mapping =
           post(urlPathEqualTo(MESSAGES_PATH))
               .inScenario(SCENARIO_NAME)
               .whenScenarioStateIs(fromState)
-              .willReturn(sseResponse(turns[i]));
+              .willReturn(sseResponse(bodies.get(i)));
 
-      if (i < turns.length - 1) {
+      if (i < bodies.size() - 1) {
         mapping = mapping.willSetStateTo(stateName(i + 1));
       }
 
@@ -125,11 +167,11 @@ final class NativeAnthropicMessagesSseChatModelStubs {
     return "turn-" + index;
   }
 
-  private static ResponseDefinitionBuilder sseResponse(TurnStub turn) {
+  private static ResponseDefinitionBuilder sseResponse(String body) {
     return aResponse()
         .withStatus(200)
         .withHeader("Content-Type", "text/event-stream")
-        .withBody(sseBody(turn));
+        .withBody(body);
   }
 
   private static String sseBody(TurnStub turn) {
@@ -158,6 +200,105 @@ final class NativeAnthropicMessagesSseChatModelStubs {
     writeEvent(body, "message_stop", BetaRawMessageStopEvent.builder().build());
 
     return body.toString();
+  }
+
+  /**
+   * A server-tool-use turn's data, in the shape Anthropic returns for a Skills/code-execution turn:
+   * assistant text, a {@code server_tool_use} (code_execution) call, its {@code
+   * code_execution_tool_result}, and trailing text - all in one assistant message, ending the turn
+   * with {@code stop_reason: end_turn} (never {@code tool_use}: server-tool blocks are resolved
+   * server-side by Anthropic, not dispatched back to the caller as a client tool call).
+   */
+  record ServerToolUseTurnStub(
+      String precedingText,
+      String serverToolUseId,
+      String codeInputJson,
+      String stdout,
+      String followingText,
+      int inputTokens,
+      int outputTokens) {}
+
+  private static String serverToolUseSseBody(ServerToolUseTurnStub turn) {
+    final int id = TURN_COUNTER.getAndIncrement();
+    final StringBuilder body = new StringBuilder();
+
+    writeEvent(body, "message_start", messageStartEvent(id, turn.inputTokens()));
+
+    int index = 0;
+    writeTextBlock(body, index++, turn.precedingText());
+    writeServerToolUseBlock(body, index++, turn.serverToolUseId(), turn.codeInputJson());
+    writeCodeExecutionToolResultBlock(body, index++, turn.serverToolUseId(), turn.stdout());
+    writeTextBlock(body, index++, turn.followingText());
+
+    // Never tool_use: server-tool blocks are resolved server-side, not a client-dispatched call.
+    writeEvent(
+        body, "message_delta", messageDeltaEvent(false, turn.inputTokens(), turn.outputTokens()));
+    writeEvent(body, "message_stop", BetaRawMessageStopEvent.builder().build());
+
+    return body.toString();
+  }
+
+  /**
+   * Frames a {@code server_tool_use} block exactly like {@link #writeToolUseBlock} frames a client
+   * {@code tool_use} block: the vendor SDK's {@code BetaMessageAccumulator} tracks both via the
+   * same {@code input_json_delta} accumulation path ({@code tracksToolInput()} covers {@code
+   * isToolUse() || isServerToolUse() || isMcpToolUse()}), so the {@code content_block_start} seeds
+   * an empty {@code input} and the real argument JSON streams as a delta before {@code
+   * content_block_stop} finalizes it. {@code codeInputJson} must be a valid JSON object (not
+   * empty/missing) - an empty {@code input_json_delta} finalizes to Anthropic's no-argument {@code
+   * JsonMissing} sentinel, which is the shape the earlier {@code JsonMissing} crash this suite
+   * guards against was triggered by.
+   */
+  private static void writeServerToolUseBlock(
+      StringBuilder body, int index, String id, String codeInputJson) {
+    writeEvent(
+        body,
+        "content_block_start",
+        BetaRawContentBlockStartEvent.builder()
+            .contentBlock(
+                BetaServerToolUseBlock.builder()
+                    .id(id)
+                    .name(BetaServerToolUseBlock.Name.CODE_EXECUTION)
+                    .caller(BetaDirectCaller.builder().build())
+                    .input(JsonValue.from(Map.of()))
+                    .build())
+            .index(index)
+            .build());
+    writeEvent(
+        body,
+        "content_block_delta",
+        BetaRawContentBlockDeltaEvent.builder().inputJsonDelta(codeInputJson).index(index).build());
+    writeEvent(
+        body, "content_block_stop", BetaRawContentBlockStopEvent.builder().index(index).build());
+  }
+
+  /**
+   * Frames a {@code code_execution_tool_result} block fully formed at {@code content_block_start}
+   * (no delta needed): unlike {@code server_tool_use}, {@code tracksToolInput()} does not cover
+   * this block type, so the accumulator seeds it directly from the start event's content block and
+   * {@code content_block_stop} is a no-op check.
+   */
+  private static void writeCodeExecutionToolResultBlock(
+      StringBuilder body, int index, String toolUseId, String stdout) {
+    writeEvent(
+        body,
+        "content_block_start",
+        BetaRawContentBlockStartEvent.builder()
+            .contentBlock(
+                BetaCodeExecutionToolResultBlock.builder()
+                    .toolUseId(toolUseId)
+                    .content(
+                        BetaCodeExecutionResultBlock.builder()
+                            .content(List.of())
+                            .returnCode(0L)
+                            .stderr("")
+                            .stdout(stdout)
+                            .build())
+                    .build())
+            .index(index)
+            .build());
+    writeEvent(
+        body, "content_block_stop", BetaRawContentBlockStopEvent.builder().index(index).build());
   }
 
   private static BetaRawMessageStartEvent messageStartEvent(int id, int inputTokens) {
