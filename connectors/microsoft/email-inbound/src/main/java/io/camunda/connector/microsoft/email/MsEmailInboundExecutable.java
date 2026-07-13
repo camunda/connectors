@@ -102,8 +102,7 @@ public class MsEmailInboundExecutable
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage(
-                      "Microsoft O365 Email connector activation failed: " + e.getMessage()));
+                  .withMessage("Microsoft O365 Email connector activation failed", e));
       context.reportHealth(Health.down(e));
       throw e;
     }
