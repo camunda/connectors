@@ -10,9 +10,9 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.core.http.StreamResponse;
-import com.anthropic.models.messages.Message;
-import com.anthropic.models.messages.MessageCreateParams;
-import com.anthropic.models.messages.RawMessageStreamEvent;
+import com.anthropic.models.beta.messages.BetaMessage;
+import com.anthropic.models.beta.messages.BetaRawMessageStreamEvent;
+import com.anthropic.models.beta.messages.MessageCreateParams;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
@@ -24,16 +24,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Native Anthropic {@link ChatModelApi}: drives the vendor SDK's streaming Messages endpoint for
- * every call (Anthropic has no meaningful non-streaming distinction for this connector's purposes;
- * streaming is used uniformly to accumulate the same {@link Message} shape the non-streaming API
- * would return), then delegates to the Task 3/4 converters to translate to/from the domain model.
+ * Native Anthropic {@link ChatModelApi}: drives the vendor SDK's streaming beta Messages endpoint
+ * for every call (Anthropic has no meaningful non-streaming distinction for this connector's
+ * purposes; streaming is used uniformly to accumulate the same {@link BetaMessage} shape the
+ * non-streaming API would return), then delegates to the Task 3/4 converters to translate to/from
+ * the domain model.
  *
  * <p>{@link AnthropicClient#close()} is deliberately not exercised through try-with-resources: the
  * vendor SDK's {@code AnthropicClient} interface does not implement {@link AutoCloseable} (its
  * {@code close()} is a plain, unchecked method the SDK explicitly documents as usually unnecessary
  * to call). {@link StreamResponse}, in contrast, does implement {@code AutoCloseable} and is closed
  * via try-with-resources.
+ *
+ * <p>Uses the <strong>beta</strong> messages client (rather than the stable {@code
+ * client.messages()}) since it is required for upcoming Skills support; this migration is otherwise
+ * behavior-identical.
  */
 public class AnthropicChatModelApi implements ChatModelApi {
 
@@ -81,9 +86,9 @@ public class AnthropicChatModelApi implements ChatModelApi {
     try {
       final AnthropicClient client = clientFactory.create();
       try {
-        final Message message;
-        try (StreamResponse<RawMessageStreamEvent> stream =
-            client.messages().createStreaming(params)) {
+        final BetaMessage message;
+        try (StreamResponse<BetaRawMessageStreamEvent> stream =
+            client.beta().messages().createStreaming(params)) {
           message = streamAssembler.assemble(stream);
         }
         final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);

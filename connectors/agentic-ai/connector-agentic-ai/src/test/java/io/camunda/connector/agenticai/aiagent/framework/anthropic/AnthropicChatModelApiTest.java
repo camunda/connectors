@@ -16,10 +16,11 @@ import static org.mockito.Mockito.when;
 
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.core.http.StreamResponse;
-import com.anthropic.models.messages.Message;
-import com.anthropic.models.messages.MessageCreateParams;
-import com.anthropic.models.messages.RawMessageStreamEvent;
-import com.anthropic.services.blocking.MessageService;
+import com.anthropic.models.beta.messages.BetaMessage;
+import com.anthropic.models.beta.messages.BetaRawMessageStreamEvent;
+import com.anthropic.models.beta.messages.MessageCreateParams;
+import com.anthropic.services.blocking.BetaService;
+import com.anthropic.services.blocking.beta.MessageService;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
@@ -41,12 +42,13 @@ class AnthropicChatModelApiTest {
 
   @Mock private AnthropicClientFactory clientFactory;
   @Mock private AnthropicClient client;
+  @Mock private BetaService betaService;
   @Mock private MessageService messageService;
-  @Mock private StreamResponse<RawMessageStreamEvent> streamResponse;
+  @Mock private StreamResponse<BetaRawMessageStreamEvent> streamResponse;
   @Mock private AnthropicMessageRequestConverter requestConverter;
   @Mock private AnthropicMessageResponseConverter responseConverter;
   @Mock private AnthropicMessageStreamAssembler streamAssembler;
-  @Mock private Message assembledMessage;
+  @Mock private BetaMessage assembledMessage;
 
   private final ModelCapabilities capabilities = ModelCapabilities.builder().build();
   private final ChatModelRequest request =
@@ -71,7 +73,8 @@ class AnthropicChatModelApiTest {
 
     when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities))).thenReturn(params);
     when(clientFactory.create()).thenReturn(client);
-    when(client.messages()).thenReturn(messageService);
+    when(client.beta()).thenReturn(betaService);
+    when(betaService.messages()).thenReturn(messageService);
     when(messageService.createStreaming(params)).thenReturn(streamResponse);
     when(streamAssembler.assemble(streamResponse)).thenReturn(assembledMessage);
     when(responseConverter.toResult(eq(assembledMessage), any())).thenReturn(expected);
@@ -105,7 +108,8 @@ class AnthropicChatModelApiTest {
 
     when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities))).thenReturn(params);
     when(clientFactory.create()).thenReturn(client);
-    when(client.messages()).thenReturn(messageService);
+    when(client.beta()).thenReturn(betaService);
+    when(betaService.messages()).thenReturn(messageService);
     when(messageService.createStreaming(params)).thenThrow(new RuntimeException("boom"));
 
     assertThatThrownBy(() -> api.call(request))

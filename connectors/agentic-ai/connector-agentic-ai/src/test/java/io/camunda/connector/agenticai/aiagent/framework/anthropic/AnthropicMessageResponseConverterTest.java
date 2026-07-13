@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.anthropic.core.ObjectMappers;
-import com.anthropic.models.messages.Message;
+import com.anthropic.models.beta.messages.BetaMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -27,9 +27,9 @@ class AnthropicMessageResponseConverterTest {
   private final AnthropicMessageResponseConverter converter =
       new AnthropicMessageResponseConverter(objectMapper);
 
-  private static Message message(String json) {
+  private static BetaMessage message(String json) {
     try {
-      return ObjectMappers.jsonMapper().readValue(json, Message.class);
+      return ObjectMappers.jsonMapper().readValue(json, BetaMessage.class);
     } catch (Exception e) {
       throw new RuntimeException("Failed to deserialize Message fixture", e);
     }

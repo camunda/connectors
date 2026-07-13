@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
-import com.anthropic.models.messages.Base64ImageSource;
-import com.anthropic.models.messages.ContentBlockParam;
-import com.anthropic.models.messages.DocumentBlockParam;
-import com.anthropic.models.messages.ImageBlockParam;
-import com.anthropic.models.messages.TextBlockParam;
-import com.anthropic.models.messages.ToolResultBlockParam;
+import com.anthropic.models.beta.messages.BetaBase64ImageSource;
+import com.anthropic.models.beta.messages.BetaContentBlockParam;
+import com.anthropic.models.beta.messages.BetaImageBlockParam;
+import com.anthropic.models.beta.messages.BetaRequestDocumentBlock;
+import com.anthropic.models.beta.messages.BetaTextBlockParam;
+import com.anthropic.models.beta.messages.BetaToolResultBlockParam;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.DocumentModality;
@@ -27,8 +27,12 @@ import java.util.List;
 
 /**
  * Converts the domain {@link Content} model to Anthropic SDK content blocks, both for
- * user/assistant message bodies ({@link ContentBlockParam}) and tool-result bodies ({@link
- * ToolResultBlockParam.Content.Block}).
+ * user/assistant message bodies ({@link BetaContentBlockParam}) and tool-result bodies ({@link
+ * BetaToolResultBlockParam.Content.Block}).
+ *
+ * <p>Uses the <strong>beta</strong> messages client types (rather than the stable {@code
+ * com.anthropic.models.messages} family) since the beta client is required for upcoming Skills
+ * support; this migration is otherwise behavior-identical.
  */
 public class AnthropicContentConverter {
 
@@ -38,18 +42,19 @@ public class AnthropicContentConverter {
     this.objectMapper = objectMapper;
   }
 
-  public List<ContentBlockParam> toContentBlockParams(List<Content> content) {
-    final List<ContentBlockParam> blocks = new ArrayList<>();
+  public List<BetaContentBlockParam> toContentBlockParams(List<Content> content) {
+    final List<BetaContentBlockParam> blocks = new ArrayList<>();
     for (final Content c : content) {
       switch (c) {
         case TextContent text ->
             blocks.add(
-                ContentBlockParam.ofText(TextBlockParam.builder().text(text.text()).build()));
+                BetaContentBlockParam.ofText(
+                    BetaTextBlockParam.builder().text(text.text()).build()));
         case DocumentContent doc -> blocks.add(documentBlock(doc));
         case ObjectContent obj ->
             blocks.add(
-                ContentBlockParam.ofText(
-                    TextBlockParam.builder().text(writeAsJson(obj.content())).build()));
+                BetaContentBlockParam.ofText(
+                    BetaTextBlockParam.builder().text(writeAsJson(obj.content())).build()));
         // Reasoning content is NOT re-emitted on the request side in C7 (signature
         // round-trip is deferred); skip it so history replay stays valid.
         case ReasoningContent ignored -> {}
@@ -58,57 +63,60 @@ public class AnthropicContentConverter {
     return blocks;
   }
 
-  public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {
-    final List<ToolResultBlockParam.Content.Block> blocks = new ArrayList<>();
+  public List<BetaToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {
+    final List<BetaToolResultBlockParam.Content.Block> blocks = new ArrayList<>();
     for (final Content c : content) {
       switch (c) {
         case TextContent text ->
             blocks.add(
-                ToolResultBlockParam.Content.Block.ofText(
-                    TextBlockParam.builder().text(text.text()).build()));
+                BetaToolResultBlockParam.Content.Block.ofText(
+                    BetaTextBlockParam.builder().text(text.text()).build()));
         case DocumentContent doc -> {
-          final ContentBlockParam block = documentBlock(doc);
-          block.image().ifPresent(i -> blocks.add(ToolResultBlockParam.Content.Block.ofImage(i)));
+          final BetaContentBlockParam block = documentBlock(doc);
+          block
+              .image()
+              .ifPresent(i -> blocks.add(BetaToolResultBlockParam.Content.Block.ofImage(i)));
           block
               .document()
-              .ifPresent(d -> blocks.add(ToolResultBlockParam.Content.Block.ofDocument(d)));
-          block.text().ifPresent(t -> blocks.add(ToolResultBlockParam.Content.Block.ofText(t)));
+              .ifPresent(d -> blocks.add(BetaToolResultBlockParam.Content.Block.ofDocument(d)));
+          block.text().ifPresent(t -> blocks.add(BetaToolResultBlockParam.Content.Block.ofText(t)));
         }
         case ObjectContent obj ->
             blocks.add(
-                ToolResultBlockParam.Content.Block.ofText(
-                    TextBlockParam.builder().text(writeAsJson(obj.content())).build()));
+                BetaToolResultBlockParam.Content.Block.ofText(
+                    BetaTextBlockParam.builder().text(writeAsJson(obj.content())).build()));
         default ->
             blocks.add(
-                ToolResultBlockParam.Content.Block.ofText(
-                    TextBlockParam.builder().text(writeAsJson(c)).build()));
+                BetaToolResultBlockParam.Content.Block.ofText(
+                    BetaTextBlockParam.builder().text(writeAsJson(c)).build()));
       }
     }
     return blocks;
   }
 
-  private ContentBlockParam documentBlock(DocumentContent doc) {
+  private BetaContentBlockParam documentBlock(DocumentContent doc) {
     final var modality = DocumentModality.fromDocument(doc.document());
     final var contentType = contentType(doc.document());
     return switch (modality) {
       case IMAGE ->
-          ContentBlockParam.ofImage(
-              ImageBlockParam.builder()
+          BetaContentBlockParam.ofImage(
+              BetaImageBlockParam.builder()
                   .source(
-                      Base64ImageSource.builder()
+                      BetaBase64ImageSource.builder()
                           .data(doc.document().asBase64())
-                          .mediaType(Base64ImageSource.MediaType.of(contentType))
+                          .mediaType(BetaBase64ImageSource.MediaType.of(contentType))
                           .build())
                   .build());
       case DOCUMENT ->
-          ContentBlockParam.ofDocument(
-              DocumentBlockParam.builder().base64Source(doc.document().asBase64()).build());
+          BetaContentBlockParam.ofDocument(
+              BetaRequestDocumentBlock.builder().base64Source(doc.document().asBase64()).build());
       // TEXT-family documents inline as plain text; AUDIO/VIDEO have no direct
       // Anthropic block yet, so fall back to a JSON reference like the bridge.
       case TEXT ->
-          ContentBlockParam.ofDocument(
-              DocumentBlockParam.builder().textSource(decodeUtf8(doc.document())).build());
-      default -> ContentBlockParam.ofText(TextBlockParam.builder().text(writeAsJson(doc)).build());
+          BetaContentBlockParam.ofDocument(
+              BetaRequestDocumentBlock.builder().textSource(decodeUtf8(doc.document())).build());
+      default ->
+          BetaContentBlockParam.ofText(BetaTextBlockParam.builder().text(writeAsJson(doc)).build());
     };
   }
 

@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
-import com.anthropic.models.messages.MessageParam;
+import com.anthropic.models.beta.messages.BetaMessageParam;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
@@ -81,7 +81,7 @@ class AnthropicMessageRequestConverterTest {
   }
 
   private static JsonNode requestBodyAsJson(
-      com.anthropic.models.messages.MessageCreateParams params) {
+      com.anthropic.models.beta.messages.MessageCreateParams params) {
     return ObjectMappers.jsonMapper().valueToTree(params._body());
   }
 
@@ -103,9 +103,9 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.messages()).hasSize(1);
     final var message = params.messages().get(0);
-    assertThat(message.role()).isEqualTo(MessageParam.Role.USER);
-    assertThat(message.content().asBlockParams()).hasSize(1);
-    assertThat(message.content().asBlockParams().get(0).text().orElseThrow().text())
+    assertThat(message.role()).isEqualTo(BetaMessageParam.Role.USER);
+    assertThat(message.content().asBetaContentBlockParams()).hasSize(1);
+    assertThat(message.content().asBetaContentBlockParams().get(0).text().orElseThrow().text())
         .isEqualTo("hi");
   }
 
@@ -136,7 +136,7 @@ class AnthropicMessageRequestConverterTest {
     assertThat(params.tools()).isPresent();
     assertThat(params.tools().orElseThrow()).hasSize(1);
 
-    final var tool = params.tools().orElseThrow().get(0).tool().orElseThrow();
+    final var tool = params.tools().orElseThrow().get(0).betaTool().orElseThrow();
     assertThat(tool.name()).isEqualTo("SuperfluxProduct");
     assertThat(tool.description()).contains("desc");
 
@@ -184,9 +184,9 @@ class AnthropicMessageRequestConverterTest {
     assertThat(params.messages()).hasSize(3);
 
     final var assistantMessage = params.messages().get(1);
-    assertThat(assistantMessage.role()).isEqualTo(MessageParam.Role.ASSISTANT);
+    assertThat(assistantMessage.role()).isEqualTo(BetaMessageParam.Role.ASSISTANT);
     final var toolUseBlock =
-        assistantMessage.content().asBlockParams().stream()
+        assistantMessage.content().asBetaContentBlockParams().stream()
             .filter(b -> b.toolUse().isPresent())
             .findFirst()
             .orElseThrow()
@@ -197,9 +197,9 @@ class AnthropicMessageRequestConverterTest {
     assertThat(toolUseBlock.input()._additionalProperties().get("a")).isEqualTo(JsonValue.from(5));
 
     final var toolResultMessage = params.messages().get(2);
-    assertThat(toolResultMessage.role()).isEqualTo(MessageParam.Role.USER);
+    assertThat(toolResultMessage.role()).isEqualTo(BetaMessageParam.Role.USER);
     final var toolResultBlock =
-        toolResultMessage.content().asBlockParams().get(0).toolResult().orElseThrow();
+        toolResultMessage.content().asBetaContentBlockParams().get(0).toolResult().orElseThrow();
     assertThat(toolResultBlock.toolUseId()).isEqualTo("id");
     assertThat(
             toolResultBlock.content().orElseThrow().asBlocks().get(0).text().orElseThrow().text())

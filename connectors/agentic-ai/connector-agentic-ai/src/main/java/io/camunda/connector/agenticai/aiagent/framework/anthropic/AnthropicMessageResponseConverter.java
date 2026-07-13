@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
-import com.anthropic.models.messages.ContentBlock;
-import com.anthropic.models.messages.Message;
-import com.anthropic.models.messages.StopReason;
-import com.anthropic.models.messages.ToolUseBlock;
-import com.anthropic.models.messages.Usage;
+import com.anthropic.models.beta.messages.BetaContentBlock;
+import com.anthropic.models.beta.messages.BetaMessage;
+import com.anthropic.models.beta.messages.BetaStopReason;
+import com.anthropic.models.beta.messages.BetaToolUseBlock;
+import com.anthropic.models.beta.messages.BetaUsage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
@@ -27,8 +27,8 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Maps an accumulated Anthropic SDK {@link Message} response to the domain {@link
- * AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatModelResult}.
+ * Maps an accumulated Anthropic SDK (beta messages client) {@link BetaMessage} response to the
+ * domain {@link AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatModelResult}.
  *
  * <p>Content mapping is read-only on the response side: {@code text} blocks become {@link
  * TextContent}, {@code tool_use} blocks become {@link ToolCall}s, and {@code thinking} / {@code
@@ -45,8 +45,12 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Note: the domain {@code io.camunda.connector.agenticai.aiagent.model.message.StopReason} is
  * referenced by its fully qualified name throughout this class (rather than importing it under its
- * simple name) purely to avoid a name clash with the Anthropic SDK's own {@link StopReason}; Java
- * has no import-aliasing syntax to express this more concisely.
+ * simple name) purely to avoid a name clash with the Anthropic SDK's own {@link BetaStopReason};
+ * Java has no import-aliasing syntax to express this more concisely.
+ *
+ * <p>Uses the <strong>beta</strong> messages client types (rather than the stable {@code
+ * com.anthropic.models.messages} family) since the beta client is required for upcoming Skills
+ * support; this migration is otherwise behavior-identical.
  */
 public class AnthropicMessageResponseConverter {
 
@@ -56,23 +60,23 @@ public class AnthropicMessageResponseConverter {
     this.objectMapper = objectMapper;
   }
 
-  public ChatModelResult toResult(Message message, Duration executionTime) {
+  public ChatModelResult toResult(BetaMessage message, Duration executionTime) {
     final AssistantMessage assistantMessage = toAssistantMessage(message);
     final AgentMetrics metrics =
         toMetrics(message, assistantMessage.toolCalls().size(), executionTime);
 
     final boolean paused =
-        message.stopReason().map(sr -> sr.equals(StopReason.PAUSE_TURN)).orElse(false);
+        message.stopReason().map(sr -> sr.equals(BetaStopReason.PAUSE_TURN)).orElse(false);
     return paused
         ? new ChatModelResult.Continuation(assistantMessage, metrics)
         : new ChatModelResult.Completed(assistantMessage, metrics);
   }
 
-  AssistantMessage toAssistantMessage(Message message) {
+  AssistantMessage toAssistantMessage(BetaMessage message) {
     final List<Content> content = new ArrayList<>();
     final List<ToolCall> toolCalls = new ArrayList<>();
 
-    for (final ContentBlock block : message.content()) {
+    for (final BetaContentBlock block : message.content()) {
       if (block.isText()) {
         content.add(TextContent.textContent(block.text().orElseThrow().text()));
       } else if (block.isToolUse()) {
@@ -98,14 +102,14 @@ public class AnthropicMessageResponseConverter {
     return builder.build();
   }
 
-  private Map<String, Object> toolUseArguments(ToolUseBlock toolUse) {
+  private Map<String, Object> toolUseArguments(BetaToolUseBlock toolUse) {
     final Map<String, Object> arguments =
         objectMapper.convertValue(toolUse._input(), new TypeReference<Map<String, Object>>() {});
     return arguments != null ? arguments : Map.of();
   }
 
-  private AgentMetrics toMetrics(Message message, int toolCalls, Duration executionTime) {
-    final Usage usage = message.usage();
+  private AgentMetrics toMetrics(BetaMessage message, int toolCalls, Duration executionTime) {
+    final BetaUsage usage = message.usage();
     final var tokenUsage =
         AgentMetrics.TokenUsage.builder()
             .inputTokenCount((int) usage.inputTokens())
@@ -128,11 +132,11 @@ public class AnthropicMessageResponseConverter {
    * Normalizes the raw Anthropic stop reason to the provider-neutral domain {@code StopReason}.
    * {@code pause_turn} maps to {@code null} since it is surfaced as a {@link
    * ChatModelResult.Continuation} rather than a stop reason (the turn isn't actually finished).
-   * Uses {@link StopReason#value()} rather than {@code known()} so a genuinely unrecognised future
-   * value degrades to the domain {@code UNKNOWN} sentinel instead of throwing.
+   * Uses {@link BetaStopReason#value()} rather than {@code known()} so a genuinely unrecognised
+   * future value degrades to the domain {@code UNKNOWN} sentinel instead of throwing.
    */
   private io.camunda.connector.agenticai.aiagent.model.message.@Nullable StopReason mapStopReason(
-      @Nullable StopReason stopReason) {
+      @Nullable BetaStopReason stopReason) {
     if (stopReason == null) {
       return null;
     }

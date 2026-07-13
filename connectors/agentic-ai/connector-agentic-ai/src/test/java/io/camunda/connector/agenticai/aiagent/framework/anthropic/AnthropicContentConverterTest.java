@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.anthropic.models.messages.Base64ImageSource;
+import com.anthropic.models.beta.messages.BetaBase64ImageSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -62,7 +62,7 @@ class AnthropicContentConverterTest {
       final var image = blocks.get(0).image().orElseThrow();
       assertThat(image.source().base64().orElseThrow().data()).isEqualTo("QUJD");
       assertThat(image.source().base64().orElseThrow().mediaType())
-          .isEqualTo(Base64ImageSource.MediaType.IMAGE_PNG);
+          .isEqualTo(BetaBase64ImageSource.MediaType.IMAGE_PNG);
     }
 
     @Test

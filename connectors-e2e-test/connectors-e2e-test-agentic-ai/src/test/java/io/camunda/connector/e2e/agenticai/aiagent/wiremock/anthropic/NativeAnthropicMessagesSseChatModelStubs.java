@@ -24,24 +24,27 @@ import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.Anth
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
-import com.anthropic.models.messages.CacheCreation;
-import com.anthropic.models.messages.DirectCaller;
-import com.anthropic.models.messages.Message;
-import com.anthropic.models.messages.MessageDeltaUsage;
-import com.anthropic.models.messages.OutputTokensDetails;
-import com.anthropic.models.messages.RawContentBlockDeltaEvent;
-import com.anthropic.models.messages.RawContentBlockStartEvent;
-import com.anthropic.models.messages.RawContentBlockStopEvent;
-import com.anthropic.models.messages.RawMessageDeltaEvent;
-import com.anthropic.models.messages.RawMessageStartEvent;
-import com.anthropic.models.messages.RawMessageStopEvent;
-import com.anthropic.models.messages.RefusalStopDetails;
-import com.anthropic.models.messages.ServerToolUsage;
-import com.anthropic.models.messages.StopReason;
-import com.anthropic.models.messages.TextBlock;
-import com.anthropic.models.messages.ToolUseBlock;
-import com.anthropic.models.messages.Usage;
-import com.anthropic.models.messages.Usage.ServiceTier;
+import com.anthropic.models.beta.messages.BetaCacheCreation;
+import com.anthropic.models.beta.messages.BetaContainer;
+import com.anthropic.models.beta.messages.BetaContextManagementResponse;
+import com.anthropic.models.beta.messages.BetaDiagnostics;
+import com.anthropic.models.beta.messages.BetaDirectCaller;
+import com.anthropic.models.beta.messages.BetaMessage;
+import com.anthropic.models.beta.messages.BetaMessageDeltaUsage;
+import com.anthropic.models.beta.messages.BetaOutputTokensDetails;
+import com.anthropic.models.beta.messages.BetaRawContentBlockDeltaEvent;
+import com.anthropic.models.beta.messages.BetaRawContentBlockStartEvent;
+import com.anthropic.models.beta.messages.BetaRawContentBlockStopEvent;
+import com.anthropic.models.beta.messages.BetaRawMessageDeltaEvent;
+import com.anthropic.models.beta.messages.BetaRawMessageStartEvent;
+import com.anthropic.models.beta.messages.BetaRawMessageStopEvent;
+import com.anthropic.models.beta.messages.BetaRefusalStopDetails;
+import com.anthropic.models.beta.messages.BetaServerToolUsage;
+import com.anthropic.models.beta.messages.BetaStopReason;
+import com.anthropic.models.beta.messages.BetaTextBlock;
+import com.anthropic.models.beta.messages.BetaToolUseBlock;
+import com.anthropic.models.beta.messages.BetaUsage;
+import com.anthropic.models.beta.messages.BetaUsage.ServiceTier;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
@@ -59,27 +62,27 @@ import java.util.concurrent.atomic.AtomicInteger;
  * by the native provider) with real Server-Sent-Events framing.
  *
  * <p>{@code AnthropicChatModelApi} (the native, own-LLM-layer Anthropic provider) always drives
- * {@code client.messages().createStreaming(params)} and feeds the raw event stream to the vendor
- * SDK's {@code MessageAccumulator}, which requires a {@code message_start} &rarr; ... &rarr; {@code
- * message_stop} event sequence and throws ({@code IllegalStateException: 'message_stop' event not
- * yet received.}) if handed anything else - in particular the single buffered JSON body that {@link
- * AnthropicMessagesChatModelStubs} (shared with the langchain4j-bridge v1 fixture, whose client
- * issues a plain non-streaming POST) returns.
+ * {@code client.beta().messages().createStreaming(params)} and feeds the raw event stream to the
+ * vendor SDK's {@code BetaMessageAccumulator}, which requires a {@code message_start} &rarr; ...
+ * &rarr; {@code message_stop} event sequence and throws ({@code IllegalStateException:
+ * 'message_stop' event not yet received.}) if handed anything else - in particular the single
+ * buffered JSON body that {@link AnthropicMessagesChatModelStubs} (shared with the
+ * langchain4j-bridge v1 fixture, whose client issues a plain non-streaming POST) returns.
  *
- * <p>Each event is built using the vendor SDK's own {@code RawMessageStreamEvent} member types
+ * <p>Each event is built using the vendor SDK's own {@code BetaRawMessageStreamEvent} member types
  * (rather than hand-rolled JSON) and serialized with the SDK's own {@link
  * ObjectMappers#jsonMapper()}, so the bytes are guaranteed to parse exactly the way {@code
- * MessageAccumulator} expects them to. The per-turn data (assistant text, tool_use calls,
+ * BetaMessageAccumulator} expects them to. The per-turn data (assistant text, tool_use calls,
  * input/output token usage, stop reason) mirrors {@link AnthropicMessagesChatModelStubs.Turn}
  * exactly, just framed as SSE instead of one buffered JSON object:
  *
  * <ol>
- *   <li>{@code message_start} - a {@link Message} shell (id/type/role=assistant/model, empty
+ *   <li>{@code message_start} - a {@link BetaMessage} shell (id/type/role=assistant/model, empty
  *       content array, {@code usage.input_tokens} set, {@code stop_reason} explicitly {@code
  *       null}).
  *   <li>Per content block (text first, then each tool call, matching the buffered stub's ordering):
- *       {@code content_block_start} (a {@link TextBlock} with empty {@code text}, or a {@link
- *       ToolUseBlock} with empty {@code input}) + one {@code content_block_delta} ({@code
+ *       {@code content_block_start} (a {@link BetaTextBlock} with empty {@code text}, or a {@link
+ *       BetaToolUseBlock} with empty {@code input}) + one {@code content_block_delta} ({@code
  *       text_delta} carrying the full text, or {@code input_json_delta} carrying the full arguments
  *       JSON in one chunk) + {@code content_block_stop}.
  *   <li>{@code message_delta} - {@code stop_reason} ({@code tool_use} if there were tool calls,
@@ -152,61 +155,67 @@ final class NativeAnthropicMessagesSseChatModelStubs {
     }
 
     writeEvent(body, "message_delta", messageDeltaEvent(hasToolCalls, inputTokens, outputTokens));
-    writeEvent(body, "message_stop", RawMessageStopEvent.builder().build());
+    writeEvent(body, "message_stop", BetaRawMessageStopEvent.builder().build());
 
     return body.toString();
   }
 
-  private static RawMessageStartEvent messageStartEvent(int id, int inputTokens) {
-    final Message message =
-        Message.builder()
+  private static BetaRawMessageStartEvent messageStartEvent(int id, int inputTokens) {
+    final BetaMessage message =
+        BetaMessage.builder()
             .id("msg-test-sse-%s".formatted(id))
+            .container((BetaContainer) null)
             .content(List.of())
+            .contextManagement((BetaContextManagementResponse) null)
+            .diagnostics((BetaDiagnostics) null)
             .model("test-model")
-            .stopDetails((RefusalStopDetails) null)
-            .stopReason((StopReason) null)
+            .stopDetails((BetaRefusalStopDetails) null)
+            .stopReason((BetaStopReason) null)
             .stopSequence((String) null)
             .usage(
-                Usage.builder()
+                BetaUsage.builder()
                     .inputTokens(inputTokens)
                     .outputTokens(0)
-                    .cacheCreation((CacheCreation) null)
+                    .cacheCreation((BetaCacheCreation) null)
                     .cacheCreationInputTokens((Long) null)
                     .cacheReadInputTokens((Long) null)
                     .inferenceGeo((String) null)
-                    .outputTokensDetails((OutputTokensDetails) null)
-                    .serverToolUse((ServerToolUsage) null)
+                    .iterations(List.of())
+                    .outputTokensDetails((BetaOutputTokensDetails) null)
+                    .serverToolUse((BetaServerToolUsage) null)
                     .serviceTier((ServiceTier) null)
+                    .speed((BetaUsage.Speed) null)
                     .build())
             .build();
-    return RawMessageStartEvent.builder().message(message).build();
+    return BetaRawMessageStartEvent.builder().message(message).build();
   }
 
   private static void writeTextBlock(StringBuilder body, int index, String text) {
     writeEvent(
         body,
         "content_block_start",
-        RawContentBlockStartEvent.builder()
-            .contentBlock(TextBlock.builder().text("").citations(List.of()).build())
+        BetaRawContentBlockStartEvent.builder()
+            .contentBlock(BetaTextBlock.builder().text("").citations(List.of()).build())
             .index(index)
             .build());
     writeEvent(
         body,
         "content_block_delta",
-        RawContentBlockDeltaEvent.builder().textDelta(text).index(index).build());
-    writeEvent(body, "content_block_stop", RawContentBlockStopEvent.builder().index(index).build());
+        BetaRawContentBlockDeltaEvent.builder().textDelta(text).index(index).build());
+    writeEvent(
+        body, "content_block_stop", BetaRawContentBlockStopEvent.builder().index(index).build());
   }
 
   private static void writeToolUseBlock(StringBuilder body, int index, ToolCallStub toolCall) {
     writeEvent(
         body,
         "content_block_start",
-        RawContentBlockStartEvent.builder()
+        BetaRawContentBlockStartEvent.builder()
             .contentBlock(
-                ToolUseBlock.builder()
+                BetaToolUseBlock.builder()
                     .id(toolCall.id())
                     .name(toolCall.name())
-                    .caller(DirectCaller.builder().build())
+                    .caller(BetaDirectCaller.builder().build())
                     .input(JsonValue.from(Map.of()))
                     .build())
             .index(index)
@@ -214,30 +223,34 @@ final class NativeAnthropicMessagesSseChatModelStubs {
     writeEvent(
         body,
         "content_block_delta",
-        RawContentBlockDeltaEvent.builder()
+        BetaRawContentBlockDeltaEvent.builder()
             .inputJsonDelta(toolCall.argumentsJson())
             .index(index)
             .build());
-    writeEvent(body, "content_block_stop", RawContentBlockStopEvent.builder().index(index).build());
+    writeEvent(
+        body, "content_block_stop", BetaRawContentBlockStopEvent.builder().index(index).build());
   }
 
-  private static RawMessageDeltaEvent messageDeltaEvent(
+  private static BetaRawMessageDeltaEvent messageDeltaEvent(
       boolean hasToolCalls, int inputTokens, int outputTokens) {
-    return RawMessageDeltaEvent.builder()
+    return BetaRawMessageDeltaEvent.builder()
+        .contextManagement((BetaContextManagementResponse) null)
         .delta(
-            RawMessageDeltaEvent.Delta.builder()
-                .stopReason(hasToolCalls ? StopReason.TOOL_USE : StopReason.END_TURN)
-                .stopDetails((RefusalStopDetails) null)
+            BetaRawMessageDeltaEvent.Delta.builder()
+                .container((BetaContainer) null)
+                .stopReason(hasToolCalls ? BetaStopReason.TOOL_USE : BetaStopReason.END_TURN)
+                .stopDetails((BetaRefusalStopDetails) null)
                 .stopSequence((String) null)
                 .build())
         .usage(
-            MessageDeltaUsage.builder()
+            BetaMessageDeltaUsage.builder()
                 .cacheCreationInputTokens((Long) null)
                 .cacheReadInputTokens((Long) null)
                 .inputTokens(inputTokens)
+                .iterations(List.of())
                 .outputTokens(outputTokens)
-                .outputTokensDetails((OutputTokensDetails) null)
-                .serverToolUse((ServerToolUsage) null)
+                .outputTokensDetails((BetaOutputTokensDetails) null)
+                .serverToolUse((BetaServerToolUsage) null)
                 .build())
         .build();
   }

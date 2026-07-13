@@ -7,14 +7,14 @@
 package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
 import com.anthropic.core.JsonValue;
-import com.anthropic.models.messages.ContentBlockParam;
-import com.anthropic.models.messages.JsonOutputFormat;
-import com.anthropic.models.messages.MessageCreateParams;
-import com.anthropic.models.messages.MessageParam;
-import com.anthropic.models.messages.OutputConfig;
-import com.anthropic.models.messages.Tool;
-import com.anthropic.models.messages.ToolResultBlockParam;
-import com.anthropic.models.messages.ToolUseBlockParam;
+import com.anthropic.models.beta.messages.BetaContentBlockParam;
+import com.anthropic.models.beta.messages.BetaJsonOutputFormat;
+import com.anthropic.models.beta.messages.BetaMessageParam;
+import com.anthropic.models.beta.messages.BetaOutputConfig;
+import com.anthropic.models.beta.messages.BetaTool;
+import com.anthropic.models.beta.messages.BetaToolResultBlockParam;
+import com.anthropic.models.beta.messages.BetaToolUseBlockParam;
+import com.anthropic.models.beta.messages.MessageCreateParams;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
@@ -41,9 +41,13 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Maps a windowed {@link ConversationSnapshot} plus the resolved Anthropic model configuration to
- * an Anthropic SDK {@link MessageCreateParams} request, translating the domain {@link Message} /
- * {@link ToolCall} / {@link ToolCallResultContent} model into the wire shape via the {@link
- * AnthropicContentConverter} built for content blocks.
+ * an Anthropic SDK (beta messages client) {@link MessageCreateParams} request, translating the
+ * domain {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire
+ * shape via the {@link AnthropicContentConverter} built for content blocks.
+ *
+ * <p>Uses the <strong>beta</strong> messages client types (rather than the stable {@code
+ * com.anthropic.models.messages} family) since the beta client is required for upcoming Skills
+ * support; this migration is otherwise behavior-identical.
  */
 public class AnthropicMessageRequestConverter {
 
@@ -136,9 +140,10 @@ public class AnthropicMessageRequestConverter {
         case SystemMessage ignored -> {} // hoisted to top-level system
         case UserMessage user ->
             builder.addMessage(
-                MessageParam.builder()
-                    .role(MessageParam.Role.USER)
-                    .contentOfBlockParams(contentConverter.toContentBlockParams(user.content()))
+                BetaMessageParam.builder()
+                    .role(BetaMessageParam.Role.USER)
+                    .contentOfBetaContentBlockParams(
+                        contentConverter.toContentBlockParams(user.content()))
                     .build());
         case AssistantMessage assistant -> builder.addMessage(assistantParam(assistant));
         case ToolCallResultMessage toolResults -> builder.addMessage(toolResultParam(toolResults));
@@ -149,42 +154,45 @@ public class AnthropicMessageRequestConverter {
     }
   }
 
-  private MessageParam assistantParam(AssistantMessage assistant) {
-    final List<ContentBlockParam> blocks =
+  private BetaMessageParam assistantParam(AssistantMessage assistant) {
+    final List<BetaContentBlockParam> blocks =
         new ArrayList<>(contentConverter.toContentBlockParams(assistant.content()));
     for (final ToolCall toolCall : assistant.toolCalls()) {
       blocks.add(
-          ContentBlockParam.ofToolUse(
-              ToolUseBlockParam.builder()
+          BetaContentBlockParam.ofToolUse(
+              BetaToolUseBlockParam.builder()
                   .id(toolCall.id())
                   .name(toolCall.name())
                   .input(toInput(toolCall.arguments()))
                   .build()));
     }
-    return MessageParam.builder()
-        .role(MessageParam.Role.ASSISTANT)
-        .contentOfBlockParams(blocks)
+    return BetaMessageParam.builder()
+        .role(BetaMessageParam.Role.ASSISTANT)
+        .contentOfBetaContentBlockParams(blocks)
         .build();
   }
 
-  private MessageParam toolResultParam(ToolCallResultMessage message) {
-    final List<ContentBlockParam> blocks = new ArrayList<>();
+  private BetaMessageParam toolResultParam(ToolCallResultMessage message) {
+    final List<BetaContentBlockParam> blocks = new ArrayList<>();
     for (final ToolCallResultContent result : message.results()) {
       blocks.add(
-          ContentBlockParam.ofToolResult(
-              ToolResultBlockParam.builder()
+          BetaContentBlockParam.ofToolResult(
+              BetaToolResultBlockParam.builder()
                   .toolUseId(result.id())
                   .contentOfBlocks(contentConverter.toToolResultBlocks(result.content()))
                   .build()));
     }
-    return MessageParam.builder().role(MessageParam.Role.USER).contentOfBlockParams(blocks).build();
+    return BetaMessageParam.builder()
+        .role(BetaMessageParam.Role.USER)
+        .contentOfBetaContentBlockParams(blocks)
+        .build();
   }
 
   private void applyTools(
       MessageCreateParams.Builder builder, List<ToolDefinition> toolDefinitions) {
     for (final ToolDefinition definition : toolDefinitions) {
       final var toolBuilder =
-          Tool.builder()
+          BetaTool.builder()
               .name(definition.name())
               .inputSchema(toInputSchema(definition.inputSchema()));
       if (definition.description() != null) {
@@ -194,7 +202,7 @@ public class AnthropicMessageRequestConverter {
     }
   }
 
-  private Tool.InputSchema toInputSchema(Map<String, Object> schema) {
+  private BetaTool.InputSchema toInputSchema(Map<String, Object> schema) {
     // input_schema is a JSON-schema object; feed properties/required/$defs/etc. through
     // additionalProperties so the whole schema serialises verbatim (the SDK owns "type": "object"
     // as a dedicated, validated field defaulting to that value, so it must be excluded here to
@@ -206,7 +214,7 @@ public class AnthropicMessageRequestConverter {
             additional.put(k, JsonValue.from(v));
           }
         });
-    return Tool.InputSchema.builder().additionalProperties(additional).build();
+    return BetaTool.InputSchema.builder().additionalProperties(additional).build();
   }
 
   private void applyResponseFormat(
@@ -219,17 +227,18 @@ public class AnthropicMessageRequestConverter {
     final Map<String, JsonValue> schema = new LinkedHashMap<>();
     json.schema().forEach((k, v) -> schema.put(k, JsonValue.from(v)));
     builder.outputConfig(
-        OutputConfig.builder()
+        BetaOutputConfig.builder()
             .format(
-                JsonOutputFormat.builder()
-                    .schema(JsonOutputFormat.Schema.builder().additionalProperties(schema).build())
+                BetaJsonOutputFormat.builder()
+                    .schema(
+                        BetaJsonOutputFormat.Schema.builder().additionalProperties(schema).build())
                     .build())
             .build());
   }
 
-  private ToolUseBlockParam.Input toInput(Map<String, Object> arguments) {
+  private BetaToolUseBlockParam.Input toInput(Map<String, Object> arguments) {
     final Map<String, JsonValue> converted = new LinkedHashMap<>();
     arguments.forEach((k, v) -> converted.put(k, JsonValue.from(v)));
-    return ToolUseBlockParam.Input.builder().putAllAdditionalProperties(converted).build();
+    return BetaToolUseBlockParam.Input.builder().putAllAdditionalProperties(converted).build();
   }
 }
