@@ -52,15 +52,10 @@ public @interface ElementTemplate {
   ExtensionProperty[] extensionProperties() default {};
 
   /**
-   * Configuration classes whose configuration templates are embedded in the generated element
-   * template.
-   *
-   * <p>Each referenced class must be annotated with {@code @Configuration} (from the SDK). Its
-   * {@link TemplateProperty}-annotated fields are walked in configuration-template extraction mode
-   * to produce the embedded template's property list (with {@code property} bindings, no {@code
-   * feel}, and optional {@code secret} hints). The configuration's {@code id} / {@code kind} /
-   * {@code version} / {@code name} become the embedded template's {@code id} / {@code kind} /
-   * {@code version} / {@code name}.
+   * Configuration classes whose templates are embedded in the generated element template. Each
+   * class must be annotated with {@code @Configuration}; its {@link TemplateProperty}-annotated
+   * fields become the embedded template's properties, and its {@code id}, {@code kind}, {@code
+   * version}, and {@code name} become the template's corresponding fields.
    */
   Class<?>[] configurations() default {};
 

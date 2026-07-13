@@ -24,26 +24,15 @@ import java.lang.annotation.Target;
 /**
  * Marks a data class as a configuration type.
  *
- * <p>A configuration is a reusable, org-managed value (a credential is a configuration whose {@link
- * #kind()} is {@code CREDENTIAL}) that a process references instead of inlining the fields into the
- * model. This annotation is the identity contract of that type: its {@link #id()}, {@link #kind()},
- * and {@link #version()} identify the configuration and are read both by the element template
- * generator (to emit the chooser and the embedded configuration template) and by the connector
- * runtime (to interpret a bound {@code configuration} object).
+ * <p>A configuration is a reusable value referenced by a process instead of inlining its fields
+ * into the model; a credential is a configuration whose {@link #kind()} is {@code CREDENTIAL}. The
+ * {@link #id()}, {@link #version()}, {@link #kind()}, and {@link #name()} identify the type and are
+ * read by both the element template generator and the connector runtime.
  *
- * <p>It lives in the SDK — rather than in the element-template-generator annotations — precisely
- * because it is a runtime-readable contract, in the same category as {@code @OutboundConnector} /
- * {@code @InboundConnector}: a type-level identity annotation consumed by both the runtime and the
- * generator. Presentation-only annotations (such as {@code @TemplateProperty} and
- * {@code @ElementTemplate}) remain in the generator.
- *
- * <p>The generator walks the {@code @TemplateProperty}-annotated fields of the annotated class in
- * configuration-template extraction mode to produce the embedded template's property list (with
- * {@code property} bindings, no {@code feel}, and optional {@code secret} hints). The {@link #id()}
- * is used as the {@code configurationTemplate} of a chooser property (a field typed as this class
- * and annotated {@code @TemplateProperty(type = Configuration)}). The floor {@link #version()},
- * {@link #name()}, and {@link #kind()} live only on the embedded {@code configurationTemplates[]}
- * entry, not on the chooser. Reference the classes to embed from
+ * <p>The generator reads the {@code @TemplateProperty}-annotated fields of the class to build the
+ * embedded configuration template's properties, and uses {@link #id()} as the {@code
+ * configurationTemplate} of a chooser property (a field typed as this class and annotated
+ * {@code @TemplateProperty(type = Configuration)}). Classes to embed are referenced from
  * {@code @ElementTemplate.configurations()}.
  */
 @Retention(RetentionPolicy.RUNTIME)
@@ -57,23 +46,20 @@ public @interface Configuration {
   String id();
 
   /**
-   * The floor version of the configuration. The Modeler uses this as the minimum version required
-   * when filtering compatible configuration instances.
+   * Floor version of the configuration. The Modeler uses it as the minimum version when filtering
+   * compatible configuration instances.
    */
   long version() default 1;
 
   /**
-   * Human-readable name of the configuration. Shown in the configuration editor and used as the
-   * primary chooser label. Required and must be non-blank (enforced at generation time) — the
-   * configuration-template schema requires {@code name}.
+   * Display name of the configuration, shown in the configuration editor and used as the chooser
+   * label. Must be non-blank.
    */
   String name();
 
   /**
-   * The class of configuration this type produces. It is written into the created instance's
-   * metadata bag, where it discriminates configuration-derived instances from plain cluster
-   * variables and lets the editor categorize the instance. The only value defined today is {@code
-   * CREDENTIAL}.
+   * The configuration class, written to the created instance's metadata bag to categorize it. The
+   * only value defined today is {@code CREDENTIAL}.
    */
   String kind() default "CREDENTIAL";
 }
