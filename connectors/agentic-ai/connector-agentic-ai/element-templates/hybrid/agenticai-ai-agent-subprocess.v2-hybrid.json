@@ -894,6 +894,30 @@
     "tooltip" : "Enables Anthropic's built-in <code>web_search</code> server tool, letting the model search the web for up-to-date information.",
     "type" : "Boolean"
   }, {
+    "id" : "configuration.anthropic.webSearchVersion",
+    "label" : "Web search tool version",
+    "optional" : true,
+    "value" : "web_search_20250305",
+    "feel" : "optional",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.webSearchVersion",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "configuration.anthropic.enableWebSearch",
+        "equals" : true,
+        "type" : "simple"
+      }, {
+        "property" : "configuration.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Anthropic <code>web_search</code> tool version string (wire <code>type</code>). The default <code>web_search_20250305</code> calls directly and works alongside Skills and code execution in the same request. Newer versions (<code>web_search_20260209</code> and later) enable dynamic filtering (the tool runs inside code execution) and are <b>not yet</b> compatible with Skills or code execution in the same request.",
+    "type" : "String"
+  }, {
     "id" : "configuration.anthropic.enableWebFetch",
     "label" : "Enable web fetch",
     "optional" : true,
@@ -911,6 +935,30 @@
     },
     "tooltip" : "Enables Anthropic's built-in <code>web_fetch</code> server tool, letting the model retrieve the full content of a URL.",
     "type" : "Boolean"
+  }, {
+    "id" : "configuration.anthropic.webFetchVersion",
+    "label" : "Web fetch tool version",
+    "optional" : true,
+    "value" : "web_fetch_20250910",
+    "feel" : "optional",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.webFetchVersion",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "configuration.anthropic.enableWebFetch",
+        "equals" : true,
+        "type" : "simple"
+      }, {
+        "property" : "configuration.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Anthropic <code>web_fetch</code> tool version string (wire <code>type</code>). The default <code>web_fetch_20250910</code> calls directly and works alongside Skills and code execution in the same request. Newer versions (<code>web_fetch_20260209</code> and later) enable dynamic filtering (the tool runs inside code execution) and are <b>not yet</b> compatible with Skills or code execution in the same request.",
+    "type" : "String"
   }, {
     "id" : "configuration.anthropic.capabilityOverride",
     "label" : "Model capability overrides",

@@ -175,7 +175,7 @@ class NativeAnthropicSkillsAndToolsWireFormatTest extends BaseAiAgentJobWorkerTe
         .filteredOn("code_execution_20250825"::equals)
         .as("exactly one auto-added code_execution tool")
         .hasSize(1);
-    assertThat(toolTypes).as("tools[].type").contains("web_search_20260318", "web_fetch_20260318");
+    assertThat(toolTypes).as("tools[].type").contains("web_search_20250305", "web_fetch_20250910");
   }
 
   /**

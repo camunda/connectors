@@ -18,7 +18,12 @@ import com.anthropic.models.beta.messages.BetaSkillParams;
 import com.anthropic.models.beta.messages.BetaTool;
 import com.anthropic.models.beta.messages.BetaToolResultBlockParam;
 import com.anthropic.models.beta.messages.BetaToolUseBlockParam;
+import com.anthropic.models.beta.messages.BetaWebFetchTool20250910;
+import com.anthropic.models.beta.messages.BetaWebFetchTool20260209;
+import com.anthropic.models.beta.messages.BetaWebFetchTool20260309;
 import com.anthropic.models.beta.messages.BetaWebFetchTool20260318;
+import com.anthropic.models.beta.messages.BetaWebSearchTool20250305;
+import com.anthropic.models.beta.messages.BetaWebSearchTool20260209;
 import com.anthropic.models.beta.messages.BetaWebSearchTool20260318;
 import com.anthropic.models.beta.messages.MessageCreateParams;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
@@ -65,13 +70,35 @@ public class AnthropicMessageRequestConverter {
   static final String CODE_EXECUTION_BETA = "code-execution-2025-08-25";
 
   // Web search and web fetch are General Availability, not beta, features as of anthropic-java
-  // 2.48.0: both BetaWebSearchTool20260318/BetaWebFetchTool20260318 (used here) AND their
-  // equivalents in the STABLE com.anthropic.models.messages package accept them directly, and no
-  // com.anthropic.models.beta.AnthropicBeta constant (nor any raw string in the SDK sources)
-  // references either tool. No anthropic-beta header is added for them. Using the newest (2026-03-
-  // 18) tool revision of each, verified via javap against the same jar, since it is a strict
-  // superset of the earlier revisions (response inclusion controls, still zero required builder
-  // args) and both accept a no-arg builder().build() matching this connector's plain on/off toggle.
+  // 2.48.0: both the basic (20250305/20250910) and later (20260209+) revisions of these tools AND
+  // their equivalents in the STABLE com.anthropic.models.messages package accept them directly, and
+  // no com.anthropic.models.beta.AnthropicBeta constant (nor any raw string in the SDK sources)
+  // references either tool. No anthropic-beta header is added for them, regardless of version.
+  //
+  // The tool *version* is user-configurable (webSearchVersion/webFetchVersion below) because the
+  // revision determines whether the tool calls directly or triggers "dynamic filtering". From
+  // 20260209 onward, both tools default allowedCallers to ["code_execution_20260120"] (dynamic
+  // filtering: the tool runs *inside* code execution), which makes the API auto-provision its own
+  // code_execution tool. That auto-provisioned tool collides on name with the explicit
+  // code_execution tool this converter adds for Skills, causing an HTTP 400 ("Auto-injecting tools
+  // would conflict with existing tool names") whenever Skills (or the code execution toggle) and a
+  // web tool toggle are both enabled. The basic 20250305/20250910 revisions call directly (no
+  // code-execution auto-provisioning) and so coexist with the explicit code_execution tool; both
+  // still accept a no-arg builder().build() matching this connector's plain on/off toggle. The
+  // basic revisions are therefore the default (combination-safe with Skills/code execution).
+  // Dynamic filtering (allowedCallers management to make the newer revisions coexist with Skills)
+  // is a deliberately deferred follow-up, not implemented here.
+  //
+  // Versions this converter does not recognize fall back to the raw-type escape hatch: the base
+  // (20250305/20250910) typed builder with `.type(JsonValue.from(raw))` overridden. Verified via a
+  // serialization round-trip (see AnthropicMessageRequestConverterTest) that
+  // BetaWebSearchTool20250305/BetaWebFetchTool20250910's generated build() does not call
+  // validate() and their `name` field defaults independently of `type`, so this produces the
+  // intended wire shape `{"type":"<raw>","name":"web_search"}` (or `"web_fetch"`) without any
+  // other field changing.
+  static final String WEB_SEARCH_BASIC_VERSION = "web_search_20250305";
+
+  static final String WEB_FETCH_BASIC_VERSION = "web_fetch_20250910";
 
   /** Documented maximum number of skills that may be configured per request. */
   static final int MAX_SKILLS = 8;
@@ -290,11 +317,48 @@ public class AnthropicMessageRequestConverter {
     }
 
     if (Boolean.TRUE.equals(connection.enableWebSearch())) {
-      builder.addTool(BetaWebSearchTool20260318.builder().build());
+      addWebSearchTool(builder, connection.webSearchVersion());
     }
 
     if (Boolean.TRUE.equals(connection.enableWebFetch())) {
-      builder.addTool(BetaWebFetchTool20260318.builder().build());
+      addWebFetchTool(builder, connection.webFetchVersion());
+    }
+  }
+
+  /**
+   * Adds the {@code web_search} server tool for the given (optional) version string, defaulting to
+   * the combination-safe basic/direct-calling revision (see the class-level comment above). Unknown
+   * versions use the raw-type escape hatch on the base revision's builder.
+   */
+  private void addWebSearchTool(MessageCreateParams.Builder builder, @Nullable String version) {
+    final String resolved =
+        (version == null || version.isBlank()) ? WEB_SEARCH_BASIC_VERSION : version;
+    switch (resolved) {
+      case WEB_SEARCH_BASIC_VERSION -> builder.addTool(BetaWebSearchTool20250305.builder().build());
+      case "web_search_20260209" -> builder.addTool(BetaWebSearchTool20260209.builder().build());
+      case "web_search_20260318" -> builder.addTool(BetaWebSearchTool20260318.builder().build());
+      default ->
+          builder.addTool(
+              BetaWebSearchTool20250305.builder().type(JsonValue.from(resolved)).build());
+    }
+  }
+
+  /**
+   * Adds the {@code web_fetch} server tool for the given (optional) version string, defaulting to
+   * the combination-safe basic/direct-calling revision (see the class-level comment above). Unknown
+   * versions use the raw-type escape hatch on the base revision's builder.
+   */
+  private void addWebFetchTool(MessageCreateParams.Builder builder, @Nullable String version) {
+    final String resolved =
+        (version == null || version.isBlank()) ? WEB_FETCH_BASIC_VERSION : version;
+    switch (resolved) {
+      case WEB_FETCH_BASIC_VERSION -> builder.addTool(BetaWebFetchTool20250910.builder().build());
+      case "web_fetch_20260209" -> builder.addTool(BetaWebFetchTool20260209.builder().build());
+      case "web_fetch_20260309" -> builder.addTool(BetaWebFetchTool20260309.builder().build());
+      case "web_fetch_20260318" -> builder.addTool(BetaWebFetchTool20260318.builder().build());
+      default ->
+          builder.addTool(
+              BetaWebFetchTool20250910.builder().type(JsonValue.from(resolved)).build());
     }
   }
 

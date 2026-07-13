@@ -69,6 +69,18 @@ class AnthropicMessageRequestConverterTest {
       @Nullable Boolean enableCodeExecution,
       @Nullable Boolean enableWebSearch,
       @Nullable Boolean enableWebFetch) {
+    return model(
+        parameters, skills, enableCodeExecution, enableWebSearch, null, enableWebFetch, null);
+  }
+
+  private static AnthropicChatModel model(
+      @Nullable AnthropicModelParameters parameters,
+      @Nullable List<String> skills,
+      @Nullable Boolean enableCodeExecution,
+      @Nullable Boolean enableWebSearch,
+      @Nullable String webSearchVersion,
+      @Nullable Boolean enableWebFetch,
+      @Nullable String webFetchVersion) {
     return new AnthropicChatModel(
         new AnthropicConnection(
             new AnthropicDirectBackend(null, "sk-ant-test"),
@@ -78,7 +90,9 @@ class AnthropicMessageRequestConverterTest {
             skills,
             enableCodeExecution,
             enableWebSearch,
-            enableWebFetch));
+            webSearchVersion,
+            enableWebFetch,
+            webFetchVersion));
   }
 
   private static AgentExecutionContext ctx(
@@ -428,7 +442,7 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.tools().orElseThrow())
         .hasSize(1)
-        .anyMatch(tool -> tool.webSearchTool20260318().isPresent());
+        .anyMatch(tool -> tool.webSearchTool20250305().isPresent());
     // web_search is GA: no anthropic-beta header required.
     assertThat(params.betas()).isEmpty();
   }
@@ -445,9 +459,98 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.tools().orElseThrow())
         .hasSize(1)
-        .anyMatch(tool -> tool.webFetchTool20260318().isPresent());
+        .anyMatch(tool -> tool.webFetchTool20250910().isPresent());
     // web_fetch is GA: no anthropic-beta header required.
     assertThat(params.betas()).isEmpty();
+  }
+
+  @Test
+  void nullWebSearchVersionDefaultsToBasicDirectVersion() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, null, true, null, null, null), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    assertThat(params.tools().orElseThrow())
+        .anyMatch(tool -> tool.webSearchTool20250305().isPresent());
+  }
+
+  @Test
+  void webSearchVersionOverrideSelectsRequestedTypedTool() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, null, true, "web_search_20260318", null, null), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    assertThat(params.tools().orElseThrow())
+        .anyMatch(tool -> tool.webSearchTool20260318().isPresent());
+  }
+
+  @Test
+  void webFetchVersionOverrideSelectsRequestedTypedTool() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, null, null, null, true, "web_fetch_20260318"), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    assertThat(params.tools().orElseThrow())
+        .anyMatch(tool -> tool.webFetchTool20260318().isPresent());
+  }
+
+  @Test
+  void unknownWebSearchVersionFallsBackToRawTypeOnBasicTool() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, null, true, "web_search_29990101", null, null), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    final var toolNode = requestBodyAsJson(params).path("tools").get(0);
+    assertThat(toolNode.path("type").asText()).isEqualTo("web_search_29990101");
+    assertThat(toolNode.path("name").asText()).isEqualTo("web_search");
+  }
+
+  @Test
+  void unknownWebFetchVersionFallsBackToRawTypeOnBasicTool() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, null, null, null, true, "web_fetch_29990101"), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    final var toolNode = requestBodyAsJson(params).path("tools").get(0);
+    assertThat(toolNode.path("type").asText()).isEqualTo("web_fetch_29990101");
+    assertThat(toolNode.path("name").asText()).isEqualTo("web_fetch");
+  }
+
+  @Test
+  void defaultWebSearchToolSerializesToBasicDirectVersionWireShape() {
+    // Serialization round-trip proving the default web_search tool's wire shape, which is also
+    // what the raw-type escape hatch relies on for unknown versions (only "type" differs).
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, null, true, null, null, null), null),
+            snapshot,
+            ModelCapabilities.builder().build());
+
+    final var toolNode = requestBodyAsJson(params).path("tools").get(0);
+    assertThat(toolNode.path("type").asText()).isEqualTo("web_search_20250305");
+    assertThat(toolNode.path("name").asText()).isEqualTo("web_search");
   }
 
   @Test
@@ -462,9 +565,9 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.tools().orElseThrow()).hasSize(2);
     assertThat(params.tools().orElseThrow())
-        .anyMatch(tool -> tool.webSearchTool20260318().isPresent());
+        .anyMatch(tool -> tool.webSearchTool20250305().isPresent());
     assertThat(params.tools().orElseThrow())
-        .anyMatch(tool -> tool.webFetchTool20260318().isPresent());
+        .anyMatch(tool -> tool.webFetchTool20250910().isPresent());
     assertThat(params.betas()).isEmpty();
   }
 

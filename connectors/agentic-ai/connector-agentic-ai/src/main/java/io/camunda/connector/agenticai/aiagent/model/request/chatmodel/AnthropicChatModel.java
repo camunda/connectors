@@ -106,6 +106,25 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
           @Nullable Boolean enableWebSearch,
       @TemplateProperty(
               group = "skills",
+              label = "Web search tool version",
+              tooltip =
+                  "Anthropic <code>web_search</code> tool version string (wire <code>type</code>). "
+                      + "The default <code>web_search_20250305</code> calls directly and works alongside "
+                      + "Skills and code execution in the same request. Newer versions "
+                      + "(<code>web_search_20260209</code> and later) enable dynamic filtering (the tool "
+                      + "runs inside code execution) and are <b>not yet</b> compatible with Skills or code "
+                      + "execution in the same request.",
+              type = TemplateProperty.PropertyType.String,
+              feel = FeelMode.optional,
+              defaultValue = "web_search_20250305",
+              optional = true,
+              condition =
+                  @TemplateProperty.PropertyCondition(
+                      property = "configuration.anthropic.enableWebSearch",
+                      equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
+          @Nullable String webSearchVersion,
+      @TemplateProperty(
+              group = "skills",
               label = "Enable web fetch",
               tooltip =
                   "Enables Anthropic's built-in <code>web_fetch</code> server tool, letting the model retrieve the full content of a URL.",
@@ -113,7 +132,26 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               defaultValue = "false",
               defaultValueType = TemplateProperty.DefaultValueType.Boolean,
               optional = true)
-          @Nullable Boolean enableWebFetch) {}
+          @Nullable Boolean enableWebFetch,
+      @TemplateProperty(
+              group = "skills",
+              label = "Web fetch tool version",
+              tooltip =
+                  "Anthropic <code>web_fetch</code> tool version string (wire <code>type</code>). "
+                      + "The default <code>web_fetch_20250910</code> calls directly and works alongside "
+                      + "Skills and code execution in the same request. Newer versions "
+                      + "(<code>web_fetch_20260209</code> and later) enable dynamic filtering (the tool "
+                      + "runs inside code execution) and are <b>not yet</b> compatible with Skills or code "
+                      + "execution in the same request.",
+              type = TemplateProperty.PropertyType.String,
+              feel = FeelMode.optional,
+              defaultValue = "web_fetch_20250910",
+              optional = true,
+              condition =
+                  @TemplateProperty.PropertyCondition(
+                      property = "configuration.anthropic.enableWebFetch",
+                      equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
+          @Nullable String webFetchVersion) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
