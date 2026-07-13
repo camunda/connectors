@@ -782,6 +782,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
       assertThat(discriminatorProperty.getId())
           .isEqualTo("annotatedSealedType.annotatedTypeOverrideCustomId");
+      assertThat(discriminatorProperty.getTooltip()).isEqualTo("Annotated type override tooltip");
       assertThat(((ZeebeInput) discriminatorProperty.getBinding()).name())
           .isEqualTo("annotatedSealedType.annotatedTypeOverride");
 
