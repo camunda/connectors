@@ -158,16 +158,14 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
-                  .withMessage(
-                      "Failed to evaluate FEEL expression: "
-                          + feelEngineWrapperException.getMessage()));
+                  .withMessage("Failed to evaluate FEEL expression", feelEngineWrapperException));
       return new CorrelationResult.Failure.Other(feelEngineWrapperException);
     } catch (Exception exception) {
       log(
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
-                  .withMessage("Failed to correlate inbound event: " + exception.getMessage()));
+                  .withMessage("Failed to correlate inbound event", exception));
       LOG.error("Failed to correlate inbound event", exception);
       return new CorrelationResult.Failure.Other(exception);
     }
