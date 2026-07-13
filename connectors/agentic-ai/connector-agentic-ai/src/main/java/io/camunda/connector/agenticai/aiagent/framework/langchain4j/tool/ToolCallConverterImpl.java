@@ -17,6 +17,7 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -121,6 +122,9 @@ public class ToolCallConverterImpl implements ToolCallConverter {
         case ReasoningContent reasoningContent ->
             throw new IllegalArgumentException(
                 "Reasoning content is not expected in tool call results");
+        case ProviderContent providerContent ->
+            throw new IllegalArgumentException(
+                "Provider content is not expected in tool call results");
       };
     } catch (JsonProcessingException e) {
       throw new ConnectorException(

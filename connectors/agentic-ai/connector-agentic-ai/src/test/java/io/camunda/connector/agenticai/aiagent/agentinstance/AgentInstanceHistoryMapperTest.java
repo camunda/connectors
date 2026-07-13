@@ -9,10 +9,13 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -128,5 +131,24 @@ class AgentInstanceHistoryMapperTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("call-1")
         .hasMessageContaining("completedAt");
+  }
+
+  @Test
+  void mapsProviderContentToObjectHistoryContentCarryingThePayload() {
+    final var payload = Map.of("type", "code_execution_tool_result", "tool_use_id", "srvtoolu_1");
+    final var assistantMessage =
+        AssistantMessage.builder()
+            .content(
+                List.of(
+                    new ProviderContent("anthropic", "code_execution_tool_result", payload, null)))
+            .build();
+
+    final var content = mapper.assistantContent(assistantMessage);
+
+    assertThat(content)
+        .singleElement()
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object -> assertThat(object.getObject()).isEqualTo(payload));
   }
 }

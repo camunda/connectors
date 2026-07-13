@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -387,6 +388,9 @@ public class AwsAgentCoreConversationMapper {
       case ObjectContent object -> contentToString(object.content());
       case DocumentContent document -> contentToString(document.document());
       case ReasoningContent reasoning -> Objects.requireNonNullElse(reasoning.text(), "");
+      // preserve the opaque provider payload as its (best-effort) JSON representation; the
+      // blob envelope carries the lossless structure regardless.
+      case ProviderContent providerContent -> contentToString(providerContent.payload());
     };
   }
 

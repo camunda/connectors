@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.Doc
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.Objects;
@@ -43,6 +44,12 @@ public class ContentConverterImpl implements ContentConverter {
           // legacy framework path is not expected to round-trip it (follow-up: team decision).
           throw new UnsupportedOperationException(
               "Reasoning content is not supported by the LangChain4J framework abstraction");
+      case ProviderContent providerContent ->
+          // LangChain4J has no wire representation for provider-opaque content blocks either;
+          // this legacy framework path is not expected to round-trip it (follow-up: team
+          // decision).
+          throw new UnsupportedOperationException(
+              "Provider content is not supported by the LangChain4J framework abstraction");
     };
   }
 

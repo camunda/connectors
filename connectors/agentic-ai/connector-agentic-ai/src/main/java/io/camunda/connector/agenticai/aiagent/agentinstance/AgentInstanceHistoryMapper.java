@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -201,6 +202,9 @@ public class AgentInstanceHistoryMapper {
       // Agent instance history has no dedicated reasoning content block yet; surface it as an
       // object block for now (follow-up: team decision).
       case ReasoningContent reasoningContent -> objectHistoryContent(reasoningContent);
+      // Agent instance history has no dedicated provider/server-tool content block yet; surface
+      // it as an object block for now (follow-up: engine schema addition + team decision).
+      case ProviderContent providerContent -> objectHistoryContent(providerContent.payload());
     };
   }
 

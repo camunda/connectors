@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
@@ -110,6 +111,28 @@ class AnthropicContentConverterTest {
               List.of(new ReasoningContent("some reasoning", null, null)));
 
       assertThat(blocks).isEmpty();
+    }
+
+    @Test
+    void mapsProviderContentPayloadToNativeBlockRoundTrip() {
+      final var payload =
+          Map.<String, Object>of(
+              "type",
+              "server_tool_use",
+              "id",
+              "srvtoolu_01ABC",
+              "name",
+              "code_execution",
+              "input",
+              Map.of("code", "print('hi')"));
+
+      final var blocks =
+          converter.toContentBlockParams(
+              List.of(new ProviderContent("anthropic", "server_tool_use", payload, null)));
+
+      assertThat(blocks).hasSize(1);
+      assertThat(blocks.get(0).isServerToolUse()).isTrue();
+      assertThat(blocks.get(0).asServerToolUse().id()).isEqualTo("srvtoolu_01ABC");
     }
 
     @Test

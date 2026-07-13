@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
+import com.anthropic.core.ObjectMappers;
 import com.anthropic.models.beta.messages.BetaBase64ImageSource;
 import com.anthropic.models.beta.messages.BetaContentBlockParam;
 import com.anthropic.models.beta.messages.BetaImageBlockParam;
@@ -18,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.framework.multimodal.DocumentModal
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
@@ -58,6 +60,9 @@ public class AnthropicContentConverter {
         // Reasoning content is NOT re-emitted on the request side in C7 (signature
         // round-trip is deferred); skip it so history replay stays valid.
         case ReasoningContent ignored -> {}
+        case ProviderContent pc ->
+            blocks.add(
+                ObjectMappers.jsonMapper().convertValue(pc.payload(), BetaContentBlockParam.class));
       }
     }
     return blocks;
