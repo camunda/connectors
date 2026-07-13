@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
+import com.anthropic.core.JsonObject;
+import com.anthropic.core.JsonValue;
 import com.anthropic.models.beta.messages.BetaContentBlock;
 import com.anthropic.models.beta.messages.BetaMessage;
 import com.anthropic.models.beta.messages.BetaStopReason;
@@ -103,8 +105,18 @@ public class AnthropicMessageResponseConverter {
   }
 
   private Map<String, Object> toolUseArguments(BetaToolUseBlock toolUse) {
+    // A no-argument tool call streams an empty input_json_delta, which the vendor SDK's
+    // BetaMessageAccumulator finalizes as JsonMissing rather than an empty object (the same
+    // JsonMissing also results from a tool_use block whose "input" field is absent). JsonMissing
+    // throws "JsonMissing cannot be serialized" for any ObjectMapper, so treat a missing or
+    // non-object input as an empty argument map.
+    final JsonValue input = toolUse._input();
+    if (!(input instanceof JsonObject)) {
+      return Map.of();
+    }
+
     final Map<String, Object> arguments =
-        objectMapper.convertValue(toolUse._input(), new TypeReference<Map<String, Object>>() {});
+        objectMapper.convertValue(input, new TypeReference<Map<String, Object>>() {});
     return arguments != null ? arguments : Map.of();
   }
 

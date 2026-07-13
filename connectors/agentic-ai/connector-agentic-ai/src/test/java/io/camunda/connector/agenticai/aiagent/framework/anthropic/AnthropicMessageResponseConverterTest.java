@@ -8,14 +8,36 @@ package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
+import com.anthropic.helpers.BetaMessageAccumulator;
+import com.anthropic.models.beta.messages.BetaCacheCreation;
+import com.anthropic.models.beta.messages.BetaContainer;
+import com.anthropic.models.beta.messages.BetaContextManagementResponse;
+import com.anthropic.models.beta.messages.BetaDiagnostics;
+import com.anthropic.models.beta.messages.BetaDirectCaller;
 import com.anthropic.models.beta.messages.BetaMessage;
+import com.anthropic.models.beta.messages.BetaMessageDeltaUsage;
+import com.anthropic.models.beta.messages.BetaOutputTokensDetails;
+import com.anthropic.models.beta.messages.BetaRawContentBlockDeltaEvent;
+import com.anthropic.models.beta.messages.BetaRawContentBlockStartEvent;
+import com.anthropic.models.beta.messages.BetaRawContentBlockStopEvent;
+import com.anthropic.models.beta.messages.BetaRawMessageDeltaEvent;
+import com.anthropic.models.beta.messages.BetaRawMessageStartEvent;
+import com.anthropic.models.beta.messages.BetaRawMessageStopEvent;
+import com.anthropic.models.beta.messages.BetaRawMessageStreamEvent;
+import com.anthropic.models.beta.messages.BetaRefusalStopDetails;
+import com.anthropic.models.beta.messages.BetaServerToolUsage;
+import com.anthropic.models.beta.messages.BetaStopReason;
+import com.anthropic.models.beta.messages.BetaToolUseBlock;
+import com.anthropic.models.beta.messages.BetaUsage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -197,5 +219,128 @@ class AnthropicMessageResponseConverterTest {
     assertThat(maxTokensResult).isInstanceOf(ChatModelResult.Completed.class);
     assertThat(maxTokensResult.assistantMessage().stopReason())
         .isEqualTo(io.camunda.connector.agenticai.aiagent.model.message.StopReason.LENGTH);
+  }
+
+  @Test
+  void mapsNoArgumentToolUseWithMissingInputToEmptyArguments() {
+    // No "input" key at all -- the vendor SDK deserializes this the same way it finalizes a
+    // no-argument tool call streamed via an empty input_json_delta: as JsonMissing, not `{}`.
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_7",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [
+                {"type": "tool_use", "id": "toolu_1", "name": "now"}
+              ],
+              "stop_reason": "tool_use",
+              "usage": {"input_tokens": 1, "output_tokens": 1}
+            }
+            """);
+
+    final var result = converter.toResult(message, EXECUTION_TIME);
+
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(new ToolCall("toolu_1", "now", Map.of()));
+  }
+
+  @Test
+  void mapsNoArgumentToolUseFromEmptyInputJsonDeltaStream() {
+    // Drives the *real* vendor SDK BetaMessageAccumulator through the exact event sequence
+    // Anthropic streams for a no-argument tool call: a content_block_start for the tool_use
+    // block, followed by an *empty* input_json_delta, followed by content_block_stop. The
+    // accumulator concatenates the (empty) partial JSON and finalizes the block's input as
+    // JsonMissing rather than an empty object -- this is the faithful reproduction of the
+    // reported crash, as opposed to the buffered deserialization path exercised above.
+    final BetaMessage message = accumulateNoArgumentToolUseMessage();
+
+    final var result = converter.toResult(message, EXECUTION_TIME);
+
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(new ToolCall("toolu_1", "now", Map.of()));
+  }
+
+  private static BetaMessage accumulateNoArgumentToolUseMessage() {
+    final BetaMessageAccumulator acc = BetaMessageAccumulator.create();
+    final BetaMessage shell =
+        BetaMessage.builder()
+            .id("msg-1")
+            .container((BetaContainer) null)
+            .content(List.of())
+            .contextManagement((BetaContextManagementResponse) null)
+            .diagnostics((BetaDiagnostics) null)
+            .model("test-model")
+            .stopDetails((BetaRefusalStopDetails) null)
+            .stopReason((BetaStopReason) null)
+            .stopSequence((String) null)
+            .usage(
+                BetaUsage.builder()
+                    .inputTokens(1)
+                    .outputTokens(0)
+                    .cacheCreation((BetaCacheCreation) null)
+                    .cacheCreationInputTokens((Long) null)
+                    .cacheReadInputTokens((Long) null)
+                    .inferenceGeo((String) null)
+                    .iterations(List.of())
+                    .outputTokensDetails((BetaOutputTokensDetails) null)
+                    .serverToolUse((BetaServerToolUsage) null)
+                    .serviceTier((BetaUsage.ServiceTier) null)
+                    .speed((BetaUsage.Speed) null)
+                    .build())
+            .build();
+
+    acc.accumulate(
+        BetaRawMessageStreamEvent.ofMessageStart(
+            BetaRawMessageStartEvent.builder().message(shell).build()));
+    acc.accumulate(
+        BetaRawMessageStreamEvent.ofContentBlockStart(
+            BetaRawContentBlockStartEvent.builder()
+                .contentBlock(
+                    BetaToolUseBlock.builder()
+                        .id("toolu_1")
+                        .name("now")
+                        .caller(BetaDirectCaller.builder().build())
+                        .input(JsonValue.from(Map.of()))
+                        .build())
+                .index(0)
+                .build()));
+    acc.accumulate(
+        BetaRawMessageStreamEvent.ofContentBlockDelta(
+            BetaRawContentBlockDeltaEvent.builder()
+                .inputJsonDelta("") // EMPTY delta = no-arg call
+                .index(0)
+                .build()));
+    acc.accumulate(
+        BetaRawMessageStreamEvent.ofContentBlockStop(
+            BetaRawContentBlockStopEvent.builder().index(0).build()));
+    acc.accumulate(
+        BetaRawMessageStreamEvent.ofMessageDelta(
+            BetaRawMessageDeltaEvent.builder()
+                .contextManagement((BetaContextManagementResponse) null)
+                .delta(
+                    BetaRawMessageDeltaEvent.Delta.builder()
+                        .container((BetaContainer) null)
+                        .stopReason(BetaStopReason.TOOL_USE)
+                        .stopDetails((BetaRefusalStopDetails) null)
+                        .stopSequence((String) null)
+                        .build())
+                .usage(
+                    BetaMessageDeltaUsage.builder()
+                        .cacheCreationInputTokens((Long) null)
+                        .cacheReadInputTokens((Long) null)
+                        .inputTokens(1)
+                        .iterations(List.of())
+                        .outputTokens(1)
+                        .outputTokensDetails((BetaOutputTokensDetails) null)
+                        .serverToolUse((BetaServerToolUsage) null)
+                        .build())
+                .build()));
+    acc.accumulate(
+        BetaRawMessageStreamEvent.ofMessageStop(BetaRawMessageStopEvent.builder().build()));
+
+    return acc.message();
   }
 }
