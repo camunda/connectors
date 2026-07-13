@@ -67,6 +67,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                   "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
               type = TemplateProperty.PropertyType.Text,
               feel = FeelMode.required,
+              placeholder = "={contextWindow: 200000, maxOutputTokens: 8192}",
               optional = true)
           @Nullable ModelCapabilitiesOverride capabilityOverride,
       @FEEL
@@ -74,33 +75,43 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               group = "skills",
               label = "Skills",
               description =
-                  "List of Anthropic Agent Skills to make available to the model, as <code>type:skill:version</code> strings (e.g. <code>pptx</code>, <code>custom:my-skill:v2</code>; type/version default to <code>anthropic</code>/<code>latest</code>). Configuring skills automatically enables the <code>code_execution</code> tool and the required beta headers. Maximum of 8 skills.",
+                  "Anthropic Agent Skills as <code>type:skill:version</code> strings, e.g. <code>pptx</code> or <code>custom:my-skill:v2</code>.",
+              tooltip =
+                  "Skills made available to the model. Type and version default to <code>anthropic</code>/<code>latest</code>. Custom skills must be uploaded to Anthropic before they can be referenced here; Anthropic-provided skills (such as <code>pptx</code>) need no upload. Configuring skills automatically enables the <code>code_execution</code> tool and the required beta headers. Maximum of 8 skills. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/skills-guide\" target=\"_blank\">Agent Skills documentation</a>.",
               type = TemplateProperty.PropertyType.Text,
               feel = FeelMode.required,
+              placeholder =
+                  "=[\"pptx\", \"xlsx:20260710\", \"custom:skill_01AbCdEfGhIjKlMnOpQrStUv:latest\"]",
               optional = true)
           @Nullable List<@NotBlank String> skills,
       @TemplateProperty(
               group = "skills",
               label = "Enable code execution",
-              description =
+              tooltip =
                   "Enables Anthropic's built-in <code>code_execution</code> server tool, letting the model run code in a sandboxed container. Already enabled automatically when Skills are configured above (no duplicate tool/beta header is emitted in that case).",
               type = TemplateProperty.PropertyType.Boolean,
+              defaultValue = "false",
+              defaultValueType = TemplateProperty.DefaultValueType.Boolean,
               optional = true)
           @Nullable Boolean enableCodeExecution,
       @TemplateProperty(
               group = "skills",
               label = "Enable web search",
-              description =
+              tooltip =
                   "Enables Anthropic's built-in <code>web_search</code> server tool, letting the model search the web for up-to-date information.",
               type = TemplateProperty.PropertyType.Boolean,
+              defaultValue = "false",
+              defaultValueType = TemplateProperty.DefaultValueType.Boolean,
               optional = true)
           @Nullable Boolean enableWebSearch,
       @TemplateProperty(
               group = "skills",
               label = "Enable web fetch",
-              description =
+              tooltip =
                   "Enables Anthropic's built-in <code>web_fetch</code> server tool, letting the model retrieve the full content of a URL.",
               type = TemplateProperty.PropertyType.Boolean,
+              defaultValue = "false",
+              defaultValueType = TemplateProperty.DefaultValueType.Boolean,
               optional = true)
           @Nullable Boolean enableWebFetch) {}
 

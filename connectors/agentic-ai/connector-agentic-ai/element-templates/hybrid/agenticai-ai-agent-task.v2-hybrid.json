@@ -29,6 +29,15 @@
     "label" : "Model",
     "openByDefault" : false
   }, {
+    "id" : "skills",
+    "label" : "Skills & Tools",
+    "tooltip" : "Agent Skills and built-in server tools (code execution, web search, web fetch) available to the model.",
+    "openByDefault" : false
+  }, {
+    "id" : "capabilities",
+    "label" : "Advanced model options",
+    "openByDefault" : false
+  }, {
     "id" : "systemPrompt",
     "label" : "System prompt",
     "tooltip" : "A system prompt is a set of foundational instructions given to a model before any user interaction begins. It defines the AI agent’s role, behavior, tone, and communication style, ensuring that responses remain consistent and aligned with the AI agent’s intended purpose. These instructions help shape how the model interprets and responds to user input throughout the conversation.",
@@ -56,15 +65,6 @@
     "id" : "response",
     "label" : "Response",
     "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/#response\">documentation</a> for details.",
-    "openByDefault" : false
-  }, {
-    "id" : "capabilities",
-    "label" : "Model capabilities",
-    "openByDefault" : false
-  }, {
-    "id" : "skills",
-    "label" : "Skills & tools",
-    "tooltip" : "Anthropic Agent Skills and built-in server tools (code execution, web search, web fetch) available to the model (Anthropic provider only).",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -818,6 +818,115 @@
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
+    "id" : "configuration.anthropic.skills",
+    "label" : "Skills",
+    "description" : "Anthropic Agent Skills as <code>type:skill:version</code> strings, e.g. <code>pptx</code> or <code>custom:my-skill:v2</code>.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.skills",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Skills made available to the model. Type and version default to <code>anthropic</code>/<code>latest</code>. Custom skills must be uploaded to Anthropic before they can be referenced here; Anthropic-provided skills (such as <code>pptx</code>) need no upload. Configuring skills automatically enables the <code>code_execution</code> tool and the required beta headers. Maximum of 8 skills. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/skills-guide\" target=\"_blank\">Agent Skills documentation</a>.",
+    "placeholder" : "=[\"pptx\", \"xlsx:20260710\", \"custom:skill_01AbCdEfGhIjKlMnOpQrStUv:latest\"]",
+    "type" : "Text"
+  }, {
+    "id" : "configuration.anthropic.enableCodeExecution",
+    "label" : "Enable code execution",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.enableCodeExecution",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Enables Anthropic's built-in <code>code_execution</code> server tool, letting the model run code in a sandboxed container. Already enabled automatically when Skills are configured above (no duplicate tool/beta header is emitted in that case).",
+    "type" : "Boolean"
+  }, {
+    "id" : "configuration.anthropic.enableWebSearch",
+    "label" : "Enable web search",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.enableWebSearch",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Enables Anthropic's built-in <code>web_search</code> server tool, letting the model search the web for up-to-date information.",
+    "type" : "Boolean"
+  }, {
+    "id" : "configuration.anthropic.enableWebFetch",
+    "label" : "Enable web fetch",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.enableWebFetch",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Enables Anthropic's built-in <code>web_fetch</code> server tool, letting the model retrieve the full content of a URL.",
+    "type" : "Boolean"
+  }, {
+    "id" : "configuration.anthropic.capabilityOverride",
+    "label" : "Model capability overrides",
+    "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "configuration.anthropic.capabilityOverride",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "placeholder" : "={contextWindow: 200000, maxOutputTokens: 8192}",
+    "type" : "Text"
+  }, {
+    "id" : "configuration.openai.capabilityOverride",
+    "label" : "Model capability overrides",
+    "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "configuration.openai.capabilityOverride",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "placeholder" : "={contextWindow: 200000, maxOutputTokens: 8192}",
+    "type" : "Text"
+  }, {
     "id" : "data.systemPrompt.prompt",
     "label" : "System prompt",
     "optional" : false,
@@ -1260,108 +1369,6 @@
       "type" : "zeebe:input"
     },
     "tooltip" : "In addition to the text content, the assistant message may include multiple additional content blocks and metadata (such as token usage). The message will be available as <code>response.responseMessage</code>.",
-    "type" : "Boolean"
-  }, {
-    "id" : "configuration.anthropic.capabilityOverride",
-    "label" : "Model capability overrides",
-    "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "capabilities",
-    "binding" : {
-      "name" : "configuration.anthropic.capabilityOverride",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "configuration.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "configuration.openai.capabilityOverride",
-    "label" : "Model capability overrides",
-    "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "capabilities",
-    "binding" : {
-      "name" : "configuration.openai.capabilityOverride",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "configuration.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "configuration.anthropic.skills",
-    "label" : "Skills",
-    "description" : "List of Anthropic Agent Skills to make available to the model, as <code>type:skill:version</code> strings (e.g. <code>pptx</code>, <code>custom:my-skill:v2</code>; type/version default to <code>anthropic</code>/<code>latest</code>). Configuring skills automatically enables the <code>code_execution</code> tool and the required beta headers. Maximum of 8 skills.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "skills",
-    "binding" : {
-      "name" : "configuration.anthropic.skills",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "configuration.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "configuration.anthropic.enableCodeExecution",
-    "label" : "Enable code execution",
-    "description" : "Enables Anthropic's built-in <code>code_execution</code> server tool, letting the model run code in a sandboxed container. Already enabled automatically when Skills are configured above (no duplicate tool/beta header is emitted in that case).",
-    "optional" : true,
-    "feel" : "static",
-    "group" : "skills",
-    "binding" : {
-      "name" : "configuration.anthropic.enableCodeExecution",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "configuration.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "Boolean"
-  }, {
-    "id" : "configuration.anthropic.enableWebSearch",
-    "label" : "Enable web search",
-    "description" : "Enables Anthropic's built-in <code>web_search</code> server tool, letting the model search the web for up-to-date information.",
-    "optional" : true,
-    "feel" : "static",
-    "group" : "skills",
-    "binding" : {
-      "name" : "configuration.anthropic.enableWebSearch",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "configuration.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "Boolean"
-  }, {
-    "id" : "configuration.anthropic.enableWebFetch",
-    "label" : "Enable web fetch",
-    "description" : "Enables Anthropic's built-in <code>web_fetch</code> server tool, letting the model retrieve the full content of a URL.",
-    "optional" : true,
-    "feel" : "static",
-    "group" : "skills",
-    "binding" : {
-      "name" : "configuration.anthropic.enableWebFetch",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "configuration.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
     "type" : "Boolean"
   }, {
     "id" : "version",

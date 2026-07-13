@@ -89,6 +89,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
                   "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",
               type = TemplateProperty.PropertyType.Text,
               feel = FeelMode.required,
+              placeholder = "={contextWindow: 200000, maxOutputTokens: 8192}",
               optional = true)
           @Nullable ModelCapabilitiesOverride capabilityOverride) {}
 

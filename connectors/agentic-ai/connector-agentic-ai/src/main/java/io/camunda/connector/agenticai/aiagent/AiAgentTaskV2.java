@@ -41,6 +41,13 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
       @PropertyGroup(id = "model", label = "Model", openByDefault = false),
       @PropertyGroup(
+          id = "skills",
+          label = "Skills & Tools",
+          tooltip =
+              "Agent Skills and built-in server tools (code execution, web search, web fetch) available to the model.",
+          openByDefault = false),
+      @PropertyGroup(id = "capabilities", label = "Advanced model options", openByDefault = false),
+      @PropertyGroup(
           id = "systemPrompt",
           label = "System prompt",
           tooltip =
@@ -74,13 +81,6 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           label = "Response",
           tooltip =
               "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/#response\">documentation</a> for details.",
-          openByDefault = false),
-      @PropertyGroup(id = "capabilities", label = "Model capabilities", openByDefault = false),
-      @PropertyGroup(
-          id = "skills",
-          label = "Skills & tools",
-          tooltip =
-              "Anthropic Agent Skills and built-in server tools (code execution, web search, web fetch) available to the model (Anthropic provider only).",
           openByDefault = false)
     },
     icon = "aiagent.svg")
