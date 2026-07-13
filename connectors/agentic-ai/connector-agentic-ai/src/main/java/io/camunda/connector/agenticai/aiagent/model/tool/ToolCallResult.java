@@ -11,7 +11,11 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.util.FeelOffsetDateTimeDeserializer;
+import io.camunda.connector.agenticai.common.util.FeelOffsetDateTimeSerializer;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -23,6 +27,13 @@ public record ToolCallResult(
     @Nullable String name,
     @Nullable String elementId,
     @Nullable Object content,
+    // engine-sourced completion timestamp (AHSP outputElement's completedAt: now()); absent for
+    // results not produced by an AHSP tool element on a v11+ template, resolved by ingestion
+    // normalization (see ADR 008)
+    @Nullable
+        @JsonSerialize(using = FeelOffsetDateTimeSerializer.class)
+        @JsonDeserialize(using = FeelOffsetDateTimeDeserializer.class)
+        OffsetDateTime completedAt,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @JsonAnySetter @JsonAnyGetter
         Map<String, Object> properties)
     implements ToolCallResultBuilder.With {
@@ -32,11 +43,13 @@ public record ToolCallResult(
       "Tool execution succeeded, but returned no result.";
   public static final String CONTENT_CANCELLED = "Tool execution was canceled.";
 
-  public static ToolCallResult forCancelledToolCall(String id, String name) {
+  public static ToolCallResult forCancelledToolCall(
+      String id, String name, OffsetDateTime completedAt) {
     return ToolCallResult.builder()
         .id(id)
         .name(name)
         .content(CONTENT_CANCELLED)
+        .completedAt(completedAt)
         .properties(Map.of(PROPERTY_INTERRUPTED, true))
         .build();
   }

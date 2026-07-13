@@ -204,11 +204,11 @@ class PresetCoverageRuleTest {
 
   @Test
   void searchSpaceExceedsCap_singleFinding() throws Exception {
-    // Build 6 op-keys with 9 choices each → (1+9)^6 = 1,000,000 candidate assignments,
-    // well above the 100,000 cap.
+    // Build 8 op-keys with 9 choices each → (1+9)^8 = 100,000,000 candidate assignments,
+    // well above the 10,000,000 cap.
     StringBuilder properties = new StringBuilder();
     StringBuilder presetProps = new StringBuilder();
-    for (int k = 0; k < 6; k++) {
+    for (int k = 0; k < 8; k++) {
       if (k > 0) {
         properties.append(",");
         presetProps.append(",");

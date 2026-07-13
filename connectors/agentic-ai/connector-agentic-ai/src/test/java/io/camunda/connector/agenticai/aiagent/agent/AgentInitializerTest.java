@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -74,9 +75,23 @@ class AgentInitializerTest {
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @Mock private AgentInstanceClient agentInstanceClient;
   @Mock private JobContext jobContext;
+  @Mock private ToolCallResultCompletedAtResolver completedAtResolver;
   @InjectMocks private AgentInitializerImpl agentInitializer;
 
   @Mock private AgentExecutionContext executionContext;
+
+  /**
+   * Ingestion-normalization ({@code completedAt} resolution) is covered in its own dedicated unit
+   * test ({@link ToolCallResultCompletedAtResolverTest}); here the resolver is stubbed as an
+   * identity pass-through so existing assertions on the raw fixtures keep working, except in {@link
+   * WithCompletedAtResolution}, which verifies the wiring itself.
+   */
+  @BeforeEach
+  void stubCompletedAtResolverAsIdentity() {
+    lenient()
+        .when(completedAtResolver.resolve(any()))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+  }
 
   @Nested
   class WithAlreadyInitializedState {
@@ -84,7 +99,7 @@ class AgentInitializerTest {
     private static final Long PROCESS_DEFINITION_KEY = 123456789L;
     private static final Long PROCESS_INSTANCE_KEY = 987654321L;
     private static final AgentMetadata EXECUTION_METADATA =
-        new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+        new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
 
     @BeforeEach
     void setUp() {
@@ -131,7 +146,7 @@ class AgentInitializerTest {
       final var result = agentInitializer.initializeAgent(executionContext);
 
       final var expectedMetadata =
-          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 12345L);
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 12345L, null);
       assertThat(result)
           .isInstanceOfSatisfying(
               ReadyToConverse.class,
@@ -174,7 +189,7 @@ class AgentInitializerTest {
     private static final AgentContext AGENT_CONTEXT =
         AgentContext.empty()
             .withProperty("hello", "world")
-            .withMetadata(new AgentMetadata(123456789L, 987654321L, 99999L));
+            .withMetadata(new AgentMetadata(123456789L, 987654321L, 99999L, null));
 
     @BeforeEach
     void setUp() {
@@ -479,7 +494,7 @@ class AgentInitializerTest {
       final var result = agentInitializer.initializeAgent(executionContext);
 
       final var expectedMetadata =
-          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       assertThat(result)
           .isInstanceOfSatisfying(
               ReadyToConverse.class,
@@ -492,7 +507,7 @@ class AgentInitializerTest {
     @Test
     void shouldTriggerToolUpdateWhenProcessDefinitionKeyChanged() {
       final var originalMetadata =
-          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       final var agentContext =
           AgentContext.empty()
               .withState(AgentState.READY)
@@ -510,7 +525,7 @@ class AgentInitializerTest {
       final var result = agentInitializer.initializeAgent(executionContext);
 
       final var expectedMetadata =
-          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       assertThat(result)
           .isInstanceOfSatisfying(
               ReadyToConverse.class,
@@ -523,7 +538,7 @@ class AgentInitializerTest {
     @Test
     void shouldSkipToolUpdateWhenProcessDefinitionKeyMatches() {
       final var metadata =
-          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       final var agentContext =
           AgentContext.empty()
               .withState(AgentState.READY)
@@ -579,7 +594,7 @@ class AgentInitializerTest {
     @Test
     void shouldSkipAgentInstanceCreationWhenKeyAlreadyPresent() {
       final var existingMetadata =
-          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 99L);
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 99L, null);
       final var agentContext =
           AgentContext.empty().withState(AgentState.INITIALIZING).withMetadata(existingMetadata);
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
@@ -595,7 +610,7 @@ class AgentInitializerTest {
     @Test
     void shouldSkipAgentInstanceCreationOnMissingAgentInstanceKeyInExistingAgentContext() {
       final var existingMetadata =
-          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null);
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
       // one step ahead of the initialization state
       final var agentContext =
           AgentContext.empty().withState(AgentState.TOOL_DISCOVERY).withMetadata(existingMetadata);
@@ -619,6 +634,42 @@ class AgentInitializerTest {
               e ->
                   assertThat(((ConnectorException) e).getErrorCode())
                       .isEqualTo(ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED));
+    }
+  }
+
+  @Nested
+  class WithCompletedAtResolution {
+
+    private static final long PROCESS_DEFINITION_KEY = 300L;
+    private static final long PROCESS_INSTANCE_KEY = 400L;
+
+    @Test
+    void shouldResolveCompletedAtBeforeDispatchingAndUseTheResolvedResults() {
+      final var metadata =
+          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, null, null);
+      final var agentContext =
+          AgentContext.empty()
+              .withState(AgentState.READY)
+              .withMetadata(metadata)
+              .withToolDefinitions(TOOL_DEFINITIONS);
+      when(executionContext.initialAgentContext()).thenReturn(agentContext);
+      when(executionContext.initialToolCallResults()).thenReturn(TOOL_CALL_RESULTS);
+      mockJobContextMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+
+      final var resolvedToolCallResults =
+          List.of(TOOL_CALL_RESULTS.get(0).withCompletedAt(OffsetDateTime.now()));
+      when(completedAtResolver.resolve(TOOL_CALL_RESULTS)).thenReturn(resolvedToolCallResults);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              ReadyToConverse.class,
+              res -> {
+                assertThat(res.agentContext()).usingRecursiveComparison().isEqualTo(agentContext);
+                assertThat(res.toolCallResults()).isEqualTo(resolvedToolCallResults);
+              });
+      verify(completedAtResolver).resolve(TOOL_CALL_RESULTS);
     }
   }
 

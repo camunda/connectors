@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "WhatsApp Business Outbound Connector",
   "id": "io.camunda.connectors.WhatsApp.v1",
-  "version": 4,
+  "version": 5,
   "engines": {
     "camunda": "^8.3"
   },
@@ -31,6 +31,10 @@
     "value": "bpmn:ServiceTask"
   },
   "groups": [
+    {
+      "id": "operation",
+      "label": "Operation"
+    },
     {
       "id": "authentication",
       "label": "Authentication"
@@ -106,7 +110,7 @@
     {
       "label": "Message type",
       "description": "Choose message type you wish to send.  <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>See documentation</a>",
-      "group": "input",
+      "group": "operation",
       "id": "messageType",
       "type": "Dropdown",
       "value": "plainText",
@@ -303,7 +307,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "3",
+      "value": "5",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -322,6 +326,46 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Hidden"
+    }
+  ],
+  "steps": [
+    {
+      "name": "Send plain text message",
+      "description": "Send a plain text message to a recipient's phone number via WhatsApp",
+      "keywords": [
+        "send plain text",
+        "text message",
+        "send message",
+        "chat notification",
+        "notify recipient"
+      ],
+      "presetId": "messageType_plainText"
+    },
+    {
+      "name": "Send message template",
+      "description": "Send a pre-approved message template with optional header and body variables via WhatsApp",
+      "keywords": [
+        "send message template",
+        "template message",
+        "approved template",
+        "notification template",
+        "structured message"
+      ],
+      "presetId": "messageType_messageTemplate"
+    }
+  ],
+  "presets": [
+    {
+      "id": "messageType_plainText",
+      "properties": {
+        "messageType": "plainText"
+      }
+    },
+    {
+      "id": "messageType_messageTemplate",
+      "properties": {
+        "messageType": "messageTemplate"
+      }
     }
   ]
 }

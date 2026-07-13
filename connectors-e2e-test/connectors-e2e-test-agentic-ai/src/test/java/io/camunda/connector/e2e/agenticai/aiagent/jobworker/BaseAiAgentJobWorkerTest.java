@@ -159,6 +159,7 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
                 .isReady()
                 .hasAgentInstanceKey()
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
+                .hasLastIterationKey(1)
                 .satisfies(agentResponseAssertions));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
@@ -249,6 +250,7 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 3))
+                .hasLastIterationKey(3)
                 .satisfies(agentResponseAssertions));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);

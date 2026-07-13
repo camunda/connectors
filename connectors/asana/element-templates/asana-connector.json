@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Asana Outbound Connector",
   "id": "io.camunda.connectors.Asana.v1",
-  "version": 4,
+  "version": 5,
   "description": "Create, update, and manage tasks and projects in Asana.",
   "keywords": [
     "get task",
@@ -657,7 +657,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "3",
+      "value": "5",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -707,6 +707,162 @@
       "binding": {
         "type": "zeebe:taskHeader",
         "key": "errorExpression"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "name": "Tasks",
+      "description": "Retrieve, create or delete tasks in Asana",
+      "steps": [
+        {
+          "name": "Get tasks from a project",
+          "description": "Retrieve all tasks belonging to a specific Asana project.",
+          "keywords": [
+            "get tasks",
+            "list tasks",
+            "tasks from project",
+            "project tasks"
+          ],
+          "presetId": "tasks_getTasksFromProject"
+        },
+        {
+          "name": "Get a task by ID",
+          "description": "Retrieve a single Asana task by its unique identifier.",
+          "keywords": [
+            "get task",
+            "task by id",
+            "fetch task",
+            "lookup task"
+          ],
+          "presetId": "tasks_getTaskById"
+        },
+        {
+          "name": "Create a task",
+          "description": "Create a new task in Asana.",
+          "keywords": [
+            "create task",
+            "new task",
+            "add task"
+          ],
+          "presetId": "tasks_createTask"
+        },
+        {
+          "name": "Delete a task",
+          "description": "Delete an existing Asana task by its identifier.",
+          "keywords": [
+            "delete task",
+            "remove task",
+            "drop task"
+          ],
+          "presetId": "tasks_deleteTask"
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "description": "Retrieve, create or delete projects in Asana",
+      "steps": [
+        {
+          "name": "Get projects",
+          "description": "Retrieve the list of projects available in Asana.",
+          "keywords": [
+            "get projects",
+            "list projects",
+            "all projects"
+          ],
+          "presetId": "projects_getProjects"
+        },
+        {
+          "name": "Get a project by ID",
+          "description": "Retrieve a single Asana project by its unique identifier.",
+          "keywords": [
+            "get project",
+            "project by id",
+            "fetch project",
+            "lookup project"
+          ],
+          "presetId": "projects_getProjectById"
+        },
+        {
+          "name": "Create a project in a workspace",
+          "description": "Create a new project inside an Asana workspace.",
+          "keywords": [
+            "create project",
+            "new project",
+            "add project",
+            "workspace project"
+          ],
+          "presetId": "projects_createProjectInWorkspace"
+        },
+        {
+          "name": "Delete a project",
+          "description": "Delete an existing Asana project by its identifier.",
+          "keywords": [
+            "delete project",
+            "remove project",
+            "drop project"
+          ],
+          "presetId": "projects_deleteProject"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "tasks_getTasksFromProject",
+      "properties": {
+        "operationGroup": "tasks",
+        "taskOperation": "getTasksFromProject"
+      }
+    },
+    {
+      "id": "tasks_getTaskById",
+      "properties": {
+        "operationGroup": "tasks",
+        "taskOperation": "getTaskById"
+      }
+    },
+    {
+      "id": "tasks_createTask",
+      "properties": {
+        "operationGroup": "tasks",
+        "taskOperation": "createTask"
+      }
+    },
+    {
+      "id": "tasks_deleteTask",
+      "properties": {
+        "operationGroup": "tasks",
+        "taskOperation": "deleteTask"
+      }
+    },
+    {
+      "id": "projects_getProjects",
+      "properties": {
+        "operationGroup": "projects",
+        "projectOperation": "getProjects"
+      }
+    },
+    {
+      "id": "projects_getProjectById",
+      "properties": {
+        "operationGroup": "projects",
+        "projectOperation": "getProjectById"
+      }
+    },
+    {
+      "id": "projects_createProjectInWorkspace",
+      "properties": {
+        "operationGroup": "projects",
+        "projectOperation": "createProjectInWorkspace"
+      }
+    },
+    {
+      "id": "projects_deleteProject",
+      "properties": {
+        "operationGroup": "projects",
+        "projectOperation": "deleteProject"
       }
     }
   ]

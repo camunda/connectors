@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitLab Outbound Connector",
   "id": "io.camunda.connectors.GitLab.v1",
-  "version": 8,
+  "version": 9,
   "engines": {
     "camunda": "^8.3"
   },
@@ -39,12 +39,12 @@
   },
   "groups": [
     {
-      "id": "endpoint",
-      "label": "HTTP endpoint"
-    },
-    {
       "id": "operation",
       "label": "Operation"
+    },
+    {
+      "id": "endpoint",
+      "label": "HTTP endpoint"
     },
     {
       "id": "connector",
@@ -1769,7 +1769,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "7",
+      "value": "9",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -1788,6 +1788,291 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Hidden"
+    }
+  ],
+  "steps": [
+    {
+      "name": "Issues",
+      "description": "Create, read, comment on, search and delete GitLab issues",
+      "steps": [
+        {
+          "name": "Get an issue by ID",
+          "description": "Retrieve a single issue by its ID from GitLab",
+          "keywords": [
+            "get issue",
+            "read issue",
+            "fetch issue",
+            "issue by id"
+          ],
+          "presetId": "issues_getIssueById"
+        },
+        {
+          "name": "Create an issue",
+          "description": "Create a new issue in a project on GitLab",
+          "keywords": [
+            "create issue",
+            "new issue",
+            "open issue",
+            "add issue"
+          ],
+          "presetId": "issues_createAnIssue"
+        },
+        {
+          "name": "Delete an issue",
+          "description": "Delete an existing issue in GitLab",
+          "keywords": [
+            "delete issue",
+            "remove issue",
+            "close issue permanently"
+          ],
+          "presetId": "issues_deleteAnIssue"
+        },
+        {
+          "name": "Comment to an issue",
+          "description": "Add a comment to an existing issue in GitLab",
+          "keywords": [
+            "comment issue",
+            "add comment",
+            "note on issue",
+            "reply to issue"
+          ],
+          "presetId": "issues_commentToAnIssue"
+        },
+        {
+          "name": "Search issues",
+          "description": "Search for issues matching given criteria in GitLab",
+          "keywords": [
+            "search issues",
+            "find issues",
+            "list issues",
+            "query issues"
+          ],
+          "presetId": "issues_searchIssues"
+        }
+      ]
+    },
+    {
+      "name": "Releases",
+      "description": "List, retrieve and create GitLab project releases",
+      "steps": [
+        {
+          "name": "List all releases by project ID",
+          "description": "List all releases for a project in GitLab",
+          "keywords": [
+            "list releases",
+            "get releases",
+            "all releases",
+            "releases by project"
+          ],
+          "presetId": "releases_getReleasesByProjectId"
+        },
+        {
+          "name": "Get release by a tag name",
+          "description": "Retrieve a single release by its tag name from GitLab",
+          "keywords": [
+            "get release",
+            "release by tag",
+            "fetch release",
+            "read release"
+          ],
+          "presetId": "releases_getReleaseByTagName"
+        },
+        {
+          "name": "Create a release",
+          "description": "Create a new release in a project on GitLab",
+          "keywords": [
+            "create release",
+            "new release",
+            "publish release",
+            "add release"
+          ],
+          "presetId": "releases_createRelease"
+        }
+      ]
+    },
+    {
+      "name": "Branches",
+      "description": "List and create GitLab repository branches",
+      "steps": [
+        {
+          "name": "List repository branches",
+          "description": "List all branches of a repository in GitLab",
+          "keywords": [
+            "list branches",
+            "get branches",
+            "all branches",
+            "repository branches"
+          ],
+          "presetId": "branches_getRepositoryBranchesByProjectId"
+        },
+        {
+          "name": "Create repository branch",
+          "description": "Create a new branch in a repository on GitLab",
+          "keywords": [
+            "create branch",
+            "new branch",
+            "add branch",
+            "make branch"
+          ],
+          "presetId": "branches_createRepositoryBranch"
+        }
+      ]
+    },
+    {
+      "name": "Repository files",
+      "description": "Create, read and update files in a GitLab repository",
+      "steps": [
+        {
+          "name": "Create new file in repository",
+          "description": "Create a new file in a repository on GitLab",
+          "keywords": [
+            "create file",
+            "new file",
+            "add file",
+            "commit file"
+          ],
+          "presetId": "repositoryFiles_createRepositoryFile"
+        },
+        {
+          "name": "Get file from repository",
+          "description": "Retrieve a file from a repository in GitLab",
+          "keywords": [
+            "get file",
+            "read file",
+            "fetch file",
+            "download file"
+          ],
+          "presetId": "repositoryFiles_getRepositoryFile"
+        },
+        {
+          "name": "Update existing file in repository",
+          "description": "Update an existing file in a repository on GitLab",
+          "keywords": [
+            "update file",
+            "modify file",
+            "edit file",
+            "change file"
+          ],
+          "presetId": "repositoryFiles_updateRepositoryFile"
+        }
+      ]
+    },
+    {
+      "name": "Merge requests",
+      "description": "Create GitLab merge requests",
+      "steps": [
+        {
+          "name": "Create merge request",
+          "description": "Create a new merge request in a project on GitLab",
+          "keywords": [
+            "create merge request",
+            "new merge request",
+            "open MR",
+            "add merge request"
+          ],
+          "presetId": "mergeRequests_createMergeRequest"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "issues_getIssueById",
+      "properties": {
+        "operationGroup": "issues",
+        "issueOperation": "getIssueById"
+      }
+    },
+    {
+      "id": "issues_createAnIssue",
+      "properties": {
+        "operationGroup": "issues",
+        "issueOperation": "createAnIssue"
+      }
+    },
+    {
+      "id": "issues_deleteAnIssue",
+      "properties": {
+        "operationGroup": "issues",
+        "issueOperation": "deleteAnIssue"
+      }
+    },
+    {
+      "id": "issues_commentToAnIssue",
+      "properties": {
+        "operationGroup": "issues",
+        "issueOperation": "commentToAnIssue"
+      }
+    },
+    {
+      "id": "issues_searchIssues",
+      "properties": {
+        "operationGroup": "issues",
+        "issueOperation": "searchIssues"
+      }
+    },
+    {
+      "id": "releases_getReleasesByProjectId",
+      "properties": {
+        "operationGroup": "releases",
+        "releaseOperation": "getReleasesByProjectId"
+      }
+    },
+    {
+      "id": "releases_getReleaseByTagName",
+      "properties": {
+        "operationGroup": "releases",
+        "releaseOperation": "getReleaseByTagName"
+      }
+    },
+    {
+      "id": "releases_createRelease",
+      "properties": {
+        "operationGroup": "releases",
+        "releaseOperation": "createRelease"
+      }
+    },
+    {
+      "id": "branches_getRepositoryBranchesByProjectId",
+      "properties": {
+        "operationGroup": "branches",
+        "branchOperation": "getRepositoryBranchesByProjectId"
+      }
+    },
+    {
+      "id": "branches_createRepositoryBranch",
+      "properties": {
+        "operationGroup": "branches",
+        "branchOperation": "createRepositoryBranch"
+      }
+    },
+    {
+      "id": "repositoryFiles_createRepositoryFile",
+      "properties": {
+        "operationGroup": "repositoryFiles",
+        "reposOperation": "createRepositoryFile"
+      }
+    },
+    {
+      "id": "repositoryFiles_getRepositoryFile",
+      "properties": {
+        "operationGroup": "repositoryFiles",
+        "reposOperation": "getRepositoryFile"
+      }
+    },
+    {
+      "id": "repositoryFiles_updateRepositoryFile",
+      "properties": {
+        "operationGroup": "repositoryFiles",
+        "reposOperation": "updateRepositoryFile"
+      }
+    },
+    {
+      "id": "mergeRequests_createMergeRequest",
+      "properties": {
+        "operationGroup": "mergeRequests",
+        "mergeOperation": "createMergeRequest"
+      }
     }
   ]
 }

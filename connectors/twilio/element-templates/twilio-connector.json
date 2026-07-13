@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Twilio Outbound Connector",
   "id": "io.camunda.connectors.Twilio.v1",
-  "version": 7,
+  "version": 8,
   "engines": {
     "camunda": "^8.9"
   },
@@ -756,7 +756,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "6",
+      "value": "8",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -775,6 +775,82 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Hidden"
+    }
+  ],
+  "steps": [
+    {
+      "name": "Send a SMS",
+      "description": "Send an SMS text message to a recipient's phone number using Twilio",
+      "keywords": [
+        "send SMS",
+        "text message",
+        "SMS",
+        "send text",
+        "notify"
+      ],
+      "presetId": "operationType_sendSms"
+    },
+    {
+      "name": "Send a WhatsApp message",
+      "description": "Send a WhatsApp message, either free form or from a template, using Twilio",
+      "keywords": [
+        "send WhatsApp",
+        "WhatsApp message",
+        "WhatsApp",
+        "messaging",
+        "notification"
+      ],
+      "presetId": "operationType_sendWhatsApp"
+    },
+    {
+      "name": "Get message",
+      "description": "Retrieve information about a specific message by its message SID from Twilio",
+      "keywords": [
+        "get message",
+        "retrieve message",
+        "message details",
+        "message SID",
+        "lookup message"
+      ],
+      "presetId": "operationType_getMessage"
+    },
+    {
+      "name": "List messages",
+      "description": "List messages from your Twilio account with optional filters such as date, sender, and recipient",
+      "keywords": [
+        "list messages",
+        "list SMS",
+        "message history",
+        "filter messages",
+        "retrieve messages"
+      ],
+      "presetId": "operationType_listMessages"
+    }
+  ],
+  "presets": [
+    {
+      "id": "operationType_sendSms",
+      "properties": {
+        "operationType": "sendSms"
+      }
+    },
+    {
+      "id": "operationType_sendWhatsApp",
+      "properties": {
+        "operationType": "sendWhatsApp"
+      }
+    },
+    {
+      "id": "operationType_getMessage",
+      "properties": {
+        "operationType": "getMessage"
+      }
+    },
+    {
+      "id": "operationType_listMessages",
+      "properties": {
+        "operationType": "listMessages"
+      }
     }
   ]
 }

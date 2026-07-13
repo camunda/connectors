@@ -88,6 +88,21 @@ class StepsPresetsPresentRuleTest {
     assertThat(rule.apply(ignored, template)).isEmpty();
   }
 
+  @Test
+  void inboundConnector_noFindings() throws Exception {
+    // Inbound connectors are auto-detected by elementType and need not be manually listed.
+    for (String elementType :
+        new String[] {
+          "bpmn:StartEvent", "bpmn:IntermediateCatchEvent", "bpmn:BoundaryEvent", "bpmn:ReceiveTask"
+        }) {
+      JsonNode template = read("{\"elementType\": {\"value\": \"" + elementType + "\"}}");
+      Path anyPath = Path.of("connectors/some-new-connector/element-templates/foo.json");
+      assertThat(rule.apply(anyPath, template))
+          .as("expected no findings for inbound elementType %s", elementType)
+          .isEmpty();
+    }
+  }
+
   private static JsonNode read(String json) throws Exception {
     return MAPPER.readTree(json);
   }

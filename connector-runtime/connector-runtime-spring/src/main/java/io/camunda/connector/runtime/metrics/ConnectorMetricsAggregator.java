@@ -42,19 +42,22 @@ public final class ConnectorMetricsAggregator {
 
   /**
    * Returns outbound metrics for a specific connector type, or aggregated totals across all types
-   * when {@code connectorType} is {@code null} or blank.
+   * when {@code connectorType} is {@code null} or blank. {@code runtimeId} identifies the runtime
+   * node that produced these metrics.
    */
-  public static OutboundConnectorMetrics outbound(MeterRegistry registry, String connectorType) {
+  public static OutboundConnectorMetrics outbound(
+      MeterRegistry registry, String connectorType, String runtimeId) {
     if (registry == null) {
-      return new OutboundConnectorMetrics(null, null, null);
+      return new OutboundConnectorMetrics(runtimeId, null, null, null);
     }
     if (connectorType != null && !connectorType.isBlank()) {
-      return buildOutbound(registry, connectorType);
+      return buildOutbound(registry, connectorType, runtimeId);
     }
-    return buildOutboundAggregate(registry);
+    return buildOutboundAggregate(registry, runtimeId);
   }
 
-  private static OutboundConnectorMetrics buildOutboundAggregate(MeterRegistry registry) {
+  private static OutboundConnectorMetrics buildOutboundAggregate(
+      MeterRegistry registry, String runtimeId) {
     Set<String> types = discoverTypes(registry, null, allOutboundMetricNames());
 
     long completed = 0, failed = 0, bpmnError = 0;
@@ -104,8 +107,11 @@ public final class ConnectorMetricsAggregator {
               .timers()) {
         totalMs += t.totalTime(TimeUnit.MILLISECONDS);
         totalCount += t.count();
-        maxMs = Math.max(maxMs, t.max(TimeUnit.MILLISECONDS));
       }
+      maxMs =
+          Math.max(
+              maxMs,
+              readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME, type));
       maxLastCompleted =
           Math.max(
               maxLastCompleted,
@@ -122,6 +128,7 @@ public final class ConnectorMetricsAggregator {
             : null;
 
     return new OutboundConnectorMetrics(
+        runtimeId,
         new OutboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
         new OutboundConnectorMetrics.Job(
             completed,
@@ -133,7 +140,8 @@ public final class ConnectorMetricsAggregator {
         new OutboundConnectorMetrics.Worker(jobsActivated, jobsHandled, streamRecreations));
   }
 
-  private static OutboundConnectorMetrics buildOutbound(MeterRegistry registry, String type) {
+  private static OutboundConnectorMetrics buildOutbound(
+      MeterRegistry registry, String type, String runtimeId) {
     OutboundConnectorMetrics.ExecutionTime executionTime = buildExecutionTime(registry, type);
     Instant lastCompleted =
         epochMsToInstant(
@@ -143,6 +151,7 @@ public final class ConnectorMetricsAggregator {
             readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_LAST_FAILED, type));
 
     return new OutboundConnectorMetrics(
+        runtimeId,
         new OutboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
         new OutboundConnectorMetrics.Job(
             sumCounterByAction(
@@ -193,15 +202,15 @@ public final class ConnectorMetricsAggregator {
 
     double totalMs = 0.0;
     long totalCount = 0L;
-    double maxMs = 0.0;
 
     for (Timer t : timers) {
       totalMs += t.totalTime(TimeUnit.MILLISECONDS);
       totalCount += t.count();
-      maxMs = Math.max(maxMs, t.max(TimeUnit.MILLISECONDS));
     }
 
     double meanMs = totalCount > 0 ? totalMs / totalCount : 0.0;
+    double maxMs =
+        readGauge(registry, ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME, type);
     return new OutboundConnectorMetrics.ExecutionTime(meanMs, maxMs);
   }
 
@@ -211,19 +220,22 @@ public final class ConnectorMetricsAggregator {
 
   /**
    * Returns inbound metrics for a specific connector type, or aggregated totals across all types
-   * when {@code connectorType} is {@code null} or blank.
+   * when {@code connectorType} is {@code null} or blank. {@code runtimeId} identifies the runtime
+   * node that produced these metrics.
    */
-  public static InboundConnectorMetrics inbound(MeterRegistry registry, String connectorType) {
+  public static InboundConnectorMetrics inbound(
+      MeterRegistry registry, String connectorType, String runtimeId) {
     if (registry == null) {
-      return new InboundConnectorMetrics(null, null, null);
+      return new InboundConnectorMetrics(runtimeId, null, null, null);
     }
     if (connectorType != null && !connectorType.isBlank()) {
-      return buildInbound(registry, connectorType);
+      return buildInbound(registry, connectorType, runtimeId);
     }
-    return buildInboundAggregate(registry);
+    return buildInboundAggregate(registry, runtimeId);
   }
 
-  private static InboundConnectorMetrics buildInboundAggregate(MeterRegistry registry) {
+  private static InboundConnectorMetrics buildInboundAggregate(
+      MeterRegistry registry, String runtimeId) {
     Set<String> types = discoverTypes(registry, null, allInboundMetricNames());
 
     long activated = 0, deactivated = 0, activationFailed = 0;
@@ -285,6 +297,7 @@ public final class ConnectorMetricsAggregator {
     }
 
     return new InboundConnectorMetrics(
+        runtimeId,
         new InboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
         new InboundConnectorMetrics.Activation(
             activated, deactivated, activationFailed, epochMsToInstant(maxLastActivated)),
@@ -296,8 +309,10 @@ public final class ConnectorMetricsAggregator {
             epochMsToInstant(maxLastTriggered)));
   }
 
-  private static InboundConnectorMetrics buildInbound(MeterRegistry registry, String type) {
+  private static InboundConnectorMetrics buildInbound(
+      MeterRegistry registry, String type, String runtimeId) {
     return new InboundConnectorMetrics(
+        runtimeId,
         new InboundConnectorMetrics.Runtime(readRuntimeUptime(registry)),
         new InboundConnectorMetrics.Activation(
             sumCounterByAction(
@@ -420,6 +435,7 @@ public final class ConnectorMetricsAggregator {
     return List.of(
         ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS,
         ConnectorMetrics.Outbound.METRIC_NAME_TIME,
+        ConnectorMetrics.Outbound.METRIC_NAME_MAX_EXECUTION_TIME,
         ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED,
         ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_HANDLED,
         ConnectorMetrics.Outbound.METRIC_NAME_WORKER_STREAM_INACTIVITY_RECREATED);

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -58,7 +59,8 @@ class ToolCallResultTest {
   @Test
   void shouldRoundTripCancelledToolCall() throws Exception {
     // given
-    ToolCallResult original = ToolCallResult.forCancelledToolCall("call-1", "search");
+    OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00");
+    ToolCallResult original = ToolCallResult.forCancelledToolCall("call-1", "search", completedAt);
 
     // when
     String json = objectMapper.writeValueAsString(original);
@@ -70,5 +72,64 @@ class ToolCallResultTest {
     assertThat(deserialized.content()).isEqualTo(ToolCallResult.CONTENT_CANCELLED);
     assertThat(deserialized.properties())
         .isEqualTo(Map.of(ToolCallResult.PROPERTY_INTERRUPTED, true));
+    // a cancelled result is never seen again by the ingestion normalization step, so its caller
+    // must supply a completedAt at creation time to satisfy the "always non-null" invariant
+    assertThat(deserialized.completedAt()).isEqualTo(completedAt);
+  }
+
+  @Test
+  void shouldRoundTripCompletedAt() throws Exception {
+    // given
+    OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00");
+    ToolCallResult original =
+        ToolCallResult.builder()
+            .id("call-1")
+            .name("search")
+            .content("result")
+            .completedAt(completedAt)
+            .build();
+
+    // when
+    String json = objectMapper.writeValueAsString(original);
+    ToolCallResult deserialized = objectMapper.readValue(json, ToolCallResult.class);
+
+    // then
+    assertThat(deserialized.completedAt()).isEqualTo(completedAt);
+  }
+
+  @Test
+  void shouldRoundTripWithoutCompletedAt() throws Exception {
+    // given
+    ToolCallResult original =
+        ToolCallResult.builder().id("call-1").name("search").content("result").build();
+
+    // when
+    String json = objectMapper.writeValueAsString(original);
+    ToolCallResult deserialized = objectMapper.readValue(json, ToolCallResult.class);
+
+    // then
+    assertThat(deserialized.completedAt()).isNull();
+  }
+
+  @Test
+  void shouldDeserializeCompletedAtFromEngineBracketedZoneForm() throws Exception {
+    // given: the FEEL now() string form produced by the AHSP outputElement on a real broker
+    // (offset + bracketed zone id), which java.time.OffsetDateTime.parse(text) cannot parse
+    String json =
+        """
+        {
+          "id": "call-1",
+          "name": "search",
+          "content": "result",
+          "completedAt": "2026-07-02T11:55:00.522622+02:00[Europe/Berlin]"
+        }
+        """;
+
+    // when
+    ToolCallResult deserialized = objectMapper.readValue(json, ToolCallResult.class);
+
+    // then
+    assertThat(deserialized.completedAt())
+        .isEqualTo(OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00"));
   }
 }

@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -109,8 +110,10 @@ public class AgentInstanceClientVerifier {
                         && !request.tools().isEmpty()));
     inOrder
         .verify(client)
-        .createHistoryForInputMessages(any(), any(), beforeChatTurns.capture(), any());
-    inOrder.verify(client).createHistoryForAssistantMessage(any(), any(), afterChatTurns.capture());
+        .createHistoryForInputMessages(any(), any(), beforeChatTurns.capture(), any(), any());
+    inOrder
+        .verify(client)
+        .createHistoryForAssistantMessage(any(), any(), afterChatTurns.capture(), any());
     inOrder
         .verify(client)
         .update(
@@ -176,16 +179,27 @@ public class AgentInstanceClientVerifier {
      * asserts every result carries its resolved BPMN element id (== tool name for ad-hoc tools).
      */
     public ChatTurnAssert fromToolResults() {
-      final var toolResultMessage =
-          before.inputMessages().stream()
-              .filter(ToolCallResultMessage.class::isInstance)
-              .map(ToolCallResultMessage.class::cast)
-              .findFirst()
-              .orElseThrow(() -> new AssertionError("no tool call result message in input"));
-      assertThat(toolResultMessage.results())
+      assertThat(toolCallResultMessage().results())
           .isNotEmpty()
           .allSatisfy(r -> assertThat(r.elementId()).isNotNull().isEqualTo(r.name()));
       return this;
+    }
+
+    /** The {@code completedAt} of the tool call result with the given id. */
+    public OffsetDateTime toolResultCompletedAt(String toolCallId) {
+      return toolCallResultMessage().results().stream()
+          .filter(r -> toolCallId.equals(r.id()))
+          .findFirst()
+          .orElseThrow(() -> new AssertionError("no tool call result with id '" + toolCallId + "'"))
+          .completedAt();
+    }
+
+    private ToolCallResultMessage toolCallResultMessage() {
+      return before.inputMessages().stream()
+          .filter(ToolCallResultMessage.class::isInstance)
+          .map(ToolCallResultMessage.class::cast)
+          .findFirst()
+          .orElseThrow(() -> new AssertionError("no tool call result message in input"));
     }
 
     /** The assistant responded with a single tool call to the named tool. */
@@ -194,6 +208,14 @@ public class AgentInstanceClientVerifier {
           .singleElement()
           .extracting(ToolCall::name)
           .isEqualTo(expectedToolName);
+      return this;
+    }
+
+    /** The assistant responded with tool calls to exactly the named tools, in any order. */
+    public ChatTurnAssert callingTools(String... expectedToolNames) {
+      assertThat(after.assistantMessage().toolCalls())
+          .extracting(ToolCall::name)
+          .containsExactlyInAnyOrder(expectedToolNames);
       return this;
     }
 

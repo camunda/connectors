@@ -170,7 +170,7 @@ jobs:
 
       - name: Post new streak alert to Slack (notifies medic)
         if: steps.streak.outputs.is_streak == 'true' && steps.find-message.outputs.existing_ts == ''
-        uses: slackapi/slack-github-action@v3.0.3
+        uses: slackapi/slack-github-action@v3.0.5
         with:
           method: chat.postMessage
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
@@ -182,7 +182,7 @@ jobs:
 
       - name: Update existing streak alert in Slack (silent edit)
         if: steps.streak.outputs.is_streak == 'true' && steps.find-message.outputs.existing_ts != ''
-        uses: slackapi/slack-github-action@v3.0.3
+        uses: slackapi/slack-github-action@v3.0.5
         with:
           method: chat.update
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
@@ -195,7 +195,7 @@ jobs:
 
       - name: Mark streak as resolved in Slack (silent edit)
         if: steps.streak.outputs.latest_success == 'true' && steps.find-message.outputs.existing_ts != ''
-        uses: slackapi/slack-github-action@v3.0.3
+        uses: slackapi/slack-github-action@v3.0.5
         with:
           method: chat.update
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}

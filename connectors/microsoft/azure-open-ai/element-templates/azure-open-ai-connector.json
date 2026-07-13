@@ -16,7 +16,7 @@
     "text generation"
   ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/azure-open-ai/",
-  "version": 3,
+  "version": 4,
   "engines": {
     "camunda": "^8.6"
   },
@@ -32,12 +32,12 @@
   },
   "groups": [
     {
-      "id": "authentication",
-      "label": "Authentication"
-    },
-    {
       "id": "operation",
       "label": "Operation"
+    },
+    {
+      "id": "authentication",
+      "label": "Authentication"
     },
     {
       "id": "parameters",
@@ -1288,7 +1288,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "2",
+      "value": "4",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -1307,6 +1307,62 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Hidden"
+    }
+  ],
+  "steps": [
+    {
+      "name": "Completion",
+      "description": "Generate a text completion for a given prompt using an Azure OpenAI model.",
+      "keywords": [
+        "completion",
+        "text generation",
+        "prompt",
+        "GPT"
+      ],
+      "presetId": "operation_completion"
+    },
+    {
+      "name": "Chat completion",
+      "description": "Generate a chat completion from a sequence of messages using an Azure OpenAI chat model.",
+      "keywords": [
+        "chat completion",
+        "conversation",
+        "messages",
+        "assistant"
+      ],
+      "presetId": "operation_chatCompletion"
+    },
+    {
+      "name": "Completions extension",
+      "description": "Generate a chat completion augmented with your own data sources using the Azure OpenAI completions extension.",
+      "keywords": [
+        "completions extension",
+        "own data",
+        "retrieval",
+        "data source",
+        "grounding"
+      ],
+      "presetId": "operation_completionsExtension"
+    }
+  ],
+  "presets": [
+    {
+      "id": "operation_completion",
+      "properties": {
+        "operation": "completion"
+      }
+    },
+    {
+      "id": "operation_chatCompletion",
+      "properties": {
+        "operation": "chatCompletion"
+      }
+    },
+    {
+      "id": "operation_completionsExtension",
+      "properties": {
+        "operation": "completionsExtension"
+      }
     }
   ],
   "icon": {

@@ -15,7 +15,7 @@ field in each JSON file captures the same information (e.g. `^8.9` means
 "requires Camunda 8.9 or later").
 
 For example, if you are on Camunda 8.9, use the AI Agent template version `7`;
-if you are on Camunda 8.10, use version `10`.
+if you are on Camunda 8.10, use version `11`.
 
 ## AI Agent connectors
 
@@ -26,7 +26,7 @@ The AI Agent ships in two flavors that share the same versioning scheme.
 
 | Connector     | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| AI Agent Task | 8.10 | 10 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
+| AI Agent Task | 8.10 | 11 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
 | AI Agent Task | 8.9  | 7  | [`versioned/agenticai-aiagent-outbound-connector-7.json`](./versioned/agenticai-aiagent-outbound-connector-7.json) |
 | AI Agent Task | 8.8  | 5  | [`versioned/agenticai-aiagent-outbound-connector-5.json`](./versioned/agenticai-aiagent-outbound-connector-5.json) |
 
@@ -34,7 +34,7 @@ The AI Agent ships in two flavors that share the same versioning scheme.
 
 | Connector            | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| AI Agent Sub-process | 8.10 | 10 | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
+| AI Agent Sub-process | 8.10 | 11 | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
 | AI Agent Sub-process | 8.9  | 7  | [`versioned/agenticai-aiagent-job-worker-7.json`](./versioned/agenticai-aiagent-job-worker-7.json) |
 | AI Agent Sub-process | 8.8  | 5  | [`versioned/agenticai-aiagent-job-worker-5.json`](./versioned/agenticai-aiagent-job-worker-5.json) |
 
@@ -45,9 +45,9 @@ See the [MCP Client connector documentation](https://docs.camunda.io/docs/next/c
 
 | Connector         | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| MCP Client        | 8.9 | 2 | [`agenticai-mcp-client-outbound-connector.json`](./agenticai-mcp-client-outbound-connector.json) |
+| MCP Client        | 8.9 | 3 | [`agenticai-mcp-client-outbound-connector.json`](./agenticai-mcp-client-outbound-connector.json) |
 | MCP Client        | 8.8 | 0 | [`versioned/agenticai-mcp-client-outbound-connector-0.json`](./versioned/agenticai-mcp-client-outbound-connector-0.json) |
-| MCP Remote Client | 8.9 | 2 | [`agenticai-mcp-remote-client-outbound-connector.json`](./agenticai-mcp-remote-client-outbound-connector.json) |
+| MCP Remote Client | 8.9 | 3 | [`agenticai-mcp-remote-client-outbound-connector.json`](./agenticai-mcp-remote-client-outbound-connector.json) |
 | MCP Remote Client | 8.8 | 0 | [`versioned/agenticai-mcp-remote-client-outbound-connector-0.json`](./versioned/agenticai-mcp-remote-client-outbound-connector-0.json) |
 
 ## A2A connectors

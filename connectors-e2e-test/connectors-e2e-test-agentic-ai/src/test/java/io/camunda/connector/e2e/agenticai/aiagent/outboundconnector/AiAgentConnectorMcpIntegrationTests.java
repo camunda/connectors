@@ -26,6 +26,8 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.assertArg;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
@@ -74,6 +76,9 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
 
   public static final String MCP_CLIENT_ID = "a-mcp-client";
 
+  private static final Map<String, Object> EXAMPLE_META =
+      Map.of("exampleMetaKey", "exampleMetaValue");
+
   @Value("classpath:agentic-ai-connectors-mcp.bpmn")
   protected Resource testProcessWithMcp;
 
@@ -98,7 +103,7 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
 
   @BeforeEach
   void mockMcpClients() {
-    when(aMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
+    when(aMcpClient.listTools(isNull(), eq(EXAMPLE_META))).thenReturn(MCP_TOOL_SPECIFICATIONS);
     when(aHttpRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
     when(aSseRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
@@ -165,7 +170,7 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
             "AI_Agent",
             "User_Feedback");
 
-    verify(aMcpClient).listTools();
+    verify(aMcpClient).listTools(isNull(), eq(EXAMPLE_META));
     verify(aHttpRemoteMcpClient).listTools();
     verify(aSseRemoteMcpClient).listTools();
     verify(filesystemMcpClient).listTools();
@@ -279,7 +284,7 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
 
-    verify(aMcpClient).listTools();
+    verify(aMcpClient).listTools(isNull(), eq(EXAMPLE_META));
     verify(aHttpRemoteMcpClient).listTools();
     verify(aSseRemoteMcpClient).listTools();
     verify(filesystemMcpClient).listTools();
@@ -291,6 +296,8 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
                   assertThat(toolExecutionRequest.arguments())
                       .containsExactly(entry("paramA1", "someValue"), entry("paramA2", 3));
+                  assertThat(toolExecutionRequest.meta())
+                      .containsExactly(entry("exampleMetaKey", "exampleMetaValue"));
                 }));
     verify(aHttpRemoteMcpClient)
         .callTool(
@@ -299,6 +306,9 @@ class AiAgentConnectorMcpIntegrationTests extends BaseAiAgentConnectorTest {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
                   assertThat(toolExecutionRequest.arguments())
                       .containsExactly(entry("paramC1", "someOtherValue"));
+                  // A_HTTP_Remote_MCP_Client never configures `meta` - proves the
+                  // backwards-compatible default (no `_meta` sent when unconfigured).
+                  assertThat(toolExecutionRequest.meta()).isNull();
                 }));
     verify(aSseRemoteMcpClient)
         .callTool(

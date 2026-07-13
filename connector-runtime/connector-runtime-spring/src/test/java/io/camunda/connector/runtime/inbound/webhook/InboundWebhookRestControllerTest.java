@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -45,10 +46,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.web.MockMultipartHttpServletRequest;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class InboundWebhookRestControllerTest {
 
@@ -65,14 +70,11 @@ class InboundWebhookRestControllerTest {
     request.setServerName("example.com");
     request.setServerPort(443);
     request.setRequestURI("/inbound/myPath");
+    request.setQueryString("token=secret-token&q=visible");
     request.setMethod("POST");
     request.setContent("a".repeat(1005).getBytes(StandardCharsets.UTF_8));
 
-    controller.inbound(
-        "myPath",
-        Map.of("authorization", "******", "x-test", "visible"),
-        Map.of("token", "secret-token", "q", "visible"),
-        request);
+    controller.inbound("myPath", Map.of("authorization", "******", "x-test", "visible"), request);
 
     var latestActivity = latestActivity(activityLogRegistry, connector.id());
     assertThat(latestActivity.message())
@@ -105,7 +107,7 @@ class InboundWebhookRestControllerTest {
             "file", "test.txt", "text/plain", "top secret file contents".getBytes()));
     request.setContent("top secret file contents".getBytes(StandardCharsets.UTF_8));
 
-    controller.inbound("myPath", new HashMap<>(), new HashMap<>(), request);
+    controller.inbound("myPath", new HashMap<>(), request);
 
     var latestActivity = latestActivity(activityLogRegistry, connector.id());
     assertThat(latestActivity.message())
@@ -113,6 +115,64 @@ class InboundWebhookRestControllerTest {
         .contains("/inbound/myPath")
         .contains("Body: (omitted for multipart request)")
         .doesNotContain("top secret file contents");
+  }
+
+  @Test
+  void shouldPreserveRawBodyForFormUrlEncodedRequest() throws Exception {
+    // Regression test for: @RequestParam in the controller caused Spring MVC to call
+    // getParameterMap() before the method body, consuming the servlet input stream for
+    // application/x-www-form-urlencoded requests. rawBody() then returned empty bytes,
+    // breaking HMAC verification for Slack Interactivity (block_actions) payloads.
+    //
+    // This test goes through the full Spring MVC dispatch via MockMvc so that
+    // Spring actually resolves method parameters — the condition that triggered the bug.
+
+    var rawBodyCaptor = new AtomicReference<byte[]>();
+
+    var executable = mock(WebhookConnectorExecutable.class);
+    var webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenAnswer(
+            inv -> {
+              rawBodyCaptor.set(((WebhookProcessingPayload) inv.getArgument(0)).rawBody());
+              return webhookResult;
+            });
+
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    when(correlationHandler.correlate(anyList(), any()))
+        .thenThrow(new ConnectorInputException("invalid input"));
+
+    var details = webhookDefinition("processA", 1, "myPath");
+    var context =
+        new InboundConnectorContextImpl(
+            new NullSecretProvider(),
+            new DefaultValidationProvider(),
+            details,
+            correlationHandler,
+            e -> {},
+            ConnectorsObjectMapperSupplier.getCopy(),
+            new ActivityLogRegistry(),
+            mock(CamundaClient.class));
+
+    var registry = new WebhookConnectorRegistry();
+    registry.register(
+        new RegisteredExecutable.Activated(
+            executable, context, ExecutableId.fromDeduplicationId(details.deduplicationId())));
+
+    MockMvc mockMvc =
+        MockMvcBuilders.standaloneSetup(new InboundWebhookRestController(registry)).build();
+
+    String formBody = "payload=%7B%22type%22%3A%22block_actions%22%7D";
+    mockMvc.perform(
+        post("/inbound/myPath")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .content(formBody));
+
+    assertThat(rawBodyCaptor.get())
+        .isNotNull()
+        .isNotEmpty()
+        .isEqualTo(formBody.getBytes(StandardCharsets.UTF_8));
   }
 
   private static io.camunda.connector.api.inbound.Activity latestActivity(

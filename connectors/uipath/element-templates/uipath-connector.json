@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "UiPath Outbound Connector",
   "id": "io.camunda.connectors.UIPath.v1",
-  "version": 6,
+  "version": 7,
   "engines": {
     "camunda": "^8.3"
   },
@@ -590,7 +590,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "5",
+      "value": "7",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -609,6 +609,46 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Hidden"
+    }
+  ],
+  "steps": [
+    {
+      "name": "Add queue item",
+      "description": "Add a new queue item to a UiPath Orchestrator queue",
+      "keywords": [
+        "add queue item",
+        "create queue item",
+        "enqueue item",
+        "submit to queue",
+        "new queue entry"
+      ],
+      "presetId": "operationType_addQueueItem"
+    },
+    {
+      "name": "Get queue item result by ID",
+      "description": "Retrieve the result and status of a UiPath queue item by its ID",
+      "keywords": [
+        "get queue item",
+        "queue item result",
+        "fetch item by id",
+        "queue item status",
+        "retrieve queue item"
+      ],
+      "presetId": "operationType_getItemById"
+    }
+  ],
+  "presets": [
+    {
+      "id": "operationType_addQueueItem",
+      "properties": {
+        "operationType": "addQueueItem"
+      }
+    },
+    {
+      "id": "operationType_getItemById",
+      "properties": {
+        "operationType": "getItemById"
+      }
     }
   ]
 }

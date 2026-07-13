@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Easy Post Outbound Connector",
   "id": "io.camunda.connectors.EasyPost.v1",
-  "version": 6,
+  "version": 7,
   "engines": {
     "camunda": "^8.3"
   },
@@ -1005,7 +1005,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "5",
+      "value": "7",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -1036,6 +1036,118 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Hidden"
+    }
+  ],
+  "steps": [
+    {
+      "name": "Create an address",
+      "description": "Create a new address in EasyPost from recipient and location details.",
+      "keywords": [
+        "create address",
+        "add address",
+        "new address",
+        "recipient address",
+        "shipping address"
+      ],
+      "presetId": "operationType_createAddress"
+    },
+    {
+      "name": "Create a parcel",
+      "description": "Create a new parcel in EasyPost with weight and dimension details.",
+      "keywords": [
+        "create parcel",
+        "add parcel",
+        "new package",
+        "parcel dimensions",
+        "package weight"
+      ],
+      "presetId": "operationType_createParcel"
+    },
+    {
+      "name": "Create a shipment",
+      "description": "Create a shipment in EasyPost linking origin, destination, and parcel.",
+      "keywords": [
+        "create shipment",
+        "new shipment",
+        "prepare shipment",
+        "shipping rates",
+        "origin destination"
+      ],
+      "presetId": "operationType_createShipment"
+    },
+    {
+      "name": "Buy a shipment",
+      "description": "Purchase a shipping label in EasyPost for a shipment using a selected rate.",
+      "keywords": [
+        "buy shipment",
+        "purchase label",
+        "buy shipping label",
+        "pay for shipment",
+        "select rate"
+      ],
+      "presetId": "operationType_buyShipment"
+    },
+    {
+      "name": "Verify a created address",
+      "description": "Verify a previously created address by its EasyPost address ID.",
+      "keywords": [
+        "verify address",
+        "validate address",
+        "check address",
+        "confirm address",
+        "address verification"
+      ],
+      "presetId": "operationType_verifyAddressById"
+    },
+    {
+      "name": "Retrieve a tracker by ID",
+      "description": "Retrieve tracking information from EasyPost for a shipment using its tracker ID.",
+      "keywords": [
+        "retrieve tracker",
+        "track shipment",
+        "tracking status",
+        "get tracker",
+        "shipment tracking"
+      ],
+      "presetId": "operationType_retrieveTracker"
+    }
+  ],
+  "presets": [
+    {
+      "id": "operationType_createAddress",
+      "properties": {
+        "operationType": "createAddress"
+      }
+    },
+    {
+      "id": "operationType_createParcel",
+      "properties": {
+        "operationType": "createParcel"
+      }
+    },
+    {
+      "id": "operationType_createShipment",
+      "properties": {
+        "operationType": "createShipment"
+      }
+    },
+    {
+      "id": "operationType_buyShipment",
+      "properties": {
+        "operationType": "buyShipment"
+      }
+    },
+    {
+      "id": "operationType_verifyAddressById",
+      "properties": {
+        "operationType": "verifyAddressById"
+      }
+    },
+    {
+      "id": "operationType_retrieveTracker",
+      "properties": {
+        "operationType": "retrieveTracker"
+      }
     }
   ],
   "icon": {

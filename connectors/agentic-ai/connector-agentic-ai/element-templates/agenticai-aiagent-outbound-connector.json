@@ -5,7 +5,7 @@
   "description" : "Execute a single AI-powered action with tool calling capabilities",
   "keywords" : [ "AI", "AI Agent", "agentic orchestration" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-  "version" : 10,
+  "version" : 11,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -1677,7 +1677,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "10",
+    "value" : "11",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

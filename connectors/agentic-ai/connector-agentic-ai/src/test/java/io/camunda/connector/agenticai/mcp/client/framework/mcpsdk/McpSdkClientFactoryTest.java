@@ -147,7 +147,7 @@ class McpSdkClientFactoryTest {
     assertClientIsOfCorrectType(client);
     verify(httpClientProxyConfigurator).configure(any());
 
-    assertThatThrownBy(() -> client.listTools(AllowDenyList.allowingEverything()))
+    assertThatThrownBy(() -> client.listTools(AllowDenyList.allowingEverything(), null))
         .hasMessage("Client failed to initialize listing tools");
 
     await()
@@ -178,7 +178,7 @@ class McpSdkClientFactoryTest {
     assertClientIsOfCorrectType(client);
     verify(httpClientProxyConfigurator).configure(any());
 
-    assertThatThrownBy(() -> client.listTools(AllowDenyList.allowingEverything()))
+    assertThatThrownBy(() -> client.listTools(AllowDenyList.allowingEverything(), null))
         .hasMessage("Client failed to initialize listing tools");
 
     await()

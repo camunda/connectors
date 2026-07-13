@@ -10,13 +10,16 @@ on:
     branches:
       - '**'
       - '!main'
+      - '!gh-readonly-queue/**'
   merge_group:
     branches: [ main ]
 
 # Cancel stale runs of the same type (push-on-push, PR-on-PR) without
-# letting push and pull_request events cancel each other.
+# letting push and pull_request events cancel each other. Merge-queue runs
+# are keyed on the merge group's head ref so entries queued behind others
+# don't collide into the same group and get cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.merge_group.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -110,8 +113,41 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       # Build and test (format and javadoc run in parallel jobs)
+      # The build above regenerates all element template JSON files as part of
+      # the `process-classes` phase (element-template-generator-maven-plugin),
+      # writing them back into each connector's element-templates/ source dir.
       - name: Build Connectors
         run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C
+
+      # Fail if the regenerated templates differ from what's committed. This is a
+      # diff check only — CI never commits or modifies files. Versioned snapshots
+      # (element-templates/versioned/) are intentionally excluded, as they are
+      # pinned and not overwritten on regeneration.
+      - name: Verify element templates are in sync with Java source
+        run: |
+          set -euo pipefail
+          # Directory-anchored pathspecs: root templates and hybrid/ variants,
+          # excluding pinned versioned/ snapshots.
+          PATHSPEC=(
+            '*/element-templates/*.json'
+            '*/element-templates/hybrid/*.json'
+            ':(exclude)*/element-templates/versioned/*'
+          )
+          # Register intent-to-add for any brand-new (untracked) generated
+          # templates so a single `git diff` reports — with content — both
+          # modified and newly created files. This stages no file content.
+          git add -N -- "${PATHSPEC[@]}"
+          if git diff --quiet -- "${PATHSPEC[@]}"; then
+            echo "✅ All element templates match their Java source."
+          else
+            echo "❌ Element templates are out of sync with their Java source."
+            echo "   Run 'mvn install' (or 'mvn process-classes') locally and commit the regenerated templates."
+            echo ""
+            git diff --stat -- "${PATHSPEC[@]}"
+            echo ""
+            git diff -- "${PATHSPEC[@]}"
+            exit 1
+          fi
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
@@ -317,3 +353,24 @@ jobs:
 
       - name: Check Format
         run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly
+
+  check-versioned-element-templates:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          # Full history so the merge-base with origin/main can be resolved for
+          # the three-dot diff used to find newly added versioned templates.
+          fetch-depth: 0
+
+      - name: Fetch main ref
+        run: git fetch origin main --quiet
+        shell: bash
+
+      - name: Check versioned element templates match main
+        run: |
+          chmod +x ./.github/workflows/scripts/check_versioned_element_templates.sh
+          ./.github/workflows/scripts/check_versioned_element_templates.sh
+        shell: bash

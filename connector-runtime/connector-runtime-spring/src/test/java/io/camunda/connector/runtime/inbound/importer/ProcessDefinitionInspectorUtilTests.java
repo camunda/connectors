@@ -56,6 +56,9 @@ public class ProcessDefinitionInspectorUtilTests {
     var inboundConnectors = fromModel("multi-webhook-collaboration.bpmn", "process2");
     assertEquals(1, inboundConnectors.size());
     assertEquals("intermediate_event", inboundConnectors.getFirst().element().elementId());
+    assertEquals(
+        "af13ccea-2581-45b1-928d-165edbc1af8f",
+        inboundConnectors.getFirst().element().messageName());
   }
 
   @Test
@@ -77,6 +80,9 @@ public class ProcessDefinitionInspectorUtilTests {
     var inboundConnectors = fromModel("single-webhook-boundary.bpmn", "BoundaryEventTest");
     assertEquals(1, inboundConnectors.size());
     assertEquals("boundary_event", inboundConnectors.getFirst().element().elementId());
+    assertEquals(
+        "c97ca438-b051-49db-b007-f897574daceb",
+        inboundConnectors.getFirst().element().messageName());
   }
 
   @Test

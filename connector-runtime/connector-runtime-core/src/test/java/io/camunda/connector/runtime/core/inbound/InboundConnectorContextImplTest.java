@@ -135,6 +135,7 @@ class InboundConnectorContextImplTest {
         new ProcessElementWithRuntimeData(
             "bool",
             null,
+            null,
             0,
             0,
             "activated",

@@ -16,7 +16,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <testcontainers-keycloak.version>4.2.1</testcontainers-keycloak.version>
+    <testcontainers-keycloak.version>4.3.0</testcontainers-keycloak.version>
   </properties>
 
   <build>
@@ -110,6 +110,11 @@
       <groupId>com.github.dasniko</groupId>
       <artifactId>testcontainers-keycloak</artifactId>
       <version>${testcontainers-keycloak.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>uk.org.webcompere</groupId>
+      <artifactId>system-stubs-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

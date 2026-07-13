@@ -48,11 +48,11 @@ import java.util.TreeMap;
  */
 public class PresetCoverageRule implements Rule {
 
-  static final int MAX_CANDIDATES = 100_000;
+  static final int MAX_CANDIDATES = 10_000_000;
 
   @Override
   public List<Finding> apply(Path file, JsonNode template) {
-    if (OperationMetadataIgnoreList.isIgnored(file)) {
+    if (OperationMetadataIgnoreList.isIgnored(file, template)) {
       return List.of();
     }
     JsonNode presetsNode = template.path(ElementTemplate.PRESETS);

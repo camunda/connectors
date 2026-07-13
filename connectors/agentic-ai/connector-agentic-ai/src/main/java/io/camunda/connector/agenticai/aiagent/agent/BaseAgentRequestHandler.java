@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import java.time.OffsetDateTime;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -147,9 +148,15 @@ public abstract class BaseAgentRequestHandler<
 
     final var agentInstanceKey = conversation.agentInstanceKey();
     // called before ingest, so the current turn is still pending and lastTurn() is the turn
-    // preceding it — i.e. the one whose tool calls originated the current turn's tool results
+    // preceding it — i.e. the one whose tool calls originated the current turn's tool results.
+    // Non-tool-result input items (e.g. the user message) are stamped with this turn-ingestion
+    // timestamp; tool-result items use their own resolved completedAt instead (ADR 008).
     agentInstanceClient.createHistoryForInputMessages(
-        executionContext, agentInstanceKey, conversation.currentTurn(), conversation.lastTurn());
+        executionContext,
+        agentInstanceKey,
+        conversation.currentTurn(),
+        conversation.lastTurn(),
+        OffsetDateTime.now());
 
     LOGGER.debug("Executing chat request with AI framework");
     final var chatResponse =
@@ -159,7 +166,10 @@ public abstract class BaseAgentRequestHandler<
         conversation.ingest(chatResponse.assistantMessage(), chatResponse.metrics());
 
     agentInstanceClient.createHistoryForAssistantMessage(
-        executionContext, agentInstanceKey, updatedConversation.currentTurn());
+        executionContext,
+        agentInstanceKey,
+        updatedConversation.currentTurn(),
+        OffsetDateTime.now());
 
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =

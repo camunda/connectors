@@ -25,6 +25,7 @@ import org.jspecify.annotations.Nullable;
 public record ProcessElementWithRuntimeData(
     String bpmnProcessId,
     @Nullable String processName,
+    @Nullable String messageName,
     int version,
     long processDefinitionKey,
     String elementId,
@@ -43,6 +44,7 @@ public record ProcessElementWithRuntimeData(
       String tenantId) {
     this(
         bpmnProcessId,
+        null,
         null,
         version,
         processDefinitionKey,

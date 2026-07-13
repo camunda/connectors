@@ -32,14 +32,17 @@ public class AgentInitializerImpl implements AgentInitializer {
   private final AgentToolsResolver toolsResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AgentInstanceClient agentInstanceClient;
+  private final ToolCallResultCompletedAtResolver completedAtResolver;
 
   public AgentInitializerImpl(
       AgentToolsResolver toolsResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ToolCallResultCompletedAtResolver completedAtResolver) {
     this.toolsResolver = toolsResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.agentInstanceClient = agentInstanceClient;
+    this.completedAtResolver = completedAtResolver;
   }
 
   @Override
@@ -50,6 +53,10 @@ public class AgentInitializerImpl implements AgentInitializer {
 
     List<ToolCallResult> initialToolCallResults =
         Optional.ofNullable(executionContext.initialToolCallResults()).orElseGet(List::of);
+
+    // resolve completedAt (engine timestamp -> now()) at the earliest ingestion point, per
+    // ADR 008, before any further processing of these results
+    initialToolCallResults = completedAtResolver.resolve(initialToolCallResults);
 
     return switch (agentContext.state()) {
       case INITIALIZING ->

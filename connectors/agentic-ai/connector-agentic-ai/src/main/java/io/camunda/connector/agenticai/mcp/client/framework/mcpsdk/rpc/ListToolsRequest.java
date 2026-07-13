@@ -12,6 +12,8 @@ import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinitionBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.modelcontextprotocol.client.McpSyncClient;
 import java.util.Collections;
+import java.util.Map;
+import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,10 +27,13 @@ final class ListToolsRequest {
     this.clientId = clientId;
   }
 
-  public McpClientListToolsResult execute(McpSyncClient client, AllowDenyList toolNameFilter) {
+  public McpClientListToolsResult execute(
+      McpSyncClient client, AllowDenyList toolNameFilter, Map<String, Object> meta) {
     LOGGER.debug("MCP({}): Executing list tools", clientId);
 
-    final var toolSpecifications = client.listTools().tools();
+    final var listToolsResult =
+        MapUtils.isEmpty(meta) ? client.listTools() : client.listTools(null, meta);
+    final var toolSpecifications = listToolsResult.tools();
     if (toolSpecifications.isEmpty()) {
       LOGGER.debug("MCP({}): No tools found", clientId);
       return new McpClientListToolsResult(Collections.emptyList());

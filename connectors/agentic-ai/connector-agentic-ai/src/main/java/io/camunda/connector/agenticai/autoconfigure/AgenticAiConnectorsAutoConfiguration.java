@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
@@ -212,7 +213,11 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentToolsResolver toolsResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AgentInstanceClient agentInstanceClient) {
-    return new AgentInitializerImpl(toolsResolver, gatewayToolHandlers, agentInstanceClient);
+    return new AgentInitializerImpl(
+        toolsResolver,
+        gatewayToolHandlers,
+        agentInstanceClient,
+        new ToolCallResultCompletedAtResolver());
   }
 
   @Bean
