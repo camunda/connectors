@@ -124,7 +124,7 @@ public class KafkaConnectorConsumer {
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage("Failed to initialize connector: " + ex.getMessage(), ex));
+                  .withMessage("Failed to initialize connector", ex));
       context.reportHealth(Health.down(ex));
       throw ex;
     }

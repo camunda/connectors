@@ -70,7 +70,7 @@ public class JakartaEmailListener implements EmailListener {
                     activity
                         .withSeverity(Severity.ERROR)
                         .withTag("Context creation")
-                        .withMessage(throwable.getMessage()));
+                        .withMessage(throwable));
           } else context.reportHealth(Health.up());
         });
   }
