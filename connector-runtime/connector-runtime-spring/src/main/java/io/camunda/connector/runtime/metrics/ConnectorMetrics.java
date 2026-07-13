@@ -29,6 +29,7 @@ public class ConnectorMetrics {
     public static final String TYPE = "type";
     public static final String ACTION = "action";
     public static final String ELEMENT_TEMPLATE_VERSION = "elementTemplateVersion";
+    public static final String RESULT = "result";
   }
 
   public static class Outbound {
@@ -85,6 +86,20 @@ public class ConnectorMetrics {
     public static final String METRIC_NAME_TRIGGERS = "camunda.connector.inbound.triggers";
     public static final String METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED =
         "camunda.connector.inbound.process-definitions-checked";
+
+    /**
+     * Number of process-definition inspection cache lookups, tagged by {@code result} ({@code hit}
+     * or {@code miss}). A high miss rate suggests the cache size (configured via {@code
+     * camunda.connector.inbound.process-definition-cache.max-size}) is too small.
+     */
+    public static final String METRIC_NAME_PROCESS_DEFINITION_CACHE_ACCESSES =
+        "camunda.connector.inbound.process-definition-cache.accesses";
+
+    /** Value of the {@code result} tag for a process-definition cache hit. */
+    public static final String RESULT_CACHE_HIT = "hit";
+
+    /** Value of the {@code result} tag for a process-definition cache miss. */
+    public static final String RESULT_CACHE_MISS = "miss";
 
     /**
      * Epoch-millisecond timestamp of the last successful activation, per connector type. Value is

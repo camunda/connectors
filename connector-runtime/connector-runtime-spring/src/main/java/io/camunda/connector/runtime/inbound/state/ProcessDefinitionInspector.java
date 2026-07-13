@@ -34,6 +34,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelati
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.model.DeployedVersionRef;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;
@@ -56,6 +57,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,28 +89,43 @@ public class ProcessDefinitionInspector {
 
   private final SearchQueryClient searchQueryClient;
   private final Cache processDefinitionCache;
+  private final ConnectorsInboundMetrics metrics;
 
   public ProcessDefinitionInspector(
-      SearchQueryClient searchQueryClient, Cache processDefinitionCache) {
+      SearchQueryClient searchQueryClient,
+      Cache processDefinitionCache,
+      ConnectorsInboundMetrics metrics) {
     this.searchQueryClient = searchQueryClient;
     if (processDefinitionCache == null) {
       throw new IllegalArgumentException("processDefinitionCache must not be null");
     }
     this.processDefinitionCache = processDefinitionCache;
+    this.metrics = metrics;
   }
 
   public List<InboundConnectorElement> findInboundConnectors(
       ProcessDefinitionRef identifier, long processDefinitionKey) {
 
-    return processDefinitionCache.get(
-        processDefinitionKey,
-        () -> {
-          LOG.debug(
-              "Cache miss for process {} (key {}), fetching and parsing BPMN model.",
-              identifier.bpmnProcessId(),
-              processDefinitionKey);
-          return fetchAndParseConnectors(identifier, processDefinitionKey);
-        });
+    // The value loader only runs on a cache miss, so it doubles as our hit/miss signal.
+    AtomicBoolean cacheMiss = new AtomicBoolean(false);
+    List<InboundConnectorElement> connectors =
+        processDefinitionCache.get(
+            processDefinitionKey,
+            () -> {
+              cacheMiss.set(true);
+              LOG.debug(
+                  "Cache miss for process {} (key {}), fetching and parsing BPMN model.",
+                  identifier.bpmnProcessId(),
+                  processDefinitionKey);
+              return fetchAndParseConnectors(identifier, processDefinitionKey);
+            });
+
+    if (cacheMiss.get()) {
+      metrics.increaseProcessDefinitionCacheMiss();
+    } else {
+      metrics.increaseProcessDefinitionCacheHit();
+    }
+    return connectors;
   }
 
   private List<InboundConnectorElement> fetchAndParseConnectors(
