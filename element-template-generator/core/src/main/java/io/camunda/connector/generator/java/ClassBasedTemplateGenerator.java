@@ -315,22 +315,22 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
 
   private List<ConfigurationTemplate> buildConfigurationTemplates(
       ElementTemplate template, TemplateGenerationContext context) {
-    return Arrays.stream(template.configurationTemplates())
+    return Arrays.stream(template.configurations())
         .map(
             templateClass -> {
               var configurationAnnotation =
                   templateClass.getAnnotation(
-                      io.camunda.connector.generator.java.annotation.ConfigurationTemplate.class);
+                      io.camunda.connector.api.annotation.Configuration.class);
               if (configurationAnnotation == null) {
                 throw new IllegalArgumentException(
                     "Class "
                         + templateClass.getName()
-                        + " referenced in @ElementTemplate.configurationTemplates() must be"
-                        + " annotated with @ConfigurationTemplate");
+                        + " referenced in @ElementTemplate.configurations() must be"
+                        + " annotated with @Configuration");
               }
               if (configurationAnnotation.name().isBlank()) {
                 throw new IllegalArgumentException(
-                    "@ConfigurationTemplate on "
+                    "@Configuration on "
                         + templateClass.getName()
                         + " must declare a non-blank name (required by the configuration-template"
                         + " schema)");

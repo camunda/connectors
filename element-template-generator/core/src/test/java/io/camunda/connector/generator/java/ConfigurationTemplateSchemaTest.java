@@ -24,10 +24,10 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion.VersionFlag;
 import com.networknt.schema.ValidationMessage;
+import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.generator.java.annotation.ConfigurationTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.json.ElementTemplateModule;
@@ -82,7 +82,7 @@ public class ConfigurationTemplateSchemaTest {
 
   // --- JDBC: flat whole-object configuration ---
 
-  @ConfigurationTemplate(id = "io.camunda:jdbc-credential:1", version = 1, name = "JDBC Connection")
+  @Configuration(id = "io.camunda:jdbc-credential:1", version = 1, name = "JDBC Connection")
   record JdbcConnection(String url, String username, String password) {}
 
   record JdbcRequest(
@@ -98,7 +98,7 @@ public class ConfigurationTemplateSchemaTest {
       name = "JDBC",
       version = 1,
       inputDataClass = JdbcRequest.class,
-      configurationTemplates = {JdbcConnection.class})
+      configurations = {JdbcConnection.class})
   static class JdbcConnector implements OutboundConnectorFunction {
     @Override
     public Object execute(OutboundConnectorContext context) {
@@ -123,7 +123,7 @@ public class ConfigurationTemplateSchemaTest {
       @TemplateProperty(secret = true, optional = true) String accessKey,
       @TemplateProperty(secret = true, optional = true) String secretKey) {}
 
-  @ConfigurationTemplate(
+  @Configuration(
       id = "io.camunda:aws-credential:1",
       version = 2,
       name = "AWS Credential",
@@ -145,7 +145,7 @@ public class ConfigurationTemplateSchemaTest {
       name = "AWS",
       version = 1,
       inputDataClass = AwsRequest.class,
-      configurationTemplates = {AwsCredential.class})
+      configurations = {AwsCredential.class})
   static class AwsConnector implements OutboundConnectorFunction {
     @Override
     public Object execute(OutboundConnectorContext context) {

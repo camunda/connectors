@@ -43,18 +43,20 @@ Resolving "use the configuration or the inline value" (precedence: explicit inli
 ## Decision
 Extend the element-template generator with configuration support that reuses the existing annotation/DSL/generator machinery. New API surface:
 
-1. **`@ConfigurationTemplate` (type-level annotation)** — marks a data class as a configuration template: `id()` (the template id, e.g. `io.camunda:aws-credential:1`), `version()` (the floor revision), `name()` (editor display name), `kind()` (the configuration class; defaults to `CREDENTIAL`, the only value defined today). Its `@TemplateProperty`-annotated fields define the template's `properties`.
+1. **`@Configuration` (type-level annotation, in the SDK)** — marks a data class as a configuration type: `id()` (the id, e.g. `io.camunda:aws-credential:1`), `version()` (the floor revision), `name()` (editor display name), `kind()` (the configuration class; defaults to `CREDENTIAL`, the only value defined today). Its `@TemplateProperty`-annotated fields define the embedded template's `properties`.
 
-2. **`PropertyType.Configuration` (enum addition)** — a connector-input field typed as a `@ConfigurationTemplate` class and annotated `@TemplateProperty(type = Configuration)` emits the chooser property. The chooser references the template **by id** (`configurationTemplate`), derived from the field type's `@ConfigurationTemplate.id()`. The chooser carries **no version** — the floor lives on the embedded `configurationTemplates[]` entry, linked by id.
+   **Placement & naming.** This annotation lives in the SDK (`connector-core`, `io.camunda.connector.api.annotation`), **not** in the element-template-generator annotations, because it is a runtime-readable *identity contract* — the connector runtime reads its `id`/`kind` to interpret a bound `configuration` object, and the generator reads the same annotation to emit the chooser and the embedded template. This is exactly the shape of the existing `@OutboundConnector`/`@InboundConnector` annotations (type-level identity, read by both the runtime and the generator), so it belongs in the same package. Consequently it is named `@Configuration`, not `@ConfigurationTemplate`: "template" denotes the *generator output artifact* (the embedded `configurationTemplates[]` document), which is an ETG concern — the annotation marks the *input concept*. Presentation-only annotations (`@TemplateProperty`, `@ElementTemplate`, `@DropdownItem`) stay in the generator. The reference direction is one-way: the generator may depend on the SDK annotation, never the reverse.
+
+2. **`PropertyType.Configuration` (enum addition)** — a connector-input field typed as a `@Configuration` class and annotated `@TemplateProperty(type = Configuration)` emits the chooser property. The chooser references the configuration **by id** (`configurationTemplate`), derived from the field type's `@Configuration.id()`. The chooser carries **no version** — the floor lives on the embedded `configurationTemplates[]` entry, linked by id.
 
 3. **DSL/JSON model:**
    - `ConfigurationProperty extends Property` — the chooser; emits `{type:"Configuration", configurationTemplate:<id>, label, group, binding}`.
    - top-level `ConfigurationTemplate` record `{id, kind, version, name, properties}` — mirrors the element-template top-level minus BPMN-only fields.
    - `ElementTemplate.configurationTemplates` collection, emitted under the `configurationTemplates` key.
 
-4. **`@ElementTemplate.configurationTemplates()`** — references the template classes to embed.
+4. **`@ElementTemplate.configurations()`** — references the `@Configuration` classes whose templates to embed. (The member is named for the input concept; the emitted top-level key stays `configurationTemplates`, the output artifact.)
 
-**Whole-object chooser binding.** The chooser is a single property bound once to one `zeebe:input` (outbound) / `zeebe:property` (inbound). On selection the Modeler writes the whole-configuration FEEL expression (`=camunda.vars.env.<name>`) plus cached `modelerConfigurationTemplate` / `modelerConfigurationName` metadata to that target. The connector reads the bound object as a whole. This is uniform across all connectors — there is no deconstruction and no per-connector variation on the element-template side. A connector that wants a configuration therefore exposes a single field typed as its `@ConfigurationTemplate` class:
+**Whole-object chooser binding.** The chooser is a single property bound once to one `zeebe:input` (outbound) / `zeebe:property` (inbound). On selection the Modeler writes the whole-configuration FEEL expression (`=camunda.vars.env.<name>`) plus cached `modelerConfigurationTemplate` / `modelerConfigurationName` metadata to that target. The connector reads the bound object as a whole. This is uniform across all connectors — there is no deconstruction and no per-connector variation on the element-template side. A connector that wants a configuration therefore exposes a single field typed as its `@Configuration` class:
 
 ```java
 @TemplateProperty(type = Configuration, group = "connection",
@@ -68,13 +70,13 @@ JdbcConnection connection;
 - **`type: "Configuration"` is disallowed** — a configuration cannot reference another configuration.
 - a **`secret: true`** hint may mark secret-bearing fields (editor rendering hint, not enforced), via a `secret` attribute on `@TemplateProperty`, surfaced only on configuration-template properties.
 
-The generator walks `@ConfigurationTemplate` classes in a dedicated *configuration-template extraction mode* (`property` bindings, no `feel`, `secret` hint) — distinct from the `zeebe:input`/`zeebe:property` extraction used for the host element template. Nested objects produce dotted `property` binding names via the existing prefixing in the property walker.
+The generator walks `@Configuration` classes in a dedicated *configuration-template extraction mode* (`property` bindings, no `feel`, `secret` hint) — distinct from the `zeebe:input`/`zeebe:property` extraction used for the host element template. Nested objects produce dotted `property` binding names via the existing prefixing in the property walker.
 
 ### Example
 
-Configuration-template definition — its `@TemplateProperty` fields become the embedded template's `properties` (emitted with `property` bindings, no `feel`, secrets marked `secret: true`):
+Configuration definition — its `@TemplateProperty` fields become the embedded template's `properties` (emitted with `property` bindings, no `feel`, secrets marked `secret: true`). Note `@Configuration` is the SDK annotation; the `@TemplateProperty` fields it governs are the generator's:
 ```java
-@ConfigurationTemplate(id = "io.camunda:aws-credential:1", version = 1, name = "AWS Credential")
+@Configuration(id = "io.camunda:aws-credential:1", version = 1, name = "AWS Credential")
 public record AwsCredential(
     @TemplateProperty(group = "authentication") AwsAuthentication authentication,
     @TemplateProperty(group = "configuration")  AwsBaseConfiguration configuration) {}
@@ -87,7 +89,7 @@ Chooser field on the connector's request model (bound whole; the connector reads
 AwsCredential configuration;
 
 // on the connector class:
-@ElementTemplate(/* … */ configurationTemplates = { AwsCredential.class })
+@ElementTemplate(/* … */ configurations = { AwsCredential.class })
 ```
 
 Resulting template fragment (chooser + embedded template):
@@ -128,8 +130,8 @@ This choice does **not** block the ETG work: the element template emits the iden
 - Rides the established annotation-driven model ([ADR-0001](ADR-0001-annotation-driven-element-template-generation.md)); the new surface is small.
 - **The element-template side is uniform** — one whole-configuration binding, never deconstruction — so every connector adopts the chooser the same way and no per-connector fan-out logic lives in templates.
 - **Decoupled** — the configuration's shape is independent of the connector's field layout, so a configuration can evolve its authentication mechanism without changing the consuming model.
-- The configuration template is the connector's own data class, and the chooser's `configurationTemplate` and the embedded template's `id` derive from one `@ConfigurationTemplate`, so they always match.
-- One configuration-template class can be shared across many connectors (AWS: 14 connectors, one `@ConfigurationTemplate`).
+- The configuration is the connector's own data class, and the chooser's `configurationTemplate` and the embedded template's `id` derive from one `@Configuration`, so they always match.
+- One `@Configuration` class can be shared across many connectors (AWS: 14 connectors, one `@Configuration`).
 - Configuration-template properties reuse the element-template property model (groups, conditions, dropdowns), so editors and validators are shared — the design's stated reason for not inventing a bespoke format.
 
 ### Negative

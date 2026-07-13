@@ -1727,7 +1727,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     // --- Test 1: JDBC-style whole-object chooser + embedded template ---
 
-    @io.camunda.connector.generator.java.annotation.ConfigurationTemplate(
+    @io.camunda.connector.api.annotation.Configuration(
         id = "io.camunda:jdbc-credential:1",
         version = 1,
         name = "JDBC Connection")
@@ -1746,7 +1746,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
         name = "JDBC",
         version = 1,
         inputDataClass = JdbcRequest.class,
-        configurationTemplates = {JdbcConnection.class})
+        configurations = {JdbcConnection.class})
     static class JdbcConnector implements OutboundConnectorFunction {
       @Override
       public Object execute(OutboundConnectorContext context) {
@@ -1805,7 +1805,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
         @TemplateProperty(secret = true) String accessKey,
         @TemplateProperty(secret = true) String secretKey) {}
 
-    @io.camunda.connector.generator.java.annotation.ConfigurationTemplate(
+    @io.camunda.connector.api.annotation.Configuration(
         id = "io.camunda:aws-credential:1",
         version = 2,
         name = "AWS Credential",
@@ -1827,7 +1827,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
         name = "AWS",
         version = 1,
         inputDataClass = AwsRequest.class,
-        configurationTemplates = {AwsCredential.class})
+        configurations = {AwsCredential.class})
     static class AwsConnector implements OutboundConnectorFunction {
       @Override
       public Object execute(OutboundConnectorContext context) {
@@ -1888,7 +1888,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     // --- blank name rejected (schema requires a non-blank name) ---
 
-    @io.camunda.connector.generator.java.annotation.ConfigurationTemplate(
+    @io.camunda.connector.api.annotation.Configuration(
         id = "io.camunda:blank-name:1",
         version = 1,
         name = "")
@@ -1906,7 +1906,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
         name = "BlankName",
         version = 1,
         inputDataClass = BlankNameRequest.class,
-        configurationTemplates = {BlankName.class})
+        configurations = {BlankName.class})
     static class BlankNameConnector implements OutboundConnectorFunction {
       @Override
       public Object execute(OutboundConnectorContext context) {
