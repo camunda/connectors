@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid SendGrid Outbound Connector",
+  "name" : "Hybrid Send Email with SendGrid",
   "id" : "io.camunda.connectors.SendGrid.v2-hybrid",
   "description" : "Send an email via SendGrid",
   "keywords" : [ "send email", "email notification", "transactional email", "marketing email", "email campaign", "email delivery", "dynamic template", "email template" ],

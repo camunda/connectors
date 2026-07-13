@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AWS Bedrock Knowledge Base Outbound Connector",
+  "name" : "Hybrid Retrieve Documents from AWS Bedrock Knowledge Base",
   "id" : "io.camunda.connectors.aws.bedrock.knowledgebase.v1-hybrid",
   "description" : "Retrieve relevant documents from an AWS Bedrock Knowledge Base",
   "version" : 1,

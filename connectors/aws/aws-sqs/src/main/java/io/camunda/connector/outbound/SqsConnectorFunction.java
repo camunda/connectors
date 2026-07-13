@@ -33,7 +33,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 @ElementTemplate(
     engineVersion = "^8.3",
     id = "io.camunda.connectors.AWSSQS.v1",
-    name = "Amazon SQS Outbound Connector",
+    name = "Send Message to AWS SQS",
     description = "Send messages to Amazon SQS.",
     keywords = {
       "send message",

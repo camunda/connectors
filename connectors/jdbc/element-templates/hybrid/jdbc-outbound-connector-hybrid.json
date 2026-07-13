@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid SQL Database Connector",
+  "name" : "Hybrid Execute SQL Statement on Database",
   "id" : "io.camunda.connectors.Jdbc.v1-hybrid",
   "description" : "Read and write data from a Camunda process directly to a SQL database (e.g., Microsoft SQL Server, MySQL, PostgreSQL)",
   "keywords" : [ "relational", "database", "SQL", "query database", "execute SQL", "relational database", "MySQL", "PostgreSQL", "SQL Server", "Oracle", "MariaDB", "select", "insert", "update", "delete" ],

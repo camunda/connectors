@@ -21,7 +21,7 @@ import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 @ElementTemplate(
     engineVersion = "^8.3",
     id = "io.camunda.connectors.RabbitMQ.v1",
-    name = "RabbitMQ Outbound Connector",
+    name = "Publish Message to RabbitMQ",
     description = "Send message to RabbitMQ",
     keywords = {
       "publish message",

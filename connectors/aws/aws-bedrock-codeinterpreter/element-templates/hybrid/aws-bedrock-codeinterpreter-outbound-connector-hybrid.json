@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AWS Bedrock Code Interpreter Outbound Connector",
+  "name" : "Hybrid Run Code with AWS Bedrock Code Interpreter",
   "id" : "io.camunda.connectors.aws.bedrock.codeinterpreter.v1-hybrid",
   "description" : "Execute Python code in a secure AWS Bedrock AgentCore Code Interpreter sandbox",
   "version" : 1,

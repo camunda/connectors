@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Amazon SQS Outbound Connector",
+  "name" : "Send Message to AWS SQS",
   "id" : "io.camunda.connectors.AWSSQS.v1",
   "description" : "Send messages to Amazon SQS.",
   "keywords" : [ "send message", "publish message", "send message to queue", "publish message to queue", "enqueue", "queue", "FIFO", "standard queue" ],

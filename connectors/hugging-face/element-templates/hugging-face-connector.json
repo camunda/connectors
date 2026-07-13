@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Hugging Face Outbound Connector",
+  "name": "Run Inference on Hugging Face",
   "id": "io.camunda.connectors.HuggingFace.v1",
   "version": 4,
   "engines": {

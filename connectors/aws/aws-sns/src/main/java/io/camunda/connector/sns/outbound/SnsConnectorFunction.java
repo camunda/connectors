@@ -32,7 +32,7 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
 @ElementTemplate(
     engineVersion = "^8.3",
     id = "io.camunda.connectors.AWSSNS.v1",
-    name = "Amazon SNS Outbound connector",
+    name = "Publish Message to AWS SNS",
     description = "Send messages to Amazon SNS.",
     keywords = {"send message", "publish message", "notification", "publish to topic", "FIFO"},
     inputDataClass = SnsConnectorRequest.class,
