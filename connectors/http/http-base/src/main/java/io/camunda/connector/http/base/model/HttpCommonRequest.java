@@ -63,8 +63,7 @@ public class HttpCommonRequest {
           @TemplateProperty.PropertyConstraints(
               notEmpty = true,
               pattern = @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a number")),
-      tooltip =
-          "Timeout in seconds to read data from an established connection or 0 for an infinite timeout")
+      tooltip = "Use 0 for an infinite timeout")
   private Integer readTimeoutInSeconds;
 
   @FEEL
@@ -107,7 +106,7 @@ public class HttpCommonRequest {
 
   @TemplateProperty(
       label = "Skip URL encoding",
-      description = "Skip the default URL decoding and encoding behavior",
+      tooltip = "Skip the default URL decoding and encoding behavior",
       type = TemplateProperty.PropertyType.Hidden,
       feel = FeelMode.disabled,
       group = "endpoint",

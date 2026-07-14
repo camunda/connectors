@@ -566,7 +566,6 @@
   }, {
     "id" : "skipEncoding",
     "label" : "Skip URL encoding",
-    "description" : "Skip the default URL decoding and encoding behavior",
     "optional" : true,
     "group" : "endpoint",
     "binding" : {
@@ -625,7 +624,7 @@
       "name" : "readTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
+    "tooltip" : "Use 0 for an infinite timeout",
     "type" : "Number"
   }, {
     "id" : "body",

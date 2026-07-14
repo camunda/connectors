@@ -86,8 +86,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               defaultValue = "20",
               defaultValueType = TemplateProperty.DefaultValueType.Number,
               optional = true,
-              tooltip =
-                  "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout")
+              tooltip = "Use 0 for an infinite timeout")
           Integer connectionTimeoutInSeconds,
       @TemplateProperty(
               group = "timeout",
@@ -95,7 +94,6 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               defaultValue = "20",
               defaultValueType = TemplateProperty.DefaultValueType.Number,
               optional = true,
-              tooltip =
-                  "Timeout in seconds to read data from an established connection or 0 for an infinite timeout")
+              tooltip = "Use 0 for an infinite timeout")
           Integer readTimeoutInSeconds) {}
 }

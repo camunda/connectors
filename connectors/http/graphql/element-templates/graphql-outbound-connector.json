@@ -523,7 +523,7 @@
       "name" : "graphql.connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+    "tooltip" : "Use 0 for an infinite timeout",
     "type" : "Number"
   }, {
     "id" : "graphql.readTimeoutInSeconds",
@@ -536,7 +536,7 @@
       "name" : "graphql.readTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
+    "tooltip" : "Use 0 for an infinite timeout",
     "type" : "Number"
   }, {
     "id" : "version",
