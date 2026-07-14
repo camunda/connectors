@@ -17,6 +17,8 @@ import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportS
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicDirectBackend;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Native {@link ChatModelApiFactory} for the Anthropic Messages wire format's {@code direct} (API
@@ -31,6 +33,8 @@ import java.util.Optional;
  * them).
  */
 public class AnthropicChatModelApiFactory implements ChatModelApiFactory {
+
+  private static final Logger LOG = LoggerFactory.getLogger(AnthropicChatModelApiFactory.class);
 
   static final int ORDER = 100;
   static final String API_FAMILY = "anthropic-messages";
@@ -69,6 +73,13 @@ public class AnthropicChatModelApiFactory implements ChatModelApiFactory {
             connection.model().model(),
             direct.type(),
             Optional.ofNullable(model.capabilityOverride()));
+
+    LOG.debug(
+        "Resolved model capabilities for api-family={}, model={}, backend={}: {}",
+        API_FAMILY,
+        connection.model().model(),
+        direct.type(),
+        capabilities);
 
     final var clientFactory = new AnthropicOkHttpClientFactory(direct, timeout, transport);
     final var contentConverter = new AnthropicContentConverter(objectMapper);
