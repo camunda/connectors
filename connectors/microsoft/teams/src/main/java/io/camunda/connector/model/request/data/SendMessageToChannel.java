@@ -29,18 +29,13 @@ import java.util.List;
     })
 public record SendMessageToChannel(
     @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "sendMessageToChannel.groupId",
-            label = "Group ID",
-            description = "The group ID for teams")
+        @TemplateProperty(group = "data", id = "sendMessageToChannel.groupId", label = "Group ID")
         String groupId,
     @NotBlank
         @TemplateProperty(
             group = "data",
             id = "sendMessageToChannel.channelId",
-            label = "Channel ID",
-            description = "The channel ID")
+            label = "Channel ID")
         String channelId,
     @TemplateProperty(
             group = "data",
@@ -53,15 +48,14 @@ public record SendMessageToChannel(
               @TemplateProperty.DropdownPropertyChoice(value = "HTML", label = "HTML")
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            description = "The type of the content. Possible values are text and html")
+            tooltip = "Text sends the message body as plain text; HTML renders it as HTML markup.")
         String bodyType,
     @NotBlank
         @TemplateProperty(
             group = "data",
             id = "sendMessageToChannel.content",
             label = "Content",
-            type = TemplateProperty.PropertyType.Text,
-            description = "Enter content")
+            type = TemplateProperty.PropertyType.Text)
         String content,
     @TemplateDocumentProperty(
             group = "data",
@@ -78,7 +72,7 @@ public record SendMessageToChannel(
                 @TemplateProperty.PropertyCondition(
                     property = "data.sendMessageToChannel.bodyType",
                     equals = "HTML"),
-            description =
+            tooltip =
                 "Optional list of attachments. Each item must have an 'id', 'contentType'"
                     + " (e.g. 'application/vnd.microsoft.card.adaptive') and 'content'"
                     + " (e.g. an Adaptive Card JSON payload). Attachment IDs must match"

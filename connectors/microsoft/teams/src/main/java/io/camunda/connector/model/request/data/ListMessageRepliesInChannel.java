@@ -27,21 +27,18 @@ public record ListMessageRepliesInChannel(
         @TemplateProperty(
             group = "data",
             id = "listMessageRepliesInChannel.groupId",
-            label = "Group ID",
-            description = "The group ID for teams")
+            label = "Group ID")
         String groupId,
     @NotBlank
         @TemplateProperty(
             group = "data",
             id = "listMessageRepliesInChannel.channelId",
-            label = "Channel ID",
-            description = "The channel ID")
+            label = "Channel ID")
         String channelId,
     @NotBlank
         @TemplateProperty(
             group = "data",
             id = "listMessageRepliesInChannel.messageId",
-            label = "Message ID",
-            description = "The message ID")
+            label = "Message ID")
         String messageId)
     implements ChannelData {}

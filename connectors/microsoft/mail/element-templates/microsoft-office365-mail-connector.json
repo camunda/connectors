@@ -122,7 +122,7 @@
     {
       "id": "authentication.type",
       "label": "Type",
-      "description": "Authentication type",
+      "tooltip": "Authentication type",
       "value": "oauth-client-credentials-flow",
       "group": "authentication",
       "binding": {
@@ -168,7 +168,6 @@
     {
       "id": "authentication.oauthTokenEndpoint",
       "label": "OAuth token endpoint",
-      "description": "The OAuth token endpoint",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -189,7 +188,7 @@
     {
       "id": "authentication.clientId",
       "label": "Client ID",
-      "description": "Your application's client ID from the OAuth client",
+      "tooltip": "Your application's client ID from the OAuth client",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -210,7 +209,7 @@
     {
       "id": "authentication.clientSecret",
       "label": "Client secret",
-      "description": "Your application's client secret from the OAuth client",
+      "tooltip": "Your application's client secret from the OAuth client",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -262,7 +261,7 @@
     {
       "id": "authentication.refreshToken.tenantId",
       "label": "Tenant ID",
-      "description": "The tenant ID of the Microsoft Entra (Azure AD) application",
+      "tooltip": "The tenant ID of the Microsoft Entra (Azure AD) application",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -283,7 +282,6 @@
     {
       "id": "authentication.refreshToken.clientId",
       "label": "Client ID",
-      "description": "The client ID of the application",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -322,7 +320,7 @@
     {
       "id": "authentication.refreshToken.token",
       "label": "Refresh token",
-      "description": "The OAuth 2.0 refresh token used to obtain a new access token",
+      "tooltip": "The OAuth 2.0 refresh token used to obtain a new access token",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -373,7 +371,7 @@
     {
       "id": "users.ListMailFolders_user_id",
       "label": "User ID",
-      "description": "The unique identifier of user. Can be UUID or email",
+      "description": "The unique identifier of the user. Can be a UUID or an email address",
       "optional": false,
       "value": "myuser@mycompany.com",
       "constraints": {
@@ -425,7 +423,7 @@
     {
       "id": "users.ListMailFolders_odata_queryParameters",
       "label": "Query parameters",
-      "description": "Query parameters. Supporting <a href='https://learn.microsoft.com/en-us/graph/query-parameters?tabs=http' target='_blank'>OData query parameters</a>",
+      "tooltip": "Supports <a href='https://learn.microsoft.com/en-us/graph/query-parameters?tabs=http' target='_blank'>OData query parameters</a>",
       "group": "parameters",
       "optional": true,
       "feel": "required",
@@ -458,7 +456,7 @@
     {
       "id": "users.CreateMailFolders_user_id",
       "label": "User ID",
-      "description": "The unique identifier of user. Can be UUID or email",
+      "description": "The unique identifier of the user. Can be a UUID or an email address",
       "optional": false,
       "value": "myuser@mycompany.com",
       "constraints": {
@@ -480,7 +478,6 @@
     {
       "id": "users.CreateMailFolders_folder_name",
       "label": "Folder display name",
-      "description": "A folder name to be created",
       "optional": false,
       "value": "",
       "constraints": {
@@ -562,7 +559,7 @@
     {
       "id": "users.ListMessages_user_id",
       "label": "User ID",
-      "description": "The unique identifier of user. Can be UUID or email",
+      "description": "The unique identifier of the user. Can be a UUID or an email address",
       "optional": false,
       "value": "myuser@mycompany.com",
       "constraints": {
@@ -614,7 +611,7 @@
     {
       "id": "users.ListMessages_odata_queryParameters",
       "label": "Query parameters",
-      "description": "Query parameters. Supporting <a href='https://learn.microsoft.com/en-us/graph/query-parameters?tabs=http' target='_blank'>OData query parameters</a>",
+      "tooltip": "Supports <a href='https://learn.microsoft.com/en-us/graph/query-parameters?tabs=http' target='_blank'>OData query parameters</a>",
       "group": "parameters",
       "optional": true,
       "feel": "required",
@@ -647,7 +644,7 @@
     {
       "id": "users.user.sendMail_user_id",
       "label": "User ID",
-      "description": "The unique identifier of user. Can be UUID or email",
+      "description": "The unique identifier of the user. Can be a UUID or an email address",
       "optional": false,
       "value": "myuser@mycompany.com",
       "constraints": {
@@ -669,7 +666,6 @@
     {
       "id": "users.user.sendMail_subject",
       "label": "Subject",
-      "description": "Mail subject",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -716,7 +712,6 @@
     {
       "id": "users.user.sendMail_body_content",
       "label": "Body content",
-      "description": "Mail body content",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -899,7 +894,7 @@
     {
       "id": "resultVariable",
       "label": "Result variable",
-      "description": "Name of variable to store the response in",
+      "tooltip": "Name of variable to store the response in",
       "group": "output",
       "binding": {
         "key": "resultVariable",
@@ -910,7 +905,7 @@
     {
       "id": "resultExpression",
       "label": "Result expression",
-      "description": "Expression to map the response into process variables",
+      "tooltip": "Expression to map the response into process variables",
       "feel": "required",
       "group": "output",
       "binding": {
@@ -922,7 +917,7 @@
     {
       "id": "errorExpression",
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "tooltip": "<a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">BPMN error handling documentation</a>",
       "feel": "required",
       "group": "error",
       "binding": {
@@ -934,7 +929,6 @@
     {
       "id": "retryCount",
       "label": "Retries",
-      "description": "Number of retries",
       "value": "3",
       "feel": "optional",
       "group": "retries",
@@ -947,7 +941,7 @@
     {
       "id": "retryBackoff",
       "label": "Retry backoff",
-      "description": "ISO-8601 duration to wait between retries",
+      "tooltip": "ISO-8601 duration to wait between retries",
       "value" : "PT30S",
       "feel": "optional",
       "group": "retries",

@@ -18,8 +18,9 @@ public record EmailPollingConfig(
     @TemplateProperty(
             label = "Mailbox Owner",
             feel = FeelMode.optional,
+            placeholder = "user@example.com",
             tooltip =
-                "The email address or user ID of the mailbox to monitor (e.g., user@example.com). <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#configuration\" target=\"_blank\">Learn more</a>")
+                "The email address or user ID of the mailbox to monitor. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#configuration\" target=\"_blank\">Microsoft O365 Mail connector configuration</a>")
         @NotBlank
         @FEEL
         String userId,
@@ -30,7 +31,7 @@ public record EmailPollingConfig(
             group = "pollingConfig",
             defaultValue = "PT30S",
             tooltip =
-                "The interval between email polling requests, defined as ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+                "The interval between email polling requests, in ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
             feel = FeelMode.optional)
         @FEEL
         Duration pollingInterval,
