@@ -75,7 +75,6 @@
   }, {
     "id" : "authentication.bearerToken",
     "label" : "Bearer token",
-    "description" : "Enter a valid Google API Bearer token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -95,7 +94,6 @@
   }, {
     "id" : "authentication.oauthClientId",
     "label" : "Client ID",
-    "description" : "Enter Google API Client ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -115,7 +113,6 @@
   }, {
     "id" : "authentication.oauthClientSecret",
     "label" : "Client secret",
-    "description" : "Enter Google API client Secret",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -135,7 +132,6 @@
   }, {
     "id" : "authentication.oauthRefreshToken",
     "label" : "Refresh token",
-    "description" : "Enter a valid Google API refresh token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -201,7 +197,6 @@
   }, {
     "id" : "resource.parent",
     "label" : "Parent folder ID",
-    "description" : "Your resources will be created here. If left empty, a new resource will appear in the root folder",
     "optional" : true,
     "feel" : "optional",
     "group" : "operationDetails",
@@ -214,6 +209,7 @@
       "oneOf" : [ "folder", "file", "upload" ],
       "type" : "simple"
     },
+    "tooltip" : "Your resources will be created here. If left empty, a new resource will appear in the root folder.",
     "type" : "String"
   }, {
     "id" : "resource.additionalGoogleDriveProperties",
@@ -288,7 +284,6 @@
   }, {
     "id" : "resource.uploadData.document_documentSource",
     "label" : "Document source",
-    "description" : "Upload camunda document, <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">see documentation</a>",
     "value" : "camunda",
     "group" : "operationDetails",
     "binding" : {
@@ -300,6 +295,7 @@
       "equals" : "upload",
       "type" : "simple"
     },
+    "tooltip" : "Upload a Camunda document. See the <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda document upload API</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda Document",

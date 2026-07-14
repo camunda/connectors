@@ -27,7 +27,6 @@ public record CreateSpreadsheet(
     @TemplateProperty(
             id = "createSpreadsheet.spreadsheetName",
             label = "Spreadsheet name",
-            description = "Enter name for the new spreadsheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.spreadsheetName"))
@@ -35,7 +34,8 @@ public record CreateSpreadsheet(
         String spreadsheetName,
     @TemplateProperty(
             label = "Parent folder ID",
-            description = "Enter ID of the parent folder where new spreadsheet will be created",
+            tooltip =
+                "Folder in which the new spreadsheet is created. If left empty, it is created in the Google Drive root folder of the OAuth token owner.",
             group = "operationDetails",
             optional = true,
             feel = FeelMode.optional,

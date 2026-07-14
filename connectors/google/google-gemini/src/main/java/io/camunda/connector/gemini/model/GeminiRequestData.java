@@ -13,24 +13,13 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record GeminiRequestData(
-    @TemplateProperty(
-            label = "Project ID",
-            group = "input",
-            description = "Project identifier.",
-            feel = FeelMode.disabled)
-        @NotNull
+    @TemplateProperty(label = "Project ID", group = "input", feel = FeelMode.disabled) @NotNull
         String projectId,
-    @TemplateProperty(
-            label = "Region",
-            group = "input",
-            description = "Input region.",
-            feel = FeelMode.disabled)
-        @NotNull
+    @TemplateProperty(label = "Region", group = "input", feel = FeelMode.disabled) @NotNull
         String region,
     @TemplateProperty(
             label = "Model",
             group = "input",
-            description = "Select gemini model.",
             feel = FeelMode.disabled,
             choices = {
               @TemplateProperty.DropdownPropertyChoice(
@@ -58,49 +47,39 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Custom model name",
             group = "input",
-            description = "Custom model name or identifier",
             feel = FeelMode.optional,
             condition =
                 @TemplateProperty.PropertyCondition(property = "input.model", equals = "CUSTOM"),
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String customModelName,
-    @FEEL
-        @TemplateProperty(
-            label = "Prompts",
-            group = "input",
-            description = "Provide a list of prompts",
-            feel = FeelMode.required)
-        @NotNull
+    @FEEL @TemplateProperty(label = "Prompts", group = "input", feel = FeelMode.required) @NotNull
         List<Object> prompts,
     @TemplateProperty(
             label = "System instructions",
             group = "input",
-            description = "System instructions inform how the model should respond.",
             feel = FeelMode.disabled,
             tooltip =
                 "System instructions inform how the model should respond."
                     + " Use them to give the model context to understand the task, "
                     + "provide more custom responses and adhere to specific guidelines. "
                     + "Instructions apply each time you send a request to the model."
-                    + "<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompts/system-instructions?hl=en\" Learn more about system instructions </a>",
+                    + " <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompts/system-instructions?hl=en\" target=\"_blank\">Learn more about system instructions</a>",
             optional = true)
         String systemInstrText,
     @TemplateProperty(
             label = "Grounding",
             group = "input",
-            description = "Customize grounding by Vertex AI Search.",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
             tooltip =
                 "Grounding connects model output to verifiable sources of information. "
                     + "This is useful in situations where accuracy and reliability are important."
-                    + "<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview?hl=en\" Learn more about grounding </a>",
+                    + " <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview?hl=en\" target=\"_blank\">Learn more about grounding</a>",
             defaultValue = "false")
         boolean grounding,
     @TemplateProperty(
             label = "Vertex AI data store path",
             group = "input",
-            description = "Vertex AI datastore path",
             feel = FeelMode.disabled,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -121,10 +100,10 @@ public record GeminiRequestData(
             group = "input",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-            description =
+            tooltip =
                 "You can adjust the likelihood of receiving a model response that could contain harmful content."
                     + " Content is blocked based on the probability that it's harmful."
-                    + "<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more.</a>",
+                    + " See the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai?hl=en#safety_filters_and_attributes\">safety filters and attributes</a>.",
             defaultValue = "false")
         boolean safetySettings,
     @TemplateProperty(
@@ -149,9 +128,10 @@ public record GeminiRequestData(
                     property = "input.safetySettings",
                     equalsBoolean = TemplateProperty.EqualsBoolean.TRUE),
             tooltip =
-                "You can adjust the likelihood of receiving a model response that could contain harmful content. "
-                    + "Content is blocked based on the probability that it's harmful."
-                    + "<a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more </a>",
+                "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: "
+                    + "OFF blocks nothing, Block few blocks only high-probability content, "
+                    + "Block some blocks medium-and-above, and Block most blocks low-and-above."
+                    + " <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
             optional = true)
         BlockingDegree hateSpeech,
     @TemplateProperty(
@@ -176,9 +156,10 @@ public record GeminiRequestData(
                     property = "input.safetySettings",
                     equalsBoolean = TemplateProperty.EqualsBoolean.TRUE),
             tooltip =
-                "You can adjust the likelihood of receiving a model response that could contain harmful content. "
-                    + "Content is blocked based on the probability that it's harmful."
-                    + "<a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more </a>",
+                "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: "
+                    + "OFF blocks nothing, Block few blocks only high-probability content, "
+                    + "Block some blocks medium-and-above, and Block most blocks low-and-above."
+                    + " <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
             optional = true)
         BlockingDegree dangerousContent,
     @TemplateProperty(
@@ -203,9 +184,10 @@ public record GeminiRequestData(
                     property = "input.safetySettings",
                     equalsBoolean = TemplateProperty.EqualsBoolean.TRUE),
             tooltip =
-                "You can adjust the likelihood of receiving a model response that could contain harmful content. "
-                    + "Content is blocked based on the probability that it's harmful."
-                    + "<a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more </a>",
+                "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: "
+                    + "OFF blocks nothing, Block few blocks only high-probability content, "
+                    + "Block some blocks medium-and-above, and Block most blocks low-and-above."
+                    + " <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
             optional = true)
         BlockingDegree sexuallyExplicit,
     @TemplateProperty(
@@ -230,16 +212,16 @@ public record GeminiRequestData(
                     property = "input.safetySettings",
                     equalsBoolean = TemplateProperty.EqualsBoolean.TRUE),
             tooltip =
-                "You can adjust the likelihood of receiving a model response that could contain harmful content. "
-                    + "Content is blocked based on the probability that it's harmful."
-                    + "<a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more </a>",
+                "Adjust how much potentially harmful content is blocked, based on the probability that it's harmful: "
+                    + "OFF blocks nothing, Block few blocks only high-probability content, "
+                    + "Block some blocks medium-and-above, and Block most blocks low-and-above."
+                    + " <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai?hl=en#safety_filters_and_attributes\" target=\"_blank\">Learn more about safety filters</a>",
             optional = true)
         BlockingDegree harassment,
     @FEEL
         @TemplateProperty(
             label = "Add stop sequence",
             group = "input",
-            description = "Vertex AI datastore path",
             feel = FeelMode.required,
             optional = true,
             tooltip =
@@ -329,7 +311,6 @@ public record GeminiRequestData(
     @FEEL
         @TemplateProperty(
             label = "Function call description",
-            description = "Describe function calls.",
             group = "input",
             feel = FeelMode.required,
             optional = true)
