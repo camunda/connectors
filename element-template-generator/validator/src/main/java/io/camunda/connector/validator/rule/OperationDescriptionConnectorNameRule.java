@@ -92,7 +92,9 @@ public class OperationDescriptionConnectorNameRule implements Rule {
       return;
     }
     String descriptionLower = description.asText().toLowerCase();
-    boolean referencesName = nameWords.stream().anyMatch(descriptionLower::contains);
+    boolean referencesName =
+        Arrays.stream(descriptionLower.split("[^\\p{IsAlphabetic}\\p{IsDigit}]+"))
+            .anyMatch(word -> !word.isBlank() && nameWords.contains(word));
     if (!referencesName) {
       findings.add(
           Finding.error(

@@ -97,6 +97,21 @@ class OperationDescriptionConnectorNameRuleTest {
   }
 
   @Test
+  void wordTokenMatch_doesNotAllowSubstringMatches() throws Exception {
+    JsonNode template =
+        read(
+            """
+        { "name": "AI Connector",
+          "steps": [
+            { "name": "op", "presetId": "p",
+              "description": "Send mail notification" } ] }
+        """);
+    List<Finding> findings = rule.apply(FILE, template);
+    assertThat(findings).hasSize(1);
+    assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/description");
+  }
+
+  @Test
   void parentheticalSuffixStripped() throws Exception {
     JsonNode template =
         read(
