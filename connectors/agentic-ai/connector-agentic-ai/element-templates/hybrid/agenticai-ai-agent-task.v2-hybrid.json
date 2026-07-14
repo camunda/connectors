@@ -746,84 +746,6 @@
     "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "configuration.anthropic.model.parameters.thinking.mode",
-    "label" : "Thinking mode",
-    "description" : "Extended thinking mechanism. Leave blank to use the model default. ENABLED = manual token budget (older models); ADAPTIVE = model-managed (newer models); DISABLED = off. Support varies by model.",
-    "optional" : true,
-    "group" : "model",
-    "binding" : {
-      "name" : "configuration.anthropic.model.parameters.thinking.mode",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "configuration.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Enabled",
-      "value" : "enabled"
-    }, {
-      "name" : "Adaptive",
-      "value" : "adaptive"
-    }, {
-      "name" : "Disabled",
-      "value" : "disabled"
-    } ]
-  }, {
-    "id" : "configuration.anthropic.model.parameters.thinking.budgetTokens",
-    "label" : "Thinking budget tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "configuration.anthropic.model.parameters.thinking.budgetTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "configuration.anthropic.model.parameters.thinking.mode",
-        "equals" : "enabled",
-        "type" : "simple"
-      }, {
-        "property" : "configuration.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Max tokens the model may spend on extended thinking. Required and used only when thinking mode is ENABLED (min 1024).",
-    "type" : "Number"
-  }, {
-    "id" : "configuration.anthropic.model.parameters.thinking.display",
-    "label" : "Thinking display",
-    "optional" : true,
-    "group" : "model",
-    "binding" : {
-      "name" : "configuration.anthropic.model.parameters.thinking.display",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "configuration.anthropic.model.parameters.thinking.mode",
-        "equals" : "adaptive",
-        "type" : "simple"
-      }, {
-        "property" : "configuration.type",
-        "equals" : "anthropic",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Adaptive-thinking output display (SUMMARIZED or OMITTED). Applies only to ADAPTIVE.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Summarized",
-      "value" : "summarized"
-    }, {
-      "name" : "Omitted",
-      "value" : "omitted"
-    } ]
-  }, {
     "id" : "configuration.anthropic.model.parameters.effort",
     "label" : "Effort",
     "optional" : true,
@@ -837,25 +759,25 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "tooltip" : "General effort dial (affects text, tool calls and thinking). Not supported on all models. CUSTOM sends the free-text value below verbatim. Unset ⇒ model default (high).",
+    "tooltip" : "General effort dial (affects text, tool calls and thinking). Not supported on all models. 'custom' sends the free-text value below verbatim. Unset ⇒ model default (high).",
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Low",
+      "name" : "low",
       "value" : "low"
     }, {
-      "name" : "Medium",
+      "name" : "medium",
       "value" : "medium"
     }, {
-      "name" : "High",
+      "name" : "high",
       "value" : "high"
     }, {
-      "name" : "X-high",
+      "name" : "xhigh",
       "value" : "xhigh"
     }, {
-      "name" : "Max",
+      "name" : "max",
       "value" : "max"
     }, {
-      "name" : "Custom",
+      "name" : "custom",
       "value" : "custom"
     } ]
   }, {
@@ -879,8 +801,86 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Free-text effort value sent verbatim when Effort = CUSTOM.",
+    "tooltip" : "Free-text effort value sent verbatim when Effort = 'custom'.",
     "type" : "String"
+  }, {
+    "id" : "configuration.anthropic.model.parameters.thinking.mode",
+    "label" : "Thinking mode",
+    "optional" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "configuration.anthropic.model.parameters.thinking.mode",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Extended thinking mechanism. Leave blank to use the model default. 'enabled' = manual token budget (older models); 'adaptive' = model-managed (newer models); 'disabled' = off. Support varies by model.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "enabled",
+      "value" : "enabled"
+    }, {
+      "name" : "adaptive",
+      "value" : "adaptive"
+    }, {
+      "name" : "disabled",
+      "value" : "disabled"
+    } ]
+  }, {
+    "id" : "configuration.anthropic.model.parameters.thinking.budgetTokens",
+    "label" : "Thinking budget tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "configuration.anthropic.model.parameters.thinking.budgetTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "configuration.anthropic.model.parameters.thinking.mode",
+        "equals" : "enabled",
+        "type" : "simple"
+      }, {
+        "property" : "configuration.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Max tokens the model may spend on extended thinking. Required and used only when thinking mode is 'enabled' (min 1024).",
+    "type" : "Number"
+  }, {
+    "id" : "configuration.anthropic.model.parameters.thinking.display",
+    "label" : "Thinking display",
+    "optional" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "configuration.anthropic.model.parameters.thinking.display",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "configuration.anthropic.model.parameters.thinking.mode",
+        "equals" : "adaptive",
+        "type" : "simple"
+      }, {
+        "property" : "configuration.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Adaptive-thinking output display ('summarized' or 'omitted'). Applies only to 'adaptive'.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "summarized",
+      "value" : "summarized"
+    }, {
+      "name" : "omitted",
+      "value" : "omitted"
+    } ]
   }, {
     "id" : "configuration.openai.model.model",
     "label" : "Model",

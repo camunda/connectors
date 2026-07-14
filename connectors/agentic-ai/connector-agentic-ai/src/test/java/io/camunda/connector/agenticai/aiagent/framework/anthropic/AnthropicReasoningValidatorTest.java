@@ -26,7 +26,7 @@ class AnthropicReasoningValidatorTest {
       @Nullable AnthropicThinking thinking,
       @Nullable AnthropicEffort effort,
       @Nullable String customEffort) {
-    return new AnthropicModelParameters(null, null, null, null, thinking, effort, customEffort);
+    return new AnthropicModelParameters(null, null, null, null, effort, customEffort, thinking);
   }
 
   private static AnthropicReasoningCapabilities reasoning(

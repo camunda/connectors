@@ -236,7 +236,7 @@ class AnthropicChatModelTest {
   void thinkingBudgetTokensRejectsValuesBelowMinimum() {
     final var thinking = new AnthropicThinking(ThinkingMode.ENABLED, 512, null);
     final var parameters =
-        new AnthropicModelParameters(null, null, null, null, thinking, null, null);
+        new AnthropicModelParameters(null, null, null, null, null, null, thinking);
     final var model =
         new AnthropicChatModel(
             new AnthropicConnection(

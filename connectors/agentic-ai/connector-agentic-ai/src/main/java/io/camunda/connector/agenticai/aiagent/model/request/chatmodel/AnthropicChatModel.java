@@ -295,28 +295,27 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                 feel = FeelMode.required,
                 optional = true)
             @Nullable Integer topK,
-        @Valid @Nullable AnthropicThinking thinking,
         @TemplateProperty(
                 group = "model",
                 label = "Effort",
                 tooltip =
                     "General effort dial (affects text, tool calls and thinking). Not supported on all "
-                        + "models. CUSTOM sends the free-text value below verbatim. Unset ⇒ model default (high).",
+                        + "models. 'custom' sends the free-text value below verbatim. Unset ⇒ model default (high).",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
-                  @DropdownPropertyChoice(value = "low", label = "Low"),
-                  @DropdownPropertyChoice(value = "medium", label = "Medium"),
-                  @DropdownPropertyChoice(value = "high", label = "High"),
-                  @DropdownPropertyChoice(value = "xhigh", label = "X-high"),
-                  @DropdownPropertyChoice(value = "max", label = "Max"),
-                  @DropdownPropertyChoice(value = "custom", label = "Custom")
+                  @DropdownPropertyChoice(value = "low", label = "low"),
+                  @DropdownPropertyChoice(value = "medium", label = "medium"),
+                  @DropdownPropertyChoice(value = "high", label = "high"),
+                  @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
+                  @DropdownPropertyChoice(value = "max", label = "max"),
+                  @DropdownPropertyChoice(value = "custom", label = "custom")
                 },
                 optional = true)
             @Nullable AnthropicEffort effort,
         @TemplateProperty(
                 group = "model",
                 label = "Custom effort",
-                tooltip = "Free-text effort value sent verbatim when Effort = CUSTOM.",
+                tooltip = "Free-text effort value sent verbatim when Effort = 'custom'.",
                 type = TemplateProperty.PropertyType.String,
                 feel = FeelMode.optional,
                 optional = true,
@@ -324,22 +323,23 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                     @TemplateProperty.PropertyCondition(
                         property = "configuration.anthropic.model.parameters.effort",
                         equals = "custom"))
-            @Nullable String customEffort) {}
+            @Nullable String customEffort,
+        @Valid @Nullable AnthropicThinking thinking) {}
 
     /** Anthropic extended-thinking configuration for a single model. */
     public record AnthropicThinking(
         @TemplateProperty(
                 group = "model",
                 label = "Thinking mode",
-                description =
+                tooltip =
                     "Extended thinking mechanism. Leave blank to use the model default. "
-                        + "ENABLED = manual token budget (older models); ADAPTIVE = model-managed "
-                        + "(newer models); DISABLED = off. Support varies by model.",
+                        + "'enabled' = manual token budget (older models); 'adaptive' = model-managed "
+                        + "(newer models); 'disabled' = off. Support varies by model.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
-                  @DropdownPropertyChoice(value = "enabled", label = "Enabled"),
-                  @DropdownPropertyChoice(value = "adaptive", label = "Adaptive"),
-                  @DropdownPropertyChoice(value = "disabled", label = "Disabled")
+                  @DropdownPropertyChoice(value = "enabled", label = "enabled"),
+                  @DropdownPropertyChoice(value = "adaptive", label = "adaptive"),
+                  @DropdownPropertyChoice(value = "disabled", label = "disabled")
                 },
                 optional = true)
             @Nullable ThinkingMode mode,
@@ -349,7 +349,7 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                 label = "Thinking budget tokens",
                 tooltip =
                     "Max tokens the model may spend on extended thinking. Required and used only when "
-                        + "thinking mode is ENABLED (min 1024).",
+                        + "thinking mode is 'enabled' (min 1024).",
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true,
@@ -362,11 +362,11 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                 group = "model",
                 label = "Thinking display",
                 tooltip =
-                    "Adaptive-thinking output display (SUMMARIZED or OMITTED). Applies only to ADAPTIVE.",
+                    "Adaptive-thinking output display ('summarized' or 'omitted'). Applies only to 'adaptive'.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
-                  @DropdownPropertyChoice(value = "summarized", label = "Summarized"),
-                  @DropdownPropertyChoice(value = "omitted", label = "Omitted")
+                  @DropdownPropertyChoice(value = "summarized", label = "summarized"),
+                  @DropdownPropertyChoice(value = "omitted", label = "omitted")
                 },
                 optional = true,
                 condition =

@@ -799,12 +799,12 @@ class AnthropicMessageRequestConverterTest {
   // --- Reasoning: thinking / effort mapping (Task 3) --------------------------------------
 
   private static AnthropicModelParameters thinkingParams(@Nullable AnthropicThinking thinking) {
-    return new AnthropicModelParameters(null, null, null, null, thinking, null, null);
+    return new AnthropicModelParameters(null, null, null, null, null, null, thinking);
   }
 
   private static AnthropicModelParameters effortParams(
       @Nullable AnthropicEffort effort, @Nullable String customEffort) {
-    return new AnthropicModelParameters(null, null, null, null, null, effort, customEffort);
+    return new AnthropicModelParameters(null, null, null, null, effort, customEffort, null);
   }
 
   @Test
