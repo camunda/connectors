@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.aiagent.framework.capabilities;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilitiesData;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import java.util.Optional;
@@ -62,8 +64,8 @@ class BundledCapabilityMatrixTest {
           assertThat(caps.supportsPromptCaching()).isTrue();
           assertThat(caps.supportsParallelToolCalls()).isTrue();
           // Pinned from models.dev anthropic/claude-sonnet-4-6:
-          assertThat(caps.contextWindow()).isEqualTo(1000000);
-          assertThat(caps.maxOutputTokens()).isEqualTo(128000);
+          assertThat(caps.core().contextWindow()).isEqualTo(1000000);
+          assertThat(caps.core().maxOutputTokens()).isEqualTo(128000);
         });
   }
 
@@ -76,8 +78,8 @@ class BundledCapabilityMatrixTest {
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
           // Pinned from models.dev anthropic/claude-fable-5:
-          assertThat(caps.contextWindow()).isEqualTo(1000000);
-          assertThat(caps.maxOutputTokens()).isEqualTo(128000);
+          assertThat(caps.core().contextWindow()).isEqualTo(1000000);
+          assertThat(caps.core().maxOutputTokens()).isEqualTo(128000);
         });
   }
 
@@ -90,18 +92,18 @@ class BundledCapabilityMatrixTest {
           // a single claude-opus-4-* glob would over-promise for one of them, so each gets its own
           // entry.
           final var opus41 = resolve(context, ANTHROPIC_MESSAGES, "claude-opus-4-1");
-          assertThat(opus41.contextWindow()).isEqualTo(200000);
-          assertThat(opus41.maxOutputTokens()).isEqualTo(32000);
+          assertThat(opus41.core().contextWindow()).isEqualTo(200000);
+          assertThat(opus41.core().maxOutputTokens()).isEqualTo(32000);
 
           final var opus45 = resolve(context, ANTHROPIC_MESSAGES, "claude-opus-4-5");
-          assertThat(opus45.contextWindow()).isEqualTo(200000);
-          assertThat(opus45.maxOutputTokens()).isEqualTo(64000);
+          assertThat(opus45.core().contextWindow()).isEqualTo(200000);
+          assertThat(opus45.core().maxOutputTokens()).isEqualTo(64000);
 
           // claude-opus-4-6 and later moved to the 1M-context tier (models.dev
           // anthropic/claude-opus-4-6):
           final var opus46 = resolve(context, ANTHROPIC_MESSAGES, "claude-opus-4-6");
-          assertThat(opus46.contextWindow()).isEqualTo(1000000);
-          assertThat(opus46.maxOutputTokens()).isEqualTo(128000);
+          assertThat(opus46.core().contextWindow()).isEqualTo(1000000);
+          assertThat(opus46.core().maxOutputTokens()).isEqualTo(128000);
         });
   }
 
@@ -115,8 +117,8 @@ class BundledCapabilityMatrixTest {
           assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
           // Pinned from models.dev anthropic/claude-haiku-4-5. Context window happens to equal the
           // family default (200000) but is still pinned explicitly on the entry:
-          assertThat(caps.maxOutputTokens()).isEqualTo(64000);
-          assertThat(caps.contextWindow()).isEqualTo(200000);
+          assertThat(caps.core().maxOutputTokens()).isEqualTo(64000);
+          assertThat(caps.core().contextWindow()).isEqualTo(200000);
         });
   }
 
@@ -144,8 +146,8 @@ class BundledCapabilityMatrixTest {
           // gpt-5* spans 128k-1.05M context / 16k-272k output on models.dev across its
           // chat-latest/base/codex/pro variants; the entry pins the conservative floor across that
           // whole lineage rather than gpt-5.5's own (higher) real budget:
-          assertThat(caps.contextWindow()).isEqualTo(128000);
-          assertThat(caps.maxOutputTokens()).isEqualTo(16384);
+          assertThat(caps.core().contextWindow()).isEqualTo(128000);
+          assertThat(caps.core().maxOutputTokens()).isEqualTo(16384);
         });
   }
 
@@ -176,7 +178,7 @@ class BundledCapabilityMatrixTest {
               .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
           assertThat(caps.supportsReasoning()).isFalse();
           // Pinned from models.dev openai/gpt-4o:
-          assertThat(caps.maxOutputTokens()).isEqualTo(16384);
+          assertThat(caps.core().maxOutputTokens()).isEqualTo(16384);
         });
   }
 
@@ -190,8 +192,8 @@ class BundledCapabilityMatrixTest {
           // entry that wins over the pattern match.
           final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-4o-2024-05-13");
 
-          assertThat(caps.contextWindow()).isEqualTo(128000);
-          assertThat(caps.maxOutputTokens()).isEqualTo(4096);
+          assertThat(caps.core().contextWindow()).isEqualTo(128000);
+          assertThat(caps.core().maxOutputTokens()).isEqualTo(4096);
         });
   }
 
@@ -204,8 +206,8 @@ class BundledCapabilityMatrixTest {
           assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.supportsParallelToolCalls()).isFalse();
           // Pinned from models.dev openai/o1:
-          assertThat(caps.contextWindow()).isEqualTo(200000);
-          assertThat(caps.maxOutputTokens()).isEqualTo(100000);
+          assertThat(caps.core().contextWindow()).isEqualTo(200000);
+          assertThat(caps.core().maxOutputTokens()).isEqualTo(100000);
         });
   }
 
@@ -219,8 +221,8 @@ class BundledCapabilityMatrixTest {
           // models.dev openai/o4-mini input modalities are text/image only (no pdf), unlike the
           // family default which includes document:
           assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
-          assertThat(caps.contextWindow()).isEqualTo(200000);
-          assertThat(caps.maxOutputTokens()).isEqualTo(100000);
+          assertThat(caps.core().contextWindow()).isEqualTo(200000);
+          assertThat(caps.core().maxOutputTokens()).isEqualTo(100000);
         });
   }
 
@@ -232,8 +234,8 @@ class BundledCapabilityMatrixTest {
 
           assertThat(caps.supportsReasoning()).isFalse();
           // Pinned from models.dev openai/gpt-4.1:
-          assertThat(caps.contextWindow()).isEqualTo(1047576);
-          assertThat(caps.maxOutputTokens()).isEqualTo(32768);
+          assertThat(caps.core().contextWindow()).isEqualTo(1047576);
+          assertThat(caps.core().maxOutputTokens()).isEqualTo(32768);
         });
   }
 
@@ -243,16 +245,16 @@ class BundledCapabilityMatrixTest {
         context -> {
           final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-3.5-turbo");
 
-          assertThat(caps.contextWindow()).isEqualTo(128000);
+          assertThat(caps.core().contextWindow()).isEqualTo(128000);
           assertThat(caps.supportsReasoning()).isFalse();
         });
   }
 
-  private static ModelCapabilities resolve(
+  private static AnthropicModelCapabilities resolve(
       ApplicationContext context, String apiFamily, String modelId) {
     return context
         .getBean(ModelCapabilitiesResolver.class)
-        .resolve(apiFamily, modelId, null, Optional.empty());
+        .resolve(apiFamily, modelId, null, Optional.empty(), AnthropicModelCapabilitiesData.class);
   }
 
   /**

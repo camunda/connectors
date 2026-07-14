@@ -24,7 +24,8 @@ import com.anthropic.services.blocking.beta.MessageService;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -50,7 +51,7 @@ class AnthropicChatModelApiTest {
   @Mock private AnthropicMessageStreamAssembler streamAssembler;
   @Mock private BetaMessage assembledMessage;
 
-  private final ModelCapabilities capabilities = ModelCapabilities.builder().build();
+  private final AnthropicModelCapabilities capabilities = anthropicCaps();
   private final ChatModelRequest request =
       new ChatModelRequest(
           mock(AgentExecutionContext.class), new ConversationSnapshot(List.of(), List.of()));
@@ -123,5 +124,15 @@ class AnthropicChatModelApiTest {
   @Test
   void capabilitiesReturnsInjectedValue() {
     assertThat(api.capabilities()).isSameAs(capabilities);
+  }
+
+  private static AnthropicModelCapabilities anthropicCaps() {
+    return new AnthropicModelCapabilities(
+        new CoreModelCapabilities(
+            List.of(Modality.TEXT), List.of(Modality.TEXT), List.of(Modality.TEXT), null, null),
+        false,
+        false,
+        false,
+        false);
   }
 }

@@ -18,7 +18,8 @@ import com.anthropic.models.beta.messages.BetaMessageParam;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -120,6 +121,24 @@ class AnthropicMessageRequestConverterTest {
     return ObjectMappers.jsonMapper().valueToTree(params._body());
   }
 
+  private static AnthropicModelCapabilities caps() {
+    return caps(null);
+  }
+
+  private static AnthropicModelCapabilities caps(@Nullable Integer maxOutputTokens) {
+    return new AnthropicModelCapabilities(
+        new CoreModelCapabilities(
+            List.of(Modality.TEXT),
+            List.of(Modality.TEXT),
+            List.of(Modality.TEXT),
+            null,
+            maxOutputTokens),
+        false,
+        false,
+        false,
+        false);
+  }
+
   @Test
   void mapsSystemPromptToTopLevelSystemAndRemainingToMessages() {
     final var snapshot =
@@ -129,9 +148,7 @@ class AnthropicMessageRequestConverterTest {
                 UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of());
 
-    final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null), null), snapshot, ModelCapabilities.builder().build());
+    final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot, caps());
 
     assertThat(params.system()).isPresent();
     assertThat(params.system().orElseThrow().asString()).isEqualTo("sys");
@@ -164,9 +181,7 @@ class AnthropicMessageRequestConverterTest {
                     .inputSchema(schema)
                     .build()));
 
-    final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null), null), snapshot, ModelCapabilities.builder().build());
+    final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot, caps());
 
     assertThat(params.tools()).isPresent();
     assertThat(params.tools().orElseThrow()).hasSize(1);
@@ -212,9 +227,7 @@ class AnthropicMessageRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null), null), snapshot, ModelCapabilities.builder().build());
+    final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot, caps());
 
     assertThat(params.messages()).hasSize(3);
 
@@ -301,9 +314,7 @@ class AnthropicMessageRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null), null), snapshot, ModelCapabilities.builder().build());
+    final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot, caps());
 
     assertThat(params.messages()).hasSize(2);
 
@@ -367,9 +378,7 @@ class AnthropicMessageRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null), null), snapshot, ModelCapabilities.builder().build());
+    final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot, caps());
 
     final var blocks = params.messages().get(0).content().asBetaContentBlockParams();
     assertThat(blocks).hasSize(2);
@@ -382,10 +391,7 @@ class AnthropicMessageRequestConverterTest {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null), null),
-            snapshot,
-            ModelCapabilities.builder().maxOutputTokens(8192).build());
+        converter.toMessageCreateParams(ctx(model(null), null), snapshot, caps(8192));
 
     assertThat(params.maxTokens()).isEqualTo(8192L);
   }
@@ -400,10 +406,7 @@ class AnthropicMessageRequestConverterTest {
         new JobWorkerResponseConfiguration(new TextResponseFormatConfiguration(true), null, null);
 
     final var params =
-        converter.toMessageCreateParams(
-            ctx(model(parameters), response),
-            snapshot,
-            ModelCapabilities.builder().maxOutputTokens(8192).build());
+        converter.toMessageCreateParams(ctx(model(parameters), response), snapshot, caps(8192));
 
     assertThat(params.maxTokens()).isEqualTo(2048L);
     assertThat(params.temperature()).contains(0.5);
@@ -423,8 +426,7 @@ class AnthropicMessageRequestConverterTest {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null), response), snapshot, ModelCapabilities.builder().build());
+        converter.toMessageCreateParams(ctx(model(null), response), snapshot, caps());
 
     assertThat(params.outputConfig()).isPresent();
 
@@ -449,9 +451,7 @@ class AnthropicMessageRequestConverterTest {
   void omitsMaxTokensFallbackConstantWhenBothNull() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null), null), snapshot, ModelCapabilities.builder().build());
+    final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot, caps());
 
     assertThat(params.maxTokens()).isEqualTo(AnthropicMessageRequestConverter.DEFAULT_MAX_TOKENS);
     assertThat(params.maxTokens()).isEqualTo(4096L);
@@ -462,8 +462,7 @@ class AnthropicMessageRequestConverterTest {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null, List.of()), null), snapshot, ModelCapabilities.builder().build());
+        converter.toMessageCreateParams(ctx(model(null, List.of()), null), snapshot, caps());
 
     assertThat(params.container()).isEmpty();
     assertThat(params.betas()).isEmpty();
@@ -475,8 +474,7 @@ class AnthropicMessageRequestConverterTest {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null, null), null), snapshot, ModelCapabilities.builder().build());
+        converter.toMessageCreateParams(ctx(model(null, null), null), snapshot, caps());
 
     assertThat(params.container()).isEmpty();
     assertThat(params.betas()).isEmpty();
@@ -489,9 +487,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params =
         converter.toMessageCreateParams(
-            ctx(model(null, List.of("pptx", "custom:my-skill:v2")), null),
-            snapshot,
-            ModelCapabilities.builder().build());
+            ctx(model(null, List.of("pptx", "custom:my-skill:v2")), null), snapshot, caps());
 
     final var containerSkills =
         params.container().orElseThrow().asBetaContainerParams().skills().orElseThrow();
@@ -528,8 +524,7 @@ class AnthropicMessageRequestConverterTest {
                     .build()));
 
     final var params =
-        converter.toMessageCreateParams(
-            ctx(model(null, List.of("pptx")), null), snapshot, ModelCapabilities.builder().build());
+        converter.toMessageCreateParams(ctx(model(null, List.of("pptx")), null), snapshot, caps());
 
     assertThat(params.tools().orElseThrow()).hasSize(2);
   }
@@ -540,9 +535,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params =
         converter.toMessageCreateParams(
-            ctx(model(null, null, false, false, false), null),
-            snapshot,
-            ModelCapabilities.builder().build());
+            ctx(model(null, null, false, false, false), null), snapshot, caps());
 
     assertThat(params.container()).isEmpty();
     assertThat(params.betas()).isEmpty();
@@ -555,9 +548,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params =
         converter.toMessageCreateParams(
-            ctx(model(null, null, true, null, null), null),
-            snapshot,
-            ModelCapabilities.builder().build());
+            ctx(model(null, null, true, null, null), null), snapshot, caps());
 
     assertThat(params.container()).isEmpty();
     assertThat(params.tools().orElseThrow())
@@ -573,9 +564,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params =
         converter.toMessageCreateParams(
-            ctx(model(null, null, null, true, null), null),
-            snapshot,
-            ModelCapabilities.builder().build());
+            ctx(model(null, null, null, true, null), null), snapshot, caps());
 
     assertThat(params.tools().orElseThrow())
         .hasSize(1)
@@ -590,9 +579,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params =
         converter.toMessageCreateParams(
-            ctx(model(null, null, null, null, true), null),
-            snapshot,
-            ModelCapabilities.builder().build());
+            ctx(model(null, null, null, null, true), null), snapshot, caps());
 
     assertThat(params.tools().orElseThrow())
         .hasSize(1)
@@ -607,9 +594,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params =
         converter.toMessageCreateParams(
-            ctx(model(null, null, null, true, null, null, null), null),
-            snapshot,
-            ModelCapabilities.builder().build());
+            ctx(model(null, null, null, true, null, null, null), null), snapshot, caps());
 
     assertThat(params.tools().orElseThrow())
         .anyMatch(tool -> tool.webSearchTool20250305().isPresent());
@@ -623,7 +608,7 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(
             ctx(model(null, null, null, true, "web_search_20260318", null, null), null),
             snapshot,
-            ModelCapabilities.builder().build());
+            caps());
 
     assertThat(params.tools().orElseThrow())
         .anyMatch(tool -> tool.webSearchTool20260318().isPresent());
@@ -637,7 +622,7 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(
             ctx(model(null, null, null, null, null, true, "web_fetch_20260318"), null),
             snapshot,
-            ModelCapabilities.builder().build());
+            caps());
 
     assertThat(params.tools().orElseThrow())
         .anyMatch(tool -> tool.webFetchTool20260318().isPresent());
@@ -651,7 +636,7 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(
             ctx(model(null, null, null, true, "web_search_29990101", null, null), null),
             snapshot,
-            ModelCapabilities.builder().build());
+            caps());
 
     final var toolNode = requestBodyAsJson(params).path("tools").get(0);
     assertThat(toolNode.path("type").asText()).isEqualTo("web_search_29990101");
@@ -666,7 +651,7 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(
             ctx(model(null, null, null, null, null, true, "web_fetch_29990101"), null),
             snapshot,
-            ModelCapabilities.builder().build());
+            caps());
 
     final var toolNode = requestBodyAsJson(params).path("tools").get(0);
     assertThat(toolNode.path("type").asText()).isEqualTo("web_fetch_29990101");
@@ -681,9 +666,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params =
         converter.toMessageCreateParams(
-            ctx(model(null, null, null, true, null, null, null), null),
-            snapshot,
-            ModelCapabilities.builder().build());
+            ctx(model(null, null, null, true, null, null, null), null), snapshot, caps());
 
     final var toolNode = requestBodyAsJson(params).path("tools").get(0);
     assertThat(toolNode.path("type").asText()).isEqualTo("web_search_20250305");
@@ -696,9 +679,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params =
         converter.toMessageCreateParams(
-            ctx(model(null, null, null, true, true), null),
-            snapshot,
-            ModelCapabilities.builder().build());
+            ctx(model(null, null, null, true, true), null), snapshot, caps());
 
     assertThat(params.tools().orElseThrow()).hasSize(2);
     assertThat(params.tools().orElseThrow())
@@ -714,9 +695,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params =
         converter.toMessageCreateParams(
-            ctx(model(null, List.of("pptx"), true, null, null), null),
-            snapshot,
-            ModelCapabilities.builder().build());
+            ctx(model(null, List.of("pptx"), true, null, null), null), snapshot, caps());
 
     assertThat(params.tools().orElseThrow())
         .filteredOn(tool -> tool.codeExecutionTool20250825().isPresent())
@@ -735,9 +714,7 @@ class AnthropicMessageRequestConverterTest {
     final var skills = List.of("s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9");
 
     assertThatThrownBy(
-            () ->
-                converter.toMessageCreateParams(
-                    ctx(model(null, skills), null), snapshot, ModelCapabilities.builder().build()))
+            () -> converter.toMessageCreateParams(ctx(model(null, skills), null), snapshot, caps()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("8");
   }

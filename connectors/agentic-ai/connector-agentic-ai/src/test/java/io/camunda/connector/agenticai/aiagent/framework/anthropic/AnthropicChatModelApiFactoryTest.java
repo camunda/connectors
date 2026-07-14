@@ -17,7 +17,8 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel;
@@ -28,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicC
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication.AwsApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -94,9 +96,14 @@ class AnthropicChatModelApiFactoryTest {
 
   @Test
   void createResolvesCapabilitiesWithAnthropicMessagesFamily() {
-    final var capabilities = ModelCapabilities.builder().build();
+    final var capabilities = anthropicCaps();
     when(transport.okHttpProxy(any())).thenReturn(Optional.empty());
-    when(capabilitiesResolver.resolve(eq("anthropic-messages"), eq(MODEL_ID), eq("direct"), any()))
+    when(capabilitiesResolver.resolve(
+            eq("anthropic-messages"),
+            eq(MODEL_ID),
+            eq("direct"),
+            any(),
+            eq(AnthropicModelCapabilitiesData.class)))
         .thenReturn(capabilities);
 
     final ChatModelApi api = factory.create(directConfig(MODEL_ID));
@@ -104,7 +111,22 @@ class AnthropicChatModelApiFactoryTest {
     assertThat(api).isNotNull();
     assertThat(api.capabilities()).isEqualTo(capabilities);
     verify(capabilitiesResolver)
-        .resolve("anthropic-messages", MODEL_ID, "direct", Optional.empty());
+        .resolve(
+            "anthropic-messages",
+            MODEL_ID,
+            "direct",
+            Optional.empty(),
+            AnthropicModelCapabilitiesData.class);
+  }
+
+  private static AnthropicModelCapabilities anthropicCaps() {
+    return new AnthropicModelCapabilities(
+        new CoreModelCapabilities(
+            List.of(Modality.TEXT), List.of(Modality.TEXT), List.of(Modality.TEXT), null, null),
+        false,
+        false,
+        false,
+        false);
   }
 
   @Test

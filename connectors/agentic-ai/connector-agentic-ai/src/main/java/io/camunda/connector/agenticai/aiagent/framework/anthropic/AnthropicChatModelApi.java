@@ -47,14 +47,14 @@ public class AnthropicChatModelApi implements ChatModelApi {
   private final AnthropicClientFactory clientFactory;
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
-  private final ModelCapabilities capabilities;
+  private final AnthropicModelCapabilities capabilities;
   private final AnthropicMessageStreamAssembler streamAssembler;
 
   public AnthropicChatModelApi(
       AnthropicClientFactory clientFactory,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
-      ModelCapabilities capabilities) {
+      AnthropicModelCapabilities capabilities) {
     this(
         clientFactory,
         requestConverter,
@@ -67,7 +67,7 @@ public class AnthropicChatModelApi implements ChatModelApi {
       AnthropicClientFactory clientFactory,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
-      ModelCapabilities capabilities,
+      AnthropicModelCapabilities capabilities,
       AnthropicMessageStreamAssembler streamAssembler) {
     this.clientFactory = clientFactory;
     this.requestConverter = requestConverter;

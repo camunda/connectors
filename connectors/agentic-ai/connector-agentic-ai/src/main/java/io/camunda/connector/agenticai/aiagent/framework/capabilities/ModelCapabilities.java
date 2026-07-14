@@ -7,45 +7,24 @@
 package io.camunda.connector.agenticai.aiagent.framework.capabilities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.List;
-import org.jspecify.annotations.Nullable;
 
 /**
- * Per-model capability descriptor materialised from the capability matrix (bundled YAML plus
- * library-consumer overrides) or a connector config override. Drives runtime decisions like
- * tool-result strategy selection, reasoning negotiation, and cache-marker placement. The vocabulary
- * for {@link Modality} is fixed; modality lists per location are symmetric so every location has an
- * explicit answer.
- *
- * <p>Not Jackson-deserialized directly (the resolver deserialises the sparse {@link
- * ModelCapabilitiesData} DTO and projects it onto this shape), so {@link #builder()} exposes the
- * plain generated {@code @AgenticAiRecord} builder without a Jackson proxy builder.
- *
- * @param userMessageModalities document modalities that can be embedded natively in a user message;
- *     empty means documents must be surfaced elsewhere.
- * @param toolResultModalities document modalities that can be embedded natively in a tool-result
- *     content block; empty means tool-result documents fall back to a synthetic user message
- *     ({@code CapabilityAwareToolCallResultStrategy}).
- * @param assistantMessageModalities document modalities that can be embedded natively in an
- *     assistant message; empty means documents must be surfaced elsewhere.
+ * Provider-neutral capability contract that framework-generic code depends on. Today the only
+ * cross-provider consumer is {@code CapabilityAwareToolCallResultStrategy}, which reads modalities
+ * only — so this interface is deliberately minimal (three modality lists + the {@link Modality}
+ * vocabulary). Provider-specific capability data lives on the provider's own implementing record
+ * (e.g. {@code AnthropicModelCapabilities}), never here: every method added here is a tax on every
+ * custom provider that must implement it. New methods added in later chunks must be {@code default}
+ * so existing custom implementations keep compiling.
  */
-@AgenticAiRecord
-public record ModelCapabilities(
-    List<Modality> userMessageModalities,
-    List<Modality> toolResultModalities,
-    List<Modality> assistantMessageModalities,
-    boolean supportsReasoning,
-    boolean supportsReasoningSignatureRoundtrip,
-    boolean supportsPromptCaching,
-    boolean supportsParallelToolCalls,
-    @Nullable Integer contextWindow,
-    @Nullable Integer maxOutputTokens)
-    implements ModelCapabilitiesBuilder.With {
+public interface ModelCapabilities {
 
-  public static ModelCapabilitiesBuilder builder() {
-    return ModelCapabilitiesBuilder.builder();
-  }
+  List<Modality> userMessageModalities();
+
+  List<Modality> toolResultModalities();
+
+  List<Modality> assistantMessageModalities();
 
   /**
    * Modality vocabulary shared across user-message, tool-result and assistant-message locations.
@@ -73,7 +52,7 @@ public record ModelCapabilities(
    *       audio/video content blocks), not as document uploads.
    * </ul>
    */
-  public enum Modality {
+  enum Modality {
     @JsonProperty("text")
     TEXT,
     @JsonProperty("image")

@@ -41,7 +41,7 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.CapabilityAwareToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.ToolCallResultStrategy;
@@ -864,11 +864,12 @@ class JobWorkerAgentRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
     var bridgeCaps =
-        ModelCapabilities.builder()
-            .userMessageModalities(List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT))
-            .toolResultModalities(List.of(Modality.TEXT))
-            .assistantMessageModalities(List.of(Modality.TEXT))
-            .build();
+        new CoreModelCapabilities(
+            List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
+            List.of(Modality.TEXT),
+            List.of(Modality.TEXT),
+            null,
+            null);
     when(chatModelApi.capabilities()).thenReturn(bridgeCaps);
     when(toolCallResultStrategy.apply(any(), any()))
         .thenAnswer(

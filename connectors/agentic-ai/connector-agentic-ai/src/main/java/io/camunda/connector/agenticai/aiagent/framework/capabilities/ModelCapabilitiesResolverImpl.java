@@ -9,11 +9,11 @@ package io.camunda.connector.agenticai.aiagent.framework.capabilities;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ApiFamily;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ModelEntry;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,24 +33,6 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
 
   private static final Logger LOG = LoggerFactory.getLogger(ModelCapabilitiesResolverImpl.class);
 
-  static final ModelCapabilities CONSERVATIVE_DEFAULTS =
-      ModelCapabilities.builder()
-          .userMessageModalities(List.of(Modality.TEXT))
-          .toolResultModalities(List.of(Modality.TEXT))
-          .assistantMessageModalities(List.of(Modality.TEXT))
-          .build();
-
-  private static final ModelCapabilitiesData CONSERVATIVE_DEFAULTS_DATA =
-      new ModelCapabilitiesData(
-          new ModelCapabilitiesData.InputModalities(List.of(Modality.TEXT), List.of(Modality.TEXT)),
-          new ModelCapabilitiesData.OutputModalities(List.of(Modality.TEXT)),
-          false,
-          false,
-          false,
-          false,
-          null,
-          null);
-
   private final CapabilityMatrix matrix;
   private final ObjectMapper mapper;
   private final JsonNode conservativeBase;
@@ -59,15 +41,26 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
   public ModelCapabilitiesResolverImpl(CapabilityMatrix matrix, ObjectMapper mapper) {
     this.matrix = matrix;
     this.mapper = mapper;
-    this.conservativeBase = mapper.valueToTree(CONSERVATIVE_DEFAULTS_DATA);
+    this.conservativeBase = conservativeBaseTree(mapper);
+  }
+
+  private static JsonNode conservativeBaseTree(ObjectMapper mapper) {
+    final ObjectNode root = mapper.createObjectNode();
+    final ArrayNode text = mapper.createArrayNode().add("text");
+    final ObjectNode input = root.putObject("input_modalities");
+    input.set("user_message", text.deepCopy());
+    input.set("tool_result", text.deepCopy());
+    root.putObject("output_modalities").set("assistant_message", text.deepCopy());
+    return root;
   }
 
   @Override
-  public ModelCapabilities resolve(
+  public <T extends ModelCapabilities> T resolve(
       String apiFamily,
       String modelId,
       @Nullable String backend,
-      Optional<ModelCapabilitiesOverride> override) {
+      Optional<ModelCapabilitiesOverride> override,
+      Class<? extends ModelCapabilitiesData<T>> dataClass) {
 
     JsonNode merged = mergedBaseTree(apiFamily, modelId, backend);
 
@@ -75,7 +68,7 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
       merged = deepMerge(merged, override.get().toSparseJsonNode(mapper));
     }
 
-    return materialise(merged);
+    return materialise(merged, dataClass);
   }
 
   /**
@@ -134,9 +127,10 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
     return merged;
   }
 
-  private ModelCapabilities materialise(JsonNode merged) {
+  private <T extends ModelCapabilities> T materialise(
+      JsonNode merged, Class<? extends ModelCapabilitiesData<T>> dataClass) {
     try {
-      return mapper.treeToValue(merged, ModelCapabilitiesData.class).toModelCapabilities();
+      return mapper.treeToValue(merged, dataClass).toModelCapabilities();
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("Failed to materialise model capabilities", e);
     }

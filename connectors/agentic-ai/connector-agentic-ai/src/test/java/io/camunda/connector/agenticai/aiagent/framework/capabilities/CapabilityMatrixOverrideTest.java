@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.framework.capabilities;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilitiesData;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.BundledCapabilityMatrixTest.TestObjectMapperConfig;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import java.util.Optional;
@@ -41,7 +43,7 @@ class CapabilityMatrixOverrideTest {
             context -> {
               final var caps = resolve(context, "anthropic-messages", "claude-sonnet-4-6");
 
-              assertThat(caps.maxOutputTokens()).isEqualTo(999999);
+              assertThat(caps.core().maxOutputTokens()).isEqualTo(999999);
               // Other bundled fields untouched:
               assertThat(caps.supportsReasoning()).isTrue();
               assertThat(caps.userMessageModalities())
@@ -61,7 +63,7 @@ class CapabilityMatrixOverrideTest {
             context -> {
               final var caps = resolve(context, "anthropic-messages", "my-org-tuned-claude");
 
-              assertThat(caps.maxOutputTokens()).isEqualTo(12345);
+              assertThat(caps.core().maxOutputTokens()).isEqualTo(12345);
               assertThat(caps.supportsReasoning()).isTrue();
               // Inherited from anthropic-messages defaults:
               assertThat(caps.userMessageModalities())
@@ -96,21 +98,21 @@ class CapabilityMatrixOverrideTest {
               // gpt-5* pins its own max-output-tokens (the conservative floor sourced from
               // models.dev), so it keeps that value even when the family default changes:
               final var gpt5 = resolve(context, "openai-completions", "gpt-5.5");
-              assertThat(gpt5.maxOutputTokens()).isEqualTo(16384);
+              assertThat(gpt5.core().maxOutputTokens()).isEqualTo(16384);
               assertThat(gpt5.supportsReasoning()).isTrue();
 
               // A model matching no curated entry (no fallback glob exists anymore) falls through
               // to the family defaults directly and inherits the new default:
               final var generic = resolve(context, "openai-completions", "gpt-3.5-turbo");
-              assertThat(generic.maxOutputTokens()).isEqualTo(7777);
+              assertThat(generic.core().maxOutputTokens()).isEqualTo(7777);
               assertThat(generic.supportsReasoning()).isFalse();
             });
   }
 
-  private static ModelCapabilities resolve(
+  private static AnthropicModelCapabilities resolve(
       ApplicationContext context, String apiFamily, String modelId) {
     return context
         .getBean(ModelCapabilitiesResolver.class)
-        .resolve(apiFamily, modelId, null, Optional.empty());
+        .resolve(apiFamily, modelId, null, Optional.empty(), AnthropicModelCapabilitiesData.class);
   }
 }

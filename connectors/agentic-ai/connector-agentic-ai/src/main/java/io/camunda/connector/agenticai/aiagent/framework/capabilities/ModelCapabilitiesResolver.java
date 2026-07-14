@@ -33,9 +33,10 @@ import org.jspecify.annotations.Nullable;
  */
 public interface ModelCapabilitiesResolver {
 
-  ModelCapabilities resolve(
+  <T extends ModelCapabilities> T resolve(
       String apiFamily,
       String modelId,
       @Nullable String backend,
-      Optional<ModelCapabilitiesOverride> override);
+      Optional<ModelCapabilitiesOverride> override,
+      Class<? extends ModelCapabilitiesData<T>> dataClass);
 }

@@ -15,10 +15,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicChatModelApiFactory;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilitiesData;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory;
@@ -125,8 +127,15 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
             ArgumentMatchers.any(),
             ArgumentMatchers.any(),
             ArgumentMatchers.any(),
-            ArgumentMatchers.any()))
-        .thenReturn(ModelCapabilities.builder().build());
+            ArgumentMatchers.any(),
+            ArgumentMatchers.eq(AnthropicModelCapabilitiesData.class)))
+        .thenReturn(
+            new AnthropicModelCapabilities(
+                new CoreModelCapabilities(List.of(), List.of(), List.of(), null, null),
+                false,
+                false,
+                false,
+                false));
     return new AnthropicChatModelApiFactory(transport, capabilitiesResolver, new ObjectMapper());
   }
 }

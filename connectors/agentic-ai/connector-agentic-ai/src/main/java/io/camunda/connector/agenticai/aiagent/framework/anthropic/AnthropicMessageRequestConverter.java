@@ -27,7 +27,6 @@ import com.anthropic.models.beta.messages.BetaWebSearchTool20260209;
 import com.anthropic.models.beta.messages.BetaWebSearchTool20260318;
 import com.anthropic.models.beta.messages.MessageCreateParams;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -110,7 +109,9 @@ public class AnthropicMessageRequestConverter {
   }
 
   public MessageCreateParams toMessageCreateParams(
-      AgentExecutionContext ctx, ConversationSnapshot snapshot, ModelCapabilities capabilities) {
+      AgentExecutionContext ctx,
+      ConversationSnapshot snapshot,
+      AnthropicModelCapabilities capabilities) {
     final var cfg =
         (LlmProviderChatModelApiConfiguration) ctx.configuration().chatModelApiConfiguration();
     final var model = (AnthropicChatModel) cfg.configuration();
@@ -132,12 +133,12 @@ public class AnthropicMessageRequestConverter {
   }
 
   private long resolveMaxTokens(
-      @Nullable AnthropicModelParameters params, ModelCapabilities capabilities) {
+      @Nullable AnthropicModelParameters params, AnthropicModelCapabilities capabilities) {
     if (params != null && params.maxTokens() != null) {
       return params.maxTokens().longValue();
     }
-    if (capabilities.maxOutputTokens() != null) {
-      return capabilities.maxOutputTokens().longValue();
+    if (capabilities.core().maxOutputTokens() != null) {
+      return capabilities.core().maxOutputTokens().longValue();
     }
     return DEFAULT_MAX_TOKENS;
   }

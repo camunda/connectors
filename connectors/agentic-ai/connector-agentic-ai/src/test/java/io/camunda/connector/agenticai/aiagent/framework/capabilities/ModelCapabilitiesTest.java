@@ -15,31 +15,6 @@ import org.junit.jupiter.api.Test;
 class ModelCapabilitiesTest {
 
   @Test
-  void constructsWithNullContextWindowAndMaxOutputTokens() {
-    final var capabilities =
-        new ModelCapabilities(
-            List.of(Modality.TEXT, Modality.IMAGE),
-            List.of(Modality.TEXT),
-            List.of(Modality.TEXT),
-            true,
-            true,
-            false,
-            false,
-            null,
-            null);
-
-    assertThat(capabilities.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
-    assertThat(capabilities.toolResultModalities()).containsExactly(Modality.TEXT);
-    assertThat(capabilities.assistantMessageModalities()).containsExactly(Modality.TEXT);
-    assertThat(capabilities.supportsReasoning()).isTrue();
-    assertThat(capabilities.supportsReasoningSignatureRoundtrip()).isTrue();
-    assertThat(capabilities.supportsPromptCaching()).isFalse();
-    assertThat(capabilities.supportsParallelToolCalls()).isFalse();
-    assertThat(capabilities.contextWindow()).isNull();
-    assertThat(capabilities.maxOutputTokens()).isNull();
-  }
-
-  @Test
   void modalityEnumValuesAreOrderedTextImageDocumentAudioVideo() {
     assertThat(Modality.values())
         .containsExactly(
@@ -47,45 +22,29 @@ class ModelCapabilitiesTest {
   }
 
   @Test
-  void builderDefaultsToEmptyModalitiesFalseFlagsAndNullTokenBudgets() {
-    final var capabilities = ModelCapabilities.builder().build();
-
-    assertThat(capabilities.userMessageModalities()).isEmpty();
-    assertThat(capabilities.toolResultModalities()).isEmpty();
-    assertThat(capabilities.assistantMessageModalities()).isEmpty();
-    assertThat(capabilities.supportsReasoning()).isFalse();
-    assertThat(capabilities.supportsReasoningSignatureRoundtrip()).isFalse();
-    assertThat(capabilities.supportsPromptCaching()).isFalse();
-    assertThat(capabilities.supportsParallelToolCalls()).isFalse();
-    assertThat(capabilities.contextWindow()).isNull();
-    assertThat(capabilities.maxOutputTokens()).isNull();
-  }
-
-  @Test
-  void builderChainProducesSameValuesAsCanonicalConstructor() {
-    final var expected =
-        new ModelCapabilities(
+  void coreModelCapabilitiesExposesModalitiesAndLimits() {
+    final ModelCapabilities caps =
+        new CoreModelCapabilities(
             List.of(Modality.TEXT, Modality.IMAGE),
             List.of(Modality.TEXT),
             List.of(Modality.TEXT),
-            true,
-            true,
-            false,
-            false,
             128000,
             4096);
 
-    final var built =
-        ModelCapabilities.builder()
-            .userMessageModalities(List.of(Modality.TEXT, Modality.IMAGE))
-            .toolResultModalities(List.of(Modality.TEXT))
-            .assistantMessageModalities(List.of(Modality.TEXT))
-            .supportsReasoning(true)
-            .supportsReasoningSignatureRoundtrip(true)
-            .contextWindow(128000)
-            .maxOutputTokens(4096)
-            .build();
+    assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
+    assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
+    assertThat(caps.assistantMessageModalities()).containsExactly(Modality.TEXT);
+    assertThat(((CoreModelCapabilities) caps).contextWindow()).isEqualTo(128000);
+    assertThat(((CoreModelCapabilities) caps).maxOutputTokens()).isEqualTo(4096);
+  }
 
-    assertThat(built).isEqualTo(expected);
+  @Test
+  void coreModelCapabilitiesAllowsNullLimits() {
+    final var caps =
+        new CoreModelCapabilities(
+            List.of(Modality.TEXT), List.of(Modality.TEXT), List.of(Modality.TEXT), null, null);
+
+    assertThat(caps.contextWindow()).isNull();
+    assertThat(caps.maxOutputTokens()).isNull();
   }
 }

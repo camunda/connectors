@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import java.util.List;
@@ -25,15 +26,12 @@ public class Langchain4JChatModelApi implements ChatModelApi {
    * them.
    */
   private static final ModelCapabilities BRIDGE_CAPABILITIES =
-      ModelCapabilities.builder()
-          .userMessageModalities(List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT))
-          // The bridge embeds no document natively in a tool result — its
-          // ToolCallConverterImpl.contentElementAsString serializes every DocumentContent as a JSON
-          // document reference regardless of MIME type, so every tool-result document must take the
-          // synthetic <doc/> fallback (CapabilityAwareToolCallResultStrategy).
-          .toolResultModalities(List.of())
-          .assistantMessageModalities(List.of(Modality.TEXT))
-          .build();
+      new CoreModelCapabilities(
+          List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
+          List.of(),
+          List.of(Modality.TEXT),
+          null,
+          null);
 
   private final Langchain4JAiFrameworkAdapter adapter;
 

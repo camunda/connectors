@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
-import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel;
@@ -67,12 +66,13 @@ public class AnthropicChatModelApiFactory implements ChatModelApiFactory {
     final var direct = (AnthropicDirectBackend) connection.backend();
     final var timeout = connection.timeouts() != null ? connection.timeouts().timeout() : null;
 
-    final ModelCapabilities capabilities =
+    final AnthropicModelCapabilities capabilities =
         capabilitiesResolver.resolve(
             API_FAMILY,
             connection.model().model(),
             direct.type(),
-            Optional.ofNullable(model.capabilityOverride()));
+            Optional.ofNullable(model.capabilityOverride()),
+            AnthropicModelCapabilitiesData.class);
 
     LOG.debug(
         "Resolved model capabilities for api-family={}, model={}, backend={}: {}",

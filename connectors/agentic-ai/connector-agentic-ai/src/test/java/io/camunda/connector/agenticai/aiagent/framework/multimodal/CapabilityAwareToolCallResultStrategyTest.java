@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -34,11 +35,7 @@ import org.junit.jupiter.api.Test;
 class CapabilityAwareToolCallResultStrategyTest {
 
   private static ModelCapabilities caps(List<Modality> toolResult, List<Modality> userMessage) {
-    return ModelCapabilities.builder()
-        .userMessageModalities(userMessage)
-        .toolResultModalities(toolResult)
-        .assistantMessageModalities(List.of(Modality.TEXT))
-        .build();
+    return new CoreModelCapabilities(userMessage, toolResult, List.of(Modality.TEXT), null, null);
   }
 
   private static final ModelCapabilities BRIDGE_CAPS =

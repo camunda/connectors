@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -63,12 +64,10 @@ class Langchain4JChatModelApiTest {
         .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
     assertThat(capabilities.toolResultModalities()).isEmpty();
     assertThat(capabilities.assistantMessageModalities()).containsExactly(Modality.TEXT);
-    assertThat(capabilities.supportsReasoning()).isFalse();
-    assertThat(capabilities.supportsReasoningSignatureRoundtrip()).isFalse();
-    assertThat(capabilities.supportsPromptCaching()).isFalse();
-    assertThat(capabilities.supportsParallelToolCalls()).isFalse();
-    assertThat(capabilities.contextWindow()).isNull();
-    assertThat(capabilities.maxOutputTokens()).isNull();
+    assertThat(capabilities).isInstanceOf(CoreModelCapabilities.class);
+    final var core = (CoreModelCapabilities) capabilities;
+    assertThat(core.contextWindow()).isNull();
+    assertThat(core.maxOutputTokens()).isNull();
   }
 
   @Test

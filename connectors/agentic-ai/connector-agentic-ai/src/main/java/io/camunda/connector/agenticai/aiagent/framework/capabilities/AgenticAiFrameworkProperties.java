@@ -32,9 +32,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * inside an entry override the key derivation when needed.
  *
  * <p>Capability sub-trees ({@code defaults} and per-entry {@code capabilities}) are bound to the
- * sparse {@link ModelCapabilitiesData} record so Spring Boot's relaxed binding can rebuild modality
- * lists from indexed property keys; the resolver projects them onto a flat {@link
- * ModelCapabilities} via Jackson tree merge at lookup time.
+ * sparse {@link ModelCapabilitiesProperties} record so Spring Boot's relaxed binding can rebuild
+ * modality lists from indexed property keys; the resolver projects them onto a concrete, provider-
+ * specific {@link ModelCapabilities} via Jackson tree merge at lookup time.
  */
 @ConfigurationProperties("camunda.connector.agenticai.aiagent.framework")
 public record AgenticAiFrameworkProperties(Map<String, ApiFamilyProperties> capabilities) {
@@ -44,7 +44,7 @@ public record AgenticAiFrameworkProperties(Map<String, ApiFamilyProperties> capa
   }
 
   public record ApiFamilyProperties(
-      @Nullable ModelCapabilitiesData defaults, Map<String, ModelEntryProperties> models) {
+      @Nullable ModelCapabilitiesProperties defaults, Map<String, ModelEntryProperties> models) {
 
     public ApiFamilyProperties {
       models = models == null ? Map.of() : Map.copyOf(models);
@@ -56,7 +56,7 @@ public record AgenticAiFrameworkProperties(Map<String, ApiFamilyProperties> capa
       List<String> pattern,
       List<String> aliases,
       @Nullable String backend,
-      @Nullable ModelCapabilitiesData capabilities) {
+      @Nullable ModelCapabilitiesProperties capabilities) {
 
     public ModelEntryProperties {
       aliases = aliases == null ? List.of() : List.copyOf(aliases);

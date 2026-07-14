@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMes
 import static io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
@@ -41,11 +42,12 @@ class ToolResultDocumentWindowingTest {
 
   // bridge-like capabilities: every tool-result document takes the fallback
   private static final ModelCapabilities BRIDGE_CAPS =
-      ModelCapabilities.builder()
-          .userMessageModalities(List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT))
-          .toolResultModalities(List.of(Modality.TEXT))
-          .assistantMessageModalities(List.of(Modality.TEXT))
-          .build();
+      new CoreModelCapabilities(
+          List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
+          List.of(Modality.TEXT),
+          List.of(Modality.TEXT),
+          null,
+          null);
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
