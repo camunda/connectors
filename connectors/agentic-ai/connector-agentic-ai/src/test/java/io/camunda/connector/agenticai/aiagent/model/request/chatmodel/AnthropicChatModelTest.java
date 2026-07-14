@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.aiagent.model.request.chatmodel;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicEffort;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicBackend.AnthropicBedrockBackend;
@@ -16,9 +18,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicC
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.AnthropicModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.AnthropicThinking;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication.AwsStaticCredentialsAuthentication;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class AnthropicChatModelTest {
@@ -91,7 +96,8 @@ class AnthropicChatModelTest {
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "  "),
                 new AnthropicModel(
-                    "claude-sonnet-4-6", new AnthropicModelParameters(1, null, null, null)),
+                    "claude-sonnet-4-6",
+                    new AnthropicModelParameters(1, null, null, null, null, null, null)),
                 null,
                 null,
                 null,
@@ -160,5 +166,93 @@ class AnthropicChatModelTest {
     final var direct = new AnthropicDirectBackend(null, "sk-ant-super-secret");
 
     assertThat(direct.toString()).doesNotContain("sk-ant-super-secret").contains("[REDACTED]");
+  }
+
+  @Test
+  void deserialisesThinkingAndEffortAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": { "type": "direct", "apiKey": "sk-ant-123" },
+            "model": {
+              "model": "claude-sonnet-4-6",
+              "parameters": {
+                "thinking": { "mode": "enabled", "budgetTokens": 2048 },
+                "effort": "high"
+              }
+            }
+          }
+        }
+        """;
+
+    final AnthropicChatModel parsed =
+        (AnthropicChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+
+    final AnthropicModelParameters parameters = parsed.anthropic().model().parameters();
+    assertThat(parameters).isNotNull();
+    assertThat(parameters.thinking())
+        .isEqualTo(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null));
+    assertThat(parameters.effort()).isEqualTo(AnthropicEffort.HIGH);
+    assertThat(parameters.customEffort()).isNull();
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, LlmProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void deserialisesCustomEffortAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "anthropic",
+          "anthropic": {
+            "backend": { "type": "direct", "apiKey": "sk-ant-123" },
+            "model": {
+              "model": "claude-sonnet-4-6",
+              "parameters": {
+                "effort": "custom",
+                "customEffort": "ultra"
+              }
+            }
+          }
+        }
+        """;
+
+    final AnthropicChatModel parsed =
+        (AnthropicChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+
+    final AnthropicModelParameters parameters = parsed.anthropic().model().parameters();
+    assertThat(parameters).isNotNull();
+    assertThat(parameters.effort()).isEqualTo(AnthropicEffort.CUSTOM);
+    assertThat(parameters.customEffort()).isEqualTo("ultra");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, LlmProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  @Test
+  void thinkingBudgetTokensRejectsValuesBelowMinimum() {
+    final var thinking = new AnthropicThinking(ThinkingMode.ENABLED, 512, null);
+    final var parameters =
+        new AnthropicModelParameters(null, null, null, null, thinking, null, null);
+    final var model =
+        new AnthropicChatModel(
+            new AnthropicConnection(
+                new AnthropicDirectBackend(null, "sk-ant-123"),
+                new AnthropicModel("claude-sonnet-4-6", parameters),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
+
+    final Set<ConstraintViolation<AnthropicChatModel>> violations = validator.validate(model);
+
+    assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().contains("budgetTokens"));
   }
 }

@@ -397,7 +397,7 @@ class AnthropicMessageRequestConverterTest {
   @SuppressWarnings(
       "deprecation") // temperature()/topP()/topK() deprecated in anthropic-java 2.48.0
   void usesConfiguredMaxTokensAndModelParams() {
-    final var parameters = new AnthropicModelParameters(2048, 0.5, 0.9, 40);
+    final var parameters = new AnthropicModelParameters(2048, 0.5, 0.9, 40, null, null, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
     final var response =
         new JobWorkerResponseConfiguration(new TextResponseFormatConfiguration(true), null, null);

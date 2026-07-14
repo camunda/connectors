@@ -8,8 +8,11 @@ package io.camunda.connector.agenticai.aiagent.model.request.chatmodel;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.ANTHROPIC_ID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicEffort;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesOverride;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
@@ -18,6 +21,7 @@ import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -290,6 +294,93 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            @Nullable Integer topK) {}
+            @Nullable Integer topK,
+        @Valid @Nullable AnthropicThinking thinking,
+        @TemplateProperty(
+                group = "model",
+                label = "Effort",
+                tooltip =
+                    "General effort dial (affects text, tool calls and thinking). Not supported on all "
+                        + "models. CUSTOM sends the free-text value below verbatim. Unset ⇒ model default (high).",
+                type = TemplateProperty.PropertyType.Dropdown,
+                choices = {
+                  @DropdownPropertyChoice(value = "low", label = "Low"),
+                  @DropdownPropertyChoice(value = "medium", label = "Medium"),
+                  @DropdownPropertyChoice(value = "high", label = "High"),
+                  @DropdownPropertyChoice(value = "xhigh", label = "X-high"),
+                  @DropdownPropertyChoice(value = "max", label = "Max"),
+                  @DropdownPropertyChoice(value = "custom", label = "Custom")
+                },
+                optional = true)
+            @Nullable AnthropicEffort effort,
+        @TemplateProperty(
+                group = "model",
+                label = "Custom effort",
+                tooltip = "Free-text effort value sent verbatim when Effort = CUSTOM.",
+                type = TemplateProperty.PropertyType.String,
+                feel = FeelMode.optional,
+                optional = true,
+                condition =
+                    @TemplateProperty.PropertyCondition(
+                        property = "configuration.anthropic.model.parameters.effort",
+                        equals = "custom"))
+            @Nullable String customEffort) {}
+
+    /** Anthropic extended-thinking configuration for a single model. */
+    public record AnthropicThinking(
+        @TemplateProperty(
+                group = "model",
+                label = "Thinking mode",
+                description =
+                    "Extended thinking mechanism. Leave blank to use the model default. "
+                        + "ENABLED = manual token budget (older models); ADAPTIVE = model-managed "
+                        + "(newer models); DISABLED = off. Support varies by model.",
+                type = TemplateProperty.PropertyType.Dropdown,
+                choices = {
+                  @DropdownPropertyChoice(value = "enabled", label = "Enabled"),
+                  @DropdownPropertyChoice(value = "adaptive", label = "Adaptive"),
+                  @DropdownPropertyChoice(value = "disabled", label = "Disabled")
+                },
+                optional = true)
+            @Nullable ThinkingMode mode,
+        @Min(1024)
+            @TemplateProperty(
+                group = "model",
+                label = "Thinking budget tokens",
+                tooltip =
+                    "Max tokens the model may spend on extended thinking. Required and used only when "
+                        + "thinking mode is ENABLED (min 1024).",
+                type = TemplateProperty.PropertyType.Number,
+                feel = FeelMode.required,
+                optional = true,
+                condition =
+                    @TemplateProperty.PropertyCondition(
+                        property = "configuration.anthropic.model.parameters.thinking.mode",
+                        equals = "enabled"))
+            @Nullable Integer budgetTokens,
+        @TemplateProperty(
+                group = "model",
+                label = "Thinking display",
+                tooltip =
+                    "Adaptive-thinking output display (SUMMARIZED or OMITTED). Applies only to ADAPTIVE.",
+                type = TemplateProperty.PropertyType.Dropdown,
+                choices = {
+                  @DropdownPropertyChoice(value = "summarized", label = "Summarized"),
+                  @DropdownPropertyChoice(value = "omitted", label = "Omitted")
+                },
+                optional = true,
+                condition =
+                    @TemplateProperty.PropertyCondition(
+                        property = "configuration.anthropic.model.parameters.thinking.mode",
+                        equals = "adaptive"))
+            @Nullable ThinkingDisplay display) {}
+
+    /** Adaptive-thinking output display mode (config-only; Anthropic wire format). */
+    public enum ThinkingDisplay {
+      @JsonProperty("summarized")
+      SUMMARIZED,
+      @JsonProperty("omitted")
+      OMITTED
+    }
   }
 }
