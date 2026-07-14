@@ -21,8 +21,8 @@ public class PollingActivationProperties {
       group = "interval",
       defaultValue = "PT50S",
       binding = @TemplateProperty.PropertyBinding(name = "httpRequestInterval"),
-      description =
-          "The delay between HTTP requests, defined as ISO 8601 durations format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+      tooltip =
+          "The delay between HTTP requests, defined in ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
       feel = FeelMode.optional)
   @FEEL
   private Duration httpRequestInterval = Duration.parse("PT50S");
