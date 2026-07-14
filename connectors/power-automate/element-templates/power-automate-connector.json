@@ -93,7 +93,7 @@
     },
     {
       "label": "Organization URI",
-      "description": "Dynamics 365 URL. <a href=\"https://learn.microsoft.com/en-us/power-apps/developer/data-platform/discovery-service\">Find your organization url</a>. See also <a href=\"https://learn.microsoft.com/en-us/power-automate/web-api#compose-http-requests\">this page</a>",
+      "tooltip": "Dynamics 365 URL. <a href=\"https://learn.microsoft.com/en-us/power-apps/developer/data-platform/discovery-service\">organization URL discovery docs</a>. See also <a href=\"https://learn.microsoft.com/en-us/power-automate/web-api#compose-http-requests\">Power Automate web API docs</a>",
       "group": "configuration",
       "type": "String",
       "value": "",
@@ -109,7 +109,6 @@
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
-      "description": "Choose the authentication type",
       "type": "Dropdown",
       "choices": [
         {
@@ -158,7 +157,7 @@
     {
       "group": "authentication",
       "label": "OAuth token endpoint",
-      "description": "Find out more <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/power-automate/#oauth-token-endpoint\">here</a>",
+      "tooltip": "URL to obtain the OAuth access token. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/power-automate/#oauth-token-endpoint\">Power Automate OAuth token endpoint</a>.",
       "type": "String",
       "value": "",
       "feel": "optional",
@@ -176,7 +175,7 @@
     },
     {
       "label": "Client Id (secret ID)",
-      "description": "Microsoft Azure Application Client id. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">See where to find it</a>",
+      "tooltip": "Microsoft Azure application client ID. See the <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">Azure app registration guide</a>.",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -194,7 +193,7 @@
     },
     {
       "label": "Client secret (Client secret value)",
-      "description": "Microsoft Azure Application Client Secret value. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">See where to find it</a>",
+      "tooltip": "Microsoft Azure application client secret value. See the <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">Azure app registration guide</a>.",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -259,7 +258,7 @@
     },
     {
       "label": "Flow session ID",
-      "description": "Unique identifier for entity instances. You can find this in the response of the 'Trigger a flow run' method",
+      "tooltip": "Unique identifier for entity instances. You can find this in the response of the 'Trigger a flow run' method.",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -280,7 +279,7 @@
     },
     {
       "label": "Workflow ID (flow ID)",
-      "description": "The ID of the desktop flow that you want to run",
+      "tooltip": "The ID of the desktop flow that you want to run.",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -300,7 +299,7 @@
     },
     {
       "label": "Connection name",
-      "description": "Identifies the connection to be used with the desktop flow script",
+      "tooltip": "Identifies the connection to be used with the desktop flow script.",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -320,7 +319,7 @@
     },
     {
       "label": "Connection type",
-      "description": "Identifies which type of connection is used in the connectionName",
+      "tooltip": "How the connection name is resolved: 'Connection type' uses a direct connection, 'Connection reference type' uses a connection reference.",
       "group": "input",
       "type": "Dropdown",
       "value": "1",
@@ -350,7 +349,7 @@
     },
     {
       "label": "Run mode",
-      "description": "Choose between attended or unattended",
+      "tooltip": "'Attended' runs the flow interactively in a signed-in user session; 'Unattended' runs it in the background without user interaction.",
       "group": "input",
       "type": "Dropdown",
       "value": "attended",
@@ -381,7 +380,7 @@
     {
       "label": "Run priority",
       "feel": "optional",
-      "description": "Choose an option (normal, high) or add your own",
+      "tooltip": "Use a standard priority ('normal' or 'high'), or supply your own value.",
       "group": "input",
       "type": "String",
       "value": "normal",
@@ -400,7 +399,8 @@
     {
       "label": "Timeout",
       "feel": "optional",
-      "description": "Timeout for Power Automate script execution in seconds (default = 3 hours, max = 24 hours)",
+      "tooltip": "Timeout for Power Automate script execution, in seconds.",
+      "description": "Default = 3 hours, max = 24 hours.",
       "group": "input",
       "type": "String",
       "binding": {
@@ -417,7 +417,7 @@
     },
     {
       "label": "Inputs",
-      "description": "The desktop flow script input parameters (json serialized string)",
+      "tooltip": "The desktop flow script input parameters, as a JSON-serialized string.",
       "group": "input",
       "type": "String",
       "feel": "required",
@@ -436,7 +436,7 @@
     {
       "label": "Callback URL",
       "feel": "optional",
-      "description": "URL that will be called once the desktop flow script is complete. You can use the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/\">webhook connector</a> for this purpose",
+      "tooltip": "URL that will be called once the desktop flow script is complete. You can use the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/\">webhook connector</a> for this purpose.",
       "group": "input",
       "type": "String",
       "binding": {
@@ -481,7 +481,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -492,7 +492,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetBodySessionId",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -511,7 +511,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetStatusCode",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -530,7 +530,7 @@
     {
       "label": "Result expression",
       "id": "resultExpressionGetBody",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
@@ -548,7 +548,7 @@
     },
     {
       "label": "Connection timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "tooltip": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "errors",
       "type": "String",
       "value": "20",
@@ -610,7 +610,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

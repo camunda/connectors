@@ -83,7 +83,6 @@
       "label": "OpenAI API key",
       "group": "authentication",
       "feel": "optional",
-      "description": "Your OpenAI API key",
       "type": "String",
       "binding": {
         "type": "zeebe:input",
@@ -96,7 +95,7 @@
     {
       "label": "Organization",
       "group": "authentication",
-      "description": "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">OpenAI documentation</a>",
+      "tooltip": "For members of multiple organizations. <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">OpenAI organization documentation</a>",
       "type": "String",
       "feel": "optional",
       "binding": {
@@ -117,7 +116,7 @@
     {
       "label": "Operation",
       "group": "operation",
-      "description": "OpenAI API operation",
+      "tooltip": "Chat: generate a chat completion. Moderation: classify text for policy-violating content.",
       "type": "Dropdown",
       "id": "operation",
       "value": "chat",
@@ -171,7 +170,7 @@
     },
     {
       "label": "Evaluation input",
-      "description": "Provide the text to analyze as static value or variable",
+      "tooltip": "Text to classify with the moderation API.",
       "group": "input",
       "type": "Text",
       "feel": "optional",
@@ -190,7 +189,7 @@
     {
       "label": "Model",
       "id": "model",
-      "description": "Select the model (or Custom for free text)",
+      "tooltip": "Choose a listed model, or Custom to enter a model version as free text.",
       "group": "input",
       "type": "Dropdown",
       "value": "gpt-3.5-turbo",
@@ -227,7 +226,8 @@
     },
     {
       "label": "Custom model version",
-      "description": "Select the <a href=\"https://platform.openai.com/docs/models/overview\" target=\"_blank\">model</a> version",
+      "tooltip": "Model version to invoke. See the available <a href=\"https://platform.openai.com/docs/models/overview\" target=\"_blank\">OpenAI models</a>.",
+      "placeholder": "gpt-4o-mini",
       "group": "input",
       "type": "Text",
       "binding": {
@@ -244,7 +244,8 @@
     },
     {
       "label": "Temperature",
-      "description": "Select the temperature (between 0 and 2)",
+      "tooltip": "Sampling temperature: higher values make output more random, lower values more focused and deterministic.",
+      "description": "Between 0 and 2.",
       "group": "input",
       "type": "Text",
       "value": "1",
@@ -266,7 +267,7 @@
     },
     {
       "label": "System message",
-      "description": "Optional initial instructions for the model",
+      "tooltip": "Optional initial instructions for the model",
       "group": "input",
       "type": "Text",
       "optional": true,
@@ -282,7 +283,7 @@
     },
     {
       "label": "Chat history",
-      "description": "Optional chat history, or examples of the desired model behavior",
+      "tooltip": "Optional chat history, or examples of the desired model behavior",
       "feel": "required",
       "optional": true,
       "type": "String",
@@ -298,7 +299,7 @@
     },
     {
       "label": "Prompt",
-      "description": "Input to be evaluated",
+      "tooltip": "Input to be evaluated",
       "group": "input",
       "type": "Text",
       "feel": "optional",
@@ -316,7 +317,7 @@
     },
     {
       "label": "Choices to generate",
-      "description": "Amount of alternative responses the model will generate",
+      "tooltip": "Number of alternative responses the model will generate",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -376,7 +377,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -386,7 +387,7 @@
     },
     {
       "label": "Result expression",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "Text",
       "feel": "required",
@@ -398,7 +399,7 @@
     },
     {
       "label": "Connection timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "tooltip": "Timeout in seconds to establish a connection, or 0 for an infinite timeout.",
       "group": "errors",
       "type": "String",
       "value": "30",
@@ -418,7 +419,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

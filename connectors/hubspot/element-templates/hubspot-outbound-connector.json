@@ -106,7 +106,7 @@
     {
       "id": "authentication.token",
       "label": "Bearer token",
-      "description": "The access token of your HubSpot private app.",
+      "tooltip": "The access token of your HubSpot private app.",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -128,7 +128,6 @@
       "label": "Resource type",
       "id": "resourceType",
       "group": "operation",
-      "description": "Choose resource type",
       "value": "contacts",
       "type": "Dropdown",
       "choices": [
@@ -331,7 +330,7 @@
 
     {
       "label": "Next page after object id",
-      "description": "The id of the object from which to retrieve the next page.",
+      "tooltip": "The id of the object from which to retrieve the next page.",
       "optional": true,
       "feel": "optional",
       "group": "parameters",
@@ -415,7 +414,6 @@
     {
       "id": "get-/crm/v3/objects/contacts/{contactId}_path_contactId",
       "label": "Contact id",
-      "description": "The id of the contact to get.",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -435,7 +433,8 @@
     },
     {
       "label": "Additional properties that should be returned",
-      "description": "Names of the additional properties as a comma separated list, e.g. city,annualrevenue. Get all contact properties <a href=\"https://developers.hubspot.com/docs/reference/api/crm/properties/v1-contacts#get-all-contact-properties\" target=\"_blank\">here</a> and learn more about default contact properties <a href=\"https://knowledge.hubspot.com/properties/hubspots-default-contact-properties\" target=\"_blank\">here</a>. Leave this empty to get only standard properties.",
+      "tooltip": "Names of the additional properties as a comma separated list. Leave this empty to get only standard properties. See all <a href=\"https://developers.hubspot.com/docs/reference/api/crm/properties/v1-contacts#get-all-contact-properties\" target=\"_blank\">contact properties</a> and HubSpot's <a href=\"https://knowledge.hubspot.com/properties/hubspots-default-contact-properties\" target=\"_blank\">default contact properties</a>.",
+      "placeholder": "city,annualrevenue",
       "optional": true,
       "value": "",
       "feel": "optional",
@@ -517,7 +516,6 @@
     {
       "id": "post-/crm/v3/objects/contacts/batch/read_ids",
       "label": "Contact ids",
-      "description": "The ids of the contacts to get.",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -614,7 +612,8 @@
 
     {
       "label": "Search field",
-      "description": "The field within the object to perform the search on, e.g. lastname",
+      "tooltip": "The field within the object to perform the search on.",
+      "placeholder": "lastname",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -637,7 +636,8 @@
     },
     {
       "label": "Search value",
-      "description": "The value to search for, e.g. Smith",
+      "tooltip": "The value to search for.",
+      "placeholder": "Smith",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -736,7 +736,7 @@
 
     {
       "label": "Properties",
-      "description": "Properties of the contact",
+      "tooltip": "Properties of the contact",
       "feel": "required",
       "group": "input",
       "type": "String",
@@ -759,7 +759,7 @@
     },
     {
       "label": "Company id",
-      "description": "Company id the contact should be associated with",
+      "tooltip": "Company id the contact should be associated with",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -892,7 +892,6 @@
     {
       "id": "patch-/crm/v3/objects/contacts/{contactId}_path_contactId",
       "label": "Contact id",
-      "description": "The id of the contact that should be updated.",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -974,7 +973,6 @@
     {
       "id": "delete-/crm/v3/objects/contacts/{contactId}_path_contactId",
       "label": "Contact id",
-      "description": "The id of the contact that should be deleted.",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -1055,7 +1053,6 @@
 
     {
       "label": "Contact id",
-      "description": "The id of the contact",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -1078,7 +1075,6 @@
     },
     {
       "label": "Company id",
-      "description": "The id of the company",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -1266,7 +1262,6 @@
     {
       "id": "get-/crm/v3/objects/companies/{companyId}_getById_path_companyId",
       "label": "Company id",
-      "description": "The id of the company to get.",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -1423,7 +1418,6 @@
     {
       "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
       "label": "Company id",
-      "description": "The id of the company for which to retrieve the contacts.",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -1505,7 +1499,6 @@
     {
       "id": "post-/crm/v3/objects/companies_input",
       "label": "Company properties",
-      "description": "The properties of the company",
       "group": "input",
       "type": "String",
       "feel": "required",
@@ -1730,7 +1723,6 @@
     {
       "id": "get-/crm/v3/objects/deals/{dealId}_getById_path_dealId",
       "label": "Deal id",
-      "description": "The id of the deal to get.",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -1887,7 +1879,6 @@
     {
       "id": "delete-/crm/v3/objects/deals/{dealId}_archive_path_dealId",
       "label": "Deal id",
-      "description": "The id of the deal that should be deleted.",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -1969,7 +1960,7 @@
 
     {
       "label": "Portal id",
-      "description": "The HubSpot account that the form belongs to. <a href=\"https://knowledge.hubspot.com/account-management/manage-multiple-hubspot-accounts#check-your-current-account\" target=\"_blank\">Learn more</a>.",
+      "tooltip": "The HubSpot account that the form belongs to. <a href=\"https://knowledge.hubspot.com/account-management/manage-multiple-hubspot-accounts#check-your-current-account\" target=\"_blank\">HubSpot account management</a>.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -1990,7 +1981,7 @@
     },
     {
       "label": "Form id",
-      "description": "The unique ID of the form you're sending data to. <a href=\"https://knowledge.hubspot.com/forms/find-your-form-guid\" target=\"_blank\">Learn more</a>.",
+      "tooltip": "The unique ID of the form you're sending data to. <a href=\"https://knowledge.hubspot.com/forms/find-your-form-guid\" target=\"_blank\">HubSpot form GUID</a>.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2071,7 +2062,7 @@
     },
     {
       "label": "Form fields",
-      "description": "The values to submit to the form. <a href=\"https://developers.hubspot.com/docs/reference/api/marketing/forms/v3-legacy\" target=\"_blank\">Learn more</a>.",
+      "tooltip": "The values to submit to the form. <a href=\"https://developers.hubspot.com/docs/reference/api/marketing/forms/v3-legacy\" target=\"_blank\">HubSpot Forms API</a>.",
       "group": "input",
       "feel": "optional",
       "id": "post-api.hsforms.com/submissions_body",
@@ -2093,7 +2084,6 @@
 
     {
       "label": "List id",
-      "description": "The ID of the list where the object should be added to.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2174,7 +2164,7 @@
     },
     {
       "label": "Object ids",
-      "description": "The ids of the objects, e.g. contacts or companies, to add to the list",
+      "tooltip": "The ids of the objects, e.g. contacts or companies, to add to the list",
       "group": "input",
       "feel": "optional",
       "id": "put-/crm/v3/lists/{listId}/memberships/add_body",
@@ -2196,7 +2186,6 @@
 
     {
       "label": "Workflow id",
-      "description": "The ID of the workflow that should be triggered.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2217,7 +2206,6 @@
     },
     {
       "label": "Contact email",
-      "description": "The email of the contact that should be enrolled to the workflow.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2310,7 +2298,7 @@
     {
       "id": "resultVariable",
       "label": "Result variable",
-      "description": "Name of variable to store the response in",
+      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "binding": {
         "key": "resultVariable",
@@ -2321,7 +2309,7 @@
     {
       "id": "resultExpression",
       "label": "Result expression",
-      "description": "Expression to map the response into process variables",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "feel": "required",
       "group": "output",
       "binding": {
@@ -2333,7 +2321,7 @@
     {
       "id": "errorExpression",
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "feel": "required",
       "group": "error",
       "binding": {
@@ -2345,7 +2333,6 @@
     {
       "id": "retryCount",
       "label": "Retries",
-      "description": "Number of retries",
       "value": "3",
       "feel": "optional",
       "group": "retries",
@@ -2358,7 +2345,7 @@
     {
       "id": "retryBackoff",
       "label": "Retry backoff",
-      "description": "ISO-8601 duration to wait between retries",
+      "tooltip": "ISO-8601 duration to wait between retries",
       "value" : "PT30S",
       "group": "retries",
       "binding": {

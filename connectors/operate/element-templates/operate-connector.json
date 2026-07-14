@@ -105,7 +105,7 @@
     },
     {
       "label": "OAuth token endpoint",
-      "description": "Token endpoint of your authentication server",
+      "tooltip": "Token endpoint of your authentication server",
       "group": "cluster",
       "type": "String",
       "feel": "optional",
@@ -123,7 +123,7 @@
     },
     {
       "label": "Operate base URL",
-      "description": "Base URL of Operate in your C8 cluster",
+      "tooltip": "Base URL of Operate in your C8 cluster",
       "type": "String",
       "feel": "optional",
       "id": "authentication.operate_base_url",
@@ -159,7 +159,7 @@
     },
     {
       "label": "Cluster ID",
-      "description": "SaaS cluster region and ID.<br>Lean more about <a href=\"https://docs.camunda.io/docs/guides/setup-client-connection-credentials\" target=\"_blank\">creating API client credentials</a>",
+      "tooltip": "SaaS cluster region and ID. <a href=\"https://docs.camunda.io/docs/guides/setup-client-connection-credentials\" target=\"_blank\">API client credentials documentation</a>",
       "group": "cluster",
       "type": "String",
       "feel": "optional",
@@ -225,7 +225,7 @@
     },
     {
       "label": "Client secret",
-      "description": "Client ID and secret for the Operate OAuth client",
+      "tooltip": "Client ID and secret for the Operate OAuth client",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -243,7 +243,6 @@
     },
     {
       "label": "Operate audience",
-      "description": "API audience",
       "type": "String",
       "group": "authentication",
       "value": "operate-api",
@@ -262,7 +261,7 @@
     },
     {
       "label": "Scopes",
-      "description": "Space-separated list of OAuth 2.0 scopes to request from the token endpoint. Required by some identity providers — e.g. for Microsoft Entra ID use <code>api://&lt;client-id&gt;/.default</code>",
+      "tooltip": "Space-separated list of OAuth 2.0 scopes to request from the token endpoint. Required by some identity providers — e.g. for Microsoft Entra ID use <code>api://&lt;client-id&gt;/.default</code>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -290,7 +289,7 @@
     },
     {
       "label": "Endpoint",
-      "description": "Operate API entity",
+      "tooltip": "Operate API entity to query: process instances, incidents, variables, process definitions, or flow node instances",
       "group": "input",
       "id": "input.internal_endpoint",
       "type": "Dropdown",
@@ -324,7 +323,6 @@
     },
     {
       "label": "Operation",
-      "description": "Operation to execute against the selected entity",
       "group": "input",
       "id": "input.internal_operation",
       "type": "Dropdown",
@@ -396,7 +394,6 @@
     },
     {
       "label": "Key",
-      "description": "Entity key",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -414,7 +411,7 @@
     },
     {
       "label": "Filter",
-      "description": "Search filter in <a href=\"https://docs.camunda.io/docs/apis-tools/operate-api/specifications/search/\" target=\"_blank\">Operate format</a>",
+      "tooltip": "Search filter in <a href=\"https://docs.camunda.io/docs/apis-tools/operate-api/specifications/search/\" target=\"_blank\">Operate format</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -430,7 +427,7 @@
     },
     {
       "label": "Sort",
-      "description": "Sorting properties in <a href=\"https://docs.camunda.io/docs/apis-tools/operate-api/specifications/search\" target=\"_blank\">Operate format</a><br>Please provide a list of sort objects",
+      "tooltip": "List of sort objects in <a href=\"https://docs.camunda.io/docs/apis-tools/operate-api/specifications/search\" target=\"_blank\">Operate format</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -446,7 +443,7 @@
     },
     {
       "label": "Results",
-      "description": "Number of results to return",
+      "tooltip": "Number of results to return",
       "group": "parameters",
       "type": "String",
       "value": "20",
@@ -469,7 +466,7 @@
     },
     {
       "label": "Pagination",
-      "description": "Identifier of item from which the search should start. <br>Hint: Copy the <code>sortValues</code> field from the previous search result, or leave blank for no pagination",
+      "tooltip": "Identifier of the item from which the search should start. Copy the <code>sortValues</code> field from the previous search result, or leave blank for no pagination",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -497,7 +494,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -507,7 +504,7 @@
     },
     {
       "label": "Result expression",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "value": "={operateResponse: response.body}",
       "type": "Text",
@@ -519,7 +516,7 @@
     },
     {
       "label": "Connection timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "tooltip": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "errors",
       "type": "String",
       "value": "20",
@@ -539,7 +536,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

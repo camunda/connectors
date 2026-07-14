@@ -69,7 +69,7 @@
     {
       "id": "snInstance",
       "label": "Instance name",
-      "description": "Enter only the instance name from your ServiceNow URL",
+      "tooltip": "Enter only the instance name from your ServiceNow URL",
       "optional": false,
       "feel": "optional",
       "group": "sn",
@@ -85,6 +85,7 @@
     {
       "id": "restApiTriggerPath",
       "label": "REST API trigger path",
+      "placeholder": "/api/sn_cico/flow_starter/my_flow",
       "optional": false,
       "feel": "optional",
       "group": "sn",
@@ -138,7 +139,7 @@
     {
       "id": "authentication.apiKeyLocation",
       "label": "Api key location",
-      "description": "Choose type: Send API key in header or as query parameter.",
+      "tooltip": "Choose type: Send API key in header or as query parameter.",
       "optional": false,
       "value": "headers",
       "constraints": {
@@ -269,7 +270,6 @@
     {
       "id": "authentication.oauthTokenEndpoint",
       "label": "OAuth 2.0 token endpoint",
-      "description": "The OAuth token endpoint",
       "optional": false,
       "constraints": {
         "notEmpty": true,
@@ -294,7 +294,7 @@
     {
       "id": "authentication.clientId",
       "label": "Client ID",
-      "description": "Your application's client ID from the OAuth client",
+      "tooltip": "Your application's client ID from the OAuth client",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -315,7 +315,7 @@
     {
       "id": "authentication.clientSecret",
       "label": "Client secret",
-      "description": "Your application's client secret from the OAuth client",
+      "tooltip": "Your application's client secret from the OAuth client",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -336,7 +336,7 @@
     {
       "id": "authentication.audience",
       "label": "Audience",
-      "description": "The unique identifier of the target API you want to access",
+      "tooltip": "The unique identifier of the target API you want to access",
       "optional": true,
       "feel": "optional",
       "group": "authentication",
@@ -354,7 +354,7 @@
     {
       "id": "authentication.clientAuthentication",
       "label": "Client authentication",
-      "description": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+      "tooltip": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -384,7 +384,8 @@
     {
       "id": "authentication.scopes",
       "label": "Scopes",
-      "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+      "tooltip": "The scopes which you want to request authorization for",
+      "placeholder": "read:contacts",
       "optional": true,
       "feel": "optional",
       "group": "authentication",
@@ -458,7 +459,7 @@
     {
       "id": "headers",
       "label": "Headers",
-      "description": "Map of HTTP headers to add to the request",
+      "tooltip": "Map of HTTP headers to add to the request",
       "optional": true,
       "feel" : "required",
       "group": "sn",
@@ -471,7 +472,7 @@
     {
       "id": "queryParameters",
       "label": "Query parameters",
-      "description": "Map of query parameters to add to the request URL",
+      "tooltip": "Map of query parameters to add to the request URL",
       "optional": true,
       "feel" : "required",
       "group": "sn",
@@ -552,7 +553,7 @@
     {
       "id" : "body",
       "label" : "Request body",
-      "description" : "Payload to send with the request",
+      "tooltip" : "Payload to send with the request",
       "optional" : true,
       "feel" : "optional",
       "group" : "sn",
@@ -583,7 +584,7 @@
     {
       "id": "resultVariable",
       "label": "Result variable",
-      "description": "Name of variable to store the response in",
+      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "binding": {
         "key": "resultVariable",
@@ -595,7 +596,7 @@
     {
       "id": "resultExpression",
       "label": "Result expression",
-      "description": "Expression to map the response into process variables",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "feel": "required",
       "group": "output",
       "binding": {
@@ -607,7 +608,7 @@
     {
       "id": "errorExpression",
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "feel": "required",
       "group": "error",
       "binding": {
@@ -619,7 +620,6 @@
     {
       "id": "retryCount",
       "label": "Retries",
-      "description": "Number of retries",
       "value": "3",
       "feel": "optional",
       "group": "retries",
