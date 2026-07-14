@@ -15,6 +15,10 @@ import com.anthropic.models.beta.messages.BetaJsonOutputFormat;
 import com.anthropic.models.beta.messages.BetaMessageParam;
 import com.anthropic.models.beta.messages.BetaOutputConfig;
 import com.anthropic.models.beta.messages.BetaSkillParams;
+import com.anthropic.models.beta.messages.BetaThinkingConfigAdaptive;
+import com.anthropic.models.beta.messages.BetaThinkingConfigDisabled;
+import com.anthropic.models.beta.messages.BetaThinkingConfigEnabled;
+import com.anthropic.models.beta.messages.BetaThinkingConfigParam;
 import com.anthropic.models.beta.messages.BetaTool;
 import com.anthropic.models.beta.messages.BetaToolResultBlockParam;
 import com.anthropic.models.beta.messages.BetaToolUseBlockParam;
@@ -46,6 +50,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
@@ -108,25 +113,44 @@ public class AnthropicMessageRequestConverter {
     this.contentConverter = contentConverter;
   }
 
+  /**
+   * Convenience overload for callers that don't track the model-matched signal (see the {@code
+   * modelMatched} overload): treats the model as matched, so reasoning validation (spec §6, rule 1)
+   * applies as normal whenever thinking/effort is actually configured. Every production caller goes
+   * through the {@code modelMatched} overload instead, threading the real signal from {@link
+   * io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver#matches}.
+   */
   public MessageCreateParams toMessageCreateParams(
       AgentExecutionContext ctx,
       ConversationSnapshot snapshot,
       AnthropicModelCapabilities capabilities) {
+    return toMessageCreateParams(ctx, snapshot, capabilities, true);
+  }
+
+  public MessageCreateParams toMessageCreateParams(
+      AgentExecutionContext ctx,
+      ConversationSnapshot snapshot,
+      AnthropicModelCapabilities capabilities,
+      boolean modelMatched) {
     final var cfg =
         (LlmProviderChatModelApiConfiguration) ctx.configuration().chatModelApiConfiguration();
     final var model = (AnthropicChatModel) cfg.configuration();
     final var params = model.anthropic().model().parameters();
+    final String modelId = model.anthropic().model().model();
+
+    AnthropicReasoningValidator.validate(params, capabilities.reasoning(), modelMatched, modelId);
 
     final var builder =
         MessageCreateParams.builder()
-            .model(model.anthropic().model().model())
+            .model(modelId)
             .maxTokens(resolveMaxTokens(params, capabilities));
 
     applyModelParameters(builder, params);
+    applyReasoning(builder, params);
     applySystemPrompt(builder, snapshot.messages());
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
-    applyResponseFormat(builder, ctx.configuration().response());
+    applyOutputConfig(builder, ctx.configuration().response(), params);
     applySkillsAndBuiltInTools(builder, model.anthropic());
 
     return builder.build();
@@ -162,6 +186,50 @@ public class AnthropicMessageRequestConverter {
     }
     if (params.topK() != null) {
       builder.topK(params.topK().longValue());
+    }
+  }
+
+  /**
+   * Maps validated {@code thinking} configuration (spec §5) onto the SDK's {@code thinking} union.
+   * {@code mode == null} (the modeler left the dropdown blank) means unset - no thinking param is
+   * emitted and the model's own default applies. Wire enum values use {@code name().toLowerCase()}
+   * ({@code ThinkingMode}/{@code ThinkingDisplay} already carry matching lowercase {@code
+   * JsonProperty} values, see those enums).
+   *
+   * <p>Defensively skips emitting {@code ENABLED} without a budget rather than throwing an NPE: for
+   * a matched model {@link AnthropicReasoningValidator} already guarantees a budget is present
+   * (rule 3), but an unmatched/custom model bypasses that validation entirely, so this guard is the
+   * only thing standing between a misconfigured custom model and a builder-time crash.
+   */
+  private void applyReasoning(
+      MessageCreateParams.Builder builder, @Nullable AnthropicModelParameters params) {
+    final var thinking = params == null ? null : params.thinking();
+    final ThinkingMode mode = thinking == null ? null : thinking.mode();
+    if (thinking == null || mode == null) {
+      return;
+    }
+
+    switch (mode) {
+      case ENABLED -> {
+        if (thinking.budgetTokens() != null) {
+          builder.thinking(
+              BetaThinkingConfigParam.ofEnabled(
+                  BetaThinkingConfigEnabled.builder()
+                      .budgetTokens(thinking.budgetTokens().longValue())
+                      .build()));
+        }
+      }
+      case ADAPTIVE -> {
+        final var adaptiveBuilder = BetaThinkingConfigAdaptive.builder();
+        if (thinking.display() != null) {
+          adaptiveBuilder.display(
+              BetaThinkingConfigAdaptive.Display.of(thinking.display().name().toLowerCase()));
+        }
+        builder.thinking(BetaThinkingConfigParam.ofAdaptive(adaptiveBuilder.build()));
+      }
+      case DISABLED ->
+          builder.thinking(
+              BetaThinkingConfigParam.ofDisabled(BetaThinkingConfigDisabled.builder().build()));
     }
   }
 
@@ -373,23 +441,49 @@ public class AnthropicMessageRequestConverter {
     }
   }
 
-  private void applyResponseFormat(
-      MessageCreateParams.Builder builder, @Nullable ResponseConfiguration response) {
-    if (response == null
-        || !(response.format() instanceof JsonResponseFormatConfiguration json)
-        || json.schema() == null) {
-      return; // TEXT / parseJson has no request-side effect (mirror the bridge)
+  /**
+   * Maps both the structured-output JSON schema (spec: unchanged from before this task) and the
+   * validated {@code effort} dial (spec §5) onto the single {@code output_config} field. Both are
+   * built into ONE {@link BetaOutputConfig} and applied via a single {@code builder.outputConfig}
+   * call: {@code MessageCreateParams.Builder#outputConfig(BetaOutputConfig)} is a plain setter that
+   * replaces the whole field, so two separate calls (one for the schema, one for effort) would
+   * silently drop whichever was set first whenever both are configured together.
+   */
+  private void applyOutputConfig(
+      MessageCreateParams.Builder builder,
+      @Nullable ResponseConfiguration response,
+      @Nullable AnthropicModelParameters params) {
+    final Map<String, Object> jsonSchema =
+        response != null && response.format() instanceof JsonResponseFormatConfiguration json
+            ? json.schema()
+            : null;
+    final AnthropicEffort effort = params == null ? null : params.effort();
+
+    if (jsonSchema == null && effort == null) {
+      return; // TEXT / parseJson with no effort has no request-side effect (mirror the bridge)
     }
-    final Map<String, JsonValue> schema = new LinkedHashMap<>();
-    json.schema().forEach((k, v) -> schema.put(k, JsonValue.from(v)));
-    builder.outputConfig(
-        BetaOutputConfig.builder()
-            .format(
-                BetaJsonOutputFormat.builder()
-                    .schema(
-                        BetaJsonOutputFormat.Schema.builder().additionalProperties(schema).build())
-                    .build())
-            .build());
+
+    final var outputConfigBuilder = BetaOutputConfig.builder();
+
+    if (jsonSchema != null) {
+      final Map<String, JsonValue> schema = new LinkedHashMap<>();
+      jsonSchema.forEach((k, v) -> schema.put(k, JsonValue.from(v)));
+      outputConfigBuilder.format(
+          BetaJsonOutputFormat.builder()
+              .schema(BetaJsonOutputFormat.Schema.builder().additionalProperties(schema).build())
+              .build());
+    }
+
+    if (effort != null) {
+      final String customEffort = params == null ? null : params.customEffort();
+      final BetaOutputConfig.Effort wireEffort =
+          effort == AnthropicEffort.CUSTOM
+              ? BetaOutputConfig.Effort.of(Objects.requireNonNullElse(customEffort, ""))
+              : BetaOutputConfig.Effort.of(effort.name().toLowerCase());
+      outputConfigBuilder.effort(wireEffort);
+    }
+
+    builder.outputConfig(outputConfigBuilder.build());
   }
 
   private BetaToolUseBlockParam.Input toInput(Map<String, Object> arguments) {

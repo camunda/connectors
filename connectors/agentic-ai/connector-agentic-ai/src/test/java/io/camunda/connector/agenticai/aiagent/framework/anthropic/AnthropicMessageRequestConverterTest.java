@@ -15,6 +15,7 @@ import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
 import com.anthropic.models.beta.AnthropicBeta;
 import com.anthropic.models.beta.messages.BetaMessageParam;
+import com.anthropic.models.beta.messages.BetaThinkingConfigAdaptive;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
@@ -40,9 +41,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicC
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.AnthropicModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.AnthropicThinking;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.ThinkingDisplay;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -126,6 +130,11 @@ class AnthropicMessageRequestConverterTest {
   }
 
   private static AnthropicModelCapabilities caps(@Nullable Integer maxOutputTokens) {
+    return caps(maxOutputTokens, null);
+  }
+
+  private static AnthropicModelCapabilities caps(
+      @Nullable Integer maxOutputTokens, @Nullable AnthropicReasoningCapabilities reasoning) {
     return new AnthropicModelCapabilities(
         new CoreModelCapabilities(
             List.of(Modality.TEXT),
@@ -133,7 +142,12 @@ class AnthropicMessageRequestConverterTest {
             List.of(Modality.TEXT),
             null,
             maxOutputTokens),
-        null);
+        reasoning);
+  }
+
+  private static AnthropicModelCapabilities capsWithReasoning(
+      List<ThinkingMode> thinkingModes, List<AnthropicEffort> effortLevels) {
+    return caps(null, new AnthropicReasoningCapabilities(thinkingModes, effortLevels));
   }
 
   @Test
@@ -714,5 +728,230 @@ class AnthropicMessageRequestConverterTest {
             () -> converter.toMessageCreateParams(ctx(model(null, skills), null), snapshot, caps()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("8");
+  }
+
+  // --- Reasoning: thinking / effort mapping (Task 3) --------------------------------------
+
+  private static AnthropicModelParameters thinkingParams(@Nullable AnthropicThinking thinking) {
+    return new AnthropicModelParameters(null, null, null, null, thinking, null, null);
+  }
+
+  private static AnthropicModelParameters effortParams(
+      @Nullable AnthropicEffort effort, @Nullable String customEffort) {
+    return new AnthropicModelParameters(null, null, null, null, null, effort, customEffort);
+  }
+
+  @Test
+  void mapsEnabledThinkingToWireThinkingConfigWithBudgetTokens() {
+    final var parameters = thinkingParams(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var caps = capsWithReasoning(List.of(ThinkingMode.ENABLED), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps);
+
+    assertThat(params.thinking()).isPresent();
+    assertThat(params.thinking().orElseThrow().isEnabled()).isTrue();
+    assertThat(params.thinking().orElseThrow().asEnabled().budgetTokens()).isEqualTo(2048L);
+
+    final var thinkingNode = requestBodyAsJson(params).path("thinking");
+    assertThat(thinkingNode.path("type").asText()).isEqualTo("enabled");
+    assertThat(thinkingNode.path("budget_tokens").asLong()).isEqualTo(2048L);
+  }
+
+  @Test
+  void mapsAdaptiveThinkingWithSummarizedDisplayToLowercaseWireValue() {
+    final var parameters =
+        thinkingParams(
+            new AnthropicThinking(ThinkingMode.ADAPTIVE, null, ThinkingDisplay.SUMMARIZED));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var caps = capsWithReasoning(List.of(ThinkingMode.ADAPTIVE), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps);
+
+    assertThat(params.thinking().orElseThrow().isAdaptive()).isTrue();
+    assertThat(params.thinking().orElseThrow().asAdaptive().display())
+        .contains(BetaThinkingConfigAdaptive.Display.SUMMARIZED);
+
+    final var thinkingNode = requestBodyAsJson(params).path("thinking");
+    assertThat(thinkingNode.path("type").asText()).isEqualTo("adaptive");
+    assertThat(thinkingNode.path("display").asText()).isEqualTo("summarized");
+  }
+
+  @Test
+  void mapsAdaptiveThinkingWithOmittedDisplayToLowercaseWireValue() {
+    final var parameters =
+        thinkingParams(new AnthropicThinking(ThinkingMode.ADAPTIVE, null, ThinkingDisplay.OMITTED));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var caps = capsWithReasoning(List.of(ThinkingMode.ADAPTIVE), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps);
+
+    final var thinkingNode = requestBodyAsJson(params).path("thinking");
+    assertThat(thinkingNode.path("display").asText()).isEqualTo("omitted");
+  }
+
+  @Test
+  void mapsAdaptiveThinkingWithoutDisplayEmitsNoDisplayField() {
+    final var parameters = thinkingParams(new AnthropicThinking(ThinkingMode.ADAPTIVE, null, null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var caps = capsWithReasoning(List.of(ThinkingMode.ADAPTIVE), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps);
+
+    assertThat(params.thinking().orElseThrow().asAdaptive().display()).isEmpty();
+    assertThat(requestBodyAsJson(params).path("thinking").has("display")).isFalse();
+  }
+
+  @Test
+  void mapsDisabledThinkingToWireThinkingConfig() {
+    final var parameters = thinkingParams(new AnthropicThinking(ThinkingMode.DISABLED, null, null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var caps = capsWithReasoning(List.of(ThinkingMode.DISABLED), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps);
+
+    assertThat(params.thinking().orElseThrow().isDisabled()).isTrue();
+    assertThat(requestBodyAsJson(params).path("thinking").path("type").asText())
+        .isEqualTo("disabled");
+  }
+
+  @Test
+  void nullThinkingModeEmitsNoThinkingParamEvenWithoutReasoningCapabilities() {
+    // A `thinking` object with a null `mode` (modeler left the dropdown blank) is unset: no
+    // validation is triggered (even though caps() here declares no reasoning at all) and no
+    // thinking param is mapped onto the wire request.
+    final var parameters = thinkingParams(new AnthropicThinking(null, null, null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps());
+
+    assertThat(params.thinking()).isEmpty();
+  }
+
+  @Test
+  void budgetTokensOnlyWithNullModeEmitsNoThinkingParam() {
+    // Task 2 review note: {thinking:{budgetTokens:...}} with a null mode must still emit no
+    // thinking param (mode null means unset, regardless of any other field being populated).
+    final var parameters = thinkingParams(new AnthropicThinking(null, 4096, null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps());
+
+    assertThat(params.thinking()).isEmpty();
+  }
+
+  @Test
+  void mapsEachEffortLevelToItsLowercaseWireValue() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var caps =
+        capsWithReasoning(
+            List.of(),
+            List.of(
+                AnthropicEffort.LOW,
+                AnthropicEffort.MEDIUM,
+                AnthropicEffort.HIGH,
+                AnthropicEffort.XHIGH,
+                AnthropicEffort.MAX));
+
+    for (final var entry :
+        Map.of(
+                AnthropicEffort.LOW, "low",
+                AnthropicEffort.MEDIUM, "medium",
+                AnthropicEffort.HIGH, "high",
+                AnthropicEffort.XHIGH, "xhigh",
+                AnthropicEffort.MAX, "max")
+            .entrySet()) {
+      final var parameters = effortParams(entry.getKey(), null);
+      final var params =
+          converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps);
+
+      assertThat(params.outputConfig()).isPresent();
+      assertThat(params.outputConfig().orElseThrow().effort().orElseThrow().asString())
+          .isEqualTo(entry.getValue());
+      assertThat(requestBodyAsJson(params).path("output_config").path("effort").asText())
+          .isEqualTo(entry.getValue());
+    }
+  }
+
+  @Test
+  void customEffortSendsFreeTextValueVerbatim() {
+    final var parameters = effortParams(AnthropicEffort.CUSTOM, "extra-verbose");
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var caps = capsWithReasoning(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps);
+
+    assertThat(params.outputConfig().orElseThrow().effort().orElseThrow().asString())
+        .isEqualTo("extra-verbose");
+    assertThat(requestBodyAsJson(params).path("output_config").path("effort").asText())
+        .isEqualTo("extra-verbose");
+  }
+
+  @Test
+  void effortAndJsonResponseFormatBothLandOnTheSameOutputConfigWithoutClobbering() {
+    // Regression guard: MessageCreateParams.Builder#outputConfig(BetaOutputConfig) is a plain
+    // setter that replaces the whole field, so effort and the JSON schema format must be combined
+    // into a single BetaOutputConfig before being applied, or one would silently drop the other.
+    final Map<String, Object> schema =
+        Map.of("type", "object", "properties", Map.of("answer", Map.of("type", "string")));
+    final var response =
+        new JobWorkerResponseConfiguration(
+            new JsonResponseFormatConfiguration(schema, "Answer"), null, null);
+    final var parameters = effortParams(AnthropicEffort.HIGH, null);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var caps = capsWithReasoning(List.of(), List.of(AnthropicEffort.HIGH));
+
+    final var params =
+        converter.toMessageCreateParams(ctx(model(parameters), response), snapshot, caps);
+
+    final var outputConfigNode = requestBodyAsJson(params).path("output_config");
+    assertThat(outputConfigNode.path("effort").asText()).isEqualTo("high");
+    assertThat(outputConfigNode.path("format").path("type").asText()).isEqualTo("json_schema");
+    assertThat(params.outputConfig().orElseThrow().format()).isPresent();
+    assertThat(params.outputConfig().orElseThrow().effort()).isPresent();
+  }
+
+  @Test
+  void failsFastWhenThinkingModeIsUnsupportedByTheMatchedModel() {
+    final var parameters = thinkingParams(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var caps = capsWithReasoning(List.of(ThinkingMode.ADAPTIVE), List.of());
+
+    assertThatThrownBy(
+            () -> converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps))
+        .isInstanceOf(ConnectorException.class);
+  }
+
+  @Test
+  void failsFastWhenEffortIsSetButMatchedModelDeclaresNoReasoning() {
+    final var parameters = effortParams(AnthropicEffort.HIGH, null);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    assertThatThrownBy(
+            () -> converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps()))
+        .isInstanceOf(ConnectorException.class);
+  }
+
+  @Test
+  void unmatchedModelBypassesValidationAndStillMapsSuppliedThinkingConfig() {
+    // An unmatched/custom model bypasses reasoning validation entirely (spec §6), but the wire
+    // mapping itself is unconditional: whatever thinking config was supplied is still sent.
+    final var parameters = thinkingParams(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    // reasoning == null and an unsupported mode would normally fail rule 1/2 for a matched model.
+    final var caps = caps();
+
+    final var params =
+        converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps, false);
+
+    assertThat(params.thinking().orElseThrow().isEnabled()).isTrue();
   }
 }

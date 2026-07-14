@@ -458,4 +458,76 @@ class ModelCapabilitiesResolverTest {
         resolveA(resolver, "anthropic-messages", "claude-mystery", null, Optional.empty());
     assertThat(withoutBackend.core().contextWindow()).isEqualTo(200000);
   }
+
+  // --- matches() ---------------------------------------------------------------------------
+
+  @Test
+  void matchesIsFalseWhenApiFamilyIsUnknown() {
+    final var resolver = resolverFor(Map.of());
+
+    assertThat(resolver.matches("does-not-exist", "claude-opus-4-7", null)).isFalse();
+  }
+
+  @Test
+  void matchesIsFalseWhenModelFallsThroughToFamilyDefaults() {
+    final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
+    final var entry =
+        new ModelEntry("claude-opus-4-7", List.of(), List.of(), null, mapper.createObjectNode());
+    final var resolver =
+        resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
+
+    assertThat(resolver.matches("anthropic-messages", "claude-mystery", null)).isFalse();
+  }
+
+  @Test
+  void matchesIsTrueForExactIdMatch() {
+    final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
+    final var entry =
+        new ModelEntry("claude-opus-4-7", List.of(), List.of(), null, mapper.createObjectNode());
+    final var resolver =
+        resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
+
+    assertThat(resolver.matches("anthropic-messages", "claude-opus-4-7", null)).isTrue();
+  }
+
+  @Test
+  void matchesIsTrueForAliasMatch() {
+    final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
+    final var entry =
+        new ModelEntry(
+            "claude-opus-4-7",
+            List.of("claude-opus-latest"),
+            List.of(),
+            null,
+            mapper.createObjectNode());
+    final var resolver =
+        resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
+
+    assertThat(resolver.matches("anthropic-messages", "claude-opus-latest", null)).isTrue();
+  }
+
+  @Test
+  void matchesIsTrueForGlobPatternMatch() {
+    final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
+    final var entry =
+        new ModelEntry(null, List.of(), List.of("claude-opus-*"), null, mapper.createObjectNode());
+    final var resolver =
+        resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
+
+    assertThat(resolver.matches("anthropic-messages", "claude-opus-4-7", null)).isTrue();
+    assertThat(resolver.matches("anthropic-messages", "claude-sonnet-4-7", null)).isFalse();
+  }
+
+  @Test
+  void matchesConsidersBackendSpecificEntriesIndependentlyOfAgnosticEntries() {
+    final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
+    final var bedrockOnly =
+        new ModelEntry(null, List.of(), List.of("claude-*"), "bedrock", mapper.createObjectNode());
+    final var resolver =
+        resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(bedrockOnly))));
+
+    assertThat(resolver.matches("anthropic-messages", "claude-mystery", "bedrock")).isTrue();
+    assertThat(resolver.matches("anthropic-messages", "claude-mystery", null)).isFalse();
+    assertThat(resolver.matches("anthropic-messages", "claude-mystery", "azure-foundry")).isFalse();
+  }
 }

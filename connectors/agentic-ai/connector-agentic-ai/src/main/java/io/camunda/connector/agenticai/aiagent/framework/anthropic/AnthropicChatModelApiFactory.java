@@ -73,12 +73,15 @@ public class AnthropicChatModelApiFactory implements ChatModelApiFactory {
             direct.type(),
             Optional.ofNullable(model.capabilityOverride()),
             AnthropicModelCapabilitiesData.class);
+    final boolean modelMatched =
+        capabilitiesResolver.matches(API_FAMILY, connection.model().model(), direct.type());
 
     LOG.debug(
-        "Resolved model capabilities for api-family={}, model={}, backend={}: {}",
+        "Resolved model capabilities for api-family={}, model={}, backend={}, matched={}: {}",
         API_FAMILY,
         connection.model().model(),
         direct.type(),
+        modelMatched,
         capabilities);
 
     final var clientFactory = new AnthropicOkHttpClientFactory(direct, timeout, transport);
@@ -86,7 +89,7 @@ public class AnthropicChatModelApiFactory implements ChatModelApiFactory {
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
     return new AnthropicChatModelApi(
-        clientFactory, requestConverter, responseConverter, capabilities);
+        clientFactory, requestConverter, responseConverter, capabilities, modelMatched);
   }
 
   @Override

@@ -62,7 +62,12 @@ class AnthropicChatModelApiTest {
   void setUp() {
     api =
         new AnthropicChatModelApi(
-            clientFactory, requestConverter, responseConverter, capabilities, streamAssembler);
+            clientFactory,
+            requestConverter,
+            responseConverter,
+            capabilities,
+            true,
+            streamAssembler);
   }
 
   @Test
@@ -72,7 +77,8 @@ class AnthropicChatModelApiTest {
         new ChatModelResult.Completed(
             AssistantMessage.builder().build(), AgentMetrics.builder().build());
 
-    when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities))).thenReturn(params);
+    when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities), eq(true)))
+        .thenReturn(params);
     when(clientFactory.create()).thenReturn(client);
     when(client.beta()).thenReturn(betaService);
     when(betaService.messages()).thenReturn(messageService);
@@ -84,7 +90,7 @@ class AnthropicChatModelApiTest {
 
     assertThat(result).isSameAs(expected);
     verify(requestConverter)
-        .toMessageCreateParams(request.executionContext(), request.snapshot(), capabilities);
+        .toMessageCreateParams(request.executionContext(), request.snapshot(), capabilities, true);
     verify(messageService).createStreaming(params);
     verify(streamAssembler).assemble(streamResponse);
     verify(client).close();
@@ -92,8 +98,38 @@ class AnthropicChatModelApiTest {
   }
 
   @Test
+  void threadsModelMatchedSignalFromConstructorIntoRequestConverter() {
+    final var unmatchedApi =
+        new AnthropicChatModelApi(
+            clientFactory,
+            requestConverter,
+            responseConverter,
+            capabilities,
+            false,
+            streamAssembler);
+    final var params = mock(MessageCreateParams.class);
+    final var expected =
+        new ChatModelResult.Completed(
+            AssistantMessage.builder().build(), AgentMetrics.builder().build());
+
+    when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities), eq(false)))
+        .thenReturn(params);
+    when(clientFactory.create()).thenReturn(client);
+    when(client.beta()).thenReturn(betaService);
+    when(betaService.messages()).thenReturn(messageService);
+    when(messageService.createStreaming(params)).thenReturn(streamResponse);
+    when(streamAssembler.assemble(streamResponse)).thenReturn(assembledMessage);
+    when(responseConverter.toResult(eq(assembledMessage), any())).thenReturn(expected);
+
+    unmatchedApi.call(request);
+
+    verify(requestConverter)
+        .toMessageCreateParams(request.executionContext(), request.snapshot(), capabilities, false);
+  }
+
+  @Test
   void wrapsSdkFailureAsConnectorException() {
-    when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities)))
+    when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities), eq(true)))
         .thenReturn(mock(MessageCreateParams.class));
     when(clientFactory.create()).thenThrow(new RuntimeException("boom"));
 
@@ -107,7 +143,8 @@ class AnthropicChatModelApiTest {
   void closesClientWhenSdkCallThrows() {
     final var params = mock(MessageCreateParams.class);
 
-    when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities))).thenReturn(params);
+    when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities), eq(true)))
+        .thenReturn(params);
     when(clientFactory.create()).thenReturn(client);
     when(client.beta()).thenReturn(betaService);
     when(betaService.messages()).thenReturn(messageService);

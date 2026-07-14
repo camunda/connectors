@@ -39,4 +39,14 @@ public interface ModelCapabilitiesResolver {
       @Nullable String backend,
       Optional<ModelCapabilitiesOverride> override,
       Class<? extends ModelCapabilitiesData<T>> dataClass);
+
+  /**
+   * Reports whether {@code modelId} matched a matrix entry (exact id/alias, or glob pattern, in
+   * either the backend-agnostic or the {@code backend}-specific tier) as opposed to falling through
+   * to the api family's {@code defaults} block or the fully conservative defaults. Callers use this
+   * to distinguish "declared but not reasoning-capable" from "unknown/custom model, assume it knows
+   * what it's doing" when validating provider-specific parameters (e.g. Anthropic thinking/effort)
+   * against the resolved capabilities.
+   */
+  boolean matches(String apiFamily, String modelId, @Nullable String backend);
 }

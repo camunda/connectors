@@ -105,6 +105,7 @@ class AnthropicChatModelApiFactoryTest {
             any(),
             eq(AnthropicModelCapabilitiesData.class)))
         .thenReturn(capabilities);
+    when(capabilitiesResolver.matches("anthropic-messages", MODEL_ID, "direct")).thenReturn(true);
 
     final ChatModelApi api = factory.create(directConfig(MODEL_ID));
 
@@ -117,6 +118,30 @@ class AnthropicChatModelApiFactoryTest {
             "direct",
             Optional.empty(),
             AnthropicModelCapabilitiesData.class);
+    verify(capabilitiesResolver).matches("anthropic-messages", MODEL_ID, "direct");
+  }
+
+  @Test
+  void createQueriesMatchesSignalIndependentlyOfResolvedResult() {
+    // matches() reports whether the model matched a matrix entry, distinct from resolve()'s
+    // returned capabilities (which fall back to family/conservative defaults on a miss); the
+    // factory must query it for every create() call so the reasoning validator downstream can
+    // distinguish "declared but not reasoning-capable" from "unknown/custom model".
+    final var capabilities = anthropicCaps();
+    when(transport.okHttpProxy(any())).thenReturn(Optional.empty());
+    when(capabilitiesResolver.resolve(
+            eq("anthropic-messages"),
+            eq(MODEL_ID),
+            eq("direct"),
+            any(),
+            eq(AnthropicModelCapabilitiesData.class)))
+        .thenReturn(capabilities);
+    when(capabilitiesResolver.matches("anthropic-messages", MODEL_ID, "direct")).thenReturn(false);
+
+    final ChatModelApi api = factory.create(directConfig(MODEL_ID));
+
+    assertThat(api).isNotNull();
+    verify(capabilitiesResolver).matches("anthropic-messages", MODEL_ID, "direct");
   }
 
   private static AnthropicModelCapabilities anthropicCaps() {

@@ -48,18 +48,30 @@ public class AnthropicChatModelApi implements ChatModelApi {
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
   private final AnthropicModelCapabilities capabilities;
+
+  /**
+   * Whether the configured model matched a capability matrix entry (see {@link
+   * io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver#matches}),
+   * as opposed to falling through to family/conservative defaults. Threaded into the request
+   * converter so {@link AnthropicReasoningValidator} can distinguish "declared but not
+   * reasoning-capable" (validate) from "unknown/custom model" (pass-through).
+   */
+  private final boolean modelMatched;
+
   private final AnthropicMessageStreamAssembler streamAssembler;
 
   public AnthropicChatModelApi(
       AnthropicClientFactory clientFactory,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
-      AnthropicModelCapabilities capabilities) {
+      AnthropicModelCapabilities capabilities,
+      boolean modelMatched) {
     this(
         clientFactory,
         requestConverter,
         responseConverter,
         capabilities,
+        modelMatched,
         AnthropicMessageStreamAssembler.accumulating());
   }
 
@@ -68,11 +80,13 @@ public class AnthropicChatModelApi implements ChatModelApi {
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
       AnthropicModelCapabilities capabilities,
+      boolean modelMatched,
       AnthropicMessageStreamAssembler streamAssembler) {
     this.clientFactory = clientFactory;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
     this.capabilities = capabilities;
+    this.modelMatched = modelMatched;
     this.streamAssembler = streamAssembler;
   }
 
@@ -80,7 +94,7 @@ public class AnthropicChatModelApi implements ChatModelApi {
   public ChatModelResult call(ChatModelRequest request) {
     final MessageCreateParams params =
         requestConverter.toMessageCreateParams(
-            request.executionContext(), request.snapshot(), capabilities);
+            request.executionContext(), request.snapshot(), capabilities, modelMatched);
 
     final long startNanos = System.nanoTime();
     try {

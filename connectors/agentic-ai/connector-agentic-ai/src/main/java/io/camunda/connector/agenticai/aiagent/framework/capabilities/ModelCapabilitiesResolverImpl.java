@@ -127,6 +127,19 @@ public class ModelCapabilitiesResolverImpl implements ModelCapabilitiesResolver 
     return merged;
   }
 
+  @Override
+  public boolean matches(String apiFamily, String modelId, @Nullable String backend) {
+    final ApiFamily family = matrix.families().get(apiFamily);
+    if (family == null) {
+      return false;
+    }
+
+    final MatchedEntry agnostic = findBest(family.models(), modelId, null);
+    final MatchedEntry specific =
+        backend == null ? null : findBest(family.models(), modelId, backend);
+    return agnostic != null || specific != null;
+  }
+
   private <T extends ModelCapabilities> T materialise(
       JsonNode merged, Class<? extends ModelCapabilitiesData<T>> dataClass) {
     try {
