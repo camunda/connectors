@@ -56,15 +56,12 @@ class CapabilityMatrixOverrideTest {
     baseRunner
         .withPropertyValues(
             PREFIX
-                + ".anthropic-messages.models.my-org-tuned-claude.capabilities.max-output-tokens=12345",
-            PREFIX
-                + ".anthropic-messages.models.my-org-tuned-claude.capabilities.supports-reasoning=true")
+                + ".anthropic-messages.models.my-org-tuned-claude.capabilities.max-output-tokens=12345")
         .run(
             context -> {
               final var caps = resolve(context, "anthropic-messages", "my-org-tuned-claude");
 
               assertThat(caps.core().maxOutputTokens()).isEqualTo(12345);
-              assertThat(caps.supportsReasoning()).isTrue();
               // Inherited from anthropic-messages defaults:
               assertThat(caps.userMessageModalities())
                   .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
@@ -99,13 +96,11 @@ class CapabilityMatrixOverrideTest {
               // models.dev), so it keeps that value even when the family default changes:
               final var gpt5 = resolve(context, "openai-completions", "gpt-5.5");
               assertThat(gpt5.core().maxOutputTokens()).isEqualTo(16384);
-              assertThat(gpt5.supportsReasoning()).isTrue();
 
               // A model matching no curated entry (no fallback glob exists anymore) falls through
               // to the family defaults directly and inherits the new default:
               final var generic = resolve(context, "openai-completions", "gpt-3.5-turbo");
               assertThat(generic.core().maxOutputTokens()).isEqualTo(7777);
-              assertThat(generic.supportsReasoning()).isFalse();
             });
   }
 

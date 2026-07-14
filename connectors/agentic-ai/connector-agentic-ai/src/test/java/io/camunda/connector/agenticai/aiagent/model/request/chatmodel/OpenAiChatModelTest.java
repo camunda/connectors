@@ -176,7 +176,6 @@ class OpenAiChatModelTest {
             "model": { "model": "gpt-5.4" },
             "capabilityOverride": {
               "userMessageModalities": ["text", "image"],
-              "supportsReasoning": false,
               "contextWindow": 4242
             }
           }
@@ -189,7 +188,6 @@ class OpenAiChatModelTest {
     final ModelCapabilitiesOverride override = parsed.capabilityOverride();
     assertThat(override).isNotNull();
     assertThat(override.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
-    assertThat(override.supportsReasoning()).isFalse();
     assertThat(override.contextWindow()).isEqualTo(4242);
     assertThat(override.maxOutputTokens()).isNull();
 

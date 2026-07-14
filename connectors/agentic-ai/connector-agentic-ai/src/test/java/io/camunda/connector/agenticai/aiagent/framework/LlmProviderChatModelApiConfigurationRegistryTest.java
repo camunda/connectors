@@ -131,11 +131,7 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
             ArgumentMatchers.eq(AnthropicModelCapabilitiesData.class)))
         .thenReturn(
             new AnthropicModelCapabilities(
-                new CoreModelCapabilities(List.of(), List.of(), List.of(), null, null),
-                false,
-                false,
-                false,
-                false));
+                new CoreModelCapabilities(List.of(), List.of(), List.of(), null, null), null));
     return new AnthropicChatModelApiFactory(transport, capabilitiesResolver, new ObjectMapper());
   }
 }

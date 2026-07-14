@@ -64,8 +64,8 @@
 #   4. Family defaults (an unmatched model under a known api family still gets
 #      that family's `defaults` block, not the fully conservative baseline) —
 #      applies when neither tier above found any candidate
-#   5. Conservative defaults (text-only, all flags false) — only when the api
-#      family itself is unknown
+#   5. Conservative defaults (text-only, no provider capabilities) — only when
+#      the api family itself is unknown
 #
 # Modality vocabulary: text | image | document | audio | video. Modality lists
 # per location (user-message, tool-result, assistant-message) are symmetric.
@@ -79,10 +79,24 @@
 # never the maximum. See AGENTS.md "Model capability matrix" for the
 # maintenance rule and how to refresh this file.
 #
-# Per-model context-window / max-output-tokens figures and reasoning flags
-# below are sourced from models.dev (https://models.dev, api.json dataset).
-# Every named entry pins both fields explicitly, even when a value equals the
-# family default.
+# Per-model context-window / max-output-tokens figures below are sourced from
+# models.dev (https://models.dev, api.json dataset). Every named entry pins
+# both fields explicitly, even when a value equals the family default.
+#
+# `provider` (optional, per-entry only): an opaque, provider-specific
+# capability bag. For anthropic-messages, a reasoning-capable model declares
+# `provider.reasoning`:
+#
+#   provider:
+#     reasoning:
+#       thinking-modes: [adaptive, disabled]   # ThinkingMode values this model accepts
+#       effort-levels:  [low, medium, high, xhigh, max]  # AnthropicEffort values (omit/empty if unsupported)
+#
+# `reasoning` must NEVER appear in a family `defaults` block: the deep-merge
+# cascade cannot un-set a key once set, so a default reasoning block would
+# leak into every non-reasoning sibling model. Declare it per-model/glob only.
+# A model's absence of `provider.reasoning` (whether via defaults or an entry
+# that omits it) means it does not support reasoning.
 
 camunda:
   connector:
@@ -98,46 +112,47 @@ camunda:
                   tool-result:  [text, image, document]
                 output-modalities:
                   assistant-message: [text]
-                supports-reasoning: false
-                supports-reasoning-signature-roundtrip: false
-                supports-prompt-caching: true
-                supports-parallel-tool-calls: true
                 context-window: 200000
                 max-output-tokens: 8192
               models:
-                # supports-reasoning-signature-roundtrip is a design decision
-                # (Anthropic extended-thinking signatures), not sourced from
-                # models.dev.
                 claude-fable:
                   pattern: claude-fable-*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 1000000
                     max-output-tokens: 128000
+                    provider:
+                      reasoning:
+                        # Always-on thinking (no disabled mode).
+                        thinking-modes: [adaptive]
+                        effort-levels: [low, medium, high, xhigh, max]
                 # Sonnet 5 is dateless (no trailing version segment), so it needs
                 # its own pattern rather than falling under claude-sonnet-4-*.
                 claude-sonnet-5:
                   pattern: claude-sonnet-5*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 1000000
                     max-output-tokens: 128000
+                    provider:
+                      reasoning:
+                        thinking-modes: [adaptive, disabled]
+                        effort-levels: [low, medium, high, xhigh, max]
                 claude-opus-4-1:
                   pattern: claude-opus-4-1*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 200000
                     max-output-tokens: 32000
+                    provider:
+                      reasoning:
+                        thinking-modes: [enabled, disabled]
                 claude-opus-4-5:
                   pattern: claude-opus-4-5*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 200000
                     max-output-tokens: 64000
+                    provider:
+                      reasoning:
+                        thinking-modes: [enabled, disabled]
+                        effort-levels: [low, medium, high, max]
                 # opus-4-1/-4-5 (above) are 200k-context releases; opus-4-6 and
                 # later moved to the 1M-context tier. Named explicitly (not
                 # claude-opus-4-*) so a 200k-tier point release is never swept
@@ -145,31 +160,37 @@ camunda:
                 claude-opus-4-6-plus:
                   pattern: [claude-opus-4-6*, claude-opus-4-7*, claude-opus-4-8*]
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 1000000
                     max-output-tokens: 128000
+                    provider:
+                      reasoning:
+                        thinking-modes: [adaptive, disabled]
+                        effort-levels: [low, medium, high, xhigh, max]
                 claude-sonnet-4-5:
                   pattern: claude-sonnet-4-5*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 1000000
                     max-output-tokens: 64000
+                    provider:
+                      reasoning:
+                        thinking-modes: [enabled, disabled]
                 claude-sonnet-4-6-plus:
                   pattern: claude-sonnet-4-6*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 1000000
                     max-output-tokens: 128000
+                    provider:
+                      reasoning:
+                        thinking-modes: [enabled, adaptive, disabled]
+                        effort-levels: [low, medium, high, xhigh, max]
                 claude-haiku:
                   pattern: claude-haiku-*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 200000
                     max-output-tokens: 64000
+                    provider:
+                      reasoning:
+                        thinking-modes: [enabled, disabled]
 
             # Chat Completions tool messages are text-only (the SDK enforces
             # ChatCompletionContentPartText for tool message content arrays);
@@ -181,10 +202,6 @@ camunda:
                   tool-result:  [text]
                 output-modalities:
                   assistant-message: [text]
-                supports-reasoning: false
-                supports-reasoning-signature-roundtrip: false
-                supports-prompt-caching: true
-                supports-parallel-tool-calls: true
                 context-window: 128000
                 max-output-tokens: 4096
               models:
@@ -195,7 +212,6 @@ camunda:
                 gpt-5:
                   pattern: gpt-5*
                   capabilities:
-                    supports-reasoning: true
                     context-window: 128000
                     max-output-tokens: 16384
                 gpt-4o:
@@ -218,14 +234,11 @@ camunda:
                 o1:
                   pattern: o1*
                   capabilities:
-                    supports-reasoning: true
-                    supports-parallel-tool-calls: false
                     context-window: 200000
                     max-output-tokens: 100000
                 o3:
                   pattern: o3*
                   capabilities:
-                    supports-reasoning: true
                     context-window: 200000
                     max-output-tokens: 100000
                 # o4-mini is the only o4 family member on models.dev (no bare
@@ -234,7 +247,6 @@ camunda:
                 o4:
                   pattern: o4*
                   capabilities:
-                    supports-reasoning: true
                     context-window: 200000
                     max-output-tokens: 100000
                     input-modalities:
@@ -249,10 +261,6 @@ camunda:
                   tool-result:  [text, image, document]
                 output-modalities:
                   assistant-message: [text]
-                supports-reasoning: false
-                supports-reasoning-signature-roundtrip: false
-                supports-prompt-caching: true
-                supports-parallel-tool-calls: true
                 context-window: 128000
                 max-output-tokens: 4096
               models:
@@ -263,8 +271,6 @@ camunda:
                 gpt-5:
                   pattern: gpt-5*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 128000
                     max-output-tokens: 16384
                 gpt-4o:
@@ -287,16 +293,11 @@ camunda:
                 o1:
                   pattern: o1*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
-                    supports-parallel-tool-calls: false
                     context-window: 200000
                     max-output-tokens: 100000
                 o3:
                   pattern: o3*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 200000
                     max-output-tokens: 100000
                 # o4-mini is the only o4 family member on models.dev (no bare
@@ -305,8 +306,6 @@ camunda:
                 o4:
                   pattern: o4*
                   capabilities:
-                    supports-reasoning: true
-                    supports-reasoning-signature-roundtrip: true
                     context-window: 200000
                     max-output-tokens: 100000
                     input-modalities:

@@ -26,7 +26,7 @@ class AnthropicModelCapabilitiesTest {
 
   @Test
   void delegatesModalityMethodsToCore() {
-    final ModelCapabilities caps = new AnthropicModelCapabilities(CORE, true, true, false, false);
+    final ModelCapabilities caps = new AnthropicModelCapabilities(CORE, null);
 
     assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
     assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
@@ -34,14 +34,28 @@ class AnthropicModelCapabilitiesTest {
   }
 
   @Test
-  void exposesAnthropicSpecificFlags() {
-    final var caps = new AnthropicModelCapabilities(CORE, true, true, false, false);
+  void reportsSupportsReasoningTrueAndExposesDescriptorWhenReasoningPresent() {
+    final var reasoning =
+        new AnthropicReasoningCapabilities(
+            List.of(ThinkingMode.ADAPTIVE, ThinkingMode.DISABLED),
+            List.of(AnthropicEffort.LOW, AnthropicEffort.HIGH));
+    final var caps = new AnthropicModelCapabilities(CORE, reasoning);
 
     assertThat(caps.supportsReasoning()).isTrue();
-    assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
-    assertThat(caps.supportsPromptCaching()).isFalse();
-    assertThat(caps.supportsParallelToolCalls()).isFalse();
+    assertThat(caps.reasoning()).isSameAs(reasoning);
+    assertThat(caps.reasoning().thinkingModes())
+        .containsExactly(ThinkingMode.ADAPTIVE, ThinkingMode.DISABLED);
+    assertThat(caps.reasoning().effortLevels())
+        .containsExactly(AnthropicEffort.LOW, AnthropicEffort.HIGH);
     assertThat(caps.core().contextWindow()).isEqualTo(200000);
     assertThat(caps.core().maxOutputTokens()).isEqualTo(8192);
+  }
+
+  @Test
+  void reportsSupportsReasoningFalseWhenReasoningAbsent() {
+    final var caps = new AnthropicModelCapabilities(CORE, null);
+
+    assertThat(caps.supportsReasoning()).isFalse();
+    assertThat(caps.reasoning()).isNull();
   }
 }

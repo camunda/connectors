@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
 import java.util.List;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -25,18 +26,23 @@ import org.jspecify.annotations.Nullable;
  * property keys for every api family bound under {@link AgenticAiFrameworkProperties}, regardless
  * of which provider ultimately materialises the merged tree; every bundled family currently shares
  * this flat shape.
+ *
+ * <p>{@code provider} is an opaque, provider-specific capability bag (e.g. Anthropic's {@code
+ * reasoning} descriptor) bound as a raw {@code Map<String, Object>} so this provider-agnostic
+ * package never needs to know a concrete provider's shape; Spring Boot's relaxed binder still
+ * rebuilds nested maps/lists recursively underneath it, and {@link CapabilityMatrixFactory}'s
+ * {@code valueToTree} serialises the map verbatim (with its literal kebab-case keys) into the
+ * merged {@code JsonNode} tree, where a provider's own typed DTO (e.g. {@code
+ * AnthropicProviderCapabilities}) reads it back out.
  */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonInclude(JsonInclude.Include.ALWAYS) // keep null fields visible to deep-merge
 record ModelCapabilitiesProperties(
     @Nullable InputModalities inputModalities,
     @Nullable OutputModalities outputModalities,
-    @Nullable Boolean supportsReasoning,
-    @Nullable Boolean supportsReasoningSignatureRoundtrip,
-    @Nullable Boolean supportsPromptCaching,
-    @Nullable Boolean supportsParallelToolCalls,
     @Nullable Integer contextWindow,
-    @Nullable Integer maxOutputTokens) {
+    @Nullable Integer maxOutputTokens,
+    @Nullable Map<String, Object> provider) {
 
   @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
   @JsonInclude(JsonInclude.Include.ALWAYS)

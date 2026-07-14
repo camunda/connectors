@@ -19,21 +19,18 @@ import org.jspecify.annotations.Nullable;
  * Sparse Anthropic capability block — the shape of one merged {@code anthropic-messages} capability
  * matrix row. Each field is nullable so the resolver's deep-merge can fall through to a lower
  * layer; the fully-merged tree is projected onto {@link AnthropicModelCapabilities} via {@link
- * #toModelCapabilities()}. (Ported verbatim from the former provider-neutral {@code
- * ModelCapabilitiesData} record, now Anthropic-owned so R1 can add a typed {@code reasoning}
- * descriptor with Anthropic-specific keys.)
+ * #toModelCapabilities()}. {@code provider} is the typed interpretation of the opaque {@code
+ * provider} capability bag (an untyped {@code Map<String, Object>} in the Spring-bound {@code
+ * ModelCapabilitiesProperties} shape); today it only carries the {@code reasoning} descriptor.
  */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public record AnthropicModelCapabilitiesData(
     @Nullable InputModalities inputModalities,
     @Nullable OutputModalities outputModalities,
-    @Nullable Boolean supportsReasoning,
-    @Nullable Boolean supportsReasoningSignatureRoundtrip,
-    @Nullable Boolean supportsPromptCaching,
-    @Nullable Boolean supportsParallelToolCalls,
     @Nullable Integer contextWindow,
-    @Nullable Integer maxOutputTokens)
+    @Nullable Integer maxOutputTokens,
+    @Nullable AnthropicProviderCapabilities provider)
     implements ModelCapabilitiesData<AnthropicModelCapabilities> {
 
   @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -54,10 +51,7 @@ public record AnthropicModelCapabilitiesData(
             assistantMessageModalities(),
             contextWindow,
             maxOutputTokens),
-        Boolean.TRUE.equals(supportsReasoning),
-        Boolean.TRUE.equals(supportsReasoningSignatureRoundtrip),
-        Boolean.TRUE.equals(supportsPromptCaching),
-        Boolean.TRUE.equals(supportsParallelToolCalls));
+        provider == null ? null : provider.reasoning());
   }
 
   private List<Modality> userMessageModalities() {

@@ -21,16 +21,21 @@ import org.jspecify.annotations.Nullable;
  * matrix), a non-null field wins.
  *
  * <p>Field names mirror {@link ModelCapabilities} (the friendly, full names). {@link
- * #toSparseJsonNode} projects them onto the internal {@link ModelCapabilitiesData} snake/nested
- * shape used by the deep-merge, omitting any null field so only explicitly-set values overlay:
+ * #toSparseJsonNode} projects them onto the internal, provider-neutral snake/nested shape used by
+ * the deep-merge (see {@code ModelCapabilitiesProperties} / {@code ModelCapabilitiesData}
+ * implementations), omitting any null field so only explicitly-set values overlay:
  *
  * <ul>
  *   <li>{@code userMessageModalities} -&gt; {@code input_modalities.user_message}
  *   <li>{@code toolResultModalities} -&gt; {@code input_modalities.tool_result}
  *   <li>{@code assistantMessageModalities} -&gt; {@code output_modalities.assistant_message}
- *   <li>{@code supportsReasoning} -&gt; {@code supports_reasoning} (and the other flags/counters by
- *       the same snake-case rule)
+ *   <li>{@code contextWindow} / {@code maxOutputTokens} -&gt; {@code context_window} / {@code
+ *       max_output_tokens}
  * </ul>
+ *
+ * <p>Covers modalities and token-budget limits only — its primary use. A per-element override of a
+ * provider-specific descriptor (e.g. Anthropic's {@code reasoning} capability) is deferred: the
+ * opaque {@code provider} capability bag is not exposed here yet.
  *
  * <p>Kept in the capabilities package (not the config package) so the dependency direction stays
  * config -&gt; framework. The connector config surfaces it as a {@code @FEEL} field; the FEEL
@@ -40,10 +45,6 @@ public record ModelCapabilitiesOverride(
     @Nullable List<Modality> userMessageModalities,
     @Nullable List<Modality> toolResultModalities,
     @Nullable List<Modality> assistantMessageModalities,
-    @Nullable Boolean supportsReasoning,
-    @Nullable Boolean supportsReasoningSignatureRoundtrip,
-    @Nullable Boolean supportsPromptCaching,
-    @Nullable Boolean supportsParallelToolCalls,
     @Nullable Integer contextWindow,
     @Nullable Integer maxOutputTokens) {
 
@@ -74,18 +75,6 @@ public record ModelCapabilitiesOverride(
       root.set("output_modalities", output);
     }
 
-    if (supportsReasoning != null) {
-      root.put("supports_reasoning", supportsReasoning);
-    }
-    if (supportsReasoningSignatureRoundtrip != null) {
-      root.put("supports_reasoning_signature_roundtrip", supportsReasoningSignatureRoundtrip);
-    }
-    if (supportsPromptCaching != null) {
-      root.put("supports_prompt_caching", supportsPromptCaching);
-    }
-    if (supportsParallelToolCalls != null) {
-      root.put("supports_parallel_tool_calls", supportsParallelToolCalls);
-    }
     if (contextWindow != null) {
       root.put("context_window", contextWindow);
     }

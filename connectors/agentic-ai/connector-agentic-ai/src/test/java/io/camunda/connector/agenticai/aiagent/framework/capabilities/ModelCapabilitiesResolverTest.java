@@ -10,10 +10,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicEffort;
 import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilitiesData;
 import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilitiesData.InputModalities;
 import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilitiesData.OutputModalities;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicProviderCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicReasoningCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.anthropic.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ApiFamily;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ModelEntry;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
@@ -30,18 +34,22 @@ class ModelCapabilitiesResolverTest {
 
   // --- Builder helpers -----------------------------------------------------
 
+  /** A reasoning descriptor usable wherever a test needs {@code supportsReasoning() == true}. */
+  private static AnthropicProviderCapabilities reasoningProvider() {
+    return new AnthropicProviderCapabilities(
+        new AnthropicReasoningCapabilities(
+            List.of(ThinkingMode.ENABLED), List.of(AnthropicEffort.HIGH)));
+  }
+
   /** A fully-populated capability block usable as an api-family default. */
   private static AnthropicModelCapabilitiesData fullDefaults(
       List<Modality> userMessage, List<Modality> toolResult) {
     return new AnthropicModelCapabilitiesData(
         new InputModalities(userMessage, toolResult),
         new OutputModalities(List.of(Modality.TEXT)),
-        false,
-        false,
-        true,
-        true,
         200000,
-        8192);
+        8192,
+        null);
   }
 
   /**
@@ -54,12 +62,9 @@ class ModelCapabilitiesResolverTest {
         new InputModalities(
             List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT), List.of(Modality.TEXT)),
         new OutputModalities(List.of(Modality.TEXT, Modality.IMAGE)),
-        true,
-        true,
-        true,
-        true,
         500000,
-        64000);
+        64000,
+        reasoningProvider());
   }
 
   private JsonNode node(AnthropicModelCapabilitiesData yaml) {
@@ -84,24 +89,16 @@ class ModelCapabilitiesResolverTest {
   @Test
   void overrideDeepMergesOnTopOfResolvedBaseWithSparseFieldsWinning() {
     // No entry matches "claude-opus-4-7" here, so the resolved base is exactly the family
-    // defaults below: supportsReasoning=true, toolResult=[text] (plus the other distinctive,
-    // non-conservative values from richDefaults()). The sparse override flips supportsReasoning
-    // off and widens toolResult, leaving every other field to inherit from that resolved base.
+    // defaults below (plus the other distinctive, non-conservative values from richDefaults()).
+    // The sparse override widens toolResult, leaving every other field - including the reasoning
+    // provider bag, which the override has no way to touch - to inherit from that resolved base.
     final var defaults = node(richDefaults());
     final var resolver =
         resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of())));
 
     final var override =
         new ModelCapabilitiesOverride(
-            null,
-            List.of(Modality.TEXT, Modality.IMAGE),
-            null,
-            false,
-            null,
-            null,
-            null,
-            null,
-            null);
+            null, List.of(Modality.TEXT, Modality.IMAGE), null, null, null);
 
     final var base =
         resolveA(resolver, "anthropic-messages", "claude-opus-4-7", null, Optional.empty());
@@ -114,11 +111,13 @@ class ModelCapabilitiesResolverTest {
 
     // overridden fields win
     assertThat(merged.toolResultModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
-    assertThat(merged.supportsReasoning()).isFalse();
+    // reasoning is untouched by the override (no such field on ModelCapabilitiesOverride),
+    // so it stays inherited from the resolved base:
+    assertThat(merged.supportsReasoning()).isEqualTo(base.supportsReasoning());
+    assertThat(merged.reasoning()).isEqualTo(base.reasoning());
     // untouched fields inherit from the resolved base verbatim
     assertThat(merged.userMessageModalities()).isEqualTo(base.userMessageModalities());
     assertThat(merged.assistantMessageModalities()).isEqualTo(base.assistantMessageModalities());
-    assertThat(merged.supportsPromptCaching()).isEqualTo(base.supportsPromptCaching());
     assertThat(merged.core().contextWindow()).isEqualTo(base.core().contextWindow());
     assertThat(merged.core().maxOutputTokens()).isEqualTo(base.core().maxOutputTokens());
   }
@@ -134,8 +133,7 @@ class ModelCapabilitiesResolverTest {
     final var base =
         resolveA(resolver, "anthropic-messages", "claude-opus-4-7", null, Optional.empty());
 
-    final var override =
-        new ModelCapabilitiesOverride(null, null, null, null, null, null, null, 4242, 777);
+    final var override = new ModelCapabilitiesOverride(null, null, null, 4242, 777);
     final var merged =
         resolveA(resolver, "anthropic-messages", "claude-opus-4-7", null, Optional.of(override));
 
@@ -151,16 +149,15 @@ class ModelCapabilitiesResolverTest {
     final var resolver = resolverFor(Map.of());
     final var override =
         new ModelCapabilitiesOverride(
-            List.of(Modality.TEXT, Modality.IMAGE), null, null, true, null, null, null, null, null);
+            List.of(Modality.TEXT, Modality.IMAGE), null, null, null, null);
 
     final var merged =
         resolveA(resolver, "does-not-exist", "whatever", null, Optional.of(override));
 
-    // conservative base is text-only, everything false; override widens userMessage + reasoning
+    // conservative base is text-only, no provider capabilities; override widens userMessage
     assertThat(merged.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
-    assertThat(merged.supportsReasoning()).isTrue();
+    assertThat(merged.supportsReasoning()).isFalse();
     assertThat(merged.toolResultModalities()).containsExactly(Modality.TEXT);
-    assertThat(merged.supportsPromptCaching()).isFalse();
   }
 
   @Test
@@ -179,10 +176,7 @@ class ModelCapabilitiesResolverTest {
                     List.of(Modality.TEXT),
                     null,
                     null),
-                false,
-                false,
-                false,
-                false));
+                null));
     assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT);
     assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
     assertThat(caps.assistantMessageModalities()).containsExactly(Modality.TEXT);
@@ -208,8 +202,6 @@ class ModelCapabilitiesResolverTest {
     assertThat(caps.core().contextWindow()).isNotNull();
     assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
     assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
-    assertThat(caps.supportsPromptCaching()).isTrue();
-    assertThat(caps.supportsParallelToolCalls()).isTrue();
     assertThat(caps.core().contextWindow()).isEqualTo(200000);
     assertThat(caps.core().maxOutputTokens()).isEqualTo(8192);
   }
@@ -218,7 +210,7 @@ class ModelCapabilitiesResolverTest {
   void multiplePatternsOnOneEntryBothResolve() {
     final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
     final var overlay =
-        node(new AnthropicModelCapabilitiesData(null, null, true, null, null, null, null, null));
+        node(new AnthropicModelCapabilitiesData(null, null, null, null, reasoningProvider()));
     final var entry =
         new ModelEntry(
             null, List.of(), List.of("claude-opus-4-6*", "claude-opus-4-7*"), null, overlay);
@@ -243,7 +235,7 @@ class ModelCapabilitiesResolverTest {
                 List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
                 List.of(Modality.TEXT, Modality.IMAGE)));
     final var overlay =
-        node(new AnthropicModelCapabilitiesData(null, null, true, true, null, null, null, 32000));
+        node(new AnthropicModelCapabilitiesData(null, null, null, 32000, reasoningProvider()));
     final var entry =
         new ModelEntry("claude-opus-4-7", List.of("claude-opus-latest"), List.of(), null, overlay);
 
@@ -257,8 +249,6 @@ class ModelCapabilitiesResolverTest {
         .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
     assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);
     assertThat(caps.supportsReasoning()).isTrue();
-    assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
-    assertThat(caps.supportsPromptCaching()).isTrue();
     assertThat(caps.core().contextWindow()).isEqualTo(200000);
     assertThat(caps.core().maxOutputTokens()).isEqualTo(32000);
   }
@@ -266,8 +256,7 @@ class ModelCapabilitiesResolverTest {
   @Test
   void aliasMatchResolvesToSameEntryAsExactId() {
     final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
-    final var overlay =
-        node(new AnthropicModelCapabilitiesData(null, null, null, null, null, null, null, 32000));
+    final var overlay = node(new AnthropicModelCapabilitiesData(null, null, null, 32000, null));
     final var entry =
         new ModelEntry("claude-opus-4-7", List.of("claude-opus-latest"), List.of(), null, overlay);
     final var resolver =
@@ -293,9 +282,7 @@ class ModelCapabilitiesResolverTest {
             List.of(),
             List.of("claude-*"),
             null,
-            node(
-                new AnthropicModelCapabilitiesData(
-                    null, null, false, null, null, null, null, null))));
+            node(new AnthropicModelCapabilitiesData(null, null, null, null, null))));
     models.put(
         "claude-opus",
         new ModelEntry(
@@ -303,9 +290,7 @@ class ModelCapabilitiesResolverTest {
             List.of(),
             List.of("claude-opus-*"),
             null,
-            node(
-                new AnthropicModelCapabilitiesData(
-                    null, null, true, null, null, null, null, null))));
+            node(new AnthropicModelCapabilitiesData(null, null, null, null, reasoningProvider()))));
 
     final var resolver =
         resolverFor(
@@ -327,14 +312,7 @@ class ModelCapabilitiesResolverTest {
     final var overlay =
         node(
             new AnthropicModelCapabilitiesData(
-                new InputModalities(List.of(Modality.TEXT), null),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null));
+                new InputModalities(List.of(Modality.TEXT), null), null, null, null, null));
     final var entry = new ModelEntry(null, List.of(), List.of("claude-haiku-*"), null, overlay);
 
     final var resolver =
@@ -387,7 +365,7 @@ class ModelCapabilitiesResolverTest {
   void backendNullResolvesBackendAgnosticEntryAsBefore() {
     final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
     final var overlay =
-        node(new AnthropicModelCapabilitiesData(null, null, true, null, null, null, null, null));
+        node(new AnthropicModelCapabilitiesData(null, null, null, null, reasoningProvider()));
     final var entry = new ModelEntry("claude-opus-4-7", List.of(), List.of(), null, overlay);
     final var resolver =
         resolverFor(Map.of("anthropic-messages", new ApiFamily(defaults, List.of(entry))));
@@ -411,16 +389,14 @@ class ModelCapabilitiesResolverTest {
             null,
             node(
                 new AnthropicModelCapabilitiesData(
-                    null, null, true, null, null, null, 1050000, 128000)));
+                    null, null, 1050000, 128000, reasoningProvider())));
     final var gpt5Foundry =
         new ModelEntry(
             null,
             List.of(),
             List.of("gpt-5*"),
             "azure-foundry",
-            node(
-                new AnthropicModelCapabilitiesData(
-                    null, null, null, null, null, null, 200000, null)));
+            node(new AnthropicModelCapabilitiesData(null, null, 200000, null, null)));
     final var resolver =
         resolverFor(
             Map.of("openai-responses", new ApiFamily(defaults, List.of(gpt5, gpt5Foundry))));
@@ -433,9 +409,6 @@ class ModelCapabilitiesResolverTest {
     // Carried through from the backend-agnostic entry (untouched by the foundry overlay):
     assertThat(onFoundry.supportsReasoning()).isTrue();
     assertThat(onFoundry.core().maxOutputTokens()).isEqualTo(128000);
-    // Carried through from family defaults (untouched by either entry):
-    assertThat(onFoundry.supportsPromptCaching()).isTrue();
-    assertThat(onFoundry.supportsParallelToolCalls()).isTrue();
 
     final var direct =
         resolveA(resolver, "openai-responses", "gpt-5.5", "direct", Optional.empty());
@@ -451,9 +424,7 @@ class ModelCapabilitiesResolverTest {
   void backendWithNoSpecificEntryFallsBackToAgnosticEntry() {
     final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
     final var overlay =
-        node(
-            new AnthropicModelCapabilitiesData(
-                null, null, true, null, null, null, 1050000, 128000));
+        node(new AnthropicModelCapabilitiesData(null, null, 1050000, 128000, reasoningProvider()));
     final var entry = new ModelEntry(null, List.of(), List.of("gpt-5*"), null, overlay);
     final var resolver =
         resolverFor(Map.of("openai-responses", new ApiFamily(defaults, List.of(entry))));
@@ -468,8 +439,7 @@ class ModelCapabilitiesResolverTest {
   @Test
   void backendSpecificOnlyEntryLayersOnFamilyDefaultsWithNoAgnosticMatch() {
     final var defaults = node(fullDefaults(List.of(Modality.TEXT), List.of(Modality.TEXT)));
-    final var overlay =
-        node(new AnthropicModelCapabilitiesData(null, null, null, null, null, null, 100000, null));
+    final var overlay = node(new AnthropicModelCapabilitiesData(null, null, 100000, null, null));
     final var bedrockOnly =
         new ModelEntry(null, List.of(), List.of("claude-*"), "bedrock", overlay);
     final var resolver =
@@ -481,8 +451,6 @@ class ModelCapabilitiesResolverTest {
     // No backend-agnostic candidate exists at all; the backend-specific entry still layers on
     // top of the family defaults.
     assertThat(caps.core().contextWindow()).isEqualTo(100000);
-    assertThat(caps.supportsPromptCaching()).isTrue();
-    assertThat(caps.supportsParallelToolCalls()).isTrue();
 
     // Without a backend, there's no agnostic candidate either, so it falls through to plain
     // family defaults.

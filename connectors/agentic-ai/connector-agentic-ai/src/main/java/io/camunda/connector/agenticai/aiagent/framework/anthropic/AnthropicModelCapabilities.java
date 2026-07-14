@@ -9,19 +9,20 @@ package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Anthropic-owned {@link ModelCapabilities}: the neutral modality contract (delegated to {@link
- * #core()}) plus the flags only the Anthropic path consumes. R1 will add a typed {@code
- * AnthropicReasoningCapabilities reasoning} component.
+ * #core()}) plus the typed Anthropic reasoning descriptor. {@link #supportsReasoning()} is derived
+ * from the presence of {@link #reasoning()} rather than stored as its own flag.
  */
 public record AnthropicModelCapabilities(
-    CoreModelCapabilities core,
-    boolean supportsReasoning,
-    boolean supportsReasoningSignatureRoundtrip,
-    boolean supportsPromptCaching,
-    boolean supportsParallelToolCalls)
+    CoreModelCapabilities core, @Nullable AnthropicReasoningCapabilities reasoning)
     implements ModelCapabilities {
+
+  public boolean supportsReasoning() {
+    return reasoning != null;
+  }
 
   @Override
   public List<Modality> userMessageModalities() {

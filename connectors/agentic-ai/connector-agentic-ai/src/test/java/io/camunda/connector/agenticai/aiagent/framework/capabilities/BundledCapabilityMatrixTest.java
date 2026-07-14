@@ -60,9 +60,6 @@ class BundledCapabilityMatrixTest {
           assertThat(caps.toolResultModalities())
               .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
           assertThat(caps.supportsReasoning()).isTrue();
-          assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
-          assertThat(caps.supportsPromptCaching()).isTrue();
-          assertThat(caps.supportsParallelToolCalls()).isTrue();
           // Pinned from models.dev anthropic/claude-sonnet-4-6:
           assertThat(caps.core().contextWindow()).isEqualTo(1000000);
           assertThat(caps.core().maxOutputTokens()).isEqualTo(128000);
@@ -76,7 +73,6 @@ class BundledCapabilityMatrixTest {
           final var caps = resolve(context, ANTHROPIC_MESSAGES, "claude-fable-5");
 
           assertThat(caps.supportsReasoning()).isTrue();
-          assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
           // Pinned from models.dev anthropic/claude-fable-5:
           assertThat(caps.core().contextWindow()).isEqualTo(1000000);
           assertThat(caps.core().maxOutputTokens()).isEqualTo(128000);
@@ -114,7 +110,6 @@ class BundledCapabilityMatrixTest {
           final var caps = resolve(context, ANTHROPIC_MESSAGES, "claude-haiku-4-5");
 
           assertThat(caps.supportsReasoning()).isTrue();
-          assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
           // Pinned from models.dev anthropic/claude-haiku-4-5. Context window happens to equal the
           // family default (200000) but is still pinned explicitly on the entry:
           assertThat(caps.core().maxOutputTokens()).isEqualTo(64000);
@@ -130,18 +125,20 @@ class BundledCapabilityMatrixTest {
 
           assertThat(caps.userMessageModalities())
               .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
-          assertThat(caps.supportsPromptCaching()).isTrue();
           assertThat(caps.supportsReasoning()).isFalse();
         });
   }
 
   @Test
-  void gpt5OnCompletionsHasReasoningButTextOnlyToolResults() {
+  void gpt5OnCompletionsHasTextOnlyToolResults() {
     contextRunner.run(
         context -> {
           final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-5.5");
 
-          assertThat(caps.supportsReasoning()).isTrue();
+          // OpenAI has no typed reasoning descriptor yet (Anthropic-only in R1); resolving
+          // gpt-5.5 through AnthropicModelCapabilitiesData never sees a `provider.reasoning`
+          // block, so it always reports false here.
+          assertThat(caps.supportsReasoning()).isFalse();
           assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
           // gpt-5* spans 128k-1.05M context / 16k-272k output on models.dev across its
           // chat-latest/base/codex/pro variants; the entry pins the conservative floor across that
@@ -152,13 +149,11 @@ class BundledCapabilityMatrixTest {
   }
 
   @Test
-  void gpt5OnResponsesHasReasoningRoundtripAndMultimodalToolResults() {
+  void gpt5OnResponsesHasMultimodalToolResults() {
     contextRunner.run(
         context -> {
           final var caps = resolve(context, OPENAI_RESPONSES, "gpt-5.5");
 
-          assertThat(caps.supportsReasoning()).isTrue();
-          assertThat(caps.supportsReasoningSignatureRoundtrip()).isTrue();
           assertThat(caps.toolResultModalities())
               .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
         });
@@ -198,13 +193,11 @@ class BundledCapabilityMatrixTest {
   }
 
   @Test
-  void o1OnCompletionsHasReasoningButNoParallelToolCalls() {
+  void o1OnCompletionsResolvesTokenBudgets() {
     contextRunner.run(
         context -> {
           final var caps = resolve(context, OPENAI_COMPLETIONS, "o1-mini");
 
-          assertThat(caps.supportsReasoning()).isTrue();
-          assertThat(caps.supportsParallelToolCalls()).isFalse();
           // Pinned from models.dev openai/o1:
           assertThat(caps.core().contextWindow()).isEqualTo(200000);
           assertThat(caps.core().maxOutputTokens()).isEqualTo(100000);
@@ -217,7 +210,6 @@ class BundledCapabilityMatrixTest {
         context -> {
           final var caps = resolve(context, OPENAI_COMPLETIONS, "o4-mini");
 
-          assertThat(caps.supportsReasoning()).isTrue();
           // models.dev openai/o4-mini input modalities are text/image only (no pdf), unlike the
           // family default which includes document:
           assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT, Modality.IMAGE);

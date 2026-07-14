@@ -8,11 +8,15 @@ package io.camunda.connector.agenticai.aiagent.framework.capabilities;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiFrameworkProperties.ApiFamilyProperties;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiFrameworkProperties.ModelEntryProperties;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ApiFamily;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CapabilityMatrix.ModelEntry;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +58,9 @@ public final class CapabilityMatrixFactory {
   private static ApiFamily buildFamily(
       String familyName, ApiFamilyProperties family, ObjectMapper objectMapper) {
     final JsonNode defaults =
-        family.defaults() == null ? null : objectMapper.valueToTree(family.defaults());
+        family.defaults() == null
+            ? null
+            : normalizeIndexedMaps(objectMapper.valueToTree(family.defaults()));
     final List<ModelEntry> entries = new ArrayList<>();
     family
         .models()
@@ -95,12 +101,72 @@ public final class CapabilityMatrixFactory {
     final JsonNode capabilities =
         entry.capabilities() == null
             ? objectMapper.createObjectNode()
-            : objectMapper.valueToTree(entry.capabilities());
+            : normalizeIndexedMaps(objectMapper.valueToTree(entry.capabilities()));
 
     return new ModelEntry(id, entry.aliases(), resolvedPatterns, entry.backend(), capabilities);
   }
 
   private static List<String> nonBlank(List<String> values) {
     return values.stream().filter(p -> p != null && !p.isBlank()).toList();
+  }
+
+  /**
+   * Spring Boot's relaxed binder has no static type information for the opaque {@code Map<String,
+   * Object>} provider capability bag, so it binds YAML/property-source lists inside it as
+   * index-keyed maps (e.g. {@code {"0": "adaptive", "1": "disabled"}}) rather than native {@code
+   * List}s. {@link ObjectMapper#valueToTree} then serialises those as JSON objects, which the
+   * provider's typed DTO (e.g. {@code AnthropicReasoningCapabilities}, expecting a JSON array)
+   * fails to deserialise. This recursively rewrites every such index-keyed object node — anywhere
+   * in the tree — back into a proper {@link ArrayNode}, restoring the shape a directly-authored
+   * YAML list (or a strongly-typed {@code List<T>} field, which Spring binds correctly already and
+   * this leaves untouched) would have produced.
+   */
+  private static JsonNode normalizeIndexedMaps(JsonNode node) {
+    if (node.isObject()) {
+      if (isIndexedMap(node)) {
+        final ArrayNode array = JsonNodeFactory.instance.arrayNode();
+        for (int i = 0; i < node.size(); i++) {
+          array.add(normalizeIndexedMaps(node.get(Integer.toString(i))));
+        }
+        return array;
+      }
+      final ObjectNode result = JsonNodeFactory.instance.objectNode();
+      node.fields()
+          .forEachRemaining(
+              entry -> result.set(entry.getKey(), normalizeIndexedMaps(entry.getValue())));
+      return result;
+    }
+    if (node.isArray()) {
+      final ArrayNode result = JsonNodeFactory.instance.arrayNode();
+      node.forEach(element -> result.add(normalizeIndexedMaps(element)));
+      return result;
+    }
+    return node;
+  }
+
+  /**
+   * True when every field name is a distinct non-negative integer covering exactly {@code [0,
+   * node.size())} — the shape Spring Boot's relaxed binder produces for a list nested inside a
+   * {@code Map<String, Object>} target.
+   */
+  private static boolean isIndexedMap(JsonNode node) {
+    final int size = node.size();
+    if (size == 0) {
+      return false;
+    }
+    final boolean[] seen = new boolean[size];
+    final Iterator<String> fieldNames = node.fieldNames();
+    while (fieldNames.hasNext()) {
+      final String name = fieldNames.next();
+      if (!name.matches("\\d+")) {
+        return false;
+      }
+      final int index = Integer.parseInt(name);
+      if (index >= size || seen[index]) {
+        return false;
+      }
+      seen[index] = true;
+    }
+    return true;
   }
 }

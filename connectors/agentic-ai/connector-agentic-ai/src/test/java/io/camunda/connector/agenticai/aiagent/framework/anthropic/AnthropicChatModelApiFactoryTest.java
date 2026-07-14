@@ -123,10 +123,7 @@ class AnthropicChatModelApiFactoryTest {
     return new AnthropicModelCapabilities(
         new CoreModelCapabilities(
             List.of(Modality.TEXT), List.of(Modality.TEXT), List.of(Modality.TEXT), null, null),
-        false,
-        false,
-        false,
-        false);
+        null);
   }
 
   @Test

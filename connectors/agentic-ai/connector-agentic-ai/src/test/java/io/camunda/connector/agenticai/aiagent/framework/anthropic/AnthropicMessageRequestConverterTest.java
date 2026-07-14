@@ -133,10 +133,7 @@ class AnthropicMessageRequestConverterTest {
             List.of(Modality.TEXT),
             null,
             maxOutputTokens),
-        false,
-        false,
-        false,
-        false);
+        null);
   }
 
   @Test
