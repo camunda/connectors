@@ -197,6 +197,22 @@ class AnthropicReasoningValidatorTest {
     assertThatCode(() -> validate(params, null, true)).doesNotThrowAnyException();
   }
 
+  @Test
+  void customEffortWithBlankValueFailsFastRegardlessOfModelMatch() {
+    // Selecting CUSTOM but leaving the free-text value blank is malformed config: fail fast with a
+    // clear error instead of sending an empty "effort" string. This completeness check is
+    // model-independent — it fires even for an unmatched/pass-through model.
+    for (final String blank : new String[] {null, "", "   "}) {
+      for (final boolean matched : new boolean[] {true, false}) {
+        assertThatThrownBy(
+                () -> validate(params(null, AnthropicEffort.CUSTOM, blank), null, matched))
+            .isInstanceOf(ConnectorException.class)
+            .extracting(e -> ((ConnectorException) e).getErrorCode())
+            .isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
+      }
+    }
+  }
+
   // --- Unmatched model: pass-through, no validation at all ------------------------------------
 
   @Test

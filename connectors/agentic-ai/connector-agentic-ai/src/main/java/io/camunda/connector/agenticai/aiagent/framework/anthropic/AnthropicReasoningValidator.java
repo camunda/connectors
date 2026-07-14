@@ -36,13 +36,27 @@ final class AnthropicReasoningValidator {
       @Nullable AnthropicReasoningCapabilities reasoning,
       boolean modelMatched,
       String modelId) {
+    final AnthropicEffort effort = params == null ? null : params.effort();
+
+    // Config-completeness check, model-independent (runs even for unmatched/pass-through models):
+    // selecting CUSTOM effort but leaving the free-text value blank is malformed config. Fail fast
+    // rather than sending an empty "effort" string the API would reject with an opaque 400. This is
+    // a required-field check, NOT matrix validation — CUSTOM still bypasses the matrix effort
+    // rules.
+    if (effort == AnthropicEffort.CUSTOM
+        && (params == null || params.customEffort() == null || params.customEffort().isBlank())) {
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_MODEL_CALL,
+          "Effort is set to 'custom' but no custom effort value was provided for model '%s'"
+              .formatted(modelId));
+    }
+
     if (!modelMatched) {
       return;
     }
 
     final var thinking = params == null ? null : params.thinking();
     final boolean thinkingSet = thinking != null && thinking.mode() != null;
-    final AnthropicEffort effort = params == null ? null : params.effort();
 
     if (reasoning == null) {
       // effort == CUSTOM is a full escape hatch: it is sent verbatim and bypasses ALL matrix
