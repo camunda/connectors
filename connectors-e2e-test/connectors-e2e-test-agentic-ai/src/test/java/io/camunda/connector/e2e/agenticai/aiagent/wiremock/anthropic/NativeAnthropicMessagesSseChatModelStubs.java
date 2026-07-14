@@ -45,6 +45,8 @@ import com.anthropic.models.beta.messages.BetaServerToolUsage;
 import com.anthropic.models.beta.messages.BetaServerToolUseBlock;
 import com.anthropic.models.beta.messages.BetaStopReason;
 import com.anthropic.models.beta.messages.BetaTextBlock;
+import com.anthropic.models.beta.messages.BetaThinkingBlock;
+import com.anthropic.models.beta.messages.BetaThinkingDelta;
 import com.anthropic.models.beta.messages.BetaToolUseBlock;
 import com.anthropic.models.beta.messages.BetaUsage;
 import com.anthropic.models.beta.messages.BetaUsage.ServiceTier;
@@ -142,6 +144,95 @@ final class NativeAnthropicMessagesSseChatModelStubs {
       bodies.add(sseBody(turn));
     }
     stubScenario(bodies);
+  }
+
+  /**
+   * A turn whose response leads with a real, streamed {@code thinking} block (content_block_start
+   * &rarr; {@code thinking_delta} &rarr; {@code signature_delta} &rarr; content_block_stop)
+   * followed by one or more client {@code tool_use} blocks - the shape a reasoning-enabled model
+   * returns when it thinks before calling a tool. Always ends the turn with {@code stop_reason:
+   * tool_use} (there is always at least one tool call), unlike {@link #sseBody(TurnStub)} which
+   * derives the stop reason from whether tool calls are present.
+   *
+   * <p>Exists so e2e coverage can prove the Task 4 round-trip end to end through the REAL {@code
+   * BetaMessageAccumulator}: the resulting {@code ReasoningContent}'s raw {@code providerPayload}
+   * (captured by {@code AnthropicMessageResponseConverter}) must be replayed byte-identical - same
+   * {@code thinking}/{@code signature} values, positioned before the tool-call block, exactly as
+   * the domain content ordering preserves it - on the follow-up model call once the tool result is
+   * available (see {@code AnthropicContentConverter}/{@code AnthropicMessageRequestConverter
+   * #assistantParam}).
+   */
+  record ThinkingTurnStub(
+      String thinking,
+      String signature,
+      List<ToolCallStub> toolCalls,
+      int inputTokens,
+      int outputTokens) {}
+
+  /**
+   * Wires a scenario chain whose first turn is a {@link ThinkingTurnStub} (signed thinking block
+   * plus tool_use), followed by any number of ordinary {@link TurnStub} turns - mirrors {@link
+   * #stubServerToolUseConversation(ServerToolUseTurnStub, TurnStub...)}, just for a
+   * client-tool-call turn instead of a server-tool turn.
+   */
+  static void stubThinkingConversation(ThinkingTurnStub thinkingTurn, TurnStub... followUpTurns) {
+    final List<String> bodies = new ArrayList<>();
+    bodies.add(thinkingSseBody(thinkingTurn));
+    for (final TurnStub turn : followUpTurns) {
+      bodies.add(sseBody(turn));
+    }
+    stubScenario(bodies);
+  }
+
+  private static String thinkingSseBody(ThinkingTurnStub turn) {
+    final int id = TURN_COUNTER.getAndIncrement();
+    final StringBuilder body = new StringBuilder();
+
+    writeEvent(body, "message_start", messageStartEvent(id, turn.inputTokens()));
+
+    int index = 0;
+    writeThinkingBlock(body, index++, turn.thinking(), turn.signature());
+    for (final ToolCallStub toolCall : turn.toolCalls()) {
+      writeToolUseBlock(body, index++, toolCall);
+    }
+
+    // Always tool_use: a ThinkingTurnStub always carries at least one client tool call.
+    writeEvent(
+        body, "message_delta", messageDeltaEvent(true, turn.inputTokens(), turn.outputTokens()));
+    writeEvent(body, "message_stop", BetaRawMessageStopEvent.builder().build());
+
+    return body.toString();
+  }
+
+  /**
+   * Frames a {@code thinking} block the same way real Anthropic streams it: an empty shell at
+   * {@code content_block_start}, the thinking text streamed via a {@code thinking_delta}, then the
+   * cryptographic signature streamed via a {@code signature_delta} - both accumulated by the vendor
+   * SDK's {@code BetaMessageAccumulator} onto the same block before {@code content_block_stop}
+   * finalizes it, exactly like {@link #writeToolUseBlock}'s {@code input_json_delta} accumulation.
+   */
+  private static void writeThinkingBlock(
+      StringBuilder body, int index, String thinking, String signature) {
+    writeEvent(
+        body,
+        "content_block_start",
+        BetaRawContentBlockStartEvent.builder()
+            .contentBlock(BetaThinkingBlock.builder().thinking("").signature("").build())
+            .index(index)
+            .build());
+    writeEvent(
+        body,
+        "content_block_delta",
+        BetaRawContentBlockDeltaEvent.builder()
+            .delta(BetaThinkingDelta.builder().thinking(thinking).estimatedTokens(0L).build())
+            .index(index)
+            .build());
+    writeEvent(
+        body,
+        "content_block_delta",
+        BetaRawContentBlockDeltaEvent.builder().signatureDelta(signature).index(index).build());
+    writeEvent(
+        body, "content_block_stop", BetaRawContentBlockStopEvent.builder().index(index).build());
   }
 
   /** Shared scenario-chaining plumbing: returns each pre-rendered SSE body in order. */
