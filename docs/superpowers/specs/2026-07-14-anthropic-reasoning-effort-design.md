@@ -177,7 +177,7 @@ public record AnthropicThinking(
     @Nullable ThinkingDisplay display) {}   // ADAPTIVE only; optional (default omit)
 
 public enum ThinkingMode { ENABLED, ADAPTIVE, DISABLED }
-public enum ThinkingDisplay { /* TODO(verify): BetaThinkingConfigAdaptive.Display enum values */ }
+public enum ThinkingDisplay { SUMMARIZED, OMITTED }   // verified: BetaThinkingConfigAdaptive.Display
 
 // Effort enum — Anthropic-specific (NOT shared with OpenAI). CUSTOM = escape hatch.
 public enum AnthropicEffort { LOW, MEDIUM, HIGH, XHIGH, MAX, CUSTOM }
@@ -201,11 +201,53 @@ forward-compat escape hatch we use for web-tool versions. `CUSTOM` bypasses matr
 
 ---
 
-## 3. Capability matrix — reasoning descriptor
+## 3. Capability matrix — reasoning descriptor + config-binding alignment
 
-Add a `reasoning` descriptor per model under the `anthropic-messages` family, **alongside** (not
-replacing) the existing `supports-reasoning` / `supports-reasoning-signature-roundtrip` booleans
-(kept — data model unchanged, additive only).
+**Ratified refinement (2026-07-14, post-R0).** R0 made the *runtime* capability type provider-specific
+but left the *config-binding* shape (`ModelCapabilitiesProperties`, one type spanning all families)
+and the projection DTO still carrying provider flags flat/shared. R1 finishes that alignment **and
+prunes the dead flags.**
+
+### 3a. Prune the unused `supports-*` flags
+All four `supports-*` flags had **zero production consumers**. Ratified decision — drop them now, each
+returns with its own feature chunk:
+- `supports-prompt-caching` → dropped (caching is #7668; re-added with a real cache-dimension descriptor then).
+- `supports-parallel-tool-calls` → dropped from Anthropic (an OpenAI-only concept; belongs on a future
+  `OpenAiProviderCapabilities`).
+- `supports-reasoning-signature-roundtrip` → dropped: native Anthropic **must always** replay thinking
+  blocks (API 400s otherwise) and both `thinking` (signature) and `redacted_thinking` (data) are always
+  re-emittable, so the toggle is a no-op (see §4).
+- `supports-reasoning` → **derived, not stored**: `AnthropicModelCapabilities.supportsReasoning()` ≡
+  `reasoning descriptor present`. Removes the duplication between the flag and the descriptor.
+
+After the prune, the **only** provider-specific capability datum is the `reasoning` descriptor.
+
+### 3b. Config-binding alignment — typed agnostic core + opaque provider bag
+The shared binding type becomes provider-agnostic (mirrors `CoreModelCapabilities`) plus one opaque
+seam; each provider *types* the seam in its own projection DTO. Spring's binder can't pick a Java type
+per family map-key, so the seam must be a declared `Map<String,Object>` (not a Jackson `@JsonAnySetter`).
+
+```java
+// capabilities pkg — provider-AGNOSTIC (mirrors CoreModelCapabilities + one opaque seam)
+record ModelCapabilitiesProperties(
+    @Nullable InputModalities inputModalities, @Nullable OutputModalities outputModalities,
+    @Nullable Integer contextWindow, @Nullable Integer maxOutputTokens,
+    @Nullable Map<String, Object> provider) {}      // opaque provider-specific bag
+
+// anthropic pkg — runtime: core + the one provider datum; supportsReasoning derived
+record AnthropicModelCapabilities(CoreModelCapabilities core,
+    @Nullable AnthropicReasoningCapabilities reasoning) implements ModelCapabilities {
+  public boolean supportsReasoning() { return reasoning != null; }
+}
+
+// anthropic pkg — projection DTO reads the agnostic core fields + the typed provider bag
+record AnthropicModelCapabilitiesData(
+    @Nullable InputModalities inputModalities, @Nullable OutputModalities outputModalities,
+    @Nullable Integer contextWindow, @Nullable Integer maxOutputTokens,
+    @Nullable AnthropicProviderCapabilities provider)
+    implements ModelCapabilitiesData<AnthropicModelCapabilities> { /* toModelCapabilities() */ }
+record AnthropicProviderCapabilities(@Nullable AnthropicReasoningCapabilities reasoning) {}
+```
 
 ```yaml
 anthropic-messages:
@@ -213,46 +255,48 @@ anthropic-messages:
     claude-opus-4-6-plus:
       pattern: [claude-opus-4-6*, claude-opus-4-7*, claude-opus-4-8*]
       capabilities:
-        supports-reasoning: true
-        supports-reasoning-signature-roundtrip: true
-        reasoning:
-          thinking-modes: [adaptive, disabled]        # NO 'enabled' → manual budget 400s here
-          effort-levels:  [low, medium, high, xhigh, max]
+        context-window: 1000000
+        max-output-tokens: 128000
+        provider:                                       # provider-specific keys nest here
+          reasoning:
+            thinking-modes: [adaptive, disabled]        # NO 'enabled' → manual budget 400s here
+            effort-levels:  [low, medium, high, xhigh, max]
     claude-opus-4-5:
       capabilities:
-        reasoning:
-          thinking-modes: [enabled, disabled]
-          effort-levels:  [low, medium, high, max]
+        provider:
+          reasoning: { thinking-modes: [enabled, disabled], effort-levels: [low, medium, high, max] }
     claude-sonnet-4-5:
       capabilities:
-        reasoning:
-          thinking-modes: [enabled, disabled]         # no effort-levels ⇒ effort unsupported
+        provider:
+          reasoning: { thinking-modes: [enabled, disabled] }   # no effort-levels ⇒ effort unsupported
 ```
 
-**Keys are provider-specific per API family (decided).** A generic `{thinking-modes, effort-levels}`
-shape shared across providers was rejected: it won't stay future-proof as providers add reasoning
-concepts that don't generalise (e.g. Gemini's `thinkingBudget` with `-1` = dynamic, or a novel
-control). Each provider models exactly its own concepts. Given **R0**, this is clean: the
-`anthropic-messages` family's `reasoning:` block deserialises **directly into typed fields** on
-`AnthropicModelCapabilities` via the parameterised resolver — no opaque `Map` slot, no per-provider
-`convertValue` hop:
+**Keys are provider-specific per API family (decided).** The Anthropic descriptor is Anthropic's own
+enums; a future OpenAI family puts different keys in its own `OpenAiProviderCapabilities`:
 
 ```java
-// Anthropic package — R1 adds this field to AnthropicModelCapabilities (see R0), Anthropic's OWN enums
 public record AnthropicReasoningCapabilities(
     @JsonProperty("thinking-modes") List<ThinkingMode> thinkingModes,   // ENABLED|ADAPTIVE|DISABLED
     @JsonProperty("effort-levels")  List<AnthropicEffort> effortLevels) {}  // Anthropic effort enum
 ```
 
-- A future OpenAI family defines **different keys** in its own capability record (e.g.
-  `reasoning-effort`, `reasoning-budget`) — no shared vocabulary imposed, no change to the neutral
-  interface. That is exactly what R0's provider-specific records buy.
-- The resolver's deep-merge is unchanged (the `reasoning` object merges recursively; a user
-  `capabilityOverride` can override it too); only the final `treeToValue` targets the provider record.
-- **Sourcing:** `supports-reasoning` comes from models.dev `reasoning` (bool); models.dev's
-  `reasoning_options` is **empty for all Claude models**, so the Anthropic descriptor is hand-curated
-  (as the rest of the Anthropic matrix data already is). OpenAI's family descriptor can later map from
-  models.dev `reasoning_options`.
+### 3c. Merge correctness (verified)
+- `reasoning` is an **object** → `deepMerge` recurses: an entry overlaying only `effort-levels` keeps the
+  base's `thinking-modes` (existing sibling-preservation, one level deeper under `provider.reasoning`).
+- `thinking-modes` / `effort-levels` are **lists** → overlay **replaces** wholesale (never unions) —
+  correct for capability lists.
+- Conservative base has no `provider` → unknown family/model → `reasoning == null` → unsupported
+  (identical to the old `supports-reasoning: false`).
+- **Trap:** `deepMerge` cannot un-set a key (overlay-null = keep base). So `provider`/`reasoning` must
+  **never** appear in a family `defaults:` block — else a non-reasoning sibling model could not clear it.
+  Guideline: declare `reasoning` per-model/glob only; "absent = unsupported." Enforced by a bundled-matrix test.
+- **Opaque-bag key case:** Spring binds `Map` keys **literally** (no relaxed transform inside the bag),
+  so the bag standardises on kebab-case (matching the rest of the YAML) and the typed descriptor uses
+  kebab `@JsonProperty` (`thinking-modes`/`effort-levels`). The typed shared fields (`input-modalities`
+  etc.) keep relaxed binding + `@JsonNaming(SnakeCase)` as before.
+- **Sourcing:** `reasoning` presence follows models.dev `reasoning` (bool); models.dev `reasoning_options`
+  is **empty for all Claude models**, so the descriptor is hand-curated (as the rest of the Anthropic
+  matrix already is). OpenAI's family descriptor can later map from models.dev `reasoning_options`.
 
 ---
 
@@ -281,30 +325,32 @@ Response converter (`AnthropicMessageResponseConverter`) change:
 }
 ```
 
-### 4b. Request-side re-emission (closes the one-directional gap)
+### 4b. Request-side re-emission (closes the one-directional gap) — UNCONDITIONAL
 `AnthropicContentConverter.toContentBlockParams` — replace `case ReasoningContent ignored -> {}`:
 ```java
 case ReasoningContent rc -> {
-  if (signatureRoundtripSupported && rc.providerPayload() != null) {
+  if (rc.providerPayload() != null) {
     blocks.add(ObjectMappers.jsonMapper()
         .convertValue(rc.providerPayload(), BetaContentBlockParam.class));
   }
-  // else: skip (model has no signature round-trip, or no payload) — history replay stays valid
+  // else: no raw payload to replay (e.g. bridge-produced ReasoningContent) — skip so replay stays valid
 }
 ```
-- `signatureRoundtripSupported` = `capabilities.supportsReasoningSignatureRoundtrip()`. The converter
-  needs access to this flag (thread it through from the request converter / capabilities).
+- **No capability gate** (ratified §3a): `supports-reasoning-signature-roundtrip` was dropped. On the
+  native Anthropic path re-emission is *always* required — the API 400s if consecutive thinking blocks
+  are not replayed — and both `thinking` (with `signature`) and `redacted_thinking` (with `data`) are
+  always re-emittable. The only skip case is a `null` `providerPayload` (the existing null-guard,
+  mirroring `ProviderContent`). The converter therefore needs **no** extra flag threaded through.
 - **Why Option A / byte-identical:** the *"cannot be modified/rearranged"* rule means a rebuilt block
   (Option B) risks a 400 from field-order/whitespace drift; replaying the stored bytes cannot drift.
   Also generalises to OpenAI's encrypted reasoning items with zero new vocabulary on the neutral type.
 - **Ordering** already correct (`assistantParam` emits content before tool_use, §1d). Multiple
   consecutive thinking blocks and `redacted_thinking` are preserved as ordered `ReasoningContent`s.
 
-### 4c. Round-trip is required, not optional
+### 4c. Round-trip is a correctness requirement (always on)
 On adaptive-thinking + tool use (the mainline for flagship models), the signed thinking block **must**
-be replayed with the tool_use or the next call 400s. So §4b is a correctness requirement for those
-models, gated by `supportsReasoningSignatureRoundtrip` (true for all reasoning-capable Claude models
-in the matrix).
+be replayed with the tool_use or the next call 400s. §4b now does this unconditionally for every
+`ReasoningContent` carrying a raw payload — no per-model toggle.
 
 ---
 
@@ -338,23 +384,29 @@ element-template tooltip.
 
 ## 6. Validation (matrix-driven, fail-fast)
 
-Before the API call, validate config against the `AnthropicReasoningCapabilities` deserialized from
-`ModelCapabilities.reasoning` (§3). Each failure throws a `ConnectorException` with a clear,
-actionable message (no opaque API 400s):
+Before the API call, validate config against `AnthropicModelCapabilities.reasoning` (the typed
+descriptor, §3). Validation keys off the **descriptor**, not a `supports-reasoning` boolean (dropped,
+§3a — `supportsReasoning()` is now just `reasoning != null`). Each failure throws a `ConnectorException`
+with a clear, actionable message (no opaque API 400s):
 
-1. `thinking` set but `supports-reasoning == false` → fail (reasoning unsupported).
+1. `thinking` or `effort` set but `reasoning == null` (a **known** model with no descriptor) → fail
+   (reasoning unsupported by `<model>`).
 2. `thinking.mode ∉ reasoning.thinkingModes` → fail (e.g. `ENABLED` on Opus 4.8 →
    *"manual thinking budget not supported by <model>; use ADAPTIVE + effort"*).
 3. `thinking.mode == ENABLED && budgetTokens == null` → fail (budget required).
-4. `effort` set (non-`CUSTOM`) but `reasoning.effortLevels` empty/absent → fail (effort unsupported
-   on this model).
+4. `effort` set (non-`CUSTOM`) but `reasoning.effortLevels` empty/absent → fail (effort unsupported).
 5. `effort` set (non-`CUSTOM`) and `effort ∉ reasoning.effortLevels` → fail.
 6. `effort == CUSTOM` → **bypass** validation (sent verbatim via `Effort.of`).
 
-Unknown/unmatched model (matrix miss → conservative defaults, `reasoning` absent): treat as "no
-descriptor" — either pass-through (let the API decide) or fail on any reasoning config. **Recommend
-pass-through** here so custom/unknown models remain usable (consistent with the capability-override
-escape hatch).
+**Unknown/unmatched model** (matrix miss → conservative defaults, `reasoning` absent): the resolver
+signals a fall-through (it already logs one). Ratified: **pass-through** — skip client-side validation
+and let the API decide — so custom/unknown models stay usable (consistent with the capability-override
+escape hatch). Distinguishing "known model, no descriptor → fail rule 1" from "unmatched model →
+pass-through" requires the resolver to expose whether the model matched; thread that signal (a small
+`matched` boolean alongside the resolved capabilities, or a resolver method) into validation. If that
+signal is judged too invasive for R1, fall back to **pass-through in both cases** (rule 1 downgraded to
+pass-through) and document that a known non-reasoning model surfaces the API's own 400 — decide during
+implementation, defaulting to pass-through-both if the matched-signal is non-trivial.
 
 ---
 
@@ -367,12 +419,23 @@ rewire `CapabilityAwareToolCallResultStrategy` + `capabilities()` producers to t
 three custom-provider invariants. Behaviour-identical — existing resolver/strategy tests stay green,
 no wire change.
 
-**In scope — R1 (reasoning + effort):** Anthropic `thinking` + `effort` request config;
-`AnthropicReasoningCapabilities` typed fields on the R0 record + hand-curated matrix descriptor;
-fail-fast validation; `ReasoningContent` payload change (Option A) + byte-identical request
-round-trip gated by `supportsReasoningSignatureRoundtrip`; unit tests + native e2e (WireMock)
-covering enabled/adaptive/disabled, effort levels + CUSTOM, round-trip replay, and each validation
-failure.
+**In scope — R1 (reasoning + effort):**
+- **Prune** the 3 dead `supports-*` flags + derive `supportsReasoning` (§3a) across matrix YAML, the
+  binding/projection/runtime types, `ModelCapabilitiesOverride`, and tests (behaviour-identical — no
+  consumers).
+- **Config-binding alignment** (§3b): `ModelCapabilitiesProperties` → typed agnostic core + opaque
+  `provider` bag; `AnthropicModelCapabilitiesData` reads the typed `provider.reasoning`;
+  `AnthropicModelCapabilities` = `core` + `@Nullable AnthropicReasoningCapabilities`.
+- **Matrix reasoning descriptor** hand-curated per reasoning-capable model (never in family `defaults`,
+  §3c) + `AnthropicReasoningCapabilities` typed record + enums.
+- **Config** (§2): `thinking` + `effort` + `customEffort` on `AnthropicModelParameters`; element-template
+  properties with conditional visibility; template regen.
+- **Request mapping** (§5): thinking union + effort → SDK.
+- **Validation** (§6): matrix-descriptor-driven fail-fast; CUSTOM bypass; unknown-model pass-through.
+- **Response round-trip** (§4): `ReasoningContent.providerPayload` = raw block Map (Option A) +
+  **unconditional** request re-emission (closes `case ReasoningContent ignored -> {}`).
+- **Tests:** unit + native e2e (WireMock) covering enabled/adaptive/disabled, effort levels + CUSTOM,
+  round-trip replay, and each validation failure.
 
 **Out of scope / deferred:** OpenAI `reasoning_effort` (C8, reuses the descriptor shape + its own
 config); Anthropic **task budgets** (advisory loop-level token budget — separate feature); reasoning
@@ -388,19 +451,25 @@ behaviour (unchanged).
   today's bare signature string to a full-block Map costs **no** persisted-data BC.
 - **Verify at impl:** that no *released* path (L4J bridge) persists a `providerPayload` shape we'd
   break. If the bridge never populates `providerPayload`, we're clear.
-- Matrix change is additive (`reasoning` descriptor + kept booleans) — no persisted or template BC.
+- Matrix + binding restructure (drop 3 `supports-*` flags, move `reasoning` under a `provider` bag) is
+  **BC-free**: the matrix is classpath data on the unreleased 8.10 native path, capability-override
+  config is unreleased, and element templates are untouched. No persisted state involved.
 - No change to any persisted wire shape of `AssistantMessage` / `Content` beyond the (unreleased)
   `providerPayload` semantics.
 
 ---
 
-## 9. Assumptions to verify during implementation
+## 9. Assumptions — verified against anthropic-java 2.48.0 (2026-07-14)
 
-1. `BetaThinkingConfigAdaptive.Display` enum values (for the `display` config field) — inspect SDK.
-2. A pure-reasoning assistant turn (thinking only, no text/tool_use) replays without a 400
-   (C7 review note M-c7-5).
-3. Effort enum lowercase mapping matches the wire values exactly (`XHIGH` → `"xhigh"`).
-4. Threading `supportsReasoningSignatureRoundtrip` into `AnthropicContentConverter` (constructor vs
-   method param) fits the existing wiring cleanly.
-5. `redacted_thinking` block round-trips Map → `BetaContentBlockParam` via the SDK mapper (same spike
-   that validated `ProviderContent`).
+1. ✅ `BetaThinkingConfigAdaptive.Display` = **`SUMMARIZED`, `OMITTED`** (open enum, `Display.of(String)`).
+   `ThinkingDisplay` config enum = `{ SUMMARIZED, OMITTED }`.
+2. ✅ `BetaThinkingConfigParam` union factories `ofEnabled(BetaThinkingConfigEnabled)` /
+   `ofAdaptive(BetaThinkingConfigAdaptive)` / `ofDisabled(BetaThinkingConfigDisabled)`;
+   `BetaThinkingConfigEnabled.builder().budgetTokens(long)`.
+3. ✅ `BetaOutputConfig.Effort` = `LOW/MEDIUM/HIGH/XHIGH/MAX` + `Effort.of(String)` (open enum, no
+   `minimal`). Lowercase mapping (`XHIGH` → `"xhigh"`) to confirm at impl via a serialization round-trip.
+4. **Still to verify at impl:** a pure-reasoning assistant turn (thinking only, no text/tool_use) replays
+   without a 400 (C7 review note M-c7-5); `redacted_thinking` block round-trips Map →
+   `BetaContentBlockParam` via the SDK mapper (same spike that validated `ProviderContent`).
+5. ~~Threading `supportsReasoningSignatureRoundtrip`~~ — **N/A**: flag dropped (§3a, §4); re-emission is
+   unconditional, no flag to thread.
