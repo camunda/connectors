@@ -19,7 +19,6 @@ public class UnstructuredExtractionRequestData extends DocumentRequestData {
       label = "Taxonomy Items",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
-      description = "Array of taxonomy items",
       defaultValue = "=[\n  {name: \"\", prompt: \"\"},\n  {name: \"\", prompt: \"\"}\n]",
       binding = @TemplateProperty.PropertyBinding(name = "taxonomyItems"),
       feel = FeelMode.optional)
@@ -30,7 +29,6 @@ public class UnstructuredExtractionRequestData extends DocumentRequestData {
       label = "Ai converse parameters",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
-      description = "Specify the parameters for the ai conversation",
       defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5\n}",
       binding = @TemplateProperty.PropertyBinding(name = "converseData"),
       feel = FeelMode.optional)

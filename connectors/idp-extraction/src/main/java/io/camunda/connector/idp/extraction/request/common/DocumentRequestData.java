@@ -17,7 +17,6 @@ public class DocumentRequestData {
       label = "Document",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
-      description = "Specify the document",
       defaultValue = "=document",
       binding = @TemplateProperty.PropertyBinding(name = "document"),
       feel = FeelMode.optional,

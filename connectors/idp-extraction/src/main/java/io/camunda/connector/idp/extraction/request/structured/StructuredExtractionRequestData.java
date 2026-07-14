@@ -18,7 +18,7 @@ public class StructuredExtractionRequestData extends DocumentRequestData {
       label = "Included Fields",
       group = "input",
       type = TemplateProperty.PropertyType.String,
-      description = "List of fields that should be returned from the extraction",
+      tooltip = "List of fields that should be returned from the extraction",
       defaultValue = "=[\n  \n]",
       binding = @TemplateProperty.PropertyBinding(name = "includedFields"),
       feel = FeelMode.optional)
@@ -29,7 +29,7 @@ public class StructuredExtractionRequestData extends DocumentRequestData {
       label = "Rename mappings",
       group = "input",
       type = TemplateProperty.PropertyType.String,
-      description = "List of keys that should be renamed and not be given the default name",
+      tooltip = "List of keys that should be renamed and not be given the default name",
       defaultValue = "={\n  \n}",
       binding = @TemplateProperty.PropertyBinding(name = "renameMappings"),
       feel = FeelMode.optional)
@@ -40,7 +40,7 @@ public class StructuredExtractionRequestData extends DocumentRequestData {
       label = "delimiter",
       group = "input",
       type = TemplateProperty.PropertyType.String,
-      description = "The delimiter used for the variable name of the extracted field",
+      tooltip = "The delimiter used for the variable name of the extracted field",
       binding = @TemplateProperty.PropertyBinding(name = "delimiter"),
       feel = FeelMode.disabled)
   String delimiter;
