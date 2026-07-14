@@ -50,7 +50,6 @@
   }, {
     "id" : "input.includedFields",
     "label" : "Included Fields",
-    "description" : "List of fields that should be returned from the extraction",
     "optional" : false,
     "value" : "=[\n  \n]",
     "feel" : "optional",
@@ -59,11 +58,11 @@
       "name" : "input.includedFields",
       "type" : "zeebe:input"
     },
+    "tooltip" : "List of fields that should be returned from the extraction",
     "type" : "String"
   }, {
     "id" : "input.renameMappings",
     "label" : "Rename mappings",
-    "description" : "List of keys that should be renamed and not be given the default name",
     "optional" : false,
     "value" : "={\n  \n}",
     "feel" : "optional",
@@ -72,22 +71,22 @@
       "name" : "input.renameMappings",
       "type" : "zeebe:input"
     },
+    "tooltip" : "List of keys that should be renamed and not be given the default name",
     "type" : "String"
   }, {
     "id" : "input.delimiter",
     "label" : "delimiter",
-    "description" : "The delimiter used for the variable name of the extracted field",
     "optional" : false,
     "group" : "input",
     "binding" : {
       "name" : "input.delimiter",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The delimiter used for the variable name of the extracted field",
     "type" : "String"
   }, {
     "id" : "input.document",
     "label" : "Document",
-    "description" : "Specify the document",
     "optional" : false,
     "value" : "=document",
     "constraints" : {
@@ -131,7 +130,6 @@
   }, {
     "id" : "extractor.endpoint",
     "label" : "Azure Document Intelligence Endpoint",
-    "description" : "Specify the endpoint of the Azure Document Intelligence",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -150,7 +148,6 @@
   }, {
     "id" : "extractor.apiKey",
     "label" : "Azure Document Intelligence API Key",
-    "description" : "Specify the API key of the Azure Document Intelligence",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -198,7 +195,6 @@
   }, {
     "id" : "extractor.bearerToken",
     "label" : "Bearer token",
-    "description" : "Enter a valid Google API Bearer token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -224,7 +220,6 @@
   }, {
     "id" : "extractor.oauthClientId",
     "label" : "Client ID",
-    "description" : "Enter Google API Client ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -250,7 +245,6 @@
   }, {
     "id" : "extractor.oauthClientSecret",
     "label" : "Client secret",
-    "description" : "Enter Google API client Secret",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -276,7 +270,6 @@
   }, {
     "id" : "extractor.oauthRefreshToken",
     "label" : "Refresh token",
-    "description" : "Enter a valid Google API refresh token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -302,7 +295,6 @@
   }, {
     "id" : "extractor.serviceAccountJson",
     "label" : "Service account json",
-    "description" : "Enter a the contents of your service account json file",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -324,11 +316,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Enter the contents of your service account JSON file",
     "type" : "String"
   }, {
     "id" : "extractor.documentAiRegion",
     "label" : "Region",
-    "description" : "Select the region for Document AI",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -343,6 +335,7 @@
       "equals" : "documentAi",
       "type" : "simple"
     },
+    "tooltip" : "Geographic location where the Document AI processor runs. EU = European Union, US = United States.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "EU",
@@ -370,7 +363,6 @@
   }, {
     "id" : "extractor.processorId",
     "label" : "Processor ID",
-    "description" : "The id of the processor used to parse the document",
     "optional" : false,
     "feel" : "optional",
     "group" : "extractor",
@@ -383,6 +375,7 @@
       "equals" : "documentAi",
       "type" : "simple"
     },
+    "tooltip" : "Processor used to parse the document",
     "type" : "String"
   }, {
     "id" : "extractor.awsAuthType",
@@ -413,7 +406,6 @@
   }, {
     "id" : "extractor.accessKey",
     "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -435,11 +427,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "IAM access key of a user with the necessary permissions",
     "type" : "String"
   }, {
     "id" : "extractor.secretKey",
     "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -461,11 +453,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "AWS secret access key of a user with permissions for Amazon Textract and S3",
     "type" : "String"
   }, {
     "id" : "extractor.region",
     "label" : "Region",
-    "description" : "Specify the AWS region",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -484,7 +476,6 @@
   }, {
     "id" : "extractor.bucketName",
     "label" : "AWS S3 Bucket name",
-    "description" : "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
     "optional" : false,
     "value" : "idp-extraction-connector",
     "constraints" : {
@@ -500,11 +491,11 @@
       "equals" : "textract",
       "type" : "simple"
     },
+    "tooltip" : "Where the document will be stored temporarily during Textract analysis",
     "type" : "Text"
   }, {
     "id" : "extractor.abbyyBaseUrl",
     "label" : "ABBYY Vantage Base URL",
-    "description" : "Base URL of the ABBYY Vantage instance (e.g., https://vantage-us.abbyy.com)",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -520,11 +511,11 @@
       "equals" : "abbyy",
       "type" : "simple"
     },
+    "placeholder" : "https://vantage-us.abbyy.com",
     "type" : "Text"
   }, {
     "id" : "extractor.abbyyClientId",
     "label" : "Client ID",
-    "description" : "OAuth2 Client ID from ABBYY Vantage Public API Client settings",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -540,11 +531,11 @@
       "equals" : "abbyy",
       "type" : "simple"
     },
+    "tooltip" : "OAuth2 Client ID from ABBYY Vantage Public API Client settings",
     "type" : "Text"
   }, {
     "id" : "extractor.abbyyClientSecret",
     "label" : "Client Secret",
-    "description" : "OAuth2 Client Secret from ABBYY Vantage Public API Client settings",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -560,11 +551,11 @@
       "equals" : "abbyy",
       "type" : "simple"
     },
+    "tooltip" : "OAuth2 Client Secret from ABBYY Vantage Public API Client settings",
     "type" : "Text"
   }, {
     "id" : "extractor.abbyySkillId",
     "label" : "Skill ID",
-    "description" : "The ABBYY Vantage OCR skill ID (skill must be configured to output Text format)",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -580,6 +571,7 @@
       "equals" : "abbyy",
       "type" : "simple"
     },
+    "tooltip" : "The skill must be configured to output Text format.",
     "type" : "Text"
   }, {
     "id" : "version",

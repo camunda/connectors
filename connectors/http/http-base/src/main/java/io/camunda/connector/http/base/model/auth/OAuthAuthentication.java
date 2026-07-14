@@ -24,29 +24,26 @@ public record OAuthAuthentication(
         @Pattern(
             regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)",
             message = "Must be a http(s) URL")
-        @TemplateProperty(
-            group = "authentication",
-            description = "The OAuth token endpoint",
-            label = "OAuth 2.0 token endpoint")
+        @TemplateProperty(group = "authentication", label = "OAuth 2.0 token endpoint")
         String oauthTokenEndpoint,
     @FEEL
         @NotEmpty
         @TemplateProperty(
             group = "authentication",
-            description = "Your application's client ID from the OAuth client",
+            tooltip = "Your application's client ID from the OAuth client",
             label = "Client ID")
         String clientId,
     @FEEL
         @NotEmpty
         @TemplateProperty(
             group = "authentication",
-            description = "Your application's client secret from the OAuth client",
+            tooltip = "Your application's client secret from the OAuth client",
             label = "Client secret")
         String clientSecret,
     @FEEL
         @TemplateProperty(
             group = "authentication",
-            description = "The unique identifier of the target API you want to access",
+            tooltip = "The unique identifier of the target API you want to access",
             optional = true)
         String audience,
     @FEEL
@@ -62,13 +59,13 @@ public record OAuthAuthentication(
                   value = OAuthConstants.BASIC_AUTH_HEADER,
                   label = "Send as Basic Auth header")
             },
-            description =
-                "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body")
+            tooltip =
+                "Send client ID and client secret as a Basic Auth header, or as client credentials in the request body")
         String clientAuthentication,
     @TemplateProperty(
             group = "authentication",
-            description =
-                "The scopes which you want to request authorization for (e.g.read:contacts)",
+            tooltip = "The scopes which you want to request authorization for",
+            placeholder = "read:contacts",
             optional = true)
         String scopes)
     implements Authentication {

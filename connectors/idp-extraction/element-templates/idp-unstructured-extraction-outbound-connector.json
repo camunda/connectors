@@ -48,7 +48,6 @@
   }, {
     "id" : "input.taxonomyItems",
     "label" : "Taxonomy Items",
-    "description" : "Array of taxonomy items",
     "optional" : false,
     "value" : "=[\n  {name: \"\", prompt: \"\"},\n  {name: \"\", prompt: \"\"}\n]",
     "feel" : "optional",
@@ -61,7 +60,6 @@
   }, {
     "id" : "input.converseData",
     "label" : "Ai converse parameters",
-    "description" : "Specify the parameters for the ai conversation",
     "optional" : false,
     "value" : "={\n  modelId: \"\",\n  temperature: 0.5\n}",
     "feel" : "optional",
@@ -74,7 +72,6 @@
   }, {
     "id" : "input.document",
     "label" : "Document",
-    "description" : "Specify the document",
     "optional" : false,
     "value" : "=document",
     "constraints" : {
@@ -118,7 +115,6 @@
   }, {
     "id" : "extractor.endpoint",
     "label" : "Azure Document Intelligence Endpoint",
-    "description" : "Specify the endpoint of the Azure Document Intelligence",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -137,7 +133,6 @@
   }, {
     "id" : "extractor.apiKey",
     "label" : "Azure Document Intelligence API Key",
-    "description" : "Specify the API key of the Azure Document Intelligence",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -185,7 +180,6 @@
   }, {
     "id" : "extractor.bearerToken",
     "label" : "Bearer token",
-    "description" : "Enter a valid Google API Bearer token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -211,7 +205,6 @@
   }, {
     "id" : "extractor.oauthClientId",
     "label" : "Client ID",
-    "description" : "Enter Google API Client ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -237,7 +230,6 @@
   }, {
     "id" : "extractor.oauthClientSecret",
     "label" : "Client secret",
-    "description" : "Enter Google API client Secret",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -263,7 +255,6 @@
   }, {
     "id" : "extractor.oauthRefreshToken",
     "label" : "Refresh token",
-    "description" : "Enter a valid Google API refresh token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -289,7 +280,6 @@
   }, {
     "id" : "extractor.serviceAccountJson",
     "label" : "Service account json",
-    "description" : "Enter a the contents of your service account json file",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -311,11 +301,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Enter the contents of your service account JSON file",
     "type" : "String"
   }, {
     "id" : "extractor.documentAiRegion",
     "label" : "Region",
-    "description" : "Select the region for Document AI",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -330,6 +320,7 @@
       "equals" : "documentAi",
       "type" : "simple"
     },
+    "tooltip" : "Geographic location where the Document AI processor runs. EU = European Union, US = United States.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "EU",
@@ -357,7 +348,6 @@
   }, {
     "id" : "extractor.processorId",
     "label" : "Processor ID",
-    "description" : "The id of the processor used to parse the document",
     "optional" : false,
     "feel" : "optional",
     "group" : "extractor",
@@ -370,6 +360,7 @@
       "equals" : "documentAi",
       "type" : "simple"
     },
+    "tooltip" : "Processor used to parse the document",
     "type" : "String"
   }, {
     "id" : "extractor.awsAuthType",
@@ -400,7 +391,6 @@
   }, {
     "id" : "extractor.accessKey",
     "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -422,11 +412,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "IAM access key of a user with the necessary permissions",
     "type" : "String"
   }, {
     "id" : "extractor.secretKey",
     "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -448,11 +438,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "AWS secret access key of a user with permissions for Amazon Textract and S3",
     "type" : "String"
   }, {
     "id" : "extractor.region",
     "label" : "Region",
-    "description" : "Specify the AWS region",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -471,7 +461,6 @@
   }, {
     "id" : "extractor.bucketName",
     "label" : "AWS S3 Bucket name",
-    "description" : "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
     "optional" : false,
     "value" : "idp-extraction-connector",
     "constraints" : {
@@ -487,11 +476,11 @@
       "equals" : "textract",
       "type" : "simple"
     },
+    "tooltip" : "Where the document will be stored temporarily during Textract analysis",
     "type" : "Text"
   }, {
     "id" : "extractor.abbyyBaseUrl",
     "label" : "ABBYY Vantage Base URL",
-    "description" : "Base URL of the ABBYY Vantage instance (e.g., https://vantage-us.abbyy.com)",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -507,11 +496,11 @@
       "equals" : "abbyy",
       "type" : "simple"
     },
+    "placeholder" : "https://vantage-us.abbyy.com",
     "type" : "Text"
   }, {
     "id" : "extractor.abbyyClientId",
     "label" : "Client ID",
-    "description" : "OAuth2 Client ID from ABBYY Vantage Public API Client settings",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -527,11 +516,11 @@
       "equals" : "abbyy",
       "type" : "simple"
     },
+    "tooltip" : "OAuth2 Client ID from ABBYY Vantage Public API Client settings",
     "type" : "Text"
   }, {
     "id" : "extractor.abbyyClientSecret",
     "label" : "Client Secret",
-    "description" : "OAuth2 Client Secret from ABBYY Vantage Public API Client settings",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -547,11 +536,11 @@
       "equals" : "abbyy",
       "type" : "simple"
     },
+    "tooltip" : "OAuth2 Client Secret from ABBYY Vantage Public API Client settings",
     "type" : "Text"
   }, {
     "id" : "extractor.abbyySkillId",
     "label" : "Skill ID",
-    "description" : "The ABBYY Vantage OCR skill ID (skill must be configured to output Text format)",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -567,6 +556,7 @@
       "equals" : "abbyy",
       "type" : "simple"
     },
+    "tooltip" : "The skill must be configured to output Text format.",
     "type" : "Text"
   }, {
     "id" : "ai.type",
@@ -593,7 +583,6 @@
   }, {
     "id" : "ai.usingOpenAI",
     "label" : "Model type",
-    "description" : "Specify if the Azure AI Foundry is using OpenAI",
     "optional" : false,
     "value" : "false",
     "constraints" : {
@@ -609,6 +598,7 @@
       "equals" : "azureAiFoundry",
       "type" : "simple"
     },
+    "tooltip" : "Base Azure Foundry model = a model deployed directly in Azure AI Foundry; Azure OpenAI model = a model served through Azure OpenAI.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Base Azure Foundry model",
@@ -620,7 +610,6 @@
   }, {
     "id" : "ai.endpoint",
     "label" : "Azure AI Endpoint",
-    "description" : "Specify the endpoint of Azure AI",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -639,7 +628,6 @@
   }, {
     "id" : "ai.apiKey",
     "label" : "Azure AI API Key",
-    "description" : "Specify the API key of Azure AI",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -684,7 +672,6 @@
   }, {
     "id" : "ai.accessKey",
     "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -706,11 +693,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "type" : "String"
   }, {
     "id" : "ai.secretKey",
     "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -732,11 +719,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Provide the AWS secret access key of a user with permissions for Amazon Bedrock",
     "type" : "String"
   }, {
     "id" : "ai.region",
     "label" : "Region",
-    "description" : "Specify the AWS region",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -755,7 +742,6 @@
   }, {
     "id" : "ai.openAiEndpoint",
     "label" : "OpenAI Spec Endpoint",
-    "description" : "Specify the OpenAI compatible specification endpoint.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -774,7 +760,6 @@
   }, {
     "id" : "ai.openAiHeaders",
     "label" : "Headers",
-    "description" : "Map of HTTP headers to add to the request.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -789,6 +774,7 @@
       "equals" : "openAi",
       "type" : "simple"
     },
+    "tooltip" : "Map of HTTP headers to add to the request.",
     "type" : "String"
   }, {
     "id" : "ai.authType",
@@ -822,7 +808,6 @@
   }, {
     "id" : "ai.bearerToken",
     "label" : "Bearer token",
-    "description" : "Enter a valid Google API Bearer token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -848,7 +833,6 @@
   }, {
     "id" : "ai.oauthClientId",
     "label" : "Client ID",
-    "description" : "Enter Google API Client ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -874,7 +858,6 @@
   }, {
     "id" : "ai.oauthClientSecret",
     "label" : "Client secret",
-    "description" : "Enter Google API client Secret",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -900,7 +883,6 @@
   }, {
     "id" : "ai.oauthRefreshToken",
     "label" : "Refresh token",
-    "description" : "Enter a valid Google API refresh token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -926,7 +908,6 @@
   }, {
     "id" : "ai.serviceAccountJson",
     "label" : "Service account json",
-    "description" : "Enter a the contents of your service account json file",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -948,6 +929,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Contents of your service account JSON file",
     "type" : "String"
   }, {
     "id" : "ai.gcpRegion",

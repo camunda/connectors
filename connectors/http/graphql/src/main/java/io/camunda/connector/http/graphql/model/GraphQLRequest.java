@@ -33,8 +33,8 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
       @TemplateProperty(
               id = "query",
               label = "Query/Mutation",
-              description =
-                  "See <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+              tooltip =
+                  "The GraphQL query or mutation to execute. See the <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">GraphQL query/mutation syntax</a>.",
               type = TemplateProperty.PropertyType.Text,
               // TODO add support for language property supported by element templates: language:
               // graphql
@@ -72,22 +72,21 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               feel = FeelMode.required,
               group = "endpoint",
               optional = true,
-              description = "Map of HTTP headers to add to the request")
+              tooltip = "Map of HTTP headers to add to the request")
           Map<String, String> headers,
       @TemplateProperty(
               group = "endpoint",
               type = TemplateProperty.PropertyType.Boolean,
               defaultValueType = TemplateProperty.DefaultValueType.Boolean,
               defaultValue = "false",
-              description = "Store the response as a document in the document store")
+              tooltip = "Store the response as a document in the document store")
           boolean storeResponse,
       @TemplateProperty(
               group = "timeout",
               defaultValue = "20",
               defaultValueType = TemplateProperty.DefaultValueType.Number,
               optional = true,
-              description =
-                  "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout")
+              tooltip = "Use 0 for an infinite timeout")
           Integer connectionTimeoutInSeconds,
       @TemplateProperty(
               group = "timeout",
@@ -95,7 +94,6 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               defaultValue = "20",
               defaultValueType = TemplateProperty.DefaultValueType.Number,
               optional = true,
-              description =
-                  "Timeout in seconds to read data from an established connection or 0 for an infinite timeout")
+              tooltip = "Use 0 for an infinite timeout")
           Integer readTimeoutInSeconds) {}
 }

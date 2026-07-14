@@ -87,7 +87,6 @@
   }, {
     "id" : "authentication.apiKeyLocation",
     "label" : "Api key location",
-    "description" : "Choose type: Send API key in header or as query parameter.",
     "optional" : false,
     "value" : "headers",
     "constraints" : {
@@ -103,6 +102,7 @@
       "equals" : "apiKey",
       "type" : "simple"
     },
+    "tooltip" : "Send API key in header or as query parameter.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Headers",
@@ -209,7 +209,6 @@
   }, {
     "id" : "authentication.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
-    "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -233,7 +232,6 @@
   }, {
     "id" : "authentication.clientId",
     "label" : "Client ID",
-    "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -249,11 +247,11 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "Your application's client ID from the OAuth client",
     "type" : "String"
   }, {
     "id" : "authentication.clientSecret",
     "label" : "Client secret",
-    "description" : "Your application's client secret from the OAuth client",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -269,11 +267,11 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "Your application's client secret from the OAuth client",
     "type" : "String"
   }, {
     "id" : "authentication.audience",
     "label" : "Audience",
-    "description" : "The unique identifier of the target API you want to access",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -286,11 +284,11 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "The unique identifier of the target API you want to access",
     "type" : "String"
   }, {
     "id" : "authentication.clientAuthentication",
     "label" : "Client authentication",
-    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -305,6 +303,7 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "Send client ID and client secret as a Basic Auth header, or as client credentials in the request body",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Send client credentials in body",
@@ -316,7 +315,6 @@
   }, {
     "id" : "authentication.scopes",
     "label" : "Scopes",
-    "description" : "The scopes which you want to request authorization for (e.g.read:contacts)",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -329,11 +327,12 @@
       "equals" : "oauth-client-credentials-flow",
       "type" : "simple"
     },
+    "tooltip" : "The scopes which you want to request authorization for",
+    "placeholder" : "read:contacts",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken.oauthTokenEndpoint",
     "label" : "OAuth 2.0 token endpoint",
-    "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -357,7 +356,6 @@
   }, {
     "id" : "authentication.oauthRefreshToken.clientId",
     "label" : "Client ID",
-    "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -373,11 +371,11 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
+    "tooltip" : "Your application's client ID from the OAuth client",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken.clientSecret",
     "label" : "Client secret",
-    "description" : "Your application's client secret from the OAuth client",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -390,11 +388,11 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
+    "tooltip" : "Your application's client secret from the OAuth client",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken.refreshToken",
     "label" : "Refresh token",
-    "description" : "The refresh token used to obtain a new access token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -410,11 +408,11 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
+    "tooltip" : "The refresh token used to obtain a new access token",
     "type" : "String"
   }, {
     "id" : "authentication.oauthRefreshToken.scopes",
     "label" : "Scopes",
-    "description" : "The scopes to request authorization for (space-separated)",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -427,6 +425,7 @@
       "equals" : "oauth-refresh-token",
       "type" : "simple"
     },
+    "tooltip" : "The scopes to request authorization for (space-separated)",
     "type" : "String"
   }, {
     "id" : "graphql.method",
@@ -470,7 +469,6 @@
   }, {
     "id" : "graphql.headers",
     "label" : "Headers",
-    "description" : "Map of HTTP headers to add to the request",
     "optional" : true,
     "feel" : "required",
     "group" : "endpoint",
@@ -478,11 +476,11 @@
       "name" : "graphql.headers",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Map of HTTP headers to add to the request",
     "type" : "String"
   }, {
     "id" : "graphql.storeResponse",
     "label" : "Store response",
-    "description" : "Store the response as a document in the document store",
     "optional" : false,
     "value" : false,
     "feel" : "static",
@@ -491,11 +489,11 @@
       "name" : "graphql.storeResponse",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Store the response as a document in the document store",
     "type" : "Boolean"
   }, {
     "id" : "graphql.query",
     "label" : "Query/Mutation",
-    "description" : "See <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -506,6 +504,7 @@
       "name" : "graphql.query",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The GraphQL query or mutation to execute. See the <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">GraphQL query/mutation syntax</a>.",
     "type" : "Text"
   }, {
     "id" : "graphql.variables",
@@ -521,7 +520,6 @@
   }, {
     "id" : "graphql.connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
-    "description" : "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
     "optional" : true,
     "value" : 20,
     "feel" : "static",
@@ -530,11 +528,11 @@
       "name" : "graphql.connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Use 0 for an infinite timeout",
     "type" : "Number"
   }, {
     "id" : "graphql.readTimeoutInSeconds",
     "label" : "Read timeout in seconds",
-    "description" : "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
     "optional" : true,
     "value" : 20,
     "feel" : "static",
@@ -543,6 +541,7 @@
       "name" : "graphql.readTimeoutInSeconds",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Use 0 for an infinite timeout",
     "type" : "Number"
   }, {
     "id" : "version",

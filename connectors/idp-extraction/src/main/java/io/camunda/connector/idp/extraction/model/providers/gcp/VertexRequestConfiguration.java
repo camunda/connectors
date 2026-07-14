@@ -28,7 +28,7 @@ public final class VertexRequestConfiguration implements GcpRequestConfiguration
   @TemplateProperty(
       group = "configuration",
       label = "Bucket name",
-      description = "The Google Cloud Storage bucket where the document will be temporarily stored")
+      tooltip = "The Google Cloud Storage bucket where the document will be temporarily stored")
   private String bucketName;
 
   public VertexRequestConfiguration() {}
