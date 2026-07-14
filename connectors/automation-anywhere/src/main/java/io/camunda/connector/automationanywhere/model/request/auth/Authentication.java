@@ -24,6 +24,6 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     name = "type",
     defaultValue = "passwordBasedAuthentication",
     description =
-        "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>")
+        "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">Automation Anywhere connector documentation</a>")
 public sealed interface Authentication
     permits PasswordBasedAuthentication, ApiKeyAuthentication, TokenBasedAuthentication {}

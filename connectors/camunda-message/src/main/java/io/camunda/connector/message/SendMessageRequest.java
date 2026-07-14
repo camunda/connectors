@@ -55,7 +55,7 @@ public record SendMessageRequest(
                 optional = true,
                 group = "operation",
                 label = "Time to live (as ISO 8601)",
-                description = "Duration for which the message remains buffered")
+                tooltip = "Duration for which the message remains buffered")
             Duration timeToLive,
         @TemplateProperty(optional = true, group = "operation", label = "Message id (optional)")
             String messageId)

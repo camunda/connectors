@@ -90,7 +90,7 @@
   }, {
     "id" : "authentication.type",
     "label" : "Type",
-    "description" : "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+    "description" : "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">Automation Anywhere connector documentation</a>",
     "value" : "passwordBasedAuthentication",
     "group" : "authentication",
     "binding" : {
@@ -231,7 +231,6 @@
   }, {
     "id" : "operation.queueId",
     "label" : "Work queue ID",
-    "description" : "The queue ID of the item",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -251,7 +250,6 @@
   }, {
     "id" : "operation.data",
     "label" : "Work item json data",
-    "description" : "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -267,11 +265,11 @@
       "equals" : "addWorkItemsToTheQueue",
       "type" : "simple"
     },
+    "tooltip" : "JSON data for the work item, mapping queue column names to values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">Automation Anywhere connector documentation</a>",
     "type" : "Text"
   }, {
     "id" : "operation.workQueueId",
     "label" : "Work queue ID",
-    "description" : "The queue ID of the item",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -291,7 +289,6 @@
   }, {
     "id" : "operation.workItemId",
     "label" : "Work item ID",
-    "description" : "The queue item identifier to be fetched from queue",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -307,11 +304,11 @@
       "equals" : "listWorkItemsInQueue",
       "type" : "simple"
     },
+    "tooltip" : "The queue item identifier to be fetched from queue",
     "type" : "Number"
   }, {
     "id" : "configuration.connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
-    "description" : "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
     "optional" : true,
     "value" : 20,
     "feel" : "static",
@@ -320,6 +317,7 @@
       "name" : "configuration.connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
     "type" : "Number"
   }, {
     "id" : "version",

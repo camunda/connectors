@@ -49,7 +49,6 @@
   }, {
     "id" : "database",
     "label" : "Select a database",
-    "description" : "Select the database you want to connect to. If you choose Oracle, make sure the Oracle JDBC driver is included. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Learn how to set it up.</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -59,6 +58,7 @@
       "name" : "database",
       "type" : "zeebe:input"
     },
+    "tooltip" : "If you choose Oracle, make sure the Oracle JDBC driver is included. <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Oracle JDBC driver setup</a>.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "MariaDB",
@@ -96,7 +96,6 @@
   }, {
     "id" : "connection.uri",
     "label" : "URI",
-    "description" : "URI should contain JDBC driver, host name, and port number. For more information, see the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">documentation</a>.)",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -116,11 +115,11 @@
       "equals" : "uri",
       "type" : "simple"
     },
+    "tooltip" : "URI should contain JDBC driver, host name, and port number. See the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">URI connection</a> reference.",
     "type" : "String"
   }, {
     "id" : "connection.uriProperties",
     "label" : "Properties",
-    "description" : "Additional properties for the connection ('user' and 'password' for instance). For more information, see the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "required",
     "group" : "connection",
@@ -133,6 +132,7 @@
       "equals" : "uri",
       "type" : "simple"
     },
+    "tooltip" : "Additional properties for the connection ('user' and 'password' for instance). See the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">SQL connection properties</a> reference.",
     "type" : "String"
   }, {
     "id" : "connection.host",
@@ -223,7 +223,6 @@
   }, {
     "id" : "connection.properties",
     "label" : "Properties",
-    "description" : "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "required",
     "group" : "connection",
@@ -236,11 +235,11 @@
       "equals" : "detailed",
       "type" : "simple"
     },
+    "tooltip" : "Additional properties for the connection. See the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">SQL connection properties</a> reference.",
     "type" : "String"
   }, {
     "id" : "data.returnResults",
     "label" : "Return results",
-    "description" : "Check this box if the SQL statement return results, e.g. a SELECT or any statement with a RETURNING clause",
     "optional" : false,
     "value" : false,
     "feel" : "static",
@@ -249,11 +248,11 @@
       "name" : "data.returnResults",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Check this box if the SQL statement returns results, e.g. a SELECT or any statement with a RETURNING clause",
     "type" : "Boolean"
   }, {
     "id" : "data.query",
     "label" : "SQL Query to execute",
-    "description" : "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -264,11 +263,11 @@
       "name" : "data.query",
       "type" : "zeebe:input"
     },
+    "tooltip" : "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>",
     "type" : "String"
   }, {
     "id" : "data.variables",
     "label" : "SQL Query variables",
-    "description" : "The <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.",
     "optional" : true,
     "feel" : "required",
     "group" : "query",
@@ -276,6 +275,7 @@
       "name" : "data.variables",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.",
     "type" : "String"
   }, {
     "id" : "version",

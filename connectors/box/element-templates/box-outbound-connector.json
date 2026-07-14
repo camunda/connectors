@@ -137,7 +137,6 @@
   }, {
     "id" : "operation.recursive",
     "label" : "Recursive",
-    "description" : "Deletes all items contained by the folder",
     "optional" : false,
     "value" : true,
     "feel" : "static",
@@ -151,6 +150,7 @@
       "equals" : "deleteFolder",
       "type" : "simple"
     },
+    "tooltip" : "Deletes all items contained by the folder",
     "type" : "Boolean"
   }, {
     "id" : "operation.uploadFileName",
@@ -193,7 +193,6 @@
   }, {
     "id" : "operation.document_documentSource",
     "label" : "Document source",
-    "description" : "The document reference that will be uploaded",
     "value" : "camunda",
     "group" : "operation",
     "binding" : {
@@ -205,6 +204,7 @@
       "equals" : "uploadFile",
       "type" : "simple"
     },
+    "tooltip" : "The document reference that will be uploaded",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda Document",
@@ -368,7 +368,6 @@
   }, {
     "id" : "operation.downloadFilePath",
     "label" : "File path",
-    "description" : "Path to the file item to download",
     "optional" : false,
     "feel" : "optional",
     "group" : "operation",
@@ -381,6 +380,7 @@
       "equals" : "downloadFile",
       "type" : "simple"
     },
+    "tooltip" : "Path to the file item to download",
     "type" : "String"
   }, {
     "id" : "operation.moveFilePath",
@@ -461,7 +461,6 @@
   }, {
     "id" : "operation.searchSortColumn",
     "label" : "Search sort column",
-    "description" : "Column for sorting search results",
     "optional" : false,
     "value" : "modified_at",
     "constraints" : {
@@ -482,7 +481,6 @@
   }, {
     "id" : "operation.searchSortDirection",
     "label" : "Search sort direction",
-    "description" : "Direction for sorting search results",
     "optional" : false,
     "value" : "DESC",
     "group" : "operation",
@@ -495,6 +493,7 @@
       "equals" : "search",
       "type" : "simple"
     },
+    "tooltip" : "Sort order for results: ASC (ascending) or DESC (descending)",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "ASC",
@@ -506,7 +505,6 @@
   }, {
     "id" : "operation.searchOffset",
     "label" : "Search offset",
-    "description" : "Offset for search results",
     "optional" : false,
     "value" : 0,
     "feel" : "static",
@@ -524,7 +522,6 @@
   }, {
     "id" : "operation.searchLimit",
     "label" : "Search limit",
-    "description" : "Limit",
     "optional" : false,
     "value" : 30,
     "feel" : "static",
@@ -566,7 +563,6 @@
   }, {
     "id" : "authentication.clientIdEnterprise",
     "label" : "Client id",
-    "description" : "The client id",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -586,7 +582,6 @@
   }, {
     "id" : "authentication.clientSecretEnterprise",
     "label" : "Client secret",
-    "description" : "The client secret",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -606,7 +601,6 @@
   }, {
     "id" : "authentication.enterpriseId",
     "label" : "Enterprise ID",
-    "description" : "The enterprise ID to authenticate against",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -622,11 +616,11 @@
       "equals" : "clientCredentialsEnterprise",
       "type" : "simple"
     },
+    "tooltip" : "The enterprise ID to authenticate against",
     "type" : "String"
   }, {
     "id" : "authentication.clientIdUser",
     "label" : "Client id",
-    "description" : "The client id",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -646,7 +640,6 @@
   }, {
     "id" : "authentication.clientSecretUser",
     "label" : "Client secret",
-    "description" : "The client secret",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -666,7 +659,6 @@
   }, {
     "id" : "authentication.userId",
     "label" : "User ID",
-    "description" : "The user ID to of the account to authenticate against",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -682,11 +674,11 @@
       "equals" : "clientCredentialsUser",
       "type" : "simple"
     },
+    "tooltip" : "The user ID of the account to authenticate against",
     "type" : "String"
   }, {
     "id" : "authentication.accessToken",
     "label" : "Access key",
-    "description" : "The access key or developer token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -702,11 +694,11 @@
       "equals" : "developerToken",
       "type" : "simple"
     },
+    "tooltip" : "The access key or developer token",
     "type" : "String"
   }, {
     "id" : "authentication.jsonConfig",
     "label" : "JSON config",
-    "description" : "The JSON config as string",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -722,6 +714,7 @@
       "equals" : "jwtJsonConfig",
       "type" : "simple"
     },
+    "tooltip" : "The JSON config as string",
     "type" : "String"
   }, {
     "id" : "version",

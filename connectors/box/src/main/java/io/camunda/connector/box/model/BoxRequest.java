@@ -52,55 +52,45 @@ public record BoxRequest(
         @TemplateProperty(
                 group = "authentication",
                 label = "Access key",
-                description = "The access key or developer token")
+                tooltip = "The access key or developer token")
             @NotBlank
             String accessToken)
         implements Authentication {}
 
     @TemplateSubType(id = "clientCredentialsUser", label = "Client Credentials User")
     record ClientCredentialsUser(
-        @TemplateProperty(
-                group = "authentication",
-                id = "clientIdUser",
-                label = "Client id",
-                description = "The client id")
+        @TemplateProperty(group = "authentication", id = "clientIdUser", label = "Client id")
             @NotBlank
             String clientId,
         @TemplateProperty(
                 group = "authentication",
                 id = "clientSecretUser",
-                label = "Client secret",
-                description = "The client secret")
+                label = "Client secret")
             @NotBlank
             String clientSecret,
         @TemplateProperty(
                 group = "authentication",
                 label = "User ID",
-                description = "The user ID to of the account to authenticate against")
+                tooltip = "The user ID of the account to authenticate against")
             @NotBlank
             String userId)
         implements Authentication {}
 
     @TemplateSubType(id = "clientCredentialsEnterprise", label = "Client Credentials Enterprise")
     record ClientCredentialsEnterprise(
-        @TemplateProperty(
-                group = "authentication",
-                id = "clientIdEnterprise",
-                label = "Client id",
-                description = "The client id")
+        @TemplateProperty(group = "authentication", id = "clientIdEnterprise", label = "Client id")
             @NotBlank
             String clientId,
         @TemplateProperty(
                 group = "authentication",
                 id = "clientSecretEnterprise",
-                label = "Client secret",
-                description = "The client secret")
+                label = "Client secret")
             @NotBlank
             String clientSecret,
         @TemplateProperty(
                 group = "authentication",
                 label = "Enterprise ID",
-                description = "The enterprise ID to authenticate against")
+                tooltip = "The enterprise ID to authenticate against")
             @NotBlank
             String enterpriseId)
         implements Authentication {}
@@ -110,7 +100,7 @@ public record BoxRequest(
         @TemplateProperty(
                 group = "authentication",
                 label = "JSON config",
-                description = "The JSON config as string")
+                tooltip = "The JSON config as string")
             @NotBlank
             String jsonConfig)
         implements Authentication {}
@@ -172,7 +162,7 @@ public record BoxRequest(
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 group = "operation",
                 label = "Recursive",
-                description = "Deletes all items contained by the folder")
+                tooltip = "Deletes all items contained by the folder")
             boolean recursive)
         implements Operation {}
 
@@ -190,7 +180,7 @@ public record BoxRequest(
         @TemplateDocumentProperty(
                 id = "uploadFileDocument",
                 group = "operation",
-                description = "The document reference that will be uploaded")
+                tooltip = "The document reference that will be uploaded")
             @NotNull
             Document document)
         implements Operation {
@@ -210,7 +200,7 @@ public record BoxRequest(
                 id = "downloadFilePath",
                 group = "operation",
                 label = "File path",
-                description = "Path to the file item to download")
+                tooltip = "Path to the file item to download")
             String filePath)
         implements Operation {}
 
@@ -250,28 +240,25 @@ public record BoxRequest(
         @TemplateProperty(
                 id = "searchSortColumn",
                 defaultValue = "modified_at",
-                description = "Column for sorting search results",
                 group = "operation")
             @NotBlank
             String sortColumn,
         @TemplateProperty(
                 id = "searchSortDirection",
                 defaultValue = "DESC",
-                description = "Direction for sorting search results",
+                tooltip = "Sort order for results: ASC (ascending) or DESC (descending)",
                 group = "operation")
             SortDirection sortDirection,
         @TemplateProperty(
                 id = "searchOffset",
                 defaultValueType = TemplateProperty.DefaultValueType.Number,
                 defaultValue = "0",
-                description = "Offset for search results",
                 group = "operation")
             Long offset,
         @TemplateProperty(
                 id = "searchLimit",
                 defaultValueType = TemplateProperty.DefaultValueType.Number,
                 defaultValue = "30",
-                description = "Limit",
                 group = "operation")
             @Min(1)
             @Max(200)
