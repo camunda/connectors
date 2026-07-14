@@ -97,11 +97,11 @@ limitations under the License.</license.inlineheader>
     <version.spring-boot>4.1.0</version.spring-boot>
     <tomcat.version>11.0.23</tomcat.version>
     <version.netty>4.2.16.Final</version.netty>
-    <version.spring-cloud-gcp-starter-logging>8.0.5</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>8.1.0</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.38</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.47.5</version.aws-sdk2>
+    <version.aws-sdk2>2.47.6</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -142,7 +142,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.3.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.65.0</version.microsoft-graph>
+    <version.microsoft-graph>6.66.1</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.4</version.azure-identity>
@@ -173,7 +173,7 @@ limitations under the License.</license.inlineheader>
     <version.wiremock>3.13.2</version.wiremock>
     <version.system-stubs>2.1.8</version.system-stubs>
 
-    <version.auth0.jwt>4.5.2</version.auth0.jwt>
+    <version.auth0.jwt>4.6.0</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
     <version.langchain4j>1.17.2</version.langchain4j>
