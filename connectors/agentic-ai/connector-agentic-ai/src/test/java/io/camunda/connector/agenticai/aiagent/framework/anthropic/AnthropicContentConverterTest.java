@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.anthropic.models.beta.messages.BetaBase64ImageSource;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -133,6 +134,88 @@ class AnthropicContentConverterTest {
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isServerToolUse()).isTrue();
       assertThat(blocks.get(0).asServerToolUse().id()).isEqualTo("srvtoolu_01ABC");
+    }
+
+    @Test
+    void mapsContainerUploadProviderContentToNativeBlockRoundTrip() {
+      final var payload =
+          Map.<String, Object>of("type", "container_upload", "file_id", "file_01ABC");
+
+      final var blocks =
+          converter.toContentBlockParams(
+              List.of(new ProviderContent("anthropic", "container_upload", payload, null)));
+
+      assertThat(blocks).hasSize(1);
+      assertThat(blocks.get(0).isContainerUpload()).isTrue();
+      assertThat(blocks.get(0).asContainerUpload().fileId()).isEqualTo("file_01ABC");
+    }
+
+    @Test
+    void mapsWebSearchToolResultProviderContentToNativeBlockRoundTrip() {
+      final var payload =
+          Map.<String, Object>of(
+              "type",
+              "web_search_tool_result",
+              "tool_use_id",
+              "srvtoolu_01DEF",
+              "content",
+              List.of(
+                  Map.of(
+                      "type", "web_search_result",
+                      "title", "Example",
+                      "url", "https://example.com",
+                      "encrypted_content", "abc123")));
+
+      final var blocks =
+          converter.toContentBlockParams(
+              List.of(new ProviderContent("anthropic", "web_search_tool_result", payload, null)));
+
+      assertThat(blocks).hasSize(1);
+      assertThat(blocks.get(0).isWebSearchToolResult()).isTrue();
+      assertThat(blocks.get(0).asWebSearchToolResult().toolUseId()).isEqualTo("srvtoolu_01DEF");
+    }
+
+    @Test
+    void survivesNumericPayloadCoercionAcrossPersistenceHop() throws Exception {
+      final var payload =
+          Map.<String, Object>of(
+              "type",
+              "code_execution_tool_result",
+              "tool_use_id",
+              "srvtoolu_01GHI",
+              "content",
+              Map.of(
+                  "type", "code_execution_result",
+                  "return_code", 0,
+                  "stdout", "",
+                  "stderr", "",
+                  "content", List.of()));
+
+      // Simulate conversation-memory persistence: a plain Jackson ObjectMapper restores
+      // numeric fields as Integer, not Long, unlike the SDK's own JSON mapper.
+      final var persistenceMapper = new ObjectMapper();
+      final var json = persistenceMapper.writeValueAsString(payload);
+      final Map<String, Object> restoredPayload =
+          persistenceMapper.readValue(json, new TypeReference<>() {});
+
+      final var blocks =
+          converter.toContentBlockParams(
+              List.of(
+                  new ProviderContent(
+                      "anthropic", "code_execution_tool_result", restoredPayload, null)));
+
+      assertThat(blocks).hasSize(1);
+      assertThat(blocks.get(0).isCodeExecutionToolResult()).isTrue();
+      assertThat(blocks.get(0).asCodeExecutionToolResult().toolUseId()).isEqualTo("srvtoolu_01GHI");
+    }
+
+    @Test
+    void skipsProviderContentWithNullPayload() {
+      final var blocks =
+          converter.toContentBlockParams(
+              List.of(new ProviderContent("anthropic", "server_tool_use", null, null)));
+
+      assertThat(blocks).isEmpty();
     }
 
     @Test

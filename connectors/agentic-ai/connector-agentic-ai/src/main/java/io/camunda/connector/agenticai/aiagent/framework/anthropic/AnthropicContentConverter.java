@@ -60,9 +60,14 @@ public class AnthropicContentConverter {
         // Reasoning content is NOT re-emitted on the request side in C7 (signature
         // round-trip is deferred); skip it so history replay stays valid.
         case ReasoningContent ignored -> {}
-        case ProviderContent pc ->
+        case ProviderContent pc -> {
+          // A null payload (reachable via the public constructor) has no wire
+          // representation to replay; skip it instead of emitting a null content block.
+          if (pc.payload() != null) {
             blocks.add(
                 ObjectMappers.jsonMapper().convertValue(pc.payload(), BetaContentBlockParam.class));
+          }
+        }
       }
     }
     return blocks;
