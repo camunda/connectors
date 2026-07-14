@@ -124,7 +124,7 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
-  void mapsThinkingToReadOnlyReasoningContent() {
+  void mapsThinkingToReasoningContentWithRawBlockPayload() {
     final var message =
         message(
             """
@@ -146,7 +146,44 @@ class AnthropicMessageResponseConverterTest {
 
     assertThat(assistantMessage.content())
         .containsExactly(
-            new ReasoningContent("Let me think it through", "sig-123", null),
+            new ReasoningContent(
+                "Let me think it through",
+                Map.of(
+                    "type",
+                    "thinking",
+                    "thinking",
+                    "Let me think it through",
+                    "signature",
+                    "sig-123"),
+                null),
+            TextContent.textContent("the answer"));
+  }
+
+  @Test
+  void mapsRedactedThinkingToReasoningContentWithRawBlockPayloadAndNullText() {
+    final var message =
+        message(
+            """
+            {
+              "id": "msg_redacted",
+              "model": "claude-sonnet-4-6",
+              "role": "assistant",
+              "type": "message",
+              "content": [
+                {"type": "redacted_thinking", "data": "encrypted-blob"},
+                {"type": "text", "text": "the answer"}
+              ],
+              "stop_reason": "end_turn",
+              "usage": {"input_tokens": 1, "output_tokens": 1}
+            }
+            """);
+
+    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+
+    assertThat(assistantMessage.content())
+        .containsExactly(
+            new ReasoningContent(
+                null, Map.of("type", "redacted_thinking", "data", "encrypted-blob"), null),
             TextContent.textContent("the answer"));
   }
 

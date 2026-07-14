@@ -36,13 +36,15 @@ import org.slf4j.LoggerFactory;
  * Maps an accumulated Anthropic SDK (beta messages client) {@link BetaMessage} response to the
  * domain {@link AssistantMessage}, its {@link AgentMetrics}, and a {@link ChatModelResult}.
  *
- * <p>Content mapping is read-only on the response side: {@code text} blocks become {@link
- * TextContent}, {@code tool_use} blocks become {@link ToolCall}s, and {@code thinking} / {@code
- * redacted_thinking} blocks become read-only {@link ReasoningContent} (thinking text plus the
- * signature/redacted payload preserved in {@code providerPayload} for potential future
- * round-tripping). Reasoning content is deliberately never re-emitted back to Anthropic on the
- * request side (see {@link AnthropicContentConverter}) — that is a deferred follow-up. Every other
- * block type (server-tool and code-execution blocks such as {@code server_tool_use}, {@code
+ * <p>Content mapping is on the response side: {@code text} blocks become {@link TextContent},
+ * {@code tool_use} blocks become {@link ToolCall}s, and {@code thinking} / {@code
+ * redacted_thinking} blocks become {@link ReasoningContent} whose {@code providerPayload} carries
+ * the <strong>full raw block</strong> (a {@code Map<String, Object>} produced via the SDK's own
+ * mapper — {@code type}/{@code thinking}/{@code signature} for a thinking block, {@code
+ * type}/{@code data} for a redacted one), not just the bare signature/redacted string. This raw
+ * payload IS re-emitted back to Anthropic on the request side (see {@link
+ * AnthropicContentConverter}), so reasoning now round-trips losslessly. Every other block type
+ * (server-tool and code-execution blocks such as {@code server_tool_use}, {@code
  * code_execution_tool_result}, {@code web_search_tool_result}, {@code container_upload}, etc.) is
  * captured losslessly as {@link ProviderContent}, kept inline in original order, and never added to
  * {@code toolCalls} since these are server-side blocks the caller is never expected to act on.
@@ -96,11 +98,18 @@ public class AnthropicMessageResponseConverter {
         final var toolUse = block.toolUse().orElseThrow();
         toolCalls.add(new ToolCall(toolUse.id(), toolUse.name(), toolUseArguments(toolUse)));
       } else if (block.isThinking()) {
-        final var thinking = block.thinking().orElseThrow();
-        content.add(new ReasoningContent(thinking.thinking(), thinking.signature(), null));
+        // The raw block (type/thinking/signature) is preserved in full as providerPayload so it
+        // can be replayed byte-identical on the request side (see AnthropicContentConverter);
+        // uses the SDK's own mapper for the same reason as the ProviderContent branch below.
+        final Map<String, Object> raw =
+            ObjectMappers.jsonMapper()
+                .convertValue(block, new TypeReference<Map<String, Object>>() {});
+        content.add(new ReasoningContent(block.thinking().orElseThrow().thinking(), raw, null));
       } else if (block.isRedactedThinking()) {
-        final var redactedThinking = block.redactedThinking().orElseThrow();
-        content.add(new ReasoningContent(null, redactedThinking.data(), null));
+        final Map<String, Object> raw =
+            ObjectMappers.jsonMapper()
+                .convertValue(block, new TypeReference<Map<String, Object>>() {});
+        content.add(new ReasoningContent(null, raw, null));
       } else {
         // Server-tool / provider-specific blocks (server_tool_use, code_execution_tool_result,
         // web_search_tool_result, container_upload, etc.) have no provider-neutral

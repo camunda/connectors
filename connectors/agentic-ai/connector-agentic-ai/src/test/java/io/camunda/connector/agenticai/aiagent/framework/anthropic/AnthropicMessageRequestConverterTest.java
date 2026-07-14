@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
@@ -395,6 +396,71 @@ class AnthropicMessageRequestConverterTest {
     assertThat(blocks).hasSize(2);
     assertThat(blocks.get(0).serverToolUse()).isPresent();
     assertThat(blocks.get(1).toolUse().orElseThrow().id()).isEqualTo("toolu_1");
+  }
+
+  @Test
+  void reEmitsThinkingBlockBeforeToolUseForPureReasoningTurn() {
+    // Spec §9 item 4 / §1d: a thinking block re-emitted from ReasoningContent must precede the
+    // tool_use block(s) appended from AssistantMessage#toolCalls -- assistantParam() always
+    // emits `content` before `toolCalls`, so this holds by construction, but is worth pinning
+    // down explicitly for the reasoning case since Anthropic requires thinking to lead an
+    // assistant turn that also contains tool use.
+    final var reasoning =
+        new ReasoningContent(
+            "Let me think it through",
+            Map.of(
+                "type", "thinking",
+                "thinking", "Let me think it through",
+                "signature", "sig-123"),
+            null);
+
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(reasoning))
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("toolu_1")
+                                .name("get_weather")
+                                .arguments(Map.of("city", "Berlin"))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot, caps());
+
+    final var blocks = params.messages().get(0).content().asBetaContentBlockParams();
+    assertThat(blocks).hasSize(2);
+    assertThat(blocks.get(0).isThinking()).isTrue();
+    assertThat(blocks.get(0).asThinking().signature()).isEqualTo("sig-123");
+    assertThat(blocks.get(1).toolUse().orElseThrow().id()).isEqualTo("toolu_1");
+  }
+
+  @Test
+  void reEmitsNonEmptyContentForPureReasoningTurnWithNoTextOrToolCall() {
+    // An assistant message whose only content is reasoning (no text, no tool call) must still
+    // produce a non-empty content array -- Anthropic rejects an assistant message with an empty
+    // content array.
+    final var reasoning =
+        new ReasoningContent(
+            "Let me think it through",
+            Map.of(
+                "type", "thinking",
+                "thinking", "Let me think it through",
+                "signature", "sig-123"),
+            null);
+
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
+
+    final var params = converter.toMessageCreateParams(ctx(model(null), null), snapshot, caps());
+
+    final var blocks = params.messages().get(0).content().asBetaContentBlockParams();
+    assertThat(blocks).hasSize(1);
+    assertThat(blocks.get(0).isThinking()).isTrue();
   }
 
   @Test

@@ -57,9 +57,17 @@ public class AnthropicContentConverter {
             blocks.add(
                 BetaContentBlockParam.ofText(
                     BetaTextBlockParam.builder().text(writeAsJson(obj.content())).build()));
-        // Reasoning content is NOT re-emitted on the request side in C7 (signature
-        // round-trip is deferred); skip it so history replay stays valid.
-        case ReasoningContent ignored -> {}
+        // Reasoning content is re-emitted unconditionally (no capability gate; see spec §4b) as
+        // long as a raw providerPayload is present. A null payload (e.g. reasoning content
+        // produced by the LangChain4J bridge path, which has no raw block to preserve) has no
+        // wire representation to replay; skip it so history replay stays valid.
+        case ReasoningContent rc -> {
+          if (rc.providerPayload() != null) {
+            blocks.add(
+                ObjectMappers.jsonMapper()
+                    .convertValue(rc.providerPayload(), BetaContentBlockParam.class));
+          }
+        }
         case ProviderContent pc -> {
           // A null payload (reachable via the public constructor) has no wire
           // representation to replay; skip it instead of emitting a null content block.
