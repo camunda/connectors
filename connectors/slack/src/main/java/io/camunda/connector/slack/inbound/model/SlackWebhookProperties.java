@@ -20,7 +20,7 @@ public record SlackWebhookProperties(
             id = "context",
             label = "Webhook ID",
             group = "endpoint",
-            description = "The webhook ID is a part of the URL endpoint",
+            tooltip = "The webhook ID is a part of the URL endpoint",
             feel = FeelMode.disabled)
         @NotBlank
         String context,
@@ -28,8 +28,8 @@ public record SlackWebhookProperties(
             id = "slackSigningSecret",
             label = "Slack signing secret",
             group = "endpoint",
-            description =
-                "Slack signing secret. <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>See documentation</a> regarding the Slack signing secret",
+            tooltip =
+                "Used to verify that incoming requests originate from Slack. See <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>Verifying requests from Slack</a>",
             feel = FeelMode.disabled)
         @NotBlank
         String slackSigningSecret,

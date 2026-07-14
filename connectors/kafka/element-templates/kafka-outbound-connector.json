@@ -52,7 +52,6 @@
   }, {
     "id" : "authentication.username",
     "label" : "Username",
-    "description" : "Provide the username (must have permissions to produce message to the topic)",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -60,11 +59,11 @@
       "name" : "authentication.username",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The user must have permissions to produce messages to the topic.",
     "type" : "String"
   }, {
     "id" : "authentication.password",
     "label" : "Password",
-    "description" : "Provide a password for the user",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -76,7 +75,6 @@
   }, {
     "id" : "topic.bootstrapServers",
     "label" : "Bootstrap servers",
-    "description" : "Provide bootstrap server(s), comma-delimited if there are multiple",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -87,11 +85,12 @@
       "name" : "topic.bootstrapServers",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Bootstrap server(s), comma-delimited if there are multiple.",
+    "placeholder" : "broker1:9092,broker2:9092",
     "type" : "String"
   }, {
     "id" : "topic.topicName",
     "label" : "Topic",
-    "description" : "Provide topic name",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -106,7 +105,6 @@
   }, {
     "id" : "additionalProperties",
     "label" : "Additional properties",
-    "description" : "Provide additional Kafka producer properties in JSON",
     "optional" : true,
     "feel" : "required",
     "group" : "kafka",
@@ -114,6 +112,7 @@
       "name" : "additionalProperties",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Additional Kafka producer properties in JSON.",
     "type" : "String"
   }, {
     "id" : "schemaStrategy.type",
@@ -138,7 +137,6 @@
   }, {
     "id" : "schemaStrategy.avro.schema",
     "label" : "Schema",
-    "description" : "Avro inline schema for the message value",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -154,11 +152,11 @@
       "equals" : "inlineSchema",
       "type" : "simple"
     },
+    "tooltip" : "Avro inline schema for the message value",
     "type" : "Text"
   }, {
     "id" : "schemaStrategy.schema",
     "label" : "Schema",
-    "description" : "Schema (JSON or AVRO) for the message value",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -174,11 +172,11 @@
       "equals" : "schemaRegistry",
       "type" : "simple"
     },
+    "tooltip" : "Schema (JSON or Avro) for the message value.",
     "type" : "Text"
   }, {
     "id" : "schemaStrategy.schemaType",
     "label" : "Schema type",
-    "description" : "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "value" : "avro",
     "group" : "schema",
@@ -191,6 +189,7 @@
       "equals" : "schemaRegistry",
       "type" : "simple"
     },
+    "tooltip" : "Format used to (de)serialize the message value: JSON or Avro. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">Kafka connector</a> guide.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "JSON",
@@ -202,7 +201,6 @@
   }, {
     "id" : "schemaStrategy.schemaRegistryUrl",
     "label" : "Schema registry URL",
-    "description" : "Provide the schema registry URL",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -222,7 +220,6 @@
   }, {
     "id" : "message.key",
     "label" : "Key",
-    "description" : "Provide message key",
     "optional" : false,
     "feel" : "optional",
     "group" : "message",
@@ -234,7 +231,6 @@
   }, {
     "id" : "message.value",
     "label" : "Value",
-    "description" : "Provide message value",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -249,7 +245,6 @@
   }, {
     "id" : "headers",
     "label" : "Headers",
-    "description" : "Provide Kafka producer headers in JSON",
     "optional" : true,
     "feel" : "required",
     "group" : "message",
@@ -257,6 +252,7 @@
       "name" : "headers",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Kafka producer headers in JSON.",
     "type" : "String"
   }, {
     "id" : "version",

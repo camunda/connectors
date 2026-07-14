@@ -27,7 +27,7 @@ import java.io.IOException;
 public record PinsAddData(
     @TemplateProperty(
             label = "Channel",
-            description = "Channel ID of the message to pin",
+            tooltip = "Channel ID of the message to pin",
             id = "pinMessage.channel",
             group = "pinMessage",
             binding = @PropertyBinding(name = "data.channel"),
@@ -36,7 +36,7 @@ public record PinsAddData(
         String channel,
     @TemplateProperty(
             label = "Message timestamp",
-            description = "Timestamp of the Slack message to pin",
+            tooltip = "Timestamp of the Slack message to pin",
             id = "pinMessage.timestamp",
             group = "pinMessage",
             feel = FeelMode.required,

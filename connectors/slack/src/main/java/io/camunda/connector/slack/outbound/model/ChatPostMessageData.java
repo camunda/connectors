@@ -92,8 +92,8 @@ public record ChatPostMessageData(
         String text,
     @TemplateProperty(
             label = "Message block",
-            description =
-                "An array of rich message content blocks. Learn more at the <a href=\"https://api.slack.com/reference/surfaces/formatting#stack_of_blocks\" target=\"_blank\">official Slack documentation page</a>",
+            tooltip =
+                "An array of rich message content blocks. See the <a href=\"https://api.slack.com/reference/surfaces/formatting#stack_of_blocks\" target=\"_blank\">Slack Block Kit reference</a>",
             id = "data.blockContent",
             group = "message",
             feel = FeelMode.required,
@@ -111,7 +111,7 @@ public record ChatPostMessageData(
             group = "message",
             binding = @PropertyBinding(name = "data.documents"),
             optional = true,
-            description =
+            tooltip =
                 "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments")
         List<Document> documents)
     implements SlackRequestData {
