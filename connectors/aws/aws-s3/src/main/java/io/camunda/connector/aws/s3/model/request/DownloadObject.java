@@ -30,7 +30,7 @@ public record DownloadObject(
             label = "AWS key",
             id = "downloadActionKey",
             group = "downloadObject",
-            tooltip = "Key of the object which should be download",
+            tooltip = "Key of the object which should be downloaded",
             feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "action.key"))
         @NotBlank

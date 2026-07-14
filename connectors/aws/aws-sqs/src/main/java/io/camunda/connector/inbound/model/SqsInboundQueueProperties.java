@@ -18,7 +18,7 @@ public record SqsInboundQueueProperties(
             id = "queue.url",
             label = "Queue URL",
             group = "queueProperties",
-            description = "Specify the URL of the SQS queue where you would like to subscribe to",
+            tooltip = "URL of the SQS queue to subscribe to.",
             feel = FeelMode.disabled)
         @NotBlank
         String url,
@@ -26,16 +26,16 @@ public record SqsInboundQueueProperties(
             id = "queue.attributeNames",
             label = "Attribute names",
             group = "input",
-            description =
-                "Array of queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
+            tooltip =
+                "Array of queue attribute names. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">Amazon SQS connector guide</a>.",
             feel = FeelMode.optional)
         List<String> attributeNames,
     @TemplateProperty(
             id = "queue.messageAttributeNames",
             label = "Message attribute names",
             group = "input",
-            description =
-                "Array of message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
+            tooltip =
+                "Array of message attribute names. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">Amazon SQS connector guide</a>.",
             feel = FeelMode.optional)
         List<String> messageAttributeNames,
     @TemplateProperty(
@@ -43,8 +43,8 @@ public record SqsInboundQueueProperties(
             label = "Polling wait time",
             group = "messagePollingProperties",
             defaultValue = "20",
-            description =
-                "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details. A value of 0 will automatically be overridden to 1",
+            tooltip =
+                "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">Amazon SQS connector guide</a>. A value of 0 is automatically overridden to 1.",
             feel = FeelMode.disabled)
         @Pattern(regexp = "^([0-9]?|1[0-9]|20|secrets\\..+)$")
         @NotBlank

@@ -17,18 +17,13 @@ import jakarta.validation.constraints.NotNull;
     description = "Add a single item to a DynamoDB table",
     keywords = {"add item", "put item", "insert item"})
 public record AddItem(
-    @TemplateProperty(
-            label = "Table name",
-            id = "addItem.tableName",
-            group = "input",
-            description = "Name of DynamoDB table")
-        @NotBlank
+    @TemplateProperty(label = "Table name", id = "addItem.tableName", group = "input") @NotBlank
         String tableName,
     @TemplateProperty(
             label = "Item",
             group = "input",
             feel = FeelMode.required,
-            description = "DynamoDB item (group of attributes)")
+            tooltip = "DynamoDB item (group of attributes)")
         @NotNull
         Object item)
     implements ItemInput {}

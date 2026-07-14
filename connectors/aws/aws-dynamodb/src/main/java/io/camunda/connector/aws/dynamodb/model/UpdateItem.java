@@ -18,27 +18,22 @@ import java.util.Map;
     description = "Update a single item in a DynamoDB table",
     keywords = {"update item", "modify item", "patch item"})
 public record UpdateItem(
-    @TemplateProperty(
-            label = "Table name",
-            id = "updateTable.tableName",
-            group = "input",
-            description = "Name of DynamoDB table")
-        @NotBlank
+    @TemplateProperty(label = "Table name", id = "updateTable.tableName", group = "input") @NotBlank
         String tableName,
     @TemplateProperty(
             label = "Primary key components",
             id = "updateItem.primaryKeyComponents",
             group = "input",
             feel = FeelMode.required,
-            description = "Simple or composite primary key")
+            tooltip = "Simple or composite primary key")
         @NotNull
         Map<String, Object> primaryKeyComponents,
     @TemplateProperty(
             label = "Key attributes",
             group = "input",
             feel = FeelMode.required,
-            description =
-                "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
+            tooltip =
+                "Attribute values to write to the item. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         @NotNull
         Map<String, Object> keyAttributes,
     @TemplateProperty(
@@ -49,7 +44,7 @@ public record UpdateItem(
               @TemplateProperty.DropdownPropertyChoice(value = "put", label = "PUT"),
               @TemplateProperty.DropdownPropertyChoice(value = "delete", label = "DELETE")
             },
-            description = "Specifies how to perform the update")
+            tooltip = "PUT = set the attribute value, DELETE = remove the attribute")
         @NotBlank
         String attributeAction)
     implements ItemInput {}
