@@ -141,6 +141,8 @@ class OpenAiChatModelTest {
                 new OpenAiDirectBackend("   ", null, null),
                 new OpenAiModel("gpt-5.4", null),
                 null,
+                null,
+                null,
                 null));
     assertThat(validator.validate(model))
         .anyMatch(v -> v.getPropertyPath().toString().contains("apiKey"));
@@ -159,6 +161,8 @@ class OpenAiChatModelTest {
                     Map.of(),
                     new CompatibleNoAuthentication()),
                 new OpenAiModel("custom-model", null),
+                null,
+                null,
                 null,
                 null));
     assertThat(validator.validate(model)).isEmpty();
@@ -200,5 +204,33 @@ class OpenAiChatModelTest {
     final var direct = new OpenAiDirectBackend("sk-oai-super-secret", null, null);
 
     assertThat(direct.toString()).doesNotContain("sk-oai-super-secret").contains("[REDACTED]");
+  }
+
+  @Test
+  void deserializesEffortAndServerToolToggles() throws Exception {
+    var json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "apiFamily": "responses",
+            "backend": { "type": "direct", "apiKey": "k" },
+            "model": { "model": "gpt-5", "parameters": { "effort": "high" } },
+            "enableWebSearch": true,
+            "enableCodeInterpreter": true
+          }
+        }
+        """;
+    var model = (OpenAiChatModel) mapper.readValue(json, LlmProviderConfiguration.class);
+    assertThat(model.openai().model().parameters().effort()).isEqualTo(OpenAiEffort.HIGH);
+    assertThat(model.openai().enableWebSearch()).isTrue();
+    assertThat(model.openai().enableCodeInterpreter()).isTrue();
+  }
+
+  @Test
+  void effortJsonValueIsLowercase() throws Exception {
+    assertThat(mapper.writeValueAsString(OpenAiEffort.MINIMAL)).isEqualTo("\"minimal\"");
+    assertThat(mapper.writeValueAsString(OpenAiEffort.XHIGH)).isEqualTo("\"xhigh\"");
+    assertThat(mapper.writeValueAsString(OpenAiEffort.MAX)).isEqualTo("\"max\"");
   }
 }

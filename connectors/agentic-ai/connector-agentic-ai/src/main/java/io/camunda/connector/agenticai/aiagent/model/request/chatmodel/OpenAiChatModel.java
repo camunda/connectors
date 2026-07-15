@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.Time
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -80,6 +81,28 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
           OpenAiApiFamily apiFamily,
       @Valid @NotNull OpenAiBackend backend,
       @Valid @NotNull OpenAiModel model,
+      @TemplateProperty(
+              group = "provider",
+              label = "Enable web search",
+              tooltip = "Enable the OpenAI web_search server tool (Responses API only).",
+              type = TemplateProperty.PropertyType.Boolean,
+              optional = true,
+              condition =
+                  @TemplateProperty.PropertyCondition(
+                      property = "configuration.openai.apiFamily",
+                      equals = "responses"))
+          @Nullable Boolean enableWebSearch,
+      @TemplateProperty(
+              group = "provider",
+              label = "Enable code interpreter",
+              tooltip = "Enable the OpenAI code_interpreter server tool (Responses API only).",
+              type = TemplateProperty.PropertyType.Boolean,
+              optional = true,
+              condition =
+                  @TemplateProperty.PropertyCondition(
+                      property = "configuration.openai.apiFamily",
+                      equals = "responses"))
+          @Nullable Boolean enableCodeInterpreter,
       @Valid @Nullable TimeoutConfiguration timeouts,
       @Valid
           @TemplateProperty(
@@ -280,6 +303,27 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
                 type = TemplateProperty.PropertyType.Number,
                 feel = FeelMode.required,
                 optional = true)
-            @Nullable Double topP) {}
+            @Nullable Double topP,
+        @TemplateProperty(
+                group = "model",
+                label = "Reasoning effort",
+                tooltip =
+                    "Reasoning effort for reasoning-capable models (Responses API only). "
+                        + "Unset ⇒ model default.",
+                type = TemplateProperty.PropertyType.Dropdown,
+                choices = {
+                  @DropdownPropertyChoice(value = "minimal", label = "minimal"),
+                  @DropdownPropertyChoice(value = "low", label = "low"),
+                  @DropdownPropertyChoice(value = "medium", label = "medium"),
+                  @DropdownPropertyChoice(value = "high", label = "high"),
+                  @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
+                  @DropdownPropertyChoice(value = "max", label = "max")
+                },
+                optional = true,
+                condition =
+                    @TemplateProperty.PropertyCondition(
+                        property = "configuration.openai.apiFamily",
+                        equals = "responses"))
+            @Nullable OpenAiEffort effort) {}
   }
 }
