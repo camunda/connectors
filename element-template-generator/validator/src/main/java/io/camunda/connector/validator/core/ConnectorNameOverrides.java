@@ -25,14 +25,8 @@ import java.util.Optional;
  * native-operation descriptions must reference, overriding the name derived from the template's
  * top-level {@code name}.
  *
- * <p>Needed when the derived name is misleading — e.g. {@code camunda-message}'s templates are
- * named "Send Message Connector (…)", which derives to "Send Message", but the operations act on
- * Camunda, so their descriptions should reference "Camunda". Similarly, {@code easy-post}'s
- * template is named "Easy Post Outbound Connector", which derives to "Easy Post", but the service
- * it integrates with is branded as the single word "EasyPost". The override value may list several
- * acceptable words (e.g. both singular and plural forms) since {@link
- * io.camunda.connector.validator.rule.OperationDescriptionConnectorNameRule} accepts a match on any
- * one of them — {@code email}'s operations mix "email" and "emails" across their descriptions.
+ * <p>Needed when the derived name doesn't match what descriptions actually reference; the value may
+ * list several space-separated acceptable words, any one of which may match.
  */
 public final class ConnectorNameOverrides {
 
