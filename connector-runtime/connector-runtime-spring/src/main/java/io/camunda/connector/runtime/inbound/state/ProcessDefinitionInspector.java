@@ -100,7 +100,7 @@ public class ProcessDefinitionInspector {
       throw new IllegalArgumentException("processDefinitionCache must not be null");
     }
     this.processDefinitionCache = processDefinitionCache;
-this.metrics = java.util.Objects.requireNonNull(metrics, "metrics must not be null");
+    this.metrics = java.util.Objects.requireNonNull(metrics, "metrics must not be null");
   }
 
   public List<InboundConnectorElement> findInboundConnectors(
