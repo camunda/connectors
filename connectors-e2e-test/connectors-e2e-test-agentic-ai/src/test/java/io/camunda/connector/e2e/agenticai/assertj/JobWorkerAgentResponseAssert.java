@@ -52,6 +52,30 @@ public class JobWorkerAgentResponseAssert
     return this;
   }
 
+  public JobWorkerAgentResponseAssert hasReasoningTokensGreaterThanZero() {
+    isNotNull();
+    Assertions.assertThat(actual.context().metrics().tokenUsage().reasoningTokenCount())
+        .as("reasoning token count")
+        .isPositive();
+    return this;
+  }
+
+  public JobWorkerAgentResponseAssert hasCacheCreationTokensGreaterThanZero() {
+    isNotNull();
+    Assertions.assertThat(actual.context().metrics().tokenUsage().cacheCreationTokenCount())
+        .as("cache creation token count")
+        .isPositive();
+    return this;
+  }
+
+  public JobWorkerAgentResponseAssert hasCacheReadTokensGreaterThanZero() {
+    isNotNull();
+    Assertions.assertThat(actual.context().metrics().tokenUsage().cacheReadTokenCount())
+        .as("cache read token count")
+        .isPositive();
+    return this;
+  }
+
   public JobWorkerAgentResponseAssert hasNoResponseMessage() {
     isNotNull();
     Assertions.assertThat(actual.responseMessage()).isNull();
