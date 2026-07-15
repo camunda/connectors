@@ -16,10 +16,16 @@
  */
 package io.camunda.connector.e2e.agenticai.e2e;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AGENT_RESPONSE_VARIABLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
@@ -35,6 +41,7 @@ import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -73,6 +80,7 @@ import org.springframework.core.io.ResourceLoader;
 @CamundaSpringProcessTest
 @Import(CamundaDocumentTestConfiguration.class)
 @EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
+@WireMockTest
 class NativeProviderAcceptanceIT {
 
   static final String BPMN_RESOURCE = "classpath:native-provider-acceptance-agent.bpmn";
@@ -262,5 +270,205 @@ class NativeProviderAcceptanceIT {
                     text ->
                         org.assertj.core.api.Assertions.assertThat(text)
                             .contains(NONCE_CODE_NAME)));
+  }
+
+  static Stream<NativeProvider> providersWithStructuredOutput() {
+    return providers().filter(p -> p.supports(Capability.STRUCTURED_OUTPUT));
+  }
+
+  private static final String RESPONSE_SCHEMA =
+      "{\"type\":\"object\","
+          + "\"properties\":{\"codeName\":{\"type\":\"string\"},\"clearanceLevel\":{\"type\":\"string\"}},"
+          + "\"required\":[\"codeName\",\"clearanceLevel\"],"
+          + "\"additionalProperties\":false}";
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providersWithStructuredOutput")
+  void structuredOutputReturnsSchemaConformingJson(NativeProvider provider) {
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            BPMN_RESOURCE,
+            DEFAULT_SYSTEM_PROMPT,
+            template ->
+                template
+                    .property("data.response.format.type", "json")
+                    .property("data.response.format.schema", "=" + RESPONSE_SCHEMA)
+                    .property("data.response.format.schemaName", "ClassifiedFact"));
+
+    var instance =
+        startAgent(
+            model,
+            PROCESS_ID,
+            Map.of(
+                "userPrompt",
+                "Look up the internal project code name and clearance level and return them."));
+
+    assertAgentResponse(
+        instance,
+        response ->
+            JobWorkerAgentResponseAssert.assertThat(response)
+                .isReady()
+                .hasResponseJsonSatisfying(
+                    json -> {
+                      @SuppressWarnings("unchecked")
+                      var map = (Map<String, Object>) json;
+                      org.assertj.core.api.Assertions.assertThat(map)
+                          .containsKeys("codeName", "clearanceLevel");
+                      org.assertj.core.api.Assertions.assertThat(
+                              String.valueOf(map.get("codeName")))
+                          .contains(NONCE_CODE_NAME);
+                      org.assertj.core.api.Assertions.assertThat(
+                              String.valueOf(map.get("clearanceLevel")))
+                          .contains(NONCE_CLEARANCE);
+                    }));
+  }
+
+  static Stream<NativeProvider> providersWithReasoning() {
+    return providers().filter(p -> p.supports(Capability.REASONING));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providersWithReasoning")
+  void reasoningEnabledProducesReasoningTokens(NativeProvider provider) {
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            BPMN_RESOURCE,
+            "You are a careful reasoner. Think step by step before answering.",
+            template ->
+                template
+                    .property("configuration.anthropic.model.parameters.thinking.mode", "enabled")
+                    .property(
+                        "configuration.anthropic.model.parameters.thinking.budgetTokens", "2048"));
+
+    var instance =
+        startAgent(
+            model,
+            PROCESS_ID,
+            Map.of(
+                "userPrompt",
+                "If it takes 5 machines 5 minutes to make 5 widgets, how many minutes do 100 "
+                    + "machines take to make 100 widgets? Reply with just the number of minutes."));
+
+    assertAgentResponse(
+        instance,
+        response ->
+            JobWorkerAgentResponseAssert.assertThat(response)
+                .isReady()
+                .hasReasoningTokensGreaterThanZero()
+                .hasResponseTestSatisfying(
+                    text -> org.assertj.core.api.Assertions.assertThat(text).contains("5")));
+  }
+
+  // Long, stable system prompt so system+tools exceed the model's minimum cacheable prefix
+  // (~1024 tokens). Without this, automatic caching is silently skipped and cache_* stays 0.
+  private static final String LONG_SYSTEM_PROMPT =
+      ("You are an assistant operating under a detailed classified-information handling protocol. "
+              + "Always be precise, never fabricate facts, and when the user asks for an internal "
+              + "or classified code name you must call the Lookup Classified Fact tool and quote "
+              + "its result verbatim without paraphrasing. Follow every rule in this protocol "
+              + "carefully and consistently across the whole conversation. ")
+          .repeat(12);
+
+  static Stream<NativeProvider> providersWithPromptCaching() {
+    return providers().filter(p -> p.supports(Capability.PROMPT_CACHING));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providersWithPromptCaching")
+  void promptCachingReportsCacheReadAndWriteTokens(NativeProvider provider) {
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            BPMN_RESOURCE,
+            LONG_SYSTEM_PROMPT,
+            template -> template.property("configuration.anthropic.enablePromptCaching", "true"));
+
+    var instance =
+        startAgent(
+            model,
+            PROCESS_ID,
+            Map.of("userPrompt", "What is the internal project code name? Use your lookup tool."));
+
+    // The tool call forces a second model call: turn 1 writes the cache (system+tools prefix),
+    // turn 2 re-sends the byte-identical prefix and reads it. Cumulative run metrics carry both.
+    assertAgentResponse(
+        instance,
+        response ->
+            JobWorkerAgentResponseAssert.assertThat(response)
+                .isReady()
+                .hasCacheCreationTokensGreaterThanZero()
+                .hasCacheReadTokensGreaterThanZero()
+                .hasResponseTestSatisfying(
+                    text ->
+                        org.assertj.core.api.Assertions.assertThat(text)
+                            .contains(NONCE_CODE_NAME)));
+  }
+
+  private static final String DOC_DIR = "document-tool-call-results/";
+  private static final String DOC_PROJECT_LAUNCH = DOC_DIR + "project-launch.pdf";
+  private static final String DOC_HEADCOUNT_REPORT = DOC_DIR + "headcount-report.pdf";
+  private static final String DOC_AUTHOR_INFO = DOC_DIR + "author-info.pdf";
+  private static final String DOCUMENT_BPMN_RESOURCE = "classpath:document-tool-call-results.bpmn";
+  private static final String DOCUMENT_PROCESS_ID = "CPT_Document_Tool_Call_Results";
+  private static final String DOCUMENT_SYSTEM_PROMPT =
+      "You are a document analyst. Use the available tools to retrieve and analyze documents. "
+          + "Always quote specific facts, numbers, dates, and names found in the documents.";
+
+  static Stream<NativeProvider> providersWithMultimodalToolResult() {
+    return providers().filter(p -> p.supports(Capability.MULTIMODAL_TOOL_RESULT));
+  }
+
+  private void stubPdfDownloads() {
+    for (var doc : List.of(DOC_PROJECT_LAUNCH, DOC_HEADCOUNT_REPORT, DOC_AUTHOR_INFO)) {
+      stubFor(
+          get(urlPathEqualTo("/" + doc))
+              .willReturn(
+                  aResponse().withBodyFile(doc).withHeader("Content-Type", "application/pdf")));
+    }
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providersWithMultimodalToolResult")
+  void documentInToolResultIsReadByModel(NativeProvider provider, WireMockRuntimeInfo wireMock) {
+    stubPdfDownloads();
+
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            DOCUMENT_BPMN_RESOURCE,
+            DOCUMENT_SYSTEM_PROMPT,
+            template -> {});
+
+    var instance =
+        startAgent(
+            model,
+            DOCUMENT_PROCESS_ID,
+            Map.of(
+                "userPrompt",
+                "Use the Fetch_Report tool to get the full report and describe the content of "
+                    + "every document in it, including attachments and the cover page.",
+                "downloadUrls",
+                List.of(
+                    wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH,
+                    wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT,
+                    wireMock.getHttpBaseUrl() + "/" + DOC_AUTHOR_INFO)));
+
+    assertAgentResponse(
+        instance,
+        response ->
+            JobWorkerAgentResponseAssert.assertThat(response)
+                .isReady()
+                .hasResponseTestSatisfying(
+                    text ->
+                        org.assertj.core.api.Assertions.assertThat(text)
+                            .contains("Zypherion")
+                            .contains("847")
+                            .contains("Kael Thrennix")));
   }
 }
