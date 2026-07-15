@@ -43,7 +43,6 @@ import java.io.File;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
@@ -118,18 +117,39 @@ class NativeProviderAcceptanceIT {
     MULTIMODAL_TOOL_RESULT
   }
 
+  /**
+   * A provider row in the acceptance matrix. {@code capabilityProperties} maps each capability this
+   * row supports to the MODEL-SPECIFIC element-template properties that enable that capability for
+   * this model. The map is empty when the capability needs no provider-specific enablement
+   * (structured output is enabled by the shared {@code data.response.format.*} props the scenario
+   * sets; multimodal just needs the document BPMN). Reasoning and prompt caching are enabled
+   * differently per model/provider, so their enablement lives HERE rather than being hard-coded in
+   * the scenario — which is what lets a future OpenAI row join the same scenarios with its own
+   * property ids (e.g. an OpenAI reasoning-effort id, or no caching key at all since OpenAI caches
+   * automatically). A capability absent from the map means the row does not support it, so its
+   * scenario is skipped for this row.
+   */
   record NativeProvider(
       String label,
       String requiredEnvVar,
       Map<String, String> properties,
-      Set<Capability> capabilities) {
+      Map<Capability, Map<String, String>> capabilityProperties,
+      // Whether this row's reasoning config FORCES the model to emit reasoning tokens (a forcing
+      // mode like Anthropic "enabled"), so the reasoning scenario can additionally assert
+      // reasoningTokenCount > 0. For "adaptive"/effort-only modes the model may answer without
+      // billable thinking, so only completion + a correct answer is asserted.
+      boolean forcesReasoningTokens) {
 
     boolean isEnabled() {
       return System.getenv(requiredEnvVar) != null;
     }
 
     boolean supports(Capability capability) {
-      return capabilities.contains(capability);
+      return capabilityProperties.containsKey(capability);
+    }
+
+    Map<String, String> propertiesFor(Capability capability) {
+      return capabilityProperties.getOrDefault(capability, Map.of());
     }
 
     @Override
@@ -138,7 +158,10 @@ class NativeProviderAcceptanceIT {
     }
   }
 
-  static NativeProvider anthropicDirect(String model) {
+  static NativeProvider anthropicDirect(
+      String model,
+      Map<Capability, Map<String, String>> capabilityProperties,
+      boolean forcesReasoningTokens) {
     return new NativeProvider(
         "anthropic-direct/" + model,
         "ANTHROPIC_API_KEY",
@@ -151,15 +174,41 @@ class NativeProviderAcceptanceIT {
             envOrPlaceholder("ANTHROPIC_API_KEY"),
             "configuration.anthropic.model.model",
             model),
-        Set.of(
-            Capability.STRUCTURED_OUTPUT,
-            Capability.REASONING,
-            Capability.PROMPT_CACHING,
-            Capability.MULTIMODAL_TOOL_RESULT));
+        capabilityProperties,
+        forcesReasoningTokens);
   }
 
   static Stream<NativeProvider> providers() {
-    return Stream.of(anthropicDirect("claude-sonnet-4-6"), anthropicDirect("claude-sonnet-5"))
+    return Stream.of(
+            // claude-sonnet-4-6 supports thinking mode "enabled" (explicit budget) — forced
+            // thinking, so reasoning tokens are guaranteed.
+            anthropicDirect(
+                "claude-sonnet-4-6",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
+                    Capability.PROMPT_CACHING,
+                        Map.of("configuration.anthropic.enablePromptCaching", "true"),
+                    Capability.REASONING,
+                        Map.of(
+                            "configuration.anthropic.model.parameters.thinking.mode", "enabled",
+                            "configuration.anthropic.model.parameters.thinking.budgetTokens",
+                                "2048")),
+                true),
+            // claude-sonnet-5 does NOT accept "enabled"; its matrix allows "adaptive" (the model
+            // decides whether to think), so reasoning tokens are not guaranteed.
+            anthropicDirect(
+                "claude-sonnet-5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
+                    Capability.PROMPT_CACHING,
+                        Map.of("configuration.anthropic.enablePromptCaching", "true"),
+                    Capability.REASONING,
+                        Map.of(
+                            "configuration.anthropic.model.parameters.thinking.mode", "adaptive",
+                            "configuration.anthropic.model.parameters.effort", "high")),
+                false))
         .filter(NativeProvider::isEnabled);
   }
 
@@ -241,6 +290,30 @@ class NativeProviderAcceptanceIT {
             map -> {
               var response = objectMapper.convertValue(map, JobWorkerAgentResponse.class);
               assertions.accept(response);
+            });
+  }
+
+  /**
+   * Asserts substrings on the agent's {@code responseText} read directly from the raw output map,
+   * WITHOUT deserializing the whole response. Use this when the persisted agent context contains a
+   * {@link io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent} whose
+   * abstract {@code Document} the plain test ObjectMapper cannot reconstruct (the multimodal
+   * scenario): a full {@code convertValue(..., JobWorkerAgentResponse.class)} would fail on the
+   * Document reference, not on the text we actually want to assert.
+   */
+  void assertResponseTextContains(ProcessInstanceEvent instance, String... expectedSubstrings) {
+    assertThat(instance)
+        .withAssertionTimeout(PROCESS_TIMEOUT)
+        .isCompleted()
+        .hasVariableSatisfies(
+            AGENT_RESPONSE_VARIABLE,
+            Map.class,
+            map -> {
+              final var responseText = String.valueOf(map.get("responseText"));
+              final var textAssert = org.assertj.core.api.Assertions.assertThat(responseText);
+              for (final String expected : expectedSubstrings) {
+                textAssert.contains(expected);
+              }
             });
   }
 
@@ -338,11 +411,10 @@ class NativeProviderAcceptanceIT {
             AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
             "You are a careful reasoner. Think step by step before answering.",
-            template ->
-                template
-                    .property("configuration.anthropic.model.parameters.thinking.mode", "enabled")
-                    .property(
-                        "configuration.anthropic.model.parameters.thinking.budgetTokens", "2048"));
+            // Reasoning enablement is model-specific (sonnet-4-6 uses "enabled"+budget, sonnet-5
+            // uses "adaptive"+effort) and comes from the provider row, so this scenario stays
+            // provider-agnostic and a future OpenAI row can supply its own reasoning props.
+            template -> provider.propertiesFor(Capability.REASONING).forEach(template::property));
 
     var instance =
         startAgent(
@@ -355,12 +427,17 @@ class NativeProviderAcceptanceIT {
 
     assertAgentResponse(
         instance,
-        response ->
-            JobWorkerAgentResponseAssert.assertThat(response)
-                .isReady()
-                .hasReasoningTokensGreaterThanZero()
-                .hasResponseTestSatisfying(
-                    text -> org.assertj.core.api.Assertions.assertThat(text).contains("5")));
+        response -> {
+          var responseAssert = JobWorkerAgentResponseAssert.assertThat(response).isReady();
+          // Only rows with a forcing thinking mode guarantee reasoning tokens; for adaptive/effort
+          // modes the model may answer without billable thinking, so completion + a correct answer
+          // is the universal bar (it also proves the reasoning config was accepted by the API).
+          if (provider.forcesReasoningTokens()) {
+            responseAssert.hasReasoningTokensGreaterThanZero();
+          }
+          responseAssert.hasResponseTestSatisfying(
+              text -> org.assertj.core.api.Assertions.assertThat(text).contains("5"));
+        });
   }
 
   // Long, stable system prompt so system+tools exceed the model's minimum cacheable prefix
@@ -380,19 +457,32 @@ class NativeProviderAcceptanceIT {
   @ParameterizedTest(name = "{0}")
   @MethodSource("providersWithPromptCaching")
   void promptCachingReportsCacheReadAndWriteTokens(NativeProvider provider) {
+    // Pass the long system prompt as a process VARIABLE referenced by FEEL rather than baking a
+    // ~5KB string literal into the element template (baking it produced a deploy-time
+    // ConnectionClosedException). The resolved system prompt is identical every turn, so the
+    // cacheable prefix stays byte-stable.
     var model =
         buildModel(
             provider,
             AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            LONG_SYSTEM_PROMPT,
-            template -> template.property("configuration.anthropic.enablePromptCaching", "true"));
+            DEFAULT_SYSTEM_PROMPT,
+            template -> {
+              // Caching enablement is provider-specific (Anthropic toggles a flag; OpenAI caches
+              // automatically) and comes from the provider row.
+              provider.propertiesFor(Capability.PROMPT_CACHING).forEach(template::property);
+              template.property("data.systemPrompt.prompt", "=longSystemPrompt");
+            });
 
     var instance =
         startAgent(
             model,
             PROCESS_ID,
-            Map.of("userPrompt", "What is the internal project code name? Use your lookup tool."));
+            Map.of(
+                "userPrompt",
+                "What is the internal project code name? Use your lookup tool.",
+                "longSystemPrompt",
+                LONG_SYSTEM_PROMPT));
 
     // The tool call forces a second model call: turn 1 writes the cache (system+tools prefix),
     // turn 2 re-sends the byte-identical prefix and reads it. Cumulative run metrics carry both.
@@ -459,16 +549,6 @@ class NativeProviderAcceptanceIT {
                     wireMock.getHttpBaseUrl() + "/" + DOC_HEADCOUNT_REPORT,
                     wireMock.getHttpBaseUrl() + "/" + DOC_AUTHOR_INFO)));
 
-    assertAgentResponse(
-        instance,
-        response ->
-            JobWorkerAgentResponseAssert.assertThat(response)
-                .isReady()
-                .hasResponseTestSatisfying(
-                    text ->
-                        org.assertj.core.api.Assertions.assertThat(text)
-                            .contains("Zypherion")
-                            .contains("847")
-                            .contains("Kael Thrennix")));
+    assertResponseTextContains(instance, "Zypherion", "847", "Kael Thrennix");
   }
 }
