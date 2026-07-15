@@ -178,7 +178,24 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
                   @TemplateProperty.PropertyCondition(
                       property = "configuration.anthropic.enableWebFetch",
                       equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
-          @Nullable String webFetchVersion) {}
+          @Nullable String webFetchVersion,
+      @TemplateProperty(
+              group = "capabilities",
+              label = "Enable prompt caching",
+              tooltip =
+                  "Enables Anthropic automatic prompt caching by adding a top-level "
+                      + "<code>cache_control: {\"type\": \"ephemeral\"}</code> to each request. The API "
+                      + "automatically caches the longest stable prefix (system prompt, tool definitions "
+                      + "and earlier conversation messages) and reuses it across requests made within the "
+                      + "cache lifetime (5 minutes). Cache hits require a byte-identical prefix; the "
+                      + "system prompt and tools stay stable across turns, but note that once the message "
+                      + "window starts evicting the oldest messages the message-history portion of the "
+                      + "prefix shifts each turn. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">automatic caching documentation</a>.",
+              type = TemplateProperty.PropertyType.Boolean,
+              defaultValue = "false",
+              defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+              optional = true)
+          @Nullable Boolean enablePromptCaching) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({

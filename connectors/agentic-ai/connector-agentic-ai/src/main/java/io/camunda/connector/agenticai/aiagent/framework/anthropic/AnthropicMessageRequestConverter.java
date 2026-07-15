@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.models.beta.AnthropicBeta;
+import com.anthropic.models.beta.messages.BetaCacheControlEphemeral;
 import com.anthropic.models.beta.messages.BetaCodeExecutionTool20250522;
 import com.anthropic.models.beta.messages.BetaCodeExecutionTool20250825;
 import com.anthropic.models.beta.messages.BetaCodeExecutionTool20260120;
@@ -149,6 +150,7 @@ public class AnthropicMessageRequestConverter {
     applyTools(builder, snapshot.toolDefinitions());
     applyOutputConfig(builder, ctx.configuration().response(), params);
     applySkillsAndBuiltInTools(builder, model.anthropic());
+    applyPromptCaching(builder, model.anthropic());
 
     return builder.build();
   }
@@ -243,6 +245,23 @@ public class AnthropicMessageRequestConverter {
             .collect(Collectors.joining("\n"));
     if (!system.isBlank()) {
       builder.system(system);
+    }
+  }
+
+  /**
+   * Enables Anthropic automatic prompt caching (spike): sets a single top-level {@code
+   * cache_control: {"type":"ephemeral"}} so the API automatically applies the cache breakpoint to
+   * the last cacheable block, caching the whole prefix (system prompt + tool definitions + prior
+   * messages) with the default 5-minute TTL. No {@code anthropic-beta} header or per-block marker
+   * is required. A cross-request cache hit requires a byte-identical prefix; the system prompt and
+   * tools stay stable across turns, but the sliding message window ({@link
+   * io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter}) shifts the
+   * message-history portion of the prefix once it starts evicting the oldest messages.
+   */
+  private void applyPromptCaching(
+      MessageCreateParams.Builder builder, AnthropicChatModel.AnthropicConnection connection) {
+    if (Boolean.TRUE.equals(connection.enablePromptCaching())) {
+      builder.cacheControl(BetaCacheControlEphemeral.builder().build());
     }
   }
 

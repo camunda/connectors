@@ -48,6 +48,7 @@ class AiAgentV2EntryPointTest {
             null,
             null,
             null,
+            null,
             null));
   }
 

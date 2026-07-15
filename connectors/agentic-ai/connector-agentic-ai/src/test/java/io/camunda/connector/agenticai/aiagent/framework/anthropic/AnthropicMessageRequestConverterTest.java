@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -120,7 +121,26 @@ class AnthropicMessageRequestConverterTest {
             enableWebSearch,
             webSearchVersion,
             enableWebFetch,
-            webFetchVersion));
+            webFetchVersion,
+            null));
+  }
+
+  /** Builds a model with only the prompt-caching toggle set (all tool toggles unset). */
+  private static AnthropicChatModel promptCachingModel(@Nullable Boolean enablePromptCaching) {
+    return new AnthropicChatModel(
+        new AnthropicConnection(
+            new AnthropicDirectBackend(null, "sk-ant-test"),
+            new AnthropicModel("claude-sonnet-4-6", null),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            enablePromptCaching));
   }
 
   private static AgentExecutionContext ctx(
@@ -1137,5 +1157,86 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(ctx(model(parameters), null), snapshot, caps, false);
 
     assertThat(params.thinking().orElseThrow().isEnabled()).isTrue();
+  }
+
+  // --- Prompt caching (spike) ----------------------------------------------------------------
+
+  @Test
+  void promptCachingEnabledAddsTopLevelEphemeralCacheControl() {
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(promptCachingModel(true), null),
+            new ConversationSnapshot(List.of(), List.of()),
+            caps());
+
+    final var cacheControl = requestBodyAsJson(params).path("cache_control");
+    assertThat(cacheControl.isMissingNode()).as("cache_control present").isFalse();
+    assertThat(cacheControl.path("type").asText()).isEqualTo("ephemeral");
+  }
+
+  @Test
+  void promptCachingDisabledOrUnsetOmitsCacheControl() {
+    for (final Boolean flag : new Boolean[] {null, Boolean.FALSE}) {
+      final var params =
+          converter.toMessageCreateParams(
+              ctx(promptCachingModel(flag), null),
+              new ConversationSnapshot(List.of(), List.of()),
+              caps());
+
+      assertThat(requestBodyAsJson(params).path("cache_control").isMissingNode())
+          .as("cache_control omitted when flag=%s", flag)
+          .isTrue();
+    }
+  }
+
+  @Test
+  void promptCachingReSendsEarlierPrefixByteIdenticallyAcrossTurns() {
+    // The point of the spike: automatic caching caches the whole prefix (system + tools + earlier
+    // messages), so a cross-turn cache HIT depends on the converter re-sending that prefix
+    // byte-identically and only APPENDING the new turn's messages. This asserts exactly that
+    // (assuming an append-only snapshot, i.e. the message window has not yet started evicting).
+    final var tools =
+        List.of(
+            ToolDefinition.builder()
+                .name("getWeather")
+                .description("desc")
+                .inputSchema(Map.of("type", "object"))
+                .build());
+    final var system =
+        SystemMessage.builder().content(List.of(TextContent.textContent("sys"))).build();
+    final var turn1Messages =
+        List.<Message>of(
+            system,
+            UserMessage.builder().content(List.of(TextContent.textContent("q1"))).build(),
+            AssistantMessage.builder().content(List.of(TextContent.textContent("a1"))).build());
+    final List<Message> turn2Messages = new java.util.ArrayList<>(turn1Messages);
+    turn2Messages.add(
+        UserMessage.builder().content(List.of(TextContent.textContent("q2"))).build());
+
+    final var turn1 =
+        converter.toMessageCreateParams(
+            ctx(promptCachingModel(true), null),
+            new ConversationSnapshot(turn1Messages, tools),
+            caps());
+    final var turn2 =
+        converter.toMessageCreateParams(
+            ctx(promptCachingModel(true), null),
+            new ConversationSnapshot(turn2Messages, tools),
+            caps());
+
+    final JsonNode body1 = requestBodyAsJson(turn1);
+    final JsonNode body2 = requestBodyAsJson(turn2);
+
+    assertThat(body2.path("system")).as("system re-sent unchanged").isEqualTo(body1.path("system"));
+    assertThat(body2.path("tools")).as("tools re-sent unchanged").isEqualTo(body1.path("tools"));
+
+    final JsonNode messages1 = body1.path("messages");
+    final JsonNode messages2 = body2.path("messages");
+    assertThat(messages2.size()).as("turn 2 appends a message").isGreaterThan(messages1.size());
+    for (int i = 0; i < messages1.size(); i++) {
+      assertThat(messages2.get(i))
+          .as("message[%d] re-sent byte-identically", i)
+          .isEqualTo(messages1.get(i));
+    }
   }
 }

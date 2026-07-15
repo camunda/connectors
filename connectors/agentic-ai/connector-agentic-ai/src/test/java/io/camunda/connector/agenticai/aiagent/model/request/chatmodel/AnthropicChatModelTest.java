@@ -106,6 +106,7 @@ class AnthropicChatModelTest {
                 null,
                 null,
                 null,
+                null,
                 null));
 
     final var violations = validator.validate(model);
@@ -119,6 +120,7 @@ class AnthropicChatModelTest {
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "sk-ant-123"),
                 new AnthropicModel("claude-sonnet-4-6", null),
+                null,
                 null,
                 null,
                 null,
@@ -244,6 +246,7 @@ class AnthropicChatModelTest {
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "sk-ant-123"),
                 new AnthropicModel("claude-sonnet-4-6", parameters),
+                null,
                 null,
                 null,
                 null,

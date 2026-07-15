@@ -1112,6 +1112,24 @@
     "placeholder" : "={contextWindow: 200000, maxOutputTokens: 8192}",
     "type" : "Text"
   }, {
+    "id" : "configuration.anthropic.enablePromptCaching",
+    "label" : "Enable prompt caching",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "capabilities",
+    "binding" : {
+      "name" : "configuration.anthropic.enablePromptCaching",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "configuration.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Enables Anthropic automatic prompt caching by adding a top-level <code>cache_control: {\"type\": \"ephemeral\"}</code> to each request. The API automatically caches the longest stable prefix (system prompt, tool definitions and earlier conversation messages) and reuses it across requests made within the cache lifetime (5 minutes). Cache hits require a byte-identical prefix; the system prompt and tools stay stable across turns, but note that once the message window starts evicting the oldest messages the message-history portion of the prefix shifts each turn. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">automatic caching documentation</a>.",
+    "type" : "Boolean"
+  }, {
     "id" : "configuration.openai.capabilityOverride",
     "label" : "Model capability overrides",
     "description" : "Optional sparse capability override (FEEL context) deep-merged as the highest-precedence layer over the resolved model capabilities. Use for unknown/custom models.",

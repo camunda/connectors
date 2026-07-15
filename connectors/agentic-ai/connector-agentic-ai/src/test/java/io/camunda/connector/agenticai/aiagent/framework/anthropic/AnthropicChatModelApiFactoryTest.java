@@ -76,6 +76,7 @@ class AnthropicChatModelApiFactoryTest {
                     null,
                     null,
                     null,
+                    null,
                     null)));
 
     assertThat(factory.supports(config)).isFalse();
@@ -164,6 +165,7 @@ class AnthropicChatModelApiFactoryTest {
             new AnthropicConnection(
                 new AnthropicDirectBackend(null, "sk-ant"),
                 new AnthropicModel(modelId, null),
+                null,
                 null,
                 null,
                 null,
