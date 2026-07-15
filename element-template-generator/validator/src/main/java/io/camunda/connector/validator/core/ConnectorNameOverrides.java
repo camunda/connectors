@@ -27,13 +27,22 @@ import java.util.Optional;
  *
  * <p>Needed when the derived name is misleading — e.g. {@code camunda-message}'s templates are
  * named "Send Message Connector (…)", which derives to "Send Message", but the operations act on
- * Camunda, so their descriptions should reference "Camunda".
+ * Camunda, so their descriptions should reference "Camunda". Similarly, {@code easy-post}'s
+ * template is named "Easy Post Outbound Connector", which derives to "Easy Post", but the service
+ * it integrates with is branded as the single word "EasyPost". The override value may list several
+ * acceptable words (e.g. both singular and plural forms) since {@link
+ * io.camunda.connector.validator.rule.OperationDescriptionConnectorNameRule} accepts a match on any
+ * one of them — {@code email}'s operations mix "email" and "emails" across their descriptions.
  */
 public final class ConnectorNameOverrides {
 
   private ConnectorNameOverrides() {}
 
-  private static final Map<String, String> OVERRIDES = Map.of("camunda-message", "Camunda");
+  private static final Map<String, String> OVERRIDES =
+      Map.of(
+          "camunda-message", "Camunda",
+          "easy-post", "EasyPost",
+          "email", "Email Emails");
 
   /** The override connector name for the connector owning {@code templateFile}, if any. */
   public static Optional<String> forFile(Path templateFile) {
