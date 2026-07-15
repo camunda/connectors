@@ -134,6 +134,51 @@ class NativeAnthropicSkillsAndToolsWireFormatTest extends BaseAiAgentJobWorkerTe
   }
 
   /**
+   * Configures Skills, the explicit {@code enableCodeExecution} toggle, web search and web fetch
+   * all together on the same request (all at their default versions), so the {@code code_execution}
+   * tool is requested from two sources at once - the skills auto-add path and the explicit toggle.
+   * The converter's addition logic is a single OR-gated call ({@code hasSkills ||
+   * enableCodeExecution}), so this proves the two sources coexist as exactly one tool entry rather
+   * than colliding or duplicating.
+   */
+  @Test
+  void skillsCodeExecutionAndDynamicWebToolsCoexistOnDefaults() throws Exception {
+    final var userPrompt = "Write a haiku about the sea";
+
+    NativeAnthropicMessagesSseChatModelStubs.stubConversation(TurnStub.text("A haiku.", 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    awaitProcessCompletion(
+        createProcessInstance(this::enableCodeExecutionToggle, Map.of("userPrompt", userPrompt)));
+
+    final var loggedRequests = recordedLoggedRequests();
+    assertThat(loggedRequests).as("recorded model-call requests").hasSize(1);
+
+    final var request = parseBody(loggedRequests.get(0));
+    final var toolTypes = toolTypes(request);
+
+    assertThat(toolTypes)
+        .as("tools[].type")
+        .filteredOn("code_execution_20260521"::equals)
+        .as(
+            "exactly one code_execution tool even though both skills and the explicit toggle"
+                + " request it")
+        .hasSize(1);
+    assertThat(toolTypes).as("tools[].type").contains("web_search_20260318", "web_fetch_20260318");
+
+    assertAnthropicBetaHeader(loggedRequests.get(0));
+  }
+
+  /**
+   * Turns on the {@code enableCodeExecution} toggle on top of the class-wide {@link
+   * #configureAnthropicSkillsAndTools} wiring (skills + web search + web fetch), composed via
+   * {@link #createProcessInstance(Resource, Function, Map)}.
+   */
+  private ElementTemplate enableCodeExecutionToggle(ElementTemplate template) {
+    return template.property("configuration.anthropic.enableCodeExecution", "true");
+  }
+
+  /**
    * Asserts the top-level {@code container.skills} array carries both configured skills, parsed per
    * {@code AnthropicSkillReference}'s {@code type:skill:version} rule: the single-token {@code
    * "pptx"} defaults to type {@code anthropic} / version {@code latest}, and the 3-token {@code
@@ -161,29 +206,28 @@ class NativeAnthropicSkillsAndToolsWireFormatTest extends BaseAiAgentJobWorkerTe
 
   /**
    * Asserts {@code tools[]} contains exactly one auto-added {@code code_execution} tool (proving
-   * the skills-triggered auto-add path, since {@code enableCodeExecution} was never set), plus the
-   * {@code web_search} and {@code web_fetch} tools from their toggles.
+   * the skills-triggered auto-add path, since {@code enableCodeExecution} was never set), at the
+   * default GA version {@code code_execution_20260521}, plus the {@code web_search} and {@code
+   * web_fetch} tools from their toggles at their default versions.
    */
   private void assertBuiltInTools(JsonNode request) {
-    final var toolTypes =
-        StreamSupport.stream(request.path("tools").spliterator(), false)
-            .map(tool -> tool.path("type").asText())
-            .toList();
+    final var toolTypes = toolTypes(request);
 
     assertThat(toolTypes)
         .as("tools[].type")
-        .filteredOn("code_execution_20250825"::equals)
+        .filteredOn("code_execution_20260521"::equals)
         .as("exactly one auto-added code_execution tool")
         .hasSize(1);
-    assertThat(toolTypes).as("tools[].type").contains("web_search_20250305", "web_fetch_20250910");
+    assertThat(toolTypes).as("tools[].type").contains("web_search_20260318", "web_fetch_20260318");
   }
 
   /**
-   * Asserts the {@code anthropic-beta} request header carries all three beta identifiers the skills
-   * container and the auto-added {@code code_execution} tool require. The Anthropic SDK sends one
-   * {@code addBeta(...)} call per repeated {@code anthropic-beta} header line (not one comma-joined
-   * value), so all of the header's values - not just the first - must be inspected; order across
-   * the repeated headers is not guaranteed.
+   * Asserts the {@code anthropic-beta} request header carries only the two beta identifiers the
+   * skills container requires. The default GA {@code code_execution_20260521} revision needs no
+   * beta header at all, so no {@code code-execution-*} value must be present. The Anthropic SDK
+   * sends one {@code addBeta(...)} call per repeated {@code anthropic-beta} header line (not one
+   * comma-joined value), so all of the header's values - not just the first - must be inspected;
+   * order across the repeated headers is not guaranteed.
    */
   private void assertAnthropicBetaHeader(LoggedRequest loggedRequest) {
     assertThat(loggedRequest.containsHeader("anthropic-beta"))
@@ -192,8 +236,14 @@ class NativeAnthropicSkillsAndToolsWireFormatTest extends BaseAiAgentJobWorkerTe
     final var betaValues = loggedRequest.header("anthropic-beta").values();
     assertThat(betaValues)
         .as("anthropic-beta header values")
-        .containsExactlyInAnyOrder(
-            "code-execution-2025-08-25", "skills-2025-10-02", "files-api-2025-04-14");
+        .contains("skills-2025-10-02", "files-api-2025-04-14")
+        .noneMatch(v -> v.startsWith("code-execution-"));
+  }
+
+  private static List<String> toolTypes(JsonNode request) {
+    return StreamSupport.stream(request.path("tools").spliterator(), false)
+        .map(tool -> tool.path("type").asText())
+        .toList();
   }
 
   private static List<LoggedRequest> recordedLoggedRequests() {
