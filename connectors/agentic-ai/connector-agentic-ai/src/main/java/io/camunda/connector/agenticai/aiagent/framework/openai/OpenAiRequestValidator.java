@@ -28,11 +28,11 @@ import org.jspecify.annotations.Nullable;
  * - its effort configuration is forwarded to the API untouched, without any validation, so unknown
  * models stay usable.
  */
-final class OpenAiRequestValidator {
+public final class OpenAiRequestValidator {
 
   private OpenAiRequestValidator() {}
 
-  static void validate(
+  public static void validate(
       OpenAiChatModel.OpenAiConnection connection,
       @Nullable OpenAiReasoningCapabilities reasoning,
       boolean modelMatched,
