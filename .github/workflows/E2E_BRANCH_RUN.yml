@@ -269,6 +269,7 @@ jobs:
       # Map is built from secrets (full-mention format); an unset secret falls back to medic.
       - name: Derive Slack mentions from CODEOWNERS
         id: mentions
+        continue-on-error: true
         uses: ./.github/actions/codeowners-slack-mentions
         with:
           paths: ${{ steps.modules.outputs.module_paths }}
@@ -281,7 +282,27 @@ jobs:
             }
           always-include: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }}
 
+      # If CODEOWNERS mention resolution fails (e.g. npm ci failure), fall back to the medic mention
+      # and add a warning asking for manual notification of the affected teams.
+      - name: Prepare Slack mentions and resolution note
+        id: mention_status
+        env:
+          MENTIONS_OUTCOME: ${{ steps.mentions.outcome }}
+          MENTIONS_OUTPUT: ${{ steps.mentions.outputs.mentions }}
+          MEDIC_MENTION: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }}
+        run: |
+          if [ "$MENTIONS_OUTCOME" = "success" ] && [ -n "$MENTIONS_OUTPUT" ]; then
+            echo "mentions=$MENTIONS_OUTPUT" >> "$GITHUB_OUTPUT"
+            echo "resolution_note=" >> "$GITHUB_OUTPUT"
+          else
+            echo "mentions=$MEDIC_MENTION" >> "$GITHUB_OUTPUT"
+            echo "resolution_note=\\n:warning: CODEOWNERS mention resolution failed; defaulted to medic mention, please notify the affected teams manually." >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Post failure summary to Slack
+        # `always()` keeps this post from being skipped by earlier failures in this notify job;
+        # the job-level `if` above still limits the whole notify job to failed build/test runs.
+        if: always()
         uses: slackapi/slack-github-action@v3.0.5
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
@@ -289,5 +310,5 @@ jobs:
           payload: |
             {
               "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
-              "text": ":alarm: ${{ steps.mentions.outputs.mentions }} ${{ steps.phase.outputs.headline }} on `${{ inputs.branch }}`\n${{ steps.modules.outputs.failed_modules }}\nCheck: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: ${{ steps.mention_status.outputs.mentions }} ${{ steps.phase.outputs.headline }} on `${{ inputs.branch }}`\n${{ steps.modules.outputs.failed_modules }}${{ steps.mention_status.outputs.resolution_note }}\nCheck: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
