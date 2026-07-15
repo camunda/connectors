@@ -49,7 +49,7 @@ public class SchemaRule implements Rule {
    * than tracking {@code latest}, so validator behavior is reproducible across CI runs and local
    * machines. Override at runtime via {@code --schema-url} or {@code CAMUNDA_TEMPLATE_SCHEMA_URL}.
    */
-  public static final String SCHEMA_VERSION = "0.40.0";
+  public static final String SCHEMA_VERSION = "0.43.0-alpha.0";
 
   public static final String SCHEMA_URL =
       "https://unpkg.com/@camunda/zeebe-element-templates-json-schema@"
