@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid GraphQL Outbound Connector",
+  "name" : "Hybrid Send GraphQL Request",
   "id" : "io.camunda.connectors.GraphQL.v1-hybrid",
   "description" : "Execute GraphQL query",
   "keywords" : [ "API", "query", "mutation", "HTTP", "web request", "GraphQL", "fetch data", "data query", "execute query", "API call" ],

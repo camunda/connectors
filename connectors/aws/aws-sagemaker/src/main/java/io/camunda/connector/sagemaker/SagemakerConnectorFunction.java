@@ -29,7 +29,7 @@ import java.util.function.BiFunction;
 @ElementTemplate(
     engineVersion = "^8.6",
     id = "io.camunda.connectors.AWSSAGEMAKER.v1",
-    name = "AWS SageMaker Outbound Connector",
+    name = "Run Inference with AWS SageMaker",
     description = "Run inferences using AWS SageMaker.",
     keywords = {
       "run inference",

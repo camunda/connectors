@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 @ElementTemplate(
     engineVersion = "^8.10",
     id = "io.camunda.connectors.SendGrid.v2",
-    name = "SendGrid Outbound Connector",
+    name = "Send Email with SendGrid",
     description = "Send an email via SendGrid",
     keywords = {
       "send email",

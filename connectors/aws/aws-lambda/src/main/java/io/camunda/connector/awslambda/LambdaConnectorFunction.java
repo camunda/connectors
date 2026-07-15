@@ -31,7 +31,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 @ElementTemplate(
     engineVersion = "^8.3",
     id = "io.camunda.connectors.AWSLAMBDA.v2",
-    name = "AWS Lambda Outbound Connector",
+    name = "Invoke AWS Lambda Function",
     description = "Invoke AWS Lambda functions.",
     keywords = {
       "invoke function",
