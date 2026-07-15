@@ -44,7 +44,7 @@ public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponse
   @Override
   public A2aTask handleTask(Task task) {
     TaskStatus status = task.getStatus();
-    if (status.state() == TaskState.AUTH_REQUIRED) {
+    if (TaskState.AUTH_REQUIRED == status.state()) {
       throw new RuntimeException(
           "Task status %s is not supported yet.".formatted(status.state().asString()));
     }
