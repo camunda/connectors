@@ -23,18 +23,9 @@ import jakarta.validation.constraints.NotBlank;
       "direct message"
     })
 public record GetMessageInChat(
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "getMessageInChat.chatId",
-            label = "Chat ID",
-            description = "The chat ID")
+    @NotBlank @TemplateProperty(group = "data", id = "getMessageInChat.chatId", label = "Chat ID")
         String chatId,
     @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "getMessageInChat.messageId",
-            label = "Message ID",
-            description = "The message ID")
+        @TemplateProperty(group = "data", id = "getMessageInChat.messageId", label = "Message ID")
         String messageId)
     implements ChatData {}

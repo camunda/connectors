@@ -62,7 +62,6 @@
       "id": "webhookMethod",
       "label": "Webhook method",
       "group": "endpoint",
-      "description": "Select HTTP method",
       "value": "any",
       "type": "Dropdown",
       "choices": [
@@ -92,7 +91,7 @@
         "type": "zeebe:property",
         "name": "inbound.context"
       },
-      "description": "The webhook ID is a part of the URL",
+      "tooltip": "The webhook ID is a part of the URL.",
       "constraints": {
         "notEmpty": true
       }
@@ -117,7 +116,7 @@
       "id": "shouldValidateHmac",
       "label": "HMAC authentication",
       "group": "endpoint",
-      "description": "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
+      "tooltip": "Enabled verifies the HMAC signature on incoming requests; disabled skips verification. See the <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>HMAC configuration</a> and <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#example' target='_blank'>HMAC example</a> for how to use the HMAC-related fields.",
       "value": "disabled",
       "type": "Dropdown",
       "choices": [
@@ -137,7 +136,7 @@
     },
     {
       "label": "HMAC secret key",
-      "description": "Shared secret key",
+      "tooltip": "Shared secret key used to verify the HMAC signature.",
       "type": "String",
       "group": "endpoint",
       "optional": true,
@@ -192,7 +191,7 @@
       "type": "String",
       "group": "activation",
       "feel": "required",
-      "description": "Sets up the correlation key from process variables",
+      "tooltip": "Sets up the correlation key from process variables.",
       "binding": {
         "type": "bpmn:Message#zeebe:subscription#property",
         "name": "correlationKey"
@@ -210,7 +209,7 @@
         "type": "zeebe:property",
         "name": "correlationKeyExpression"
       },
-      "description": "Extracts the correlation key from the incoming message payload",
+      "tooltip": "Extracts the correlation key from the incoming message payload.",
       "constraints": {
         "notEmpty": true
       }
@@ -225,7 +224,7 @@
         "type": "zeebe:property",
         "name": "messageIdExpression"
       },
-      "description": "Expression to extract unique identifier of a message"
+      "tooltip": "Expression to extract the unique identifier of a message."
     },
     {
       "label": "Condition",
@@ -237,7 +236,7 @@
         "type": "zeebe:property",
         "name": "inbound.activationCondition"
       },
-      "description": "Condition under which the connector triggers. Leave empty to catch all events. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=inbound#make-your-twilio-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a>"
+      "tooltip": "Condition under which the connector triggers. Leave empty to catch all events. See the <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=inbound#make-your-twilio-webhook-connector-for-receiving-messages-executable' target='_blank'>Twilio webhook activation guide</a>."
     },
     {
       "label": "Result variable",
@@ -248,7 +247,7 @@
         "type": "zeebe:property",
         "name": "resultVariable"
       },
-      "description": "Name of variable to store the result of the connector in"
+      "tooltip": "Name of variable to store the result of the connector in."
     },
     {
       "label": "Result expression",
@@ -260,7 +259,7 @@
         "type": "zeebe:property",
         "name": "resultExpression"
       },
-      "description": "Expression to map the inbound payload to process variables"
+      "tooltip": "Expression to map the inbound payload to process variables."
     }
   ],
   "icon": {

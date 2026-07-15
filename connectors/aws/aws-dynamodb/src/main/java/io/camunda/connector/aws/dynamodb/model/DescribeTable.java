@@ -15,11 +15,7 @@ import jakarta.validation.constraints.NotBlank;
     description = "Return the metadata of a DynamoDB table",
     keywords = {"describe table", "table schema", "table metadata"})
 public record DescribeTable(
-    @TemplateProperty(
-            label = "Table name",
-            id = "describeTable.tableName",
-            group = "input",
-            description = "Name of DynamoDB table")
+    @TemplateProperty(label = "Table name", id = "describeTable.tableName", group = "input")
         @NotBlank
         String tableName)
     implements TableInput {}

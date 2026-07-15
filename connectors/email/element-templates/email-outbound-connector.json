@@ -377,7 +377,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's subject",
     "type" : "String"
   }, {
     "id" : "contentType",
@@ -403,7 +402,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's contentType",
+    "tooltip" : "Format of the email body: PLAIN sends plain text only, HTML sends HTML only, HTML & Plaintext sends both as a multipart message.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "PLAIN",
@@ -440,7 +439,6 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's content",
     "type" : "Text"
   }, {
     "id" : "smtpHtmlBody",
@@ -467,12 +465,10 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's Html content",
     "type" : "Text"
   }, {
     "id" : "data_smtpAction_attachments_documentMode",
     "label" : "Number of documents",
-    "description" : "Email's attachment. e.g., =[ document1, document2]",
     "value" : "none",
     "group" : "sendEmailSmtp",
     "binding" : {
@@ -490,7 +486,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Email's attachments, should be set as a list ",
+    "tooltip" : "Email attachments, set as a list, e.g. =[document1, document2]",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "None",
@@ -864,7 +860,6 @@
   }, {
     "id" : "searchStringEmailPop3",
     "label" : "Search criteria",
-    "description" : "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
     "optional" : true,
     "feel" : "required",
     "group" : "searchEmailsPop3",
@@ -883,7 +878,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails.",
+    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/\">Email connector search syntax</a>.",
     "type" : "Text"
   }, {
     "id" : "pop3MessageIdDelete",
@@ -914,6 +909,7 @@
   }, {
     "id" : "pop3MessageIdRead",
     "label" : "Message ID",
+    "description" : "Warning: reading an email using POP3 will delete it.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -935,7 +931,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it",
+    "tooltip" : "ID of the message, typically returned by a previous email task.",
     "type" : "String"
   }, {
     "id" : "imapMaxToBeRead",
@@ -1059,7 +1055,6 @@
   }, {
     "id" : "searchStringEmailImap",
     "label" : "Search criteria",
-    "description" : "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
     "optional" : true,
     "feel" : "required",
     "group" : "searchEmailsImap",
@@ -1078,7 +1073,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails.",
+    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/\">Email connector search syntax</a>.",
     "type" : "Text"
   }, {
     "id" : "searchEmailFolder",
@@ -1101,7 +1096,8 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Specify the folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path (e.g., 'INBOX.Archives').",
+    "tooltip" : "Folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path.",
+    "placeholder" : "INBOX.Archives",
     "type" : "String"
   }, {
     "id" : "imapMessageIdRead",

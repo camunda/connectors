@@ -31,9 +31,9 @@ public record FolderResource(
             id = "folderParent",
             binding = @TemplateProperty.PropertyBinding(name = "parent"),
             label = "Parent folder ID",
-            description =
+            tooltip =
                 "Your resources will be created here. "
-                    + "If left empty, a new resource will appear in the root folder",
+                    + "If left empty, a new resource will appear in the root folder.",
             group = "operationDetails",
             optional = true,
             feel = FeelMode.optional)

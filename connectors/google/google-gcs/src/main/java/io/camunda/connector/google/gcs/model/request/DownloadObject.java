@@ -39,7 +39,7 @@ public record DownloadObject(
             label = "File name",
             id = "downloadOperationFileName",
             group = "operation",
-            tooltip = "Specify the name of the document to be downloaded.",
+            tooltip = "Name of the object in the bucket to download.",
             feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
         @NotBlank
@@ -49,8 +49,8 @@ public record DownloadObject(
             id = "downloadOperationAsFile",
             group = "operation",
             tooltip =
-                "If checked, a Camunda document is created and its reference is returned\n"
-                    + "If not checked, no document is created and the content is passed as is",
+                "If checked, a Camunda document is created and its reference is returned.\n"
+                    + "If not checked, no document is created and the content is returned as is.",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
             defaultValue = "true",

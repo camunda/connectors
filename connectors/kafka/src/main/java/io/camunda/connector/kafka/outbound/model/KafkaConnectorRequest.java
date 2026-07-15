@@ -27,14 +27,14 @@ public record KafkaConnectorRequest(
             label = "Headers",
             optional = true,
             feel = FeelMode.required,
-            description = "Provide Kafka producer headers in JSON")
+            tooltip = "Kafka producer headers in JSON.")
         Map<String, String> headers,
     @TemplateProperty(
             group = "kafka",
             label = "Additional properties",
             optional = true,
             feel = FeelMode.required,
-            description = "Provide additional Kafka producer properties in JSON")
+            tooltip = "Additional Kafka producer properties in JSON.")
         Map<String, Object> additionalProperties) {
   @Override
   public @Valid OutboundSchemaStrategy schemaStrategy() {

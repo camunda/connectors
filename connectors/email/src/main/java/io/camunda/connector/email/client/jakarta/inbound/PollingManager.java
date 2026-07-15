@@ -100,7 +100,7 @@ public class PollingManager {
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag("Connection error")
-                  .withMessage(exception.getMessage()));
+                  .withMessage(exception));
       throw new EmailConnectorException(exception);
     } catch (MessagingException e) {
       try {
@@ -178,11 +178,7 @@ public class PollingManager {
       // All exception are caught at highest level, ensuring the scheduler never stops, and continue
       // polling indefinitely
       this.connectorContext.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("mail-polling")
-                  .withMessage(e.getMessage()));
+          activity -> activity.withSeverity(Severity.ERROR).withTag("mail-polling").withMessage(e));
       this.connectorContext.reportHealth(Health.down());
     }
   }

@@ -24,19 +24,15 @@ public class RabbitMqInboundProperties {
   @TemplateProperty(
       label = "Queue name",
       group = "subscription",
-      description = "Name of the queue to subscribe to")
+      tooltip = "Name of the queue to subscribe to")
   private String queueName;
 
-  @TemplateProperty(
-      label = "Consumer tag",
-      group = "subscription",
-      description = "Consumer tag to use for the subscription")
+  @TemplateProperty(label = "Consumer tag", group = "subscription")
   private String consumerTag;
 
   @Valid
   @TemplateProperty(
       label = "Arguments",
-      description = "Arguments to use for the subscription",
       group = "subscription",
       optional = true,
       feel = FeelMode.required)

@@ -19,32 +19,32 @@ public record OAuthAuthentication(
     @FEEL
         @TemplateProperty(
             group = "authentication",
-            description =
-                "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+            tooltip =
+                "ID of the Microsoft Entra ID tenant that owns the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
             feel = FeelMode.optional)
         @NotBlank
         String tenantId,
     @FEEL
         @TemplateProperty(
             group = "authentication",
-            description =
-                "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+            tooltip =
+                "Application (client) ID of the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
             feel = FeelMode.optional)
         @NotBlank
         String clientId,
     @FEEL
         @TemplateProperty(
             group = "authentication",
-            description =
-                "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+            tooltip =
+                "Client secret generated for the registered Microsoft Entra ID application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
             feel = FeelMode.optional)
         @NotBlank
         String clientSecret,
     @FEEL
         @TemplateProperty(
             group = "authentication",
-            description =
-                "The account url of the storage account. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+            tooltip =
+                "URL of the Azure Blob Storage account to connect to. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">Azure Blob Storage OAuth 2.0 documentation</a>.",
             feel = FeelMode.optional)
         @NotBlank
         String accountUrl)

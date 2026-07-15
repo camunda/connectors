@@ -23,7 +23,6 @@ public record DeleteWorksheet(
     @TemplateProperty(
             id = "deleteWorksheet.spreadsheetId",
             label = "Spreadsheet ID",
-            description = "Enter the ID of the spreadsheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.spreadsheetId"))
@@ -32,7 +31,6 @@ public record DeleteWorksheet(
     @TemplateProperty(
             id = "deleteWorksheet.worksheetId",
             label = "Worksheet ID",
-            description = "Enter the ID of the worksheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),

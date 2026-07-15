@@ -24,17 +24,9 @@ import jakarta.validation.constraints.NotBlank;
     })
 public record ListChannelMembers(
     @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "listChannelMembers.groupId",
-            label = "Group ID",
-            description = "The group ID for teams")
+        @TemplateProperty(group = "data", id = "listChannelMembers.groupId", label = "Group ID")
         String groupId,
     @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "listChannelMembers.channelId",
-            label = "Channel ID",
-            description = "The channel ID")
+        @TemplateProperty(group = "data", id = "listChannelMembers.channelId", label = "Channel ID")
         String channelId)
     implements ChannelData {}

@@ -12,6 +12,6 @@ import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 public record UploadData(
     @TemplateDocumentProperty(
             group = "operationDetails",
-            description =
-                "Upload camunda document, <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">see documentation</a>")
+            tooltip =
+                "Upload a Camunda document. See the <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda document upload API</a>.")
         Document document) {}

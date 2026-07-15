@@ -72,7 +72,6 @@
   }, {
     "id" : "authentication.accessKey",
     "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -88,11 +87,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "authentication.secretKey",
     "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -108,11 +107,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "topic.topicArn",
     "label" : "Topic ARN",
-    "description" : "Specify the topic you want to publish to",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -123,11 +122,11 @@
       "name" : "topic.topicArn",
       "type" : "zeebe:input"
     },
+    "placeholder" : "arn:aws:sns:us-east-1:123456789012:MyTopic",
     "type" : "String"
   }, {
     "id" : "topic.type",
     "label" : "Topic type",
-    "description" : "Select SNS topic type. Details at <a href=\"https://aws.amazon.com/sns/features/\">AWS SNS Features</a>",
     "optional" : false,
     "value" : "standard",
     "constraints" : {
@@ -138,6 +137,7 @@
       "name" : "topic.type",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Standard topics maximize throughput; FIFO topics preserve ordering and deduplication. See <a href=\"https://aws.amazon.com/sns/features/\" target=\"_blank\">AWS SNS features</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Standard",
@@ -149,7 +149,6 @@
   }, {
     "id" : "configuration.region",
     "label" : "Region",
-    "description" : "Specify the AWS region",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -175,7 +174,6 @@
   }, {
     "id" : "topic.messageGroupId",
     "label" : "Message group ID",
-    "description" : "Message group ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-grouping.html\">message grouping for FIFO topics</a> in the Amazon SNS developer guide",
     "optional" : false,
     "feel" : "optional",
     "group" : "input",
@@ -188,11 +186,11 @@
       "equals" : "fifo",
       "type" : "simple"
     },
+    "tooltip" : "Required for FIFO topics. See <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-grouping.html\" target=\"_blank\">message grouping for FIFO topics</a> in the Amazon SNS developer guide",
     "type" : "String"
   }, {
     "id" : "topic.messageDeduplicationId",
     "label" : "Message deduplication ID",
-    "description" : "Message deduplication ID. See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\">Message deduplication for FIFO topics</a> in the Amazon SNS developer guide",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -205,11 +203,11 @@
       "equals" : "fifo",
       "type" : "simple"
     },
+    "tooltip" : "Suppresses duplicate messages within a five-minute window. See <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\" target=\"_blank\">message deduplication for FIFO topics</a> in the Amazon SNS developer guide",
     "type" : "String"
   }, {
     "id" : "topic.subject",
     "label" : "Subject",
-    "description" : "Specify the subject of the message you want to publish in the SNS topic",
     "optional" : true,
     "feel" : "optional",
     "group" : "input",
@@ -221,7 +219,6 @@
   }, {
     "id" : "topic.message",
     "label" : "Message",
-    "description" : "Data to publish in the SNS topic",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -236,7 +233,6 @@
   }, {
     "id" : "topic.messageAttributes",
     "label" : "messageAttributes",
-    "description" : "Message attributes metadata",
     "optional" : true,
     "feel" : "required",
     "group" : "input",

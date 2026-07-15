@@ -186,7 +186,6 @@
   }, {
     "id" : "baseRequest.authentication.accessKey",
     "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -208,11 +207,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "baseRequest.authentication.secretKey",
     "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -234,6 +233,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "baseRequest.authentication.authType",
@@ -267,7 +267,6 @@
   }, {
     "id" : "baseRequest.authentication.bearerToken",
     "label" : "Bearer token",
-    "description" : "Enter a valid Google API Bearer token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -293,7 +292,6 @@
   }, {
     "id" : "baseRequest.authentication.oauthClientId",
     "label" : "Client ID",
-    "description" : "Enter Google API Client ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -319,7 +317,6 @@
   }, {
     "id" : "baseRequest.authentication.oauthClientSecret",
     "label" : "Client secret",
-    "description" : "Enter Google API client Secret",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -345,7 +342,6 @@
   }, {
     "id" : "baseRequest.authentication.oauthRefreshToken",
     "label" : "Refresh token",
-    "description" : "Enter a valid Google API refresh token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -371,7 +367,6 @@
   }, {
     "id" : "baseRequest.authentication.serviceAccountJson",
     "label" : "Service account json",
-    "description" : "Enter a the contents of your service account json file",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -393,11 +388,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Enter the contents of your service account JSON file",
     "type" : "String"
   }, {
     "id" : "baseRequest.s3BucketName",
     "label" : "AWS S3 Bucket name",
-    "description" : "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
     "optional" : false,
     "value" : "idp-extraction-connector",
     "constraints" : {
@@ -413,11 +408,11 @@
       "equals" : "aws",
       "type" : "simple"
     },
+    "tooltip" : "Where the document will be stored temporarily during Textract analysis",
     "type" : "Text"
   }, {
     "id" : "baseRequest.extractionEngineType",
     "label" : "Extraction engine type",
-    "description" : "Specify extraction engine to be used",
     "optional" : false,
     "value" : "AWS_TEXTRACT",
     "constraints" : {
@@ -444,7 +439,6 @@
   }, {
     "id" : "baseRequest.configuration.region",
     "label" : "Region",
-    "description" : "Specify the AWS region",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -480,7 +474,6 @@
   }, {
     "id" : "baseRequest.documentIntelligenceConfiguration.endpoint",
     "label" : "Azure Document Intelligence Endpoint",
-    "description" : "Specify the endpoint of the Azure Document Intelligence",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -499,7 +492,6 @@
   }, {
     "id" : "baseRequest.documentIntelligenceConfiguration.apiKey",
     "label" : "Azure Document Intelligence API Key",
-    "description" : "Specify the API key of the Azure Document Intelligence",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -518,7 +510,6 @@
   }, {
     "id" : "baseRequest.aiFoundryConfig.usingOpenAI",
     "label" : "Model type",
-    "description" : "Specify if the Azure AI Foundry is using OpenAI",
     "optional" : false,
     "value" : "false",
     "constraints" : {
@@ -534,6 +525,7 @@
       "equals" : "azure",
       "type" : "simple"
     },
+    "tooltip" : "Base Azure Foundry model = a model deployed directly in Azure AI Foundry; Azure OpenAI model = an OpenAI model served through Azure OpenAI",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Base Azure Foundry model",
@@ -545,7 +537,6 @@
   }, {
     "id" : "baseRequest.aiFoundryConfig.endpoint",
     "label" : "Azure AI Foundry Endpoint",
-    "description" : "Specify the endpoint of the Azure AI Foundry",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -564,7 +555,6 @@
   }, {
     "id" : "baseRequest.aiFoundryConfig.apiKey",
     "label" : "Azure AI Foundry API Key",
-    "description" : "Specify the API key of the Azure AI Foundry",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -648,7 +638,6 @@
   }, {
     "id" : "baseRequest.configuration.bucketName",
     "label" : "Bucket name",
-    "description" : "The Google Cloud Storage bucket where the document will be temporarily stored",
     "optional" : false,
     "feel" : "optional",
     "group" : "configuration",
@@ -667,11 +656,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The Google Cloud Storage bucket where the document will be temporarily stored",
     "type" : "String"
   }, {
     "id" : "baseRequest.configuration.documentAiRegion",
     "label" : "Region",
-    "description" : "Can be 'eu' or 'us'",
     "optional" : false,
     "feel" : "optional",
     "group" : "configuration",
@@ -690,6 +679,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Can be 'eu' or 'us'",
     "type" : "String"
   }, {
     "id" : "baseRequest.configuration.projectId",
@@ -716,7 +706,6 @@
   }, {
     "id" : "baseRequest.configuration.processorId",
     "label" : "Processor ID",
-    "description" : "The id of the processor used to parse the document",
     "optional" : false,
     "feel" : "optional",
     "group" : "configuration",
@@ -735,11 +724,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Processor used to parse the document",
     "type" : "String"
   }, {
     "id" : "baseRequest.openAiEndpoint",
     "label" : "OpenAI Spec Endpoint",
-    "description" : "Specify the OpenAI compatible specification endpoint.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -754,11 +743,11 @@
       "equals" : "openai",
       "type" : "simple"
     },
+    "tooltip" : "The OpenAI-compatible specification endpoint.",
     "type" : "Text"
   }, {
     "id" : "baseRequest.openAiHeaders",
     "label" : "Headers",
-    "description" : "Map of HTTP headers to add to the request.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -773,6 +762,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
+    "tooltip" : "Map of HTTP headers to add to the request.",
     "type" : "String"
   }, {
     "id" : "version",

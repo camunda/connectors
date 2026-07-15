@@ -23,19 +23,14 @@ import jakarta.validation.constraints.NotBlank;
       "browse channels"
     })
 public record ListChannels(
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "listChannels.groupId",
-            label = "Group ID",
-            description = "The group ID for teams")
+    @NotBlank @TemplateProperty(group = "data", id = "listChannels.groupId", label = "Group ID")
         String groupId,
     @TemplateProperty(
             group = "data",
             id = "listChannels.filter",
             label = "Filter",
             optional = true,
-            description =
-                "Sets the search filter. <a href='https://learn.microsoft.com/en-us/graph/filter-query-parameter'>Learn more about filtering</a>")
+            tooltip =
+                "Sets the search filter. See the <a href=\"https://learn.microsoft.com/en-us/graph/filter-query-parameter\">filter query parameter</a> reference.")
         String filter)
     implements ChannelData {}

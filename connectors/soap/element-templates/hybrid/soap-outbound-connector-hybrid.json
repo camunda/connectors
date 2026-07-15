@@ -57,7 +57,6 @@
   }, {
     "id" : "serviceUrl",
     "label" : "Service URL",
-    "description" : "The URL where the service runs",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -68,6 +67,7 @@
       "name" : "serviceUrl",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The URL where the service runs",
     "type" : "String"
   }, {
     "id" : "authentication.authentication",
@@ -175,7 +175,6 @@
   }, {
     "id" : "authentication.certificate.certificate",
     "label" : "Certificate",
-    "description" : "The X.509 certificate to use to sign the request",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -197,11 +196,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The X.509 certificate to use to sign the request",
     "type" : "String"
   }, {
     "id" : "authentication.certificate.privateKey",
     "label" : "Private key",
-    "description" : "The private key for the certificate",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -223,11 +222,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The private key for the certificate",
     "type" : "String"
   }, {
     "id" : "authentication.certificate.keystoreLocation",
     "label" : "Keystore location",
-    "description" : "The keystore to use",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -253,7 +252,6 @@
   }, {
     "id" : "authentication.certificate.keystorePassword",
     "label" : "Keystore password",
-    "description" : "The password to access the keystore",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -279,7 +277,6 @@
   }, {
     "id" : "authentication.certificate.alias",
     "label" : "Certificate alias",
-    "description" : "The alias for the certificate in the keystore",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -301,11 +298,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The alias for the certificate in the keystore",
     "type" : "String"
   }, {
     "id" : "authentication.certificate.password",
     "label" : "Certificate password",
-    "description" : "The password to access the certificate",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -331,7 +328,6 @@
   }, {
     "id" : "authentication.signatureAlgorithm",
     "label" : "Signature algorithm",
-    "description" : "Fully qualified name of an alternative signature algorithm",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -344,11 +340,11 @@
       "equals" : "signature",
       "type" : "simple"
     },
+    "tooltip" : "Fully qualified name of an alternative signature algorithm",
     "type" : "String"
   }, {
     "id" : "authentication.digestAlgorithm",
     "label" : "Digest algorithm",
-    "description" : "Fully qualified name of an alternative digest algorithm",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -361,11 +357,11 @@
       "equals" : "signature",
       "type" : "simple"
     },
+    "tooltip" : "Fully qualified name of an alternative digest algorithm",
     "type" : "String"
   }, {
     "id" : "authentication.timestamp",
     "label" : "Timestamp timeout in seconds",
-    "description" : "If set, adds a timestamp header with the given timeout",
     "optional" : true,
     "feel" : "static",
     "group" : "authentication",
@@ -378,11 +374,11 @@
       "equals" : "signature",
       "type" : "simple"
     },
+    "tooltip" : "If set, adds a timestamp header with the given timeout",
     "type" : "Number"
   }, {
     "id" : "authentication.encryptionParts",
     "label" : "Signature parts",
-    "description" : "Array of signature parts with namespace and localName",
     "optional" : true,
     "feel" : "required",
     "group" : "authentication",
@@ -395,6 +391,7 @@
       "equals" : "signature",
       "type" : "simple"
     },
+    "tooltip" : "Array of signature parts with namespace and localName",
     "type" : "String"
   }, {
     "id" : "soapVersion.version",
@@ -417,7 +414,6 @@
   }, {
     "id" : "soapVersion.soapAction",
     "label" : "SOAPAction HTTP header",
-    "description" : "The SOAPAction HTTP header to be used in the request",
     "optional" : true,
     "feel" : "optional",
     "group" : "soap-message",
@@ -455,7 +451,6 @@
   }, {
     "id" : "header.template",
     "label" : "XML template",
-    "description" : "The template for the header in XML format",
     "optional" : false,
     "feel" : "optional",
     "group" : "soap-message",
@@ -468,11 +463,11 @@
       "equals" : "template",
       "type" : "simple"
     },
+    "tooltip" : "The template for the header in XML format",
     "type" : "Text"
   }, {
     "id" : "header.context",
     "label" : "XML template context",
-    "description" : "The context that is used to fill the template",
     "optional" : false,
     "feel" : "required",
     "group" : "soap-message",
@@ -485,11 +480,11 @@
       "equals" : "template",
       "type" : "simple"
     },
+    "tooltip" : "The context that is used to fill the template",
     "type" : "String"
   }, {
     "id" : "header.json",
     "label" : "JSON definition",
-    "description" : "Definition of the SOAP header as JSON object",
     "optional" : false,
     "feel" : "required",
     "group" : "soap-message",
@@ -502,6 +497,7 @@
       "equals" : "json",
       "type" : "simple"
     },
+    "tooltip" : "Definition of the SOAP header as JSON object",
     "type" : "String"
   }, {
     "id" : "body.type",
@@ -524,7 +520,6 @@
   }, {
     "id" : "body.template",
     "label" : "XML template",
-    "description" : "The template for the body in XML format",
     "optional" : false,
     "feel" : "optional",
     "group" : "soap-message",
@@ -537,11 +532,11 @@
       "equals" : "template",
       "type" : "simple"
     },
+    "tooltip" : "The template for the body in XML format",
     "type" : "Text"
   }, {
     "id" : "body.context",
     "label" : "XML template context",
-    "description" : "The context that is used to fill the template",
     "optional" : false,
     "feel" : "required",
     "group" : "soap-message",
@@ -554,11 +549,11 @@
       "equals" : "template",
       "type" : "simple"
     },
+    "tooltip" : "The context that is used to fill the template",
     "type" : "String"
   }, {
     "id" : "body.json",
     "label" : "JSON definition",
-    "description" : "Definition of the SOAP body as JSON object",
     "optional" : false,
     "feel" : "required",
     "group" : "soap-message",
@@ -571,11 +566,11 @@
       "equals" : "json",
       "type" : "simple"
     },
+    "tooltip" : "Definition of the SOAP body as JSON object",
     "type" : "String"
   }, {
     "id" : "namespaces",
     "label" : "Namespaces",
-    "description" : "The namespaces that should be declared on the SOAP Envelope",
     "optional" : true,
     "feel" : "required",
     "group" : "soap-message",
@@ -583,11 +578,11 @@
       "name" : "namespaces",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The namespaces that should be declared on the SOAP Envelope",
     "type" : "String"
   }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
-    "description" : "Sets timeout in seconds to establish a connection or 0 for an infinite timeout",
     "optional" : true,
     "value" : 20,
     "feel" : "static",
@@ -596,6 +591,7 @@
       "name" : "connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Time in seconds to wait when establishing a connection, or 0 to wait indefinitely",
     "type" : "Number"
   }, {
     "id" : "version",

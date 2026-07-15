@@ -20,7 +20,7 @@ public record UriAuthentication(
         @TemplateProperty(
             group = "authentication",
             label = "URI",
-            description =
+            tooltip =
                 "URI should contain username, password, host name, port number, and virtual host")
         String uri)
     implements RabbitMqAuthentication {

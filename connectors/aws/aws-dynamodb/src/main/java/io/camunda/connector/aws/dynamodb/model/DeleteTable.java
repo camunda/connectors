@@ -15,11 +15,6 @@ import jakarta.validation.constraints.NotBlank;
     description = "Delete a DynamoDB table",
     keywords = {"delete table", "drop table", "remove table"})
 public record DeleteTable(
-    @TemplateProperty(
-            label = "Table name",
-            id = "deleteTable.tableName",
-            group = "input",
-            description = "Name of DynamoDB table")
-        @NotBlank
+    @TemplateProperty(label = "Table name", id = "deleteTable.tableName", group = "input") @NotBlank
         String tableName)
     implements TableInput {}

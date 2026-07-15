@@ -17,19 +17,14 @@ import jakarta.validation.constraints.NotNull;
     description = "Fetch a single item from a DynamoDB table by primary key",
     keywords = {"get item", "fetch item", "lookup item"})
 public record GetItem(
-    @TemplateProperty(
-            label = "Table name",
-            id = "getItem.tableName",
-            group = "input",
-            description = "Name of DynamoDB table")
-        @NotBlank
+    @TemplateProperty(label = "Table name", id = "getItem.tableName", group = "input") @NotBlank
         String tableName,
     @TemplateProperty(
             label = "Primary key components",
             id = "getItem.primaryKeyComponents",
             group = "input",
             feel = FeelMode.required,
-            description = "Simple or composite primary key")
+            tooltip = "Simple or composite primary key")
         @NotNull
         Object primaryKeyComponents)
     implements ItemInput {}

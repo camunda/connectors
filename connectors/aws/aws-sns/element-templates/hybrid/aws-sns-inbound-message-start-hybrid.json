@@ -51,7 +51,6 @@
   }, {
     "id" : "inbound.context",
     "label" : "Subscription ID",
-    "description" : "The subscription ID is a part of the URL endpoint",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -61,11 +60,11 @@
       "name" : "inbound.context",
       "type" : "zeebe:property"
     },
+    "tooltip" : "The subscription ID is a part of the URL endpoint",
     "type" : "String"
   }, {
     "id" : "inbound.securitySubscriptionAllowedFor",
     "label" : "Allow to receive messages from topic(s)",
-    "description" : "Control which topic(s) is allowed to start a process",
     "optional" : false,
     "value" : "any",
     "group" : "subscription",
@@ -73,6 +72,7 @@
       "name" : "inbound.securitySubscriptionAllowedFor",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Control which topic(s) are allowed to start a process",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Any",
@@ -84,7 +84,6 @@
   }, {
     "id" : "inbound.topicsAllowList",
     "label" : "Topic ARN(s)",
-    "description" : "Topics that allow to publish messages",
     "optional" : true,
     "feel" : "optional",
     "group" : "subscription",
@@ -97,6 +96,8 @@
       "equals" : "specific",
       "type" : "simple"
     },
+    "tooltip" : "Topic ARNs that are allowed to trigger the process, comma-separated",
+    "placeholder" : "arn:aws:sns:us-east-1:123456789012:Topic1,arn:aws:sns:us-east-1:123456789012:Topic2",
     "type" : "String"
   }, {
     "id" : "activationCondition",

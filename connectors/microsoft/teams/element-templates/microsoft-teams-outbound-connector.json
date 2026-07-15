@@ -186,7 +186,6 @@
   }, {
     "id" : "authentication.credentials.clientId",
     "label" : "Client ID",
-    "description" : "The client ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -206,7 +205,6 @@
   }, {
     "id" : "authentication.credentials.tenantId",
     "label" : "Tenant ID",
-    "description" : "The tenant ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -226,7 +224,6 @@
   }, {
     "id" : "authentication.credentials.clientSecret",
     "label" : "Client secret",
-    "description" : "The secret value of the Azure AD application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -242,6 +239,7 @@
       "equals" : "clientCredentials",
       "type" : "simple"
     },
+    "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
     "type" : "String"
   }, {
     "id" : "authentication.refresh.token",
@@ -265,7 +263,6 @@
   }, {
     "id" : "authentication.refresh.clientId",
     "label" : "Client ID",
-    "description" : "The client ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -285,7 +282,6 @@
   }, {
     "id" : "authentication.refresh.tenantId",
     "label" : "Tenant ID",
-    "description" : "The tenant ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -305,7 +301,6 @@
   }, {
     "id" : "authentication.refresh.clientSecret",
     "label" : "Client secret",
-    "description" : "The secret value of the Azure AD application; optional, depends on whether the client is public or private",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -318,11 +313,11 @@
       "equals" : "refresh",
       "type" : "simple"
     },
+    "tooltip" : "The secret value of the Microsoft Entra ID (formerly Azure AD) application; optional, depends on whether the client is public or private",
     "type" : "String"
   }, {
     "id" : "data.createChat.chatType",
     "label" : "Chat type",
-    "description" : "The type of a new chat",
     "optional" : false,
     "value" : "one_on_one",
     "constraints" : {
@@ -344,6 +339,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "One on one for a private conversation between two people; group for a conversation among three or more people.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "One on one",
@@ -355,7 +351,6 @@
   }, {
     "id" : "data.createChat.topic",
     "label" : "Topic",
-    "description" : "Set topic of chat (optional)",
     "optional" : true,
     "feel" : "optional",
     "group" : "data",
@@ -382,7 +377,6 @@
   }, {
     "id" : "data.createChat.members",
     "label" : "Members",
-    "description" : "Set array members of chat. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#members-property'>Learn more about the required format</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -404,11 +398,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#members-property\">Members property</a> reference.",
     "type" : "String"
   }, {
     "id" : "data.getChat.chatId",
     "label" : "Chat ID",
-    "description" : "The chat ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -434,7 +428,6 @@
   }, {
     "id" : "data.getChat.expand",
     "label" : "Expand response",
-    "description" : "Choose expand type. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#expand-response'>Learn more about expanding chat response</a>",
     "optional" : false,
     "value" : "withoutExpand",
     "constraints" : {
@@ -456,6 +449,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#expand-response\">expand response</a> reference.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Without expand",
@@ -470,7 +464,6 @@
   }, {
     "id" : "data.listChatMembers.chatId",
     "label" : "Chat ID",
-    "description" : "The chat ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -496,7 +489,6 @@
   }, {
     "id" : "data.sendMessageInChat.chatId",
     "label" : "Chat ID",
-    "description" : "The chat ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -522,7 +514,6 @@
   }, {
     "id" : "data.sendMessageInChat.bodyType",
     "label" : "Content type",
-    "description" : "The type of the content. Possible values are text and html",
     "optional" : false,
     "value" : "TEXT",
     "constraints" : {
@@ -544,6 +535,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Text sends the message body as plain text; HTML renders it as HTML markup.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Text",
@@ -555,7 +547,6 @@
   }, {
     "id" : "data.sendMessageInChat.content",
     "label" : "Content",
-    "description" : "Enter content",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -581,7 +572,6 @@
   }, {
     "id" : "data.sendMessageInChat.attachments",
     "label" : "Attachments",
-    "description" : "Optional list of attachments. Each item must have an 'id', 'contentType' (e.g. 'application/vnd.microsoft.card.adaptive') and 'content' (e.g. an Adaptive Card JSON payload). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
     "optional" : true,
     "feel" : "required",
     "group" : "data",
@@ -604,11 +594,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Optional list of attachments. Each item must have an 'id', 'contentType' (e.g. 'application/vnd.microsoft.card.adaptive') and 'content' (e.g. an Adaptive Card JSON payload). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
     "type" : "String"
   }, {
     "id" : "data.listMessagesInChat.chatId",
     "label" : "Chat ID",
-    "description" : "The chat ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -634,7 +624,7 @@
   }, {
     "id" : "data.listMessagesInChat.top",
     "label" : "Top",
-    "description" : "Controls the number of items per response. Maximum allowed $top value is 50",
+    "description" : "Maximum allowed $top value is 50.",
     "optional" : true,
     "feel" : "optional",
     "group" : "data",
@@ -653,6 +643,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Controls the number of items per response.",
     "type" : "String"
   }, {
     "id" : "data.listMessagesInChat.orderBy",
@@ -692,7 +683,6 @@
   }, {
     "id" : "data.listMessagesInChat.filter",
     "label" : "Filter",
-    "description" : "Sets the date range filter for the lastModifiedDateTime and createdDateTime properties. <a href='https://learn.microsoft.com/en-us/graph/filter-query-parameter'>Learn more about filtering</a>",
     "optional" : false,
     "feel" : "optional",
     "group" : "data",
@@ -711,11 +701,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Sets the date range filter for the lastModifiedDateTime and createdDateTime properties. See the <a href=\"https://learn.microsoft.com/en-us/graph/filter-query-parameter\">filter query parameter</a> reference.",
     "type" : "String"
   }, {
     "id" : "data.getMessageInChat.chatId",
     "label" : "Chat ID",
-    "description" : "The chat ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -741,7 +731,6 @@
   }, {
     "id" : "data.getMessageInChat.messageId",
     "label" : "Message ID",
-    "description" : "The message ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -767,7 +756,6 @@
   }, {
     "id" : "data.createChannel.groupId",
     "label" : "Group ID",
-    "description" : "The group ID for teams",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -793,7 +781,6 @@
   }, {
     "id" : "data.createChannel.name",
     "label" : "Display name",
-    "description" : "Enter name of a channel",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -819,7 +806,6 @@
   }, {
     "id" : "data.createChannel.description",
     "label" : "Description",
-    "description" : "Enter description",
     "optional" : true,
     "feel" : "optional",
     "group" : "data",
@@ -842,7 +828,6 @@
   }, {
     "id" : "data.createChannel.channelType",
     "label" : "Channel membership type",
-    "description" : "Choose type",
     "optional" : false,
     "value" : "standard",
     "constraints" : {
@@ -878,7 +863,6 @@
   }, {
     "id" : "data.createChannel.owner",
     "label" : "Owner",
-    "description" : "Enter ID or principal name of a user",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -904,11 +888,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "ID or principal name of the user",
     "type" : "String"
   }, {
     "id" : "data.getChannel.groupId",
     "label" : "Group ID",
-    "description" : "The group ID for teams",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -934,7 +918,6 @@
   }, {
     "id" : "data.getChannel.channelId",
     "label" : "Channel ID",
-    "description" : "The Channel ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -960,7 +943,6 @@
   }, {
     "id" : "data.listChannels.groupId",
     "label" : "Group ID",
-    "description" : "The group ID for teams",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -986,7 +968,6 @@
   }, {
     "id" : "data.listChannels.filter",
     "label" : "Filter",
-    "description" : "Sets the search filter. <a href='https://learn.microsoft.com/en-us/graph/filter-query-parameter'>Learn more about filtering</a>",
     "optional" : true,
     "feel" : "optional",
     "group" : "data",
@@ -1005,11 +986,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Sets the search filter. See the <a href=\"https://learn.microsoft.com/en-us/graph/filter-query-parameter\">filter query parameter</a> reference.",
     "type" : "String"
   }, {
     "id" : "data.sendMessageToChannel.groupId",
     "label" : "Group ID",
-    "description" : "The group ID for teams",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1035,7 +1016,6 @@
   }, {
     "id" : "data.sendMessageToChannel.channelId",
     "label" : "Channel ID",
-    "description" : "The channel ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1061,7 +1041,6 @@
   }, {
     "id" : "data.sendMessageToChannel.bodyType",
     "label" : "Content type",
-    "description" : "The type of the content. Possible values are text and html",
     "optional" : false,
     "value" : "TEXT",
     "constraints" : {
@@ -1083,6 +1062,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Text sends the message body as plain text; HTML renders it as HTML markup.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Text",
@@ -1094,7 +1074,6 @@
   }, {
     "id" : "data.sendMessageToChannel.content",
     "label" : "Content",
-    "description" : "Enter content",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1417,7 +1396,6 @@
   }, {
     "id" : "data.sendMessageToChannel.attachments",
     "label" : "Attachments",
-    "description" : "Optional list of attachments. Each item must have an 'id', 'contentType' (e.g. 'application/vnd.microsoft.card.adaptive') and 'content' (e.g. an Adaptive Card JSON payload). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
     "optional" : true,
     "feel" : "required",
     "group" : "data",
@@ -1440,11 +1418,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Optional list of attachments. Each item must have an 'id', 'contentType' (e.g. 'application/vnd.microsoft.card.adaptive') and 'content' (e.g. an Adaptive Card JSON payload). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
     "type" : "String"
   }, {
     "id" : "data.getChannelMessage.groupId",
     "label" : "Group ID",
-    "description" : "The group ID for teams",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1470,7 +1448,6 @@
   }, {
     "id" : "data.getChannelMessage.channelId",
     "label" : "Channel ID",
-    "description" : "The channel ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1496,7 +1473,6 @@
   }, {
     "id" : "data.getChannelMessage.messageId",
     "label" : "Message ID",
-    "description" : "The message ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1522,7 +1498,6 @@
   }, {
     "id" : "data.listChannelMessage.groupId",
     "label" : "Group ID",
-    "description" : "The group ID for teams",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1548,7 +1523,6 @@
   }, {
     "id" : "data.listChannelMessage.channelId",
     "label" : "Channel ID",
-    "description" : "The channel ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1574,7 +1548,6 @@
   }, {
     "id" : "data.listChannelMessage.top",
     "label" : "Top",
-    "description" : "Controls the number of items per response",
     "optional" : true,
     "feel" : "optional",
     "group" : "data",
@@ -1593,11 +1566,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Controls the number of items per response",
     "type" : "String"
   }, {
     "id" : "data.listChannelMessage.isExpand",
     "label" : "With replies",
-    "description" : "Return message replies",
     "optional" : false,
     "value" : "false",
     "constraints" : {
@@ -1619,6 +1592,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Return message replies",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "False",
@@ -1630,7 +1604,6 @@
   }, {
     "id" : "data.listMessageRepliesInChannel.groupId",
     "label" : "Group ID",
-    "description" : "The group ID for teams",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1656,7 +1629,6 @@
   }, {
     "id" : "data.listMessageRepliesInChannel.channelId",
     "label" : "Channel ID",
-    "description" : "The channel ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1682,7 +1654,6 @@
   }, {
     "id" : "data.listMessageRepliesInChannel.messageId",
     "label" : "Message ID",
-    "description" : "The message ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1708,7 +1679,6 @@
   }, {
     "id" : "data.listChannelMembers.groupId",
     "label" : "Group ID",
-    "description" : "The group ID for teams",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1734,7 +1704,6 @@
   }, {
     "id" : "data.listChannelMembers.channelId",
     "label" : "Channel ID",
-    "description" : "The channel ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

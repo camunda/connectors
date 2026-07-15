@@ -28,9 +28,7 @@ public record ImapSearchEmails(
             group = "searchEmailsImap",
             id = "searchStringEmailImap",
             tooltip =
-                "Define the search criteria using supported keywords and syntax to filter emails.",
-            description =
-                "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+                "Define the search criteria using supported keywords and syntax to filter emails. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/\">Email connector search syntax</a>.",
             type = TemplateProperty.PropertyType.Text,
             feel = FeelMode.required,
             optional = true,
@@ -41,7 +39,8 @@ public record ImapSearchEmails(
             group = "searchEmailsImap",
             id = "searchEmailFolder",
             tooltip =
-                "Specify the folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path (e.g., 'INBOX.Archives').",
+                "Folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path.",
+            placeholder = "INBOX.Archives",
             optional = true,
             feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.searchEmailFolder"))

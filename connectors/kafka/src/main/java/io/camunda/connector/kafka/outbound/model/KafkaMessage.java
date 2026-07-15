@@ -10,8 +10,5 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 
 public record KafkaMessage(
-    @TemplateProperty(group = "message", label = "Key", description = "Provide message key")
-        Object key,
-    @NotNull
-        @TemplateProperty(group = "message", label = "Value", description = "Provide message value")
-        Object value) {}
+    @TemplateProperty(group = "message", label = "Key") Object key,
+    @NotNull @TemplateProperty(group = "message", label = "Value") Object value) {}

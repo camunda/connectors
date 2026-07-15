@@ -98,7 +98,6 @@
       "label": "Operation group",
       "id": "operationGroup",
       "group": "operation",
-      "description": "Choose operation group",
       "type": "Dropdown",
       "choices": [
         {
@@ -119,7 +118,6 @@
       "label": "Operation",
       "id": "taskOperation",
       "group": "operation",
-      "description": "Choose operation to perform",
       "type": "Dropdown",
       "choices": [
         {
@@ -152,7 +150,6 @@
       "label": "Operation",
       "id": "projectOperation",
       "group": "operation",
-      "description": "Choose operation to perform",
       "type": "Dropdown",
       "choices": [
         {
@@ -261,7 +258,7 @@
     },
     {
       "label": "Project ID",
-      "description": "Globally unique identifier for the project",
+      "tooltip": "Globally unique identifier for the project",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -303,7 +300,6 @@
     },
     {
       "label": "Task ID",
-      "description": "The task to operate on",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -333,7 +329,6 @@
     },
     {
       "label": "Task ID",
-      "description": "The task to operate on",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -363,7 +358,6 @@
     },
     {
       "label": "Task name",
-      "description": "The name of the task",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -381,7 +375,7 @@
     },
     {
       "label": "Project ID",
-      "description": "Globally unique identifier for the project",
+      "tooltip": "Globally unique identifier for the project",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -399,7 +393,7 @@
     },
     {
       "label": "Parent task ID",
-      "description": "Globally unique identifier for the parent task",
+      "tooltip": "Globally unique identifier for the parent task",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -415,7 +409,7 @@
     },
     {
       "label": "Notes",
-      "description": "Free-form textual information associated with the task (i.e. its description)",
+      "tooltip": "Free-form textual information associated with the task (i.e., its description)",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -455,7 +449,7 @@
     },
     {
       "label": "Workspace ID",
-      "description": "The workspace or organization to filter projects on",
+      "tooltip": "The workspace or organization to filter projects on",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -471,7 +465,7 @@
     },
     {
       "label": "Team ID",
-      "description": "The team to filter projects on",
+      "tooltip": "The team to filter projects on",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -511,7 +505,7 @@
     },
     {
       "label": "Project ID",
-      "description": "Globally unique identifier for the project",
+      "tooltip": "Globally unique identifier for the project",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -541,7 +535,7 @@
     },
     {
       "label": "Workspace ID",
-      "description": "Globally unique identifier for the workspace or organization",
+      "tooltip": "Globally unique identifier for the workspace or organization",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -559,7 +553,7 @@
     },
     {
       "label": "Project name",
-      "description": "Name of the project. This is generally a short sentence fragment that fits on a line in the UI for maximum readability",
+      "tooltip": "Generally a short sentence fragment that fits on a line in the UI for maximum readability",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -577,7 +571,7 @@
     },
     {
       "label": "Project note",
-      "description": "Free-form textual information associated with the project (ie., its description)",
+      "tooltip": "Free-form textual information associated with the project (i.e., its description)",
       "group": "operation",
       "type": "Text",
       "feel": "optional",
@@ -617,7 +611,7 @@
     },
     {
       "label": "Project ID",
-      "description": "Globally unique identifier for the project",
+      "tooltip": "Globally unique identifier for the project",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -679,7 +673,7 @@
     },
     {
       "label": "Result variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -689,7 +683,7 @@
     },
     {
       "label": "Result expression",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "group": "output",
       "type": "Text",
       "feel": "required",
@@ -700,7 +694,7 @@
     },
     {
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",

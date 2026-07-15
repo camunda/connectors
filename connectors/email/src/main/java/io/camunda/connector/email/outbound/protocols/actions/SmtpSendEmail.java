@@ -90,7 +90,6 @@ public record SmtpSendEmail(
             group = "sendEmailSmtp",
             id = "smtpSubject",
             type = TemplateProperty.PropertyType.String,
-            tooltip = "Email's subject",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.subject"),
             feel = FeelMode.optional)
         @Valid
@@ -102,7 +101,8 @@ public record SmtpSendEmail(
             id = "contentType",
             defaultValue = "PLAIN",
             type = TemplateProperty.PropertyType.Dropdown,
-            tooltip = "Email's contentType",
+            tooltip =
+                "Format of the email body: PLAIN sends plain text only, HTML sends HTML only, HTML & Plaintext sends both as a multipart message.",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.contentType"))
         @Valid
         @NotNull
@@ -113,7 +113,6 @@ public record SmtpSendEmail(
             group = "sendEmailSmtp",
             id = "smtpBody",
             type = TemplateProperty.PropertyType.Text,
-            tooltip = "Email's content",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.body"),
             feel = FeelMode.optional,
             condition =
@@ -127,7 +126,6 @@ public record SmtpSendEmail(
             group = "sendEmailSmtp",
             id = "smtpHtmlBody",
             type = TemplateProperty.PropertyType.Text,
-            tooltip = "Email's Html content",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.htmlBody"),
             feel = FeelMode.optional,
             condition =
@@ -139,9 +137,8 @@ public record SmtpSendEmail(
     @TemplateDocumentProperty(
             group = "sendEmailSmtp",
             id = "attachmentsSmtp",
-            tooltip = "Email's attachments, should be set as a list ",
+            tooltip = "Email attachments, set as a list, e.g. =[document1, document2]",
             optional = true,
-            description = "Email's attachment. e.g., =[ document1, document2]",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.attachments"))
         List<Document> attachments)
     implements SmtpAction {

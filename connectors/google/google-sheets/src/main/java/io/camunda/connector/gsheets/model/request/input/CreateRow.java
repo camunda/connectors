@@ -24,7 +24,6 @@ public record CreateRow(
     @TemplateProperty(
             id = "createRow.spreadsheetId",
             label = "Spreadsheet ID",
-            description = "Enter the ID of the spreadsheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.spreadsheetId"))
@@ -33,7 +32,6 @@ public record CreateRow(
     @TemplateProperty(
             id = "createRow.worksheetName",
             label = "Worksheet name",
-            description = "Enter name for the worksheet",
             group = "operationDetails",
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "operation.worksheetName"))
@@ -42,8 +40,8 @@ public record CreateRow(
     @TemplateProperty(
             id = "createRow.rowIndex",
             label = "Row index",
-            description =
-                "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+            tooltip =
+                "Position of the row, shown to the left of each row. If left empty, a new row is appended to the end. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">what is a row index</a>.",
             group = "operationDetails",
             feel = FeelMode.optional,
             constraints =
@@ -57,8 +55,8 @@ public record CreateRow(
         Integer rowIndex,
     @TemplateProperty(
             label = "Enter values",
-            description =
-                "Enter the array of values. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">Learn more about the required format</a>",
+            tooltip =
+                "List of cell values to add as a new row. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">create row</a> operation.",
             group = "operationDetails",
             feel = FeelMode.required,
             constraints = @PropertyConstraints(notEmpty = true),

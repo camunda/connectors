@@ -18,17 +18,12 @@ import jakarta.validation.constraints.NotNull;
     description = "Create a new DynamoDB table",
     keywords = {"create table", "new table", "provision table"})
 public record CreateTable(
-    @TemplateProperty(
-            label = "Table name",
-            id = "createTable.tableName",
-            group = "input",
-            description = "Name of DynamoDB table")
-        @NotBlank
+    @TemplateProperty(label = "Table name", id = "createTable.tableName", group = "input") @NotBlank
         String tableName,
     @TemplateProperty(
             group = "input",
-            description =
-                "Partition key role. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
+            tooltip =
+                "Attribute name of the table's partition key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         @NotBlank
         String partitionKey,
     @TemplateProperty(
@@ -38,8 +33,8 @@ public record CreateTable(
               @TemplateProperty.DropdownPropertyChoice(value = "HASH", label = "HASH"),
               @TemplateProperty.DropdownPropertyChoice(value = "RANGE", label = "RANGE")
             },
-            description =
-                "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
+            tooltip =
+                "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         @NotBlank
         String partitionKeyRole,
     @TemplateProperty(
@@ -51,15 +46,15 @@ public record CreateTable(
               @TemplateProperty.DropdownPropertyChoice(value = "N", label = "Number"),
               @TemplateProperty.DropdownPropertyChoice(value = "S", label = "String")
             },
-            description = "Represents the data for an attribute")
+            tooltip = "S = String, N = Number, B = Binary")
         @NotBlank
         String partitionKeyType,
     @TemplateProperty(
             label = "Sort key",
             group = "input",
             optional = true,
-            description =
-                "Sort key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
+            tooltip =
+                "Attribute name of the table's sort key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         String sortKey,
     @TemplateProperty(
             label = "Sort key role",
@@ -70,7 +65,8 @@ public record CreateTable(
               @TemplateProperty.DropdownPropertyChoice(value = "HASH", label = "HASH"),
               @TemplateProperty.DropdownPropertyChoice(value = "RANGE", label = "RANGE")
             },
-            description = "The role that this key attribute will assume")
+            tooltip =
+                "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         String sortKeyRole,
     @TemplateProperty(
             label = "Sort key attribute data type",
@@ -82,20 +78,20 @@ public record CreateTable(
               @TemplateProperty.DropdownPropertyChoice(value = "N", label = "Number"),
               @TemplateProperty.DropdownPropertyChoice(value = "S", label = "String")
             },
-            description = "Represents the data for an attribute")
+            tooltip = "S = String, N = Number, B = Binary")
         String sortKeyType,
     @TemplateProperty(
             label = "Read capacity units",
             group = "input",
-            description =
-                "Total number of read capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
+            tooltip =
+                "Total number of read capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         @NotNull
         Long readCapacityUnits,
     @TemplateProperty(
             label = "Write capacity units",
             group = "input",
-            description =
-                "Total number of write capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
+            tooltip =
+                "Total number of write capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         @NotNull
         Long writeCapacityUnits,
     @TemplateProperty(
@@ -110,8 +106,8 @@ public record CreateTable(
                   value = "PAY_PER_REQUEST",
                   label = "PAY_PER_REQUEST")
             },
-            description =
-                "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
+            tooltip =
+                "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">Amazon DynamoDB connector documentation</a>")
         @NotBlank
         String billingModeStr,
     @TemplateProperty(
@@ -123,7 +119,7 @@ public record CreateTable(
               @TemplateProperty.DropdownPropertyChoice(value = "false", label = "False")
             },
             defaultValue = "false",
-            description = "Prevents accidental table deletion")
+            tooltip = "Prevents accidental table deletion")
         @NotNull
         boolean deletionProtection)
     implements TableInput {}

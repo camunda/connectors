@@ -33,7 +33,6 @@ public record DocumentAiExtractorRequest(
     @TemplateProperty(
             id = "bearerToken",
             label = "Bearer token",
-            description = "Enter a valid Google API Bearer token",
             group = "extractor",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -45,7 +44,6 @@ public record DocumentAiExtractorRequest(
     @TemplateProperty(
             id = "oauthClientId",
             label = "Client ID",
-            description = "Enter Google API Client ID",
             group = "extractor",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -57,7 +55,6 @@ public record DocumentAiExtractorRequest(
     @TemplateProperty(
             id = "oauthClientSecret",
             label = "Client secret",
-            description = "Enter Google API client Secret",
             group = "extractor",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -69,7 +66,6 @@ public record DocumentAiExtractorRequest(
     @TemplateProperty(
             id = "oauthRefreshToken",
             label = "Refresh token",
-            description = "Enter a valid Google API refresh token",
             group = "extractor",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -81,7 +77,7 @@ public record DocumentAiExtractorRequest(
     @TemplateProperty(
             id = "serviceAccountJson",
             label = "Service account json",
-            description = "Enter a the contents of your service account json file",
+            tooltip = "Enter the contents of your service account JSON file",
             group = "extractor",
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -94,7 +90,8 @@ public record DocumentAiExtractorRequest(
             group = "extractor",
             id = "documentAiRegion",
             label = "Region",
-            description = "Select the region for Document AI",
+            tooltip =
+                "Geographic location where the Document AI processor runs. EU = European Union, US = United States.",
             type = Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             choices = {
@@ -107,6 +104,6 @@ public record DocumentAiExtractorRequest(
             group = "extractor",
             id = "processorId",
             label = "Processor ID",
-            description = "The id of the processor used to parse the document")
+            tooltip = "Processor used to parse the document")
         String processorId)
     implements ExtractionProvider {}

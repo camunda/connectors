@@ -154,7 +154,7 @@
     },
     {
       "label": "Resource name",
-      "description": "The name of your Azure OpenAI Resource. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The name of your Azure OpenAI Resource. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -172,7 +172,7 @@
     },
     {
       "label": "Deployment ID",
-      "description": "The deployment name you chose when you deployed the model. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The deployment name you chose when you deployed the model. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -190,7 +190,7 @@
     },
     {
       "label": "API version",
-      "description": "The API version to use for this operation. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The API version to use for this operation. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "operation",
       "type": "String",
       "value": "2024-02-01",
@@ -209,7 +209,7 @@
     },
     {
       "label": "Prompt",
-      "description": "The prompt or prompts to generate completions for, encoded as a string, or array of strings. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "description": "The prompt or prompts to generate completions for, encoded as a string, or array of strings. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "Text",
       "feel": "optional",
@@ -227,7 +227,7 @@
     },
     {
       "label": "Max tokens",
-      "description": "The maximum number of tokens to generate in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The maximum number of tokens to generate in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "value": "16",
@@ -244,7 +244,7 @@
     },
     {
       "label": "Temperature",
-      "description": "What sampling temperature to use, between 0 and 2. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "description": "What sampling temperature to use, between 0 and 2. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "value": "1",
@@ -261,7 +261,7 @@
     },
     {
       "label": "Top P",
-      "description": "An alternative to sampling with temperature, AKA nucleus sampling. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "An alternative to sampling with temperature, AKA nucleus sampling. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "value": "1",
@@ -278,7 +278,7 @@
     },
     {
       "label": "Logit bias",
-      "description": "Modify the likelihood of specified tokens appearing in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Modify the likelihood of specified tokens appearing in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "Text",
       "feel": "required",
@@ -294,7 +294,7 @@
     },
     {
       "label": "User",
-      "description": "A unique identifier representing your end-user. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "A unique identifier representing your end-user. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "optional": true,
@@ -309,7 +309,7 @@
     },
     {
       "label": "Number of completions",
-      "description": "How many completions to generate for each prompt. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "How many completions to generate for each prompt. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "value": "1",
       "type": "String",
@@ -325,7 +325,7 @@
     },
     {
       "label": "Stream",
-      "description": "Whether to stream back partial progress. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Whether to stream back partial progress. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "value": "False",
       "type": "Dropdown",
@@ -350,7 +350,7 @@
     },
     {
       "label": "Log probabilities",
-      "description": "Include the log probabilities on the logprobs most likely tokens, as well the chosen tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Include the log probabilities on the logprobs most likely tokens, as well as the chosen tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "optional": true,
@@ -365,7 +365,7 @@
     },
     {
       "label": "Suffix",
-      "description": "The suffix that comes after a completion of inserted text. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The suffix that comes after a completion of inserted text. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "optional": true,
@@ -380,7 +380,7 @@
     },
     {
       "label": "Echo",
-      "description": "Echo back the prompt in addition to the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Echo back the prompt in addition to the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "value": "False",
       "type": "Dropdown",
@@ -406,7 +406,7 @@
     },
     {
       "label": "Stop",
-      "description": "Up to four sequences where the API will stop generating further tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "description": "Up to four sequences where the API will stop generating further tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "optional": true,
@@ -421,7 +421,7 @@
     },
     {
       "label": "Presence penalty",
-      "description": "Positive values penalize new tokens based on whether they appear in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Positive values penalize new tokens based on whether they appear in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "value": "0",
@@ -437,7 +437,7 @@
     },
     {
       "label": "Frequency penalty",
-      "description": "Positive values penalize new tokens based on their existing frequency in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Positive values penalize new tokens based on their existing frequency in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "value": "0",
@@ -453,7 +453,7 @@
     },
     {
       "label": "Best of",
-      "description": "Generates 'best of' completions server-side and returns the \"best\". <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Generates 'best of' completions server-side and returns the \"best\". <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">Azure OpenAI completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "value": "1",
@@ -508,7 +508,7 @@
     },
     {
       "label": "Resource name",
-      "description": "The name of your Azure OpenAI Resource. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The name of your Azure OpenAI Resource. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -526,7 +526,7 @@
     },
     {
       "label": "Deployment ID",
-      "description": "The deployment name you chose when you deployed the model. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The deployment name you chose when you deployed the model. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -544,7 +544,7 @@
     },
     {
       "label": "API version",
-      "description": "The API version to use for this operation. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The API version to use for this operation. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "operation",
       "type": "String",
       "value": "2024-02-01",
@@ -563,7 +563,7 @@
     },
     {
       "label": "Message role",
-      "description": "Indicates who is giving the current message",
+      "tooltip": "Indicates who is giving the current message",
       "group": "parameters",
       "type": "Dropdown",
       "value": "user",
@@ -600,7 +600,7 @@
     },
     {
       "label": "Message content",
-      "description": "The content of the message. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The content of the message. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "Text",
       "feel": "optional",
@@ -619,7 +619,7 @@
     },
     {
       "label": "Messages context",
-      "description": "The array of messages associated with this chat completion request. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The array of messages associated with this chat completion request. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "Text",
       "feel": "required",
@@ -635,7 +635,7 @@
     },
     {
       "label": "Content part",
-      "description": "Part of a user's multi-modal message. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Part of a user's multi-modal message. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -651,7 +651,7 @@
     },
     {
       "label": "Enhancements",
-      "description": "Represents the Vision enhancement features requested for the chat. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Represents the Vision enhancement features requested for the chat. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -667,7 +667,7 @@
     },
     {
       "label": "Temperature",
-      "description": "What sampling temperature to use, between 0 and 2. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "description": "What sampling temperature to use, between 0 and 2. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "value": "1",
       "group": "parameters",
       "type": "String",
@@ -684,7 +684,7 @@
     },
     {
       "label": "Number of completions",
-      "description": "How many completions to generate for each prompt. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "How many completions to generate for each prompt. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "value": "1",
       "group": "parameters",
       "type": "String",
@@ -701,7 +701,7 @@
     },
     {
       "label": "Stream",
-      "description": "Whether to stream back partial progress. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Whether to stream back partial progress. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "value": "False",
       "group": "parameters",
       "type": "Dropdown",
@@ -726,7 +726,7 @@
     },
     {
       "label": "Stop",
-      "description": "Up to four sequences where the API will stop generating further tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "description": "Up to four sequences where the API will stop generating further tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -742,7 +742,7 @@
     },
     {
       "label": "Max tokens",
-      "description": "The maximum number of tokens to generate in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The maximum number of tokens to generate in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -758,7 +758,7 @@
     },
     {
       "label": "Presence penalty",
-      "description": "Positive values penalize new tokens based on whether they appear in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Positive values penalize new tokens based on whether they appear in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -774,7 +774,7 @@
     },
     {
       "label": "Frequency penalty",
-      "description": "Positive values penalize new tokens based on their existing frequency in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Positive values penalize new tokens based on their existing frequency in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -790,7 +790,7 @@
     },
     {
       "label": "Logit bias",
-      "description": "Modify the likelihood of specified tokens appearing in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Modify the likelihood of specified tokens appearing in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -806,7 +806,7 @@
     },
     {
       "label": "User",
-      "description": "A unique identifier representing your end-user. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "A unique identifier representing your end-user. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -822,7 +822,7 @@
     },
     {
       "label": "Tools",
-      "description": "A list of tools the model can call. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "A list of tools the model can call. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -838,7 +838,7 @@
     },
     {
       "label": "Data sources",
-      "description": "Represents additional resource data. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Represents additional resource data. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">Azure OpenAI chat completions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -893,7 +893,7 @@
     },
     {
       "label": "Resource name",
-      "description": "The name of your Azure OpenAI Resource. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The name of your Azure OpenAI Resource. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -911,7 +911,7 @@
     },
     {
       "label": "Deployment ID",
-      "description": "The deployment name you chose when you deployed the model. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The deployment name you chose when you deployed the model. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -929,7 +929,7 @@
     },
     {
       "label": "API version",
-      "description": "The API version to use for this operation. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The API version to use for this operation. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "operation",
       "type": "String",
       "value": "2023-12-01-preview",
@@ -948,7 +948,7 @@
     },
     {
       "label": "Messages",
-      "description": "The array of messages associated with this chat completion request. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The array of messages associated with this chat completion request. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -967,7 +967,7 @@
     },
     {
       "label": "Content part",
-      "description": "Part of a user's multi-modal message. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Part of a user's multi-modal message. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -983,7 +983,7 @@
     },
     {
       "label": "Enhancements",
-      "description": "Represents the Vision enhancement features requested for the chat. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Represents the Vision enhancement features requested for the chat. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -999,7 +999,7 @@
     },
     {
       "label": "Temperature",
-      "description": "What sampling temperature to use, between 0 and 2. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "description": "What sampling temperature to use, between 0 and 2. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "value": "1",
       "group": "parameters",
       "type": "String",
@@ -1016,7 +1016,7 @@
     },
     {
       "label": "Number of completions",
-      "description": "How many completions to generate for each prompt. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "How many completions to generate for each prompt. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "value": "1",
       "group": "parameters",
       "type": "String",
@@ -1033,7 +1033,7 @@
     },
     {
       "label": "Stream",
-      "description": "Whether to stream back partial progress. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Whether to stream back partial progress. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "value": "False",
       "group": "parameters",
       "type": "Dropdown",
@@ -1058,7 +1058,7 @@
     },
     {
       "label": "Stop",
-      "description": "Up to four sequences where the API will stop generating further tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "description": "Up to four sequences where the API will stop generating further tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -1074,7 +1074,7 @@
     },
     {
       "label": "Max tokens",
-      "description": "The maximum number of tokens to generate in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "The maximum number of tokens to generate in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -1090,7 +1090,7 @@
     },
     {
       "label": "Presence penalty",
-      "description": "Positive values penalize new tokens based on whether they appear in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Positive values penalize new tokens based on whether they appear in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -1106,7 +1106,7 @@
     },
     {
       "label": "Frequency penalty",
-      "description": "Positive values penalize new tokens based on their existing frequency in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Positive values penalize new tokens based on their existing frequency in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -1122,7 +1122,7 @@
     },
     {
       "label": "Logit bias",
-      "description": "Modify the likelihood of specified tokens appearing in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Modify the likelihood of specified tokens appearing in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -1138,7 +1138,7 @@
     },
     {
       "label": "User",
-      "description": "A unique identifier representing your end-user. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "A unique identifier representing your end-user. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -1154,7 +1154,7 @@
     },
     {
       "label": "Tools",
-      "description": "A list of tools the model can call. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "A list of tools the model can call. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "optional",
@@ -1170,7 +1170,7 @@
     },
     {
       "label": "Data sources",
-      "description": "Represents additional resource data. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+      "tooltip": "Represents additional resource data. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">Azure OpenAI completions extensions documentation</a>",
       "group": "parameters",
       "type": "String",
       "feel": "required",
@@ -1226,7 +1226,7 @@
     {
       "id": "resultVariable",
       "label": "Result variable",
-      "description": "Name of variable to store the response in",
+      "tooltip": "Name of variable to store the response in",
       "group": "output",
       "binding": {
         "key": "resultVariable",
@@ -1237,7 +1237,7 @@
     {
       "id": "resultExpression",
       "label": "Result expression",
-      "description": "Expression to map the response into process variables",
+      "tooltip": "Expression to map the response into process variables",
       "feel": "required",
       "group": "output",
       "binding": {
@@ -1249,7 +1249,7 @@
     {
       "id": "errorExpression",
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "tooltip": "Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">connector error handling documentation</a>.",
       "feel": "required",
       "group": "error",
       "binding": {
@@ -1261,7 +1261,6 @@
     {
       "id": "retryCount",
       "label": "Retries",
-      "description": "Number of retries",
       "value": "3",
       "feel": "optional",
       "group": "retries",

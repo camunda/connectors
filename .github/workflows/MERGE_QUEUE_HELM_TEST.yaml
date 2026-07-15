@@ -65,7 +65,7 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: '24'
 
@@ -181,7 +181,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: "24"
       - name: Generate GitHub App Token
@@ -477,7 +477,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7.0.0
         if: steps.changes.outputs.ai == 'true'
         with:
           node-version: '24'

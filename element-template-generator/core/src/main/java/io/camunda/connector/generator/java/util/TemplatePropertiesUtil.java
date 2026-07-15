@@ -577,6 +577,10 @@ public class TemplatePropertiesUtil {
                 discriminatorAnnotation == null || discriminatorAnnotation.description().isBlank()
                     ? null
                     : discriminatorAnnotation.description())
+            .tooltip(
+                discriminatorAnnotation == null || discriminatorAnnotation.tooltip().isBlank()
+                    ? null
+                    : discriminatorAnnotation.tooltip())
             .value(
                 discriminatorAnnotation == null || discriminatorAnnotation.defaultValue().isBlank()
                     ? null

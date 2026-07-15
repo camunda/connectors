@@ -70,7 +70,6 @@
   }, {
     "id" : "authentication.accessKey",
     "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -86,11 +85,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "authentication.secretKey",
     "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -106,11 +105,11 @@
       "equals" : "credentials",
       "type" : "simple"
     },
+    "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
     "id" : "configuration.region",
     "label" : "Region",
-    "description" : "Specify the AWS region",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -151,7 +150,6 @@
   }, {
     "id" : "awsFunction.functionName",
     "label" : "Function name",
-    "description" : "Enter a name, ARN or alias of your function",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -162,11 +160,11 @@
       "name" : "awsFunction.functionName",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Name, ARN or alias of your function",
     "type" : "String"
   }, {
     "id" : "awsFunction.payload",
     "label" : "Payload",
-    "description" : "Provide payload for your function as JSON",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -177,6 +175,8 @@
       "name" : "awsFunction.payload",
       "type" : "zeebe:input"
     },
+    "tooltip" : "JSON input passed to the Lambda function when it is invoked.",
+    "placeholder" : "{\"key\": \"value\"}",
     "type" : "Text"
   }, {
     "id" : "version",

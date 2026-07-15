@@ -23,7 +23,7 @@ public class QueueRequestData {
   @TemplateProperty(
       group = "configuration",
       label = "URL",
-      description = "Specify the URL of the SQS queue where you would like to send message to")
+      tooltip = "URL of the SQS queue to send the message to.")
   @NotEmpty
   private String url;
 
@@ -36,7 +36,7 @@ public class QueueRequestData {
       group = "input",
       feel = FeelMode.required,
       type = TemplateProperty.PropertyType.Text,
-      description = "Data to send to the SQS queue")
+      tooltip = "Data to send to the SQS queue")
   @NotNull
   private Object messageBody;
 
@@ -49,8 +49,8 @@ public class QueueRequestData {
         @TemplateProperty.DropdownPropertyChoice(value = "standard", label = "Standard"),
         @TemplateProperty.DropdownPropertyChoice(value = "fifo", label = "FIFO")
       },
-      description =
-          "Specify whether the queue is a <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html\">standard</a> or <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html\">FIFO</a> queue")
+      tooltip =
+          "Whether the queue is a <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html\">standard</a> or <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html\">FIFO</a> queue.")
   @NotNull
   private QueueType type = QueueType.standard;
 
@@ -60,15 +60,16 @@ public class QueueRequestData {
       type = TemplateProperty.PropertyType.Text,
       optional = true,
       feel = FeelMode.required,
-      description = "Message attributes metadata")
+      tooltip =
+          "Optional message metadata as a map keyed by attribute name, each value having a StringValue and DataType, following the <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html#sqs-message-attributes\" target=\"_blank\">SQS message attribute format</a>.")
   private Map<String, SqsMessageAttribute> messageAttributes;
 
   @TemplateProperty(
       group = "input",
       label = "Message group ID",
       condition = @TemplateProperty.PropertyCondition(property = "queue.type", equals = "fifo"),
-      description =
-          "Message group ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html\">using the MessageGroupId Property</a> in the Amazon SQS developer guide")
+      tooltip =
+          "FIFO only. See <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html\">MessageGroupId property</a> in the Amazon SQS developer guide.")
   private String messageGroupId;
 
   @TemplateProperty(
@@ -76,8 +77,8 @@ public class QueueRequestData {
       label = "Message deduplication ID",
       condition = @TemplateProperty.PropertyCondition(property = "queue.type", equals = "fifo"),
       optional = true,
-      description =
-          "Message deduplication ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">using the MessageDeduplicationId Property</a> in the Amazon SQS developer guide")
+      tooltip =
+          "FIFO only. See <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">MessageDeduplicationId property</a> in the Amazon SQS developer guide.")
   private String messageDeduplicationId;
 
   public String getUrl() {
