@@ -91,7 +91,7 @@ public class GenerateElementTemplate {
             .replaceProperty(prunedAuthTypeDropdown(originalAuthTypeDropdown))
             .id("io.camunda.connectors.Salesforce.v1")
             .name("Salesforce Outbound Connector")
-            .version(6)
+            .version(7)
             .category(ElementTemplateCategory.CONNECTORS)
             .documentationRef(
                 "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/")
@@ -197,11 +197,12 @@ public class GenerateElementTemplate {
                     .choices(
                         List.of(
                             new DropdownChoice("sObject records", "sObject"),
-                            new DropdownChoice("SOQL Query", "soqlQuery")))
+                            new DropdownChoice("SOQL Query", "soqlQuery"),
+                            new DropdownChoice("Apex REST", "apexRest")))
                     .id("salesforceOperationType")
                     .label("Salesforce operation type")
                     .tooltip(
-                        "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query.")
+                        "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint.")
                     .group("operation")
                     .binding(new ZeebeInput("salesforceInteractionType"))
                     .build(),
@@ -225,6 +226,20 @@ public class GenerateElementTemplate {
                     .value("get")
                     .binding(new ZeebeInput("method"))
                     .condition(new Equals("salesforceOperationType", "soqlQuery"))
+                    .build(),
+                DropdownProperty.builder()
+                    .choices(
+                        List.of(
+                            new DropdownChoice("GET", "get"),
+                            new DropdownChoice("POST", "post"),
+                            new DropdownChoice("PATCH", "patch"),
+                            new DropdownChoice("DELETE", "delete"),
+                            new DropdownChoice("PUT", "put")))
+                    .id("apexRestMethod")
+                    .label("Method")
+                    .group("operation")
+                    .binding(new ZeebeInput("method"))
+                    .condition(new Equals("salesforceOperationType", "apexRest"))
                     .build())
             .build(),
         PropertyGroup.builder().id("authentication").label("Authentication").build(),
@@ -355,6 +370,36 @@ public class GenerateElementTemplate {
                     .binding(new ZeebeInput("body"))
                     .condition(new OneOf("interactionType", List.of("patch", "post")))
                     .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                    .build(),
+                StringProperty.builder()
+                    .id("path")
+                    .label("Path")
+                    .placeholder("MyApexClass/action")
+                    .tooltip(
+                        "Path appended to /services/apexrest/ to build the request URL, e.g. \"MyApexClass\" or \"MyApexClass/action\".")
+                    .group("input")
+                    .feel(FeelMode.optional)
+                    .binding(new ZeebeInput("path"))
+                    .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                    .condition(new Equals("salesforceOperationType", "apexRest"))
+                    .build(),
+                HiddenProperty.builder()
+                    .id("urlApexRest")
+                    .label("URL")
+                    .group("input")
+                    .binding(new ZeebeInput("url"))
+                    .value("=baseUrl + \"/services/apexrest/\" + path")
+                    .condition(new Equals("salesforceOperationType", "apexRest"))
+                    .build(),
+                StringProperty.builder()
+                    .id("bodyApexRest")
+                    .label("Request body")
+                    .tooltip("Request payload for the Apex REST call, provided as a FEEL context.")
+                    .group("input")
+                    .feel(FeelMode.required)
+                    .binding(new ZeebeInput("body"))
+                    .condition(new OneOf("apexRestMethod", List.of("post", "patch", "put")))
+                    .constraints(PropertyConstraints.builder().notEmpty(true).build())
                     .build())
             .build(),
         PropertyGroup.builder()
@@ -385,7 +430,7 @@ public class GenerateElementTemplate {
             .id("connector")
             .label("Connector")
             .properties(
-                CommonProperties.version(6L)
+                CommonProperties.version(7L)
                     .binding(new ZeebeTaskHeader("elementTemplateVersion"))
                     .build(),
                 CommonProperties.id("io.camunda.connectors.Salesforce.v1")
@@ -415,6 +460,26 @@ public class GenerateElementTemplate {
                     .feel(FeelMode.required)
                     .binding(new ZeebeTaskHeader("resultExpression"))
                     .condition(new OneOf("interactionType", List.of("get", "post")))
+                    .build(),
+                StringProperty.builder()
+                    .id("resultVariableApexRest")
+                    .label("Result variable")
+                    .tooltip(
+                        "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>")
+                    .group("output")
+                    .feel(FeelMode.disabled)
+                    .binding(new ZeebeTaskHeader("resultVariable"))
+                    .condition(new OneOf("apexRestMethod", List.of("get", "post")))
+                    .build(),
+                TextProperty.builder()
+                    .id("resultExpressionApexRest")
+                    .label("Result expression")
+                    .tooltip(
+                        "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>")
+                    .group("output")
+                    .feel(FeelMode.required)
+                    .binding(new ZeebeTaskHeader("resultExpression"))
+                    .condition(new OneOf("apexRestMethod", List.of("get", "post")))
                     .build())
             .build(),
         PropertyGroup.builder()
@@ -483,7 +548,12 @@ public class GenerateElementTemplate {
             "SOQL query",
             "Run a Salesforce Object Query Language (SOQL) query to fetch records",
             List.of("SOQL query", "query records", "search records", "run query", "select records"),
-            "soqlQuery"));
+            "soqlQuery"),
+        new LeafStep(
+            "Apex REST",
+            "Invoke a custom Apex REST endpoint",
+            List.of("apex rest", "custom endpoint", "apex class", "invoke apex"),
+            "apexRest"));
   }
 
   private static List<Preset> buildPresets() {
@@ -500,7 +570,8 @@ public class GenerateElementTemplate {
         new Preset(
             "sObject_delete",
             java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "delete")),
-        new Preset("soqlQuery", java.util.Map.of("salesforceOperationType", "soqlQuery")));
+        new Preset("soqlQuery", java.util.Map.of("salesforceOperationType", "soqlQuery")),
+        new Preset("apexRest", java.util.Map.of("salesforceOperationType", "apexRest")));
   }
 
   private static final String SALESFORCE_ICON =

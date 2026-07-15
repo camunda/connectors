@@ -5,7 +5,7 @@
   "description" : "Call the Salesforce APIs from your process",
   "keywords" : [ "get record", "create record", "update record", "delete record", "SOQL query", "query records", "CRM", "customer relationship", "sObject", "contact", "lead", "opportunity", "account" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/",
-  "version" : 7,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -162,7 +162,7 @@
       "name" : "salesforceInteractionType",
       "type" : "zeebe:input"
     },
-    "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint.",
+    "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "sObject records",
@@ -170,9 +170,6 @@
     }, {
       "name" : "SOQL Query",
       "value" : "soqlQuery"
-    }, {
-      "name" : "Apex REST",
-      "value" : "apexRest"
     } ]
   }, {
     "id" : "interactionType",
@@ -216,36 +213,6 @@
       "type" : "simple"
     },
     "type" : "Hidden"
-  }, {
-    "id" : "apexRestMethod",
-    "label" : "Method",
-    "group" : "operation",
-    "binding" : {
-      "name" : "method",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "equals" : "apexRest",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "GET",
-      "value" : "get"
-    }, {
-      "name" : "POST",
-      "value" : "post"
-    }, {
-      "name" : "PATCH",
-      "value" : "patch"
-    }, {
-      "name" : "DELETE",
-      "value" : "delete"
-    }, {
-      "name" : "PUT",
-      "value" : "put"
-    } ]
   }, {
     "id" : "baseUrl",
     "label" : "Salesforce base URL",
@@ -451,60 +418,6 @@
     "tooltip" : "Field values for the Salesforce object, provided as a FEEL context.",
     "type" : "String"
   }, {
-    "id" : "path",
-    "label" : "Path",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "input",
-    "binding" : {
-      "name" : "path",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "equals" : "apexRest",
-      "type" : "simple"
-    },
-    "tooltip" : "Path appended to /services/apexrest/ to build the request URL, e.g. \"MyApexClass\" or \"MyApexClass/action\".",
-    "placeholder" : "MyApexClass/action",
-    "type" : "String"
-  }, {
-    "id" : "urlApexRest",
-    "label" : "URL",
-    "value" : "=baseUrl + \"/services/apexrest/\" + path",
-    "group" : "input",
-    "binding" : {
-      "name" : "url",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "equals" : "apexRest",
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "bodyApexRest",
-    "label" : "Request body",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "input",
-    "binding" : {
-      "name" : "body",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "apexRestMethod",
-      "oneOf" : [ "post", "patch", "put" ],
-      "type" : "simple"
-    },
-    "tooltip" : "Request payload for the Apex REST call, provided as a FEEL context.",
-    "type" : "String"
-  }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout",
     "optional" : true,
@@ -528,7 +441,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "7",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -578,37 +491,6 @@
     "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
     "type" : "Text"
   }, {
-    "id" : "resultVariableApexRest",
-    "label" : "Result variable",
-    "group" : "output",
-    "binding" : {
-      "key" : "resultVariable",
-      "type" : "zeebe:taskHeader"
-    },
-    "condition" : {
-      "property" : "apexRestMethod",
-      "oneOf" : [ "get", "post" ],
-      "type" : "simple"
-    },
-    "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
-    "type" : "String"
-  }, {
-    "id" : "resultExpressionApexRest",
-    "label" : "Result expression",
-    "feel" : "required",
-    "group" : "output",
-    "binding" : {
-      "key" : "resultExpression",
-      "type" : "zeebe:taskHeader"
-    },
-    "condition" : {
-      "property" : "apexRestMethod",
-      "oneOf" : [ "get", "post" ],
-      "type" : "simple"
-    },
-    "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
-    "type" : "Text"
-  }, {
     "id" : "errorExpression",
     "label" : "Error expression",
     "feel" : "required",
@@ -649,11 +531,6 @@
     "description" : "Run a Salesforce Object Query Language (SOQL) query to fetch records",
     "keywords" : [ "SOQL query", "query records", "search records", "run query", "select records" ],
     "presetId" : "soqlQuery"
-  }, {
-    "name" : "Apex REST",
-    "description" : "Invoke a custom Apex REST endpoint",
-    "keywords" : [ "apex rest", "custom endpoint", "apex class", "invoke apex" ],
-    "presetId" : "apexRest"
   } ],
   "presets" : [ {
     "id" : "sObject_get",
@@ -683,11 +560,6 @@
     "id" : "soqlQuery",
     "properties" : {
       "salesforceOperationType" : "soqlQuery"
-    }
-  }, {
-    "id" : "apexRest",
-    "properties" : {
-      "salesforceOperationType" : "apexRest"
     }
   } ],
   "icon" : {
