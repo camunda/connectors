@@ -49,9 +49,12 @@ Missing (this pilot builds it):
    only** (few real servers implement Responses; not covered by the real-API IT).
 3. **Streaming from the start**, both families (SDK `ResponseAccumulator` /
    `ChatCompletionAccumulator`), mirroring the Anthropic streaming path.
-4. **Reasoning is a single `effort` axis** (`{MINIMAL, LOW, MEDIUM, HIGH}`, nullable). No token
-   budget, no separate "adaptive" mode (effort *is* the adaptive dial). Unset → omit → model
-   default. `NONE` (gpt-5.1 explicit reasoning-off) deferred.
+4. **Reasoning is a single `effort` axis** (`{MINIMAL, LOW, MEDIUM, HIGH, XHIGH, MAX}`, nullable).
+   No token budget, no separate "adaptive" mode (effort *is* the adaptive dial). Unset → omit →
+   model default. The enum is a superset mirroring the `AnthropicEffort` sibling (plus OpenAI's
+   `MINIMAL`); which levels a model actually accepts is the capability matrix's per-model truth, and
+   the validator fail-fast rejects unsupported levels. `NONE` (gpt-5.1 explicit reasoning-off)
+   deferred — a distinct disable semantic, not an effort tier.
 5. **Reasoning allowed only on Responses.** Matrix declares `effort-levels` only for
    `openai-responses` models; `openai-completions` declares none → validator rejects `effort` on
    Completions. Data model is not the limiter (see Deferred #1).
@@ -86,7 +89,7 @@ framework/openai/
   OpenAiProviderCapabilities.java    # typed provider bag (reasoning)
   OpenAiReasoningCapabilities.java   # effort-levels only
   OpenAiReasoningValidator.java      # fail-fast: effort gating + server-tools-require-Responses
-  OpenAiReasoningEffort.java         # enum {MINIMAL, LOW, MEDIUM, HIGH}, lowercase @JsonProperty
+  OpenAiReasoningEffort.java         # enum {MINIMAL, LOW, MEDIUM, HIGH, XHIGH, MAX}, lowercase @JsonProperty
   family/
     OpenAiApiFamilyStrategy.java     # interface: ChatModelResult call(client, ctx, snapshot,
                                      #   caps, modelMatched)

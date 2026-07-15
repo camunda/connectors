@@ -177,7 +177,9 @@ git commit -m "feat(agentic-ai): add openai-java SDK dependency and pin its API 
 - Test: `…/agenticai/aiagent/model/request/chatmodel/OpenAiChatModelTest.java` (create)
 
 **Interfaces:**
-- Produces: `OpenAiEffort { MINIMAL, LOW, MEDIUM, HIGH }` (lowercase `@JsonProperty`); `OpenAiModelParameters.effort()` → `@Nullable OpenAiEffort`; `OpenAiConnection.enableWebSearch()` / `.enableCodeInterpreter()` → `@Nullable Boolean`.
+- Produces: `OpenAiEffort { MINIMAL, LOW, MEDIUM, HIGH, XHIGH, MAX }` (lowercase `@JsonProperty`); `OpenAiModelParameters.effort()` → `@Nullable OpenAiEffort`; `OpenAiConnection.enableWebSearch()` / `.enableCodeInterpreter()` → `@Nullable Boolean`.
+
+> **Effort levels:** the SDK's `com.openai.models.ReasoningEffort` (confirmed by Task 1) exposes `{NONE, MINIMAL, LOW, MEDIUM, HIGH, XHIGH, MAX}`. `OpenAiEffort` mirrors the `AnthropicEffort` sibling's full ladder (`LOW..MAX`) plus OpenAI's `MINIMAL`, i.e. all six of `{MINIMAL, LOW, MEDIUM, HIGH, XHIGH, MAX}`. `NONE` (reasoning-off switch) remains deferred — it is a distinct disable semantic, not an effort tier. The **config surface always offers all six**; which levels a given model actually accepts is declared per-model in the capability matrix (Task 4), and the validator (Task 5) fail-fast rejects a level a model doesn't advertise — exactly the Anthropic pattern (enum superset, matrix is the per-model truth). Each `OpenAiEffort` value maps 1:1 onto the same-named `ReasoningEffort` constant in Task 8.
 
 - [ ] **Step 1: Write the failing test**
 ```java
@@ -216,6 +218,8 @@ class OpenAiChatModelTest {
   @Test
   void effortJsonValueIsLowercase() throws Exception {
     assertThat(mapper.writeValueAsString(OpenAiEffort.MINIMAL)).isEqualTo("\"minimal\"");
+    assertThat(mapper.writeValueAsString(OpenAiEffort.XHIGH)).isEqualTo("\"xhigh\"");
+    assertThat(mapper.writeValueAsString(OpenAiEffort.MAX)).isEqualTo("\"max\"");
   }
 }
 ```
@@ -238,7 +242,9 @@ public enum OpenAiEffort {
   @JsonProperty("minimal") MINIMAL,
   @JsonProperty("low") LOW,
   @JsonProperty("medium") MEDIUM,
-  @JsonProperty("high") HIGH
+  @JsonProperty("high") HIGH,
+  @JsonProperty("xhigh") XHIGH,
+  @JsonProperty("max") MAX
 }
 ```
 
@@ -259,7 +265,9 @@ public enum OpenAiEffort {
                   @DropdownPropertyChoice(value = "minimal", label = "minimal"),
                   @DropdownPropertyChoice(value = "low", label = "low"),
                   @DropdownPropertyChoice(value = "medium", label = "medium"),
-                  @DropdownPropertyChoice(value = "high", label = "high")
+                  @DropdownPropertyChoice(value = "high", label = "high"),
+                  @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
+                  @DropdownPropertyChoice(value = "max", label = "max")
                 },
                 optional = true,
                 condition =
@@ -479,6 +487,8 @@ class OpenAiCapabilityResolutionTest {
                         effort-levels: [minimal, low, medium, high]
 ```
 Do the same for `o1`/`o3`/`o4` under `openai-responses` (effort-levels `[low, medium, high]` — o-series predates `minimal`). Leave **`openai-completions` untouched** (no reasoning — enforces the deferral).
+
+> **`xhigh`/`max` in the matrix:** `OpenAiEffort` (Task 2) can express `xhigh`/`max`, but only list them in a model's `effort-levels` when that model genuinely accepts them — verify against models.dev; **never over-promise** (per the module's matrix rules). The bundled `gpt-5`/o-series entries above stay conservative; the enum superset + fail-fast validator (Task 5) is what "accounts for" the higher tiers without fabricating support. If models.dev confirms a bundled model accepts `xhigh`/`max`, append them to that entry's list here.
 
 - [ ] **Step 4: Run to verify it passes** → PASS (2/2).
 
@@ -1046,7 +1056,7 @@ Expected: Responses row green on all 7 scenarios; Completions row green on its 4
 - Both families (Responses full / Completions subset) → Tasks 8–12, 16. ✓
 - Direct + Compatible backends → Task 6, factory `supports()` Task 13. ✓
 - Streaming both families → assemblers Tasks 9/11, strategies Task 12. ✓
-- Effort `{MINIMAL,LOW,MEDIUM,HIGH}` nullable, no budget/adaptive, `NONE` deferred → Task 2. ✓
+- Effort `{MINIMAL,LOW,MEDIUM,HIGH,XHIGH,MAX}` nullable, no budget/adaptive, `NONE` deferred → Task 2 (enum superset mirrors `AnthropicEffort`; matrix is per-model truth). ✓
 - Reasoning allowed only on Responses (matrix + validator) → Tasks 4, 5. ✓
 - Server tools web_search + code_interpreter, Responses-only, toggles + provisioning + ProviderContent → Tasks 2, 8, 9, 14, 16. ✓
 - code_interpreter file/image output held opaquely (no materialization) → Task 9 (`ProviderContent`), fixtures Task 14. ✓
