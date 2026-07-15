@@ -95,6 +95,31 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
+  void mapsRefusalContentToTextContent() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_1",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                  {"type": "refusal", "refusal": "I can't help with that."}
+                ]
+              }
+            ]
+            """);
+
+    final ChatModelResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(TextContent.textContent("I can't help with that."));
+    assertThat(result.assistantMessage().toolCalls()).isEmpty();
+  }
+
+  @Test
   void mapsFunctionCallItemToToolCall() {
     final Response response =
         baseResponse(
@@ -205,6 +230,55 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(codeInterpreterContent.provider()).isEqualTo("openai");
     assertThat(codeInterpreterContent.blockType()).isEqualTo("code_interpreter_call");
     assertThat((Map<String, Object>) codeInterpreterContent.payload()).containsEntry("id", "ci_1");
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void mapsUnhandledRecognizedOutputItemToProviderContentFallback() {
+    // file_search_call is a recognized ResponseOutputItem variant that the converter does not
+    // explicitly branch on, exercising the faithfulness fallback for any output item kind not
+    // handled by name (whether genuinely unknown to this SDK version, or simply not yet mapped).
+    final Response response =
+        baseResponse(
+            """
+            [
+              {"type": "file_search_call", "id": "fs_1", "status": "completed", "queries": []}
+            ]
+            """);
+
+    final ChatModelResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    final var content = result.assistantMessage().content();
+    assertThat(content).hasSize(1);
+
+    final ProviderContent providerContent = (ProviderContent) content.get(0);
+    assertThat(providerContent.provider()).isEqualTo("openai");
+    assertThat(providerContent.blockType()).isEqualTo("file_search_call");
+    assertThat((Map<String, Object>) providerContent.payload()).isNotEmpty();
+    assertThat(result.assistantMessage().toolCalls()).isEmpty();
+  }
+
+  @Test
+  void mapsStringModelIdToModelId() {
+    final Response response =
+        responseFromJson(
+            """
+            {
+              "id": "resp_456",
+              "object": "response",
+              "created_at": 0,
+              "model": "my-custom-fine-tuned-model",
+              "output": [],
+              "parallel_tool_calls": true,
+              "tool_choice": "auto",
+              "tools": [],
+              "usage": null
+            }
+            """);
+
+    final ChatModelResult result = converter.toResult(response, Duration.ofMillis(10));
+
+    assertThat(result.assistantMessage().modelId()).isEqualTo("my-custom-fine-tuned-model");
   }
 
   @Test

@@ -85,6 +85,11 @@ public class OpenAiResponsesResponseConverter {
           messageContent
               .outputText()
               .ifPresent(text -> content.add(TextContent.textContent(text.text())));
+          // A refusal has no dedicated domain content type; surface its text as visible
+          // assistant text rather than silently dropping it.
+          messageContent
+              .refusal()
+              .ifPresent(refusal -> content.add(TextContent.textContent(refusal.refusal())));
         }
       } else if (item.functionCall().isPresent()) {
         final ResponseFunctionToolCall functionCall = item.functionCall().get();
@@ -164,6 +169,12 @@ public class OpenAiResponsesResponseConverter {
     return objectMapper.convertValue(item, new TypeReference<Map<String, Object>>() {});
   }
 
+  /**
+   * No blank/missing guard is needed here: {@code functionCall.arguments()} is a {@code
+   * getRequired("arguments")} accessor that throws if the field is absent, and OpenAI always sends
+   * a valid JSON object string for {@code arguments} -- {@code "{}"} for a no-argument call --
+   * never a blank or missing one.
+   */
   private Map<String, Object> parseArguments(String argumentsJson) {
     try {
       final Map<String, Object> arguments =
