@@ -20,4 +20,5 @@ public record ReadEmailResponse(
     String plainTextBody,
     String htmlBody,
     List<Document> attachments,
-    OffsetDateTime receivedDateTime) {}
+    OffsetDateTime receivedDateTime,
+    List<String> errors) {}
