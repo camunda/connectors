@@ -51,10 +51,12 @@ class ProcessDefinitionInspectorCacheMetricsTest {
   @BeforeEach
   void setUp() throws Exception {
     searchQueryClient = mock(SearchQueryClient.class);
-    BpmnModelInstance model =
-        Bpmn.readModelFromStream(
-            new FileInputStream(
-                ResourceUtils.getFile("classpath:bpmn/single-webhook-collaboration.bpmn")));
+    BpmnModelInstance model;
+    try (FileInputStream inputStream =
+        new FileInputStream(
+            ResourceUtils.getFile("classpath:bpmn/single-webhook-collaboration.bpmn"))) {
+      model = Bpmn.readModelFromStream(inputStream);
+    }
     when(searchQueryClient.getProcessModel(PROCESS_DEFINITION_KEY)).thenReturn(model);
     var processDefinition = mock(ProcessDefinition.class);
     when(processDefinition.getVersion()).thenReturn(1);
