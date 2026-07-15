@@ -186,12 +186,13 @@ public class InboundConnectorRuntimeConfiguration {
   @Bean
   public ProcessDefinitionInspector processDefinitionInspector(
       SearchQueryClient searchQueryClient,
-      @Qualifier("processDefinitionCacheManager") CacheManager cacheManager) {
+      @Qualifier("processDefinitionCacheManager") CacheManager cacheManager,
+      ConnectorsInboundMetrics connectorsInboundMetrics) {
     Cache cache =
         Objects.requireNonNull(
             cacheManager.getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME),
             "processDefinitions cache must be configured");
-    return new ProcessDefinitionInspector(searchQueryClient, cache);
+    return new ProcessDefinitionInspector(searchQueryClient, cache, connectorsInboundMetrics);
   }
 
   @Bean

@@ -26,7 +26,9 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.FileInputStream;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -134,7 +136,8 @@ public class ProcessDefinitionInspectorUtilTests {
       var inspector =
           new ProcessDefinitionInspector(
               searchQueryClientMock,
-              cacheManager.getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME));
+              cacheManager.getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME),
+              new ConnectorsInboundMetrics(new SimpleMeterRegistry()));
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));
       var processDefinitionID = new ProcessDefinitionRef(processId, "tenant1");
