@@ -251,7 +251,7 @@
       "type" : "simple"
     },
     "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:aws-credential:1"
+    "configurationTemplate" : "io.camunda:aws-credential:1"
   }, {
     "id" : "baseRequest.authentication.authType",
     "label" : "Type",
