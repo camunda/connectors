@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import io.camunda.connector.generator.dsl.BooleanProperty;
 import io.camunda.connector.generator.dsl.CommonProperties;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
@@ -91,7 +92,7 @@ public class GenerateElementTemplate {
             .replaceProperty(prunedAuthTypeDropdown(originalAuthTypeDropdown))
             .id("io.camunda.connectors.Salesforce.v1")
             .name("Salesforce Outbound Connector")
-            .version(7)
+            .version(8)
             .category(ElementTemplateCategory.CONNECTORS)
             .documentationRef(
                 "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/")
@@ -198,11 +199,12 @@ public class GenerateElementTemplate {
                         List.of(
                             new DropdownChoice("sObject records", "sObject"),
                             new DropdownChoice("SOQL Query", "soqlQuery"),
-                            new DropdownChoice("Apex REST", "apexRest")))
+                            new DropdownChoice("Apex REST", "apexRest"),
+                            new DropdownChoice("Composite Request", "composite")))
                     .id("salesforceOperationType")
                     .label("Salesforce operation type")
                     .tooltip(
-                        "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint.")
+                        "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint; Composite Request to batch multiple sObject sub-requests into a single call.")
                     .group("operation")
                     .binding(new ZeebeInput("salesforceInteractionType"))
                     .build(),
@@ -400,6 +402,63 @@ public class GenerateElementTemplate {
                     .binding(new ZeebeInput("body"))
                     .condition(new OneOf("apexRestMethod", List.of("post", "patch", "put")))
                     .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                    .build(),
+                BooleanProperty.builder()
+                    .id("allOrNone")
+                    .label("All or none")
+                    .tooltip(
+                        "Roll back all sub-requests if any of them fails. If disabled, sub-requests are processed independently.")
+                    .group("input")
+                    .feel(FeelMode.optional)
+                    .value(true)
+                    .binding(new ZeebeInput("allOrNone"))
+                    .condition(new Equals("salesforceOperationType", "composite"))
+                    .build(),
+                BooleanProperty.builder()
+                    .id("collateSubrequests")
+                    .label("Collate subrequests")
+                    .tooltip("Batch compatible subrequests together where possible.")
+                    .group("input")
+                    .feel(FeelMode.optional)
+                    .value(false)
+                    .binding(new ZeebeInput("collateSubrequests"))
+                    .condition(new Equals("salesforceOperationType", "composite"))
+                    .build(),
+                TextProperty.builder()
+                    .id("compositeRequest")
+                    .label("Subrequests")
+                    .tooltip(
+                        "FEEL list of subrequests, each a context with \"method\", \"url\", \"referenceId\", and optional \"body\" entries. See the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_composite.htm\" target=\"_blank\">Composite API reference</a>. Reference an earlier subrequest's result by its \"referenceId\" in a later subrequest's \"url\" or \"body\".")
+                    .group("input")
+                    .feel(FeelMode.required)
+                    .binding(new ZeebeInput("compositeRequest"))
+                    .condition(new Equals("salesforceOperationType", "composite"))
+                    .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                    .build(),
+                HiddenProperty.builder()
+                    .id("methodComposite")
+                    .label("Method")
+                    .group("input")
+                    .value("post")
+                    .binding(new ZeebeInput("method"))
+                    .condition(new Equals("salesforceOperationType", "composite"))
+                    .build(),
+                HiddenProperty.builder()
+                    .id("urlComposite")
+                    .label("URL")
+                    .group("input")
+                    .binding(new ZeebeInput("url"))
+                    .value("=baseUrl + \"/services/data/\" + apiVersion + \"/composite\"")
+                    .condition(new Equals("salesforceOperationType", "composite"))
+                    .build(),
+                HiddenProperty.builder()
+                    .id("bodyComposite")
+                    .label("Request body")
+                    .group("input")
+                    .binding(new ZeebeInput("body"))
+                    .value(
+                        "={\n  allOrNone: allOrNone,\n  collateSubrequests: collateSubrequests,\n  compositeRequest: compositeRequest\n}")
+                    .condition(new Equals("salesforceOperationType", "composite"))
                     .build())
             .build(),
         PropertyGroup.builder()
@@ -430,7 +489,7 @@ public class GenerateElementTemplate {
             .id("connector")
             .label("Connector")
             .properties(
-                CommonProperties.version(7L)
+                CommonProperties.version(8L)
                     .binding(new ZeebeTaskHeader("elementTemplateVersion"))
                     .build(),
                 CommonProperties.id("io.camunda.connectors.Salesforce.v1")
@@ -553,7 +612,13 @@ public class GenerateElementTemplate {
             "Apex REST",
             "Invoke a custom Apex REST endpoint",
             List.of("apex rest", "custom endpoint", "apex class", "invoke apex"),
-            "apexRest"));
+            "apexRest"),
+        new LeafStep(
+            "Composite request",
+            "Batch multiple sObject sub-requests into a single call",
+            List.of(
+                "composite request", "batch request", "bulk operations", "multiple sub-requests"),
+            "composite"));
   }
 
   private static List<Preset> buildPresets() {
@@ -571,7 +636,8 @@ public class GenerateElementTemplate {
             "sObject_delete",
             java.util.Map.of("salesforceOperationType", "sObject", "interactionType", "delete")),
         new Preset("soqlQuery", java.util.Map.of("salesforceOperationType", "soqlQuery")),
-        new Preset("apexRest", java.util.Map.of("salesforceOperationType", "apexRest")));
+        new Preset("apexRest", java.util.Map.of("salesforceOperationType", "apexRest")),
+        new Preset("composite", java.util.Map.of("salesforceOperationType", "composite")));
   }
 
   private static final String SALESFORCE_ICON =
