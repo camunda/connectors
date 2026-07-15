@@ -20,6 +20,7 @@
   <properties>
     <version.record-builder>53</version.record-builder>
     <version.anthropic-java>2.48.0</version.anthropic-java>
+    <version.openai-java>4.43.0</version.openai-java>
     <version.groovy>5.0.7</version.groovy>
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
@@ -151,6 +152,18 @@
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp-jvm</artifactId>
       <version>${version.okhttp}</version>
+    </dependency>
+
+    <!--
+      openai-java mirrors anthropic-java's structure (both Stainless-generated): the openai-java
+      aggregator POM pulls in openai-java-core (the com.openai.models.* classes) and
+      openai-java-client-okhttp (the OpenAIOkHttpClient builder). It relies on the same okhttp-jvm
+      dependency declared above for its runtime OkHttp classes.
+    -->
+    <dependency>
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java</artifactId>
+      <version>${version.openai-java}</version>
     </dependency>
 
     <!-- Native MCP Java SDK -->
@@ -444,6 +457,11 @@
                 <ignoredDependency>com.anthropic:anthropic-java</ignoredDependency>
                 <ignoredDependency>com.anthropic:anthropic-java-core</ignoredDependency>
                 <ignoredDependency>com.anthropic:anthropic-java-client-okhttp</ignoredDependency>
+                <!-- openai-java has the same aggregator/core/okhttp split as anthropic-java above;
+                     ignore all three for the identical analyzer reasons. -->
+                <ignoredDependency>com.openai:openai-java</ignoredDependency>
+                <ignoredDependency>com.openai:openai-java-core</ignoredDependency>
+                <ignoredDependency>com.openai:openai-java-client-okhttp</ignoredDependency>
                 <!-- okhttp-jvm has no direct source import (it's only reflectively required by
                      anthropic-java-client-okhttp's AnthropicOkHttpClient at runtime, see the
                      dependency declaration above); the analyzer would otherwise flag it unused. -->
