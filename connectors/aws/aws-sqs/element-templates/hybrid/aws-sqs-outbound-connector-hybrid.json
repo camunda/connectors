@@ -120,7 +120,7 @@
       "type" : "zeebe:input"
     },
     "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:aws-credential:1"
+    "configurationTemplate" : "io.camunda:aws-credential:1"
   }, {
     "id" : "queue.url",
     "label" : "URL",
@@ -323,7 +323,7 @@
     "type" : "String"
   } ],
   "configurationTemplates" : [ {
-    "id" : "io.camunda.connectors:aws-credential:1",
+    "id" : "io.camunda:aws-credential:1",
     "kind" : "CREDENTIAL",
     "version" : 1,
     "name" : "AWS Credential",

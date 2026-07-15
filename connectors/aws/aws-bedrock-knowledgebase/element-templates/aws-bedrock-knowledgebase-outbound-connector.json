@@ -116,7 +116,7 @@
       "type" : "zeebe:input"
     },
     "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:aws-credential:1"
+    "configurationTemplate" : "io.camunda:aws-credential:1"
   }, {
     "id" : "knowledgeBaseId",
     "label" : "Knowledge Base ID",
@@ -288,7 +288,7 @@
     "type" : "String"
   } ],
   "configurationTemplates" : [ {
-    "id" : "io.camunda.connectors:aws-credential:1",
+    "id" : "io.camunda:aws-credential:1",
     "kind" : "CREDENTIAL",
     "version" : 1,
     "name" : "AWS Credential",

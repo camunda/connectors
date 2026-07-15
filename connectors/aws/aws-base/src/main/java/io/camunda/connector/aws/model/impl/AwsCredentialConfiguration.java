@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.aws.model.impl;
 
-import io.camunda.connector.generator.java.annotation.ConfigurationTemplate;
+import io.camunda.connector.api.annotation.Configuration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 /**
@@ -15,10 +15,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
  * vs. the default credentials chain) plus the region, demonstrating that a discriminated auth model
  * maps onto the configuration-template format (a discriminator dropdown with conditional fields).
  */
-@ConfigurationTemplate(
-    id = "io.camunda.connectors:aws-credential:1",
-    version = 1,
-    name = "AWS Credential")
+@Configuration(id = "io.camunda:aws-credential:1", version = 1, name = "AWS Credential")
 public record AwsCredentialConfiguration(
     @TemplateProperty(group = "authentication") AwsAuthentication authentication,
     @TemplateProperty(group = "configuration", label = "Region") String region) {}
