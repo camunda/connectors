@@ -13,6 +13,7 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
 import io.camunda.connector.generator.java.annotation.BpmnType;
@@ -37,6 +38,7 @@ import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
     name = "Amazon SQS Connector",
     icon = "icon.svg",
     version = 10,
+    configurations = {AwsCredentialConfiguration.class},
     inputDataClass = SqsInboundProperties.class,
     description = "Receive messages from Amazon SQS.",
     keywords = {

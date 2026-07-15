@@ -15,6 +15,7 @@ import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -28,7 +29,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 @OutboundConnector(
     name = "AWS SQS Outbound",
-    inputVariables = {"authentication", "configuration", "queue"},
+    inputVariables = {"authentication", "configuration", "queue", "awsCredential"},
     type = "io.camunda:aws-sqs:1")
 @ElementTemplate(
     engineVersion = "^8.3",
@@ -46,6 +47,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
       "standard queue"
     },
     inputDataClass = SqsConnectorRequest.class,
+    configurations = {AwsCredentialConfiguration.class},
     version = 11,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
