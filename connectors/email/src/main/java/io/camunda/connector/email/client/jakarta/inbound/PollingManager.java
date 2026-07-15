@@ -17,6 +17,7 @@ import io.camunda.connector.email.inbound.model.*;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
 import jakarta.mail.search.FlagTerm;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -50,7 +51,10 @@ public class PollingManager {
     this.store = store;
   }
 
-  private static ReadEmailResponse createResponse(Email email, List<Document> documents) {
+  private record DocumentUploadResult(List<Document> documents, List<String> errors) {}
+
+  private static ReadEmailResponse createResponse(
+      Email email, List<Document> documents, List<String> errors) {
     return new ReadEmailResponse(
         email.messageId(),
         email.from(),
@@ -60,7 +64,8 @@ public class PollingManager {
         email.body().bodyAsPlainText(),
         email.body().bodyAsHtml(),
         documents,
-        email.receivedAt());
+        email.receivedAt(),
+        errors);
   }
 
   public static PollingManager create(
@@ -117,23 +122,37 @@ public class PollingManager {
     }
   }
 
-  private List<Document> createDocumentList(Email email) {
-    return email.body().attachments().stream()
-        .map(
-            document ->
-                this.connectorContext.create(
-                    DocumentCreationRequest.from(document.inputStream())
-                        .contentType(document.contentType())
-                        .fileName(document.name())
-                        .build()))
-        .toList();
+  private DocumentUploadResult createDocumentList(Email email) {
+    List<Document> documents = new ArrayList<>();
+    List<String> errors = new ArrayList<>();
+    for (var attachment : email.body().attachments()) {
+      try {
+        documents.add(
+            this.connectorContext.create(
+                DocumentCreationRequest.from(attachment.inputStream())
+                    .contentType(attachment.contentType())
+                    .fileName(attachment.name())
+                    .build()));
+      } catch (Exception e) {
+        String errorMessage =
+            "Failed to upload attachment '%s': %s".formatted(attachment.name(), e.getMessage());
+        errors.add(errorMessage);
+        this.connectorContext.log(
+            activity ->
+                activity
+                    .withSeverity(Severity.WARNING)
+                    .withTag("document-upload")
+                    .withMessage(errorMessage + ". Attachment will be skipped.", e));
+      }
+    }
+    return new DocumentUploadResult(documents, errors);
   }
 
   private boolean correlate(Email email) {
-    List<Document> documents = createDocumentList(email);
+    DocumentUploadResult uploadResult = createDocumentList(email);
     CorrelationRequest correlationRequest =
         CorrelationRequest.builder()
-            .variables(createResponse(email, documents))
+            .variables(createResponse(email, uploadResult.documents(), uploadResult.errors()))
             .messageId(email.messageId())
             .build();
     return switch (this.connectorContext.correlate(correlationRequest)) {
@@ -245,7 +264,7 @@ public class PollingManager {
                 .withTag("new-email")
                 .withMessage("Processing email: %s".formatted(email.messageId())));
     ActivationCheckResult activationCheckResult =
-        this.connectorContext.canActivate(createResponse(email, List.of()));
+        this.connectorContext.canActivate(createResponse(email, List.of(), List.of()));
     return switch (activationCheckResult) {
       case ActivationCheckResult.Failure failure ->
           switch (failure) {

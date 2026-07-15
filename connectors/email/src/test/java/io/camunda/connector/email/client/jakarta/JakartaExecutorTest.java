@@ -16,6 +16,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.client.jakarta.models.Email;
+import io.camunda.connector.email.client.jakarta.models.EmailAttachment;
 import io.camunda.connector.email.client.jakarta.models.EmailBody;
 import io.camunda.connector.email.client.jakarta.outbound.JakartaEmailActionExecutor;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
@@ -32,6 +33,7 @@ import jakarta.mail.*;
 import jakarta.mail.internet.MimeMultipart;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
@@ -1001,6 +1003,67 @@ class JakartaExecutorTest {
     Assertions.assertEquals("important", searchEmailsResponses.get(0).subject());
     Assertions.assertEquals("11", searchEmailsResponses.get(1).messageId());
     Assertions.assertEquals("urgent", searchEmailsResponses.get(1).subject());
+  }
+
+  @Test
+  void executeImapReadEmail_throwsDescriptiveError_whenDocumentUploadFails()
+      throws MessagingException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
+
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    ImapReadEmail imapReadEmail = mock(ImapReadEmail.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Imap.class);
+    Session session = mock(Session.class);
+    Store store = mock(Store.class);
+    Folder folder = mock(Folder.class);
+    Message message = mock(Message.class);
+
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
+    doNothing().when(store).connect(any(), any());
+
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
+    when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
+    when(folder.search(any())).thenReturn(new Message[] {message});
+    when(message.getHeader(any())).thenReturn(new String[] {"10"});
+    when(imapReadEmail.messageId()).thenReturn("10");
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(session.getStore()).thenReturn(store);
+    when(emailRequest.data()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(imapReadEmail);
+
+    EmailAttachment attachment =
+        new EmailAttachment(InputStream.nullInputStream(), "invoice.pdf", "application/pdf");
+    Email emailWithAttachment =
+        new Email(
+            EmailBody.createBuilder().addAttachment(attachment).build(),
+            "10",
+            "",
+            List.of(),
+            "subject",
+            List.of("sender@example.com"),
+            List.of("recipient@example.com"),
+            OffsetDateTime.now(),
+            OffsetDateTime.now(),
+            1);
+    when(sessionFactory.createEmail(any())).thenReturn(emailWithAttachment);
+    when(outboundConnectorContext.create(any()))
+        .thenThrow(new RuntimeException("Document exceeds size limit"));
+    doNothing().when(store).connect(any(), any());
+
+    RuntimeException exception =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> actionExecutor.execute(outboundConnectorContext));
+    Assertions.assertTrue(
+        exception.getMessage().contains("invoice.pdf"),
+        "Exception message should include the attachment name");
   }
 
   private Object loadCriteria(String path) {
