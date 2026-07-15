@@ -8,6 +8,7 @@ package io.camunda.connector.aws.model.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.AssertTrue;
@@ -25,8 +26,33 @@ public class AwsBaseRequest {
   @TemplateProperty(group = "configuration")
   private AwsBaseConfiguration configuration;
 
+  @TemplateProperty(
+      id = "awsCredential",
+      label = "AWS credential",
+      group = "authentication",
+      type = PropertyType.Configuration,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "awsCredential"),
+      description =
+          "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's"
+              + " 'awsCredential' input.")
+  private AwsCredentialConfiguration awsCredential;
+
+  public AwsCredentialConfiguration getAwsCredential() {
+    return awsCredential;
+  }
+
+  public void setAwsCredential(AwsCredentialConfiguration awsCredential) {
+    this.awsCredential = awsCredential;
+  }
+
+  /**
+   * Per-connector consumption of the bound AWS credential: when a credential (configuration) is
+   * bound, its authentication takes precedence over the inline authentication; inline is the
+   * fallback.
+   */
   public AwsAuthentication getAuthentication() {
-    return authentication;
+    return awsCredential != null ? awsCredential.authentication() : authentication;
   }
 
   public void setAuthentication(final AwsAuthentication authentication) {
@@ -44,8 +70,16 @@ public class AwsBaseRequest {
     return getAuthentication() != null;
   }
 
+  /**
+   * When a credential is bound, its region drives the configuration; the inline endpoint (if any)
+   * is preserved.
+   */
   public AwsBaseConfiguration getConfiguration() {
-    return configuration;
+    if (awsCredential == null) {
+      return configuration;
+    }
+    String endpoint = configuration != null ? configuration.endpoint() : null;
+    return new AwsBaseConfiguration(awsCredential.region(), endpoint);
   }
 
   public void setConfiguration(final AwsBaseConfiguration configuration) {
@@ -68,12 +102,13 @@ public class AwsBaseRequest {
     }
     final AwsBaseRequest that = (AwsBaseRequest) o;
     return Objects.equals(authentication, that.authentication)
-        && Objects.equals(configuration, that.configuration);
+        && Objects.equals(configuration, that.configuration)
+        && Objects.equals(awsCredential, that.awsCredential);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(authentication, configuration);
+    return Objects.hash(authentication, configuration, awsCredential);
   }
 
   @Override
@@ -83,6 +118,8 @@ public class AwsBaseRequest {
         + authentication
         + ", configuration="
         + configuration
+        + ", awsCredential="
+        + awsCredential
         + "}";
   }
 }

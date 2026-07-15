@@ -16,6 +16,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsConnectorResult;
@@ -27,7 +28,7 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 @OutboundConnector(
     name = "AWS SNS Outbound",
-    inputVariables = {"authentication", "configuration", "topic"},
+    inputVariables = {"authentication", "configuration", "topic", "awsCredential"},
     type = "io.camunda:aws-sns:1")
 @ElementTemplate(
     engineVersion = "^8.3",
@@ -36,6 +37,7 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
     description = "Send messages to Amazon SNS.",
     keywords = {"send message", "publish message", "notification", "publish to topic", "FIFO"},
     inputDataClass = SnsConnectorRequest.class,
+    configurations = {AwsCredentialConfiguration.class},
     version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

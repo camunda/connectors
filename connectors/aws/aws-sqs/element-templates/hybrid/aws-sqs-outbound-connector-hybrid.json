@@ -52,18 +52,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "awsCredential",
-    "label" : "AWS credential",
-    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
-    "optional" : true,
-    "group" : "authentication",
-    "binding" : {
-      "name" : "awsCredential",
-      "type" : "zeebe:input"
-    },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:aws-credential:1"
-  }, {
     "id" : "authentication.type",
     "label" : "Authentication",
     "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
@@ -121,6 +109,18 @@
     },
     "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
     "type" : "String"
+  }, {
+    "id" : "awsCredential",
+    "label" : "AWS credential",
+    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
+    "optional" : true,
+    "group" : "authentication",
+    "binding" : {
+      "name" : "awsCredential",
+      "type" : "zeebe:input"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:aws-credential:1"
   }, {
     "id" : "queue.url",
     "label" : "URL",

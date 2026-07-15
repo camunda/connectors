@@ -9,6 +9,7 @@ package io.camunda.connector.comprehend;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.comprehend.caller.AsyncComprehendCaller;
 import io.camunda.connector.comprehend.caller.SyncComprehendCaller;
 import io.camunda.connector.comprehend.model.ComprehendAsyncRequestData;
@@ -20,7 +21,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
     name = "AWS Comprehend",
-    inputVariables = {"authentication", "configuration", "input"},
+    inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-comprehend:1")
 @ElementTemplate(
     engineVersion = "^8.7",
@@ -36,6 +37,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "machine learning"
     },
     inputDataClass = ComprehendRequest.class,
+    configurations = {AwsCredentialConfiguration.class},
     version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),

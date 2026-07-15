@@ -12,6 +12,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.sagemaker.caller.SageMakerAsyncCaller;
 import io.camunda.connector.sagemaker.caller.SageMakerSyncCaller;
@@ -24,7 +25,7 @@ import java.util.function.BiFunction;
 
 @OutboundConnector(
     name = "AWS SageMaker",
-    inputVariables = {"authentication", "configuration", "input"},
+    inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-sagemaker:1")
 @ElementTemplate(
     engineVersion = "^8.6",
@@ -43,6 +44,7 @@ import java.util.function.BiFunction;
       "AI"
     },
     inputDataClass = SageMakerRequest.class,
+    configurations = {AwsCredentialConfiguration.class},
     version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

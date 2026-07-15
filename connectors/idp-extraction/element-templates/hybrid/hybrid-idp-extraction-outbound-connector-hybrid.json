@@ -241,6 +241,23 @@
     "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
     "type" : "String"
   }, {
+    "id" : "baseRequest.awsCredential",
+    "label" : "AWS credential",
+    "description" : "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's 'awsCredential' input.",
+    "optional" : true,
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.awsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "aws",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:aws-credential:1"
+  }, {
     "id" : "baseRequest.authentication.authType",
     "label" : "Type",
     "optional" : false,

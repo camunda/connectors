@@ -16,6 +16,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.util.Optional;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
@@ -25,7 +26,7 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
 
 @OutboundConnector(
     name = "AWS EventBridge",
-    inputVariables = {"authentication", "configuration", "input"},
+    inputVariables = {"authentication", "configuration", "input", "awsCredential"},
     type = "io.camunda:aws-eventbridge:1")
 @ElementTemplate(
     engineVersion = "^8.3",
@@ -41,6 +42,7 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
       "cloud event"
     },
     inputDataClass = AwsEventBridgeRequest.class,
+    configurations = {AwsCredentialConfiguration.class},
     version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

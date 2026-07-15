@@ -15,6 +15,7 @@ import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -26,7 +27,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
 @OutboundConnector(
     name = "AWS Lambda",
-    inputVariables = {"authentication", "configuration", "awsFunction"},
+    inputVariables = {"authentication", "configuration", "awsFunction", "awsCredential"},
     type = "io.camunda:aws-lambda:1")
 @ElementTemplate(
     engineVersion = "^8.3",
@@ -41,6 +42,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeResponse;
       "function as a service"
     },
     inputDataClass = AwsLambdaRequest.class,
+    configurations = {AwsCredentialConfiguration.class},
     version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

@@ -12,13 +12,20 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.bedrock.knowledgebase.model.request.BedrockKnowledgeBaseRequest;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeClient;
 
 @OutboundConnector(
     name = "AWS Bedrock Knowledge Base",
-    inputVariables = {"authentication", "configuration", "knowledgeBaseId", "operation"},
+    inputVariables = {
+      "authentication",
+      "configuration",
+      "knowledgeBaseId",
+      "operation",
+      "awsCredential"
+    },
     type = "io.camunda:aws-bedrock-knowledgebase:1")
 @ElementTemplate(
     engineVersion = "^8.10",
@@ -26,6 +33,7 @@ import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeCl
     name = "Retrieve Documents from AWS Bedrock Knowledge Base",
     description = "Retrieve relevant documents from an AWS Bedrock Knowledge Base",
     inputDataClass = BedrockKnowledgeBaseRequest.class,
+    configurations = {AwsCredentialConfiguration.class},
     version = 1,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
