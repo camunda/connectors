@@ -1007,6 +1007,30 @@
     "tooltip" : "Enables Anthropic's built-in <code>code_execution</code> server tool, letting the model run code in a sandboxed container. Already enabled automatically when Skills are configured above (no duplicate tool/beta header is emitted in that case).",
     "type" : "Boolean"
   }, {
+    "id" : "configuration.anthropic.codeExecutionVersion",
+    "label" : "Code execution tool version",
+    "optional" : true,
+    "value" : "code_execution_20260521",
+    "feel" : "optional",
+    "group" : "skills",
+    "binding" : {
+      "name" : "configuration.anthropic.codeExecutionVersion",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "configuration.anthropic.enableCodeExecution",
+        "equals" : true,
+        "type" : "simple"
+      }, {
+        "property" : "configuration.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Anthropic <code>code_execution</code> tool version string (wire <code>type</code>). Defaults to the latest GA revision <code>code_execution_20260521</code>, which needs no beta header and is required (version <code>20260120</code> or later) for the default dynamic-filtering web tools to run in the same request. This version also applies to the <code>code_execution</code> tool that Skills provision automatically. The legacy <code>code_execution_20250522</code> revision is Python-only and additionally sends the <code>code-execution-2025-05-22</code> beta header.",
+    "type" : "String"
+  }, {
     "id" : "configuration.anthropic.enableWebSearch",
     "label" : "Enable web search",
     "optional" : true,
@@ -1028,7 +1052,7 @@
     "id" : "configuration.anthropic.webSearchVersion",
     "label" : "Web search tool version",
     "optional" : true,
-    "value" : "web_search_20250305",
+    "value" : "web_search_20260318",
     "feel" : "optional",
     "group" : "skills",
     "binding" : {
@@ -1046,7 +1070,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Anthropic <code>web_search</code> tool version string (wire <code>type</code>). The default <code>web_search_20250305</code> calls directly and works alongside Skills and code execution in the same request. Newer versions (<code>web_search_20260209</code> and later) enable dynamic filtering (the tool runs inside code execution) and are <b>not yet</b> compatible with Skills or code execution in the same request.",
+    "tooltip" : "Anthropic <code>web_search</code> tool version string (wire <code>type</code>). The default <code>web_search_20260318</code> uses dynamic filtering (the tool runs inside code execution) and works alongside Skills and code execution when the code execution tool is version <code>20260120</code> or later (the default). It requires a programmatic-tool-calling model and is not ZDR-eligible. Downgrade to a basic/direct revision such as <code>web_search_20250305</code> for ZDR or older/non-programmatic models.",
     "type" : "String"
   }, {
     "id" : "configuration.anthropic.enableWebFetch",
@@ -1070,7 +1094,7 @@
     "id" : "configuration.anthropic.webFetchVersion",
     "label" : "Web fetch tool version",
     "optional" : true,
-    "value" : "web_fetch_20250910",
+    "value" : "web_fetch_20260318",
     "feel" : "optional",
     "group" : "skills",
     "binding" : {
@@ -1088,7 +1112,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Anthropic <code>web_fetch</code> tool version string (wire <code>type</code>). The default <code>web_fetch_20250910</code> calls directly and works alongside Skills and code execution in the same request. Newer versions (<code>web_fetch_20260209</code> and later) enable dynamic filtering (the tool runs inside code execution) and are <b>not yet</b> compatible with Skills or code execution in the same request.",
+    "tooltip" : "Anthropic <code>web_fetch</code> tool version string (wire <code>type</code>). The default <code>web_fetch_20260318</code> uses dynamic filtering (the tool runs inside code execution) and works alongside Skills and code execution when the code execution tool is version <code>20260120</code> or later (the default). It requires a programmatic-tool-calling model and is not ZDR-eligible. Downgrade to a basic/direct revision such as <code>web_fetch_20250910</code> for ZDR or older/non-programmatic models.",
     "type" : "String"
   }, {
     "id" : "configuration.anthropic.capabilityOverride",

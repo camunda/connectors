@@ -100,6 +100,27 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
           @Nullable Boolean enableCodeExecution,
       @TemplateProperty(
               group = "skills",
+              label = "Code execution tool version",
+              tooltip =
+                  "Anthropic <code>code_execution</code> tool version string (wire <code>type</code>). "
+                      + "Defaults to the latest GA revision <code>code_execution_20260521</code>, which "
+                      + "needs no beta header and is required (version <code>20260120</code> or later) for "
+                      + "the default dynamic-filtering web tools to run in the same request. This version "
+                      + "also applies to the <code>code_execution</code> tool that Skills provision "
+                      + "automatically. The legacy <code>code_execution_20250522</code> revision is "
+                      + "Python-only and additionally sends the <code>code-execution-2025-05-22</code> "
+                      + "beta header.",
+              type = TemplateProperty.PropertyType.String,
+              feel = FeelMode.optional,
+              defaultValue = "code_execution_20260521",
+              optional = true,
+              condition =
+                  @TemplateProperty.PropertyCondition(
+                      property = "configuration.anthropic.enableCodeExecution",
+                      equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
+          @Nullable String codeExecutionVersion,
+      @TemplateProperty(
+              group = "skills",
               label = "Enable web search",
               tooltip =
                   "Enables Anthropic's built-in <code>web_search</code> server tool, letting the model search the web for up-to-date information.",
@@ -113,14 +134,15 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               label = "Web search tool version",
               tooltip =
                   "Anthropic <code>web_search</code> tool version string (wire <code>type</code>). "
-                      + "The default <code>web_search_20250305</code> calls directly and works alongside "
-                      + "Skills and code execution in the same request. Newer versions "
-                      + "(<code>web_search_20260209</code> and later) enable dynamic filtering (the tool "
-                      + "runs inside code execution) and are <b>not yet</b> compatible with Skills or code "
-                      + "execution in the same request.",
+                      + "The default <code>web_search_20260318</code> uses dynamic filtering (the tool "
+                      + "runs inside code execution) and works alongside Skills and code execution when "
+                      + "the code execution tool is version <code>20260120</code> or later (the default). "
+                      + "It requires a programmatic-tool-calling model and is not ZDR-eligible. Downgrade "
+                      + "to a basic/direct revision such as <code>web_search_20250305</code> for ZDR or "
+                      + "older/non-programmatic models.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
-              defaultValue = "web_search_20250305",
+              defaultValue = "web_search_20260318",
               optional = true,
               condition =
                   @TemplateProperty.PropertyCondition(
@@ -142,14 +164,15 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
               label = "Web fetch tool version",
               tooltip =
                   "Anthropic <code>web_fetch</code> tool version string (wire <code>type</code>). "
-                      + "The default <code>web_fetch_20250910</code> calls directly and works alongside "
-                      + "Skills and code execution in the same request. Newer versions "
-                      + "(<code>web_fetch_20260209</code> and later) enable dynamic filtering (the tool "
-                      + "runs inside code execution) and are <b>not yet</b> compatible with Skills or code "
-                      + "execution in the same request.",
+                      + "The default <code>web_fetch_20260318</code> uses dynamic filtering (the tool "
+                      + "runs inside code execution) and works alongside Skills and code execution when "
+                      + "the code execution tool is version <code>20260120</code> or later (the default). "
+                      + "It requires a programmatic-tool-calling model and is not ZDR-eligible. Downgrade "
+                      + "to a basic/direct revision such as <code>web_fetch_20250910</code> for ZDR or "
+                      + "older/non-programmatic models.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
-              defaultValue = "web_fetch_20250910",
+              defaultValue = "web_fetch_20260318",
               optional = true,
               condition =
                   @TemplateProperty.PropertyCondition(

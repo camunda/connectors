@@ -8,7 +8,10 @@ package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.models.beta.AnthropicBeta;
+import com.anthropic.models.beta.messages.BetaCodeExecutionTool20250522;
 import com.anthropic.models.beta.messages.BetaCodeExecutionTool20250825;
+import com.anthropic.models.beta.messages.BetaCodeExecutionTool20260120;
+import com.anthropic.models.beta.messages.BetaCodeExecutionTool20260521;
 import com.anthropic.models.beta.messages.BetaContainerParams;
 import com.anthropic.models.beta.messages.BetaContentBlockParam;
 import com.anthropic.models.beta.messages.BetaJsonOutputFormat;
@@ -68,41 +71,35 @@ public class AnthropicMessageRequestConverter {
 
   static final long DEFAULT_MAX_TOKENS = 4096L;
 
-  // No typed com.anthropic.models.beta.AnthropicBeta constant exists for this beta identifier in
-  // anthropic-java-core 2.48.0 (only the older CODE_EXECUTION_2025_05_22 is present); use the raw
-  // string beta overload for this one and the typed enum for the other two skill-related betas.
-  static final String CODE_EXECUTION_BETA = "code-execution-2025-08-25";
+  // Built-in server tools (code_execution / web_search / web_fetch) are user-version-configurable
+  // because the revision determines calling behavior and header requirements. Defaults track the
+  // latest GA/dynamic revisions; the version fields let users downgrade for ZDR or older models.
+  //
+  // code_execution: the GA revisions (20250825/20260120/20260521) need NO anthropic-beta header;
+  // only the legacy Python-only 20250522 requires code-execution-2025-05-22. The default 20260521
+  // (>= 20260120) is also what lets the default dynamic-filtering web tools run in the same request
+  // (from 20260209 the web tools default allowedCallers to ["code_execution_20260120"], sharing the
+  // container; providing an OLDER code_execution alongside them is rejected by the API). The same
+  // resolved version applies whether code execution is enabled explicitly or implicitly via Skills.
+  //
+  // web_search/web_fetch are General Availability (no beta header at any revision). The default
+  // dynamic-filtering revisions (20260318) run inside code execution; the basic/direct revisions
+  // (20250305/20250910) call directly, are ZDR-eligible, and work on all models (downgrade path).
+  //
+  // Unrecognized versions fall back to the raw-type escape hatch: the latest typed builder with
+  // `.type(JsonValue.from(raw))` overridden. Verified via a serialization round-trip (see the
+  // converter test) that the generated build() does not validate and `name` defaults independently
+  // of `type`, so this produces `{"type":"<raw>","name":"<tool>"}` without any other field
+  // changing.
+  static final String CODE_EXECUTION_DEFAULT_VERSION = "code_execution_20260521";
 
-  // Web search and web fetch are General Availability, not beta, features as of anthropic-java
-  // 2.48.0: both the basic (20250305/20250910) and later (20260209+) revisions of these tools AND
-  // their equivalents in the STABLE com.anthropic.models.messages package accept them directly, and
-  // no com.anthropic.models.beta.AnthropicBeta constant (nor any raw string in the SDK sources)
-  // references either tool. No anthropic-beta header is added for them, regardless of version.
-  //
-  // The tool *version* is user-configurable (webSearchVersion/webFetchVersion below) because the
-  // revision determines whether the tool calls directly or triggers "dynamic filtering". From
-  // 20260209 onward, both tools default allowedCallers to ["code_execution_20260120"] (dynamic
-  // filtering: the tool runs *inside* code execution), which makes the API auto-provision its own
-  // code_execution tool. That auto-provisioned tool collides on name with the explicit
-  // code_execution tool this converter adds for Skills, causing an HTTP 400 ("Auto-injecting tools
-  // would conflict with existing tool names") whenever Skills (or the code execution toggle) and a
-  // web tool toggle are both enabled. The basic 20250305/20250910 revisions call directly (no
-  // code-execution auto-provisioning) and so coexist with the explicit code_execution tool; both
-  // still accept a no-arg builder().build() matching this connector's plain on/off toggle. The
-  // basic revisions are therefore the default (combination-safe with Skills/code execution).
-  // Dynamic filtering (allowedCallers management to make the newer revisions coexist with Skills)
-  // is a deliberately deferred follow-up, not implemented here.
-  //
-  // Versions this converter does not recognize fall back to the raw-type escape hatch: the base
-  // (20250305/20250910) typed builder with `.type(JsonValue.from(raw))` overridden. Verified via a
-  // serialization round-trip (see AnthropicMessageRequestConverterTest) that
-  // BetaWebSearchTool20250305/BetaWebFetchTool20250910's generated build() does not call
-  // validate() and their `name` field defaults independently of `type`, so this produces the
-  // intended wire shape `{"type":"<raw>","name":"web_search"}` (or `"web_fetch"`) without any
-  // other field changing.
   static final String WEB_SEARCH_BASIC_VERSION = "web_search_20250305";
 
+  static final String WEB_SEARCH_DEFAULT_VERSION = "web_search_20260318";
+
   static final String WEB_FETCH_BASIC_VERSION = "web_fetch_20250910";
+
+  static final String WEB_FETCH_DEFAULT_VERSION = "web_fetch_20260318";
 
   /** Documented maximum number of skills that may be configured per request. */
   static final int MAX_SKILLS = 8;
@@ -355,9 +352,9 @@ public class AnthropicMessageRequestConverter {
    * every toggle is absent/false, keeping behavior identical to before Skills/tool-toggle support
    * was added.
    *
-   * <p>{@code code_execution} is added and its beta header emitted AT MOST ONCE: skills
-   * auto-require it to execute, and the explicit toggle may independently request it, but both
-   * routes share this single addition so enabling both never emits a duplicate tool or beta.
+   * <p>{@code code_execution} is added AT MOST ONCE (skills auto-require it; the explicit toggle
+   * may independently request it; both share this single addition), at the configured version, so
+   * enabling both never duplicates the tool.
    */
   private void applySkillsAndBuiltInTools(
       MessageCreateParams.Builder builder, AnthropicChatModel.AnthropicConnection connection) {
@@ -391,8 +388,7 @@ public class AnthropicMessageRequestConverter {
     // same tool independently. Route both through this single addition so the tool/beta are never
     // duplicated when skills are configured AND the toggle is enabled.
     if (hasSkills || Boolean.TRUE.equals(connection.enableCodeExecution())) {
-      builder.addTool(BetaCodeExecutionTool20250825.builder().build());
-      builder.addBeta(CODE_EXECUTION_BETA);
+      addCodeExecutionTool(builder, connection.codeExecutionVersion());
     }
 
     if (Boolean.TRUE.equals(connection.enableWebSearch())) {
@@ -405,13 +401,39 @@ public class AnthropicMessageRequestConverter {
   }
 
   /**
+   * Adds the {@code code_execution} server tool for the given (optional) version string, defaulting
+   * to the latest GA revision (see the class-level comment). Only the legacy {@code 20250522}
+   * revision requires a beta header; the GA revisions emit none. Unknown versions use the raw-type
+   * escape hatch on the latest revision's builder.
+   */
+  private void addCodeExecutionTool(MessageCreateParams.Builder builder, @Nullable String version) {
+    final String resolved =
+        (version == null || version.isBlank()) ? CODE_EXECUTION_DEFAULT_VERSION : version;
+    switch (resolved) {
+      case "code_execution_20250522" -> {
+        builder.addTool(BetaCodeExecutionTool20250522.builder().build());
+        builder.addBeta(AnthropicBeta.CODE_EXECUTION_2025_05_22);
+      }
+      case "code_execution_20250825" ->
+          builder.addTool(BetaCodeExecutionTool20250825.builder().build());
+      case "code_execution_20260120" ->
+          builder.addTool(BetaCodeExecutionTool20260120.builder().build());
+      case CODE_EXECUTION_DEFAULT_VERSION ->
+          builder.addTool(BetaCodeExecutionTool20260521.builder().build());
+      default ->
+          builder.addTool(
+              BetaCodeExecutionTool20260521.builder().type(JsonValue.from(resolved)).build());
+    }
+  }
+
+  /**
    * Adds the {@code web_search} server tool for the given (optional) version string, defaulting to
-   * the combination-safe basic/direct-calling revision (see the class-level comment above). Unknown
-   * versions use the raw-type escape hatch on the base revision's builder.
+   * the latest dynamic-filtering revision (see the class-level comment above). Unknown versions use
+   * the raw-type escape hatch on the base revision's builder.
    */
   private void addWebSearchTool(MessageCreateParams.Builder builder, @Nullable String version) {
     final String resolved =
-        (version == null || version.isBlank()) ? WEB_SEARCH_BASIC_VERSION : version;
+        (version == null || version.isBlank()) ? WEB_SEARCH_DEFAULT_VERSION : version;
     switch (resolved) {
       case WEB_SEARCH_BASIC_VERSION -> builder.addTool(BetaWebSearchTool20250305.builder().build());
       case "web_search_20260209" -> builder.addTool(BetaWebSearchTool20260209.builder().build());
@@ -424,12 +446,12 @@ public class AnthropicMessageRequestConverter {
 
   /**
    * Adds the {@code web_fetch} server tool for the given (optional) version string, defaulting to
-   * the combination-safe basic/direct-calling revision (see the class-level comment above). Unknown
-   * versions use the raw-type escape hatch on the base revision's builder.
+   * the latest dynamic-filtering revision (see the class-level comment above). Unknown versions use
+   * the raw-type escape hatch on the base revision's builder.
    */
   private void addWebFetchTool(MessageCreateParams.Builder builder, @Nullable String version) {
     final String resolved =
-        (version == null || version.isBlank()) ? WEB_FETCH_BASIC_VERSION : version;
+        (version == null || version.isBlank()) ? WEB_FETCH_DEFAULT_VERSION : version;
     switch (resolved) {
       case WEB_FETCH_BASIC_VERSION -> builder.addTool(BetaWebFetchTool20250910.builder().build());
       case "web_fetch_20260209" -> builder.addTool(BetaWebFetchTool20260209.builder().build());

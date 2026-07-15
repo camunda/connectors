@@ -77,13 +77,33 @@ class AnthropicMessageRequestConverterTest {
       @Nullable Boolean enableWebSearch,
       @Nullable Boolean enableWebFetch) {
     return model(
-        parameters, skills, enableCodeExecution, enableWebSearch, null, enableWebFetch, null);
+        parameters, skills, enableCodeExecution, null, enableWebSearch, null, enableWebFetch, null);
   }
 
   private static AnthropicChatModel model(
       @Nullable AnthropicModelParameters parameters,
       @Nullable List<String> skills,
       @Nullable Boolean enableCodeExecution,
+      @Nullable Boolean enableWebSearch,
+      @Nullable String webSearchVersion,
+      @Nullable Boolean enableWebFetch,
+      @Nullable String webFetchVersion) {
+    return model(
+        parameters,
+        skills,
+        enableCodeExecution,
+        null,
+        enableWebSearch,
+        webSearchVersion,
+        enableWebFetch,
+        webFetchVersion);
+  }
+
+  private static AnthropicChatModel model(
+      @Nullable AnthropicModelParameters parameters,
+      @Nullable List<String> skills,
+      @Nullable Boolean enableCodeExecution,
+      @Nullable String codeExecutionVersion,
       @Nullable Boolean enableWebSearch,
       @Nullable String webSearchVersion,
       @Nullable Boolean enableWebFetch,
@@ -96,6 +116,7 @@ class AnthropicMessageRequestConverterTest {
             null,
             skills,
             enableCodeExecution,
+            codeExecutionVersion,
             enableWebSearch,
             webSearchVersion,
             enableWebFetch,
@@ -124,6 +145,15 @@ class AnthropicMessageRequestConverterTest {
   private static JsonNode requestBodyAsJson(
       com.anthropic.models.beta.messages.MessageCreateParams params) {
     return ObjectMappers.jsonMapper().valueToTree(params._body());
+  }
+
+  /** Extracts each tool's wire {@code type} string from the serialized request body. */
+  private static List<String> toolTypes(
+      com.anthropic.models.beta.messages.MessageCreateParams params) {
+    final var toolsNode = requestBodyAsJson(params).path("tools");
+    final List<String> types = new java.util.ArrayList<>();
+    toolsNode.forEach(node -> types.add(node.path("type").asText()));
+    return types;
   }
 
   private static AnthropicModelCapabilities caps() {
@@ -559,7 +589,7 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void emitsContainerSkillsCodeExecutionToolAndBetaHeadersWhenSkillsConfigured() {
+  void emitsContainerSkillsCodeExecutionToolAndSkillBetaHeadersWhenSkillsConfigured() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params =
@@ -578,17 +608,17 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.tools()).isPresent();
     assertThat(params.tools().orElseThrow())
-        .anyMatch(tool -> tool.codeExecutionTool20250825().isPresent());
+        .anyMatch(tool -> tool.codeExecutionTool20260521().isPresent());
 
     assertThat(params.betas()).isPresent();
     assertThat(params.betas().orElseThrow())
-        .contains(AnthropicBeta.SKILLS_2025_10_02, AnthropicBeta.FILES_API_2025_04_14)
-        .anyMatch(beta -> "code-execution-2025-08-25".equals(beta.asString()));
+        .containsExactlyInAnyOrder(
+            AnthropicBeta.SKILLS_2025_10_02, AnthropicBeta.FILES_API_2025_04_14);
   }
 
   @Test
   void combinesAutoAddedCodeExecutionToolWithUserConfiguredToolDefinitions() {
-    // the auto-added code_execution tool is a distinct wire type (BetaCodeExecutionTool20250825)
+    // the auto-added code_execution tool is a distinct wire type (BetaCodeExecutionTool20260521)
     // from user-configured ToolDefinitions (BetaTool); both coexist on the wire regardless of
     // name overlap.
     final var snapshot =
@@ -620,7 +650,7 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void enableCodeExecutionAddsCodeExecutionToolAndBetaHeaderWithoutSkills() {
+  void enableCodeExecutionAddsLatestCodeExecutionToolWithoutBetaHeader() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params =
@@ -630,9 +660,8 @@ class AnthropicMessageRequestConverterTest {
     assertThat(params.container()).isEmpty();
     assertThat(params.tools().orElseThrow())
         .hasSize(1)
-        .anyMatch(tool -> tool.codeExecutionTool20250825().isPresent());
-    assertThat(params.betas().orElseThrow())
-        .anyMatch(beta -> "code-execution-2025-08-25".equals(beta.asString()));
+        .anyMatch(tool -> tool.codeExecutionTool20260521().isPresent());
+    assertThat(params.betas()).isEmpty();
   }
 
   @Test
@@ -645,7 +674,7 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.tools().orElseThrow())
         .hasSize(1)
-        .anyMatch(tool -> tool.webSearchTool20250305().isPresent());
+        .anyMatch(tool -> tool.webSearchTool20260318().isPresent());
     // web_search is GA: no anthropic-beta header required.
     assertThat(params.betas()).isEmpty();
   }
@@ -660,13 +689,13 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.tools().orElseThrow())
         .hasSize(1)
-        .anyMatch(tool -> tool.webFetchTool20250910().isPresent());
+        .anyMatch(tool -> tool.webFetchTool20260318().isPresent());
     // web_fetch is GA: no anthropic-beta header required.
     assertThat(params.betas()).isEmpty();
   }
 
   @Test
-  void nullWebSearchVersionDefaultsToBasicDirectVersion() {
+  void nullWebSearchVersionDefaultsToLatestDynamicVersion() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params =
@@ -674,7 +703,7 @@ class AnthropicMessageRequestConverterTest {
             ctx(model(null, null, null, true, null, null, null), null), snapshot, caps());
 
     assertThat(params.tools().orElseThrow())
-        .anyMatch(tool -> tool.webSearchTool20250305().isPresent());
+        .anyMatch(tool -> tool.webSearchTool20260318().isPresent());
   }
 
   @Test
@@ -736,9 +765,8 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void defaultWebSearchToolSerializesToBasicDirectVersionWireShape() {
-    // Serialization round-trip proving the default web_search tool's wire shape, which is also
-    // what the raw-type escape hatch relies on for unknown versions (only "type" differs).
+  void defaultWebSearchToolSerializesToLatestDynamicVersionWireShape() {
+    // Serialization round-trip proving the default web_search tool's wire shape.
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params =
@@ -746,7 +774,7 @@ class AnthropicMessageRequestConverterTest {
             ctx(model(null, null, null, true, null, null, null), null), snapshot, caps());
 
     final var toolNode = requestBodyAsJson(params).path("tools").get(0);
-    assertThat(toolNode.path("type").asText()).isEqualTo("web_search_20250305");
+    assertThat(toolNode.path("type").asText()).isEqualTo("web_search_20260318");
     assertThat(toolNode.path("name").asText()).isEqualTo("web_search");
   }
 
@@ -760,9 +788,9 @@ class AnthropicMessageRequestConverterTest {
 
     assertThat(params.tools().orElseThrow()).hasSize(2);
     assertThat(params.tools().orElseThrow())
-        .anyMatch(tool -> tool.webSearchTool20250305().isPresent());
+        .anyMatch(tool -> tool.webSearchTool20260318().isPresent());
     assertThat(params.tools().orElseThrow())
-        .anyMatch(tool -> tool.webFetchTool20250910().isPresent());
+        .anyMatch(tool -> tool.webFetchTool20260318().isPresent());
     assertThat(params.betas()).isEmpty();
   }
 
@@ -775,14 +803,12 @@ class AnthropicMessageRequestConverterTest {
             ctx(model(null, List.of("pptx"), true, null, null), null), snapshot, caps());
 
     assertThat(params.tools().orElseThrow())
-        .filteredOn(tool -> tool.codeExecutionTool20250825().isPresent())
+        .filteredOn(tool -> tool.codeExecutionTool20260521().isPresent())
         .hasSize(1);
 
-    final var codeExecutionBetaOccurrences =
-        params.betas().orElseThrow().stream()
-            .filter(beta -> "code-execution-2025-08-25".equals(beta.asString()))
-            .count();
-    assertThat(codeExecutionBetaOccurrences).isEqualTo(1);
+    assertThat(params.betas().orElseThrow())
+        .containsExactlyInAnyOrder(
+            AnthropicBeta.SKILLS_2025_10_02, AnthropicBeta.FILES_API_2025_04_14);
   }
 
   @Test
@@ -794,6 +820,98 @@ class AnthropicMessageRequestConverterTest {
             () -> converter.toMessageCreateParams(ctx(model(null, skills), null), snapshot, caps()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("8");
+  }
+
+  @Test
+  void defaultCodeExecutionVersionIsLatestGaWithoutBetaHeader() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, true, null, null, null, null, null), null), snapshot, caps());
+
+    assertThat(toolTypes(params)).contains("code_execution_20260521");
+    assertThat(params.betas()).isEmpty();
+  }
+
+  @Test
+  void legacyCodeExecutionVersionAddsBetaHeader() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, true, "code_execution_20250522", null, null, null, null), null),
+            snapshot,
+            caps());
+
+    assertThat(toolTypes(params)).contains("code_execution_20250522");
+    assertThat(params.betas().orElseThrow())
+        .anyMatch(beta -> "code-execution-2025-05-22".equals(beta.asString()));
+  }
+
+  @Test
+  void gaCodeExecutionVersionOverridesSelectRequestedTypedToolWithoutBetaHeader() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    for (final String version :
+        List.of("code_execution_20250825", "code_execution_20260120", "code_execution_20260521")) {
+      final var params =
+          converter.toMessageCreateParams(
+              ctx(model(null, null, true, version, null, null, null, null), null),
+              snapshot,
+              caps());
+
+      assertThat(toolTypes(params)).as(version).contains(version);
+      assertThat(params.betas()).as(version).isEmpty();
+    }
+  }
+
+  @Test
+  void unknownCodeExecutionVersionFallsBackToRawTypeOnLatestTool() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, true, "code_execution_29991231", null, null, null, null), null),
+            snapshot,
+            caps());
+
+    assertThat(toolTypes(params)).contains("code_execution_29991231");
+    assertThat(params.betas()).isEmpty();
+  }
+
+  @Test
+  void skillsUseConfiguredCodeExecutionVersion() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(
+                model(
+                    null, List.of("pptx"), null, "code_execution_20260120", null, null, null, null),
+                null),
+            snapshot,
+            caps());
+
+    assertThat(toolTypes(params)).contains("code_execution_20260120");
+    assertThat(params.betas().orElseThrow())
+        .contains(AnthropicBeta.SKILLS_2025_10_02, AnthropicBeta.FILES_API_2025_04_14)
+        .noneMatch(beta -> "code-execution-2025-05-22".equals(beta.asString()));
+  }
+
+  @Test
+  void defaultCodeExecutionToolSerializesToLatestWireShape() {
+    // Serialization round-trip proving the default code_execution tool's wire shape (only "type"
+    // differs for the raw escape hatch).
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toMessageCreateParams(
+            ctx(model(null, null, true, null, null), null), snapshot, caps());
+
+    final var toolNode = requestBodyAsJson(params).path("tools").get(0);
+    assertThat(toolNode.path("type").asText()).isEqualTo("code_execution_20260521");
+    assertThat(toolNode.path("name").asText()).isEqualTo("code_execution");
   }
 
   // --- Reasoning: thinking / effort mapping (Task 3) --------------------------------------
