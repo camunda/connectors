@@ -188,6 +188,67 @@ class OpenAiResponsesRequestConverterTest {
   }
 
   @Test
+  void replaysAssistantTextContentAsAssistantMessageInputItem() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("here's the answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toResponseCreateParams(ctx(model(null), null), snapshot, caps());
+
+    final var items = params.input().orElseThrow().asResponse();
+    assertThat(items).hasSize(1);
+
+    final var easy = items.get(0).easyInputMessage().orElseThrow();
+    assertThat(easy.role()).isEqualTo(EasyInputMessage.Role.ASSISTANT);
+
+    final var parts = easy.content().asResponseInputMessageContentList();
+    assertThat(parts).hasSize(1);
+    assertThat(parts.get(0).inputText().orElseThrow().text()).isEqualTo("here's the answer");
+  }
+
+  @Test
+  void replaysAssistantTextContentAndToolCallAsSeparateInputItems() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("let me check that")))
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("call_1")
+                                .name("get_weather")
+                                .arguments(Map.of("city", "Berlin"))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toResponseCreateParams(ctx(model(null), null), snapshot, caps());
+
+    final var items = params.input().orElseThrow().asResponse();
+    assertThat(items).hasSize(2);
+
+    final var easy = items.get(0).easyInputMessage().orElseThrow();
+    assertThat(easy.role()).isEqualTo(EasyInputMessage.Role.ASSISTANT);
+    assertThat(
+            easy.content()
+                .asResponseInputMessageContentList()
+                .get(0)
+                .inputText()
+                .orElseThrow()
+                .text())
+        .isEqualTo("let me check that");
+
+    final var functionCall = items.get(1).functionCall().orElseThrow();
+    assertThat(functionCall.callId()).isEqualTo("call_1");
+    assertThat(functionCall.name()).isEqualTo("get_weather");
+  }
+
+  @Test
   void mapsToolDefinitionsToFunctionTools() {
     final Map<String, Object> schema =
         Map.of(

@@ -189,13 +189,18 @@ public class OpenAiResponsesRequestConverter {
   }
 
   /**
-   * Client tool calls always follow any replayed reasoning/provider-content items, mirroring the
-   * Anthropic sibling's content-then-toolCalls grouping. Plain text/document/object content on an
-   * assistant message (i.e. everything other than {@link ReasoningContent}/{@link ProviderContent})
-   * has no request-side replay in this pilot converter -- known limitation, see class Javadoc.
+   * Client tool calls always follow any replayed reasoning/provider-content/plain-content items,
+   * mirroring the Anthropic sibling's content-then-toolCalls grouping. Plain text/document/object
+   * content (i.e. everything other than {@link ReasoningContent}/{@link ProviderContent}) is
+   * collected in encounter order and replayed as a single assistant-role message input item, placed
+   * after any reasoning/provider-content items and before tool calls -- matching the order the
+   * model originally produced them in (reasoning/text before a function_call). No item is emitted
+   * when the assistant turn carries no plain content (e.g. tool-calls-only or reasoning-only
+   * turns).
    */
   private List<ResponseInputItem> assistantInputItems(AssistantMessage assistant) {
     final List<ResponseInputItem> items = new ArrayList<>();
+    final List<Content> plainContent = new ArrayList<>();
     for (final Content content : assistant.content()) {
       switch (content) {
         case ReasoningContent reasoning -> {
@@ -210,8 +215,18 @@ public class OpenAiResponsesRequestConverter {
                 objectMapper.convertValue(providerContent.payload(), ResponseInputItem.class));
           }
         }
-        default -> {} // plain text/document/object content has no request-side replay (see above)
+        default -> plainContent.add(content); // Text/Object/Document: replayed as a message below
       }
+    }
+    if (!plainContent.isEmpty()) {
+      items.add(
+          ResponseInputItem.ofEasyInputMessage(
+              EasyInputMessage.builder()
+                  .role(EasyInputMessage.Role.ASSISTANT)
+                  .content(
+                      EasyInputMessage.Content.ofResponseInputMessageContentList(
+                          contentConverter.toResponsesContentParts(plainContent)))
+                  .build()));
     }
     for (final ToolCall toolCall : assistant.toolCalls()) {
       items.add(
