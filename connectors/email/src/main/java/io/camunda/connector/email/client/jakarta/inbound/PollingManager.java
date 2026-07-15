@@ -140,7 +140,7 @@ public class PollingManager {
         this.connectorContext.log(
             activity ->
                 activity
-                    .withSeverity(Severity.ERROR)
+                    .withSeverity(Severity.WARNING)
                     .withTag("document-upload")
                     .withMessage(errorMessage + ". Attachment will be skipped.", e));
       }
