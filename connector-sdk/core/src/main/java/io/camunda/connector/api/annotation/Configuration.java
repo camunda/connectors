@@ -58,8 +58,8 @@ public @interface Configuration {
   String name();
 
   /**
-   * The configuration class, written to the created instance's metadata bag to categorize it. The
-   * only value defined today is {@code CREDENTIAL}.
+   * The configuration class, written to the created instance's metadata bag to categorize it. Must
+   * be non-blank. The only value defined today is {@code CREDENTIAL}.
    */
   String kind() default "CREDENTIAL";
 }

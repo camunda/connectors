@@ -332,7 +332,14 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                 throw new IllegalArgumentException(
                     "@Configuration on "
                         + templateClass.getName()
-                        + " must declare a non-blank name (required by the configuration-template"
+                        + " must declare a non-blank name (generator constraint; the schema requires"
+                        + " name to be present but does not itself enforce non-blank)");
+              }
+              if (configurationAnnotation.kind().isBlank()) {
+                throw new IllegalArgumentException(
+                    "@Configuration on "
+                        + templateClass.getName()
+                        + " must declare a non-blank kind (required by the configuration-template"
                         + " schema)");
               }
               var templateProperties =

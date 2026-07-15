@@ -1886,7 +1886,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(region.getSecret()).isNull();
     }
 
-    // --- blank name rejected (schema requires a non-blank name) ---
+    // --- blank name rejected (generator constraint; the schema requires name to be present but
+    // does not itself enforce non-blank) ---
 
     @io.camunda.connector.api.annotation.Configuration(
         id = "io.camunda:blank-name:1",
@@ -1919,6 +1920,42 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThatThrownBy(() -> generator.generate(BlankNameConnector.class))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("must declare a non-blank name");
+    }
+
+    // --- blank kind rejected (schema requires kind to be non-blank, minLength: 1) ---
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:blank-kind:1",
+        version = 1,
+        name = "Blank Kind",
+        kind = "")
+    record BlankKind(String field) {}
+
+    record BlankKindRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            BlankKind configuration) {}
+
+    @OutboundConnector(name = "BlankKind", type = "test:blank-kind")
+    @ElementTemplate(
+        id = "test-blank-kind",
+        name = "BlankKind",
+        version = 1,
+        inputDataClass = BlankKindRequest.class,
+        configurations = {BlankKind.class})
+    static class BlankKindConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void blankKind_isRejected() {
+      assertThatThrownBy(() -> generator.generate(BlankKindConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("must declare a non-blank kind");
     }
   }
 }
