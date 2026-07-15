@@ -24,6 +24,7 @@ import java.util.Objects;
 @JsonInclude(Include.NON_NULL)
 public abstract sealed class Property
     permits BooleanProperty,
+        ConfigurationProperty,
         DropdownProperty,
         HiddenProperty,
         NumberProperty,
@@ -46,6 +47,7 @@ public abstract sealed class Property
   protected final Object exampleValue;
   protected final String language;
   protected final String type;
+  protected final Boolean secret;
 
   public record GeneratedValue(String type) {}
 
@@ -65,7 +67,8 @@ public abstract sealed class Property
       String placeholder,
       Object exampleValue,
       String language,
-      String type) {
+      String type,
+      Boolean secret) {
     this.id = id;
     this.label = label;
     this.description = description;
@@ -82,6 +85,7 @@ public abstract sealed class Property
     this.language = language;
     this.type = type;
     this.exampleValue = exampleValue;
+    this.secret = secret;
   }
 
   public String getId() {
@@ -153,6 +157,11 @@ public abstract sealed class Property
 
   public String getLanguage() {
     return language;
+  }
+
+  @JsonInclude(Include.NON_NULL)
+  public Boolean getSecret() {
+    return secret;
   }
 
   @Override

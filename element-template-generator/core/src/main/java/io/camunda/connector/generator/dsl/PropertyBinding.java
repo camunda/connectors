@@ -102,4 +102,16 @@ public sealed interface PropertyBinding {
       return "zeebe:linkedResource";
     }
   }
+
+  /**
+   * Binding type used exclusively inside configuration templates. Maps a property to a key in the
+   * configuration's value object. Never used for host element-template properties.
+   */
+  record ConfigurationTemplateProperty(String name) implements PropertyBinding {
+
+    @Override
+    public String type() {
+      return "property";
+    }
+  }
 }
