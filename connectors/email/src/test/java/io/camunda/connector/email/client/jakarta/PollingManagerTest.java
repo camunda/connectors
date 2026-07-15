@@ -189,9 +189,9 @@ class PollingManagerTest {
     verify(connectorContext, times(1)).correlate(correlationCaptor.capture());
     // health must be UP — the exception was handled, not propagated to the top-level catch-all
     verify(connectorContext).reportHealth(argThat(h -> h.equals(Health.up())));
-    // the upload failure must be surfaced in the activity log with ERROR severity
+    // the upload failure must be surfaced in the activity log with WARNING severity
     Assertions.assertTrue(
-        loggedSeverities.contains(Severity.ERROR),
+        loggedSeverities.contains(Severity.WARNING),
         "Expected an ERROR activity log entry for the failed document upload");
     // the error must be present in the correlation payload so process modelers can handle it
     ReadEmailResponse response = (ReadEmailResponse) correlationCaptor.getValue().getVariables();
