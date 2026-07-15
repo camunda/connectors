@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilitiesData;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiModelCapabilitiesData;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -133,11 +135,10 @@ class BundledCapabilityMatrixTest {
   void gpt5OnCompletionsHasTextOnlyToolResults() {
     contextRunner.run(
         context -> {
-          final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-5.5");
+          final var caps = resolveOpenAi(context, OPENAI_COMPLETIONS, "gpt-5.5");
 
-          // OpenAI has no typed reasoning descriptor yet (Anthropic-only in R1); resolving
-          // gpt-5.5 through AnthropicModelCapabilitiesData never sees a `provider.reasoning`
-          // block, so it always reports false here.
+          // Reasoning is declared on openai-responses only, not openai-completions (see the
+          // matrix's own comment on that block: deferred, not absent from the underlying model).
           assertThat(caps.supportsReasoning()).isFalse();
           assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
           // gpt-5* spans 128k-1.05M context / 16k-272k output on models.dev across its
@@ -152,10 +153,13 @@ class BundledCapabilityMatrixTest {
   void gpt5OnResponsesHasMultimodalToolResults() {
     contextRunner.run(
         context -> {
-          final var caps = resolve(context, OPENAI_RESPONSES, "gpt-5.5");
+          final var caps = resolveOpenAi(context, OPENAI_RESPONSES, "gpt-5.5");
 
           assertThat(caps.toolResultModalities())
               .containsExactly(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT);
+          // gpt-5* declares reasoning support on openai-responses:
+          assertThat(caps.supportsReasoning()).isTrue();
+          assertThat(caps.reasoning().effortLevels()).isNotEmpty();
         });
   }
 
@@ -163,7 +167,7 @@ class BundledCapabilityMatrixTest {
   void gpt4oInheritsDefaultModalitiesAndPinsMaxOutputTokens() {
     contextRunner.run(
         context -> {
-          final var caps = resolve(context, OPENAI_RESPONSES, "gpt-4o-mini");
+          final var caps = resolveOpenAi(context, OPENAI_RESPONSES, "gpt-4o-mini");
 
           // models.dev openai/gpt-4o input modalities are text/image/pdf, matching the family
           // default, so no override is needed (no audio support, unlike a previous placeholder).
@@ -185,7 +189,7 @@ class BundledCapabilityMatrixTest {
           // later gpt-4o* release (models.dev openai/gpt-4o-2024-05-13). A gpt-4o* glob pinned at
           // 16384 would over-promise for this one dated snapshot, so it gets its own exact-id
           // entry that wins over the pattern match.
-          final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-4o-2024-05-13");
+          final var caps = resolveOpenAi(context, OPENAI_COMPLETIONS, "gpt-4o-2024-05-13");
 
           assertThat(caps.core().contextWindow()).isEqualTo(128000);
           assertThat(caps.core().maxOutputTokens()).isEqualTo(4096);
@@ -196,7 +200,7 @@ class BundledCapabilityMatrixTest {
   void o1OnCompletionsResolvesTokenBudgets() {
     contextRunner.run(
         context -> {
-          final var caps = resolve(context, OPENAI_COMPLETIONS, "o1-mini");
+          final var caps = resolveOpenAi(context, OPENAI_COMPLETIONS, "o1-mini");
 
           // Pinned from models.dev openai/o1:
           assertThat(caps.core().contextWindow()).isEqualTo(200000);
@@ -208,7 +212,7 @@ class BundledCapabilityMatrixTest {
   void o4DropsDocumentSupportFromUserMessageModalities() {
     contextRunner.run(
         context -> {
-          final var caps = resolve(context, OPENAI_COMPLETIONS, "o4-mini");
+          final var caps = resolveOpenAi(context, OPENAI_COMPLETIONS, "o4-mini");
 
           // models.dev openai/o4-mini input modalities are text/image only (no pdf), unlike the
           // family default which includes document:
@@ -222,7 +226,7 @@ class BundledCapabilityMatrixTest {
   void gpt41ResolvesLargeContextWithoutReasoning() {
     contextRunner.run(
         context -> {
-          final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-4.1");
+          final var caps = resolveOpenAi(context, OPENAI_COMPLETIONS, "gpt-4.1");
 
           assertThat(caps.supportsReasoning()).isFalse();
           // Pinned from models.dev openai/gpt-4.1:
@@ -235,7 +239,7 @@ class BundledCapabilityMatrixTest {
   void unknownOpenAiModelFallsThroughToFamilyDefaults() {
     contextRunner.run(
         context -> {
-          final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-3.5-turbo");
+          final var caps = resolveOpenAi(context, OPENAI_COMPLETIONS, "gpt-3.5-turbo");
 
           assertThat(caps.core().contextWindow()).isEqualTo(128000);
           assertThat(caps.supportsReasoning()).isFalse();
@@ -247,6 +251,13 @@ class BundledCapabilityMatrixTest {
     return context
         .getBean(ModelCapabilitiesResolver.class)
         .resolve(apiFamily, modelId, null, Optional.empty(), AnthropicModelCapabilitiesData.class);
+  }
+
+  private static OpenAiModelCapabilities resolveOpenAi(
+      ApplicationContext context, String apiFamily, String modelId) {
+    return context
+        .getBean(ModelCapabilitiesResolver.class)
+        .resolve(apiFamily, modelId, null, Optional.empty(), OpenAiModelCapabilitiesData.class);
   }
 
   /**

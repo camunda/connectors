@@ -254,6 +254,10 @@ camunda:
 
             # Responses API: function call outputs accept text, image and file
             # content items per the SDK's FunctionCallOutput.Output union.
+            # Reasoning (provider.reasoning.effort-levels) is only declared
+            # here, not on Chat Completions (see the comment above that
+            # block): reasoning support there is deferred, not absent from
+            # the underlying models.
             openai-responses:
               defaults:
                 input-modalities:
@@ -273,6 +277,9 @@ camunda:
                   capabilities:
                     context-window: 128000
                     max-output-tokens: 16384
+                    provider:
+                      reasoning:
+                        effort-levels: [minimal, low, medium, high]
                 gpt-4o:
                   pattern: gpt-4o*
                   capabilities:
@@ -295,11 +302,17 @@ camunda:
                   capabilities:
                     context-window: 200000
                     max-output-tokens: 100000
+                    provider:
+                      reasoning:
+                        effort-levels: [low, medium, high]
                 o3:
                   pattern: o3*
                   capabilities:
                     context-window: 200000
                     max-output-tokens: 100000
+                    provider:
+                      reasoning:
+                        effort-levels: [low, medium, high]
                 # o4-mini is the only o4 family member on models.dev (no bare
                 # "o4" entry exists). Its input modalities lack PDF/document
                 # support, unlike the family default.
@@ -310,3 +323,6 @@ camunda:
                     max-output-tokens: 100000
                     input-modalities:
                       user-message: [text, image]
+                    provider:
+                      reasoning:
+                        effort-levels: [low, medium, high]
