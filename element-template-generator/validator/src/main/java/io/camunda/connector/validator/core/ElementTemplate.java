@@ -43,4 +43,6 @@ public final class ElementTemplate {
   public static final String STEPS = "steps";
   public static final String PRESET_ID = "presetId";
   public static final String KEYWORDS = "keywords";
+  public static final String NAME = "name";
+  public static final String DESCRIPTION = "description";
 }
