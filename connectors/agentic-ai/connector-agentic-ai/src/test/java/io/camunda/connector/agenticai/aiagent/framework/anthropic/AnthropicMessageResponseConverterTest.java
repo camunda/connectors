@@ -124,7 +124,7 @@ class AnthropicMessageResponseConverterTest {
   }
 
   @Test
-  void mapsThinkingToReasoningContentWithRawBlockPayload() {
+  void mapsThinkingToReasoningContentWithRawBlockPayloadAndNullText() {
     final var message =
         message(
             """
@@ -144,10 +144,12 @@ class AnthropicMessageResponseConverterTest {
 
     final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
 
+    // `text` is intentionally null: the human-readable thinking is carried only once, inside the
+    // raw block payload, rather than duplicated into the neutral surface.
     assertThat(assistantMessage.content())
         .containsExactly(
             new ReasoningContent(
-                "Let me think it through",
+                null,
                 Map.of(
                     "type",
                     "thinking",
