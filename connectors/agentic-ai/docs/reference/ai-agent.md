@@ -977,14 +977,21 @@ server tools, wired only by the native factory above (the LangChain4J bridge has
   (e.g. `"pptx"`, `"custom:my-skill:my-version"`; `type` defaults to `anthropic` and `version` to
   `latest` when omitted — see `AnthropicSkillReference.parse(...)` for the exact segment-count
   disambiguation rules). Configuring skills populates the request's top-level `container.skills`,
-  auto-adds the `code_execution` server tool (skills execute inside the beta container), and adds the
-  `anthropic-beta` header values for `skills-2025-10-02`, `files-api-2025-04-14`, and
-  `code-execution-2025-08-25`. At most 8 skills may be configured per request.
+  auto-adds the `code_execution` server tool at the configured version (skills execute inside the
+  beta container), and adds the `anthropic-beta` header values for `skills-2025-10-02` and
+  `files-api-2025-04-14`. At most 8 skills may be configured per request.
 - **`enableCodeExecution`** / **`enableWebSearch`** / **`enableWebFetch`** — independent booleans
-  toggling Anthropic's built-in `code_execution`, `web_search`, and `web_fetch` server tools. Web
-  search/fetch are General Availability as of anthropic-java 2.48.0 (no beta header needed);
+  toggling Anthropic's built-in `code_execution`, `web_search`, and `web_fetch` server tools, each
+  paired with an optional version string (`codeExecutionVersion` / `webSearchVersion` /
+  `webFetchVersion`) that lets users pin or downgrade the wire revision. `code_execution` defaults to
+  the latest GA revision `code_execution_20260521`, which needs no beta header; only the legacy
+  Python-only `code_execution_20250522` revision adds a `code-execution-2025-05-22` beta header. Web
+  search/fetch are General Availability at every revision (no beta header) and default to the dynamic
+  `web_search_20260318` / `web_fetch_20260318` revisions (which run inside code execution and require
+  a code_execution version ≥ `20260120`, satisfied by the default); downgrade to the basic
+  `web_search_20250305` / `web_fetch_20250910` revisions for ZDR or older/non-programmatic models.
   `code_execution` is deduplicated — enabling the toggle alongside a non-empty `skills` list still
-  emits the tool and its beta header only once.
+  emits the tool (at the configured version) only once.
 
 ### The LangChain4J Bridge Implementation
 
