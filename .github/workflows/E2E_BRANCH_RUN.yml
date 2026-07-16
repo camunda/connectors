@@ -303,7 +303,7 @@ jobs:
         # `always()` keeps this post from being skipped by earlier failures in this notify job;
         # the job-level `if` above still limits the whole notify job to failed build/test runs.
         if: always()
-        uses: slackapi/slack-github-action@v3.0.5
+        uses: slackapi/slack-github-action@v4.0.0
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           method: chat.postMessage
