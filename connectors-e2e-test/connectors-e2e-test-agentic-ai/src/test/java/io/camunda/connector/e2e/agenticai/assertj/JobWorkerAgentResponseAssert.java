@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
@@ -150,6 +151,21 @@ public class JobWorkerAgentResponseAssert
     Assertions.assertThat(actual.context().metadata()).isNotNull();
     Assertions.assertThat(actual.context().metadata().lastIterationKey())
         .isEqualTo(expectedLastIterationKey);
+    return this;
+  }
+
+  public JobWorkerAgentResponseAssert hasProviderContentBlockOfType(
+      String provider, String blockType) {
+    isNotNull();
+    Assertions.assertThat(actual.responseMessage()).isNotNull();
+    Assertions.assertThat(actual.responseMessage().content())
+        .anySatisfy(
+            c -> {
+              Assertions.assertThat(c).isInstanceOf(ProviderContent.class);
+              var pc = (ProviderContent) c;
+              Assertions.assertThat(pc.provider()).isEqualTo(provider);
+              Assertions.assertThat(pc.blockType()).isEqualTo(blockType);
+            });
     return this;
   }
 }

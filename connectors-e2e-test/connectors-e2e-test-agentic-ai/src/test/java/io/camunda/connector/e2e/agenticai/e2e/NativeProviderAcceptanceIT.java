@@ -114,7 +114,9 @@ class NativeProviderAcceptanceIT {
     STRUCTURED_OUTPUT,
     REASONING,
     PROMPT_CACHING,
-    MULTIMODAL_TOOL_RESULT
+    MULTIMODAL_TOOL_RESULT,
+    WEB_SEARCH,
+    CODE_INTERPRETER
   }
 
   /**
@@ -178,6 +180,29 @@ class NativeProviderAcceptanceIT {
         forcesReasoningTokens);
   }
 
+  static NativeProvider openaiDirect(
+      String apiFamily,
+      String model,
+      Map<Capability, Map<String, String>> capabilityProperties,
+      boolean forcesReasoningTokens) {
+    return new NativeProvider(
+        "openai-" + apiFamily + "/" + model,
+        "OPENAI_API_KEY",
+        Map.of(
+            "configuration.type",
+            "openai",
+            "configuration.openai.apiFamily",
+            apiFamily,
+            "configuration.openai.backend.type",
+            "direct",
+            "configuration.openai.backend.apiKey",
+            envOrPlaceholder("OPENAI_API_KEY"),
+            "configuration.openai.model.model",
+            model),
+        capabilityProperties,
+        forcesReasoningTokens);
+  }
+
   static Stream<NativeProvider> providers() {
     return Stream.of(
             // claude-sonnet-4-6 supports thinking mode "enabled" (explicit budget) — forced
@@ -208,6 +233,32 @@ class NativeProviderAcceptanceIT {
                         Map.of(
                             "configuration.anthropic.model.parameters.thinking.mode", "adaptive",
                             "configuration.anthropic.model.parameters.effort", "high")),
+                false),
+            // gpt-5 on the Responses API family supports the full capability set, including the
+            // Responses-only server tools (web search, code interpreter). Reasoning effort "high"
+            // forces the model to emit reasoning tokens.
+            openaiDirect(
+                "responses",
+                "gpt-5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING,
+                        Map.of("configuration.openai.model.parameters.effort", "high"),
+                    Capability.WEB_SEARCH, Map.of("configuration.openai.enableWebSearch", "true"),
+                    Capability.CODE_INTERPRETER,
+                        Map.of("configuration.openai.enableCodeInterpreter", "true")),
+                true),
+            // gpt-4o on the Completions API family supports only the provider-agnostic subset; no
+            // reasoning and no server tools (Responses-only).
+            openaiDirect(
+                "completions",
+                "gpt-4o",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of()),
                 false))
         .filter(NativeProvider::isEnabled);
   }
@@ -550,5 +601,80 @@ class NativeProviderAcceptanceIT {
                     wireMock.getHttpBaseUrl() + "/" + DOC_AUTHOR_INFO)));
 
     assertResponseTextContains(instance, "Zypherion", "847", "Kael Thrennix");
+  }
+
+  static Stream<NativeProvider> providersWithCodeInterpreter() {
+    return providers().filter(p -> p.supports(Capability.CODE_INTERPRETER));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providersWithCodeInterpreter")
+  void codeInterpreterComputesDeterministicResult(NativeProvider provider) {
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            BPMN_RESOURCE,
+            "You may run code to compute exact answers.",
+            template ->
+                provider.propertiesFor(Capability.CODE_INTERPRETER).forEach(template::property));
+
+    var instance =
+        startAgent(
+            model,
+            PROCESS_ID,
+            Map.of(
+                "userPrompt",
+                "Compute 987654321 * 123456789 exactly using code. Reply with just the number."));
+
+    // Deterministic text is the hard gate; the provider content block additionally proves the
+    // code_interpreter_call output item was captured as a structural round-trip witness.
+    assertAgentResponse(
+        instance,
+        response ->
+            JobWorkerAgentResponseAssert.assertThat(response)
+                .isReady()
+                .hasResponseTestSatisfying(
+                    text ->
+                        org.assertj.core.api.Assertions.assertThat(text)
+                            .contains("121932631112635269"))
+                .hasProviderContentBlockOfType("openai", "code_interpreter_call"));
+  }
+
+  static Stream<NativeProvider> providersWithWebSearch() {
+    return providers().filter(p -> p.supports(Capability.WEB_SEARCH));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providersWithWebSearch")
+  void webSearchCompletesAndRoundTrips(NativeProvider provider) {
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            BPMN_RESOURCE,
+            "Use web search when you need current information.",
+            template -> provider.propertiesFor(Capability.WEB_SEARCH).forEach(template::property));
+
+    var instance =
+        startAgent(
+            model,
+            PROCESS_ID,
+            Map.of(
+                "userPrompt",
+                "Search the web for the current stable version of the Camunda 8 documentation "
+                    + "and briefly state what you found."));
+
+    // Content is non-deterministic (live web search), so completion itself is the primary
+    // round-trip witness: a failed server-tool block replay would 400 and the process would not
+    // complete. The provider content block additionally proves the web_search_call output item
+    // was captured (no DocumentContent is involved here, so the full typed response, unlike the
+    // multimodal scenario, deserializes safely via assertAgentResponse).
+    assertAgentResponse(
+        instance,
+        response ->
+            JobWorkerAgentResponseAssert.assertThat(response)
+                .isReady()
+                .hasProviderContentBlockOfType("openai", "web_search_call"));
   }
 }
