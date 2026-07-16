@@ -121,8 +121,10 @@ public class JobHandlerContext extends AbstractConnectorContext
   public Optional<DocumentReturnFormat> readDocumentReturnFormat() {
     // Read the raw variable directly instead of the secret-replaced job JSON: the return-format
     // dropdown never carries secrets, so we can skip secret replacement and parsing the full
-    // variable tree.
-    Object rawFormat = job.getVariable("documentReturnFormat");
+    // variable tree. getVariablesAsMap().get(...) returns null when the variable is absent
+    // (older templates), whereas job.getVariable(...) would throw — so this keeps older
+    // templates working by falling through to the legacy flow.
+    Object rawFormat = job.getVariablesAsMap().get("documentReturnFormat");
     if (rawFormat == null) {
       return Optional.empty();
     }
