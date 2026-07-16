@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.assertj;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
@@ -154,15 +155,33 @@ public class JobWorkerAgentResponseAssert
     return this;
   }
 
-  public JobWorkerAgentResponseAssert hasProviderContentBlockOfType(
+  /**
+   * Scans the WHOLE persisted conversation (not just {@code responseMessage()}) for a provider
+   * content block of the given type. Some providers can emit a server-tool result block in an
+   * interim assistant turn rather than the final response message (e.g. Anthropic's {@code
+   * pause_turn} continuation for web search), so asserting only on {@code responseMessage()} would
+   * be flaky for those providers. Requires the in-process conversation store (context.
+   * conversation() is an {@link InProcessConversationContext}).
+   */
+  public JobWorkerAgentResponseAssert hasProviderContentBlockOfTypeInConversation(
       String provider, String blockType) {
     isNotNull();
-    Assertions.assertThat(actual.responseMessage()).isNotNull();
-    Assertions.assertThat(actual.responseMessage().content())
+    Assertions.assertThat(actual.context()).isNotNull();
+    Assertions.assertThat(actual.context().conversation())
+        .isInstanceOf(InProcessConversationContext.class);
+    var conversation = (InProcessConversationContext) actual.context().conversation();
+    var providerBlocks =
+        conversation.messages().stream()
+            .filter(m -> m instanceof AssistantMessage)
+            .map(m -> (AssistantMessage) m)
+            .flatMap(m -> m.content().stream())
+            .filter(c -> c instanceof ProviderContent)
+            .map(c -> (ProviderContent) c)
+            .toList();
+    Assertions.assertThat(providerBlocks)
+        .as("provider content blocks across the whole conversation")
         .anySatisfy(
-            c -> {
-              Assertions.assertThat(c).isInstanceOf(ProviderContent.class);
-              var pc = (ProviderContent) c;
+            pc -> {
               Assertions.assertThat(pc.provider()).isEqualTo(provider);
               Assertions.assertThat(pc.blockType()).isEqualTo(blockType);
             });

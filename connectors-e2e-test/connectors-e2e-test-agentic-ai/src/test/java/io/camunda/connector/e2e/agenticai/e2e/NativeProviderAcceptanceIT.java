@@ -262,7 +262,9 @@ class NativeProviderAcceptanceIT {
                                 "2048")),
                 true),
             // claude-sonnet-5 does NOT accept "enabled"; its matrix allows "adaptive" (the model
-            // decides whether to think), so reasoning tokens are not guaranteed.
+            // decides whether to think), so reasoning tokens are not guaranteed. This row also
+            // exercises the Anthropic server tools (code execution + web search), so it joins the
+            // code-interpreter and web-search scenarios alongside the OpenAI Responses row.
             anthropicDirect(
                 "claude-sonnet-5",
                 Map.of(
@@ -274,7 +276,11 @@ class NativeProviderAcceptanceIT {
                     Capability.REASONING,
                         Map.of(
                             "configuration.anthropic.model.parameters.thinking.mode", "adaptive",
-                            "configuration.anthropic.model.parameters.effort", "high")),
+                            "configuration.anthropic.model.parameters.effort", "high"),
+                    Capability.WEB_SEARCH,
+                        Map.of("configuration.anthropic.enableWebSearch", "true"),
+                    Capability.CODE_INTERPRETER,
+                        Map.of("configuration.anthropic.enableCodeExecution", "true")),
                 false),
             // gpt-5 on the Responses API family supports the full capability set, including the
             // Responses-only server tools (web search, code interpreter). Reasoning effort "high"
@@ -325,6 +331,20 @@ class NativeProviderAcceptanceIT {
 
   private static String envOrPlaceholder(String envVar) {
     return System.getenv().getOrDefault(envVar, "NOT_SET");
+  }
+
+  private static String providerContentTag(NativeProvider provider) {
+    return provider.label().startsWith("anthropic") ? "anthropic" : "openai";
+  }
+
+  private static String expectedServerToolBlockType(
+      NativeProvider provider, Capability capability) {
+    boolean anthropic = provider.label().startsWith("anthropic");
+    return switch (capability) {
+      case CODE_INTERPRETER -> anthropic ? "code_execution_tool_result" : "code_interpreter_call";
+      case WEB_SEARCH -> anthropic ? "web_search_tool_result" : "web_search_call";
+      default -> throw new IllegalArgumentException("no server-tool block type for " + capability);
+    };
   }
 
   @BeforeEach
@@ -735,7 +755,8 @@ class NativeProviderAcceptanceIT {
                 "Compute 987654321 * 123456789 exactly using code. Reply with just the number."));
 
     // Deterministic text is the hard gate; the provider content block additionally proves the
-    // code_interpreter_call output item was captured as a structural round-trip witness.
+    // provider's code-execution result block (OpenAI code_interpreter_call / Anthropic
+    // code_execution_tool_result) was captured as a structural round-trip witness.
     assertAgentResponse(
         instance,
         response ->
@@ -745,7 +766,9 @@ class NativeProviderAcceptanceIT {
                     text ->
                         org.assertj.core.api.Assertions.assertThat(text)
                             .contains("121932631112635269"))
-                .hasProviderContentBlockOfType("openai", "code_interpreter_call"));
+                .hasProviderContentBlockOfTypeInConversation(
+                    providerContentTag(provider),
+                    expectedServerToolBlockType(provider, Capability.CODE_INTERPRETER)));
   }
 
   static Stream<NativeProvider> providersWithWebSearch() {
@@ -774,14 +797,17 @@ class NativeProviderAcceptanceIT {
 
     // Content is non-deterministic (live web search), so completion itself is the primary
     // round-trip witness: a failed server-tool block replay would 400 and the process would not
-    // complete. The provider content block additionally proves the web_search_call output item
-    // was captured (no DocumentContent is involved here, so the full typed response, unlike the
-    // multimodal scenario, deserializes safely via assertAgentResponse).
+    // complete. The provider content block additionally proves the provider's web-search result
+    // block (OpenAI web_search_call / Anthropic web_search_tool_result) was captured (no
+    // DocumentContent is involved here, so the full typed response, unlike the multimodal
+    // scenario, deserializes safely via assertAgentResponse).
     assertAgentResponse(
         instance,
         response ->
             JobWorkerAgentResponseAssert.assertThat(response)
                 .isReady()
-                .hasProviderContentBlockOfType("openai", "web_search_call"));
+                .hasProviderContentBlockOfTypeInConversation(
+                    providerContentTag(provider),
+                    expectedServerToolBlockType(provider, Capability.WEB_SEARCH)));
   }
 }
