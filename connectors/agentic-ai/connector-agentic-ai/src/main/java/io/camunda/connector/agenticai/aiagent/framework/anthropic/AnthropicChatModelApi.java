@@ -9,10 +9,13 @@ package io.camunda.connector.agenticai.aiagent.framework.anthropic;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
 import com.anthropic.client.AnthropicClient;
+import com.anthropic.core.ObjectMappers;
 import com.anthropic.core.http.StreamResponse;
 import com.anthropic.models.beta.messages.BetaMessage;
 import com.anthropic.models.beta.messages.BetaRawMessageStreamEvent;
 import com.anthropic.models.beta.messages.MessageCreateParams;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.framework.NativeChatModelPayloadLogging;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
@@ -43,6 +46,7 @@ import org.slf4j.LoggerFactory;
 public class AnthropicChatModelApi implements ChatModelApi {
 
   private static final Logger LOG = LoggerFactory.getLogger(AnthropicChatModelApi.class);
+  private static final ObjectMapper MAPPER = ObjectMappers.jsonMapper();
 
   private final AnthropicClientFactory clientFactory;
   private final AnthropicMessageRequestConverter requestConverter;
@@ -95,6 +99,11 @@ public class AnthropicChatModelApi implements ChatModelApi {
     final MessageCreateParams params =
         requestConverter.toMessageCreateParams(
             request.executionContext(), request.snapshot(), capabilities, modelMatched);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+          "Anthropic Messages API request: {}",
+          NativeChatModelPayloadLogging.toJson(MAPPER, params._body()));
+    }
 
     final long startNanos = System.nanoTime();
     try {
@@ -104,6 +113,11 @@ public class AnthropicChatModelApi implements ChatModelApi {
         try (StreamResponse<BetaRawMessageStreamEvent> stream =
             client.beta().messages().createStreaming(params)) {
           message = streamAssembler.assemble(stream);
+        }
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(
+              "Anthropic Messages API response: {}",
+              NativeChatModelPayloadLogging.toJson(MAPPER, message));
         }
         final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
         return responseConverter.toResult(message, executionTime);

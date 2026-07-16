@@ -993,6 +993,36 @@ server tools, wired only by the native factory above (the LangChain4J bridge has
   `code_execution` is deduplicated — enabling the toggle alongside a non-empty `skills` list still
   emits the tool (at the configured version) only once.
 
+#### Request/response debug logging (native providers)
+
+Both native chat models log the LLM request and the fully-assembled response **once per call** at
+`DEBUG`, through the standard SLF4J/Logback facility, so it can be enabled in any environment with
+standard Spring Boot logging config (no env var, no redeploy):
+
+```properties
+logging.level.io.camunda.connector.agenticai.aiagent.framework.openai=DEBUG
+logging.level.io.camunda.connector.agenticai.aiagent.framework.anthropic=DEBUG
+```
+
+- Logged content is the **vendor SDK request-params object** (before the call) and the **assembled
+  response object** (after the stream completes), serialized with the SDK's own
+  `com.openai.core.ObjectMappers` / `com.anthropic.core.ObjectMappers` `jsonMapper()` (the only mapper
+  that renders the SDK's `JsonValue`/`JsonField` internals faithfully). This shows exactly what we sent
+  and received, including tool definitions, prompts, tool-result content, and token usage.
+- Logging is **streaming-safe**: the response is logged after the stream is accumulated into the final
+  object, so it never interferes with the SSE stream. It is guarded by `isDebugEnabled()`, and
+  serialization (`NativeChatModelPayloadLogging.toJson`) never throws — a serialization failure logs a
+  `<unserializable ...>` placeholder string in place of the payload rather than breaking the call.
+- Request/response **bodies contain prompt data** (user content, tool results, completions); treat
+  `DEBUG` output as sensitive. Credentials are **not** included — API keys travel in HTTP headers,
+  which are not part of the serialized request/response objects.
+
+> **Note (planned):** a lower-level **raw-wire** layer — the HTTP request line, redacted headers, and
+> response status on a dedicated `…framework.<provider>.wire` logger at `TRACE` — is a planned
+> follow-up (see the own-LLM-layer landing follow-ups). Until it lands, the vendor SDKs also expose a
+> built-in wire logger via the `ANTHROPIC_LOG` / `OPENAI_LOG` environment variables, but it writes
+> directly to `System.err` (bypassing SLF4J/Logback) and is therefore not the supported path.
+
 ### The LangChain4J Bridge Implementation
 
 In Phase 0, LangChain4J is demoted to **one `ChatModelApi` implementation** behind the SPI above, not

@@ -6,16 +6,21 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.openai.family.responses;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
+import com.openai.core.ObjectMappers;
 import com.openai.core.http.StreamResponse;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseStreamEvent;
+import io.camunda.connector.agenticai.aiagent.framework.NativeChatModelPayloadLogging;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiModelCapabilities;
 import io.camunda.connector.agenticai.aiagent.framework.openai.family.OpenAiApiFamilyStrategy;
 import java.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link OpenAiApiFamilyStrategy} for the OpenAI Responses API: builds the {@link
@@ -26,6 +31,9 @@ import java.time.Duration;
  * OpenAiResponsesResponseConverter}.
  */
 public class OpenAiResponsesStrategy implements OpenAiApiFamilyStrategy {
+
+  private static final Logger LOG = LoggerFactory.getLogger(OpenAiResponsesStrategy.class);
+  private static final ObjectMapper MAPPER = ObjectMappers.jsonMapper();
 
   private final OpenAiResponsesRequestConverter requestConverter;
   private final OpenAiResponsesResponseConverter responseConverter;
@@ -49,11 +57,21 @@ public class OpenAiResponsesStrategy implements OpenAiApiFamilyStrategy {
     final ResponseCreateParams params =
         requestConverter.toResponseCreateParams(
             request.executionContext(), request.snapshot(), capabilities, modelMatched);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+          "OpenAI Responses API request: {}",
+          NativeChatModelPayloadLogging.toJson(MAPPER, params._body()));
+    }
 
     final long startNanos = System.nanoTime();
     final Response response;
     try (StreamResponse<ResponseStreamEvent> stream = client.responses().createStreaming(params)) {
       response = streamAssembler.assemble(stream);
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+          "OpenAI Responses API response: {}",
+          NativeChatModelPayloadLogging.toJson(MAPPER, response));
     }
     final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
     return responseConverter.toResult(response, executionTime);
