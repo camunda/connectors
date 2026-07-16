@@ -24,9 +24,15 @@ import org.slf4j.LoggerFactory;
  * delegates the actual streaming vendor call to the configured {@link OpenAiApiFamilyStrategy}
  * (Responses or Chat Completions), then translates the result via that strategy's converters.
  *
+ * <p>Client creation runs inside the outer try (mirroring the Anthropic sibling's {@code
+ * AnthropicChatModelApi}), so a {@code clientFactory} failure is wrapped as a generic "Model call
+ * failed" {@link ConnectorException} like any other model-call failure, rather than propagating
+ * unwrapped.
+ *
  * <p>{@link OpenAIClient#close()} is a plain, unchecked {@code void} method (the vendor SDK's
  * client interface does not implement {@link AutoCloseable}), so it is closed explicitly in a
- * {@code finally} block, mirroring the Anthropic sibling's handling of {@code AnthropicClient}.
+ * {@code finally} block, guarded so it only runs once a client was actually created, again
+ * mirroring the Anthropic sibling's handling of {@code AnthropicClient}.
  */
 public class OpenAiChatModelApi implements ChatModelApi {
 
@@ -58,9 +64,17 @@ public class OpenAiChatModelApi implements ChatModelApi {
 
   @Override
   public ChatModelResult call(ChatModelRequest request) {
-    final OpenAIClient client = clientFactory.create();
     try {
-      return strategy.call(client, request, capabilities, modelMatched);
+      final OpenAIClient client = clientFactory.create();
+      try {
+        return strategy.call(client, request, capabilities, modelMatched);
+      } finally {
+        try {
+          client.close();
+        } catch (Exception closeException) {
+          LOG.warn("Failed to close OpenAIClient", closeException);
+        }
+      }
     } catch (ConnectorException e) {
       // The family strategy builds its request params (and thus runs OpenAiRequestValidator)
       // inside strategy.call(), unlike the Anthropic sibling, which builds params outside its
@@ -74,12 +88,6 @@ public class OpenAiChatModelApi implements ChatModelApi {
               .orElseGet(() -> e.getClass().getSimpleName());
       throw new ConnectorException(
           ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
-    } finally {
-      try {
-        client.close();
-      } catch (Exception closeException) {
-        LOG.warn("Failed to close OpenAIClient", closeException);
-      }
     }
   }
 

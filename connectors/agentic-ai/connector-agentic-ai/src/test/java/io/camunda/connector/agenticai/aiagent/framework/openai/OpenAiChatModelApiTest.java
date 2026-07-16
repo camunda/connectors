@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -109,14 +110,19 @@ class OpenAiChatModelApiTest {
   }
 
   @Test
-  void propagatesClientFactoryFailureUnwrapped() {
-    // clientFactory.create() runs before the try block (there is no client yet to close), so a
-    // factory failure is neither wrapped nor does it trigger a close() call - unlike a failure
-    // from strategy.call(), which always runs with a client already in hand.
+  void wrapsClientFactoryFailure() {
+    // clientFactory.create() now runs inside the outer try (mirroring the Anthropic sibling), so
+    // a factory failure is wrapped like any other generic model-call failure. There is no client
+    // to close in this case, so close() is never invoked.
     final var factoryFailure = new RuntimeException("boom");
     when(clientFactory.create()).thenThrow(factoryFailure);
 
-    assertThatThrownBy(() -> api.call(request)).isSameAs(factoryFailure);
+    assertThatThrownBy(() -> api.call(request))
+        .isInstanceOf(ConnectorException.class)
+        .extracting(e -> ((ConnectorException) e).getErrorCode())
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+
+    verify(client, never()).close();
   }
 
   @Test
