@@ -34,9 +34,9 @@ import java.util.Map;
  * Completions message shape has no reasoning/thinking field and no server-tool result items, so no
  * {@link ReasoningContent} or {@code ProviderContent} is ever emitted here -- only {@link
  * TextContent} (from {@code content} and, when present, {@code refusal}) and {@link ToolCall} (from
- * {@code tool_calls}). Reasoning token accounting is likewise deferred: {@code
- * completion_tokens_details.reasoning_tokens} is intentionally not mapped, even though the SDK
- * exposes it on the wire.
+ * {@code tool_calls}). Reasoning *token* accounting is not deferred, though: {@code
+ * completion_tokens_details.reasoning_tokens} is surfaced via {@link AgentMetrics.TokenUsage}, even
+ * though no corresponding {@link ReasoningContent} exists on the message.
  *
  * <p>The Completions API has no equivalent of Anthropic's {@code pause_turn} stop reason, so every
  * call always surfaces as a {@link ChatModelResult.Completed}.
@@ -129,16 +129,17 @@ public class OpenAiCompletionsResponseConverter {
             .promptTokensDetails()
             .flatMap(CompletionUsage.PromptTokensDetails::cachedTokens)
             .orElse(0L);
+    final long reasoningTokens =
+        usage
+            .completionTokensDetails()
+            .flatMap(CompletionUsage.CompletionTokensDetails::reasoningTokens)
+            .orElse(0L);
 
     return AgentMetrics.TokenUsage.builder()
         .inputTokenCount((int) usage.promptTokens())
         .outputTokenCount((int) usage.completionTokens())
         .cacheReadTokenCount((int) cachedTokens)
-        // Reasoning tokens are deliberately not mapped for Completions: reasoning support is
-        // deferred for this family (see the class Javadoc), so
-        // completion_tokens_details.reasoning_tokens
-        // is intentionally ignored even though the SDK exposes it.
-        .reasoningTokenCount(0)
+        .reasoningTokenCount((int) reasoningTokens)
         .build();
   }
 }

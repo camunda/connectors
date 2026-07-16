@@ -194,9 +194,48 @@ class OpenAiCompletionsResponseConverterTest {
     assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(100);
     assertThat(metrics.tokenUsage().outputTokenCount()).isEqualTo(50);
     assertThat(metrics.tokenUsage().cacheReadTokenCount()).isEqualTo(20);
-    // Reasoning is deliberately not mapped for Completions (deferred), even though the SDK
-    // exposes completion_tokens_details.reasoning_tokens on the wire.
-    assertThat(metrics.tokenUsage().reasoningTokenCount()).isZero();
+    assertThat(metrics.tokenUsage().reasoningTokenCount()).isEqualTo(10);
+  }
+
+  @Test
+  void surfacesReasoningTokensFromUsage() {
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {"role": "assistant", "content": "Hi"}
+            """,
+            """
+            {
+              "prompt_tokens": 100,
+              "completion_tokens": 200,
+              "total_tokens": 300,
+              "completion_tokens_details": {"reasoning_tokens": 128}
+            }
+            """);
+
+    final ChatModelResult result = converter.toResult(completion, Duration.ZERO);
+
+    assertThat(result.metrics().tokenUsage().reasoningTokenCount()).isEqualTo(128);
+  }
+
+  @Test
+  void defaultsReasoningTokensToZeroWhenAbsentFromUsage() {
+    final ChatCompletion completion =
+        baseCompletion(
+            """
+            {"role": "assistant", "content": "Hi"}
+            """,
+            """
+            {
+              "prompt_tokens": 100,
+              "completion_tokens": 50,
+              "total_tokens": 150
+            }
+            """);
+
+    final ChatModelResult result = converter.toResult(completion, Duration.ofMillis(10));
+
+    assertThat(result.metrics().tokenUsage().reasoningTokenCount()).isZero();
   }
 
   @Test
