@@ -188,9 +188,10 @@ public class OpenAiCompletionsRequestConverter {
 
   /**
    * {@link ReasoningContent} and {@link ProviderContent} have no wire representation on the
-   * Completions family (reasoning/server-tool replay is deferred, see the class Javadoc) and are
-   * silently dropped; everything else (text/document/object) is flattened to a single text blob,
-   * matching the plain-content replay done by the Responses sibling.
+   * Completions family (reasoning is input-only via {@code reasoning_effort}, with no
+   * reasoning-item or server-tool replay mechanism at all, see the class Javadoc) and are silently
+   * dropped; everything else (text/document/object) is flattened to a single text blob, matching
+   * the plain-content replay done by the Responses sibling.
    */
   private ChatCompletionAssistantMessageParam assistantMessage(AssistantMessage assistant) {
     final var builder = ChatCompletionAssistantMessageParam.builder();

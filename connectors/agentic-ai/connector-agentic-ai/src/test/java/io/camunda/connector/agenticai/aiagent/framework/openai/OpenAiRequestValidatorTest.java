@@ -96,4 +96,30 @@ class OpenAiRequestValidatorTest {
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Responses API");
   }
+
+  @Test
+  void acceptsEffortForReasoningCapableCompletionsModel() {
+    var reasoning = new OpenAiReasoningCapabilities(List.of(OpenAiEffort.HIGH));
+    assertThatCode(
+            () ->
+                OpenAiRequestValidator.validate(
+                    conn(OpenAiApiFamily.COMPLETIONS, OpenAiEffort.HIGH, false, false),
+                    reasoning,
+                    true,
+                    "gpt-5"))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  void rejectsEffortForNonReasoningCompletionsModel() {
+    assertThatThrownBy(
+            () ->
+                OpenAiRequestValidator.validate(
+                    conn(OpenAiApiFamily.COMPLETIONS, OpenAiEffort.HIGH, false, false),
+                    null,
+                    true,
+                    "gpt-4o"))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("does not support reasoning effort");
+  }
 }
