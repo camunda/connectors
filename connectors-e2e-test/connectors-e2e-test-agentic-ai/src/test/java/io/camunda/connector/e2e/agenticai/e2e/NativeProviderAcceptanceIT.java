@@ -295,12 +295,14 @@ class NativeProviderAcceptanceIT {
                 true),
             // gpt-5 on the Completions API family: reasoning via reasoning_effort (input-only; no
             // server tools, no reasoning content in the response). Effort "high" forces reasoning
-            // tokens.
+            // tokens. Structured output is intentionally not exercised here: gpt-5 + strict
+            // json_schema on the Chat Completions endpoint does not converge (the model's
+            // reasoning exhausts the completion budget before emitting the JSON); structured
+            // output for gpt-5 is covered on the Responses row. Tracked as a follow-up.
             openaiDirect(
                 "completions",
                 "gpt-5",
                 Map.of(
-                    Capability.STRUCTURED_OUTPUT, Map.of(),
                     Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of(),
