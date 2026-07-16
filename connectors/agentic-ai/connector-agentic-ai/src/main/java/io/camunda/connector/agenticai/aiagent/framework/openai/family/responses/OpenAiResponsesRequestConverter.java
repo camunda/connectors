@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -254,22 +255,30 @@ public class OpenAiResponsesRequestConverter {
   private List<ResponseInputItem> toolResultInputItems(ToolCallResultMessage message) {
     final List<ResponseInputItem> items = new ArrayList<>();
     for (final ToolCallResultContent result : message.results()) {
-      items.add(
-          ResponseInputItem.ofFunctionCallOutput(
-              ResponseInputItem.FunctionCallOutput.builder()
-                  .callId(result.id())
-                  .output(toTextOutput(result.content()))
-                  .build()));
+      final var builder = ResponseInputItem.FunctionCallOutput.builder().callId(result.id());
+      if (containsDocument(result.content())) {
+        // Documents only reach here when the capability matrix declares the modality supported in
+        // tool results; emit them natively (input_image/input_file) via the multimodal item-list
+        // shape so the model can actually read them, mirroring the Anthropic sibling.
+        builder.outputOfResponseFunctionCallOutputItemList(
+            contentConverter.toToolResultOutputItems(result.content()));
+      } else {
+        builder.output(toTextOutput(result.content()));
+      }
+      items.add(ResponseInputItem.ofFunctionCallOutput(builder.build()));
     }
     return items;
   }
 
+  private static boolean containsDocument(List<Content> content) {
+    return content.stream().anyMatch(DocumentContent.class::isInstance);
+  }
+
   /**
-   * Flattens a tool result's structured content to a single text blob: {@link TextContent} is
-   * concatenated verbatim, anything else (documents, objects) is serialized to JSON. Deliberate
-   * pilot simplification -- {@code FunctionCallOutput.Output} also supports a multimodal item-list
-   * shape ({@code ofResponseFunctionCallOutputItemList}) for native inline images/files in tool
-   * results, not wired up here.
+   * Flattens a text-only tool result to a single string blob: {@link TextContent} is concatenated
+   * verbatim, objects are serialized to JSON. Used when the result carries no document content;
+   * results containing documents take the multimodal item-list path instead (see {@link
+   * #toolResultInputItems}).
    */
   private String toTextOutput(List<Content> content) {
     return content.stream()

@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -50,6 +51,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiEffo
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
@@ -200,6 +203,48 @@ class OpenAiResponsesRequestConverterTest {
     final var functionCallOutput = items.get(1).functionCallOutput().orElseThrow();
     assertThat(functionCallOutput.callId()).isEqualTo("call_1");
     assertThat(functionCallOutput.output().asString()).isEqualTo("sunny");
+  }
+
+  @Test
+  void mapsToolResultDocumentToNativeFunctionCallOutputItem() {
+    final var document = mock(Document.class);
+    final var metadata = mock(DocumentMetadata.class);
+    when(document.metadata()).thenReturn(metadata);
+    when(metadata.getContentType()).thenReturn("application/pdf");
+    when(metadata.getFileName()).thenReturn("report.pdf");
+    when(document.asBase64()).thenReturn("UERGQ09OVEVOVA==");
+
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call_1")
+                                .name("fetch_report")
+                                .content(
+                                    List.of(
+                                        TextContent.textContent("here is the report"),
+                                        new DocumentContent(document, null)))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toResponseCreateParams(ctx(model(null), null), snapshot, caps());
+
+    final var items = params.input().orElseThrow().asResponse();
+    assertThat(items).hasSize(1);
+
+    final var output = items.get(0).functionCallOutput().orElseThrow().output();
+    final var outputItems = output.asResponseFunctionCallOutputItemList();
+    assertThat(outputItems).hasSize(2);
+    assertThat(outputItems.get(0).isInputText()).isTrue();
+    assertThat(outputItems.get(0).asInputText().text()).isEqualTo("here is the report");
+    assertThat(outputItems.get(1).isInputFile()).isTrue();
+    final var file = outputItems.get(1).asInputFile();
+    assertThat(file.filename()).hasValue("report.pdf");
+    assertThat(file.fileData()).hasValue("data:application/pdf;base64,UERGQ09OVEVOVA==");
   }
 
   @Test

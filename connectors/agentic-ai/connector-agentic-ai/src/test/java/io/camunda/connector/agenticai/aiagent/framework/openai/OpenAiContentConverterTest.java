@@ -160,6 +160,92 @@ class OpenAiContentConverterTest {
   }
 
   @Nested
+  class ToToolResultOutputItems {
+
+    @Test
+    void mapsTextContentToInputTextItem() {
+      final var items =
+          converter.toToolResultOutputItems(List.of(new TextContent("hello world", null)));
+
+      assertThat(items).hasSize(1);
+      assertThat(items.get(0).isInputText()).isTrue();
+      assertThat(items.get(0).asInputText().text()).isEqualTo("hello world");
+    }
+
+    @Test
+    void mapsImageDocumentToInputImageItem() {
+      final var doc = mockDocument("image/png", "QUJD");
+
+      final var items = converter.toToolResultOutputItems(List.of(new DocumentContent(doc, null)));
+
+      assertThat(items).hasSize(1);
+      assertThat(items.get(0).isInputImage()).isTrue();
+      assertThat(items.get(0).asInputImage().imageUrl()).hasValue("data:image/png;base64,QUJD");
+    }
+
+    @Test
+    void mapsPdfDocumentToInputFileItem() {
+      final var document = mock(Document.class);
+      final var metadata = mock(DocumentMetadata.class);
+      when(document.metadata()).thenReturn(metadata);
+      when(metadata.getContentType()).thenReturn("application/pdf");
+      when(metadata.getFileName()).thenReturn("report.pdf");
+      when(document.asBase64()).thenReturn("UERGQ09OVEVOVA==");
+
+      final var items =
+          converter.toToolResultOutputItems(List.of(new DocumentContent(document, null)));
+
+      assertThat(items).hasSize(1);
+      assertThat(items.get(0).isInputFile()).isTrue();
+      final var file = items.get(0).asInputFile();
+      assertThat(file.filename()).hasValue("report.pdf");
+      assertThat(file.fileData()).hasValue("data:application/pdf;base64,UERGQ09OVEVOVA==");
+    }
+
+    @Test
+    void mapsTextDocumentToInputTextItem() {
+      final var document = mock(Document.class);
+      final var metadata = mock(DocumentMetadata.class);
+      when(document.metadata()).thenReturn(metadata);
+      when(metadata.getContentType()).thenReturn("text/plain");
+      when(document.asByteArray())
+          .thenReturn("plain text content".getBytes(StandardCharsets.UTF_8));
+
+      final var items =
+          converter.toToolResultOutputItems(List.of(new DocumentContent(document, null)));
+
+      assertThat(items).hasSize(1);
+      assertThat(items.get(0).isInputText()).isTrue();
+      assertThat(items.get(0).asInputText().text()).isEqualTo("plain text content");
+    }
+
+    @Test
+    void mapsObjectContentToInputTextItem() {
+      final var items =
+          converter.toToolResultOutputItems(
+              List.of(new ObjectContent(Map.of("key", "value"), null)));
+
+      assertThat(items).hasSize(1);
+      assertThat(items.get(0).isInputText()).isTrue();
+      assertThat(items.get(0).asInputText().text()).isEqualTo("{\"key\":\"value\"}");
+    }
+
+    @Test
+    void mapsMixedTextAndDocumentPreservingOrder() {
+      final var doc = mockDocument("image/png", "QUJD");
+
+      final var items =
+          converter.toToolResultOutputItems(
+              List.of(new TextContent("see attached", null), new DocumentContent(doc, null)));
+
+      assertThat(items).hasSize(2);
+      assertThat(items.get(0).isInputText()).isTrue();
+      assertThat(items.get(0).asInputText().text()).isEqualTo("see attached");
+      assertThat(items.get(1).isInputImage()).isTrue();
+    }
+  }
+
+  @Nested
   class ToCompletionsContentParts {
 
     @Test

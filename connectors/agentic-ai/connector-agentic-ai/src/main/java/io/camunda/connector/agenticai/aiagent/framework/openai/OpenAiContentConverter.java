@@ -11,10 +11,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.models.chat.completions.ChatCompletionContentPart;
 import com.openai.models.chat.completions.ChatCompletionContentPartImage;
 import com.openai.models.chat.completions.ChatCompletionContentPartText;
+import com.openai.models.responses.ResponseFunctionCallOutputItem;
 import com.openai.models.responses.ResponseInputContent;
 import com.openai.models.responses.ResponseInputFile;
+import com.openai.models.responses.ResponseInputFileContent;
 import com.openai.models.responses.ResponseInputImage;
+import com.openai.models.responses.ResponseInputImageContent;
 import com.openai.models.responses.ResponseInputText;
+import com.openai.models.responses.ResponseInputTextContent;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.DocumentModality;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -28,7 +32,8 @@ import java.util.List;
 /**
  * Converts the domain {@link Content} model to OpenAI SDK content parts, for both the Responses API
  * ({@link ResponseInputContent}) and the Chat Completions API ({@link ChatCompletionContentPart})
- * families. Used for both user/assistant message bodies and tool-result bodies.
+ * families. Used for user/assistant message bodies as well as Responses tool-result bodies ({@link
+ * ResponseFunctionCallOutputItem}).
  */
 public class OpenAiContentConverter {
 
@@ -63,6 +68,36 @@ public class OpenAiContentConverter {
       }
     }
     return parts;
+  }
+
+  /**
+   * Converts a tool result's structured content into Responses {@code function_call_output} items,
+   * the multimodal counterpart of {@link #toResponsesContentParts}: documents are emitted natively
+   * as {@code input_image} / {@code input_file} so the model can read them, rather than being
+   * flattened to an opaque JSON reference. Mirrors the Anthropic sibling's {@code
+   * toToolResultBlocks}. Callers only route documents here when the capability matrix declares the
+   * modality supported in tool results (see {@code CapabilityAwareToolCallResultStrategy}).
+   */
+  public List<ResponseFunctionCallOutputItem> toToolResultOutputItems(List<Content> content) {
+    final List<ResponseFunctionCallOutputItem> items = new ArrayList<>();
+    for (final Content c : content) {
+      switch (c) {
+        case TextContent text ->
+            items.add(
+                ResponseFunctionCallOutputItem.ofInputText(
+                    ResponseInputTextContent.builder().text(text.text()).build()));
+        case DocumentContent doc -> items.add(toolResultDocumentItem(doc));
+        case ObjectContent obj ->
+            items.add(
+                ResponseFunctionCallOutputItem.ofInputText(
+                    ResponseInputTextContent.builder().text(writeAsJson(obj.content())).build()));
+        default ->
+            items.add(
+                ResponseFunctionCallOutputItem.ofInputText(
+                    ResponseInputTextContent.builder().text(writeAsJson(c)).build()));
+      }
+    }
+    return items;
   }
 
   public List<ChatCompletionContentPart> toCompletionsContentParts(List<Content> content) {
@@ -111,6 +146,31 @@ public class OpenAiContentConverter {
       default ->
           ResponseInputContent.ofInputText(
               ResponseInputText.builder().text(writeAsJson(doc)).build());
+    };
+  }
+
+  private ResponseFunctionCallOutputItem toolResultDocumentItem(DocumentContent doc) {
+    final var modality = DocumentModality.fromDocument(doc.document());
+    final var contentType = contentType(doc.document());
+    return switch (modality) {
+      case IMAGE ->
+          ResponseFunctionCallOutputItem.ofInputImage(
+              ResponseInputImageContent.builder()
+                  .imageUrl(dataUri(contentType, doc.document()))
+                  .detail(ResponseInputImageContent.Detail.AUTO)
+                  .build());
+      case DOCUMENT ->
+          ResponseFunctionCallOutputItem.ofInputFile(
+              ResponseInputFileContent.builder()
+                  .filename(fileName(doc.document()))
+                  .fileData(dataUri(contentType, doc.document()))
+                  .build());
+      case TEXT ->
+          ResponseFunctionCallOutputItem.ofInputText(
+              ResponseInputTextContent.builder().text(decodeUtf8(doc.document())).build());
+      default ->
+          ResponseFunctionCallOutputItem.ofInputText(
+              ResponseInputTextContent.builder().text(writeAsJson(doc)).build());
     };
   }
 
