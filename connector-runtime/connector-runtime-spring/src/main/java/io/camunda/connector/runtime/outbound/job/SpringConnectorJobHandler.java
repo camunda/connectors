@@ -267,7 +267,8 @@ public class SpringConnectorJobHandler implements JobHandler {
                 + "completion before the interrupt was noticed, so reassignment will re-execute it "
                 + "- verify the connector's side effects are idempotent before relying on this",
             job.getKey(),
-            job.getTenantId());
+            job.getTenantId(),
+            ex);
         return;
       }
       CompletableFuture<CommandOutcome> failJobRequest =

@@ -45,7 +45,9 @@ public class FeelEngineWrapperException extends RuntimeException {
   }
 
   private static String formatContext(final Object context) {
-    return context instanceof Object[] array ? Arrays.deepToString(array) : String.valueOf(context);
+    final String formatted =
+        context instanceof Object[] array ? Arrays.deepToString(array) : String.valueOf(context);
+    return formatted.length() > 2000 ? formatted.substring(0, 2000) + "...(truncated)" : formatted;
   }
 
   public String getReason() {
