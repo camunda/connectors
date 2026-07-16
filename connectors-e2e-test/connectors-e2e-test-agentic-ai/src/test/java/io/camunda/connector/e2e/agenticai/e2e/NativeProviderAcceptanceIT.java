@@ -114,6 +114,7 @@ class NativeProviderAcceptanceIT {
     STRUCTURED_OUTPUT,
     REASONING,
     PROMPT_CACHING,
+    MULTIMODAL_USER_MESSAGE,
     MULTIMODAL_TOOL_RESULT,
     WEB_SEARCH,
     CODE_INTERPRETER
@@ -146,10 +147,41 @@ class NativeProviderAcceptanceIT {
       // OpenAI's prompt caching is automatic and reports only cache-READ tokens
       // (`cached_tokens`), with no creation/write metric at all — so the cache-creation
       // assertion in the prompt-caching scenario is gated on this flag.
-      boolean reportsCacheCreationTokens) {
+      boolean reportsCacheCreationTokens,
+      // Manual on/off switch (independent of the env-var gate) so a single row can be muted while
+      // iterating locally; mirrors DocumentToolCallResultsIT.ProviderConfig#disabled().
+      boolean enabled) {
+
+    NativeProvider(
+        String label,
+        String requiredEnvVar,
+        Map<String, String> properties,
+        Map<Capability, Map<String, String>> capabilityProperties,
+        boolean forcesReasoningTokens,
+        boolean reportsCacheCreationTokens) {
+      this(
+          label,
+          requiredEnvVar,
+          properties,
+          capabilityProperties,
+          forcesReasoningTokens,
+          reportsCacheCreationTokens,
+          true);
+    }
+
+    NativeProvider disabled() {
+      return new NativeProvider(
+          label,
+          requiredEnvVar,
+          properties,
+          capabilityProperties,
+          forcesReasoningTokens,
+          reportsCacheCreationTokens,
+          false);
+    }
 
     boolean isEnabled() {
-      return System.getenv(requiredEnvVar) != null;
+      return enabled && System.getenv(requiredEnvVar) != null;
     }
 
     boolean supports(Capability capability) {
@@ -219,6 +251,7 @@ class NativeProviderAcceptanceIT {
                 "claude-sonnet-4-6",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("configuration.anthropic.enablePromptCaching", "true"),
@@ -234,6 +267,7 @@ class NativeProviderAcceptanceIT {
                 "claude-sonnet-5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING,
                         Map.of("configuration.anthropic.enablePromptCaching", "true"),
@@ -250,6 +284,7 @@ class NativeProviderAcceptanceIT {
                 "gpt-5",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of(),
                     Capability.REASONING,
@@ -265,6 +300,7 @@ class NativeProviderAcceptanceIT {
                 "gpt-4o",
                 Map.of(
                     Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                     Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
                     Capability.PROMPT_CACHING, Map.of()),
                 false))
@@ -305,9 +341,9 @@ class NativeProviderAcceptanceIT {
         .property(
             "data.userPrompt.prompt",
             "=if (is defined(followUpUserPrompt)) then followUpUserPrompt else userPrompt")
-        .property(
-            "data.userPrompt.documents",
-            "=if (is defined(downloadedFiles)) then downloadedFiles else []")
+        // Empty by default so tool-result scenarios don't leak documents via the user message;
+        // the user-message scenario overrides this in its customizer.
+        .property("data.userPrompt.documents", "=[]")
         .property("data.memory.storage.type", "in-process")
         .property("data.memory.contextWindowSize", "=50")
         .property("data.response.includeAssistantMessage", "=true")
@@ -573,8 +609,44 @@ class NativeProviderAcceptanceIT {
       "You are a document analyst. Use the available tools to retrieve and analyze documents. "
           + "Always quote specific facts, numbers, dates, and names found in the documents.";
 
+  static Stream<NativeProvider> providersWithMultimodalUserMessage() {
+    return providers().filter(p -> p.supports(Capability.MULTIMODAL_USER_MESSAGE));
+  }
+
   static Stream<NativeProvider> providersWithMultimodalToolResult() {
     return providers().filter(p -> p.supports(Capability.MULTIMODAL_TOOL_RESULT));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("providersWithMultimodalUserMessage")
+  void documentInUserMessageIsReadByModel(NativeProvider provider, WireMockRuntimeInfo wireMock) {
+    stubPdfDownloads();
+
+    // Reuses the document BPMN (which downloads downloadUrls into `downloadedFiles` before the
+    // agent) but routes the single downloaded PDF into the user message instead of a tool result,
+    // so this exercises the user-message multimodal path rather than the tool-result path.
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH,
+            DOCUMENT_BPMN_RESOURCE,
+            "You are a document analyst. A document is attached directly to the user's message. "
+                + "Answer using only that attached document and do not call any tools. Always "
+                + "quote specific facts, numbers, dates, and names found in the document.",
+            template -> template.property("data.userPrompt.documents", "=downloadedFiles"));
+
+    var instance =
+        startAgent(
+            model,
+            DOCUMENT_PROCESS_ID,
+            Map.of(
+                "userPrompt",
+                "What is the internal project code name mentioned in the attached document? "
+                    + "Quote it exactly.",
+                "downloadUrls",
+                List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH)));
+
+    assertResponseTextContains(instance, "Zypherion");
   }
 
   private void stubPdfDownloads() {
