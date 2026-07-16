@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Kafka Outbound Connector",
+  "name" : "Publish Message to Kafka",
   "id" : "io.camunda.connectors.KAFKA.v1",
   "description" : "Produce Kafka message",
   "keywords" : [ "publish message", "send message", "message queue", "event streaming", "produce event", "stream data", "kafka topic" ],

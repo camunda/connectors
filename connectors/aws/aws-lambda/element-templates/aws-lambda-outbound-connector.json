@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "AWS Lambda Outbound Connector",
+  "name" : "Invoke AWS Lambda Function",
   "id" : "io.camunda.connectors.AWSLAMBDA.v2",
   "description" : "Invoke AWS Lambda functions.",
   "keywords" : [ "invoke function", "run function", "execute function", "serverless", "function as a service" ],

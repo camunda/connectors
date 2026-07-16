@@ -23,7 +23,7 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
 @ElementTemplate(
     engineVersion = "^8.6",
     id = "io.camunda.connectors.AWSTEXTRACT.v1",
-    name = "AWS Textract Outbound Connector",
+    name = "Extract Text from Document with AWS Textract",
     description = "Extract text and data using AWS Textract.",
     keywords = {
       "extract text",

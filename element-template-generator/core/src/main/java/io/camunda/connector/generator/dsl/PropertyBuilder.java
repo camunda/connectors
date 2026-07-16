@@ -36,6 +36,7 @@ public abstract class PropertyBuilder {
   protected String placeholder;
   protected Object exampleValue;
   protected String language;
+  protected Boolean secret;
 
   protected PropertyBuilder() {}
 
@@ -70,7 +71,7 @@ public abstract class PropertyBuilder {
     return this;
   }
 
-  public PropertyBuilder optional(boolean optional) {
+  public PropertyBuilder optional(Boolean optional) {
     this.optional = optional;
     return this;
   }
@@ -133,6 +134,11 @@ public abstract class PropertyBuilder {
 
   public PropertyBuilder language(String language) {
     this.language = language;
+    return this;
+  }
+
+  public PropertyBuilder secret(Boolean secret) {
+    this.secret = secret;
     return this;
   }
 

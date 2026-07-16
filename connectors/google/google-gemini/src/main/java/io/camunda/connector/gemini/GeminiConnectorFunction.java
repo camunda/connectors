@@ -25,7 +25,7 @@ import java.util.HashMap;
 @ElementTemplate(
     engineVersion = "^8.7",
     id = "io.camunda.connectors.GoogleGemini.v1",
-    name = "Google Gemini Outbound Connector",
+    name = "Generate Content with Google Gemini",
     description =
         " A large language model (LLM) created by Google AI. It's a multimodal model, meaning it can understand"
             + " and work with different types of information like text, code, audio, images, and video",

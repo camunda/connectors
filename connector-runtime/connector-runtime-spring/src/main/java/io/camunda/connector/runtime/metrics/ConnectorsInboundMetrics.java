@@ -31,9 +31,19 @@ public class ConnectorsInboundMetrics {
   private final Map<String, Counter> activationCounter = new ConcurrentHashMap<>();
   private final Map<String, AtomicLong> lastActivatedGauges = new ConcurrentHashMap<>();
   private final Map<String, AtomicLong> lastTriggeredGauges = new ConcurrentHashMap<>();
+  private final Counter processDefinitionCacheHitCounter;
+  private final Counter processDefinitionCacheMissCounter;
 
   public ConnectorsInboundMetrics(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
+    this.processDefinitionCacheHitCounter =
+        Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_PROCESS_DEFINITION_CACHE_ACCESSES)
+            .tag(ConnectorMetrics.Tag.RESULT, ConnectorMetrics.Inbound.RESULT_CACHE_HIT)
+            .register(meterRegistry);
+    this.processDefinitionCacheMissCounter =
+        Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_PROCESS_DEFINITION_CACHE_ACCESSES)
+            .tag(ConnectorMetrics.Tag.RESULT, ConnectorMetrics.Inbound.RESULT_CACHE_MISS)
+            .register(meterRegistry);
   }
 
   public void increaseActivation(InboundConnectorElement connectorElement) {
@@ -147,6 +157,16 @@ public class ConnectorsInboundMetrics {
                     .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
+  }
+
+  /** Records a hit on the process-definition inspection cache. */
+  public void increaseProcessDefinitionCacheHit() {
+    processDefinitionCacheHitCounter.increment();
+  }
+
+  /** Records a miss on the process-definition inspection cache. */
+  public void increaseProcessDefinitionCacheMiss() {
+    processDefinitionCacheMissCounter.increment();
   }
 
   private void recordLastActivated(String type) {

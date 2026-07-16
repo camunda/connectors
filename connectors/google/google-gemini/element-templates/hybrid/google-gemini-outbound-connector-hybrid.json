@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Google Gemini Outbound Connector",
+  "name" : "Hybrid Generate Content with Google Gemini",
   "id" : "io.camunda.connectors.GoogleGemini.v1-hybrid",
   "description" : " A large language model (LLM) created by Google AI. It's a multimodal model, meaning it can understand and work with different types of information like text, code, audio, images, and video",
   "keywords" : [ "generate text", "AI", "LLM", "language model", "chat", "completion", "generative AI", "prompt", "multimodal" ],

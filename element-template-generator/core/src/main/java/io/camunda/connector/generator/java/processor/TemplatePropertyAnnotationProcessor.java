@@ -133,6 +133,7 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
 
     switch (builder) {
       case DropdownProperty.DropdownPropertyBuilder ignored -> {}
+      case ConfigurationProperty.ConfigurationPropertyBuilder ignored -> {}
       case NumberProperty.NumberPropertyBuilder ignored -> manageFeelMode(annotation, builder);
       case BooleanProperty.BooleanPropertyBuilder ignored -> manageFeelMode(annotation, builder);
       default -> {
@@ -177,6 +178,9 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
     }
     builder.condition(buildCondition(annotation.condition()));
     builder.constraints(buildConstraints(annotation, builder.build().getConstraints()));
+    if (annotation.secret()) {
+      builder.secret(true);
+    }
   }
 
   public static Object getValue(TemplateProperty annotation, Class<?> type, boolean isOutbound) {

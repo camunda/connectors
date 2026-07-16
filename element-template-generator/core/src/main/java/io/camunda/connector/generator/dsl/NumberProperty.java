@@ -35,7 +35,8 @@ public final class NumberProperty extends Property {
       PropertyBinding binding,
       PropertyCondition condition,
       String tooltip,
-      Object exampleValue) {
+      Object exampleValue,
+      Boolean secret) {
     super(
         name,
         label,
@@ -52,7 +53,8 @@ public final class NumberProperty extends Property {
         null,
         exampleValue,
         null,
-        TYPE);
+        TYPE,
+        secret);
   }
 
   public static NumberPropertyBuilder builder() {
@@ -81,7 +83,8 @@ public final class NumberProperty extends Property {
           binding,
           condition,
           tooltip,
-          exampleValue);
+          exampleValue,
+          secret);
     }
   }
 }

@@ -32,6 +32,8 @@ import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.dsl.ConfigurationProperty;
+import io.camunda.connector.generator.dsl.ConfigurationTemplate;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
@@ -1718,5 +1720,242 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Override
     public void deactivate() {}
+  }
+
+  @Nested
+  class Configurations {
+
+    // --- Test 1: JDBC-style whole-object chooser + embedded template ---
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:jdbc-credential:1",
+        version = 1,
+        name = "JDBC Connection")
+    record JdbcConnection(String url, String username, String password) {}
+
+    record JdbcRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                group = "connection",
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            JdbcConnection configuration) {}
+
+    @OutboundConnector(name = "JDBC", type = "test:jdbc")
+    @ElementTemplate(
+        id = "test-jdbc",
+        name = "JDBC",
+        version = 1,
+        inputDataClass = JdbcRequest.class,
+        configurations = {JdbcConnection.class})
+    static class JdbcConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void jdbc_chooserProperty_isConfigurationPropertyBoundWholeObject() {
+      var template = generator.generate(JdbcConnector.class).getFirst();
+      var chooser = getPropertyById("configuration", template);
+
+      assertThat(chooser).isInstanceOf(ConfigurationProperty.class);
+      assertThat(chooser.getType()).isEqualTo("Configuration");
+      assertThat(((ConfigurationProperty) chooser).getConfigurationTemplate())
+          .isEqualTo("io.camunda:jdbc-credential:1");
+      // the chooser carries no version — the floor lives on the embedded template
+      assertThat(chooser.getBinding()).isEqualTo(new ZeebeInput("configuration"));
+      // chooser is not recursed into: the configuration field's url/username/password are NOT
+      // emitted as top-level properties
+      assertThat(template.properties()).noneMatch(p -> "url".equals(p.getId()));
+    }
+
+    @Test
+    void jdbc_configurationTemplate_isEmbeddedWithProperties() {
+      var template = generator.generate(JdbcConnector.class).getFirst();
+
+      assertThat(template.configurationTemplates()).hasSize(1);
+      var configurationTemplate = template.configurationTemplates().getFirst();
+      assertThat(configurationTemplate.id()).isEqualTo("io.camunda:jdbc-credential:1");
+      assertThat(configurationTemplate.kind()).isEqualTo("CREDENTIAL");
+      assertThat(configurationTemplate.version()).isEqualTo(1);
+      assertThat(configurationTemplate.name()).isEqualTo("JDBC Connection");
+      assertThat(configurationTemplate.properties().stream().map(Property::getId))
+          .containsExactlyInAnyOrder("url", "username", "password");
+    }
+
+    @Test
+    void jdbc_embeddedProperties_usePropertyBindingAndNoFeel() {
+      var template = generator.generate(JdbcConnector.class).getFirst();
+      var url =
+          template.configurationTemplates().getFirst().properties().stream()
+              .filter(p -> "url".equals(p.getId()))
+              .findFirst()
+              .orElseThrow();
+
+      assertThat(url.getBinding())
+          .isEqualTo(new PropertyBinding.ConfigurationTemplateProperty("url"));
+      assertThat(url.getBinding().type()).isEqualTo("property");
+      assertThat(url.getFeel()).isNull();
+    }
+
+    // --- Test 2: nested value shape (dotted property binding names) + secret hint + kind ---
+
+    record AwsAuthentication(
+        @TemplateProperty(secret = true) String accessKey,
+        @TemplateProperty(secret = true) String secretKey) {}
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:aws-credential:1",
+        version = 2,
+        name = "AWS Credential",
+        kind = "CREDENTIAL")
+    record AwsCredential(
+        @TemplateProperty(group = "authentication") AwsAuthentication authentication,
+        @TemplateProperty(group = "connection") String region) {}
+
+    record AwsRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                group = "authentication",
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            AwsCredential configuration) {}
+
+    @OutboundConnector(name = "AWS", type = "test:aws")
+    @ElementTemplate(
+        id = "test-aws",
+        name = "AWS",
+        version = 1,
+        inputDataClass = AwsRequest.class,
+        configurations = {AwsCredential.class})
+    static class AwsConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void aws_chooserBoundWholeObject_andTemplateEmbeddedWithKindAndVersion() {
+      var template = generator.generate(AwsConnector.class).getFirst();
+
+      var chooser = getPropertyById("configuration", template);
+      assertThat(chooser).isInstanceOf(ConfigurationProperty.class);
+      assertThat(((ConfigurationProperty) chooser).getConfigurationTemplate())
+          .isEqualTo("io.camunda:aws-credential:1");
+      assertThat(chooser.getBinding()).isEqualTo(new ZeebeInput("configuration"));
+
+      assertThat(template.configurationTemplates().stream().map(ConfigurationTemplate::id))
+          .containsExactly("io.camunda:aws-credential:1");
+      var configurationTemplate = template.configurationTemplates().getFirst();
+      assertThat(configurationTemplate.kind()).isEqualTo("CREDENTIAL");
+      assertThat(configurationTemplate.version()).isEqualTo(2);
+    }
+
+    @Test
+    void aws_nestedFields_produceDottedPropertyBindingNames() {
+      var template = generator.generate(AwsConnector.class).getFirst();
+      var props = template.configurationTemplates().getFirst().properties();
+
+      assertThat(props.stream().map(Property::getId))
+          .containsExactlyInAnyOrder(
+              "authentication.accessKey", "authentication.secretKey", "region");
+
+      var accessKey =
+          props.stream()
+              .filter(p -> "authentication.accessKey".equals(p.getId()))
+              .findFirst()
+              .orElseThrow();
+      assertThat(accessKey.getBinding())
+          .isEqualTo(new PropertyBinding.ConfigurationTemplateProperty("authentication.accessKey"));
+    }
+
+    @Test
+    void aws_secretHint_isPreservedOnlyOnMarkedFields() {
+      var template = generator.generate(AwsConnector.class).getFirst();
+      var props = template.configurationTemplates().getFirst().properties();
+
+      var accessKey =
+          props.stream()
+              .filter(p -> "authentication.accessKey".equals(p.getId()))
+              .findFirst()
+              .orElseThrow();
+      var region = props.stream().filter(p -> "region".equals(p.getId())).findFirst().orElseThrow();
+
+      assertThat(accessKey.getSecret()).isTrue();
+      assertThat(region.getSecret()).isNull();
+    }
+
+    // --- blank name rejected (generator constraint; the schema requires name to be present but
+    // does not itself enforce non-blank) ---
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:blank-name:1",
+        version = 1,
+        name = "")
+    record BlankName(String field) {}
+
+    record BlankNameRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            BlankName configuration) {}
+
+    @OutboundConnector(name = "BlankName", type = "test:blank-name")
+    @ElementTemplate(
+        id = "test-blank-name",
+        name = "BlankName",
+        version = 1,
+        inputDataClass = BlankNameRequest.class,
+        configurations = {BlankName.class})
+    static class BlankNameConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void blankName_isRejected() {
+      assertThatThrownBy(() -> generator.generate(BlankNameConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("must declare a non-blank name");
+    }
+
+    // --- blank kind rejected (schema requires kind to be non-blank, minLength: 1) ---
+
+    @io.camunda.connector.api.annotation.Configuration(
+        id = "io.camunda:blank-kind:1",
+        version = 1,
+        name = "Blank Kind",
+        kind = "")
+    record BlankKind(String field) {}
+
+    record BlankKindRequest(
+        @TemplateProperty(
+                type = TemplateProperty.PropertyType.Configuration,
+                binding = @TemplateProperty.PropertyBinding(name = "configuration"))
+            BlankKind configuration) {}
+
+    @OutboundConnector(name = "BlankKind", type = "test:blank-kind")
+    @ElementTemplate(
+        id = "test-blank-kind",
+        name = "BlankKind",
+        version = 1,
+        inputDataClass = BlankKindRequest.class,
+        configurations = {BlankKind.class})
+    static class BlankKindConnector implements OutboundConnectorFunction {
+      @Override
+      public Object execute(OutboundConnectorContext context) {
+        return null;
+      }
+    }
+
+    @Test
+    void blankKind_isRejected() {
+      assertThatThrownBy(() -> generator.generate(BlankKindConnector.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("must declare a non-blank kind");
+    }
   }
 }

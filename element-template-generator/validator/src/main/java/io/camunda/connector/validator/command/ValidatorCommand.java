@@ -33,6 +33,7 @@ import io.camunda.connector.validator.rule.ElementTemplateVersionConsistencyRule
 import io.camunda.connector.validator.rule.EmptyGroupRule;
 import io.camunda.connector.validator.rule.GroupTargetExistsRule;
 import io.camunda.connector.validator.rule.HybridParityRule;
+import io.camunda.connector.validator.rule.OperationDescriptionConnectorNameRule;
 import io.camunda.connector.validator.rule.PresetConditionsSatisfiedRule;
 import io.camunda.connector.validator.rule.PresetCoverageRule;
 import io.camunda.connector.validator.rule.PresetIdResolvesRule;
@@ -172,6 +173,7 @@ public class ValidatorCommand implements Callable<Integer> {
             new StepsPresetsPresentRule(),
             new StepGroupShapeRule(),
             new StepLeafShapeRule(),
+            new OperationDescriptionConnectorNameRule(),
             new PresetIdUniqueRule(),
             new PresetIdResolvesRule(),
             new PresetOperationGroupConsistencyRule(),

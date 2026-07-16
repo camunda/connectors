@@ -41,7 +41,7 @@ import org.springframework.ws.soap.client.SoapFaultClientException;
 @ElementTemplate(
     engineVersion = "^8.5",
     id = "io.camunda:soap",
-    name = "SOAP Connector",
+    name = "Send SOAP Request",
     icon = "icon.svg",
     version = 2,
     inputDataClass = SoapConnectorInput.class,

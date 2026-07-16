@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AWS Textract Outbound Connector",
+  "name" : "Hybrid Extract Text from Document with AWS Textract",
   "id" : "io.camunda.connectors.AWSTEXTRACT.v1-hybrid",
   "description" : "Extract text and data using AWS Textract.",
   "keywords" : [ "extract text", "extract data", "extract text from image", "extract data from image", "ocr", "OCR", "document processing", "text extraction", "analyze document", "asynchronous", "real-time" ],

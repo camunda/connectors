@@ -64,7 +64,8 @@ public record SendMessageRequest(
     @TemplateSubType(
         id = "correlate",
         label = "Correlate message (with result)",
-        description = "Correlate a message to a running process instance and receive the result",
+        description =
+            "Correlate a message to a running process instance in Camunda and receive the result",
         keywords = {
           "correlate message",
           "message correlation",

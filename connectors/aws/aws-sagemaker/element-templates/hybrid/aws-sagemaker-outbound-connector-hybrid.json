@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AWS SageMaker Outbound Connector",
+  "name" : "Hybrid Run Inference with AWS SageMaker",
   "id" : "io.camunda.connectors.AWSSAGEMAKER.v1-hybrid",
   "description" : "Run inferences using AWS SageMaker.",
   "keywords" : [ "run inference", "perform asynchronous inference", "perform real-time inference", "real-time inference", "asynchronous inference", "machine learning", "ML model", "predict", "AI" ],

@@ -24,7 +24,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 @ElementTemplate(
     engineVersion = "^8.10",
     id = "io.camunda.connectors.aws.bedrock.codeinterpreter.v1",
-    name = "AWS Bedrock Code Interpreter Outbound Connector",
+    name = "Run Code with AWS Bedrock Code Interpreter",
     description = "Execute Python code in a secure AWS Bedrock AgentCore Code Interpreter sandbox",
     inputDataClass = CodeInterpreterRequest.class,
     version = 1,
