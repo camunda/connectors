@@ -1,0 +1,89 @@
+name: STALE
+
+on:
+  schedule:
+    - cron: "0 8 * * 1" # every Monday at 08:00 UTC
+  workflow_dispatch: { }
+
+jobs:
+  stale:
+    name: Close stale issues and PRs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+
+      - name: Generate a GitHub token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Stale issues and PRs
+        id: stale
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ steps.app-token.outputs.token }}
+          days-before-issue-stale: 60
+          days-before-issue-close: 14
+          days-before-pr-stale: 30
+          days-before-pr-close: 30
+          stale-issue-label: stale
+          stale-pr-label: stale
+          exempt-issue-labels: "pinned,security"
+          exempt-pr-labels: "pinned,security"
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has not had
+            recent activity. It will be closed if no further activity occurs. Thank you
+            for your contributions.
+          stale-pr-message: >
+            This pull request has been automatically marked as stale because it has not had
+            recent activity. It will be closed if no further activity occurs. Thank you
+            for your contributions.
+          close-issue-message: >
+            This issue has been automatically closed because it has not had recent
+            activity. Please reopen if this is still relevant.
+          close-pr-message: >
+            This pull request has been automatically closed because it has not had recent
+            activity. Please reopen if this is still relevant.
+
+      - name: Count closed issues and PRs
+        id: count-closed
+        if: steps.stale.outputs.closed-issues-prs != '[]'
+        env:
+          CLOSED_ITEMS: ${{ steps.stale.outputs.closed-issues-prs }}
+        run: |
+          CLOSED_ISSUES=$(echo "$CLOSED_ITEMS" | jq '[.[] | select(.pull_request == null)] | length')
+          CLOSED_PRS=$(echo "$CLOSED_ITEMS" | jq '[.[] | select(.pull_request != null)] | length')
+          echo "closed_issues=$CLOSED_ISSUES" >> "$GITHUB_OUTPUT"
+          echo "closed_prs=$CLOSED_PRS" >> "$GITHUB_OUTPUT"
+
+      - name: Send Slack notification
+        if: steps.stale.outputs.closed-issues-prs != '[]'
+        uses: slackapi/slack-github-action@v4.0.0
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": "${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Stale bot report* :broom:\n- Issues closed as stale: ${{ steps.count-closed.outputs.closed_issues }}\n- PRs closed as stale: ${{ steps.count-closed.outputs.closed_prs }}\n\nSee the <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|full run details>."
+                  }
+                }
+              ]
+            }
