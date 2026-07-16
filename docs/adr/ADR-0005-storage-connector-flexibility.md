@@ -1,4 +1,4 @@
-# ADR-0004: Storage Connector Flexibility — Two Paths for Document Handling
+# ADR-0005: Storage Connector Flexibility — Two Paths for Document Handling
 
 ## Status
 Proposed

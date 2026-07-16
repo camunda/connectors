@@ -17,7 +17,18 @@
 package io.camunda.connector.api.document;
 
 public enum DocumentReturnChoice {
-  DOCUMENT,
-  TEXT,
-  JSON
+  DOCUMENT("Document reference"),
+  TEXT("as text"),
+  JSON("as JSON");
+
+  private final String label;
+
+  DocumentReturnChoice(String label) {
+    this.label = label;
+  }
+
+  /** Human-readable label shown in the Modeler dropdown generated for this choice. */
+  public String getLabel() {
+    return label;
+  }
 }

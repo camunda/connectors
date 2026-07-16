@@ -24,6 +24,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.api.document.DocumentReturnFormat;
+import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.api.error.ConnectorException;
 import java.nio.charset.StandardCharsets;
@@ -51,7 +52,7 @@ class DocumentReturnProcessorTest {
     RawPayload payload = RawPayload.of(bytes, "text/plain", "hello.txt");
 
     DocumentReturn<String> ret =
-        DocumentReturn.of(
+        new DocumentReturn<>(
             payload,
             (converted, choice) -> {
               assertThat(choice).isEqualTo(DocumentReturnChoice.DOCUMENT);
@@ -69,7 +70,7 @@ class DocumentReturnProcessorTest {
     RawPayload payload = RawPayload.of(bytes, null, null);
 
     DocumentReturn<String> ret =
-        DocumentReturn.of(payload, (converted, choice) -> (String) converted);
+        new DocumentReturn<>(payload, (converted, choice) -> (String) converted);
 
     assertThat(processor.process(ret, format(DocumentReturnChoice.TEXT))).isEqualTo("café");
   }
@@ -80,7 +81,7 @@ class DocumentReturnProcessorTest {
     RawPayload payload = RawPayload.of(bytes, null, null);
 
     DocumentReturn<String> ret =
-        DocumentReturn.of(payload, (converted, choice) -> (String) converted);
+        new DocumentReturn<>(payload, (converted, choice) -> (String) converted);
 
     assertThat(processor.process(ret, format(DocumentReturnChoice.TEXT, "ISO-8859-1")))
         .isEqualTo("café");
@@ -92,7 +93,7 @@ class DocumentReturnProcessorTest {
     RawPayload payload =
         RawPayload.of(json.getBytes(StandardCharsets.UTF_8), "application/json", null);
 
-    DocumentReturn<Object> ret = DocumentReturn.of(payload, (converted, choice) -> converted);
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
 
     Object result = processor.process(ret, format(DocumentReturnChoice.JSON));
     assertThat(result).isInstanceOf(Map.class);
@@ -106,7 +107,7 @@ class DocumentReturnProcessorTest {
     byte[] bytes = "not-json {".getBytes(StandardCharsets.UTF_8);
     RawPayload payload = RawPayload.of(bytes, null, null);
 
-    DocumentReturn<Object> ret = DocumentReturn.of(payload, (converted, choice) -> converted);
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
 
     assertThatThrownBy(() -> processor.process(ret, format(DocumentReturnChoice.JSON)))
         .isInstanceOf(ConnectorException.class)
@@ -116,7 +117,7 @@ class DocumentReturnProcessorTest {
   @Test
   void nullFormatIsRejected() {
     RawPayload payload = RawPayload.of(new byte[0], null, null);
-    DocumentReturn<Object> ret = DocumentReturn.of(payload, (c, ch) -> c);
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (c, ch) -> c);
 
     assertThatThrownBy(() -> processor.process(ret, null))
         .isInstanceOf(ConnectorException.class)
@@ -125,11 +126,11 @@ class DocumentReturnProcessorTest {
 
   @Test
   void textChoiceFailsFastWhenPayloadExceedsInlineLimit() {
-    byte[] bytes = new byte[DocumentReturnProcessor.MAX_INLINE_PAYLOAD_BYTES + 1];
+    byte[] bytes = new byte[(int) InlineSizeGuard.MAX_INLINE_BYTES + 1];
     RawPayload payload = RawPayload.of(bytes, null, null);
 
     DocumentReturn<String> ret =
-        DocumentReturn.of(payload, (converted, choice) -> (String) converted);
+        new DocumentReturn<>(payload, (converted, choice) -> (String) converted);
 
     assertThatThrownBy(() -> processor.process(ret, format(DocumentReturnChoice.TEXT)))
         .isInstanceOf(ConnectorException.class)
@@ -139,10 +140,10 @@ class DocumentReturnProcessorTest {
 
   @Test
   void jsonChoiceFailsFastWhenPayloadExceedsInlineLimit() {
-    byte[] bytes = new byte[DocumentReturnProcessor.MAX_INLINE_PAYLOAD_BYTES + 1];
+    byte[] bytes = new byte[(int) InlineSizeGuard.MAX_INLINE_BYTES + 1];
     RawPayload payload = RawPayload.of(bytes, "application/json", null);
 
-    DocumentReturn<Object> ret = DocumentReturn.of(payload, (converted, choice) -> converted);
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
 
     assertThatThrownBy(() -> processor.process(ret, format(DocumentReturnChoice.JSON)))
         .isInstanceOf(ConnectorException.class)

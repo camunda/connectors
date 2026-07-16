@@ -24,6 +24,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.document.DocumentReturnChoice;
 import io.camunda.connector.api.document.DocumentReturnFormat;
+import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.api.error.ConnectorException;
 import java.io.IOException;
@@ -42,13 +43,6 @@ import org.slf4j.LoggerFactory;
 public class DocumentReturnProcessor {
 
   private static final Logger LOG = LoggerFactory.getLogger(DocumentReturnProcessor.class);
-
-  /**
-   * Conservative guard for the {@code TEXT}/{@code JSON} branches. Sits below Zeebe's default 4 MiB
-   * gRPC message limit so the rest of the variable envelope (response headers, metadata, gRPC
-   * framing) still fits. Payloads above this size must use {@link DocumentReturnChoice#DOCUMENT}.
-   */
-  static final int MAX_INLINE_PAYLOAD_BYTES = 3 * 1024 * 1024;
 
   private final DocumentFactory documentFactory;
   private final ObjectMapper objectMapper;
@@ -150,14 +144,14 @@ public class DocumentReturnProcessor {
   }
 
   private static void ensureFitsInVariable(int byteLength, String formatLabel) {
-    if (byteLength <= MAX_INLINE_PAYLOAD_BYTES) {
+    if (byteLength <= InlineSizeGuard.MAX_INLINE_BYTES) {
       return;
     }
     double payloadMiB = byteLength / (1024.0 * 1024.0);
-    int limitMiB = MAX_INLINE_PAYLOAD_BYTES / (1024 * 1024);
+    double limitMiB = InlineSizeGuard.MAX_INLINE_BYTES / (1024.0 * 1024.0);
     throw new ConnectorException(
         String.format(
-            "%s response payload is %.1f MiB, which exceeds the inline variable size limit of %d"
+            "%s response payload is %.1f MiB, which exceeds the inline variable size limit of %.1f"
                 + " MiB. Re-run with 'Document reference' as the response format so the payload"
                 + " is uploaded to the document store instead.",
             formatLabel, payloadMiB, limitMiB));

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.api.document;
 
+import java.io.InputStream;
 import java.util.function.BiFunction;
 
 /**
@@ -37,8 +38,27 @@ import java.util.function.BiFunction;
 public record DocumentReturn<T>(
     RawPayload payload, BiFunction<Object, DocumentReturnChoice, T> wrap) {
 
+  /**
+   * Convenience factory that builds the {@link RawPayload} from a stream, so connectors don't have
+   * to construct it themselves.
+   */
   public static <T> DocumentReturn<T> of(
-      RawPayload payload, BiFunction<Object, DocumentReturnChoice, T> wrap) {
-    return new DocumentReturn<>(payload, wrap);
+      InputStream stream,
+      String contentType,
+      String fileName,
+      BiFunction<Object, DocumentReturnChoice, T> wrap) {
+    return new DocumentReturn<>(new RawPayload(stream, contentType, fileName), wrap);
+  }
+
+  /**
+   * Convenience factory that builds the {@link RawPayload} from a byte array, so connectors don't
+   * have to construct it themselves.
+   */
+  public static <T> DocumentReturn<T> of(
+      byte[] bytes,
+      String contentType,
+      String fileName,
+      BiFunction<Object, DocumentReturnChoice, T> wrap) {
+    return new DocumentReturn<>(RawPayload.of(bytes, contentType, fileName), wrap);
   }
 }

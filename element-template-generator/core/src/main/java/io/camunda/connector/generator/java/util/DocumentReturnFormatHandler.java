@@ -30,9 +30,7 @@ import io.camunda.connector.generator.java.annotation.FieldVisibility;
 import io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -50,19 +48,6 @@ final class DocumentReturnFormatHandler {
   static final String ENCODING_ID = "documentReturnFormatEncoding";
   static final String CHOICE_BINDING = "documentReturnFormat.choice";
   static final String ENCODING_BINDING = "documentReturnFormat.encoding";
-
-  private static final Map<DocumentReturnChoice, DropdownChoice> CHOICE_LABELS =
-      new EnumMap<>(DocumentReturnChoice.class);
-
-  static {
-    CHOICE_LABELS.put(
-        DocumentReturnChoice.DOCUMENT,
-        new DropdownChoice("Document reference", DocumentReturnChoice.DOCUMENT.name()));
-    CHOICE_LABELS.put(
-        DocumentReturnChoice.TEXT, new DropdownChoice("as text", DocumentReturnChoice.TEXT.name()));
-    CHOICE_LABELS.put(
-        DocumentReturnChoice.JSON, new DropdownChoice("as JSON", DocumentReturnChoice.JSON.name()));
-  }
 
   private DocumentReturnFormatHandler() {}
 
@@ -95,11 +80,7 @@ final class DocumentReturnFormatHandler {
 
     List<DropdownChoice> choices = new ArrayList<>();
     for (DocumentReturnChoice c : supportedFormats) {
-      DropdownChoice mapped = CHOICE_LABELS.get(c);
-      if (mapped == null) {
-        throw new IllegalStateException("Unknown DocumentReturnChoice: " + c);
-      }
-      choices.add(mapped);
+      choices.add(new DropdownChoice(c.getLabel(), c.name()));
     }
 
     // Encoding sub-field: only visible when TEXT is selected. Registered as a dependant of the

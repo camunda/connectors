@@ -17,7 +17,6 @@ import com.google.api.services.drive.model.File;
 import com.google.common.reflect.TypeToken;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReturn;
-import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.gdrive.mapper.DocumentMapper;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;
@@ -192,9 +191,11 @@ public class GoogleDriveService {
       if (useDocumentReturnFlow) {
         InputStream stream =
             drive.files().get(fileId).setSupportsAllDrives(true).executeMediaAsInputStream();
-        RawPayload payload =
-            new RawPayload(stream, fileMetaData.getMimeType(), fileMetaData.getName());
-        return DocumentReturn.of(payload, (converted, choice) -> converted);
+        return DocumentReturn.of(
+            stream,
+            fileMetaData.getMimeType(),
+            fileMetaData.getName(),
+            (converted, choice) -> converted);
       } else {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
           drive.files().get(fileId).executeMediaAndDownloadTo(outputStream);

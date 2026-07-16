@@ -16,7 +16,6 @@ import com.google.cloud.storage.StorageOptions;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReturn;
-import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.google.gcs.model.request.Authentication;
@@ -118,13 +117,11 @@ public class ObjectStorageExecutor {
     Blob blob = storage.get(blobId);
     String contentType = blob != null ? blob.getContentType() : null;
     ReadChannel reader = storage.reader(blobId);
-    RawPayload payload =
-        new RawPayload(
-            new GcsStorageClosingStream(Channels.newInputStream(reader), storage),
-            contentType,
-            downloadObject.fileName());
     return DocumentReturn.of(
-        payload, (converted, choice) -> DownloadResponse.of(choice, converted));
+        new GcsStorageClosingStream(Channels.newInputStream(reader), storage),
+        contentType,
+        downloadObject.fileName(),
+        (converted, choice) -> DownloadResponse.of(choice, converted));
   }
 
   private DownloadResponse legacyDownloadPath(DownloadObject downloadObject) {

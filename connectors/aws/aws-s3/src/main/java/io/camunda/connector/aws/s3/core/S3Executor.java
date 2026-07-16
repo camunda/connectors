@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReturn;
-import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.s3.model.request.*;
 import io.camunda.connector.aws.s3.model.response.DeleteResponse;
@@ -112,10 +111,10 @@ public class S3Executor {
       DownloadObject downloadObject, ResponseInputStream<GetObjectResponse> getObjectResponse) {
     String bucket = downloadObject.bucket();
     String key = downloadObject.key();
-    RawPayload payload =
-        new RawPayload(getObjectResponse, getObjectResponse.response().contentType(), key);
     return DocumentReturn.of(
-        payload,
+        getObjectResponse,
+        getObjectResponse.response().contentType(),
+        key,
         (converted, choice) -> new DownloadResponse(bucket, key, Element.of(choice, converted)));
   }
 

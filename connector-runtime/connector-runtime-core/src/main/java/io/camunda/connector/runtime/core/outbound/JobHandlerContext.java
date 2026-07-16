@@ -119,15 +119,14 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   @Override
   public Optional<DocumentReturnFormat> readDocumentReturnFormat() {
-    JsonNode formatNode;
-    try {
-      formatNode = objectMapper.readTree(getJsonReplacedWithSecrets()).path("documentReturnFormat");
-    } catch (JsonProcessingException e) {
-      throw new ConnectorInputException(
-          "Failed to parse job variables while reading documentReturnFormat: "
-              + e.getOriginalMessage(),
-          e);
+    // Read the raw variable directly instead of the secret-replaced job JSON: the return-format
+    // dropdown never carries secrets, so we can skip secret replacement and parsing the full
+    // variable tree.
+    Object rawFormat = job.getVariable("documentReturnFormat");
+    if (rawFormat == null) {
+      return Optional.empty();
     }
+    JsonNode formatNode = objectMapper.valueToTree(rawFormat);
     String choiceText = formatNode.path("choice").asText(null);
     if (choiceText == null || choiceText.isBlank()) {
       return Optional.empty();

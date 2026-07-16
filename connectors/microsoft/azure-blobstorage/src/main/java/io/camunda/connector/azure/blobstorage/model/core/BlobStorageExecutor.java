@@ -22,7 +22,6 @@ import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReturn;
-import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.azure.blobstorage.model.request.BlobStorageOperation;
 import io.camunda.connector.azure.blobstorage.model.request.BlobStorageRequest;
 import io.camunda.connector.azure.blobstorage.model.request.DownloadBlob;
@@ -33,7 +32,6 @@ import io.camunda.connector.azure.blobstorage.model.request.auth.SASAuthenticati
 import io.camunda.connector.azure.blobstorage.model.response.DownloadResponse;
 import io.camunda.connector.azure.blobstorage.model.response.DownloadResponse.DocumentContent;
 import io.camunda.connector.azure.blobstorage.model.response.UploadResponse;
-import java.io.ByteArrayInputStream;
 import java.time.Duration;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -111,11 +109,11 @@ public class BlobStorageExecutor {
 
     if (useDocumentReturnFlow) {
       String contentType = contentResponse.getDeserializedHeaders().getContentType();
-      RawPayload payload =
-          new RawPayload(
-              new ByteArrayInputStream(content.toBytes()), contentType, downloadBlob.fileName());
       return DocumentReturn.of(
-          payload, (converted, choice) -> DownloadResponse.of(choice, converted));
+          content.toBytes(),
+          contentType,
+          downloadBlob.fileName(),
+          (converted, choice) -> DownloadResponse.of(choice, converted));
     } else {
       return legacyDownloadPath(downloadBlob, contentResponse, content);
     }

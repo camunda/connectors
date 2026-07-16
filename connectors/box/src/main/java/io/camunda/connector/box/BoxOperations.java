@@ -23,12 +23,10 @@ import com.box.sdk.BoxSearchParameters;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReturn;
-import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.box.model.BoxRequest;
 import io.camunda.connector.box.model.BoxRequest.Operation.Search.SortDirection;
 import io.camunda.connector.box.model.BoxResult;
-import java.io.ByteArrayInputStream;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -93,9 +91,11 @@ public class BoxOperations {
     BoxResult.Item itemSnapshot = item(file);
     String fileName = file.getInfo().getName();
     byte[] bytes = download(file);
-    RawPayload payload = new RawPayload(new ByteArrayInputStream(bytes), null, fileName);
     return DocumentReturn.of(
-        payload, (converted, choice) -> BoxResult.forDownload(itemSnapshot, choice, converted));
+        bytes,
+        null,
+        fileName,
+        (converted, choice) -> BoxResult.forDownload(itemSnapshot, choice, converted));
   }
 
   private static Document createDocument(BoxFile file, OutboundConnectorContext context) {
