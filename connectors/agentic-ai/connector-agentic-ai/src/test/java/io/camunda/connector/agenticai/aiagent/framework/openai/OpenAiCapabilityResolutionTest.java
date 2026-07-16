@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiCapabilitiesConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilitiesResolver;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiEffort;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -21,9 +22,9 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Bundled-matrix coverage for the typed OpenAI {@code provider.reasoning} descriptor: reasoning
- * effort-levels are declared on {@code openai-responses} for the reasoning-capable model families
- * (gpt-5, o-series) and deliberately withheld on {@code openai-completions} (see the module's
- * matrix header comment: reasoning support on Chat Completions is deferred).
+ * effort-levels are declared identically for the reasoning-capable model families (gpt-5, o-series)
+ * on both {@code openai-responses} and {@code openai-completions} — reasoning is a model
+ * capability, not an API-surface one.
  */
 class OpenAiCapabilityResolutionTest {
 
@@ -47,12 +48,15 @@ class OpenAiCapabilityResolutionTest {
   }
 
   @Test
-  void gpt5OnCompletionsHasNoReasoning() {
+  void gpt5OnCompletionsHasReasoning() {
     contextRunner.run(
         context -> {
           final var caps = resolve(context, OPENAI_COMPLETIONS, "gpt-5");
 
-          assertThat(caps.supportsReasoning()).isFalse();
+          assertThat(caps.supportsReasoning()).isTrue();
+          assertThat(caps.reasoning().effortLevels())
+              .containsExactlyInAnyOrder(
+                  OpenAiEffort.MINIMAL, OpenAiEffort.LOW, OpenAiEffort.MEDIUM, OpenAiEffort.HIGH);
         });
   }
 

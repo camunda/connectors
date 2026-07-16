@@ -137,9 +137,9 @@ class BundledCapabilityMatrixTest {
         context -> {
           final var caps = resolveOpenAi(context, OPENAI_COMPLETIONS, "gpt-5.5");
 
-          // Reasoning is declared on openai-responses only, not openai-completions (see the
-          // matrix's own comment on that block: deferred, not absent from the underlying model).
-          assertThat(caps.supportsReasoning()).isFalse();
+          // Reasoning is a model capability, not an API-surface one: gpt-5 declares it on
+          // openai-completions too, mirroring openai-responses.
+          assertThat(caps.supportsReasoning()).isTrue();
           assertThat(caps.toolResultModalities()).containsExactly(Modality.TEXT);
           // gpt-5* spans 128k-1.05M context / 16k-272k output on models.dev across its
           // chat-latest/base/codex/pro variants; the entry pins the conservative floor across that
