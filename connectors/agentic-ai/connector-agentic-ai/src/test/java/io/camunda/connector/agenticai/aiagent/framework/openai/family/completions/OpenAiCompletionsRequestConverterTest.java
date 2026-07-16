@@ -347,6 +347,18 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
+  void requestsUsageInStreamOptionsSinceCompletionsCallsAreAlwaysStreamed() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toChatCompletionCreateParams(ctx(model(null), null), snapshot, caps());
+
+    assertThat(params.streamOptions().orElseThrow().includeUsage()).contains(true);
+    assertThat(requestBodyAsJson(params).path("stream_options").path("include_usage").asBoolean())
+        .isTrue();
+  }
+
+  @Test
   void mergesCompatibleBackendRequestParametersIntoRequestBody() {
     final var backend =
         new OpenAiCompatibleBackend(

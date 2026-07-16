@@ -18,6 +18,7 @@ import com.openai.models.chat.completions.ChatCompletionFunctionTool;
 import com.openai.models.chat.completions.ChatCompletionMessageFunctionToolCall;
 import com.openai.models.chat.completions.ChatCompletionMessageParam;
 import com.openai.models.chat.completions.ChatCompletionMessageToolCall;
+import com.openai.models.chat.completions.ChatCompletionStreamOptions;
 import com.openai.models.chat.completions.ChatCompletionSystemMessageParam;
 import com.openai.models.chat.completions.ChatCompletionTool;
 import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
@@ -99,6 +100,11 @@ public class OpenAiCompletionsRequestConverter {
     OpenAiRequestValidator.validate(connection, capabilities.reasoning(), modelMatched, modelId);
 
     final var builder = ChatCompletionCreateParams.builder().model(modelId);
+
+    // Chat Completions streaming omits `usage` unless `stream_options.include_usage=true`; this
+    // converter's calls are always streamed, so request usage so token metrics
+    // (input/output/cached) are populated.
+    builder.streamOptions(ChatCompletionStreamOptions.builder().includeUsage(true).build());
 
     applyModelParameters(builder, params);
     applyMessages(builder, snapshot.messages());
