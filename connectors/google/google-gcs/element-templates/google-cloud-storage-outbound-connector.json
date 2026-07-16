@@ -121,7 +121,7 @@
       "equals" : "downloadObject",
       "type" : "simple"
     },
-    "tooltip" : "Specify the name of the document to be downloaded.",
+    "tooltip" : "Name of the object in the bucket to download.",
     "type" : "String"
   }, {
     "id" : "documentReturnFormat",
@@ -390,7 +390,6 @@
   }, {
     "id" : "authentication.jsonKey",
     "label" : "JSON key of the service account",
-    "description" : "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -401,6 +400,7 @@
       "name" : "authentication.jsonKey",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Service account key in JSON format. See the <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">Google Cloud Storage authentication guide</a> for details.",
     "type" : "String"
   }, {
     "id" : "uploadOperationFileName",
