@@ -1030,17 +1030,11 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "configuration.openai.apiFamily",
-        "equals" : "responses",
-        "type" : "simple"
-      }, {
-        "property" : "configuration.type",
-        "equals" : "openai",
-        "type" : "simple"
-      } ]
+      "property" : "configuration.type",
+      "equals" : "openai",
+      "type" : "simple"
     },
-    "tooltip" : "Reasoning effort for reasoning-capable models (Responses API only). Unset ⇒ model default.",
+    "tooltip" : "Reasoning effort for reasoning-capable models. Unset ⇒ model default.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "minimal",
