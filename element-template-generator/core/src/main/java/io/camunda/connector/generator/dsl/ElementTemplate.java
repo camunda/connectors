@@ -153,5 +153,23 @@ public record ElementTemplate(
           haveEventDefinition.contains(value) ? messageEventDefinition : null,
           value);
     }
+
+    /**
+     * Returns the {@link BpmnType} this wrapper was built from. Falls back to reconstructing it
+     * from {@code value} and {@code eventDefinition} when {@code originalType} is unavailable, e.g.
+     * for a wrapper deserialized from JSON, where {@code originalType} is {@code @JsonIgnore}d.
+     */
+    public BpmnType resolveType() {
+      if (originalType != null) {
+        return originalType;
+      }
+      boolean hasEventDefinition = eventDefinition != null;
+      for (var candidate : BpmnType.values()) {
+        if (candidate.getName().equals(value) && candidate.isMessage() == hasEventDefinition) {
+          return candidate;
+        }
+      }
+      return null;
+    }
   }
 }
