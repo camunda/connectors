@@ -308,8 +308,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
                 group = "model",
                 label = "Reasoning effort",
                 tooltip =
-                    "Reasoning effort for reasoning-capable models (Responses API only). "
-                        + "Unset ⇒ model default.",
+                    "Reasoning effort for reasoning-capable models. " + "Unset ⇒ model default.",
                 type = TemplateProperty.PropertyType.Dropdown,
                 choices = {
                   @DropdownPropertyChoice(value = "minimal", label = "minimal"),
@@ -319,11 +318,7 @@ public record OpenAiChatModel(@Valid @NotNull OpenAiConnection openai)
                   @DropdownPropertyChoice(value = "xhigh", label = "xhigh"),
                   @DropdownPropertyChoice(value = "max", label = "max")
                 },
-                optional = true,
-                condition =
-                    @TemplateProperty.PropertyCondition(
-                        property = "configuration.openai.apiFamily",
-                        equals = "responses"))
+                optional = true)
             @Nullable OpenAiEffort effort) {}
   }
 }
