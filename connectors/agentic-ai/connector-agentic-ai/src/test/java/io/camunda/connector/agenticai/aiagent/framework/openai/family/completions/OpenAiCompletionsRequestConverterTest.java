@@ -36,6 +36,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiApiFamily;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.CompatibleAuthentication.CompatibleApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiBackend.OpenAiDirectBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiModel;
@@ -72,6 +75,18 @@ class OpenAiCompletionsRequestConverterTest {
             new OpenAiModel("gpt-4o", parameters),
             enableWebSearch,
             enableCodeInterpreter,
+            null,
+            null));
+  }
+
+  private static OpenAiChatModel modelWithBackend(OpenAiBackend backend) {
+    return new OpenAiChatModel(
+        new OpenAiConnection(
+            OpenAiApiFamily.COMPLETIONS,
+            backend,
+            new OpenAiModel("gpt-4o", null),
+            null,
+            null,
             null,
             null));
   }
@@ -329,5 +344,37 @@ class OpenAiCompletionsRequestConverterTest {
     assertThat(params.maxCompletionTokens()).contains(512L);
     assertThat(params.temperature()).contains(0.5);
     assertThat(params.topP()).contains(0.9);
+  }
+
+  @Test
+  void mergesCompatibleBackendRequestParametersIntoRequestBody() {
+    final var backend =
+        new OpenAiCompatibleBackend(
+            "https://example.test/v1",
+            null,
+            null,
+            Map.of("service_tier", "priority", "top_logprobs", 5),
+            new CompatibleApiKeyAuthentication("k"));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toChatCompletionCreateParams(
+            ctx(modelWithBackend(backend), null), snapshot, caps());
+
+    final var body = requestBodyAsJson(params);
+    assertThat(body.path("service_tier").asText()).isEqualTo("priority");
+    assertThat(body.path("top_logprobs").asInt()).isEqualTo(5);
+  }
+
+  @Test
+  void doesNotAddRequestParametersForDirectBackend() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toChatCompletionCreateParams(ctx(model(null), null), snapshot, caps());
+
+    final var body = requestBodyAsJson(params);
+    assertThat(body.has("service_tier")).isFalse();
+    assertThat(body.has("top_logprobs")).isFalse();
   }
 }

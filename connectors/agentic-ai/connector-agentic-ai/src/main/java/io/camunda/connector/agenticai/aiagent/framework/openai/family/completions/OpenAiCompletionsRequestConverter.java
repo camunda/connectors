@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.openai.family.completio
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.core.JsonValue;
 import com.openai.models.FunctionDefinition;
 import com.openai.models.FunctionParameters;
 import com.openai.models.ResponseFormatJsonSchema;
@@ -103,6 +104,7 @@ public class OpenAiCompletionsRequestConverter {
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
     applyStructuredOutput(builder, ctx.configuration().response());
+    applyCompatibleRequestParameters(builder, connection);
 
     return builder.build();
   }
@@ -250,6 +252,24 @@ public class OpenAiCompletionsRequestConverter {
                     .strict(true)
                     .build())
             .build());
+  }
+
+  /**
+   * The OpenAI-compatible backend allows passing arbitrary additional request-body parameters (e.g.
+   * vendor-specific extensions unsupported by the SDK's typed builder). {@code headers}/ {@code
+   * queryParameters} on the same backend are applied at the client level (see {@code
+   * OpenAiOkHttpClientFactory}), but body parameters can only be merged here, at request-building
+   * time.
+   */
+  private void applyCompatibleRequestParameters(
+      ChatCompletionCreateParams.Builder builder, OpenAiConnection connection) {
+    if (connection.backend()
+            instanceof OpenAiChatModel.OpenAiBackend.OpenAiCompatibleBackend compatible
+        && compatible.requestParameters() != null) {
+      compatible
+          .requestParameters()
+          .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
+    }
   }
 
   private String writeAsJson(Object value) {
