@@ -140,7 +140,13 @@ class NativeProviderAcceptanceIT {
       // mode like Anthropic "enabled"), so the reasoning scenario can additionally assert
       // reasoningTokenCount > 0. For "adaptive"/effort-only modes the model may answer without
       // billable thinking, so only completion + a correct answer is asserted.
-      boolean forcesReasoningTokens) {
+      boolean forcesReasoningTokens,
+      // Whether this provider family reports a distinct cache-creation (write) token count.
+      // Anthropic reports `cache_creation_input_tokens` for the turn that writes the cache.
+      // OpenAI's prompt caching is automatic and reports only cache-READ tokens
+      // (`cached_tokens`), with no creation/write metric at all — so the cache-creation
+      // assertion in the prompt-caching scenario is gated on this flag.
+      boolean reportsCacheCreationTokens) {
 
     boolean isEnabled() {
       return System.getenv(requiredEnvVar) != null;
@@ -177,7 +183,8 @@ class NativeProviderAcceptanceIT {
             "configuration.anthropic.model.model",
             model),
         capabilityProperties,
-        forcesReasoningTokens);
+        forcesReasoningTokens,
+        true);
   }
 
   static NativeProvider openaiDirect(
@@ -200,7 +207,8 @@ class NativeProviderAcceptanceIT {
             "configuration.openai.model.model",
             model),
         capabilityProperties,
-        forcesReasoningTokens);
+        forcesReasoningTokens,
+        false);
   }
 
   static Stream<NativeProvider> providers() {
@@ -539,15 +547,20 @@ class NativeProviderAcceptanceIT {
     // turn 2 re-sends the byte-identical prefix and reads it. Cumulative run metrics carry both.
     assertAgentResponse(
         instance,
-        response ->
-            JobWorkerAgentResponseAssert.assertThat(response)
-                .isReady()
-                .hasCacheCreationTokensGreaterThanZero()
-                .hasCacheReadTokensGreaterThanZero()
-                .hasResponseTestSatisfying(
-                    text ->
-                        org.assertj.core.api.Assertions.assertThat(text)
-                            .contains(NONCE_CODE_NAME)));
+        response -> {
+          var agentAssert = JobWorkerAgentResponseAssert.assertThat(response).isReady();
+          // Cache-creation (write) tokens are only reported by providers that expose a distinct
+          // write metric (Anthropic); OpenAI's automatic caching reports read-only, so this
+          // assertion would never pass for it.
+          if (provider.reportsCacheCreationTokens()) {
+            agentAssert.hasCacheCreationTokensGreaterThanZero();
+          }
+          agentAssert
+              .hasCacheReadTokensGreaterThanZero()
+              .hasResponseTestSatisfying(
+                  text ->
+                      org.assertj.core.api.Assertions.assertThat(text).contains(NONCE_CODE_NAME));
+        });
   }
 
   private static final String DOC_DIR = "document-tool-call-results/";
