@@ -52,6 +52,7 @@ import io.camunda.connector.agenticai.aiagent.framework.capabilities.AgenticAiCa
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.CapabilityAwareToolCallResultStrategy;
 import io.camunda.connector.agenticai.aiagent.framework.multimodal.ToolCallResultStrategy;
+import io.camunda.connector.agenticai.aiagent.framework.openai.configuration.AgenticAiOpenAiFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.transport.HttpTransportSupport;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -94,6 +95,7 @@ import org.springframework.context.annotation.Import;
   AgenticAiCapabilitiesConfiguration.class,
   AgenticAiLangchain4JFrameworkConfiguration.class,
   AgenticAiAnthropicFrameworkConfiguration.class,
+  AgenticAiOpenAiFrameworkConfiguration.class,
   McpDiscoveryConfiguration.class,
   McpClientConfiguration.class,
   McpRemoteClientConfiguration.class,
