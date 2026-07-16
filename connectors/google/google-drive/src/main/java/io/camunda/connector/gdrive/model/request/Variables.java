@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 
 public record Variables(
     @TemplateProperty(
@@ -18,6 +17,5 @@ public record Variables(
             label = "Template variables",
             group = "operationDetails",
             feel = FeelMode.required,
-            binding = @PropertyBinding(name = "variables"),
-            condition = @PropertyCondition(property = "resource.type", equals = "file"))
+            binding = @PropertyBinding(name = "variables"))
         JsonNode requests) {}

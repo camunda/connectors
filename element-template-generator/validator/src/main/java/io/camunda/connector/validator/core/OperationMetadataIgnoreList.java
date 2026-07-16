@@ -60,6 +60,7 @@ public final class OperationMetadataIgnoreList {
           "rabbitmq",
           "rpa",
           "sendgrid",
+          "servicenow-flow-starter",
           "soap");
 
   /**
@@ -71,15 +72,10 @@ public final class OperationMetadataIgnoreList {
       Set.of(
           "agentic-ai",
           "app-integrations",
-          "aws-base",
-          "google-drive",
-          "http",
+          "http", // operations are HTTP methods bound to the shared HttpMethod enum
           "idp-extraction",
           "operate", // deprecated
-          "orchestration",
-          "power-automate",
-          "servicenow-flow-starter",
-          "servicenow-incident");
+          "power-automate"); // deprecated
 
   public static final Set<String> ENTRIES =
       Stream.of(CONNECTORS_WITH_ONLY_ONE_OPERATION, CONNECTORS_SKIPPING_NATIVE_OPERATIONS_FEATURE)

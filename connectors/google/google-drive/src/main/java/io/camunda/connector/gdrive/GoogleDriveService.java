@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.gdrive;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.json.JsonParser;
 import com.google.api.client.json.gson.GsonFactory;
@@ -18,9 +19,12 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.gdrive.mapper.DocumentMapper;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;
+import io.camunda.connector.gdrive.model.request.DownloadResource;
+import io.camunda.connector.gdrive.model.request.FileResource;
+import io.camunda.connector.gdrive.model.request.FolderResource;
 import io.camunda.connector.gdrive.model.request.Resource;
 import io.camunda.connector.gdrive.model.request.Template;
-import io.camunda.connector.gdrive.model.request.Type;
+import io.camunda.connector.gdrive.model.request.UploadResource;
 import io.camunda.connector.gdrive.model.request.Variables;
 import io.camunda.google.supplier.GsonComponentSupplier;
 import java.io.ByteArrayOutputStream;
@@ -53,16 +57,19 @@ public class GoogleDriveService {
   public GoogleDriveService() {}
 
   public Object execute(final GoogleDriveClient client, final Resource resource) {
-    return switch (resource.type()) {
-      case FOLDER -> createFolder(client, resource);
-      case FILE -> createFile(client, resource);
-      case UPLOAD -> uploadFile(client, resource);
-      case DOWNLOAD -> downloadFile(client, resource);
+    return switch (resource) {
+      case FolderResource folder -> createFolder(client, folder);
+      case FileResource file -> createFile(client, file);
+      case UploadResource upload -> uploadFile(client, upload);
+      case DownloadResource download -> downloadFile(client, download);
     };
   }
 
-  private GoogleDriveResult createFolder(final GoogleDriveClient client, final Resource resource) {
-    File fileMetadata = createMetaDataFile(resource);
+  private GoogleDriveResult createFolder(
+      final GoogleDriveClient client, final FolderResource resource) {
+    File fileMetadata =
+        createMetaDataFile(
+            resource.name(), resource.parent(), resource.additionalGoogleDriveProperties(), true);
     File result = client.createWithMetadata(fileMetadata);
     LOGGER.debug(
         "Folder successfully created, id: [{}] name: [{}]", result.getId(), resource.name());
@@ -70,8 +77,9 @@ public class GoogleDriveService {
         result.getId(), MimeTypeUrl.getResourceUrl(result.getMimeType(), result.getId()));
   }
 
-  private GoogleDriveResult createFile(final GoogleDriveClient client, final Resource resource) {
-    final File metaData = createMetaDataFile(resource);
+  private GoogleDriveResult createFile(
+      final GoogleDriveClient client, final FileResource resource) {
+    final File metaData = createMetaDataFile(resource.name(), resource.parent(), null, false);
     File result;
     if (resource.template() != null) {
       result = client.createWithTemplate(metaData, resource.template().id());
@@ -79,8 +87,7 @@ public class GoogleDriveService {
           "File successfully created by template, file name [{}], templateId [{}]",
           result.getId(),
           resource.name());
-      Optional.of(resource)
-          .map(Resource::template)
+      Optional.ofNullable(resource.template())
           .map(Template::variables)
           .map(Variables::requests)
           .map(Object::toString)
@@ -103,16 +110,20 @@ public class GoogleDriveService {
     }
   }
 
-  private File createMetaDataFile(final Resource resource) {
+  private File createMetaDataFile(
+      final String name,
+      final String parent,
+      final JsonNode additionalGoogleDriveProperties,
+      final boolean isFolder) {
     File file;
-    if (resource.additionalGoogleDriveProperties() == null) {
+    if (additionalGoogleDriveProperties == null) {
       file = new File();
     } else {
-      file = mapJsonToFile(resource.additionalGoogleDriveProperties().toString());
+      file = mapJsonToFile(additionalGoogleDriveProperties.toString());
     }
-    return file.setName(resource.name())
-        .setMimeType(resource.type() == Type.FOLDER ? MimeTypeUrl.FOLDER.getMimeType() : null)
-        .setParents(resource.parent() != null ? List.of(resource.parent()) : null);
+    return file.setName(name)
+        .setMimeType(isFolder ? MimeTypeUrl.FOLDER.getMimeType() : null)
+        .setParents(parent != null ? List.of(parent) : null);
   }
 
   private File mapJsonToFile(String json) {
@@ -138,7 +149,8 @@ public class GoogleDriveService {
     }
   }
 
-  private GoogleDriveResult uploadFile(final GoogleDriveClient client, final Resource resource) {
+  private GoogleDriveResult uploadFile(
+      final GoogleDriveClient client, final UploadResource resource) {
     try {
       var document = resource.uploadData().document();
       File fileMetaData = prepareFileMetaData(document, resource.parent());
@@ -163,7 +175,7 @@ public class GoogleDriveService {
     }
   }
 
-  private Document downloadFile(final GoogleDriveClient client, final Resource resource) {
+  private Document downloadFile(final GoogleDriveClient client, final DownloadResource resource) {
     Drive drive = client.getDriveService();
     try {
       String fileId = resource.downloadData().fileId();

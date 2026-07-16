@@ -6,66 +6,26 @@
  */
 package io.camunda.connector.gdrive.model.request;
 
-import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.generator.java.annotation.FeelMode;
-import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-
-public record Resource(
-    @TemplateProperty(
-            id = "type",
-            label = "Operation",
-            group = "operation",
-            type = Dropdown,
-            defaultValue = "folder",
-            constraints = @PropertyConstraints(notEmpty = true),
-            choices = {
-              @DropdownPropertyChoice(label = "Create folder", value = "folder"),
-              @DropdownPropertyChoice(label = "Create file from template", value = "file"),
-              @DropdownPropertyChoice(label = "Upload file", value = "upload"),
-              @DropdownPropertyChoice(label = "Download file", value = "download")
-            })
-        @NotNull
-        Type type,
-    @TemplateProperty(
-            id = "name",
-            label = "New resource name",
-            group = "operationDetails",
-            feel = FeelMode.optional,
-            condition =
-                @TemplateProperty.PropertyCondition(
-                    property = "resource.type",
-                    oneOf = {"folder", "file"}),
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        String name,
-    @TemplateProperty(
-            id = "parent",
-            label = "Parent folder ID",
-            tooltip =
-                "Your resources will be created here. "
-                    + "If left empty, a new resource will appear in the root folder.",
-            group = "operationDetails",
-            optional = true,
-            feel = FeelMode.optional,
-            condition =
-                @TemplateProperty.PropertyCondition(
-                    property = "resource.type",
-                    oneOf = {"folder", "file", "upload"}))
-        String parent,
-    @TemplateProperty(
-            id = "additionalGoogleDriveProperties",
-            label = "Additional properties or metadata",
-            group = "operationDetails",
-            feel = FeelMode.required,
-            optional = true,
-            condition = @PropertyCondition(property = "resource.type", equals = "folder"))
-        JsonNode additionalGoogleDriveProperties,
-    @Valid Template template,
-    @Valid DownloadData downloadData,
-    @Valid UploadData uploadData) {}
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.EXISTING_PROPERTY,
+    property = "type",
+    visible = true)
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = FolderResource.class, name = "folder"),
+  @JsonSubTypes.Type(value = FileResource.class, name = "file"),
+  @JsonSubTypes.Type(value = UploadResource.class, name = "upload"),
+  @JsonSubTypes.Type(value = DownloadResource.class, name = "download")
+})
+@TemplateDiscriminatorProperty(
+    label = "Operation",
+    group = "operation",
+    name = "type",
+    defaultValue = "folder",
+    description = "Select the Google Drive operation to perform")
+public sealed interface Resource
+    permits FolderResource, FileResource, UploadResource, DownloadResource {}

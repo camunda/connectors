@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Camunda Orchestration Cluster API connector",
   "id": "io.camunda.connectors.CamundaOrchestrationCluster.v1",
-  "version": 1,
+  "version": 2,
   "engines": {
     "camunda": "^8.9"
   },
@@ -31,9 +31,9 @@
     "value": "bpmn:ServiceTask"
   },
   "groups": [
+    {"id": "operation", "label": "Operation"},
     {"id": "cluster", "label": "Cluster"},
     {"id": "authentication", "label": "Authentication"},
-    {"id": "input", "label": "Endpoint"},
     {"id": "parameters", "label": "Parameters"},
     {"id": "connector", "label": "Connector"},
     {"id": "output", "label": "Response mapping"},
@@ -42,6 +42,9 @@
   "properties": [
     {"type":"Hidden","value":"io.camunda:http-json:1","binding":{"type":"zeebe:taskDefinition","property":"type"}},
     {"type":"Hidden","value":"={\"Content-Type\":\"application/json\"}","binding":{"type":"zeebe:input","name":"headers"}},
+    {"label":"Entity","group":"operation","id":"input.internal_endpoint","type":"Dropdown","value":"/process-instances","choices":[{"name":"Process instances","value":"/process-instances"},{"name":"Process definitions","value":"/process-definitions"},{"name":"Element instances","value":"/element-instances"},{"name":"Incidents","value":"/incidents"},{"name":"Variables","value":"/variables"},{"name":"User tasks","value":"/user-tasks"},{"name":"Jobs","value":"/jobs"},{"name":"Decision instances","value":"/decision-instances"},{"name":"Decision definitions","value":"/decision-definitions"},{"name":"Decision requirements","value":"/decision-requirements"},{"name":"Batch operations","value":"/batch-operations"},{"name":"Batch operation items","value":"/batch-operation-items"},{"name":"Message subscriptions","value":"/message-subscriptions"},{"name":"Correlated message subscriptions","value":"/correlated-message-subscriptions"},{"name":"Audit logs","value":"/audit-logs"},{"name":"Authorizations","value":"/authorizations"},{"name":"Groups","value":"/groups"},{"name":"Roles","value":"/roles"},{"name":"Tenants","value":"/tenants"},{"name":"Mapping rules","value":"/mapping-rules"}],"binding":{"type":"zeebe:input","name":"input.internal_endpoint"},"tooltip":"Orchestration Cluster API v2 entity. See the <a href=\"https://docs.camunda.io/docs/apis-tools/orchestration-cluster-api-rest/orchestration-cluster-api-rest-overview/\" target=\"_blank\">API reference</a>."},
+    {"label":"Operation","group":"operation","id":"input.internal_operation","type":"Dropdown","value":"/search","condition":{"property":"input.internal_endpoint","oneOf":["/process-instances","/process-definitions","/element-instances","/incidents","/variables","/user-tasks","/jobs","/decision-instances","/decision-definitions","/decision-requirements","/batch-operations","/audit-logs","/authorizations","/groups","/roles","/tenants","/mapping-rules"]},"choices":[{"name":"Search","value":"/search"},{"name":"Get by key","value":"/"}],"binding":{"type":"zeebe:input","name":"input.internal_operation"},"tooltip":"<b>Search</b> issues a POST to <code>/{entity}/search</code> with filter, sort, and page. <b>Get by key</b> issues a GET to <code>/{entity}/{key}</code>."},
+    {"label":"Operation","group":"operation","id":"input.internal_operation","type":"Dropdown","value":"/search","condition":{"property":"input.internal_endpoint","oneOf":["/batch-operation-items","/message-subscriptions","/correlated-message-subscriptions"]},"choices":[{"name":"Search","value":"/search"}],"binding":{"type":"zeebe:input","name":"input.internal_operation"},"tooltip":"This entity supports <b>Search</b> only (POST to <code>/{entity}/search</code>)."},
     {"label":"Type","id":"authentication.internal_deployment_type","group":"cluster","type":"Dropdown","value":"saas","choices":[{"name":"Camunda SaaS","value":"saas"},{"name":"Camunda Self-managed","value":"sm"}],"binding":{"type":"zeebe:input","name":"authentication.internal_deployment_type"},"tooltip":"SaaS for cloud clusters on <code>*.zeebe.camunda.io</code>; Self-Managed for clusters you host yourself."},
     {"label":"OAuth token endpoint","group":"cluster","type":"String","feel":"optional","binding":{"type":"zeebe:input","name":"authentication.oauthTokenEndpoint"},"constraints":{"notEmpty":true},"condition":{"property":"authentication.internal_deployment_type","equals":"sm"},"tooltip":"Token endpoint of your identity provider (e.g. Keycloak, Microsoft Entra ID, Auth0)."},
     {"label":"Base URL","type":"String","feel":"optional","id":"authentication.orchestration_base_url","group":"cluster","binding":{"type":"zeebe:input","name":"authentication.orchestration_base_url"},"constraints":{"notEmpty":true},"condition":{"property":"authentication.internal_deployment_type","equals":"sm"},"tooltip":"Base URL of the Orchestration Cluster REST API. Must end with <code>/v2</code>. Example: <code>http://localhost:8080/v2</code>."},
@@ -55,8 +58,6 @@
     {"label":"Audience","type":"String","group":"authentication","feel":"optional","binding":{"type":"zeebe:input","name":"authentication.audience"},"condition":{"property":"authentication.internal_deployment_type","equals":"sm"},"tooltip":"OAuth audience expected by your identity provider.","optional":true},
     {"label":"Scopes","group":"authentication","type":"String","feel":"optional","binding":{"type":"zeebe:input","name":"authentication.scopes"},"optional":true,"condition":{"property":"authentication.internal_deployment_type","equals":"sm"},"tooltip":"Space-separated OAuth 2.0 scopes. Required by some identity providers (e.g. for Microsoft Entra ID use <code>api://&lt;client-id&gt;/.default</code>)."},
     {"type":"Hidden","value":"zeebe.camunda.io","binding":{"type":"zeebe:input","name":"authentication.audience"},"condition":{"property":"authentication.internal_deployment_type","equals":"saas"}},
-    {"label":"Endpoint","group":"input","id":"input.internal_endpoint","type":"Dropdown","value":"/process-instances","choices":[{"name":"Process instances","value":"/process-instances"},{"name":"Process definitions","value":"/process-definitions"},{"name":"Element instances","value":"/element-instances"},{"name":"Incidents","value":"/incidents"},{"name":"Variables","value":"/variables"},{"name":"User tasks","value":"/user-tasks"},{"name":"Jobs","value":"/jobs"},{"name":"Decision instances","value":"/decision-instances"},{"name":"Decision definitions","value":"/decision-definitions"},{"name":"Decision requirements","value":"/decision-requirements"},{"name":"Batch operations","value":"/batch-operations"},{"name":"Batch operation items (search only)","value":"/batch-operation-items"},{"name":"Message subscriptions (search only)","value":"/message-subscriptions"},{"name":"Correlated message subscriptions (search only)","value":"/correlated-message-subscriptions"},{"name":"Audit logs","value":"/audit-logs"},{"name":"Authorizations","value":"/authorizations"},{"name":"Groups","value":"/groups"},{"name":"Roles","value":"/roles"},{"name":"Tenants","value":"/tenants"},{"name":"Mapping rules","value":"/mapping-rules"}],"binding":{"type":"zeebe:input","name":"input.internal_endpoint"},"tooltip":"Orchestration Cluster API v2 entity. <code>batch-operation-items</code>, <code>message-subscriptions</code>, and <code>correlated-message-subscriptions</code> support <b>Search</b> only (no Get-by-key). <code>audit-logs</code> supports Search and Get-by-key only. See the <a href=\"https://docs.camunda.io/docs/apis-tools/orchestration-cluster-api-rest/orchestration-cluster-api-rest-overview/\" target=\"_blank\">API reference</a>."},
-    {"label":"Operation","group":"input","id":"input.internal_operation","type":"Dropdown","value":"/search","choices":[{"name":"Search","value":"/search"},{"name":"Get by key","value":"/"}],"binding":{"type":"zeebe:input","name":"input.internal_operation"},"tooltip":"<b>Search</b> issues a POST to <code>/{entity}/search</code> with filter, sort, and page. <b>Get by key</b> issues a GET to <code>/{entity}/{key}</code>."},
     {"type":"Hidden","value":"get","binding":{"type":"zeebe:input","name":"method"},"condition":{"property":"input.internal_operation","equals":"/"},"tooltip":"Get by key operation method (GET)"},
     {"type":"Hidden","value":"post","binding":{"type":"zeebe:input","name":"method"},"condition":{"property":"input.internal_operation","equals":"/search"},"tooltip":"Search operation method (POST)"},
     {"type":"Hidden","binding":{"type":"zeebe:input","name":"url"},"value":"=\"https://\" + authentication.internal_region + \".zeebe.camunda.io/\" + authentication.internal_cluster + \"/v2\" + input.internal_endpoint + input.internal_operation + (if is defined(input.internal_key) then input.internal_key else \"\")","condition":{"property":"authentication.internal_deployment_type","equals":"saas"}},
@@ -73,8 +74,386 @@
     {"label":"Result expression","group":"output","value":"={orchestrationClusterResponse: response.body}","type":"Text","feel":"required","binding":{"type":"zeebe:taskHeader","key":"resultExpression"},"tooltip":"FEEL expression returning a context whose keys become process variables. Example: <code>={items: response.body.items, total: response.body.page.totalItems}</code>. See <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression docs</a>."},
     {"label":"Connection timeout","group":"errors","type":"String","value":"20","binding":{"type":"zeebe:input","name":"connectionTimeoutInSeconds"},"optional":true,"feel":"optional","constraints":{"notEmpty":false,"pattern":{"value":"^(=.*|[0-9]+|\\{\\{secrets\\..+\\}\\})$","message":"Must be a non-negative integer, a {{secrets.NAME}} reference, or a FEEL expression starting with ="}},"tooltip":"Seconds to wait when establishing the TCP connection. <code>0</code> disables the timeout (not recommended in production)."},
     {"label":"Error expression","group":"errors","type":"Text","feel":"required","binding":{"type":"zeebe:taskHeader","key":"errorExpression"},"tooltip":"FEEL expression that maps connector errors to a BPMN error. Example: <code>=if error.code = \"404\" then bpmnError(\"NOT_FOUND\", error.message) else null</code>. See <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN errors docs</a>."},
-    {"id":"version","label":"Version","value":"1","group":"connector","binding":{"key":"elementTemplateVersion","type":"zeebe:taskHeader"},"type":"Hidden","tooltip":"Version of the element template"},
+    {"id":"version","label":"Version","value":"2","group":"connector","binding":{"key":"elementTemplateVersion","type":"zeebe:taskHeader"},"type":"Hidden","tooltip":"Version of the element template"},
     {"id":"id","label":"ID","value":"io.camunda.connectors.CamundaOrchestrationCluster.v1","group":"connector","binding":{"key":"elementTemplateId","type":"zeebe:taskHeader"},"type":"Hidden","tooltip":"ID of the element template"}
   ],
+  "steps" : [ {
+    "name" : "Process instances",
+    "description" : "Manage Camunda process instances.",
+    "steps" : [ {
+      "name" : "Search process instances",
+      "description" : "Search and filter Camunda process instances using criteria.",
+      "keywords" : [ "search", "filter", "process instances", "list", "running processes" ],
+      "presetId" : "processInstances_search"
+    }, {
+      "name" : "Get process instance by key",
+      "description" : "Retrieve a single Camunda process instance by its numeric key.",
+      "keywords" : [ "get", "fetch", "process instance", "by key", "lookup" ],
+      "presetId" : "processInstances_getByKey"
+    } ]
+  }, {
+    "name" : "Process definitions",
+    "description" : "Manage Camunda process definitions.",
+    "steps" : [ {
+      "name" : "Search process definitions",
+      "description" : "Search and filter Camunda process definitions.",
+      "keywords" : [ "search", "filter", "process definitions", "list", "bpmn" ],
+      "presetId" : "processDefinitions_search"
+    }, {
+      "name" : "Get process definition by key",
+      "description" : "Retrieve a single Camunda process definition by its numeric key.",
+      "keywords" : [ "get", "fetch", "process definition", "by key", "bpmn" ],
+      "presetId" : "processDefinitions_getByKey"
+    } ]
+  }, {
+    "name" : "Element instances",
+    "description" : "Manage flow node (element) instances.",
+    "steps" : [ {
+      "name" : "Search element instances",
+      "description" : "Search and filter Camunda element instances.",
+      "keywords" : [ "search", "filter", "element instances", "flow node instances", "list" ],
+      "presetId" : "elementInstances_search"
+    }, {
+      "name" : "Get element instance by key",
+      "description" : "Retrieve a single Camunda element instance by its numeric key.",
+      "keywords" : [ "get", "fetch", "element instance", "flow node instance", "by key" ],
+      "presetId" : "elementInstances_getByKey"
+    } ]
+  }, {
+    "name" : "Incidents",
+    "description" : "Manage Camunda incidents.",
+    "steps" : [ {
+      "name" : "Search incidents",
+      "description" : "Search and filter Camunda incidents.",
+      "keywords" : [ "search", "filter", "incidents", "list", "errors" ],
+      "presetId" : "incidents_search"
+    }, {
+      "name" : "Get incident by key",
+      "description" : "Retrieve a single Camunda incident by its numeric key.",
+      "keywords" : [ "get", "fetch", "incident", "by key", "error" ],
+      "presetId" : "incidents_getByKey"
+    } ]
+  }, {
+    "name" : "Variables",
+    "description" : "Manage Camunda process variables.",
+    "steps" : [ {
+      "name" : "Search variables",
+      "description" : "Search and filter Camunda process variables.",
+      "keywords" : [ "search", "filter", "variables", "list", "process data" ],
+      "presetId" : "variables_search"
+    }, {
+      "name" : "Get variable by key",
+      "description" : "Retrieve a single Camunda variable by its numeric key.",
+      "keywords" : [ "get", "fetch", "variable", "by key", "process data" ],
+      "presetId" : "variables_getByKey"
+    } ]
+  }, {
+    "name" : "User tasks",
+    "description" : "Manage Camunda user tasks.",
+    "steps" : [ {
+      "name" : "Search user tasks",
+      "description" : "Search and filter Camunda user tasks.",
+      "keywords" : [ "search", "filter", "user tasks", "list", "human tasks", "task list" ],
+      "presetId" : "userTasks_search"
+    }, {
+      "name" : "Get user task by key",
+      "description" : "Retrieve a single Camunda user task by its numeric key.",
+      "keywords" : [ "get", "fetch", "user task", "by key", "human task" ],
+      "presetId" : "userTasks_getByKey"
+    } ]
+  }, {
+    "name" : "Jobs",
+    "description" : "Manage Camunda jobs.",
+    "steps" : [ {
+      "name" : "Search jobs",
+      "description" : "Search and filter Camunda jobs.",
+      "keywords" : [ "search", "filter", "jobs", "list", "service tasks", "job worker" ],
+      "presetId" : "jobs_search"
+    }, {
+      "name" : "Get job by key",
+      "description" : "Retrieve a single Camunda job by its numeric key.",
+      "keywords" : [ "get", "fetch", "job", "by key", "service task" ],
+      "presetId" : "jobs_getByKey"
+    } ]
+  }, {
+    "name" : "Decision instances",
+    "description" : "Manage evaluated DMN decision instances.",
+    "steps" : [ {
+      "name" : "Search decision instances",
+      "description" : "Search and filter Camunda decision instances.",
+      "keywords" : [ "search", "filter", "decision instances", "list", "dmn", "decisions" ],
+      "presetId" : "decisionInstances_search"
+    }, {
+      "name" : "Get decision instance by key",
+      "description" : "Retrieve a single Camunda decision instance by its numeric key.",
+      "keywords" : [ "get", "fetch", "decision instance", "by key", "dmn" ],
+      "presetId" : "decisionInstances_getByKey"
+    } ]
+  }, {
+    "name" : "Decision definitions",
+    "description" : "Manage Camunda decision definitions (DMN models).",
+    "steps" : [ {
+      "name" : "Search decision definitions",
+      "description" : "Search and filter Camunda decision definitions.",
+      "keywords" : [ "search", "filter", "decision definitions", "list", "dmn", "decision models" ],
+      "presetId" : "decisionDefinitions_search"
+    }, {
+      "name" : "Get decision definition by key",
+      "description" : "Retrieve a single Camunda decision definition by its numeric key.",
+      "keywords" : [ "get", "fetch", "decision definition", "by key", "dmn model" ],
+      "presetId" : "decisionDefinitions_getByKey"
+    } ]
+  }, {
+    "name" : "Decision requirements",
+    "description" : "Manage Camunda decision requirements definitions (DRDs).",
+    "steps" : [ {
+      "name" : "Search decision requirements",
+      "description" : "Search and filter Camunda decision requirements.",
+      "keywords" : [ "search", "filter", "decision requirements", "list", "drd" ],
+      "presetId" : "decisionRequirements_search"
+    }, {
+      "name" : "Get decision requirements by key",
+      "description" : "Retrieve a single Camunda decision requirements definition by its numeric key.",
+      "keywords" : [ "get", "fetch", "decision requirements", "by key", "drd" ],
+      "presetId" : "decisionRequirements_getByKey"
+    } ]
+  }, {
+    "name" : "Batch operations",
+    "description" : "Manage Camunda batch operations.",
+    "steps" : [ {
+      "name" : "Search batch operations",
+      "description" : "Search and filter Camunda batch operations.",
+      "keywords" : [ "search", "filter", "batch operations", "list", "bulk" ],
+      "presetId" : "batchOperations_search"
+    }, {
+      "name" : "Get batch operation by key",
+      "description" : "Retrieve a single Camunda batch operation by its numeric key.",
+      "keywords" : [ "get", "fetch", "batch operation", "by key", "bulk" ],
+      "presetId" : "batchOperations_getByKey"
+    } ]
+  }, {
+    "name" : "Batch operation items",
+    "description" : "Search items within batch operations (search only).",
+    "steps" : [ {
+      "name" : "Search batch operation items",
+      "description" : "Search and filter items within Camunda batch operations.",
+      "keywords" : [ "search", "filter", "batch operation items", "list", "bulk items" ],
+      "presetId" : "batchOperationItems_search"
+    } ]
+  }, {
+    "name" : "Message subscriptions",
+    "description" : "Search Camunda message subscriptions (search only).",
+    "steps" : [ {
+      "name" : "Search message subscriptions",
+      "description" : "Search and filter Camunda message subscriptions.",
+      "keywords" : [ "search", "filter", "message subscriptions", "list", "messages" ],
+      "presetId" : "messageSubscriptions_search"
+    } ]
+  }, {
+    "name" : "Correlated message subscriptions",
+    "description" : "Search Camunda correlated message subscriptions (search only).",
+    "steps" : [ {
+      "name" : "Search correlated message subscriptions",
+      "description" : "Search and filter Camunda correlated message subscriptions.",
+      "keywords" : [ "search", "filter", "correlated message subscriptions", "list", "messages" ],
+      "presetId" : "correlatedMessageSubscriptions_search"
+    } ]
+  }, {
+    "name" : "Audit logs",
+    "description" : "Manage Camunda audit logs.",
+    "steps" : [ {
+      "name" : "Search audit logs",
+      "description" : "Search and filter Camunda audit log entries.",
+      "keywords" : [ "search", "filter", "audit logs", "list", "audit trail" ],
+      "presetId" : "auditLogs_search"
+    }, {
+      "name" : "Get audit log by key",
+      "description" : "Retrieve a single Camunda audit log entry by its numeric key.",
+      "keywords" : [ "get", "fetch", "audit log", "by key", "audit trail" ],
+      "presetId" : "auditLogs_getByKey"
+    } ]
+  }, {
+    "name" : "Authorizations",
+    "description" : "Manage Camunda authorizations.",
+    "steps" : [ {
+      "name" : "Search authorizations",
+      "description" : "Search and filter Camunda authorizations.",
+      "keywords" : [ "search", "filter", "authorizations", "list", "permissions", "access control" ],
+      "presetId" : "authorizations_search"
+    }, {
+      "name" : "Get authorization by key",
+      "description" : "Retrieve a single Camunda authorization by its numeric key.",
+      "keywords" : [ "get", "fetch", "authorization", "by key", "permission" ],
+      "presetId" : "authorizations_getByKey"
+    } ]
+  }, {
+    "name" : "Groups",
+    "description" : "Manage Camunda groups.",
+    "steps" : [ {
+      "name" : "Search groups",
+      "description" : "Search and filter Camunda groups.",
+      "keywords" : [ "search", "filter", "groups", "list", "teams", "access control" ],
+      "presetId" : "groups_search"
+    }, {
+      "name" : "Get group by ID",
+      "description" : "Retrieve a single Camunda group by its ID.",
+      "keywords" : [ "get", "fetch", "group", "by key", "team" ],
+      "presetId" : "groups_getByKey"
+    } ]
+  }, {
+    "name" : "Roles",
+    "description" : "Manage Camunda roles.",
+    "steps" : [ {
+      "name" : "Search roles",
+      "description" : "Search and filter Camunda roles.",
+      "keywords" : [ "search", "filter", "roles", "list", "permissions", "access control" ],
+      "presetId" : "roles_search"
+    }, {
+      "name" : "Get role by ID",
+      "description" : "Retrieve a single Camunda role by its ID.",
+      "keywords" : [ "get", "fetch", "role", "by key", "permission" ],
+      "presetId" : "roles_getByKey"
+    } ]
+  }, {
+    "name" : "Tenants",
+    "description" : "Manage Camunda tenants.",
+    "steps" : [ {
+      "name" : "Search tenants",
+      "description" : "Search and filter Camunda tenants.",
+      "keywords" : [ "search", "filter", "tenants", "list", "multi-tenancy" ],
+      "presetId" : "tenants_search"
+    }, {
+      "name" : "Get tenant by ID",
+      "description" : "Retrieve a single Camunda tenant by its ID.",
+      "keywords" : [ "get", "fetch", "tenant", "by key", "multi-tenancy" ],
+      "presetId" : "tenants_getByKey"
+    } ]
+  }, {
+    "name" : "Mapping rules",
+    "description" : "Manage Camunda mapping rules.",
+    "steps" : [ {
+      "name" : "Search mapping rules",
+      "description" : "Search and filter Camunda mapping rules.",
+      "keywords" : [ "search", "filter", "mapping rules", "list", "identity mapping" ],
+      "presetId" : "mappingRules_search"
+    }, {
+      "name" : "Get mapping rule by ID",
+      "description" : "Retrieve a single Camunda mapping rule by its ID.",
+      "keywords" : [ "get", "fetch", "mapping rule", "by key", "identity mapping" ],
+      "presetId" : "mappingRules_getByKey"
+    } ]
+  } ],
+  "presets" : [ {
+    "id" : "processInstances_search",
+    "properties" : { "input.internal_endpoint" : "/process-instances", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "processInstances_getByKey",
+    "properties" : { "input.internal_endpoint" : "/process-instances", "input.internal_operation" : "/" }
+  }, {
+    "id" : "processDefinitions_search",
+    "properties" : { "input.internal_endpoint" : "/process-definitions", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "processDefinitions_getByKey",
+    "properties" : { "input.internal_endpoint" : "/process-definitions", "input.internal_operation" : "/" }
+  }, {
+    "id" : "elementInstances_search",
+    "properties" : { "input.internal_endpoint" : "/element-instances", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "elementInstances_getByKey",
+    "properties" : { "input.internal_endpoint" : "/element-instances", "input.internal_operation" : "/" }
+  }, {
+    "id" : "incidents_search",
+    "properties" : { "input.internal_endpoint" : "/incidents", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "incidents_getByKey",
+    "properties" : { "input.internal_endpoint" : "/incidents", "input.internal_operation" : "/" }
+  }, {
+    "id" : "variables_search",
+    "properties" : { "input.internal_endpoint" : "/variables", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "variables_getByKey",
+    "properties" : { "input.internal_endpoint" : "/variables", "input.internal_operation" : "/" }
+  }, {
+    "id" : "userTasks_search",
+    "properties" : { "input.internal_endpoint" : "/user-tasks", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "userTasks_getByKey",
+    "properties" : { "input.internal_endpoint" : "/user-tasks", "input.internal_operation" : "/" }
+  }, {
+    "id" : "jobs_search",
+    "properties" : { "input.internal_endpoint" : "/jobs", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "jobs_getByKey",
+    "properties" : { "input.internal_endpoint" : "/jobs", "input.internal_operation" : "/" }
+  }, {
+    "id" : "decisionInstances_search",
+    "properties" : { "input.internal_endpoint" : "/decision-instances", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "decisionInstances_getByKey",
+    "properties" : { "input.internal_endpoint" : "/decision-instances", "input.internal_operation" : "/" }
+  }, {
+    "id" : "decisionDefinitions_search",
+    "properties" : { "input.internal_endpoint" : "/decision-definitions", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "decisionDefinitions_getByKey",
+    "properties" : { "input.internal_endpoint" : "/decision-definitions", "input.internal_operation" : "/" }
+  }, {
+    "id" : "decisionRequirements_search",
+    "properties" : { "input.internal_endpoint" : "/decision-requirements", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "decisionRequirements_getByKey",
+    "properties" : { "input.internal_endpoint" : "/decision-requirements", "input.internal_operation" : "/" }
+  }, {
+    "id" : "batchOperations_search",
+    "properties" : { "input.internal_endpoint" : "/batch-operations", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "batchOperations_getByKey",
+    "properties" : { "input.internal_endpoint" : "/batch-operations", "input.internal_operation" : "/" }
+  }, {
+    "id" : "batchOperationItems_search",
+    "properties" : { "input.internal_endpoint" : "/batch-operation-items", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "messageSubscriptions_search",
+    "properties" : { "input.internal_endpoint" : "/message-subscriptions", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "correlatedMessageSubscriptions_search",
+    "properties" : { "input.internal_endpoint" : "/correlated-message-subscriptions", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "auditLogs_search",
+    "properties" : { "input.internal_endpoint" : "/audit-logs", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "auditLogs_getByKey",
+    "properties" : { "input.internal_endpoint" : "/audit-logs", "input.internal_operation" : "/" }
+  }, {
+    "id" : "authorizations_search",
+    "properties" : { "input.internal_endpoint" : "/authorizations", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "authorizations_getByKey",
+    "properties" : { "input.internal_endpoint" : "/authorizations", "input.internal_operation" : "/" }
+  }, {
+    "id" : "groups_search",
+    "properties" : { "input.internal_endpoint" : "/groups", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "groups_getByKey",
+    "properties" : { "input.internal_endpoint" : "/groups", "input.internal_operation" : "/" }
+  }, {
+    "id" : "roles_search",
+    "properties" : { "input.internal_endpoint" : "/roles", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "roles_getByKey",
+    "properties" : { "input.internal_endpoint" : "/roles", "input.internal_operation" : "/" }
+  }, {
+    "id" : "tenants_search",
+    "properties" : { "input.internal_endpoint" : "/tenants", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "tenants_getByKey",
+    "properties" : { "input.internal_endpoint" : "/tenants", "input.internal_operation" : "/" }
+  }, {
+    "id" : "mappingRules_search",
+    "properties" : { "input.internal_endpoint" : "/mapping-rules", "input.internal_operation" : "/search" }
+  }, {
+    "id" : "mappingRules_getByKey",
+    "properties" : { "input.internal_endpoint" : "/mapping-rules", "input.internal_operation" : "/" }
+  } ],
   "icon":{"contents":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAATYAAAE2CAYAAADrvL6pAAAACXBIWXMAAAsSAAALEgHS3X78AAAJEUlEQVR4nO3d71EcyQHG4W6bz5YuApGBcATHRXA4AQtHcGRwOAKjCA45AhzBQQSGDCAD4e+udg1uqfZsIfFnZ5l9+3mq+OCybmp2pvZXPTM927W1VgCS/M7ZBNIIGxBH2IA4wgbEETYgjrABcYQNiCNsQBxhA+IIGxBH2IA4wgbEETYgjrABcYQNiCNsQBxhA+IIGxBH2IA4wgbEETYgjrABcYQNiCNsQBxhA+IIGxBH2IA4wgbEETYgjrABcYQNiCNsQBxhA+IIGxBH2IA4wgbEETYgjrABcYQNiCNsQBxhA+IIGxBH2IA4wgbE2XFKWbda614p5fXKZlf/98dSyuXK/3fdWrt2Elin2lpzQHmSWutuKWW/h+vT36snbu5milwp5byH71LweCph41FqrQellIMetDczH72rHrrT1trlA/493BE2vqmPzA7739wxu880ojvpkfvorPE1wsa9etCOSynvFnSUbnvgTgSO+wgb/6fWOt3oPyql/LzgozMF7ri1drKAfWFhhI3fqLVO985OX/CS87Gm+3CH7sGxyjw2Pqu1Tpedv25R1CZvpwcMtdbDBewLC2HExp1a6+nC7qU9xfvW2tH27TbrJmyD6/fTzvvIJ8GH1prR2+BcinIWFLXJuz76ZGDCNrAegO8Dj8AUN5ekA3MpOqj+xf9b+Kf/obV2voD9YMOEbUD9JfV/DvDJp7luuybyjsel6JhGuQf1aqDPygphG0yfq5b0sOBbfuyTjhmIS9GB9Kkd18/4aaFtddNa2x39/I/EiG0sRwNGbfLGmwljMWIbxMCjtU+M2gZixDaOw4GjVvqozb22QQjbOExY/W/cGYBL0QEMNG/tIb4zry2fVarG8FIjlau+MMuXFmXZf+biL091YG5bPmEbw8EGP+XtytoE31xlqt/3Ot7gO6v7wpbPpWi4DV+GXkwRfcqlXg/c2QZGcLettdcP+HdsMQ8P8m3qSeD0O2j7T71/1V9W3+urUc3pVY89wYQt3ybCdrWOH3fsl64H/XJ2TqZ9hBO2fJsYnazt4URflOV4Xdu7hxFbOGEL1t82mHthlg/rXiGqL6k35yWpNxDCCVu2TYxMzmba7pzrhSb+ajArhC3b3COT6QnjXGGba7t3+ir3hBK2bHN/eWf72e3+IMHlKE8ibNnm/vLOvfr6nOsVmMsWTNiybXvYvvnmwjN4MhpM2HiOuV8mnzNsBBO2bNt+uSVsPImwZRtp0Rb4TNgYlYcHwYSNUXl4EEzYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAnB2nlAWbfnr8Yqbdm3u9Bl6QsLFYfYX5fWeIx3IpCsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiDOjlPKUtVad0sphzPt3nVr7dTJzyRsLNkUtp9n2r+LUoqwhXIpCsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhI1RfXTmcwkbo7p05nMJGxBH2LLdjH4AGJOwZbve8k+3u4B9YAsJG8+xN/PRmzNs2x59vkLYss395G/uEdWc4RS2YMKWbe4nf/tbvH3TPYIJW7a5v7xva62zjNpqrdNo7dUc25601kz3CCZs2Tbx5T3csu0WT4vzCVu2TdxHOqq1vl7nBvv25gyb+2vhhC1Ya236At/O/Amny8XjNW/zeM7L0FLK+YzbZgGELd8mvsQ/1VrXMsLq2/lpHdv6CmELJ2z5NvUl/uW5cev//S/r26V7eXAQTtjybXJ0MsXt7LFPSqd/P/13G4raVWvNVI9wtbU2+jGIV2v9OPM9qy+5KKWc9dHR5WpM+sOBvf43jdLebnC//tpaW/c9QRZG2AZQaz0tpbwb/Th0fzSHLZ9L0TGcjX4AuhtRG4OwDaC1dmZS6p2TBewDGyBs4zgd/QA4BuMQtnGcbGCy7pJ98DR0HMI2iP6lHvlSzJPQgQjbWEYdtb3vr5cxCGEbSB+1jTZyuTVaG495bAOqtV5ueFLsS/pTfyrMQIzYxnQ4yCXpP0RtTMI2oD5J9Sj8k9/M/JtuLJiwDaq1Ns3p+hD66afR6IHpHeMStoG11g4D4zZFbd+rU2MTtsGFxU3UuCNsfIrb+y0/EqLGZ8LGndba9DDhL1v6tHT67bddUeMTYeOz/kBhr4diW0w/HLnvQQGrTNDli/r6A9OM/TcLPUJTfA+9KsWXCBv36j/hfdTngy0lcFPQjltrVpriXsLGg/QR3EEp5ccXOGK3/bfUTozQeAhh41H6KO6g/+3PuEjMVV9h69xrUTyWsPEstdZPq03t9tBNvn/ENqdXn65X/s7/d1UreCxhY1Z9jdHfrDPq/hhzEzYgjnlsQBxhA+IIGxBH2IA4wgbEETYgjrABcYQNiCNsQBxhA+IIGxBH2IA4wgbEETYgjrABcYQNiCNsQBxhA+IIGxBH2IA4O05prn//+Q9Wg7rf5e///q+jpe4czyNs2R6zvifEcCkKxBE2II6wAXGEDYgjbEAcYQPiCBsQR9iAOMIGxBE2II6wAXGEDYgjbEAcYQPiCBsQR9iAOMIGxBE2II6wAXGEDYgjbEAcYQPiCBsQR9iAOMIGxBE2II6wAXGEDYgjbEAcYQPiCBsQR9iAOMIGxBE2II6wAXGEDYgjbEAcYQPi7Dil0S5GPwBfcbnYPePZamvNUQSiuBQF4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiCOsAFxhA2II2xAHGED4ggbEEfYgDjCBsQRNiBLKeU/6wDlv8KCEewAAAAASUVORK5CYII="}
 }
