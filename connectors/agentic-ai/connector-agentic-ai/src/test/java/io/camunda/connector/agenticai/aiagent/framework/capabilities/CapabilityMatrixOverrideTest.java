@@ -12,6 +12,8 @@ import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModel
 import io.camunda.connector.agenticai.aiagent.framework.anthropic.AnthropicModelCapabilitiesData;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.BundledCapabilityMatrixTest.TestObjectMapperConfig;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities.Modality;
+import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiModelCapabilities;
+import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiModelCapabilitiesData;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -78,7 +80,7 @@ class CapabilityMatrixOverrideTest {
                 + ".openai-completions.models.gpt-4o.capabilities.input-modalities.user-message[0]=text")
         .run(
             context -> {
-              final var caps = resolve(context, "openai-completions", "gpt-4o-mini");
+              final var caps = resolveOpenAi(context, "openai-completions", "gpt-4o-mini");
 
               assertThat(caps.userMessageModalities()).containsExactly(Modality.TEXT);
               // tool_result still inherited from openai-completions defaults:
@@ -94,12 +96,12 @@ class CapabilityMatrixOverrideTest {
             context -> {
               // gpt-5* pins its own max-output-tokens (the conservative floor sourced from
               // models.dev), so it keeps that value even when the family default changes:
-              final var gpt5 = resolve(context, "openai-completions", "gpt-5.5");
+              final var gpt5 = resolveOpenAi(context, "openai-completions", "gpt-5.5");
               assertThat(gpt5.core().maxOutputTokens()).isEqualTo(16384);
 
               // A model matching no curated entry (no fallback glob exists anymore) falls through
               // to the family defaults directly and inherits the new default:
-              final var generic = resolve(context, "openai-completions", "gpt-3.5-turbo");
+              final var generic = resolveOpenAi(context, "openai-completions", "gpt-3.5-turbo");
               assertThat(generic.core().maxOutputTokens()).isEqualTo(7777);
             });
   }
@@ -109,5 +111,12 @@ class CapabilityMatrixOverrideTest {
     return context
         .getBean(ModelCapabilitiesResolver.class)
         .resolve(apiFamily, modelId, null, Optional.empty(), AnthropicModelCapabilitiesData.class);
+  }
+
+  private static OpenAiModelCapabilities resolveOpenAi(
+      ApplicationContext context, String apiFamily, String modelId) {
+    return context
+        .getBean(ModelCapabilitiesResolver.class)
+        .resolve(apiFamily, modelId, null, Optional.empty(), OpenAiModelCapabilitiesData.class);
   }
 }
