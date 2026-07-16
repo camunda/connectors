@@ -19,17 +19,32 @@ import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicC
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.AnthropicModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.AnthropicChatModel.AnthropicModel.AnthropicThinking;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication.AwsStaticCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
+@ExtendWith(SystemStubsExtension.class)
 class AnthropicChatModelTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
   private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+
+  @SystemStub private EnvironmentVariables environment;
+
+  @BeforeEach
+  void setUp() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, null);
+  }
 
   @Test
   void deserialisesDirectBackendViaTypeDiscriminatorAndRoundTrips() throws Exception {
@@ -260,5 +275,68 @@ class AnthropicChatModelTest {
     final Set<ConstraintViolation<AnthropicChatModel>> violations = validator.validate(model);
 
     assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().contains("budgetTokens"));
+  }
+
+  private static final String SAAS_DEFAULT_CREDENTIALS_CHAIN_MESSAGE =
+      "AWS default credentials chain is not supported on SaaS";
+
+  @Test
+  void validationFailsWhenSaaSAndDefaultCredentialsChain() {
+    simulateSaaSEnvironment();
+    final var model =
+        bedrockModel(new ChatModelAwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+
+    final var violations = validator.validate(model);
+
+    assertThat(violations)
+        .extracting(ConstraintViolation::getMessage)
+        .contains(SAAS_DEFAULT_CREDENTIALS_CHAIN_MESSAGE);
+  }
+
+  @Test
+  void validationSucceedsWhenNotSaaSAndDefaultCredentialsChain() {
+    final var model =
+        bedrockModel(new ChatModelAwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+
+    final var violations = validator.validate(model);
+
+    assertThat(violations)
+        .extracting(ConstraintViolation::getMessage)
+        .doesNotContain(SAAS_DEFAULT_CREDENTIALS_CHAIN_MESSAGE);
+  }
+
+  @Test
+  void validationSucceedsWhenSaaSAndStaticCredentials() {
+    simulateSaaSEnvironment();
+    final var model =
+        bedrockModel(
+            new ChatModelAwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
+
+    final var violations = validator.validate(model);
+
+    assertThat(violations)
+        .extracting(ConstraintViolation::getMessage)
+        .doesNotContain(SAAS_DEFAULT_CREDENTIALS_CHAIN_MESSAGE);
+  }
+
+  private static AnthropicChatModel bedrockModel(ChatModelAwsAuthentication authentication) {
+    return new AnthropicChatModel(
+        new AnthropicConnection(
+            new AnthropicBedrockBackend("eu-west-1", null, authentication),
+            new AnthropicModel("claude-sonnet-4-6", null),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null));
+  }
+
+  private void simulateSaaSEnvironment() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
   }
 }

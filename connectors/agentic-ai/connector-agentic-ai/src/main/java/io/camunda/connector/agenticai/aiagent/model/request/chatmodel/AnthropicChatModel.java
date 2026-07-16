@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabi
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.shared.ChatModelAwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -24,6 +25,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -274,6 +276,14 @@ public record AnthropicChatModel(@Valid @NotNull AnthropicConnection anthropic)
       @Override
       public String type() {
         return "bedrock";
+      }
+
+      @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
+      @SuppressWarnings("unused")
+      public boolean isDefaultCredentialsChainUsedInSaaS() {
+        return ConnectorUtils.isSaaS()
+            && authentication
+                instanceof ChatModelAwsAuthentication.AwsDefaultCredentialsChainAuthentication;
       }
     }
   }
