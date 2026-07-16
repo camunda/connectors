@@ -640,6 +640,52 @@
     },
     "type" : "String"
   }, {
+    "id" : "configuration.openai.enableWebSearch",
+    "label" : "Enable web search",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "provider",
+    "binding" : {
+      "name" : "configuration.openai.enableWebSearch",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "configuration.openai.apiFamily",
+        "equals" : "responses",
+        "type" : "simple"
+      }, {
+        "property" : "configuration.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Enable the OpenAI web_search server tool (Responses API only).",
+    "type" : "Boolean"
+  }, {
+    "id" : "configuration.openai.enableCodeInterpreter",
+    "label" : "Enable code interpreter",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "provider",
+    "binding" : {
+      "name" : "configuration.openai.enableCodeInterpreter",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "configuration.openai.apiFamily",
+        "equals" : "responses",
+        "type" : "simple"
+      }, {
+        "property" : "configuration.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Enable the OpenAI code_interpreter server tool (Responses API only).",
+    "type" : "Boolean"
+  }, {
     "id" : "configuration.openai.timeouts.timeout",
     "label" : "Timeout",
     "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
@@ -953,6 +999,47 @@
     },
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
+  }, {
+    "id" : "configuration.openai.model.parameters.effort",
+    "label" : "Reasoning effort",
+    "optional" : true,
+    "group" : "model",
+    "binding" : {
+      "name" : "configuration.openai.model.parameters.effort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "configuration.openai.apiFamily",
+        "equals" : "responses",
+        "type" : "simple"
+      }, {
+        "property" : "configuration.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Reasoning effort for reasoning-capable models (Responses API only). Unset ⇒ model default.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "minimal",
+      "value" : "minimal"
+    }, {
+      "name" : "low",
+      "value" : "low"
+    }, {
+      "name" : "medium",
+      "value" : "medium"
+    }, {
+      "name" : "high",
+      "value" : "high"
+    }, {
+      "name" : "xhigh",
+      "value" : "xhigh"
+    }, {
+      "name" : "max",
+      "value" : "max"
+    } ]
   }, {
     "id" : "configuration.anthropic.skills",
     "label" : "Skills",
