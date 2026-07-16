@@ -308,55 +308,6 @@
     "tooltip" : "Your resources will be created here. If left empty, a new resource will appear in the root folder.",
     "type" : "String"
   }, {
-    "id" : "documentReturnFormat",
-    "label" : "Response format",
-    "value" : "DOCUMENT",
-    "group" : "operationDetails",
-    "binding" : {
-      "name" : "documentReturnFormat.choice",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "resource.type",
-      "equals" : "download",
-      "type" : "simple"
-    },
-    "tooltip" : "How the downloaded payload should be returned. Document reference uploads the payload to the document store; as text decodes it as a String; as JSON parses it into a structure you can access via dot notation.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Document reference",
-      "value" : "DOCUMENT"
-    }, {
-      "name" : "as text",
-      "value" : "TEXT"
-    }, {
-      "name" : "as JSON",
-      "value" : "JSON"
-    } ]
-  }, {
-    "id" : "documentReturnFormatEncoding",
-    "label" : "Encoding",
-    "description" : "Character set used to decode the response. Default UTF-8.",
-    "value" : "UTF-8",
-    "feel" : "optional",
-    "group" : "operationDetails",
-    "binding" : {
-      "name" : "documentReturnFormat.encoding",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "resource.type",
-        "equals" : "download",
-        "type" : "simple"
-      }, {
-        "property" : "documentReturnFormat",
-        "equals" : "TEXT",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
     "id" : "resource.uploadData.document_documentSource",
     "label" : "Document source",
     "value" : "camunda",
