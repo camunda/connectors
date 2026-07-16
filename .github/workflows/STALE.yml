@@ -29,17 +29,19 @@ jobs:
           app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
 
-      - name: Stale issues
-        id: stale-issues
+      - name: Stale issues and PRs
+        id: stale
         uses: actions/stale@v9
         with:
           repo-token: ${{ steps.app-token.outputs.token }}
           days-before-issue-stale: 60
           days-before-issue-close: 14
-          days-before-pr-stale: -1
-          days-before-pr-close: -1
+          days-before-pr-stale: 23
+          days-before-pr-close: 7
           stale-issue-label: stale
+          stale-pr-label: stale
           exempt-issue-labels: "pinned,security"
+          exempt-pr-labels: "pinned,security"
           stale-issue-message: >
             This issue has been automatically marked as stale because it has not had
             recent activity. It will be closed if no further activity occurs. Thank you
@@ -47,18 +49,6 @@ jobs:
           close-issue-message: >
             This issue has been automatically closed because it has not had recent
             activity. Please reopen if this is still relevant.
-
-      - name: Stale PRs
-        id: stale-prs
-        uses: actions/stale@v9
-        with:
-          repo-token: ${{ steps.app-token.outputs.token }}
-          days-before-issue-stale: -1
-          days-before-issue-close: -1
-          days-before-pr-stale: 23
-          days-before-pr-close: 7
-          stale-pr-label: stale
-          exempt-pr-labels: "pinned,security"
           stale-pr-message: >
             This pull request has been automatically marked as stale because it has not had
             recent activity. It will be closed if no further activity occurs. Thank you
@@ -67,8 +57,16 @@ jobs:
             This pull request has been automatically closed because it has not had recent
             activity. Please reopen if this is still relevant.
 
+      - name: Count closed issues and PRs
+        id: counts
+        env:
+          CLOSED_ITEMS: ${{ steps.stale.outputs.closed-issues-prs }}
+        run: |
+          echo "issues=$(jq '[.[] | select(.pull_request == null)] | length' <<< "$CLOSED_ITEMS")" >> "$GITHUB_OUTPUT"
+          echo "prs=$(jq '[.[] | select(.pull_request != null)] | length' <<< "$CLOSED_ITEMS")" >> "$GITHUB_OUTPUT"
+
       - name: Send Slack notification
-        if: steps.stale-issues.outputs.closed-issues-prs != '0' || steps.stale-prs.outputs.closed-issues-prs != '0'
+        if: steps.counts.outputs.issues != '0' || steps.counts.outputs.prs != '0'
         uses: slackapi/slack-github-action@v4.0.0
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
@@ -81,7 +79,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Stale bot report* :broom:\n- Issues closed as stale: ${{ steps.stale-issues.outputs.closed-issues-prs }}\n- PRs closed as stale: ${{ steps.stale-prs.outputs.closed-issues-prs }}\n\nSee the <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|full run details>."
+                    "text": "*Stale bot report* :broom:\n- Issues closed as stale: ${{ steps.counts.outputs.issues }}\n- PRs closed as stale: ${{ steps.counts.outputs.prs }}\n\nSee the <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|full run details>."
                   }
                 }
               ]
