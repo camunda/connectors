@@ -86,7 +86,7 @@ public class ElementTemplateBuilder {
     builder.description = base.description();
     builder.keywords = base.keywords();
     builder.appliesTo = base.appliesTo();
-    builder.elementType = base.elementType() == null ? null : base.elementType().originalType();
+    builder.elementType = base.elementType() == null ? null : base.elementType().resolveType();
     builder.icon = base.icon();
     builder.groups.addAll(base.groups());
     builder.properties.addAll(base.properties());
@@ -124,9 +124,15 @@ public class ElementTemplateBuilder {
    * significant: a property's {@code condition} may only reference a property appearing earlier in
    * the list. Use to override a single inherited property -- e.g. narrowing a Dropdown's choices --
    * without rebuilding the rest of an inherited base template.
+   *
+   * @throws IllegalArgumentException if {@code replacement.id} is {@code null} -- id-less
+   *     properties (e.g. a non-configurable type's hidden property) can't be matched unambiguously
    */
   public ElementTemplateBuilder replaceProperty(Property replacement) {
     Objects.requireNonNull(replacement, "replacement must not be null");
+    if (replacement.id == null) {
+      throw new IllegalArgumentException("replacement.id must not be null");
+    }
     int index = -1;
     for (int i = 0; i < properties.size(); i++) {
       if (Objects.equals(properties.get(i).id, replacement.id)) {
