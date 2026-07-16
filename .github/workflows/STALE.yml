@@ -55,8 +55,8 @@ jobs:
           repo-token: ${{ steps.app-token.outputs.token }}
           days-before-issue-stale: -1
           days-before-issue-close: -1
-          days-before-pr-stale: 30
-          days-before-pr-close: 0
+          days-before-pr-stale: 23
+          days-before-pr-close: 7
           stale-pr-label: stale
           exempt-pr-labels: "pinned,security"
           stale-pr-message: >
