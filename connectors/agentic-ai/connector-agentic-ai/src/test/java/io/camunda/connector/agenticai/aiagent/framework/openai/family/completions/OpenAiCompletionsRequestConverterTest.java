@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.ObjectMappers;
+import com.openai.models.ReasoningEffort;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import io.camunda.connector.agenticai.aiagent.framework.api.LlmProviderChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.CoreModelCapabilities;
@@ -62,6 +63,10 @@ class OpenAiCompletionsRequestConverterTest {
 
   private static OpenAiChatModel model(@Nullable OpenAiModelParameters parameters) {
     return model(parameters, null, null);
+  }
+
+  private static OpenAiModelParameters parameters(@Nullable OpenAiEffort effort) {
+    return new OpenAiModelParameters(null, null, null, effort);
   }
 
   private static OpenAiChatModel model(
@@ -296,10 +301,34 @@ class OpenAiCompletionsRequestConverterTest {
   }
 
   @Test
-  void doesNotSendReasoningEffortEvenWhenConfigured() {
+  void mapsConfiguredEffortToReasoningEffort() {
+    final var caps = caps(new OpenAiReasoningCapabilities(List.of(OpenAiEffort.HIGH)));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toChatCompletionCreateParams(
+            ctx(model(parameters(OpenAiEffort.HIGH)), null), snapshot, caps);
+
+    assertThat(params.reasoningEffort()).hasValue(ReasoningEffort.HIGH);
+    assertThat(requestBodyAsJson(params).path("reasoning_effort").asText()).isEqualTo("high");
+  }
+
+  @Test
+  void omitsReasoningEffortWhenNoneConfigured() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toChatCompletionCreateParams(
+            ctx(model(parameters(null)), null), snapshot, caps());
+
+    assertThat(params.reasoningEffort()).isEmpty();
+    assertThat(requestBodyAsJson(params).has("reasoning_effort")).isFalse();
+  }
+
+  @Test
+  void throwsWhenValidatorRejectsUnsupportedEffort() {
     // caps() declares no reasoning capability -> effort configured but unsupported, so the
-    // validator rejects the request before any mapping happens (reasoning is deferred for
-    // Completions; there is no matrix entry that could ever allow it through).
+    // validator rejects the request before any mapping happens.
     final var parameters = new OpenAiModelParameters(null, null, null, OpenAiEffort.HIGH);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
@@ -308,17 +337,6 @@ class OpenAiCompletionsRequestConverterTest {
                 converter.toChatCompletionCreateParams(
                     ctx(model(parameters), null), snapshot, caps()))
         .isInstanceOf(ConnectorException.class);
-  }
-
-  @Test
-  void doesNotSendReasoningEffortWhenNoEffortConfigured() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    final var params =
-        converter.toChatCompletionCreateParams(ctx(model(null), null), snapshot, caps());
-
-    assertThat(params.reasoningEffort()).isEmpty();
-    assertThat(requestBodyAsJson(params).has("reasoning_effort")).isFalse();
   }
 
   @Test

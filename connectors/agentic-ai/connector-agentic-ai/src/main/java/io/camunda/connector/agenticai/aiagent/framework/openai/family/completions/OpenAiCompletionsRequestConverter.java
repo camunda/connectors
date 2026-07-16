@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.JsonValue;
 import com.openai.models.FunctionDefinition;
 import com.openai.models.FunctionParameters;
+import com.openai.models.ReasoningEffort;
 import com.openai.models.ResponseFormatJsonSchema;
 import com.openai.models.chat.completions.ChatCompletionAssistantMessageParam;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
@@ -43,11 +44,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiChatModel.OpenAiModel.OpenAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
@@ -57,10 +60,11 @@ import org.jspecify.annotations.Nullable;
  * {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire shape via
  * the {@link OpenAiContentConverter} built for content parts.
  *
- * <p>Deliberate pilot subset of the sibling {@code OpenAiResponsesRequestConverter}: no reasoning
- * (the Completions capability matrix declares no reasoning support, so {@link
- * OpenAiRequestValidator} already rejects a configured effort) and no server tools (web search/code
- * interpreter require the Responses API and are rejected by the same validator).
+ * <p>Deliberate pilot subset of the sibling {@code OpenAiResponsesRequestConverter}: reasoning is
+ * limited to the input-only {@code reasoning_effort} dial (no encrypted-content replay or
+ * stateless-store toggle, unlike the Responses sibling's {@code reasoning} object -- Completions
+ * has no reasoning-item replay mechanism at all) and there are no server tools (web search/code
+ * interpreter require the Responses API and are rejected by {@link OpenAiRequestValidator}).
  */
 public class OpenAiCompletionsRequestConverter {
 
@@ -107,6 +111,7 @@ public class OpenAiCompletionsRequestConverter {
     builder.streamOptions(ChatCompletionStreamOptions.builder().includeUsage(true).build());
 
     applyModelParameters(builder, params);
+    applyReasoning(builder, params);
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
     applyStructuredOutput(builder, ctx.configuration().response());
@@ -129,6 +134,21 @@ public class OpenAiCompletionsRequestConverter {
     if (params.topP() != null) {
       builder.topP(params.topP());
     }
+  }
+
+  /**
+   * Maps the validated {@code effort} dial onto the SDK's {@code reasoning_effort} param. Unlike
+   * the Responses sibling's {@code applyReasoning}, there is no encrypted-content include and no
+   * {@code store(false)} toggle: Completions has neither a reasoning-item replay mechanism nor
+   * server-side state to opt out of.
+   */
+  private void applyReasoning(
+      ChatCompletionCreateParams.Builder builder, @Nullable OpenAiModelParameters params) {
+    final OpenAiEffort effort = params == null ? null : params.effort();
+    if (effort == null) {
+      return;
+    }
+    builder.reasoningEffort(ReasoningEffort.of(effort.name().toLowerCase(Locale.ROOT)));
   }
 
   private void applyMessages(ChatCompletionCreateParams.Builder builder, List<Message> messages) {
