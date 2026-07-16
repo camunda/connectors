@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.openai.family.responses
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.core.ObjectMappers;
 import com.openai.models.Reasoning;
 import com.openai.models.ReasoningEffort;
 import com.openai.models.responses.EasyInputMessage;
@@ -197,6 +198,12 @@ public class OpenAiResponsesRequestConverter {
    * model originally produced them in (reasoning/text before a function_call). No item is emitted
    * when the assistant turn carries no plain content (e.g. tool-calls-only or reasoning-only
    * turns).
+   *
+   * <p>The reasoning/provider-content payloads are replayed via the SDK's own {@link
+   * ObjectMappers#jsonMapper()} rather than the injected app {@link ObjectMapper}: the captured
+   * payload's Kotlin-generated absent-vs-null field tracking only round-trips correctly through
+   * that mapper (see {@code OpenAiResponsesResponseConverter#toRawMap}) -- mirrors the Anthropic
+   * sibling's raw block replay.
    */
   private List<ResponseInputItem> assistantInputItems(AssistantMessage assistant) {
     final List<ResponseInputItem> items = new ArrayList<>();
@@ -206,13 +213,15 @@ public class OpenAiResponsesRequestConverter {
         case ReasoningContent reasoning -> {
           if (reasoning.providerPayload() != null) {
             items.add(
-                objectMapper.convertValue(reasoning.providerPayload(), ResponseInputItem.class));
+                ObjectMappers.jsonMapper()
+                    .convertValue(reasoning.providerPayload(), ResponseInputItem.class));
           } // null payload: nothing captured to replay for this turn
         }
         case ProviderContent providerContent -> {
           if (providerContent.payload() != null) {
             items.add(
-                objectMapper.convertValue(providerContent.payload(), ResponseInputItem.class));
+                ObjectMappers.jsonMapper()
+                    .convertValue(providerContent.payload(), ResponseInputItem.class));
           }
         }
         default -> plainContent.add(content); // Text/Object/Document: replayed as a message below

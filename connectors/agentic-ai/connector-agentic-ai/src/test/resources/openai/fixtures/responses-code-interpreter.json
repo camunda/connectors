@@ -1,0 +1,25 @@
+{
+  "id": "resp_code_interpreter_1",
+  "object": "response",
+  "created_at": 1737000000,
+  "model": "gpt-5",
+  "parallel_tool_calls": true,
+  "tool_choice": "auto",
+  "tools": [],
+  "usage": null,
+  "output": [
+    {
+      "type": "code_interpreter_call",
+      "id": "ci_1",
+      "status": "completed",
+      "container_id": "cntr_abc123",
+      "code": "print(2 + 2)",
+      "outputs": [
+        {
+          "type": "logs",
+          "logs": "4\n"
+        }
+      ]
+    }
+  ]
+}

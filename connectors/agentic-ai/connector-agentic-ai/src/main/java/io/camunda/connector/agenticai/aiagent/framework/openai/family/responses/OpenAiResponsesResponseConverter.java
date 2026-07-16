@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.openai.family.responses
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.core.ObjectMappers;
 import com.openai.models.ResponsesModel;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseFunctionToolCall;
@@ -39,10 +40,10 @@ import org.slf4j.LoggerFactory;
  * <p>Content mapping is on the response side: an output {@code message} item's {@code output_text}
  * parts become {@link TextContent}, {@code function_call} items become {@link ToolCall}s, and
  * {@code reasoning} items become {@link ReasoningContent} whose {@code providerPayload} carries the
- * <strong>full raw item</strong> (a {@code Map<String, Object>} produced via the injected {@link
- * ObjectMapper} -- {@code id}/{@code summary}/{@code encrypted_content}/... -- unlike Anthropic's
- * thinking blocks, this always includes {@code encrypted_content} rather than a signature). This
- * raw payload IS re-emitted back to OpenAI on the request side (see {@code
+ * <strong>full raw item</strong> (a {@code Map<String, Object>} produced via the SDK's own {@link
+ * ObjectMappers#jsonMapper()} -- {@code id}/{@code summary}/{@code encrypted_content}/... -- unlike
+ * Anthropic's thinking blocks, this always includes {@code encrypted_content} rather than a
+ * signature). This raw payload IS re-emitted back to OpenAI on the request side (see {@code
  * OpenAiResponsesRequestConverter}), so reasoning round-trips losslessly. The neutral {@code text}
  * field is populated from the item's {@code summary} (when present) since, unlike Anthropic's
  * thinking blocks, the human-readable reasoning summary is not otherwise recoverable from the raw
@@ -165,8 +166,17 @@ public class OpenAiResponsesResponseConverter {
     return new ReasoningContent(summaryText.isBlank() ? null : summaryText, toRawMap(item), null);
   }
 
+  /**
+   * Uses the SDK's own {@link ObjectMappers#jsonMapper()} rather than the injected app {@link
+   * ObjectMapper}: only it knows how to serialize the raw item's {@code JsonValue}/{@code
+   * JsonField} internals faithfully (e.g. omitting genuinely-absent optional fields instead of
+   * materializing them as explicit {@code null}, and not leaking the Kotlin-generated {@code
+   * isValid()} property as a spurious {@code valid} key) -- mirrors the Anthropic sibling's raw
+   * block capture.
+   */
   private Map<String, Object> toRawMap(ResponseOutputItem item) {
-    return objectMapper.convertValue(item, new TypeReference<Map<String, Object>>() {});
+    return ObjectMappers.jsonMapper()
+        .convertValue(item, new TypeReference<Map<String, Object>>() {});
   }
 
   /**

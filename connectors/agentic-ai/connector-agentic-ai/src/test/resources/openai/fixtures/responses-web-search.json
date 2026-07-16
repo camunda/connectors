@@ -1,0 +1,21 @@
+{
+  "id": "resp_web_search_1",
+  "object": "response",
+  "created_at": 1737000000,
+  "model": "gpt-5",
+  "parallel_tool_calls": true,
+  "tool_choice": "auto",
+  "tools": [],
+  "usage": null,
+  "output": [
+    {
+      "type": "web_search_call",
+      "id": "ws_1",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "query": "current weather in Berlin"
+      }
+    }
+  ]
+}
