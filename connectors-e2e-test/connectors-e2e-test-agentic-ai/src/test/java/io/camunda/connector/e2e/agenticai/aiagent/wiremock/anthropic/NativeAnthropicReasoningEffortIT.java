@@ -31,6 +31,7 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.jobworker.BaseAiAgentJobWorkerTest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.NativeAnthropicMessagesSseChatModelStubs.RedactedThinkingTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.NativeAnthropicMessagesSseChatModelStubs.ThinkingTurnStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ToolCallStub;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
@@ -346,6 +347,78 @@ class NativeAnthropicReasoningEffortIT extends BaseAiAgentJobWorkerTest {
     assertThat(thinkingBlock.path("signature").asText())
         .as("round-tripped thinking signature")
         .isEqualTo(expectedSignature);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Round-trip replay: redacted thinking block survives a follow-up model call
+  // ---------------------------------------------------------------------------
+
+  @Test
+  void roundTripsRedactedThinkingBlockBeforeToolResultOnFollowUpRequest() throws Exception {
+    final var userPrompt = "Use the superflux tool on 5 and 3, thinking it through first.";
+    final var redactedData = "redacted-e2e-data-xyz==";
+    final var toolCallId = "toolu_01redactedE2E";
+    final var satisfiedResponseText = "The superflux calculation of 5 and 3 is 24.";
+
+    NativeAnthropicMessagesSseChatModelStubs.stubRedactedThinkingConversation(
+        new RedactedThinkingTurnStub(
+            redactedData,
+            List.of(new ToolCallStub(toolCallId, "SuperfluxProduct", "{\"a\": 5, \"b\": 3}")),
+            10,
+            20),
+        TurnStub.text(satisfiedResponseText, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
+        model(REASONING_CAPABLE_MODEL)
+            .andThen(
+                template ->
+                    template
+                        .property(
+                            "configuration.anthropic.model.parameters.thinking.mode", "enabled")
+                        .property(
+                            "configuration.anthropic.model.parameters.thinking.budgetTokens",
+                            "=2048"));
+
+    awaitProcessCompletion(
+        createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
+
+    final var loggedRequests = recordedLoggedRequests();
+    assertThat(loggedRequests).as("recorded model-call requests").hasSize(2);
+
+    final var secondRequest = parseBody(loggedRequests.get(1));
+    assertRedactedThinkingBlockRoundTripsBeforeToolResult(secondRequest, redactedData);
+  }
+
+  /**
+   * Asserts the second request's {@code messages[]} carries the first turn's assistant message with
+   * its {@code redacted_thinking} block replayed byte-identical (same {@code data} value) and
+   * positioned before the {@code tool_use} block - mirrors {@link
+   * #assertThinkingBlockRoundTripsBeforeToolResult(JsonNode, String, String)}, just for a redacted
+   * block (no {@code thinking}/{@code signature} fields, only opaque {@code data}) instead of a
+   * signed one.
+   */
+  private void assertRedactedThinkingBlockRoundTripsBeforeToolResult(
+      JsonNode request, String expectedData) {
+    final var assistantMessage =
+        StreamSupport.stream(request.path("messages").spliterator(), false)
+            .filter(message -> "assistant".equals(message.path("role").asText()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No assistant message found in second request"));
+
+    final var contentBlocks = assistantMessage.path("content");
+    final var contentBlockTypes =
+        StreamSupport.stream(contentBlocks.spliterator(), false)
+            .map(block -> block.path("type").asText())
+            .toList();
+    assertThat(contentBlockTypes)
+        .as("assistant history content block types, in order")
+        .containsExactly("redacted_thinking", "tool_use");
+
+    final var redactedThinkingBlock = contentBlocks.get(0);
+    assertThat(redactedThinkingBlock.path("data").asText())
+        .as("round-tripped redacted thinking data")
+        .isEqualTo(expectedData);
   }
 
   // ---------------------------------------------------------------------------

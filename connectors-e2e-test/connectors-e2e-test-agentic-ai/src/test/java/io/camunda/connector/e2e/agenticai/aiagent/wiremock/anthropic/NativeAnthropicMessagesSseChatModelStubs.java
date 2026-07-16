@@ -40,6 +40,7 @@ import com.anthropic.models.beta.messages.BetaRawContentBlockStopEvent;
 import com.anthropic.models.beta.messages.BetaRawMessageDeltaEvent;
 import com.anthropic.models.beta.messages.BetaRawMessageStartEvent;
 import com.anthropic.models.beta.messages.BetaRawMessageStopEvent;
+import com.anthropic.models.beta.messages.BetaRedactedThinkingBlock;
 import com.anthropic.models.beta.messages.BetaRefusalStopDetails;
 import com.anthropic.models.beta.messages.BetaServerToolUsage;
 import com.anthropic.models.beta.messages.BetaServerToolUseBlock;
@@ -231,6 +232,79 @@ final class NativeAnthropicMessagesSseChatModelStubs {
         body,
         "content_block_delta",
         BetaRawContentBlockDeltaEvent.builder().signatureDelta(signature).index(index).build());
+    writeEvent(
+        body, "content_block_stop", BetaRawContentBlockStopEvent.builder().index(index).build());
+  }
+
+  /**
+   * A turn whose response leads with a real {@code redacted_thinking} block - fully formed at
+   * {@code content_block_start} with its opaque {@code data} already populated, unlike a plain
+   * {@code thinking} block, since real Anthropic streams a redacted block whole with no {@code
+   * thinking}/{@code signature} deltas - followed by one or more client {@code tool_use} blocks.
+   * Always ends the turn with {@code stop_reason: tool_use} (there is always at least one tool
+   * call), mirroring {@link ThinkingTurnStub}.
+   *
+   * <p>Exists so e2e coverage can prove the redacted-thinking round-trip end to end through the
+   * REAL {@code BetaMessageAccumulator}: the resulting {@code ReasoningContent}'s raw {@code
+   * providerPayload} (captured by {@code AnthropicMessageResponseConverter}'s {@code
+   * block.isRedactedThinking()} branch) must be replayed byte-identical - same {@code data} value,
+   * positioned before the tool-call block - on the follow-up model call once the tool result is
+   * available (see {@code AnthropicContentConverter}).
+   */
+  record RedactedThinkingTurnStub(
+      String data, List<ToolCallStub> toolCalls, int inputTokens, int outputTokens) {}
+
+  /**
+   * Wires a scenario chain whose first turn is a {@link RedactedThinkingTurnStub} (redacted
+   * thinking block plus tool_use), followed by any number of ordinary {@link TurnStub} turns -
+   * mirrors {@link #stubThinkingConversation(ThinkingTurnStub, TurnStub...)}, just for a redacted
+   * thinking block instead of a signed one.
+   */
+  static void stubRedactedThinkingConversation(
+      RedactedThinkingTurnStub redactedTurn, TurnStub... followUpTurns) {
+    final List<String> bodies = new ArrayList<>();
+    bodies.add(redactedThinkingSseBody(redactedTurn));
+    for (final TurnStub turn : followUpTurns) {
+      bodies.add(sseBody(turn));
+    }
+    stubScenario(bodies);
+  }
+
+  private static String redactedThinkingSseBody(RedactedThinkingTurnStub turn) {
+    final int id = TURN_COUNTER.getAndIncrement();
+    final StringBuilder body = new StringBuilder();
+
+    writeEvent(body, "message_start", messageStartEvent(id, turn.inputTokens()));
+
+    int index = 0;
+    writeRedactedThinkingBlock(body, index++, turn.data());
+    for (final ToolCallStub toolCall : turn.toolCalls()) {
+      writeToolUseBlock(body, index++, toolCall);
+    }
+
+    // Always tool_use: a RedactedThinkingTurnStub always carries at least one client tool call.
+    writeEvent(
+        body, "message_delta", messageDeltaEvent(true, turn.inputTokens(), turn.outputTokens()));
+    writeEvent(body, "message_stop", BetaRawMessageStopEvent.builder().build());
+
+    return body.toString();
+  }
+
+  /**
+   * Frames a {@code redacted_thinking} block the way real Anthropic streams it: fully formed
+   * already at {@code content_block_start} (opaque {@code data} populated) with no deltas at all -
+   * unlike {@link #writeThinkingBlock}'s {@code thinking_delta}/{@code signature_delta}
+   * accumulation - since {@code tracksToolInput()} does not cover this block type, the same reason
+   * {@link #writeCodeExecutionToolResultBlock} needs no delta either.
+   */
+  private static void writeRedactedThinkingBlock(StringBuilder body, int index, String data) {
+    writeEvent(
+        body,
+        "content_block_start",
+        BetaRawContentBlockStartEvent.builder()
+            .contentBlock(BetaRedactedThinkingBlock.builder().data(data).build())
+            .index(index)
+            .build());
     writeEvent(
         body, "content_block_stop", BetaRawContentBlockStopEvent.builder().index(index).build());
   }
