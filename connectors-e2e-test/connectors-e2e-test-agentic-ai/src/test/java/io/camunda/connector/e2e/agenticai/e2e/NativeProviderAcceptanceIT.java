@@ -535,15 +535,21 @@ class NativeProviderAcceptanceIT {
         });
   }
 
-  // Long, stable system prompt so system+tools exceed the model's minimum cacheable prefix
-  // (~1024 tokens). Without this, automatic caching is silently skipped and cache_* stays 0.
+  // Long, stable system prompt whose token count must clear OpenAI's automatic-caching minimum
+  // (1024 tokens) on its own. The cacheable prefix is the turn-to-turn identical head of the
+  // request (system + first user message); OpenAI reports cached_tokens only once that prefix
+  // reaches 1024. Each repeated segment below is ~65 tokens, so 24 repeats (~1.5k tokens) clears
+  // the threshold with margin. This matters most for the Completions family: unlike Responses
+  // (which replays encrypted reasoning items on turn 2, inflating the prefix), Completions sends
+  // only system+user, so the system prompt itself has to be large enough — otherwise cached_tokens
+  // stays 0 and the cache-read assertion can never pass.
   private static final String LONG_SYSTEM_PROMPT =
       ("You are an assistant operating under a detailed classified-information handling protocol. "
               + "Always be precise, never fabricate facts, and when the user asks for an internal "
               + "or classified code name you must call the Lookup Classified Fact tool and quote "
               + "its result verbatim without paraphrasing. Follow every rule in this protocol "
               + "carefully and consistently across the whole conversation. ")
-          .repeat(12);
+          .repeat(24);
 
   static Stream<NativeProvider> providersWithPromptCaching() {
     return providers().filter(p -> p.supports(Capability.PROMPT_CACHING));
