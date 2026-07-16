@@ -82,12 +82,12 @@
     "description" : "Manage Camunda process instances.",
     "steps" : [ {
       "name" : "Search process instances",
-      "description" : "Search and filter process instances using criteria.",
+      "description" : "Search and filter Camunda process instances using criteria.",
       "keywords" : [ "search", "filter", "process instances", "list", "running processes" ],
       "presetId" : "processInstances_search"
     }, {
       "name" : "Get process instance by key",
-      "description" : "Retrieve a single process instance by its numeric key.",
+      "description" : "Retrieve a single Camunda process instance by its numeric key.",
       "keywords" : [ "get", "fetch", "process instance", "by key", "lookup" ],
       "presetId" : "processInstances_getByKey"
     } ]
@@ -96,12 +96,12 @@
     "description" : "Manage Camunda process definitions.",
     "steps" : [ {
       "name" : "Search process definitions",
-      "description" : "Search and filter process definitions.",
+      "description" : "Search and filter Camunda process definitions.",
       "keywords" : [ "search", "filter", "process definitions", "list", "bpmn" ],
       "presetId" : "processDefinitions_search"
     }, {
       "name" : "Get process definition by key",
-      "description" : "Retrieve a single process definition by its numeric key.",
+      "description" : "Retrieve a single Camunda process definition by its numeric key.",
       "keywords" : [ "get", "fetch", "process definition", "by key", "bpmn" ],
       "presetId" : "processDefinitions_getByKey"
     } ]
@@ -110,12 +110,12 @@
     "description" : "Manage flow node (element) instances.",
     "steps" : [ {
       "name" : "Search element instances",
-      "description" : "Search and filter element instances.",
+      "description" : "Search and filter Camunda element instances.",
       "keywords" : [ "search", "filter", "element instances", "flow node instances", "list" ],
       "presetId" : "elementInstances_search"
     }, {
       "name" : "Get element instance by key",
-      "description" : "Retrieve a single element instance by its numeric key.",
+      "description" : "Retrieve a single Camunda element instance by its numeric key.",
       "keywords" : [ "get", "fetch", "element instance", "flow node instance", "by key" ],
       "presetId" : "elementInstances_getByKey"
     } ]
@@ -124,12 +124,12 @@
     "description" : "Manage Camunda incidents.",
     "steps" : [ {
       "name" : "Search incidents",
-      "description" : "Search and filter incidents.",
+      "description" : "Search and filter Camunda incidents.",
       "keywords" : [ "search", "filter", "incidents", "list", "errors" ],
       "presetId" : "incidents_search"
     }, {
       "name" : "Get incident by key",
-      "description" : "Retrieve a single incident by its numeric key.",
+      "description" : "Retrieve a single Camunda incident by its numeric key.",
       "keywords" : [ "get", "fetch", "incident", "by key", "error" ],
       "presetId" : "incidents_getByKey"
     } ]
@@ -138,12 +138,12 @@
     "description" : "Manage Camunda process variables.",
     "steps" : [ {
       "name" : "Search variables",
-      "description" : "Search and filter process variables.",
+      "description" : "Search and filter Camunda process variables.",
       "keywords" : [ "search", "filter", "variables", "list", "process data" ],
       "presetId" : "variables_search"
     }, {
       "name" : "Get variable by key",
-      "description" : "Retrieve a single variable by its numeric key.",
+      "description" : "Retrieve a single Camunda variable by its numeric key.",
       "keywords" : [ "get", "fetch", "variable", "by key", "process data" ],
       "presetId" : "variables_getByKey"
     } ]
@@ -152,12 +152,12 @@
     "description" : "Manage Camunda user tasks.",
     "steps" : [ {
       "name" : "Search user tasks",
-      "description" : "Search and filter user tasks.",
+      "description" : "Search and filter Camunda user tasks.",
       "keywords" : [ "search", "filter", "user tasks", "list", "human tasks", "task list" ],
       "presetId" : "userTasks_search"
     }, {
       "name" : "Get user task by key",
-      "description" : "Retrieve a single user task by its numeric key.",
+      "description" : "Retrieve a single Camunda user task by its numeric key.",
       "keywords" : [ "get", "fetch", "user task", "by key", "human task" ],
       "presetId" : "userTasks_getByKey"
     } ]
@@ -166,12 +166,12 @@
     "description" : "Manage Camunda jobs.",
     "steps" : [ {
       "name" : "Search jobs",
-      "description" : "Search and filter jobs.",
+      "description" : "Search and filter Camunda jobs.",
       "keywords" : [ "search", "filter", "jobs", "list", "service tasks", "job worker" ],
       "presetId" : "jobs_search"
     }, {
       "name" : "Get job by key",
-      "description" : "Retrieve a single job by its numeric key.",
+      "description" : "Retrieve a single Camunda job by its numeric key.",
       "keywords" : [ "get", "fetch", "job", "by key", "service task" ],
       "presetId" : "jobs_getByKey"
     } ]
@@ -180,12 +180,12 @@
     "description" : "Manage evaluated DMN decision instances.",
     "steps" : [ {
       "name" : "Search decision instances",
-      "description" : "Search and filter decision instances.",
+      "description" : "Search and filter Camunda decision instances.",
       "keywords" : [ "search", "filter", "decision instances", "list", "dmn", "decisions" ],
       "presetId" : "decisionInstances_search"
     }, {
       "name" : "Get decision instance by key",
-      "description" : "Retrieve a single decision instance by its numeric key.",
+      "description" : "Retrieve a single Camunda decision instance by its numeric key.",
       "keywords" : [ "get", "fetch", "decision instance", "by key", "dmn" ],
       "presetId" : "decisionInstances_getByKey"
     } ]
@@ -194,12 +194,12 @@
     "description" : "Manage Camunda decision definitions (DMN models).",
     "steps" : [ {
       "name" : "Search decision definitions",
-      "description" : "Search and filter decision definitions.",
+      "description" : "Search and filter Camunda decision definitions.",
       "keywords" : [ "search", "filter", "decision definitions", "list", "dmn", "decision models" ],
       "presetId" : "decisionDefinitions_search"
     }, {
       "name" : "Get decision definition by key",
-      "description" : "Retrieve a single decision definition by its numeric key.",
+      "description" : "Retrieve a single Camunda decision definition by its numeric key.",
       "keywords" : [ "get", "fetch", "decision definition", "by key", "dmn model" ],
       "presetId" : "decisionDefinitions_getByKey"
     } ]
@@ -208,12 +208,12 @@
     "description" : "Manage Camunda decision requirements definitions (DRDs).",
     "steps" : [ {
       "name" : "Search decision requirements",
-      "description" : "Search and filter decision requirements.",
+      "description" : "Search and filter Camunda decision requirements.",
       "keywords" : [ "search", "filter", "decision requirements", "list", "drd" ],
       "presetId" : "decisionRequirements_search"
     }, {
       "name" : "Get decision requirements by key",
-      "description" : "Retrieve a single decision requirements definition by its numeric key.",
+      "description" : "Retrieve a single Camunda decision requirements definition by its numeric key.",
       "keywords" : [ "get", "fetch", "decision requirements", "by key", "drd" ],
       "presetId" : "decisionRequirements_getByKey"
     } ]
@@ -222,12 +222,12 @@
     "description" : "Manage Camunda batch operations.",
     "steps" : [ {
       "name" : "Search batch operations",
-      "description" : "Search and filter batch operations.",
+      "description" : "Search and filter Camunda batch operations.",
       "keywords" : [ "search", "filter", "batch operations", "list", "bulk" ],
       "presetId" : "batchOperations_search"
     }, {
       "name" : "Get batch operation by key",
-      "description" : "Retrieve a single batch operation by its numeric key.",
+      "description" : "Retrieve a single Camunda batch operation by its numeric key.",
       "keywords" : [ "get", "fetch", "batch operation", "by key", "bulk" ],
       "presetId" : "batchOperations_getByKey"
     } ]
@@ -236,7 +236,7 @@
     "description" : "Search items within batch operations (search only).",
     "steps" : [ {
       "name" : "Search batch operation items",
-      "description" : "Search and filter items within batch operations.",
+      "description" : "Search and filter items within Camunda batch operations.",
       "keywords" : [ "search", "filter", "batch operation items", "list", "bulk items" ],
       "presetId" : "batchOperationItems_search"
     } ]
@@ -245,7 +245,7 @@
     "description" : "Search Camunda message subscriptions (search only).",
     "steps" : [ {
       "name" : "Search message subscriptions",
-      "description" : "Search and filter message subscriptions.",
+      "description" : "Search and filter Camunda message subscriptions.",
       "keywords" : [ "search", "filter", "message subscriptions", "list", "messages" ],
       "presetId" : "messageSubscriptions_search"
     } ]
@@ -254,7 +254,7 @@
     "description" : "Search Camunda correlated message subscriptions (search only).",
     "steps" : [ {
       "name" : "Search correlated message subscriptions",
-      "description" : "Search and filter correlated message subscriptions.",
+      "description" : "Search and filter Camunda correlated message subscriptions.",
       "keywords" : [ "search", "filter", "correlated message subscriptions", "list", "messages" ],
       "presetId" : "correlatedMessageSubscriptions_search"
     } ]
@@ -263,12 +263,12 @@
     "description" : "Manage Camunda audit logs.",
     "steps" : [ {
       "name" : "Search audit logs",
-      "description" : "Search and filter audit log entries.",
+      "description" : "Search and filter Camunda audit log entries.",
       "keywords" : [ "search", "filter", "audit logs", "list", "audit trail" ],
       "presetId" : "auditLogs_search"
     }, {
       "name" : "Get audit log by key",
-      "description" : "Retrieve a single audit log entry by its numeric key.",
+      "description" : "Retrieve a single Camunda audit log entry by its numeric key.",
       "keywords" : [ "get", "fetch", "audit log", "by key", "audit trail" ],
       "presetId" : "auditLogs_getByKey"
     } ]
@@ -277,12 +277,12 @@
     "description" : "Manage Camunda authorizations.",
     "steps" : [ {
       "name" : "Search authorizations",
-      "description" : "Search and filter authorizations.",
+      "description" : "Search and filter Camunda authorizations.",
       "keywords" : [ "search", "filter", "authorizations", "list", "permissions", "access control" ],
       "presetId" : "authorizations_search"
     }, {
       "name" : "Get authorization by key",
-      "description" : "Retrieve a single authorization by its numeric key.",
+      "description" : "Retrieve a single Camunda authorization by its numeric key.",
       "keywords" : [ "get", "fetch", "authorization", "by key", "permission" ],
       "presetId" : "authorizations_getByKey"
     } ]
@@ -291,12 +291,12 @@
     "description" : "Manage Camunda groups.",
     "steps" : [ {
       "name" : "Search groups",
-      "description" : "Search and filter groups.",
+      "description" : "Search and filter Camunda groups.",
       "keywords" : [ "search", "filter", "groups", "list", "teams", "access control" ],
       "presetId" : "groups_search"
     }, {
       "name" : "Get group by ID",
-      "description" : "Retrieve a single group by its ID.",
+      "description" : "Retrieve a single Camunda group by its ID.",
       "keywords" : [ "get", "fetch", "group", "by key", "team" ],
       "presetId" : "groups_getByKey"
     } ]
@@ -305,12 +305,12 @@
     "description" : "Manage Camunda roles.",
     "steps" : [ {
       "name" : "Search roles",
-      "description" : "Search and filter roles.",
+      "description" : "Search and filter Camunda roles.",
       "keywords" : [ "search", "filter", "roles", "list", "permissions", "access control" ],
       "presetId" : "roles_search"
     }, {
       "name" : "Get role by ID",
-      "description" : "Retrieve a single role by its ID.",
+      "description" : "Retrieve a single Camunda role by its ID.",
       "keywords" : [ "get", "fetch", "role", "by key", "permission" ],
       "presetId" : "roles_getByKey"
     } ]
@@ -319,12 +319,12 @@
     "description" : "Manage Camunda tenants.",
     "steps" : [ {
       "name" : "Search tenants",
-      "description" : "Search and filter tenants.",
+      "description" : "Search and filter Camunda tenants.",
       "keywords" : [ "search", "filter", "tenants", "list", "multi-tenancy" ],
       "presetId" : "tenants_search"
     }, {
       "name" : "Get tenant by ID",
-      "description" : "Retrieve a single tenant by its ID.",
+      "description" : "Retrieve a single Camunda tenant by its ID.",
       "keywords" : [ "get", "fetch", "tenant", "by key", "multi-tenancy" ],
       "presetId" : "tenants_getByKey"
     } ]
@@ -333,12 +333,12 @@
     "description" : "Manage Camunda mapping rules.",
     "steps" : [ {
       "name" : "Search mapping rules",
-      "description" : "Search and filter mapping rules.",
+      "description" : "Search and filter Camunda mapping rules.",
       "keywords" : [ "search", "filter", "mapping rules", "list", "identity mapping" ],
       "presetId" : "mappingRules_search"
     }, {
       "name" : "Get mapping rule by ID",
-      "description" : "Retrieve a single mapping rule by its ID.",
+      "description" : "Retrieve a single Camunda mapping rule by its ID.",
       "keywords" : [ "get", "fetch", "mapping rule", "by key", "identity mapping" ],
       "presetId" : "mappingRules_getByKey"
     } ]
