@@ -293,6 +293,20 @@ class NativeProviderAcceptanceIT {
                     Capability.CODE_INTERPRETER,
                         Map.of("configuration.openai.enableCodeInterpreter", "true")),
                 true),
+            // gpt-5 on the Completions API family: reasoning via reasoning_effort (input-only; no
+            // server tools, no reasoning content in the response). Effort "high" forces reasoning
+            // tokens.
+            openaiDirect(
+                "completions",
+                "gpt-5",
+                Map.of(
+                    Capability.STRUCTURED_OUTPUT, Map.of(),
+                    Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
+                    Capability.MULTIMODAL_TOOL_RESULT, Map.of(),
+                    Capability.PROMPT_CACHING, Map.of(),
+                    Capability.REASONING,
+                        Map.of("configuration.openai.model.parameters.effort", "high")),
+                true),
             // gpt-4o on the Completions API family supports only the provider-agnostic subset; no
             // reasoning and no server tools (Responses-only).
             openaiDirect(
