@@ -83,7 +83,7 @@ class AnthropicChatModelApiFactoryTest {
   }
 
   @Test
-  void doesNotSupportBridgeConfig() {
+  void doesNotSupportProviderChatModelApiConfiguration() {
     final ChatModelApiConfiguration config =
         new ProviderChatModelApiConfiguration(
             new AnthropicProviderConfiguration(
@@ -151,12 +151,6 @@ class AnthropicChatModelApiFactoryTest {
         new CoreModelCapabilities(
             List.of(Modality.TEXT), List.of(Modality.TEXT), List.of(Modality.TEXT), null, null),
         null);
-  }
-
-  @Test
-  void getOrderIsBelowBridge() {
-    assertThat(factory.getOrder()).isEqualTo(100);
-    assertThat(factory.getOrder()).isLessThan(1000);
   }
 
   private static LlmProviderChatModelApiConfiguration directConfig(String modelId) {

@@ -28,18 +28,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Native {@link ChatModelApiFactory} for the OpenAI wire formats' {@code direct} (API key) and
- * {@code compatible} (OpenAI-compatible gateway) backends, for both the Responses and Chat
- * Completions api families. Registers below the LangChain4j bridge's {@link
- * io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory}
- * precedence ({@code getOrder() == 100 < 1000}) so it takes over resolution for the configurations
- * it supports.
+ * {@link ChatModelApiFactory} for the OpenAI wire formats' {@code direct} (API key) and {@code
+ * compatible} (OpenAI-compatible gateway) backends, for both the Responses and Chat Completions api
+ * families.
  */
 public class OpenAiChatModelApiFactory implements ChatModelApiFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(OpenAiChatModelApiFactory.class);
-
-  static final int ORDER = 100;
 
   private final HttpTransportSupport transport;
   private final ModelCapabilitiesResolver capabilitiesResolver;
@@ -104,10 +99,5 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory {
                   OpenAiCompletionsStreamAssembler.accumulating());
         };
     return new OpenAiChatModelApi(clientFactory, strategy, capabilities, modelMatched);
-  }
-
-  @Override
-  public int getOrder() {
-    return ORDER;
   }
 }

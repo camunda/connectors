@@ -71,7 +71,7 @@ class Langchain4JChatModelApiTest {
   }
 
   @Test
-  void factorySupportsAnyProviderChatModelApiConfigurationAtLowPrecedence() {
+  void factorySupportsAnyProviderChatModelApiConfiguration() {
     final var factory = new Langchain4JChatModelApiFactory(adapter);
 
     final var configuration =
@@ -84,7 +84,6 @@ class Langchain4JChatModelApiTest {
                     new AnthropicModel("claude", null))));
 
     assertThat(factory.supports(configuration)).isTrue();
-    assertThat(factory.getOrder()).isEqualTo(Langchain4JChatModelApiFactory.ORDER);
     assertThat(factory.create(configuration)).isInstanceOf(Langchain4JChatModelApi.class);
   }
 }

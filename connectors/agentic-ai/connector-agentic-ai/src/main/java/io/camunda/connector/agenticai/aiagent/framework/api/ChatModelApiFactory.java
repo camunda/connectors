@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.api;
 
-/** Builds a {@link ChatModelApi} for the chat model configurations it supports. */
+/**
+ * Builds a {@link ChatModelApi} for the {@link ChatModelApiConfiguration}s it supports. Each
+ * provider contributes one factory; the registry routes a configuration to the single factory whose
+ * {@link #supports} returns true.
+ */
 public interface ChatModelApiFactory {
-
-  int DEFAULT_ORDER = 0;
 
   /** Whether this factory can serve the given configuration. */
   boolean supports(ChatModelApiConfiguration configuration);
@@ -18,14 +20,4 @@ public interface ChatModelApiFactory {
    * Builds the chat model. Only called when {@link #supports(ChatModelApiConfiguration)} is true.
    */
   ChatModelApi create(ChatModelApiConfiguration configuration);
-
-  /**
-   * Selection precedence when multiple factories support a configuration: lowest value wins. The
-   * LangChain4j bridge returns the lowest precedence so any native implementation overrides it.
-   *
-   * @return The order value (default: {@link #DEFAULT_ORDER})
-   */
-  default int getOrder() {
-    return DEFAULT_ORDER;
-  }
 }

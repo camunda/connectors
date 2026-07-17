@@ -87,7 +87,7 @@ class OpenAiChatModelApiFactoryTest {
   }
 
   @Test
-  void doesNotSupportBridgeConfig() {
+  void doesNotSupportProviderChatModelApiConfiguration() {
     final ChatModelApiConfiguration config =
         new ProviderChatModelApiConfiguration(
             new AnthropicProviderConfiguration(
@@ -136,11 +136,6 @@ class OpenAiChatModelApiFactoryTest {
 
     assertThat(api).isInstanceOf(OpenAiChatModelApi.class);
     assertThat(api.capabilities()).isEqualTo(capabilities);
-  }
-
-  @Test
-  void orderIs100() {
-    assertThat(factory.getOrder()).isEqualTo(100);
   }
 
   private static OpenAiModelCapabilities openAiCaps() {

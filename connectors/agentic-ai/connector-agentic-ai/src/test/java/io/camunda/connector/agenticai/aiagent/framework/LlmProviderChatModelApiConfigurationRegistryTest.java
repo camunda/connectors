@@ -63,11 +63,13 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
   }
 
   @Test
-  void directAnthropicV2ConfigResolvesToNativeChatModelApi() {
-    // Both the bridge factory and the native Anthropic factory are registered; the native
-    // factory has lower getOrder() precedence and supports the direct backend.
+  void directAnthropicV2ConfigResolvesToAnthropicChatModelApi() {
+    // Both the LangChain4J factory and the Anthropic factory are registered; they are disjoint by
+    // configuration type (ProviderChatModelApiConfiguration vs.
+    // LlmProviderChatModelApiConfiguration
+    // with a direct backend), so only the Anthropic factory supports this configuration.
     final var registry =
-        new ChatModelApiRegistryImpl(List.of(bridgeFactory(), nativeAnthropicFactory()));
+        new ChatModelApiRegistryImpl(List.of(langchain4JFactory(), anthropicFactory()));
 
     final ChatModelApiConfiguration directConfig =
         new LlmProviderChatModelApiConfiguration(
@@ -91,10 +93,11 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
 
   @Test
   void bedrockAnthropicV2ConfigStillFailsLoud() {
-    // Neither the native factory (direct-only) nor the bridge (ProviderChatModelApiConfiguration
-    // only) supports a bedrock-backed LlmProviderChatModelApiConfiguration.
+    // Neither the Anthropic factory (direct-only) nor the LangChain4J factory
+    // (ProviderChatModelApiConfiguration only) supports a bedrock-backed
+    // LlmProviderChatModelApiConfiguration.
     final var registry =
-        new ChatModelApiRegistryImpl(List.of(bridgeFactory(), nativeAnthropicFactory()));
+        new ChatModelApiRegistryImpl(List.of(langchain4JFactory(), anthropicFactory()));
 
     final ChatModelApiConfiguration bedrockConfig =
         new LlmProviderChatModelApiConfiguration(
@@ -121,11 +124,11 @@ class LlmProviderChatModelApiConfigurationRegistryTest {
         .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
-  private static ChatModelApiFactory bridgeFactory() {
+  private static ChatModelApiFactory langchain4JFactory() {
     return new Langchain4JChatModelApiFactory(mock(Langchain4JAiFrameworkAdapter.class));
   }
 
-  private static ChatModelApiFactory nativeAnthropicFactory() {
+  private static ChatModelApiFactory anthropicFactory() {
     final var transport = mock(HttpTransportSupport.class);
     when(transport.okHttpProxy(ArgumentMatchers.any())).thenReturn(Optional.empty());
     final var capabilitiesResolver = mock(ModelCapabilitiesResolver.class);

@@ -28,7 +28,7 @@ class ChatModelApiRegistryImplTest {
   @Test
   void resolvesChatModelFromSupportingFactory() {
     final var chatModel = mock(ChatModelApi.class);
-    final var factory = stubFactory(true, chatModel, ChatModelApiFactory.DEFAULT_ORDER);
+    final var factory = stubFactory(true, chatModel);
 
     final var registry = new ChatModelApiRegistryImpl(List.of(factory));
 
@@ -36,25 +36,8 @@ class ChatModelApiRegistryImplTest {
   }
 
   @Test
-  void higherPrecedenceFactoryOverridesLowerPrecedenceFactory() {
-    final var lowPrecedenceChatModel = mock(ChatModelApi.class);
-    final var lowPrecedenceFactory = stubFactory(true, lowPrecedenceChatModel, Integer.MAX_VALUE);
-
-    final var highPrecedenceChatModel = mock(ChatModelApi.class);
-    final var highPrecedenceFactory =
-        stubFactory(true, highPrecedenceChatModel, ChatModelApiFactory.DEFAULT_ORDER);
-
-    // register the low-precedence factory first to ensure ordering, not registration order, wins
-    final var registry =
-        new ChatModelApiRegistryImpl(List.of(lowPrecedenceFactory, highPrecedenceFactory));
-
-    assertThat(registry.resolve(validProviderConfiguration())).isSameAs(highPrecedenceChatModel);
-  }
-
-  @Test
   void throwsWhenNoFactorySupportsConfiguration() {
-    final var factory =
-        stubFactory(false, mock(ChatModelApi.class), ChatModelApiFactory.DEFAULT_ORDER);
+    final var factory = stubFactory(false, mock(ChatModelApi.class));
     final var registry = new ChatModelApiRegistryImpl(List.of(factory));
 
     assertThatThrownBy(() -> registry.resolve(validProviderConfiguration()))
@@ -77,8 +60,27 @@ class ChatModelApiRegistryImplTest {
                     .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL));
   }
 
-  private static ChatModelApiFactory stubFactory(
-      boolean supports, ChatModelApi chatModel, int order) {
+  @Test
+  void throwsWhenMultipleFactoriesSupportConfiguration() {
+    final var registry =
+        new ChatModelApiRegistryImpl(
+            List.of(new FirstMatchingFactory(), new SecondMatchingFactory()));
+
+    assertThatThrownBy(() -> registry.resolve(validProviderConfiguration()))
+        .isInstanceOf(ConnectorException.class)
+        .satisfies(
+            e -> {
+              final var connectorException = (ConnectorException) e;
+              assertThat(connectorException.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+              assertThat(connectorException.getMessage())
+                  .contains("Multiple chat model factories match configuration")
+                  .contains("FirstMatchingFactory")
+                  .contains("SecondMatchingFactory");
+            });
+  }
+
+  private static ChatModelApiFactory stubFactory(boolean supports, ChatModelApi chatModel) {
     return new ChatModelApiFactory() {
       @Override
       public boolean supports(ChatModelApiConfiguration configuration) {
@@ -88,11 +90,6 @@ class ChatModelApiRegistryImplTest {
       @Override
       public ChatModelApi create(ChatModelApiConfiguration configuration) {
         return chatModel;
-      }
-
-      @Override
-      public int getOrder() {
-        return order;
       }
     };
   }
@@ -105,5 +102,29 @@ class ChatModelApiRegistryImplTest {
                 new AnthropicAuthentication("api-key"),
                 null,
                 new AnthropicModel("claude", null))));
+  }
+
+  private static class FirstMatchingFactory implements ChatModelApiFactory {
+    @Override
+    public boolean supports(ChatModelApiConfiguration configuration) {
+      return true;
+    }
+
+    @Override
+    public ChatModelApi create(ChatModelApiConfiguration configuration) {
+      return mock(ChatModelApi.class);
+    }
+  }
+
+  private static class SecondMatchingFactory implements ChatModelApiFactory {
+    @Override
+    public boolean supports(ChatModelApiConfiguration configuration) {
+      return true;
+    }
+
+    @Override
+    public ChatModelApi create(ChatModelApiConfiguration configuration) {
+      return mock(ChatModelApi.class);
+    }
   }
 }

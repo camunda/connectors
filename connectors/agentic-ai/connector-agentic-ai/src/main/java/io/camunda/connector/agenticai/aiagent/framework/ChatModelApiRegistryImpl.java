@@ -12,33 +12,45 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfigur
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiRegistry;
 import io.camunda.connector.api.error.ConnectorException;
-import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Resolves the {@link ChatModelApi} for a given {@link ChatModelApiConfiguration} by asking the
- * registered {@link ChatModelApiFactory} instances, in {@link ChatModelApiFactory#getOrder()}
- * precedence, which of them supports it.
+ * Resolves the {@link ChatModelApi} for a given {@link ChatModelApiConfiguration} by asking every
+ * registered {@link ChatModelApiFactory} whether it {@link ChatModelApiFactory#supports supports}
+ * the configuration and routing to the single factory that does. Configurations supported by no
+ * factory, or by more than one, fail loud rather than being resolved implicitly.
  */
 public class ChatModelApiRegistryImpl implements ChatModelApiRegistry {
 
   private final List<ChatModelApiFactory> factories;
 
   public ChatModelApiRegistryImpl(List<ChatModelApiFactory> factories) {
-    this.factories =
-        factories.stream().sorted(Comparator.comparingInt(ChatModelApiFactory::getOrder)).toList();
+    this.factories = List.copyOf(factories);
   }
 
   @Override
   public ChatModelApi resolve(ChatModelApiConfiguration configuration) {
-    return factories.stream()
-        .filter(factory -> factory.supports(configuration))
-        .findFirst()
-        .orElseThrow(
-            () ->
-                new ConnectorException(
-                    AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL,
-                    "No chat model registered for configuration: " + configuration))
-        .create(configuration);
+    final var matches =
+        factories.stream().filter(factory -> factory.supports(configuration)).toList();
+
+    if (matches.isEmpty()) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL,
+          "No chat model registered for configuration: " + configuration);
+    }
+
+    if (matches.size() > 1) {
+      final var factoryNames =
+          matches.stream()
+              .map(factory -> factory.getClass().getSimpleName())
+              .collect(Collectors.joining(", "));
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL,
+          "Multiple chat model factories match configuration: %s (matched factories: %s)"
+              .formatted(configuration, factoryNames));
+    }
+
+    return matches.get(0).create(configuration);
   }
 }

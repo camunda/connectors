@@ -20,22 +20,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Native {@link ChatModelApiFactory} for the Anthropic Messages wire format's {@code direct} (API
- * key) backend. Registers below the LangChain4j bridge's {@link
- * io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JChatModelApiFactory}
- * precedence ({@code getOrder() == 100 < 1000}) so it takes over resolution for the configurations
- * it supports.
+ * {@link ChatModelApiFactory} for the Anthropic Messages wire format's {@code direct} (API key)
+ * backend.
  *
- * <p>The {@code bedrock} backend is deliberately not yet supported here; until a native Bedrock
- * implementation exists, such configurations still fail loud via the registry (neither this factory
- * nor the bridge, which only serves the legacy {@code ProviderChatModelApiConfiguration}, supports
- * them).
+ * <p>The {@code bedrock} backend is deliberately not yet supported here; such configurations still
+ * fail loud via the registry until a Bedrock-backed implementation exists to serve them.
  */
 public class AnthropicChatModelApiFactory implements ChatModelApiFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(AnthropicChatModelApiFactory.class);
 
-  static final int ORDER = 100;
   static final String API_FAMILY = "anthropic-messages";
 
   private final HttpTransportSupport transport;
@@ -90,10 +84,5 @@ public class AnthropicChatModelApiFactory implements ChatModelApiFactory {
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
     return new AnthropicChatModelApi(
         clientFactory, requestConverter, responseConverter, capabilities, modelMatched);
-  }
-
-  @Override
-  public int getOrder() {
-    return ORDER;
   }
 }

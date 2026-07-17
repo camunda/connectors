@@ -17,9 +17,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Registers the native {@link OpenAiChatModelApiFactory} as an additional {@code
- * ChatModelApiFactory} bean so it is picked up by {@code chatModelApiRegistry(List<
- * ChatModelApiFactory>)} and overrides the LangChain4j bridge for the configurations it supports.
+ * Registers the {@link OpenAiChatModelApiFactory} as an additional {@code ChatModelApiFactory} bean
+ * so it is picked up by {@code chatModelApiRegistry(List<ChatModelApiFactory>)} and resolved for
+ * the configurations it supports.
  */
 @Configuration
 @ConditionalOnBooleanProperty(

@@ -11,10 +11,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.chatmodel.LlmProvide
 /**
  * {@link ChatModelApiConfiguration} backed by the wire-format-first {@link
  * LlmProviderConfiguration} surfaced by the v2 connectors. LLM-provider factories (Anthropic,
- * OpenAI) will {@code supports(...)} this type at {@code getOrder() < 1000}; until they exist the
- * registry fails loud with {@code ERROR_CODE_FAILED_MODEL_CALL} for it. The per-element capability
- * override is reached via {@link LlmProviderConfiguration#capabilityOverride()} — do not add a
- * second component here.
+ * OpenAI) {@code supports(...)} this type for the backends they serve; the registry fails loud with
+ * {@code ERROR_CODE_FAILED_MODEL_CALL} for any configuration no factory supports. The per-element
+ * capability override is reached via {@link LlmProviderConfiguration#capabilityOverride()} — do not
+ * add a second component here.
  */
 public record LlmProviderChatModelApiConfiguration(LlmProviderConfiguration configuration)
     implements ChatModelApiConfiguration {}

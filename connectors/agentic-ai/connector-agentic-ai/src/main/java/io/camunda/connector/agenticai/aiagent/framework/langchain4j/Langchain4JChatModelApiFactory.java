@@ -12,14 +12,10 @@ import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
 import io.camunda.connector.agenticai.aiagent.framework.api.ProviderChatModelApiConfiguration;
 
 /**
- * Lowest-precedence bridge factory routing every built-in {@link ProviderChatModelApiConfiguration}
- * through the LangChain4J adapter. Serves every built-in provider configuration until native {@link
- * ChatModelApi} implementations are introduced and override it per provider.
+ * Factory routing every built-in {@link ProviderChatModelApiConfiguration} through the LangChain4J
+ * adapter to build a {@link ChatModelApi}.
  */
 public class Langchain4JChatModelApiFactory implements ChatModelApiFactory {
-
-  /** Low precedence: native implementations register below this to override the bridge. */
-  static final int ORDER = 1000;
 
   private final Langchain4JAiFrameworkAdapter adapter;
 
@@ -35,10 +31,5 @@ public class Langchain4JChatModelApiFactory implements ChatModelApiFactory {
   @Override
   public ChatModelApi create(ChatModelApiConfiguration configuration) {
     return new Langchain4JChatModelApi(adapter);
-  }
-
-  @Override
-  public int getOrder() {
-    return ORDER;
   }
 }
