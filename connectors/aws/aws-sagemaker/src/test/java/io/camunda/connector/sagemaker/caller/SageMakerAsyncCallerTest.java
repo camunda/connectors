@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.ResponseMetadata;
+import com.amazonaws.http.SdkHttpMetadata;
 import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeAsync;
 import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointAsyncRequest;
 import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointAsyncResult;
@@ -96,11 +97,15 @@ class SageMakerAsyncCallerTest {
     mockedAwsCall.setFailureLocation("s3://result-bucket/failures-object");
     mockedAwsCall.setInferenceId("inference01");
     // A live call also populates request/HTTP metadata inherited from AmazonWebServiceResult; set
-    // it here for realism even though the assertion below shows it never reaches the connector
+    // both here for realism even though the assertion below shows neither reaches the connector
     // result.
     mockedAwsCall.setSdkResponseMetadata(
         new ResponseMetadata(
             Map.of(ResponseMetadata.AWS_REQUEST_ID, "929bf054-193b-48e6-ab80-3aeeb613b415")));
+    var sdkHttpMetadata = mock(SdkHttpMetadata.class);
+    when(sdkHttpMetadata.getHttpStatusCode()).thenReturn(200);
+    when(sdkHttpMetadata.getHttpHeaders()).thenReturn(Map.of("Content-Type", "application/json"));
+    mockedAwsCall.setSdkHttpMetadata(sdkHttpMetadata);
     when(runtime.invokeEndpointAsync(any(InvokeEndpointAsyncRequest.class)))
         .thenReturn(mockedAwsCall);
     var request =
