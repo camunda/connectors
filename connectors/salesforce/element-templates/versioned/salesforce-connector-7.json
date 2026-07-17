@@ -498,15 +498,9 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "apexRestMethod",
-        "oneOf" : [ "post", "patch", "put" ],
-        "type" : "simple"
-      }, {
-        "property" : "salesforceOperationType",
-        "equals" : "apexRest",
-        "type" : "simple"
-      } ]
+      "property" : "apexRestMethod",
+      "oneOf" : [ "post", "patch", "put" ],
+      "type" : "simple"
     },
     "tooltip" : "Request payload for the Apex REST call, provided as a FEEL context.",
     "type" : "String"
@@ -592,15 +586,9 @@
       "type" : "zeebe:taskHeader"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "apexRestMethod",
-        "oneOf" : [ "get", "post" ],
-        "type" : "simple"
-      }, {
-        "property" : "salesforceOperationType",
-        "equals" : "apexRest",
-        "type" : "simple"
-      } ]
+      "property" : "apexRestMethod",
+      "oneOf" : [ "get", "post" ],
+      "type" : "simple"
     },
     "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
     "type" : "String"
@@ -614,15 +602,9 @@
       "type" : "zeebe:taskHeader"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "apexRestMethod",
-        "oneOf" : [ "get", "post" ],
-        "type" : "simple"
-      }, {
-        "property" : "salesforceOperationType",
-        "equals" : "apexRest",
-        "type" : "simple"
-      } ]
+      "property" : "apexRestMethod",
+      "oneOf" : [ "get", "post" ],
+      "type" : "simple"
     },
     "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
     "type" : "Text"
