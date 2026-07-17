@@ -40,14 +40,16 @@ public class ContentConverterImpl implements ContentConverter {
           new dev.langchain4j.data.message.TextContent(
               Objects.requireNonNull(convertToString(objectContent.content())));
       case ReasoningContent reasoningContent ->
-          // LangChain4J has no wire representation for provider-opaque reasoning content; this
-          // legacy framework path is not expected to round-trip it (follow-up: team decision).
+          // LangChain4j 1.17.2 has no per-block content representation for reasoning: its only
+          // hook is a flat, @Experimental, message-level AiMessage.thinking()/attributes()
+          // string, which cannot carry this content's opaque provider payload and metadata
+          // losslessly. Routing reasoning through this framework is therefore unsupported.
           throw new UnsupportedOperationException(
               "Reasoning content is not supported by the LangChain4J framework abstraction");
       case ProviderContent providerContent ->
-          // LangChain4J has no wire representation for provider-opaque content blocks either;
-          // this legacy framework path is not expected to round-trip it (follow-up: team
-          // decision).
+          // LangChain4j 1.17.2 has no representation for provider-opaque content blocks (no
+          // equivalent to a provider/blockType/payload triple), so they cannot be round-tripped
+          // through this framework.
           throw new UnsupportedOperationException(
               "Provider content is not supported by the LangChain4J framework abstraction");
     };

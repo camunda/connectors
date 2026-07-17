@@ -8,11 +8,14 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
+import dev.langchain4j.model.anthropic.AnthropicTokenUsage;
+import dev.langchain4j.model.bedrock.BedrockTokenUsage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
@@ -161,15 +164,50 @@ public class Langchain4JChatModelApi implements ChatModelApi {
     }
   }
 
-  private AgentMetrics.TokenUsage tokenUsage(TokenUsage tokenUsage) {
+  /**
+   * Maps the base input/output counts on every {@link TokenUsage}, then layers on cache and
+   * reasoning token detail exposed by the provider-specific subclasses LangChain4J returns for
+   * Anthropic, Bedrock and OpenAI (Azure OpenAI has no dedicated subclass and falls through to the
+   * base mapping). Every extra accessor is nullable on the vendor side and treated as 0/absent
+   * here.
+   */
+  private AgentMetrics.TokenUsage tokenUsage(@Nullable TokenUsage tokenUsage) {
     if (tokenUsage == null) {
       return AgentMetrics.TokenUsage.empty();
     }
 
-    return AgentMetrics.TokenUsage.builder()
-        .inputTokenCount(Optional.ofNullable(tokenUsage.inputTokenCount()).orElse(0))
-        .outputTokenCount(Optional.ofNullable(tokenUsage.outputTokenCount()).orElse(0))
-        .build();
+    final var builder =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(nullToZero(tokenUsage.inputTokenCount()))
+            .outputTokenCount(nullToZero(tokenUsage.outputTokenCount()));
+
+    switch (tokenUsage) {
+      case AnthropicTokenUsage anthropicTokenUsage ->
+          builder
+              .cacheReadTokenCount(nullToZero(anthropicTokenUsage.cacheReadInputTokens()))
+              .cacheCreationTokenCount(nullToZero(anthropicTokenUsage.cacheCreationInputTokens()));
+      case BedrockTokenUsage bedrockTokenUsage ->
+          builder
+              .cacheReadTokenCount(nullToZero(bedrockTokenUsage.cacheReadInputTokens()))
+              .cacheCreationTokenCount(nullToZero(bedrockTokenUsage.cacheWriteInputTokens()));
+      case OpenAiTokenUsage openAiTokenUsage -> {
+        Optional.ofNullable(openAiTokenUsage.inputTokensDetails())
+            .map(OpenAiTokenUsage.InputTokensDetails::cachedTokens)
+            .ifPresent(cachedTokens -> builder.cacheReadTokenCount(nullToZero(cachedTokens)));
+        Optional.ofNullable(openAiTokenUsage.outputTokensDetails())
+            .map(OpenAiTokenUsage.OutputTokensDetails::reasoningTokens)
+            .ifPresent(reasoningTokens -> builder.reasoningTokenCount(nullToZero(reasoningTokens)));
+      }
+      default -> {
+        // base TokenUsage (and any other/future subclass) carries no further detail to map
+      }
+    }
+
+    return builder.build();
+  }
+
+  private static int nullToZero(@Nullable Integer value) {
+    return value != null ? value : 0;
   }
 
   @Override
