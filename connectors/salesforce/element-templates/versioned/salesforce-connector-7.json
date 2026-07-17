@@ -5,7 +5,7 @@
   "description" : "Call the Salesforce APIs from your process",
   "keywords" : [ "get record", "create record", "update record", "delete record", "SOQL query", "query records", "CRM", "customer relationship", "sObject", "contact", "lead", "opportunity", "account" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/salesforce/",
-  "version" : 8,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -162,7 +162,7 @@
       "name" : "salesforceInteractionType",
       "type" : "zeebe:input"
     },
-    "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint; Composite Request to batch multiple sObject sub-requests into a single call.",
+    "tooltip" : "sObject records to create, get, update, or delete a record; SOQL Query to run a Salesforce Object Query Language query; Apex REST to invoke a custom Apex REST endpoint.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "sObject records",
@@ -173,9 +173,6 @@
     }, {
       "name" : "Apex REST",
       "value" : "apexRest"
-    }, {
-      "name" : "Composite Request",
-      "value" : "composite"
     } ]
   }, {
     "id" : "interactionType",
@@ -508,104 +505,6 @@
     "tooltip" : "Request payload for the Apex REST call, provided as a FEEL context.",
     "type" : "String"
   }, {
-    "id" : "allOrNone",
-    "label" : "All or none",
-    "value" : true,
-    "feel" : "optional",
-    "group" : "input",
-    "binding" : {
-      "name" : "allOrNone",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "equals" : "composite",
-      "type" : "simple"
-    },
-    "tooltip" : "Roll back all sub-requests if any of them fails. If disabled, sub-requests are processed independently.",
-    "type" : "Boolean"
-  }, {
-    "id" : "collateSubrequests",
-    "label" : "Collate subrequests",
-    "value" : false,
-    "feel" : "optional",
-    "group" : "input",
-    "binding" : {
-      "name" : "collateSubrequests",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "equals" : "composite",
-      "type" : "simple"
-    },
-    "tooltip" : "Batch compatible subrequests together where possible.",
-    "type" : "Boolean"
-  }, {
-    "id" : "compositeRequest",
-    "label" : "Subrequests",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "input",
-    "binding" : {
-      "name" : "compositeRequest",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "equals" : "composite",
-      "type" : "simple"
-    },
-    "tooltip" : "FEEL list of subrequests, each a context with \"method\", \"url\", \"referenceId\", and optional \"body\" entries. See the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_composite.htm\" target=\"_blank\">Composite API reference</a>. Reference an earlier subrequest's result by its \"referenceId\" in a later subrequest's \"url\" or \"body\".",
-    "type" : "Text"
-  }, {
-    "id" : "methodComposite",
-    "label" : "Method",
-    "value" : "post",
-    "group" : "input",
-    "binding" : {
-      "name" : "method",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "equals" : "composite",
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "urlComposite",
-    "label" : "URL",
-    "value" : "=baseUrl + \"/services/data/\" + apiVersion + \"/composite\"",
-    "group" : "input",
-    "binding" : {
-      "name" : "url",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "equals" : "composite",
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "bodyComposite",
-    "label" : "Request body",
-    "value" : "={\n  allOrNone: allOrNone,\n  collateSubrequests: collateSubrequests,\n  compositeRequest: compositeRequest\n}",
-    "group" : "input",
-    "binding" : {
-      "name" : "body",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "equals" : "composite",
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout",
     "optional" : true,
@@ -629,7 +528,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "8",
+    "value" : "7",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -710,37 +609,6 @@
     "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
     "type" : "Text"
   }, {
-    "id" : "resultVariableComposite",
-    "label" : "Result variable",
-    "group" : "output",
-    "binding" : {
-      "key" : "resultVariable",
-      "type" : "zeebe:taskHeader"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "oneOf" : [ "composite" ],
-      "type" : "simple"
-    },
-    "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
-    "type" : "String"
-  }, {
-    "id" : "resultExpressionComposite",
-    "label" : "Result expression",
-    "feel" : "required",
-    "group" : "output",
-    "binding" : {
-      "key" : "resultExpression",
-      "type" : "zeebe:taskHeader"
-    },
-    "condition" : {
-      "property" : "salesforceOperationType",
-      "oneOf" : [ "composite" ],
-      "type" : "simple"
-    },
-    "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
-    "type" : "Text"
-  }, {
     "id" : "errorExpression",
     "label" : "Error expression",
     "feel" : "required",
@@ -786,35 +654,30 @@
     "description" : "Invoke a custom Apex REST endpoint",
     "keywords" : [ "apex rest", "custom endpoint", "apex class", "invoke apex" ],
     "presetId" : "apexRest"
-  }, {
-    "name" : "Composite request",
-    "description" : "Batch multiple sObject sub-requests into a single call",
-    "keywords" : [ "composite request", "batch request", "bulk operations", "multiple sub-requests" ],
-    "presetId" : "composite"
   } ],
   "presets" : [ {
     "id" : "sObject_get",
     "properties" : {
-      "salesforceOperationType" : "sObject",
-      "interactionType" : "get"
+      "interactionType" : "get",
+      "salesforceOperationType" : "sObject"
     }
   }, {
     "id" : "sObject_post",
     "properties" : {
-      "salesforceOperationType" : "sObject",
-      "interactionType" : "post"
+      "interactionType" : "post",
+      "salesforceOperationType" : "sObject"
     }
   }, {
     "id" : "sObject_patch",
     "properties" : {
-      "salesforceOperationType" : "sObject",
-      "interactionType" : "patch"
+      "interactionType" : "patch",
+      "salesforceOperationType" : "sObject"
     }
   }, {
     "id" : "sObject_delete",
     "properties" : {
-      "salesforceOperationType" : "sObject",
-      "interactionType" : "delete"
+      "interactionType" : "delete",
+      "salesforceOperationType" : "sObject"
     }
   }, {
     "id" : "soqlQuery",
@@ -825,11 +688,6 @@
     "id" : "apexRest",
     "properties" : {
       "salesforceOperationType" : "apexRest"
-    }
-  }, {
-    "id" : "composite",
-    "properties" : {
-      "salesforceOperationType" : "composite"
     }
   } ],
   "icon" : {
