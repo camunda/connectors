@@ -1,0 +1,96 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai;
+
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+/**
+ * Plugs the native (own-LLM-layer) OpenAI Responses wire format into the provider-agnostic {@link
+ * ProviderWireFormatFixture} SPI - the sibling of {@link NativeOpenAiCompletionsWireFormatFixture}
+ * for the Responses API family, which has its own request shape ({@code instructions}/{@code
+ * input[]}/{@code tools[]}/{@code text.format}) and response shape (a single {@link
+ * com.openai.models.responses.Response} rather than accumulated chat-completion chunks), so it
+ * needs its own request recording ({@link NativeOpenAiResponsesRecordedConversation}) and SSE stub
+ * ({@link NativeOpenAiResponsesSseChatModelStubs}) instead of reusing the Completions ones.
+ *
+ * <p>Drives the v2 element template with {@code configuration.openai.*} property ids, via the
+ * compatible backend pointed at the WireMock host with a trailing {@code /v1} so the SDK's {@code
+ * /responses} path resolves to the recorded path (mirroring {@link
+ * NativeOpenAiCompletionsWireFormatFixture}'s endpoint setup).
+ *
+ * <p>Does not override {@link #assertResponseFormatConfigured}: unlike Anthropic, the Responses
+ * wire does carry the configured schema name (in {@code text.format.name}), and {@link
+ * NativeOpenAiResponsesRecordedChatRequestAdapter} already surfaces it, so the SPI default
+ * (asserting type/name/schema) applies unchanged.
+ */
+public final class NativeOpenAiResponsesWireFormatFixture implements ProviderWireFormatFixture {
+
+  @Override
+  public String apiName() {
+    return "NativeOpenAiResponses";
+  }
+
+  @Override
+  public String toString() {
+    return apiName();
+  }
+
+  @Override
+  public Function<ElementTemplate, ElementTemplate> configureProvider(
+      WireMockRuntimeInfo wireMock) {
+    return template ->
+        template
+            .property("configuration.type", "openai")
+            .property("configuration.openai.apiFamily", "responses")
+            .property("configuration.openai.backend.type", "compatible")
+            .property("configuration.openai.backend.endpoint", wireMock.getHttpBaseUrl() + "/v1")
+            .property("configuration.openai.backend.authentication.type", "apiKey")
+            .property("configuration.openai.backend.authentication.apiKey", "dummy")
+            .property("configuration.openai.model.model", "test-model");
+  }
+
+  @Override
+  public String elementTemplatePath(String defaultElementTemplatePath) {
+    return AiAgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PATH;
+  }
+
+  @Override
+  public Map<String, String> elementTemplateBaselineProperties(
+      Map<String, String> defaultProperties) {
+    return AiAgentTestFixtures.AI_AGENT_JOB_WORKER_V2_ELEMENT_TEMPLATE_PROPERTIES;
+  }
+
+  @Override
+  public void stubConversation(TurnStub... turns) {
+    NativeOpenAiResponsesSseChatModelStubs.stubConversation(turns);
+  }
+
+  @Override
+  public List<RecordedChatRequest> recordedRequests() {
+    return NativeOpenAiResponsesRecordedConversation.recorded().requests().stream()
+        .<RecordedChatRequest>map(NativeOpenAiResponsesRecordedChatRequestAdapter::new)
+        .toList();
+  }
+}
