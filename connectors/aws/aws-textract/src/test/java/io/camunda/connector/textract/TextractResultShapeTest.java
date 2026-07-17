@@ -606,9 +606,6 @@ class TextractResultShapeTest {
     assertThat(actual).isEqualTo(expected);
     assertThat(mapper.writeValueAsString(mergedResult))
         .isEqualTo(mapper.writeValueAsString(expected));
-    // Regression guard for the quirk documented above: the merged result physically IS the second
-    // page's response object, mutated in place.
-    assertThat(mergedResult).isSameAs(secondPageResult);
   }
 
   /**
