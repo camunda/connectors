@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
@@ -204,6 +205,41 @@ class OpenAiCompletionsRequestConverterTest {
     final var tool = params.messages().get(1).asTool();
     assertThat(tool.toolCallId()).isEqualTo("call_1");
     assertThat(tool.content().asText()).isEqualTo("sunny");
+  }
+
+  @Test
+  void unwrapsObjectContentToolResultToRawValue() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("call_1")
+                                .name("superflux_product")
+                                .arguments(Map.of("a", 5, "b", 3))
+                                .build()))
+                    .build(),
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call_1")
+                                .name("superflux_product")
+                                .content(List.of(ObjectContent.objectContent(24)))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params =
+        converter.toChatCompletionCreateParams(ctx(model(null), null), snapshot, caps());
+
+    final var tool = params.messages().get(1).asTool();
+    assertThat(tool.toolCallId()).isEqualTo("call_1");
+    // Must be the raw unwrapped value ("24"), not the polymorphic Content envelope
+    // ("{"type":"object","content":24}") - see OpenAiCompletionsRequestConverter#toTextOutput.
+    assertThat(tool.content().asText()).isEqualTo("24");
   }
 
   @Test
