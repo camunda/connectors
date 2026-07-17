@@ -710,6 +710,37 @@
     "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
     "type" : "Text"
   }, {
+    "id" : "resultVariableComposite",
+    "label" : "Result variable",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "condition" : {
+      "property" : "salesforceOperationType",
+      "oneOf" : [ "composite" ],
+      "type" : "simple"
+    },
+    "tooltip" : "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
+    "type" : "String"
+  }, {
+    "id" : "resultExpressionComposite",
+    "label" : "Result expression",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "condition" : {
+      "property" : "salesforceOperationType",
+      "oneOf" : [ "composite" ],
+      "type" : "simple"
+    },
+    "tooltip" : "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
+    "type" : "Text"
+  }, {
     "id" : "errorExpression",
     "label" : "Error expression",
     "feel" : "required",
@@ -764,26 +795,26 @@
   "presets" : [ {
     "id" : "sObject_get",
     "properties" : {
-      "interactionType" : "get",
-      "salesforceOperationType" : "sObject"
+      "salesforceOperationType" : "sObject",
+      "interactionType" : "get"
     }
   }, {
     "id" : "sObject_post",
     "properties" : {
-      "interactionType" : "post",
-      "salesforceOperationType" : "sObject"
+      "salesforceOperationType" : "sObject",
+      "interactionType" : "post"
     }
   }, {
     "id" : "sObject_patch",
     "properties" : {
-      "interactionType" : "patch",
-      "salesforceOperationType" : "sObject"
+      "salesforceOperationType" : "sObject",
+      "interactionType" : "patch"
     }
   }, {
     "id" : "sObject_delete",
     "properties" : {
-      "interactionType" : "delete",
-      "salesforceOperationType" : "sObject"
+      "salesforceOperationType" : "sObject",
+      "interactionType" : "delete"
     }
   }, {
     "id" : "soqlQuery",

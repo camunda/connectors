@@ -539,6 +539,26 @@ public class GenerateElementTemplate {
                     .feel(FeelMode.required)
                     .binding(new ZeebeTaskHeader("resultExpression"))
                     .condition(new OneOf("apexRestMethod", List.of("get", "post")))
+                    .build(),
+                StringProperty.builder()
+                    .id("resultVariableComposite")
+                    .label("Result variable")
+                    .tooltip(
+                        "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>")
+                    .group("output")
+                    .feel(FeelMode.disabled)
+                    .binding(new ZeebeTaskHeader("resultVariable"))
+                    .condition(new OneOf("salesforceOperationType", List.of("composite")))
+                    .build(),
+                TextProperty.builder()
+                    .id("resultExpressionComposite")
+                    .label("Result expression")
+                    .tooltip(
+                        "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>")
+                    .group("output")
+                    .feel(FeelMode.required)
+                    .binding(new ZeebeTaskHeader("resultExpression"))
+                    .condition(new OneOf("salesforceOperationType", List.of("composite")))
                     .build())
             .build(),
         PropertyGroup.builder()
