@@ -78,11 +78,11 @@ public class AnthropicChatModelApiFactory implements ChatModelApiFactory {
         modelMatched,
         capabilities);
 
-    final var clientFactory = new AnthropicOkHttpClientFactory(direct, timeout, transport);
+    final var client = new AnthropicOkHttpClientFactory(direct, timeout, transport).create();
     final var contentConverter = new AnthropicContentConverter(objectMapper);
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
     return new AnthropicChatModelApi(
-        clientFactory, requestConverter, responseConverter, capabilities, modelMatched);
+        client, requestConverter, responseConverter, capabilities, modelMatched);
   }
 }

@@ -10,7 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,7 +43,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AnthropicChatModelApiTest {
 
-  @Mock private AnthropicClientFactory clientFactory;
   @Mock private AnthropicClient client;
   @Mock private BetaService betaService;
   @Mock private MessageService messageService;
@@ -62,12 +63,7 @@ class AnthropicChatModelApiTest {
   void setUp() {
     api =
         new AnthropicChatModelApi(
-            clientFactory,
-            requestConverter,
-            responseConverter,
-            capabilities,
-            true,
-            streamAssembler);
+            client, requestConverter, responseConverter, capabilities, true, streamAssembler);
   }
 
   @Test
@@ -79,7 +75,6 @@ class AnthropicChatModelApiTest {
 
     when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities), eq(true)))
         .thenReturn(params);
-    when(clientFactory.create()).thenReturn(client);
     when(client.beta()).thenReturn(betaService);
     when(betaService.messages()).thenReturn(messageService);
     when(messageService.createStreaming(params)).thenReturn(streamResponse);
@@ -93,20 +88,15 @@ class AnthropicChatModelApiTest {
         .toMessageCreateParams(request.executionContext(), request.snapshot(), capabilities, true);
     verify(messageService).createStreaming(params);
     verify(streamAssembler).assemble(streamResponse);
-    verify(client).close();
     verify(streamResponse).close();
+    verify(client, never()).close();
   }
 
   @Test
   void threadsModelMatchedSignalFromConstructorIntoRequestConverter() {
     final var unmatchedApi =
         new AnthropicChatModelApi(
-            clientFactory,
-            requestConverter,
-            responseConverter,
-            capabilities,
-            false,
-            streamAssembler);
+            client, requestConverter, responseConverter, capabilities, false, streamAssembler);
     final var params = mock(MessageCreateParams.class);
     final var expected =
         new ChatModelResult.Completed(
@@ -114,7 +104,6 @@ class AnthropicChatModelApiTest {
 
     when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities), eq(false)))
         .thenReturn(params);
-    when(clientFactory.create()).thenReturn(client);
     when(client.beta()).thenReturn(betaService);
     when(betaService.messages()).thenReturn(messageService);
     when(messageService.createStreaming(params)).thenReturn(streamResponse);
@@ -131,7 +120,7 @@ class AnthropicChatModelApiTest {
   void wrapsSdkFailureAsConnectorException() {
     when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities), eq(true)))
         .thenReturn(mock(MessageCreateParams.class));
-    when(clientFactory.create()).thenThrow(new RuntimeException("boom"));
+    when(client.beta()).thenThrow(new RuntimeException("boom"));
 
     assertThatThrownBy(() -> api.call(request))
         .isInstanceOf(ConnectorException.class)
@@ -140,20 +129,17 @@ class AnthropicChatModelApiTest {
   }
 
   @Test
-  void closesClientWhenSdkCallThrows() {
-    final var params = mock(MessageCreateParams.class);
+  void closesUnderlyingClient() {
+    api.close();
 
-    when(requestConverter.toMessageCreateParams(any(), any(), eq(capabilities), eq(true)))
-        .thenReturn(params);
-    when(clientFactory.create()).thenReturn(client);
-    when(client.beta()).thenReturn(betaService);
-    when(betaService.messages()).thenReturn(messageService);
-    when(messageService.createStreaming(params)).thenThrow(new RuntimeException("boom"));
+    verify(client).close();
+  }
 
-    assertThatThrownBy(() -> api.call(request))
-        .isInstanceOf(ConnectorException.class)
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  @Test
+  void closeLogsWarningInsteadOfThrowingWhenClientCloseFails() {
+    doThrow(new RuntimeException("boom")).when(client).close();
+
+    api.close();
 
     verify(client).close();
   }

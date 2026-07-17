@@ -50,4 +50,10 @@ public class Langchain4JChatModelApi implements ChatModelApi {
   public ModelCapabilities capabilities() {
     return BRIDGE_CAPABILITIES;
   }
+
+  @Override
+  public void close() {
+    // no-op: the underlying LangChain4J chat model is currently created and closed per call by
+    // Langchain4JAiFrameworkAdapter; there is nothing owned at this level to close yet.
+  }
 }

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.openai;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.client.OpenAIClient;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiConfiguration;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApiFactory;
@@ -82,8 +83,8 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory {
         modelMatched,
         capabilities);
 
-    final OpenAiClientFactory clientFactory =
-        new OpenAiOkHttpClientFactory(connection.backend(), timeout, transport);
+    final OpenAIClient client =
+        new OpenAiOkHttpClientFactory(connection.backend(), timeout, transport).create();
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final OpenAiApiFamilyStrategy strategy =
         switch (connection.apiFamily()) {
@@ -98,6 +99,6 @@ public class OpenAiChatModelApiFactory implements ChatModelApiFactory {
                   new OpenAiCompletionsResponseConverter(objectMapper),
                   OpenAiCompletionsStreamAssembler.accumulating());
         };
-    return new OpenAiChatModelApi(clientFactory, strategy, capabilities, modelMatched);
+    return new OpenAiChatModelApi(client, strategy, capabilities, modelMatched);
   }
 }

@@ -27,17 +27,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Native Anthropic {@link ChatModelApi}: drives the vendor SDK's streaming beta Messages endpoint
- * for every call (Anthropic has no meaningful non-streaming distinction for this connector's
- * purposes; streaming is used uniformly to accumulate the same {@link BetaMessage} shape the
- * non-streaming API would return), then delegates to the Task 3/4 converters to translate to/from
- * the domain model.
+ * Anthropic {@link ChatModelApi}: drives the vendor SDK's streaming beta Messages endpoint for
+ * every call (Anthropic has no meaningful non-streaming distinction for this connector's purposes;
+ * streaming is used uniformly to accumulate the same {@link BetaMessage} shape the non-streaming
+ * API would return), then delegates to the Task 3/4 converters to translate to/from the domain
+ * model.
  *
- * <p>{@link AnthropicClient#close()} is deliberately not exercised through try-with-resources: the
+ * <p>The {@link AnthropicClient} is built once by the factory and owned for the lifetime of this
+ * instance (one agent request, across all continuation rounds); {@link #close()} closes it once.
+ * {@link AnthropicClient#close()} is deliberately not exercised through try-with-resources: the
  * vendor SDK's {@code AnthropicClient} interface does not implement {@link AutoCloseable} (its
  * {@code close()} is a plain, unchecked method the SDK explicitly documents as usually unnecessary
  * to call). {@link StreamResponse}, in contrast, does implement {@code AutoCloseable} and is closed
- * via try-with-resources.
+ * via try-with-resources on every call.
  *
  * <p>Uses the <strong>beta</strong> messages client (rather than the stable {@code
  * client.messages()}) since it is required for upcoming Skills support; this migration is otherwise
@@ -48,7 +50,7 @@ public class AnthropicChatModelApi implements ChatModelApi {
   private static final Logger LOG = LoggerFactory.getLogger(AnthropicChatModelApi.class);
   private static final ObjectMapper MAPPER = ObjectMappers.jsonMapper();
 
-  private final AnthropicClientFactory clientFactory;
+  private final AnthropicClient client;
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
   private final AnthropicModelCapabilities capabilities;
@@ -65,13 +67,13 @@ public class AnthropicChatModelApi implements ChatModelApi {
   private final AnthropicMessageStreamAssembler streamAssembler;
 
   public AnthropicChatModelApi(
-      AnthropicClientFactory clientFactory,
+      AnthropicClient client,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
       AnthropicModelCapabilities capabilities,
       boolean modelMatched) {
     this(
-        clientFactory,
+        client,
         requestConverter,
         responseConverter,
         capabilities,
@@ -80,13 +82,13 @@ public class AnthropicChatModelApi implements ChatModelApi {
   }
 
   AnthropicChatModelApi(
-      AnthropicClientFactory clientFactory,
+      AnthropicClient client,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
       AnthropicModelCapabilities capabilities,
       boolean modelMatched,
       AnthropicMessageStreamAssembler streamAssembler) {
-    this.clientFactory = clientFactory;
+    this.client = client;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
     this.capabilities = capabilities;
@@ -107,27 +109,18 @@ public class AnthropicChatModelApi implements ChatModelApi {
 
     final long startNanos = System.nanoTime();
     try {
-      final AnthropicClient client = clientFactory.create();
-      try {
-        final BetaMessage message;
-        try (StreamResponse<BetaRawMessageStreamEvent> stream =
-            client.beta().messages().createStreaming(params)) {
-          message = streamAssembler.assemble(stream);
-        }
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(
-              "Anthropic Messages API response: {}",
-              NativeChatModelPayloadLogging.toJson(MAPPER, message));
-        }
-        final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
-        return responseConverter.toResult(message, executionTime);
-      } finally {
-        try {
-          client.close();
-        } catch (Exception closeException) {
-          LOG.warn("Failed to close AnthropicClient", closeException);
-        }
+      final BetaMessage message;
+      try (StreamResponse<BetaRawMessageStreamEvent> stream =
+          client.beta().messages().createStreaming(params)) {
+        message = streamAssembler.assemble(stream);
       }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "Anthropic Messages API response: {}",
+            NativeChatModelPayloadLogging.toJson(MAPPER, message));
+      }
+      final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
+      return responseConverter.toResult(message, executionTime);
     } catch (Exception e) {
       final String detail =
           Optional.ofNullable(e.getMessage())
@@ -141,5 +134,14 @@ public class AnthropicChatModelApi implements ChatModelApi {
   @Override
   public ModelCapabilities capabilities() {
     return capabilities;
+  }
+
+  @Override
+  public void close() {
+    try {
+      client.close();
+    } catch (Exception e) {
+      LOG.warn("Failed to close AnthropicClient", e);
+    }
   }
 }

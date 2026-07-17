@@ -10,8 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,7 +37,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class OpenAiChatModelApiTest {
 
-  @Mock private OpenAiClientFactory clientFactory;
   @Mock private OpenAIClient client;
   @Mock private OpenAiApiFamilyStrategy strategy;
 
@@ -50,33 +49,30 @@ class OpenAiChatModelApiTest {
 
   @BeforeEach
   void setUp() {
-    api = new OpenAiChatModelApi(clientFactory, strategy, capabilities, true);
+    api = new OpenAiChatModelApi(client, strategy, capabilities, true);
   }
 
   @Test
-  void buildsClientAndDelegatesToStrategy() {
+  void delegatesToStrategy() {
     final var expected =
         new ChatModelResult.Completed(
             AssistantMessage.builder().build(), AgentMetrics.builder().build());
 
-    when(clientFactory.create()).thenReturn(client);
     when(strategy.call(client, request, capabilities, true)).thenReturn(expected);
 
     final var result = api.call(request);
 
     assertThat(result).isSameAs(expected);
     verify(strategy).call(client, request, capabilities, true);
-    verify(client).close();
   }
 
   @Test
   void threadsModelMatchedSignalFromConstructorIntoStrategy() {
-    final var unmatchedApi = new OpenAiChatModelApi(clientFactory, strategy, capabilities, false);
+    final var unmatchedApi = new OpenAiChatModelApi(client, strategy, capabilities, false);
     final var expected =
         new ChatModelResult.Completed(
             AssistantMessage.builder().build(), AgentMetrics.builder().build());
 
-    when(clientFactory.create()).thenReturn(client);
     when(strategy.call(client, request, capabilities, false)).thenReturn(expected);
 
     unmatchedApi.call(request);
@@ -88,41 +84,35 @@ class OpenAiChatModelApiTest {
   void propagatesConnectorExceptionFromStrategyUnwrapped() {
     final var connectorException = new ConnectorException("SOME_OTHER_CODE", "validation failed");
 
-    when(clientFactory.create()).thenReturn(client);
     when(strategy.call(any(), any(), any(), eq(true))).thenThrow(connectorException);
 
     assertThatThrownBy(() -> api.call(request)).isSameAs(connectorException);
-
-    verify(client).close();
   }
 
   @Test
   void wrapsGenericFailureAsConnectorException() {
-    when(clientFactory.create()).thenReturn(client);
     when(strategy.call(any(), any(), any(), eq(true))).thenThrow(new RuntimeException("boom"));
 
     assertThatThrownBy(() -> api.call(request))
         .isInstanceOf(ConnectorException.class)
         .extracting(e -> ((ConnectorException) e).getErrorCode())
         .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  @Test
+  void closesUnderlyingClient() {
+    api.close();
 
     verify(client).close();
   }
 
   @Test
-  void wrapsClientFactoryFailure() {
-    // clientFactory.create() now runs inside the outer try (mirroring the Anthropic sibling), so
-    // a factory failure is wrapped like any other generic model-call failure. There is no client
-    // to close in this case, so close() is never invoked.
-    final var factoryFailure = new RuntimeException("boom");
-    when(clientFactory.create()).thenThrow(factoryFailure);
+  void closeLogsWarningInsteadOfThrowingWhenClientCloseFails() {
+    doThrow(new RuntimeException("boom")).when(client).close();
 
-    assertThatThrownBy(() -> api.call(request))
-        .isInstanceOf(ConnectorException.class)
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+    api.close();
 
-    verify(client, never()).close();
+    verify(client).close();
   }
 
   @Test

@@ -165,49 +165,50 @@ public abstract class BaseAgentRequestHandler<
         OffsetDateTime.now());
 
     LOGGER.debug("Executing chat request");
-    final var chatModel =
-        chatModelApiRegistry.resolve(agentConfiguration.chatModelApiConfiguration());
-
-    // Continuation loop (ADR-009): a provider may pause mid-turn (e.g. Anthropic pause_turn) and
-    // return a Continuation rather than a Completed result. Each Continuation becomes its own
-    // persisted turn and the model is re-called until a Completed ends the loop. The LangChain4J
-    // bridge always returns Completed, so this runs exactly once on that path.
     var workingConversation = conversation;
-    boolean continued;
-    do {
-      final var windowedSnapshot =
-          workingConversation.window(agentConfiguration.contextWindowSize());
-      final var toolResultRoutedSnapshot =
-          toolCallResultStrategy.apply(windowedSnapshot, chatModel.capabilities());
-      final var chatResult =
-          chatModel.call(new ChatModelRequest(executionContext, toolResultRoutedSnapshot));
-      workingConversation =
-          workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
+    try (final var chatModel =
+        chatModelApiRegistry.resolve(agentConfiguration.chatModelApiConfiguration())) {
+      // Continuation loop (ADR-009): a provider may pause mid-turn (e.g. Anthropic pause_turn) and
+      // return a Continuation rather than a Completed result. Each Continuation becomes its own
+      // persisted turn and the model is re-called until a Completed ends the loop. Chat models
+      // routed through LangChain4J always return Completed, so this runs exactly once on that
+      // path.
+      boolean continued;
+      do {
+        final var windowedSnapshot =
+            workingConversation.window(agentConfiguration.contextWindowSize());
+        final var toolResultRoutedSnapshot =
+            toolCallResultStrategy.apply(windowedSnapshot, chatModel.capabilities());
+        final var chatResult =
+            chatModel.call(new ChatModelRequest(executionContext, toolResultRoutedSnapshot));
+        workingConversation =
+            workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
 
-      agentInstanceClient.createHistoryForAssistantMessage(
-          executionContext,
-          agentInstanceKey,
-          workingConversation.currentTurn(),
-          OffsetDateTime.now());
-
-      // A Continuation means we re-call the model with the same conversation and no new input
-      // messages — the model resumes the paused turn on the existing state.
-      continued = chatResult instanceof ChatModelResult.Continuation;
-      if (continued) {
-        // Report this round's own metrics now: its history item and metrics are rolled into
-        // previousTurns and would otherwise never reach the instance-level counters (only the
-        // final round's delta is pushed after the loop). No status change — still mid-turn.
-        notifyMetrics(
+        agentInstanceClient.createHistoryForAssistantMessage(
             executionContext,
-            workingConversation.toAgentContext(),
-            workingConversation.currentTurnMetrics(),
-            null,
-            false);
+            agentInstanceKey,
+            workingConversation.currentTurn(),
+            OffsetDateTime.now());
 
-        throwIfLimitsReached(workingConversation, agentConfiguration);
-        workingConversation = workingConversation.nextContinuationRound();
-      }
-    } while (continued);
+        // A Continuation means we re-call the model with the same conversation and no new input
+        // messages — the model resumes the paused turn on the existing state.
+        continued = chatResult instanceof ChatModelResult.Continuation;
+        if (continued) {
+          // Report this round's own metrics now: its history item and metrics are rolled into
+          // previousTurns and would otherwise never reach the instance-level counters (only the
+          // final round's delta is pushed after the loop). No status change — still mid-turn.
+          notifyMetrics(
+              executionContext,
+              workingConversation.toAgentContext(),
+              workingConversation.currentTurnMetrics(),
+              null,
+              false);
+
+          throwIfLimitsReached(workingConversation, agentConfiguration);
+          workingConversation = workingConversation.nextContinuationRound();
+        }
+      } while (continued);
+    }
     final var updatedConversation = workingConversation;
 
     LOGGER.debug("Storing conversation messages to session");

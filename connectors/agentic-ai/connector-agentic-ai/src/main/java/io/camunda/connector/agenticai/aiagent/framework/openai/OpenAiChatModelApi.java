@@ -20,25 +20,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Native OpenAI {@link ChatModelApi}: builds a fresh vendor {@link OpenAIClient} per call and
- * delegates the actual streaming vendor call to the configured {@link OpenAiApiFamilyStrategy}
- * (Responses or Chat Completions), then translates the result via that strategy's converters.
+ * OpenAI {@link ChatModelApi}: delegates the actual streaming vendor call to the configured {@link
+ * OpenAiApiFamilyStrategy} (Responses or Chat Completions), then translates the result via that
+ * strategy's converters.
  *
- * <p>Client creation runs inside the outer try (mirroring the Anthropic sibling's {@code
- * AnthropicChatModelApi}), so a {@code clientFactory} failure is wrapped as a generic "Model call
- * failed" {@link ConnectorException} like any other model-call failure, rather than propagating
- * unwrapped.
- *
- * <p>{@link OpenAIClient#close()} is a plain, unchecked {@code void} method (the vendor SDK's
- * client interface does not implement {@link AutoCloseable}), so it is closed explicitly in a
- * {@code finally} block, guarded so it only runs once a client was actually created, again
+ * <p>The {@link OpenAIClient} is built once by the factory and owned for the lifetime of this
+ * instance (one agent request, across all continuation rounds); {@link #close()} closes it once.
+ * {@link OpenAIClient#close()} is a plain, unchecked {@code void} method (the vendor SDK's client
+ * interface does not implement {@link AutoCloseable}), so it is closed explicitly and guarded,
  * mirroring the Anthropic sibling's handling of {@code AnthropicClient}.
  */
 public class OpenAiChatModelApi implements ChatModelApi {
 
   private static final Logger LOG = LoggerFactory.getLogger(OpenAiChatModelApi.class);
 
-  private final OpenAiClientFactory clientFactory;
+  private final OpenAIClient client;
   private final OpenAiApiFamilyStrategy strategy;
   private final OpenAiModelCapabilities capabilities;
 
@@ -52,11 +48,11 @@ public class OpenAiChatModelApi implements ChatModelApi {
   private final boolean modelMatched;
 
   public OpenAiChatModelApi(
-      OpenAiClientFactory clientFactory,
+      OpenAIClient client,
       OpenAiApiFamilyStrategy strategy,
       OpenAiModelCapabilities capabilities,
       boolean modelMatched) {
-    this.clientFactory = clientFactory;
+    this.client = client;
     this.strategy = strategy;
     this.capabilities = capabilities;
     this.modelMatched = modelMatched;
@@ -65,21 +61,11 @@ public class OpenAiChatModelApi implements ChatModelApi {
   @Override
   public ChatModelResult call(ChatModelRequest request) {
     try {
-      final OpenAIClient client = clientFactory.create();
-      try {
-        return strategy.call(client, request, capabilities, modelMatched);
-      } finally {
-        try {
-          client.close();
-        } catch (Exception closeException) {
-          LOG.warn("Failed to close OpenAIClient", closeException);
-        }
-      }
+      return strategy.call(client, request, capabilities, modelMatched);
     } catch (ConnectorException e) {
       // The family strategy builds its request params (and thus runs OpenAiRequestValidator)
-      // inside strategy.call(), unlike the Anthropic sibling, which builds params outside its
-      // try block. Re-throw validation/already-coded ConnectorExceptions verbatim so they are not
-      // double-wrapped as a generic "Model call failed" below.
+      // inside strategy.call(). Re-throw validation/already-coded ConnectorExceptions verbatim so
+      // they are not double-wrapped as a generic "Model call failed" below.
       throw e;
     } catch (Exception e) {
       final String detail =
@@ -94,5 +80,14 @@ public class OpenAiChatModelApi implements ChatModelApi {
   @Override
   public ModelCapabilities capabilities() {
     return capabilities;
+  }
+
+  @Override
+  public void close() {
+    try {
+      client.close();
+    } catch (Exception e) {
+      LOG.warn("Failed to close OpenAIClient", e);
+    }
   }
 }

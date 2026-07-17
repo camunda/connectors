@@ -9,18 +9,20 @@ package io.camunda.connector.agenticai.aiagent.framework.api;
 import io.camunda.connector.agenticai.aiagent.framework.capabilities.ModelCapabilities;
 
 /**
- * Per-provider chat model. A single {@link #call(ChatModelRequest)} invocation performs exactly one
- * round-trip against the provider; implementations must not run their own internal (vendor)
- * tool-calling auto-loop.
+ * Per-provider chat model. One instance serves a single agent request across all of its
+ * continuation rounds and must be closed once that request is done; a single {@link
+ * #call(ChatModelRequest)} invocation performs exactly one round-trip against the provider.
  */
-public interface ChatModelApi {
+public interface ChatModelApi extends AutoCloseable {
 
   ChatModelResult call(ChatModelRequest request);
 
   /**
-   * The capability profile of this chat model, used by later chunks to drive runtime decisions like
-   * tool-result strategy selection and reasoning negotiation. Not yet consumed by the request
-   * handler.
+   * The capability profile of this chat model, used to drive runtime decisions like tool-result
+   * strategy selection and reasoning negotiation.
    */
   ModelCapabilities capabilities();
+
+  @Override
+  void close();
 }
