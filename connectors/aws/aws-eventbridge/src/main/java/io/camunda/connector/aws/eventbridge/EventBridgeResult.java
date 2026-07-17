@@ -53,10 +53,11 @@ public record EventBridgeResult(
     private static final String UNKNOWN_REQUEST_ID = "UNKNOWN";
 
     static SdkResponseMetadata from(final AwsResponseMetadata metadata) {
-      if (metadata == null || UNKNOWN_REQUEST_ID.equals(metadata.requestId())) {
+      if (metadata == null) {
         return null;
       }
-      return new SdkResponseMetadata(metadata.requestId());
+      String requestId = metadata.requestId();
+      return new SdkResponseMetadata(UNKNOWN_REQUEST_ID.equals(requestId) ? null : requestId);
     }
   }
 

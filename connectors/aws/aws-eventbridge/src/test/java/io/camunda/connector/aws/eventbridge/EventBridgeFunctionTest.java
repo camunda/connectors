@@ -216,6 +216,25 @@ class EventBridgeFunctionTest {
         .isEqualTo(productionMapper.writeValueAsString(expected));
   }
 
+  /**
+   * v2 falls back to the literal request id {@code "UNKNOWN"} when {@code AWS_REQUEST_ID} is absent
+   * from the response metadata map; v1 exposed a {@code null} {@code requestId} in that case, with
+   * the {@code sdkResponseMetadata} object still present. Guards against collapsing the whole
+   * object to {@code null} instead of normalizing just the {@code requestId} field.
+   */
+  @Test
+  public void putEventsResult_normalizesUnknownRequestIdWithoutDroppingMetadataObject() {
+    var responseBuilder =
+        PutEventsResponse.builder()
+            .entries(PutEventsResultEntry.builder().eventId(EVENT_ID).build());
+    responseBuilder.responseMetadata(DefaultAwsResponseMetadata.create(Map.of()));
+
+    EventBridgeResult result = EventBridgeResult.from(responseBuilder.build());
+
+    assertThat(result.sdkResponseMetadata()).isNotNull();
+    assertThat(result.sdkResponseMetadata().requestId()).isNull();
+  }
+
   @ParameterizedTest()
   @MethodSource("validationTestCases")
   public void execute_shouldThrowExceptionWhenDataNotValid(String input) {
