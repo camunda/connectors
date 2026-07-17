@@ -601,7 +601,10 @@ public class GenerateElementTemplate {
                 .group("operation")
                 .feel(FeelMode.required)
                 .binding(new ZeebeInput("body"))
-                .condition(new OneOf("apexRestMethod", List.of("post", "patch", "put")))
+                .condition(
+                    new AllMatch(
+                        new OneOf("apexRestMethod", List.of("post", "patch", "put")),
+                        new Equals("salesforceOperationType", "apexRest")))
                 .constraints(PropertyConstraints.builder().notEmpty(true).build())
                 .build())
         .build();
@@ -681,7 +684,10 @@ public class GenerateElementTemplate {
                 .group("output")
                 .feel(FeelMode.disabled)
                 .binding(new ZeebeTaskHeader("resultVariable"))
-                .condition(new OneOf("apexRestMethod", List.of("get", "post")))
+                .condition(
+                    new AllMatch(
+                        new OneOf("apexRestMethod", List.of("get", "post")),
+                        new Equals("salesforceOperationType", "apexRest")))
                 .build(),
             TextProperty.builder()
                 .id("resultExpressionApexRest")
@@ -691,7 +697,10 @@ public class GenerateElementTemplate {
                 .group("output")
                 .feel(FeelMode.required)
                 .binding(new ZeebeTaskHeader("resultExpression"))
-                .condition(new OneOf("apexRestMethod", List.of("get", "post")))
+                .condition(
+                    new AllMatch(
+                        new OneOf("apexRestMethod", List.of("get", "post")),
+                        new Equals("salesforceOperationType", "apexRest")))
                 .build())
         .build();
   }
