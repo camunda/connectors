@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -276,13 +277,26 @@ public class OpenAiResponsesRequestConverter {
 
   /**
    * Flattens a text-only tool result to a single string blob: {@link TextContent} is concatenated
-   * verbatim, objects are serialized to JSON. Used when the result carries no document content;
-   * results containing documents take the multimodal item-list path instead (see {@link
+   * verbatim, {@link ObjectContent} is unwrapped to its raw {@code content()} before being
+   * serialized to JSON (matching {@code AnthropicContentConverter}'s and {@link
+   * OpenAiContentConverter}'s handling - otherwise the polymorphic {@link Content} envelope itself,
+   * including its {@code type} discriminator, would leak onto the wire), anything else (documents)
+   * falls back to serializing the whole content value. Used when the result carries no document
+   * content; results containing documents take the multimodal item-list path instead (see {@link
    * #toolResultInputItems}).
    */
   private String toTextOutput(List<Content> content) {
     return content.stream()
-        .map(c -> c instanceof TextContent text ? text.text() : writeAsJson(c))
+        .map(
+            c -> {
+              if (c instanceof TextContent text) {
+                return text.text();
+              } else if (c instanceof ObjectContent obj) {
+                return writeAsJson(obj.content());
+              } else {
+                return writeAsJson(c);
+              }
+            })
         .collect(Collectors.joining("\n"));
   }
 

@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -203,6 +204,43 @@ class OpenAiResponsesRequestConverterTest {
     final var functionCallOutput = items.get(1).functionCallOutput().orElseThrow();
     assertThat(functionCallOutput.callId()).isEqualTo("call_1");
     assertThat(functionCallOutput.output().asString()).isEqualTo("sunny");
+  }
+
+  @Test
+  void unwrapsObjectContentToolResultToRawValue() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("call_1")
+                                .name("superflux_product")
+                                .arguments(Map.of("a", 5, "b", 3))
+                                .build()))
+                    .build(),
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call_1")
+                                .name("superflux_product")
+                                .content(List.of(ObjectContent.objectContent(24)))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toResponseCreateParams(ctx(model(null), null), snapshot, caps());
+
+    final var items = params.input().orElseThrow().asResponse();
+    assertThat(items).hasSize(2);
+
+    final var functionCallOutput = items.get(1).functionCallOutput().orElseThrow();
+    assertThat(functionCallOutput.callId()).isEqualTo("call_1");
+    // Must be the raw unwrapped value ("24"), not the polymorphic Content envelope
+    // ("{"type":"object","content":24}") - see OpenAiResponsesRequestConverter#toTextOutput.
+    assertThat(functionCallOutput.output().asString()).isEqualTo("24");
   }
 
   @Test
