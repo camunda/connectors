@@ -8,8 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.api;
 
 /**
  * Neutral, connector-agnostic descriptor a {@link ChatModelApiFactory} inspects to decide whether
- * it can serve a request and to build a {@link ChatModelApi}. Today the only implementation wraps a
- * {@link io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration}; new
- * connector variants and custom providers contribute their own implementations.
+ * it can serve a request and to build a {@link ChatModelApi}. Implementations are contributed by
+ * connector variants and custom providers.
  */
 public interface ChatModelApiConfiguration {}

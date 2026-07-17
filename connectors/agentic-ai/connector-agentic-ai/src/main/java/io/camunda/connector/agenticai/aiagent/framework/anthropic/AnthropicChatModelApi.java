@@ -15,7 +15,7 @@ import com.anthropic.models.beta.messages.BetaMessage;
 import com.anthropic.models.beta.messages.BetaRawMessageStreamEvent;
 import com.anthropic.models.beta.messages.MessageCreateParams;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.framework.NativeChatModelPayloadLogging;
+import io.camunda.connector.agenticai.aiagent.framework.JsonPayloadLogging;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelApi;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
@@ -103,8 +103,7 @@ public class AnthropicChatModelApi implements ChatModelApi {
             request.executionContext(), request.snapshot(), capabilities, modelMatched);
     if (LOG.isDebugEnabled()) {
       LOG.debug(
-          "Anthropic Messages API request: {}",
-          NativeChatModelPayloadLogging.toJson(MAPPER, params._body()));
+          "Anthropic Messages API request: {}", JsonPayloadLogging.toJson(MAPPER, params._body()));
     }
 
     final long startNanos = System.nanoTime();
@@ -116,8 +115,7 @@ public class AnthropicChatModelApi implements ChatModelApi {
       }
       if (LOG.isDebugEnabled()) {
         LOG.debug(
-            "Anthropic Messages API response: {}",
-            NativeChatModelPayloadLogging.toJson(MAPPER, message));
+            "Anthropic Messages API response: {}", JsonPayloadLogging.toJson(MAPPER, message));
       }
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
       return responseConverter.toResult(message, executionTime);

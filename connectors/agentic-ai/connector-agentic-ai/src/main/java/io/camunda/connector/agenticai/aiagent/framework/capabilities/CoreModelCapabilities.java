@@ -12,11 +12,18 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Provider-agnostic capability data shared across provider capability records and usable directly
- * as a neutral {@link ModelCapabilities} (e.g. by the LangChain4j bridge). Carries the three
- * modality lists (the neutral contract) plus the provider-agnostic token-budget figures. The token
- * figures are not part of the neutral {@link ModelCapabilities} contract — they are read only by a
- * provider's own converter via the concrete type — so they live here as extra record accessors, not
- * as interface methods.
+ * as a neutral {@link ModelCapabilities}. Carries the three modality lists (the neutral contract)
+ * plus the provider-agnostic token-budget figures. The token figures are not part of the neutral
+ * {@link ModelCapabilities} contract — they are read only by a provider's own converter via the
+ * concrete type — so they live here as extra record accessors, not as interface methods.
+ *
+ * <p>For example: {@code userMessageModalities = [TEXT, IMAGE]}, {@code toolResultModalities =
+ * [TEXT]}, {@code assistantMessageModalities = [TEXT]}, {@code contextWindow = 200000}, {@code
+ * maxOutputTokens = 64000}.
+ *
+ * @param contextWindow the total input+output token budget for a single request (one model call),
+ *     not a figure that accumulates across turns
+ * @param maxOutputTokens the cap on output tokens for a single model call (one turn)
  */
 public record CoreModelCapabilities(
     List<Modality> userMessageModalities,

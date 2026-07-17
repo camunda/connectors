@@ -107,7 +107,7 @@ class AnthropicContentConverterTest {
 
     @Test
     void skipsReasoningContentWithNullProviderPayload() {
-      // e.g. reasoning content produced by the LangChain4J bridge path, which never populates
+      // e.g. reasoning content produced by the LangChain4J-routed path, which never populates
       // providerPayload; there is no raw block to replay, so it is skipped rather than dropped
       // silently as a null content block.
       final var blocks =

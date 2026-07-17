@@ -10,13 +10,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 /**
- * Provider-neutral capability contract that framework-generic code depends on. Today the only
- * cross-provider consumer is {@code CapabilityAwareToolCallResultStrategy}, which reads modalities
- * only — so this interface is deliberately minimal (three modality lists + the {@link Modality}
- * vocabulary). Provider-specific capability data lives on the provider's own implementing record
- * (e.g. {@code AnthropicModelCapabilities}), never here: every method added here is a tax on every
- * custom provider that must implement it. New methods added in later chunks must be {@code default}
- * so existing custom implementations keep compiling.
+ * Provider-neutral capability contract that framework-generic code depends on. Deliberately minimal
+ * (three modality lists + the {@link Modality} vocabulary), since framework-generic code only ever
+ * needs to reason about modalities. Provider-specific capability data lives on the provider's own
+ * implementing record (e.g. {@code AnthropicModelCapabilities}), never here: every method added
+ * here is a tax on every custom provider that must implement it. New methods added in later chunks
+ * must be {@code default} so existing custom implementations keep compiling.
+ *
+ * <p>For example, a model supporting text and images in user messages but only text elsewhere
+ * reports {@code userMessageModalities = [TEXT, IMAGE]}, {@code toolResultModalities = [TEXT]},
+ * {@code assistantMessageModalities = [TEXT]}.
  */
 public interface ModelCapabilities {
 

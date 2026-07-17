@@ -9,13 +9,14 @@ package io.camunda.connector.agenticai.aiagent.framework;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Serializes native chat model SDK objects (request-params, assembled responses) for DEBUG logging,
- * using the vendor SDK's own {@link ObjectMapper} (the only mapper that renders the SDK's internal
- * {@code JsonValue}/{@code JsonField} wrapper types faithfully).
+ * Serializes an arbitrary payload (e.g. request params, assembled responses) to JSON for DEBUG
+ * logging, with a safe fallback if serialization fails. Callers supply the {@link ObjectMapper} to
+ * use, e.g. a vendor SDK's own mapper when that is the only mapper that renders the SDK's internal
+ * wrapper types faithfully.
  */
-public final class NativeChatModelPayloadLogging {
+public final class JsonPayloadLogging {
 
-  private NativeChatModelPayloadLogging() {}
+  private JsonPayloadLogging() {}
 
   /**
    * Serializes {@code payload} with {@code mapper} for logging purposes. Never throws: a

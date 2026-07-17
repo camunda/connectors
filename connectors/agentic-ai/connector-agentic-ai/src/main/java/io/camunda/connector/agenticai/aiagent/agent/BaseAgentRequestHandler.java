@@ -181,7 +181,7 @@ public abstract class BaseAgentRequestHandler<
         final var windowedSnapshot =
             workingConversation.window(agentConfiguration.contextWindowSize());
         final var toolResultRoutedSnapshot =
-            toolCallResultStrategy.apply(windowedSnapshot, chatModel.capabilities());
+            toolCallResultStrategy.routeToolResults(windowedSnapshot, chatModel.capabilities());
         final var chatResult =
             chatModel.call(new ChatModelRequest(executionContext, toolResultRoutedSnapshot));
         workingConversation =

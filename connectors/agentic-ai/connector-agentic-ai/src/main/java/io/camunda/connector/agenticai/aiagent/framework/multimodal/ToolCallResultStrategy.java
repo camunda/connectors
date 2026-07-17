@@ -12,12 +12,13 @@ import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 /**
  * Sent-only, capability-keyed transform applied to the already-windowed {@link
  * ConversationSnapshot} right before it is sent to the chat model. Routes tool-result documents to
- * a native-inline block when the resolved {@link ModelCapabilities} support the document's modality
- * at the {@code toolResult} location, or strips them and inserts a byte-identical {@code <doc/>}
- * synthetic fallback message otherwise. Persists nothing: the transformed snapshot is used only for
- * this model call.
+ * an inline content block when the resolved {@link ModelCapabilities} support the document's
+ * modality at the {@code toolResult} location, or strips them and inserts a byte-identical {@code
+ * <doc/>} synthetic fallback message otherwise. Persists nothing: the transformed snapshot is used
+ * only for this model call.
  */
 public interface ToolCallResultStrategy {
 
-  ConversationSnapshot apply(ConversationSnapshot snapshot, ModelCapabilities capabilities);
+  ConversationSnapshot routeToolResults(
+      ConversationSnapshot snapshot, ModelCapabilities capabilities);
 }

@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
  */
 class ToolResultDocumentWindowingTest {
 
-  // bridge-like capabilities: every tool-result document takes the fallback
+  // capabilities with no tool-result modalities: every tool-result document takes the fallback
   private static final ModelCapabilities BRIDGE_CAPS =
       new CoreModelCapabilities(
           List.of(Modality.TEXT, Modality.IMAGE, Modality.DOCUMENT),
@@ -100,7 +100,9 @@ class ToolResultDocumentWindowingTest {
     assertThat(windowed).hasSize(messages.size());
 
     var sent =
-        strategy.apply(new ConversationSnapshot(windowed, List.of()), BRIDGE_CAPS).messages();
+        strategy
+            .routeToolResults(new ConversationSnapshot(windowed, List.of()), BRIDGE_CAPS)
+            .messages();
 
     // both turns' documents survive, each rendered as its own trailing synthetic message
     assertThat(sent).hasSize(messages.size() + 2);
@@ -144,7 +146,9 @@ class ToolResultDocumentWindowingTest {
         .contains(messages.get(3), messages.get(4), messages.get(5));
 
     var sent =
-        strategy.apply(new ConversationSnapshot(windowed, List.of()), BRIDGE_CAPS).messages();
+        strategy
+            .routeToolResults(new ConversationSnapshot(windowed, List.of()), BRIDGE_CAPS)
+            .messages();
 
     // only turn 2's document renders
     var syntheticDocs =

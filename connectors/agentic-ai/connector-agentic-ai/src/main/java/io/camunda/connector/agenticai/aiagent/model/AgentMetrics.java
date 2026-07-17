@@ -79,7 +79,7 @@ public record AgentMetrics(
    * <p>Aggregation semantics: {@code cacheReadTokenCount} and {@code cacheCreationTokenCount} are
    * subsets already counted within {@code inputTokenCount}; {@code reasoningTokenCount} is a subset
    * already counted within {@code outputTokenCount}. {@link #totalTokenCount()} is therefore {@code
-   * input + output} and never double-counts. Populated per-round by the native provider
+   * input + output} and never double-counts. Populated per-round by provider-specific chat model
    * implementations.
    */
   @AgenticAiRecord

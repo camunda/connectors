@@ -20,6 +20,10 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Capability sub-trees are kept as raw {@link JsonNode}s so the resolver can deep-merge
  * (Spring-Boot semantics: maps deep-merge, lists replace, scalars override) at lookup time.
+ *
+ * <p>For example, the {@code anthropic} family key might map to an {@link ApiFamily} whose {@code
+ * models} list contains a {@link ModelEntry} with {@code id = "claude-sonnet-4-5"} and {@code
+ * capabilities = {"contextWindow": 200000, "maxOutputTokens": 64000}}.
  */
 public record CapabilityMatrix(Map<String, ApiFamily> families) {
 

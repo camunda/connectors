@@ -13,7 +13,7 @@ import com.openai.core.http.StreamResponse;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
-import io.camunda.connector.agenticai.aiagent.framework.NativeChatModelPayloadLogging;
+import io.camunda.connector.agenticai.aiagent.framework.JsonPayloadLogging;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiModelCapabilities;
@@ -60,7 +60,7 @@ public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
     if (LOG.isDebugEnabled()) {
       LOG.debug(
           "OpenAI Chat Completions API request: {}",
-          NativeChatModelPayloadLogging.toJson(MAPPER, params._body()));
+          JsonPayloadLogging.toJson(MAPPER, params._body()));
     }
 
     final long startNanos = System.nanoTime();
@@ -72,7 +72,7 @@ public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
     if (LOG.isDebugEnabled()) {
       LOG.debug(
           "OpenAI Chat Completions API response: {}",
-          NativeChatModelPayloadLogging.toJson(MAPPER, completion));
+          JsonPayloadLogging.toJson(MAPPER, completion));
     }
     final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
     return responseConverter.toResult(completion, executionTime);

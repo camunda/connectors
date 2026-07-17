@@ -501,7 +501,8 @@ public class AnthropicMessageRequestConverter {
     final AnthropicEffort effort = params == null ? null : params.effort();
 
     if (jsonSchema == null && effort == null) {
-      return; // TEXT / parseJson with no effort has no request-side effect (mirror the bridge)
+      return; // TEXT / parseJson with no effort has no request-side effect (mirrors the
+      // LangChain4j-routed path)
     }
 
     final var outputConfigBuilder = BetaOutputConfig.builder();

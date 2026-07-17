@@ -14,7 +14,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
-class NativeChatModelPayloadLoggingTest {
+class JsonPayloadLoggingTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
@@ -22,7 +22,7 @@ class NativeChatModelPayloadLoggingTest {
   void serializesPayloadAsJson() {
     final var payload = new TestPayload("value");
 
-    final String json = NativeChatModelPayloadLogging.toJson(mapper, payload);
+    final String json = JsonPayloadLogging.toJson(mapper, payload);
 
     assertThat(json).isEqualTo("{\"field\":\"value\"}");
   }
@@ -34,7 +34,7 @@ class NativeChatModelPayloadLoggingTest {
         .thenThrow(new JsonProcessingException("boom") {});
     final var payload = new TestPayload("value");
 
-    final String result = NativeChatModelPayloadLogging.toJson(failingMapper, payload);
+    final String result = JsonPayloadLogging.toJson(failingMapper, payload);
 
     assertThat(result).contains("TestPayload").contains("boom");
   }

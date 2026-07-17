@@ -35,6 +35,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * sparse {@link ModelCapabilitiesProperties} record so Spring Boot's relaxed binding can rebuild
  * modality lists from indexed property keys; the resolver projects them onto a concrete, provider-
  * specific {@link ModelCapabilities} via Jackson tree merge at lookup time.
+ *
+ * <p>For example, {@code camunda.connector.agenticai.aiagent.capabilities.anthropic.models.claude-
+ * sonnet-4-5.capabilities.max-output-tokens=64000} overrides just that one field on an otherwise
+ * bundled model entry.
  */
 @ConfigurationProperties("camunda.connector.agenticai.aiagent")
 public record AgenticAiCapabilitiesProperties(Map<String, ApiFamilyProperties> capabilities) {

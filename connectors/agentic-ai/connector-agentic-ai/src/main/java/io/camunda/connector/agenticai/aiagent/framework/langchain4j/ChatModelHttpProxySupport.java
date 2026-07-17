@@ -24,10 +24,10 @@ import org.jspecify.annotations.Nullable;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 /**
- * LangChain4j-specific bridge on top of the provider-neutral {@link HttpTransportSupport}. Keeps
- * the langchain4j {@link JdkHttpClientBuilder} wrapping (which the neutral transport support has no
- * reason to know about) while delegating the actual proxy-aware client/builder construction to
- * {@link HttpTransportSupport}.
+ * LangChain4j-specific proxy support layered on top of the provider-neutral {@link
+ * HttpTransportSupport}. Keeps the langchain4j {@link JdkHttpClientBuilder} wrapping (which the
+ * neutral transport support has no reason to know about) while delegating the actual proxy-aware
+ * client/builder construction to {@link HttpTransportSupport}.
  */
 public class ChatModelHttpProxySupport {
 

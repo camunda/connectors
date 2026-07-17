@@ -33,13 +33,19 @@ import org.jspecify.annotations.Nullable;
  * contained in {@link ModelCapabilities#toolResultModalities()}; otherwise it is stripped from the
  * {@link ToolCallResultMessage} and re-inserted, immediately after it, as a synthetic {@link
  * UserMessage} tagged {@link UserMessage#METADATA_TOOL_CALL_DOCUMENTS} (byte-identical to the
- * pre-C5 eager extraction message). A provider that cannot embed any document natively in a tool
- * result declares {@code toolResultModalities = []}, so every tool-result document falls back.
- * User/event- message documents are only validated (fail loud on unsupported), never rewritten.
+ * always-extracted message format defined in ADR-004, "Document handling in tool call results"). A
+ * model that cannot support a document's modality inline in a tool result declares that modality
+ * absent from {@code toolResultModalities}, so every tool-result document of that modality is
+ * extracted this way. User/event-message documents are only validated (fail loud on unsupported),
+ * never rewritten.
  */
 public class CapabilityAwareToolCallResultStrategy implements ToolCallResultStrategy {
 
-  /** Shared with the e2e assertion helper so the fallback preamble cannot drift. */
+  /**
+   * The exact preamble prefixing the synthetic message built from extracted tool-result documents;
+   * exposed as a constant so callers reference this single source instead of duplicating the
+   * literal.
+   */
   public static final String TOOL_CALL_DOCUMENTS_PREAMBLE =
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
@@ -47,7 +53,8 @@ public class CapabilityAwareToolCallResultStrategy implements ToolCallResultStra
       @Nullable String toolCallId, @Nullable String toolCallName, List<Document> documents) {}
 
   @Override
-  public ConversationSnapshot apply(ConversationSnapshot snapshot, ModelCapabilities capabilities) {
+  public ConversationSnapshot routeToolResults(
+      ConversationSnapshot snapshot, ModelCapabilities capabilities) {
     final var out = new ArrayList<Message>(snapshot.messages().size());
     for (Message message : snapshot.messages()) {
       switch (message) {

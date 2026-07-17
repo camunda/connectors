@@ -11,6 +11,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
+/**
+ * Reasoning/thinking content emitted by a model. {@code text} is an optional human-readable
+ * reasoning summary, present only when a model emits one; it is {@code null} otherwise (e.g. when a
+ * model carries only an opaque signed reasoning block, so {@code null} here is normal, not a sign
+ * of missing data). {@code providerPayload} holds the opaque provider block verbatim so it can be
+ * replayed byte-identically on the next request. {@code metadata} is auxiliary.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ReasoningContent(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable String text,

@@ -79,7 +79,7 @@ class CapabilityAwareToolCallResultStrategyTest {
     var pdf = doc("pdf-bytes", "application/pdf", "report.pdf");
     var trm = toolResult("call_1", "getReport", Map.of("k", "v"), pdf);
 
-    var out = strategy.apply(snapshot(trm), BRIDGE_CAPS).messages();
+    var out = strategy.routeToolResults(snapshot(trm), BRIDGE_CAPS).messages();
 
     assertThat(out).hasSize(2);
     var strippedTrm = (ToolCallResultMessage) out.get(0);
@@ -98,7 +98,7 @@ class CapabilityAwareToolCallResultStrategyTest {
     var pdf = doc("pdf-bytes", "application/pdf", "report.pdf");
     var trm = toolResult("call_1", "getReport", Map.of("k", "v"), pdf);
 
-    var out = strategy.apply(snapshot(trm), NATIVE_DOC_CAPS).messages();
+    var out = strategy.routeToolResults(snapshot(trm), NATIVE_DOC_CAPS).messages();
 
     assertThat(out).hasSize(1);
     var keptTrm = (ToolCallResultMessage) out.getFirst();
@@ -115,7 +115,7 @@ class CapabilityAwareToolCallResultStrategyTest {
     // toolResult supports IMAGE but not DOCUMENT
     var out =
         strategy
-            .apply(
+            .routeToolResults(
                 snapshot(trm), caps(List.of(Modality.TEXT, Modality.IMAGE), List.of(Modality.TEXT)))
             .messages();
 
@@ -131,12 +131,13 @@ class CapabilityAwareToolCallResultStrategyTest {
 
   @Test
   void textModalityDocument_fallsBackWhenToolResultEmbeddingUnsupported() {
-    // BRIDGE_CAPS declares toolResultModalities = [] (the bridge embeds no document natively in a
-    // tool result), so even a TEXT-bucket document (text/csv) must take the synthetic fallback.
+    // BRIDGE_CAPS declares toolResultModalities = [] (a model that cannot embed any document
+    // inline in a tool result), so even a TEXT-bucket document (text/csv) must be extracted into
+    // the synthetic fallback message.
     var csv = doc("a,b,c", "text/csv", "data.csv");
     var trm = toolResult("call_1", "getReport", Map.of("k", "v"), csv);
 
-    var out = strategy.apply(snapshot(trm), BRIDGE_CAPS).messages();
+    var out = strategy.routeToolResults(snapshot(trm), BRIDGE_CAPS).messages();
 
     assertThat(out).hasSize(2);
     var strippedTrm = (ToolCallResultMessage) out.get(0);
@@ -149,14 +150,14 @@ class CapabilityAwareToolCallResultStrategyTest {
   @Test
   void textModalityDocument_keptInlineWhenToolResultSupportsText() {
     // Under the capability-model reframe, toolResultModalities purely describes which document
-    // modalities can be embedded natively at the tool-result location: a provider that declares
-    // TEXT support there keeps a text-family document (text/csv) inline, no synthetic fallback.
+    // modalities can be embedded at the tool-result location: a model that declares TEXT support
+    // there keeps a text-family document (text/csv) inline, no synthetic fallback.
     var csv = doc("a,b,c", "text/csv", "data.csv");
     var trm = toolResult("call_1", "getReport", Map.of("k", "v"), csv);
 
     var out =
         strategy
-            .apply(
+            .routeToolResults(
                 snapshot(trm), caps(List.of(Modality.TEXT), List.of(Modality.TEXT, Modality.IMAGE)))
             .messages();
 
@@ -174,7 +175,7 @@ class CapabilityAwareToolCallResultStrategyTest {
 
     assertThatThrownBy(
             () ->
-                strategy.apply(
+                strategy.routeToolResults(
                     snapshot(userMessage), caps(List.of(Modality.TEXT), List.of(Modality.TEXT))))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("DOCUMENT")

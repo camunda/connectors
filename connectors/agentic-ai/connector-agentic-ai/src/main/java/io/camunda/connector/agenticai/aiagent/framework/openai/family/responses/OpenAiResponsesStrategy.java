@@ -13,7 +13,7 @@ import com.openai.core.http.StreamResponse;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseStreamEvent;
-import io.camunda.connector.agenticai.aiagent.framework.NativeChatModelPayloadLogging;
+import io.camunda.connector.agenticai.aiagent.framework.JsonPayloadLogging;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelRequest;
 import io.camunda.connector.agenticai.aiagent.framework.api.ChatModelResult;
 import io.camunda.connector.agenticai.aiagent.framework.openai.OpenAiModelCapabilities;
@@ -59,8 +59,7 @@ public class OpenAiResponsesStrategy implements OpenAiApiFamilyStrategy {
             request.executionContext(), request.snapshot(), capabilities, modelMatched);
     if (LOG.isDebugEnabled()) {
       LOG.debug(
-          "OpenAI Responses API request: {}",
-          NativeChatModelPayloadLogging.toJson(MAPPER, params._body()));
+          "OpenAI Responses API request: {}", JsonPayloadLogging.toJson(MAPPER, params._body()));
     }
 
     final long startNanos = System.nanoTime();
@@ -69,9 +68,7 @@ public class OpenAiResponsesStrategy implements OpenAiApiFamilyStrategy {
       response = streamAssembler.assemble(stream);
     }
     if (LOG.isDebugEnabled()) {
-      LOG.debug(
-          "OpenAI Responses API response: {}",
-          NativeChatModelPayloadLogging.toJson(MAPPER, response));
+      LOG.debug("OpenAI Responses API response: {}", JsonPayloadLogging.toJson(MAPPER, response));
     }
     final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
     return responseConverter.toResult(response, executionTime);

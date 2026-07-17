@@ -39,7 +39,8 @@ import org.jspecify.annotations.Nullable;
  * The persisted tool-call-result element type (as opposed to {@link ToolCallResult}, the transient
  * tool-return DTO which keeps its untyped {@code Object content}). Unlike {@link ToolCallResult},
  * this type carries a structured {@link Content} list so later stages (capability-aware routing,
- * native providers) can inspect the shape of a tool result without stringifying it.
+ * provider-specific chat model implementations) can inspect the shape of a tool result without
+ * stringifying it.
  *
  * <p><b>Backward compatibility (Camunda 8.9):</b> before this type existed, a persisted tool call
  * result was a flat JSON object matching {@link ToolCallResult} — {@code content} was a raw
@@ -99,7 +100,7 @@ public record ToolCallResultContent(
    * on already-deserialized Java objects) and the backward-compat proxy builder ({@link
    * ContentJsonDeserializer}, operating on raw JSON nodes read from 8.9 data). Each branch produces
    * a singleton list (or an empty one for null/blank) — a multi-element list only ever arises later
-   * once native providers emit structured content directly.
+   * once provider-specific chat model implementations emit structured content directly.
    */
   static List<Content> contentFromObject(@Nullable Object content) {
     return switch (content) {

@@ -199,11 +199,12 @@ public class AgentInstanceHistoryMapper {
       case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
-      // Agent instance history has no dedicated reasoning content block yet; surface it as an
-      // object block for now (follow-up: team decision).
+      // TODO: agent instance history has no dedicated reasoning content block yet; surface it as
+      // an object block for now.
       case ReasoningContent reasoningContent -> objectHistoryContent(reasoningContent);
-      // Agent instance history has no dedicated provider/server-tool content block yet; surface
-      // it as an object block for now (follow-up: engine schema addition + team decision).
+      // TODO: agent instance history has no dedicated provider/server-tool content block yet;
+      // surface it as an object block for now, pending a dedicated content block / engine schema
+      // addition.
       case ProviderContent providerContent -> objectHistoryContent(providerContent.payload());
     };
   }

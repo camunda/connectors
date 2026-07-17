@@ -27,8 +27,8 @@ import org.junit.jupiter.api.Test;
 /**
  * Verifies that {@link ReasoningContent}, including its opaque {@code providerPayload}, survives
  * the document conversation store's JSON serialization boundary byte-identically. This is the
- * fidelity the native Anthropic reasoning round-trip (and therefore prompt-cache prefix stability)
- * relies on when the document memory backend is used; it also exercises the same polymorphic {@code
+ * fidelity the Anthropic reasoning round-trip (and therefore prompt-cache prefix stability) relies
+ * on when the document memory backend is used; it also exercises the same polymorphic {@code
  * Content} Jackson path the in-process backend persists through the {@code agentContext} variable.
  */
 class CamundaDocumentConversationSerializerTest {
@@ -39,8 +39,8 @@ class CamundaDocumentConversationSerializerTest {
 
   @Test
   void reasoningContentWithProviderPayloadSurvivesSerializationRoundTrip() throws Exception {
-    // Mirrors the native converter's output: neutral text is null, the raw Anthropic thinking block
-    // (type/thinking/signature) is the single source carried in providerPayload.
+    // Mirrors the Anthropic content converter's output: neutral text is null, the raw Anthropic
+    // thinking block (type/thinking/signature) is the single source carried in providerPayload.
     final Map<String, Object> rawThinkingBlock = new LinkedHashMap<>();
     rawThinkingBlock.put("type", "thinking");
     rawThinkingBlock.put("thinking", "let me reason about ervin's email");

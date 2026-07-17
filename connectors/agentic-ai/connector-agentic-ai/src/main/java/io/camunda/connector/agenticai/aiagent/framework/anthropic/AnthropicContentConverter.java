@@ -59,7 +59,7 @@ public class AnthropicContentConverter {
                     BetaTextBlockParam.builder().text(writeAsJson(obj.content())).build()));
         // Reasoning content is re-emitted unconditionally (no capability gate; see spec §4b) as
         // long as a raw providerPayload is present. A null payload (e.g. reasoning content
-        // produced by the LangChain4J bridge path, which has no raw block to preserve) has no
+        // produced by the LangChain4J-routed path, which has no raw block to preserve) has no
         // wire representation to replay; skip it so history replay stays valid.
         case ReasoningContent rc -> {
           if (rc.providerPayload() != null) {
@@ -129,7 +129,7 @@ public class AnthropicContentConverter {
           BetaContentBlockParam.ofDocument(
               BetaRequestDocumentBlock.builder().base64Source(doc.document().asBase64()).build());
       // TEXT-family documents inline as plain text; AUDIO/VIDEO have no direct
-      // Anthropic block yet, so fall back to a JSON reference like the bridge.
+      // Anthropic block yet, so fall back to a JSON reference like the LangChain4j-routed path.
       case TEXT ->
           BetaContentBlockParam.ofDocument(
               BetaRequestDocumentBlock.builder().textSource(decodeUtf8(doc.document())).build());

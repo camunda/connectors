@@ -162,7 +162,7 @@ class JobWorkerAgentRequestHandlerTest {
     lenient().doReturn(null).when(agentExecutionContext).userPrompt();
     // identity by default (pre-existing tests carry no tool-result documents)
     lenient()
-        .when(toolCallResultStrategy.apply(any(), any()))
+        .when(toolCallResultStrategy.routeToolResults(any(), any()))
         .thenAnswer(inv -> inv.getArgument(0));
   }
 
@@ -838,8 +838,8 @@ class JobWorkerAgentRequestHandlerTest {
 
   @Test
   void proceedAppliesToolCallResultStrategyBeforeModelCallAndPersistsSelfDescribingMessage() {
-    // a tool-result document routed through the real strategy against bridge-like capabilities
-    // ([TEXT] only for tool results) must be stripped from the outgoing snapshot and replaced by a
+    // a tool-result document routed through the real strategy against capabilities exposing only
+    // TEXT for tool results must be stripped from the outgoing snapshot and replaced by a
     // trailing synthetic <doc/> message, while the persisted conversation keeps the document
     // inside the ToolCallResultMessage (self-describing) with no synthetic message added.
     mockSystemPrompt();
@@ -871,11 +871,11 @@ class JobWorkerAgentRequestHandlerTest {
             null,
             null);
     when(chatModelApi.capabilities()).thenReturn(bridgeCaps);
-    when(toolCallResultStrategy.apply(any(), any()))
+    when(toolCallResultStrategy.routeToolResults(any(), any()))
         .thenAnswer(
             inv ->
                 new CapabilityAwareToolCallResultStrategy()
-                    .apply(inv.getArgument(0), inv.getArgument(1)));
+                    .routeToolResults(inv.getArgument(0), inv.getArgument(1)));
 
     var assistantMessage = assistantMessage("ok");
     mockFrameworkExecution(assistantMessage);

@@ -22,14 +22,15 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 /**
- * Provider-neutral HTTP transport/proxy support, shared by the LangChain4j bridge and (in the
- * future) native provider clients.
+ * Provider-neutral HTTP transport/proxy support, shared across the chat model implementations
+ * (LangChain4j-backed and provider-specific alike).
  *
  * <p>Builds proxy-configured JDK {@link HttpClient} instances/builders, AWS Apache HTTP client
  * builders, and Azure {@link ProxyOptions} from a shared {@link ProxyConfiguration}, without
  * depending on any specific LLM SDK (in particular, without any {@code dev.langchain4j.*}
- * dependency). Framework-specific bridges (e.g. the LangChain4j {@code ChatModelHttpProxySupport})
- * delegate to this class and layer their own framework-specific wrapping on top where needed.
+ * dependency). Framework-specific implementations (e.g. the LangChain4j {@code
+ * ChatModelHttpProxySupport}) delegate to this class and layer their own framework-specific
+ * wrapping on top where needed.
  */
 public class HttpTransportSupport {
   private static final Logger LOG = LoggerFactory.getLogger(HttpTransportSupport.class);
@@ -47,7 +48,7 @@ public class HttpTransportSupport {
   /**
    * Returns a proxy-configured, not-yet-built JDK {@link HttpClient.Builder}. Use this when further
    * configuration (timeouts, SSL context, executor, etc.) needs to be applied before the client is
-   * built -- e.g. by a framework bridge that hands the builder to a third-party SDK.
+   * built -- e.g. by a chat model implementation that hands the builder to a third-party SDK.
    */
   public HttpClient.Builder jdkHttpClientBuilder() {
     final var httpClientBuilder = HttpClient.newBuilder();
@@ -149,7 +150,7 @@ public class HttpTransportSupport {
    * Provider-neutral proxy resolution for OkHttp-based vendor SDKs (anthropic-java, openai-java),
    * which accept a {@link Proxy} rather than a pre-built HTTP client. Returns the proxy configured
    * for the target scheme, if any, together with any credentials for the SDK's own proxy
-   * authenticator. Shared design so C8's OpenAI native reuses it unchanged.
+   * authenticator. Shared so provider-specific chat model implementations can reuse it unchanged.
    */
   public Optional<OkHttpProxy> okHttpProxy(String scheme) {
     return proxyConfiguration
