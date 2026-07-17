@@ -101,7 +101,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.38</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.48.1</version.aws-sdk2>
+    <version.aws-sdk2>2.48.2</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -175,7 +175,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.6.0</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
-    <version.langchain4j>1.17.2</version.langchain4j>
+    <version.langchain4j>1.18.0</version.langchain4j>
     <version.mcp-sdk>2.0.0</version.mcp-sdk>
     <version.elasticsearch-java>8.19.18</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.18</version.elasticsearch-rest-client>
