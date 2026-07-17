@@ -7,6 +7,7 @@
 package io.camunda.connector.aws.dynamodb.operation.item;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.dynamodbv2.document.AttributeUpdate;
@@ -14,13 +15,17 @@ import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.amazonaws.services.dynamodbv2.document.UpdateItemOutcome;
 import com.amazonaws.services.dynamodbv2.model.AttributeAction;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.UpdateItemResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.UpdateItem;
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -164,6 +169,99 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
             Map.of(
                 "nestedMap", Map.of("key2", "value2"),
                 "nestedSet", Set.of(new BigDecimal(3), new BigDecimal(4)))));
+  }
+
+  /**
+   * Golden-JSON shape test: pins the exact JSON the v1 updateItem operation writes to process
+   * variables today, so the AWS SDK v2 migration must reproduce it unchanged (migration contract
+   * for #7973). Exercises every {@link AttributeValue} member type (S, N, SS, NS, BOOL, NULL, M, L)
+   * so every branch of the raw v1 AttributeValue quirk (lowercase keys, all-null padding) is
+   * pinned, not just the string/number cases.
+   */
+  @Test
+  public void updateItemOutcome_serializesToDocumentedV1JsonShape() throws Exception {
+    // Given an UpdateItem response with returned attributes (ReturnValues=ALL_NEW), covering
+    // every AttributeValue member type the connector could ever see reflected back.
+    Map<String, AttributeValue> attributes = new LinkedHashMap<>();
+    attributes.put("status", new AttributeValue().withS("Active"));
+    attributes.put("age", new AttributeValue().withN("45"));
+    attributes.put("tags", new AttributeValue().withSS("a", "b"));
+    attributes.put("scores", new AttributeValue().withNS("1", "2"));
+    attributes.put("flag", new AttributeValue().withBOOL(true));
+    attributes.put("nickname", new AttributeValue().withNULL(true));
+    attributes.put(
+        "nested", new AttributeValue().withM(Map.of("inner", new AttributeValue().withS("value"))));
+    attributes.put("list", new AttributeValue().withL(new AttributeValue().withS("x")));
+    UpdateItemResult updateItemResult = new UpdateItemResult();
+    updateItemResult.setAttributes(attributes);
+    UpdateItemOutcome realOutcome = new UpdateItemOutcome(updateItemResult);
+
+    UpdateItem updateItem =
+        new UpdateItem(
+            TestDynamoDBData.ActualValue.TABLE_NAME,
+            Map.of("id", "123"),
+            Map.of("status", "Active"),
+            "PUT");
+    UpdateItemOperation operation = new UpdateItemOperation(updateItem);
+    when(table.updateItem(any(PrimaryKey.class), any(AttributeUpdate[].class)))
+        .thenReturn(realOutcome);
+
+    // When
+    Object result = operation.invoke(dynamoDB);
+
+    // Then: attributes came back non-null, so UpdateItemOutcome#getItem() is a non-null (but
+    // getter-less) Item -- serializes as {}, not null.
+    // Built via readTree(writeValueAsString(...)), not valueToTree(): see AddItemOperationTest
+    // for why (valueToTree() strips trailing zeroes off BigDecimal values -- not relevant to
+    // *this* fixture's values, but kept consistent with the other golden tests in this module).
+    JsonNode actual = objectMapper.readTree(objectMapper.writeValueAsString(result));
+    String expectedJson =
+        """
+        {
+          "item": { },
+          "updateItemResult": {
+            "sdkResponseMetadata": null,
+            "sdkHttpMetadata": null,
+            "attributes": {
+              "status": { "s": "Active", "n": null, "b": null, "m": null, "l": null,
+                          "ss": null, "ns": null, "bs": null, "null": null, "bool": null },
+              "age": { "s": null, "n": "45", "b": null, "m": null, "l": null,
+                       "ss": null, "ns": null, "bs": null, "null": null, "bool": null },
+              "tags": { "s": null, "n": null, "b": null, "m": null, "l": null,
+                        "ss": ["a", "b"], "ns": null, "bs": null, "null": null, "bool": null },
+              "scores": { "s": null, "n": null, "b": null, "m": null, "l": null,
+                          "ss": null, "ns": ["1", "2"], "bs": null, "null": null, "bool": null },
+              "flag": { "s": null, "n": null, "b": null, "m": null, "l": null,
+                        "ss": null, "ns": null, "bs": null, "null": null, "bool": true },
+              "nickname": { "s": null, "n": null, "b": null, "m": null, "l": null,
+                            "ss": null, "ns": null, "bs": null, "null": true, "bool": null },
+              "nested": { "s": null, "n": null, "b": null, "l": null,
+                          "ss": null, "ns": null, "bs": null, "null": null, "bool": null,
+                          "m": {
+                            "inner": { "s": "value", "n": null, "b": null, "m": null, "l": null,
+                                       "ss": null, "ns": null, "bs": null, "null": null, "bool": null }
+                          } },
+              "list": { "s": null, "n": null, "b": null, "m": null,
+                        "ss": null, "ns": null, "bs": null, "null": null, "bool": null,
+                        "l": [
+                          { "s": "x", "n": null, "b": null, "m": null, "l": null,
+                            "ss": null, "ns": null, "bs": null, "null": null, "bool": null }
+                        ] }
+            },
+            "consumedCapacity": null,
+            "itemCollectionMetrics": null
+          }
+        }
+        """;
+    JsonNode expected = objectMapper.readTree(expectedJson);
+    assertThat(actual).isEqualTo(expected);
+
+    // Deliberately no exact writeValueAsString() pin here: AWS SDK v1's model classes
+    // (UpdateItemResult, AttributeValue, ...) are plain, unannotated JavaBeans with no
+    // @JsonPropertyOrder, and Jackson's reflection-based property order for them was empirically
+    // observed to change between separate JVM invocations of this exact test on this exact SDK
+    // version (see AddItemOperationTest for details). Tree equality above -- which compares JSON
+    // objects key-by-key regardless of order -- is the reliable way to pin this shape.
   }
 
   @Test
