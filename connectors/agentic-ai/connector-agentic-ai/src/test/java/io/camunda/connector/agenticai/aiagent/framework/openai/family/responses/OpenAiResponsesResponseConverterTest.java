@@ -6,7 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.openai.family.responses;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_RESPONSE_TRUNCATED;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -317,5 +320,24 @@ class OpenAiResponsesResponseConverterTest {
     final ChatModelResult result = converter.toResult(response, Duration.ofMillis(10));
 
     assertThat(result.metrics().tokenUsage()).isEqualTo(AgentMetrics.TokenUsage.empty());
+  }
+
+  @Test
+  void raisesTruncationErrorWhenResponseIsIncompleteDueToMaxOutputTokens() {
+    final Response response =
+        responseFromJson(
+            """
+            {
+              "id": "resp_1", "object": "response", "created_at": 0, "model": "gpt-5",
+              "status": "incomplete",
+              "incomplete_details": {"reason": "max_output_tokens"},
+              "output": [], "parallel_tool_calls": true, "tool_choice": "auto", "tools": []
+            }
+            """);
+
+    assertThatThrownBy(() -> converter.toResult(response, Duration.ZERO))
+        .isInstanceOf(ConnectorException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ERROR_CODE_RESPONSE_TRUNCATED)
+        .hasMessageContaining("truncated");
   }
 }

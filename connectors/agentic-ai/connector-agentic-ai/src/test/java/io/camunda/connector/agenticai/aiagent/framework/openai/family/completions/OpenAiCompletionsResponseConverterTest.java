@@ -6,7 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.openai.family.completions;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_RESPONSE_TRUNCATED;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -249,5 +252,26 @@ class OpenAiCompletionsResponseConverterTest {
     final ChatModelResult result = converter.toResult(completion, Duration.ofMillis(10));
 
     assertThat(result.metrics().tokenUsage()).isEqualTo(AgentMetrics.TokenUsage.empty());
+  }
+
+  @Test
+  void raisesTruncationErrorWhenFinishReasonIsLength() {
+    final ChatCompletion completion =
+        completionFromJson(
+            """
+            {
+              "id": "chatcmpl_1", "object": "chat.completion", "created": 0, "model": "gpt-5",
+              "choices": [
+                {"index": 0, "finish_reason": "length",
+                 "message": {"role": "assistant", "content": "{\\"partial\\":"}}
+              ],
+              "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
+            }
+            """);
+
+    assertThatThrownBy(() -> converter.toResult(completion, Duration.ZERO))
+        .isInstanceOf(ConnectorException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ERROR_CODE_RESPONSE_TRUNCATED)
+        .hasMessageContaining("truncated");
   }
 }

@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.openai.family.completions;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_RESPONSE_TRUNCATED;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +53,21 @@ public class OpenAiCompletionsResponseConverter {
   }
 
   public ChatModelResult toResult(ChatCompletion completion, Duration executionTime) {
+    completion.choices().stream()
+        .findFirst()
+        .filter(
+            choice ->
+                choice.finishReason().value() == ChatCompletion.Choice.FinishReason.Value.LENGTH)
+        .ifPresent(
+            choice -> {
+              throw new ConnectorException(
+                  ERROR_CODE_RESPONSE_TRUNCATED,
+                  "The model response was truncated because it reached the maximum output"
+                      + " token limit before completing. Increase 'maxCompletionTokens', or use"
+                      + " the Responses API for reasoning models whose reasoning can exhaust the"
+                      + " completion budget.");
+            });
+
     final AssistantMessage assistantMessage = toAssistantMessage(completion);
     final AgentMetrics metrics =
         toMetrics(completion, assistantMessage.toolCalls().size(), executionTime);

@@ -1189,6 +1189,7 @@ on).
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
 | `ERROR_CODE_AGENT_INSTANCE_HISTORY_ITEM_FAILED`         | `AGENT_INSTANCE_HISTORY_ITEM_FAILED`           | agent instance history item write failed (retries exhausted or non-retryable) |
+| `ERROR_CODE_RESPONSE_TRUNCATED`                         | `RESPONSE_TRUNCATED`                           | the model stopped because it hit its maximum output token limit before completing the response |
 
 Additional errors from `CamundaClientProcessDefinitionAdHocToolElementsResolver`:
 - `AD_HOC_SUB_PROCESS_NOT_FOUND` — element ID doesn't resolve to an `AdHocSubProcess` in BPMN
