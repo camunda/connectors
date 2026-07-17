@@ -140,8 +140,16 @@ public final class NativeOpenAiResponsesRecordedConversation {
                 .map(TextWire::format)
                 .map(ResponseFormatWire::toResponseFormat)
                 .orElse(null);
+        final var reasoningEffort =
+            Optional.ofNullable(wireBody.reasoning()).map(ReasoningWire::effort).orElse(null);
 
-        return new RecordedChatRequest(messages, toolDefinitions, responseFormat);
+        return new RecordedChatRequest(
+            messages,
+            toolDefinitions,
+            responseFormat,
+            reasoningEffort,
+            wireBody.include(),
+            wireBody.input());
       } catch (Exception e) {
         throw new IllegalStateException(
             "Failed to parse recorded Responses request body: " + rawBody, e);
@@ -265,14 +273,23 @@ public final class NativeOpenAiResponsesRecordedConversation {
     private final List<RecordedMessage> messages;
     private final List<ToolDefinition> toolDefinitions;
     private final RecordedResponseFormat responseFormat;
+    private final String reasoningEffort;
+    private final List<String> include;
+    private final List<JsonNode> rawInput;
 
     private RecordedChatRequest(
         List<RecordedMessage> messages,
         List<ToolDefinition> toolDefinitions,
-        RecordedResponseFormat responseFormat) {
+        RecordedResponseFormat responseFormat,
+        String reasoningEffort,
+        List<String> include,
+        List<JsonNode> rawInput) {
       this.messages = messages;
       this.toolDefinitions = toolDefinitions;
       this.responseFormat = responseFormat;
+      this.reasoningEffort = reasoningEffort;
+      this.include = include;
+      this.rawInput = rawInput;
     }
 
     /** The reconstructed messages, in conversation order. */
@@ -295,16 +312,55 @@ public final class NativeOpenAiResponsesRecordedConversation {
       return Optional.ofNullable(responseFormat);
     }
 
+    /**
+     * The top-level {@code reasoning.effort} value, or empty if the request carried no {@code
+     * reasoning} object at all (i.e. {@code configuration.openai.model.parameters.effort} was
+     * unset).
+     */
+    public Optional<String> reasoningEffort() {
+      return Optional.ofNullable(reasoningEffort);
+    }
+
+    /**
+     * The top-level {@code include[]} array (e.g. {@code "reasoning.encrypted_content"}), empty if
+     * the request carried none.
+     */
+    public List<String> include() {
+      return include;
+    }
+
+    /**
+     * The raw, unregrouped {@code input[]} array exactly as sent on the wire - unlike {@link
+     * #messages()} (which regroups a {@code message}+{@code function_call} sequence back into one
+     * assistant {@link RecordedMessage} and silently skips item kinds with no provider-neutral
+     * representation, e.g. {@code reasoning}/server-tool items), this exposes every item verbatim
+     * and in original order, so Task 4's reasoning/server-tool round-trip assertions can inspect
+     * those otherwise-dropped item kinds directly by {@code type}.
+     */
+    public List<JsonNode> rawInputItems() {
+      return rawInput;
+    }
+
     /** Wire format for the full Responses request body. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record RequestBodyWire(
-        String instructions, List<JsonNode> input, List<ToolWire> tools, TextWire text) {
+        String instructions,
+        List<JsonNode> input,
+        List<ToolWire> tools,
+        TextWire text,
+        ReasoningWire reasoning,
+        List<String> include) {
 
       private RequestBodyWire {
         input = input == null ? Collections.emptyList() : input;
         tools = tools == null ? Collections.emptyList() : tools;
+        include = include == null ? Collections.emptyList() : include;
       }
     }
+
+    /** Wire format for the top-level {@code reasoning} object. */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record ReasoningWire(String effort) {}
 
     /** Wire format for a single entry in the {@code tools} array. */
     @JsonIgnoreProperties(ignoreUnknown = true)

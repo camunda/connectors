@@ -73,6 +73,45 @@ final class NativeOpenAiResponsesSseChatModelStubs {
     for (final TurnStub turn : turns) {
       bodies.add(sseBody(turn));
     }
+    stubScenario(bodies);
+  }
+
+  /**
+   * Wires a scenario chain whose first turn is a {@link ReasoningTurnStub} (an {@code encrypted
+   * reasoning} item followed by one or more client {@code function_call} items), followed by any
+   * number of ordinary {@link TurnStub} turns - mirrors the native-Anthropic sibling's {@code
+   * stubThinkingConversation}, just for the Responses reasoning-item shape instead of Anthropic's
+   * streamed {@code thinking} block.
+   */
+  static void stubReasoningConversation(
+      ReasoningTurnStub reasoningTurn, TurnStub... followUpTurns) {
+    final List<String> bodies = new ArrayList<>();
+    bodies.add(reasoningSseBody(reasoningTurn));
+    for (final TurnStub turn : followUpTurns) {
+      bodies.add(sseBody(turn));
+    }
+    stubScenario(bodies);
+  }
+
+  /**
+   * Wires a scenario chain whose first turn is a {@link ServerToolTurnStub} (a {@code
+   * web_search_call} server-tool item alongside assistant text), followed by any number of ordinary
+   * {@link TurnStub} turns - mirrors the native-Anthropic sibling's {@code
+   * stubServerToolUseConversation}, just for OpenAI's {@code web_search_call} item instead of
+   * Anthropic's {@code server_tool_use}/{@code code_execution_tool_result} block pair.
+   */
+  static void stubServerToolConversation(
+      ServerToolTurnStub serverToolTurn, TurnStub... followUpTurns) {
+    final List<String> bodies = new ArrayList<>();
+    bodies.add(serverToolSseBody(serverToolTurn));
+    for (final TurnStub turn : followUpTurns) {
+      bodies.add(sseBody(turn));
+    }
+    stubScenario(bodies);
+  }
+
+  /** Shared scenario-chaining plumbing: returns each pre-rendered SSE body in order. */
+  private static void stubScenario(List<String> bodies) {
     for (int i = 0; i < bodies.size(); i++) {
       final String fromState = i == 0 ? Scenario.STARTED : stateName(i);
       ScenarioMappingBuilder mapping =
@@ -102,12 +141,115 @@ final class NativeOpenAiResponsesSseChatModelStubs {
             ? t.outputTokens()
             : ((TurnStub.ToolCalls) turn).outputTokens();
 
-    final Response response =
-        parseResponse(responseJson(id, text, toolCalls, inputTokens, outputTokens));
+    return frame(responseJson(id, text, toolCalls, inputTokens, outputTokens));
+  }
+
+  /**
+   * A turn whose response leads with a real {@code reasoning} output item carrying {@code
+   * encrypted_content} (the shape gpt-5/Responses returns when {@code
+   * configuration.openai.model.parameters.effort} triggers {@code include:
+   * ["reasoning.encrypted_content"]}, see {@code OpenAiResponsesRequestConverter#applyReasoning}),
+   * followed by one or more client {@code function_call} items - the shape a reasoning-enabled
+   * model returns when it reasons before calling a tool.
+   *
+   * <p>Exists so e2e coverage can prove the Task 4 round-trip end to end through the REAL {@code
+   * ResponseAccumulator}: the resulting {@code ReasoningContent}'s raw {@code providerPayload}
+   * (captured by {@code OpenAiResponsesResponseConverter#toReasoningContent}) must be replayed
+   * byte-identical - same {@code encrypted_content} value, positioned before the function_call item
+   * - on the follow-up model call once the tool result is available (see {@code
+   * OpenAiResponsesRequestConverter#assistantInputItems}).
+   */
+  record ReasoningTurnStub(
+      String reasoningId,
+      String encryptedContent,
+      List<ToolCallStub> toolCalls,
+      int inputTokens,
+      int outputTokens) {}
+
+  private static String reasoningSseBody(ReasoningTurnStub turn) {
+    final int id = TURN_COUNTER.getAndIncrement();
+    final StringBuilder output = new StringBuilder("[");
+    output.append(reasoningItemJson(turn.reasoningId(), turn.encryptedContent()));
+    for (int i = 0; i < turn.toolCalls().size(); i++) {
+      output.append(',').append(functionCallItemJson(id, i, turn.toolCalls().get(i)));
+    }
+    output.append(']');
+
+    return frame(
+        "{\"id\":"
+            + quote("resp-test-" + id)
+            + ",\"object\":\"response\",\"created_at\":0,\"model\":\"test-model\","
+            + "\"status\":\"completed\",\"parallel_tool_calls\":true,\"tool_choice\":\"auto\","
+            + "\"tools\":[],\"output\":"
+            + output
+            + ",\"usage\":"
+            + usageJson(turn.inputTokens(), turn.outputTokens())
+            + "}");
+  }
+
+  private static String reasoningItemJson(String id, String encryptedContent) {
+    return "{\"type\":\"reasoning\",\"id\":"
+        + quote(id)
+        + ",\"encrypted_content\":"
+        + quote(encryptedContent)
+        + ",\"summary\":[]}";
+  }
+
+  /**
+   * A turn whose response contains a {@code web_search_call} server-tool item alongside assistant
+   * text - the shape a real {@code enableWebSearch}-enabled turn returns. Unlike a client {@code
+   * function_call}, a server-tool item is resolved server-side by OpenAI itself and is never
+   * dispatched back to the caller, so this turn carries no client tool call at all - matching how
+   * {@code OpenAiResponsesResponseConverter} captures it as {@code ProviderContent}, never {@code
+   * toolCalls}.
+   */
+  record ServerToolTurnStub(
+      String text, String webSearchCallId, String searchQuery, int inputTokens, int outputTokens) {}
+
+  private static String serverToolSseBody(ServerToolTurnStub turn) {
+    final int id = TURN_COUNTER.getAndIncrement();
+    final StringBuilder output = new StringBuilder("[");
+    boolean first = true;
+    if (turn.text() != null && !turn.text().isBlank()) {
+      output.append(messageItemJson(id, turn.text()));
+      first = false;
+    }
+    if (!first) {
+      output.append(',');
+    }
+    output.append(webSearchCallItemJson(turn.webSearchCallId(), turn.searchQuery()));
+    output.append(']');
+
+    return frame(
+        "{\"id\":"
+            + quote("resp-test-" + id)
+            + ",\"object\":\"response\",\"created_at\":0,\"model\":\"test-model\","
+            + "\"status\":\"completed\",\"parallel_tool_calls\":true,\"tool_choice\":\"auto\","
+            + "\"tools\":[],\"output\":"
+            + output
+            + ",\"usage\":"
+            + usageJson(turn.inputTokens(), turn.outputTokens())
+            + "}");
+  }
+
+  private static String webSearchCallItemJson(String id, String searchQuery) {
+    return "{\"type\":\"web_search_call\",\"id\":"
+        + quote(id)
+        + ",\"status\":\"completed\",\"action\":{\"type\":\"search\",\"query\":"
+        + quote(searchQuery)
+        + "}}";
+  }
+
+  /**
+   * Parses the given response JSON into an SDK {@link Response}, wraps it in a {@code
+   * response.completed} {@link ResponseStreamEvent}, and frames it as SSE - the shared tail of
+   * every turn-body builder in this class (see the class-level Javadoc).
+   */
+  private static String frame(String responseJson) {
+    final Response response = parseResponse(responseJson);
     final ResponseStreamEvent event =
         ResponseStreamEvent.ofCompleted(
             ResponseCompletedEvent.builder().response(response).sequenceNumber(0L).build());
-
     return "data: " + serialize(event) + "\n\ndata: [DONE]\n\n";
   }
 
