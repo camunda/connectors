@@ -36,6 +36,7 @@ public class AwsBaseRequest {
       description =
           "Choose a reusable AWS credential. When set, it is bound as a whole to the connector's"
               + " 'awsCredential' input.")
+  @Valid
   private AwsCredentialConfiguration awsCredential;
 
   public AwsCredentialConfiguration getAwsCredential() {
@@ -88,8 +89,12 @@ public class AwsBaseRequest {
 
   @AssertFalse
   public boolean isDefaultCredentialsChainUsedInSaaS() {
+    // Evaluate the effective authentication (getAuthentication()) rather than the raw field, so the
+    // SaaS restriction also applies when the default-credentials-chain auth comes from a bound
+    // credential instead of the inline authentication field.
     return System.getenv().containsKey("CAMUNDA_CONNECTOR_RUNTIME_SAAS")
-        && authentication instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+        && getAuthentication()
+            instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
   }
 
   @Override

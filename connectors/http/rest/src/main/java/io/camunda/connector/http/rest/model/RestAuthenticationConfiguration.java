@@ -19,6 +19,7 @@ package io.camunda.connector.http.rest.model;
 import io.camunda.connector.generator.java.annotation.ConfigurationTemplate;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.http.base.model.auth.Authentication;
+import jakarta.validation.Valid;
 
 /**
  * Configuration (credential) template for reusable REST authentication. Reuses the existing sealed
@@ -30,4 +31,4 @@ import io.camunda.connector.http.base.model.auth.Authentication;
     version = 1,
     name = "REST Authentication")
 public record RestAuthenticationConfiguration(
-    @TemplateProperty(group = "authentication") Authentication authentication) {}
+    @Valid @TemplateProperty(group = "authentication") Authentication authentication) {}

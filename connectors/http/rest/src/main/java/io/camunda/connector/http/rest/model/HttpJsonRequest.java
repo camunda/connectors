@@ -20,6 +20,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.auth.Authentication;
+import jakarta.validation.Valid;
 
 public class HttpJsonRequest extends HttpCommonRequest {
 
@@ -33,6 +34,7 @@ public class HttpJsonRequest extends HttpCommonRequest {
       description =
           "Choose a reusable REST authentication credential. When set, it is bound as a whole to"
               + " the connector's 'authenticationConfiguration' input.")
+  @Valid
   private RestAuthenticationConfiguration authenticationConfiguration;
 
   public RestAuthenticationConfiguration getAuthenticationConfiguration() {

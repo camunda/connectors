@@ -39,7 +39,9 @@ public record JdbcRequest(
             })
         SupportedDatabase database,
     // Not @NotNull: a bound connection credential (configuration) may substitute for inline
-    // connection fields. Exactly one source is required; enforced in ConnectionHelper.
+    // connection fields. At least one source is required (enforced by
+    // isConnectionSourceProvided());
+    // when both are set, the configuration takes precedence (resolved in ConnectionHelper).
     @Valid JdbcConnection connection,
     @Valid @NotNull JdbcRequestData data,
     @TemplateProperty(
@@ -52,6 +54,7 @@ public record JdbcRequest(
             description =
                 "Choose a reusable JDBC connection credential. When set, it is bound as a whole to"
                     + " the connector's 'configuration' input.")
+        @Valid
         JdbcConnectionConfiguration configuration) {
 
   /** Convenience constructor for the pre-configuration-chooser shape (no bound configuration). */
@@ -60,9 +63,11 @@ public record JdbcRequest(
   }
 
   /**
-   * Exactly one connection source is required: either the inline {@link #connection} fields or a
-   * bound connection credential ({@link #configuration}). Replaces the former {@code @NotNull} on
-   * {@code connection}, which no longer holds now that a credential can substitute for it.
+   * At least one connection source is required: the inline {@link #connection} fields and/or a
+   * bound connection credential ({@link #configuration}). Both may be present — when they are, the
+   * configuration takes precedence over the inline fields (resolved in {@code
+   * ConnectionHelper#resolveConnection}). Replaces the former {@code @NotNull} on {@code
+   * connection}, which no longer holds now that a credential can substitute for it.
    */
   @AssertTrue(message = "Either connection fields or a connection credential must be provided")
   @JsonIgnore
