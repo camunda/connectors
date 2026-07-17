@@ -44,13 +44,13 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public DocumentToContentConverter langchain4JDocumentToContentConverter() {
+  public DocumentToContentConverter aiAgentLangchain4JDocumentToContentConverter() {
     return new DocumentToContentConverterImpl();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ContentConverter langchain4JContentConverter(
+  public ContentConverter aiAgentLangchain4JContentConverter(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       DocumentToContentConverter documentToContentConverter) {
     return new ContentConverterImpl(objectMapper, documentToContentConverter);
@@ -58,28 +58,28 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolCallConverter langchain4JToolCallConverter(
+  public ToolCallConverter aiAgentLangchain4JToolCallConverter(
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new ToolCallConverterImpl(objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public JsonSchemaConverter langchain4JJsonSchemaConverter(
+  public JsonSchemaConverter aiAgentLangchain4JJsonSchemaConverter(
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new JsonSchemaConverter(objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolSpecificationConverter langchain4JToolSpecificationConverter(
+  public ToolSpecificationConverter aiAgentLangchain4JToolSpecificationConverter(
       JsonSchemaConverter jsonSchemaConverter) {
     return new ToolSpecificationConverterImpl(jsonSchemaConverter);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatMessageConverter langchain4JChatMessageConverter(
+  public ChatMessageConverter aiAgentLangchain4JChatMessageConverter(
       ContentConverter contentConverter,
       ToolCallConverter toolCallConverter,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
@@ -93,7 +93,7 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   // let the first-registered bean through.
 
   @Bean
-  public Langchain4JChatModelApiFactory langchain4JAnthropicChatModelApiFactory(
+  public Langchain4JChatModelApiFactory aiAgentLangchain4JAnthropicChatModelApiFactory(
       ChatModelFactory chatModelFactory,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
@@ -108,7 +108,7 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   }
 
   @Bean
-  public Langchain4JChatModelApiFactory langchain4JBedrockChatModelApiFactory(
+  public Langchain4JChatModelApiFactory aiAgentLangchain4JBedrockChatModelApiFactory(
       ChatModelFactory chatModelFactory,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
@@ -123,7 +123,7 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   }
 
   @Bean
-  public Langchain4JChatModelApiFactory langchain4JAzureOpenAiChatModelApiFactory(
+  public Langchain4JChatModelApiFactory aiAgentLangchain4JAzureOpenAiChatModelApiFactory(
       ChatModelFactory chatModelFactory,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
@@ -138,7 +138,7 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   }
 
   @Bean
-  public Langchain4JChatModelApiFactory langchain4JGoogleVertexAiChatModelApiFactory(
+  public Langchain4JChatModelApiFactory aiAgentLangchain4JGoogleVertexAiChatModelApiFactory(
       ChatModelFactory chatModelFactory,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
@@ -153,7 +153,7 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   }
 
   @Bean
-  public Langchain4JChatModelApiFactory langchain4JOpenAiChatModelApiFactory(
+  public Langchain4JChatModelApiFactory aiAgentLangchain4JOpenAiChatModelApiFactory(
       ChatModelFactory chatModelFactory,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
@@ -168,7 +168,7 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   }
 
   @Bean
-  public Langchain4JChatModelApiFactory langchain4JOpenAiCompatibleChatModelApiFactory(
+  public Langchain4JChatModelApiFactory aiAgentLangchain4JOpenAiCompatibleChatModelApiFactory(
       ChatModelFactory chatModelFactory,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,

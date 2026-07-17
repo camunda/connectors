@@ -35,23 +35,24 @@ public class AgenticAiLangchain4JChatModelConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelHttpProxySupport langchain4JChatModelHttpProxySupport(
+  public ChatModelHttpProxySupport aiAgentLangchain4JChatModelHttpProxySupport(
       HttpTransportSupport httpTransportSupport) {
     return new ChatModelHttpProxySupport(httpTransportSupport);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProvider<AnthropicProviderConfiguration> langchain4JAnthropicChatModelProvider(
-      AgenticAiConnectorsConfigurationProperties config,
-      ChatModelHttpProxySupport chatModelHttpProxySupport) {
+  public ChatModelProvider<AnthropicProviderConfiguration>
+      aiAgentLangchain4JAnthropicChatModelProvider(
+          AgenticAiConnectorsConfigurationProperties config,
+          ChatModelHttpProxySupport chatModelHttpProxySupport) {
     return new AnthropicChatModelProvider(config.aiagent().chatModel(), chatModelHttpProxySupport);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public ChatModelProvider<AzureOpenAiProviderConfiguration>
-      langchain4JAzureOpenAiChatModelProvider(
+      aiAgentLangchain4JAzureOpenAiChatModelProvider(
           AgenticAiConnectorsConfigurationProperties config,
           ChatModelHttpProxySupport chatModelHttpProxySupport) {
     return new AzureOpenAiChatModelProvider(
@@ -60,7 +61,7 @@ public class AgenticAiLangchain4JChatModelConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProvider<BedrockProviderConfiguration> langchain4JBedrockChatModelProvider(
+  public ChatModelProvider<BedrockProviderConfiguration> aiAgentLangchain4JBedrockChatModelProvider(
       AgenticAiConnectorsConfigurationProperties config,
       ChatModelHttpProxySupport chatModelHttpProxySupport) {
     return new BedrockChatModelProvider(config.aiagent().chatModel(), chatModelHttpProxySupport);
@@ -69,13 +70,13 @@ public class AgenticAiLangchain4JChatModelConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ChatModelProvider<GoogleVertexAiProviderConfiguration>
-      langchain4JGoogleVertexAiChatModelProvider() {
+      aiAgentLangchain4JGoogleVertexAiChatModelProvider() {
     return new GoogleVertexAiChatModelProvider();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProvider<OpenAiProviderConfiguration> langchain4JOpenAiChatModelProvider(
+  public ChatModelProvider<OpenAiProviderConfiguration> aiAgentLangchain4JOpenAiChatModelProvider(
       AgenticAiConnectorsConfigurationProperties config,
       ChatModelHttpProxySupport chatModelHttpProxySupport) {
     return new OpenAiChatModelProvider(config.aiagent().chatModel(), chatModelHttpProxySupport);
@@ -84,7 +85,7 @@ public class AgenticAiLangchain4JChatModelConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ChatModelProvider<OpenAiCompatibleProviderConfiguration>
-      langchain4JOpenAiCompatibleChatModelProvider(
+      aiAgentLangchain4JOpenAiCompatibleChatModelProvider(
           AgenticAiConnectorsConfigurationProperties config,
           ChatModelHttpProxySupport chatModelHttpProxySupport) {
     return new OpenAiCompatibleChatModelProvider(
@@ -93,14 +94,14 @@ public class AgenticAiLangchain4JChatModelConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelProviderRegistry langchain4JChatModelProviderRegistry(
+  public ChatModelProviderRegistry aiAgentLangchain4JChatModelProviderRegistry(
       List<ChatModelProvider<?>> chatModelProviders) {
     return new ChatModelProviderRegistry(chatModelProviders);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelFactory langchain4JChatModelFactory(
+  public ChatModelFactory aiAgentLangchain4JChatModelFactory(
       ChatModelProviderRegistry chatModelProviderRegistry) {
     return new ChatModelFactoryImpl(chatModelProviderRegistry);
   }

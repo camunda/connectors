@@ -108,7 +108,7 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgenticAiHttpProxySupport agenticAiHttpProxySupport(
+  public AgenticAiHttpProxySupport aiAgentHttpProxySupport(
       AgenticAiConnectorsConfigurationProperties configuration) {
     // IMPORTANT: the proxy configuration needs to be configured to support
     // CONNECTOR_HTTP(S)_PLAIN_* proxy vars as JDK clients are not able to connect to proxies
@@ -309,7 +309,7 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelApiRegistry chatModelApiRegistry(
+  public ChatModelApiRegistry aiAgentChatModelApiRegistry(
       List<ChatModelApiFactory> chatModelApiFactories) {
     return new ChatModelApiRegistryImpl(chatModelApiFactories);
   }

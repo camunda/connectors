@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Registers the {@link AnthropicChatModelApiFactory} as a {@code ChatModelApiFactory} bean so it is
- * picked up by {@code chatModelApiRegistry(List<ChatModelApiFactory>)} and resolved for the
+ * picked up by {@code aiAgentChatModelApiRegistry(List<ChatModelApiFactory>)} and resolved for the
  * configurations it supports.
  */
 @Configuration
