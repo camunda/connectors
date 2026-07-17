@@ -341,7 +341,8 @@ class NativeProviderAcceptanceIT {
       NativeProvider provider, Capability capability) {
     boolean anthropic = provider.label().startsWith("anthropic");
     return switch (capability) {
-      case CODE_INTERPRETER -> anthropic ? "code_execution_tool_result" : "code_interpreter_call";
+      case CODE_INTERPRETER ->
+          anthropic ? "bash_code_execution_tool_result" : "code_interpreter_call";
       case WEB_SEARCH -> anthropic ? "web_search_tool_result" : "web_search_call";
       default -> throw new IllegalArgumentException("no server-tool block type for " + capability);
     };
@@ -756,7 +757,7 @@ class NativeProviderAcceptanceIT {
 
     // Deterministic text is the hard gate; the provider content block additionally proves the
     // provider's code-execution result block (OpenAI code_interpreter_call / Anthropic
-    // code_execution_tool_result) was captured as a structural round-trip witness.
+    // bash_code_execution_tool_result) was captured as a structural round-trip witness.
     assertAgentResponse(
         instance,
         response ->
