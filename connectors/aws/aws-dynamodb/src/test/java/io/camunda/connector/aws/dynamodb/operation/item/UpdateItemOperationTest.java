@@ -15,7 +15,6 @@ import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.amazonaws.services.dynamodbv2.document.UpdateItemOutcome;
 import com.amazonaws.services.dynamodbv2.model.AttributeAction;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.UpdateItemResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,7 +24,6 @@ import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.UpdateItem;
 import java.math.BigDecimal;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -174,26 +172,22 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
   /**
    * Golden-JSON shape test: pins the exact JSON the v1 updateItem operation writes to process
    * variables today, so the AWS SDK v2 migration must reproduce it unchanged (migration contract
-   * for #7973). Exercises every {@link AttributeValue} member type (S, N, SS, NS, BOOL, NULL, M, L)
-   * so every branch of the raw v1 AttributeValue quirk (lowercase keys, all-null padding) is
-   * pinned, not just the string/number cases.
+   * for #7973). Models the response the production overload actually returns: {@link
+   * UpdateItemOperation} calls {@code Table.updateItem(PrimaryKey, AttributeUpdate...)}, which
+   * never sets {@code ReturnValues}, so a live call gets {@code NONE} and comes back with no
+   * attributes -- but the SDK always attaches request-id and HTTP metadata to every successful call
+   * (see AddItemOperationTest for the same shape). The raw-{@code AttributeValue} lowercase-
+   * key/all-null-padding quirk this operation can never actually surface is instead pinned directly
+   * against the model classes in AttributeValueSerializationTest.
    */
   @Test
   public void updateItemOutcome_serializesToDocumentedV1JsonShape() throws Exception {
-    // Given an UpdateItem response with returned attributes (ReturnValues=ALL_NEW), covering
-    // every AttributeValue member type the connector could ever see reflected back.
-    Map<String, AttributeValue> attributes = new LinkedHashMap<>();
-    attributes.put("status", new AttributeValue().withS("Active"));
-    attributes.put("age", new AttributeValue().withN("45"));
-    attributes.put("tags", new AttributeValue().withSS("a", "b"));
-    attributes.put("scores", new AttributeValue().withNS("1", "2"));
-    attributes.put("flag", new AttributeValue().withBOOL(true));
-    attributes.put("nickname", new AttributeValue().withNULL(true));
-    attributes.put(
-        "nested", new AttributeValue().withM(Map.of("inner", new AttributeValue().withS("value"))));
-    attributes.put("list", new AttributeValue().withL(new AttributeValue().withS("x")));
+    // Given a realistic UpdateItem response. UpdateItemOperation never requests ReturnValues, so
+    // a live call returns no attributes -- but the SDK always attaches request-id and HTTP
+    // metadata to every successful call.
     UpdateItemResult updateItemResult = new UpdateItemResult();
-    updateItemResult.setAttributes(attributes);
+    updateItemResult.setSdkResponseMetadata(buildSdkResponseMetadata("929bf054-193b-48e6-req"));
+    updateItemResult.setSdkHttpMetadata(buildSdkHttpMetadata(200));
     UpdateItemOutcome realOutcome = new UpdateItemOutcome(updateItemResult);
 
     UpdateItem updateItem =
@@ -209,8 +203,8 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
     // When
     Object result = operation.invoke(dynamoDB);
 
-    // Then: attributes came back non-null, so UpdateItemOutcome#getItem() is a non-null (but
-    // getter-less) Item -- serializes as {}, not null.
+    // Then: no ReturnValues means the response carries no attributes, so
+    // UpdateItemOutcome#getItem() returns null here, not {}.
     // Built via readTree(writeValueAsString(...)), not valueToTree(): see AddItemOperationTest
     // for why (valueToTree() strips trailing zeroes off BigDecimal values -- not relevant to
     // *this* fixture's values, but kept consistent with the other golden tests in this module).
@@ -218,36 +212,15 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
     String expectedJson =
         """
         {
-          "item": { },
+          "item": null,
           "updateItemResult": {
-            "sdkResponseMetadata": null,
-            "sdkHttpMetadata": null,
-            "attributes": {
-              "status": { "s": "Active", "n": null, "b": null, "m": null, "l": null,
-                          "ss": null, "ns": null, "bs": null, "null": null, "bool": null },
-              "age": { "s": null, "n": "45", "b": null, "m": null, "l": null,
-                       "ss": null, "ns": null, "bs": null, "null": null, "bool": null },
-              "tags": { "s": null, "n": null, "b": null, "m": null, "l": null,
-                        "ss": ["a", "b"], "ns": null, "bs": null, "null": null, "bool": null },
-              "scores": { "s": null, "n": null, "b": null, "m": null, "l": null,
-                          "ss": null, "ns": ["1", "2"], "bs": null, "null": null, "bool": null },
-              "flag": { "s": null, "n": null, "b": null, "m": null, "l": null,
-                        "ss": null, "ns": null, "bs": null, "null": null, "bool": true },
-              "nickname": { "s": null, "n": null, "b": null, "m": null, "l": null,
-                            "ss": null, "ns": null, "bs": null, "null": true, "bool": null },
-              "nested": { "s": null, "n": null, "b": null, "l": null,
-                          "ss": null, "ns": null, "bs": null, "null": null, "bool": null,
-                          "m": {
-                            "inner": { "s": "value", "n": null, "b": null, "m": null, "l": null,
-                                       "ss": null, "ns": null, "bs": null, "null": null, "bool": null }
-                          } },
-              "list": { "s": null, "n": null, "b": null, "m": null,
-                        "ss": null, "ns": null, "bs": null, "null": null, "bool": null,
-                        "l": [
-                          { "s": "x", "n": null, "b": null, "m": null, "l": null,
-                            "ss": null, "ns": null, "bs": null, "null": null, "bool": null }
-                        ] }
+            "sdkResponseMetadata": { "requestId": "929bf054-193b-48e6-req" },
+            "sdkHttpMetadata": {
+              "httpHeaders": { "Content-Length": "85" },
+              "httpStatusCode": 200,
+              "allHttpHeaders": { "Content-Length": ["85"] }
             },
+            "attributes": null,
             "consumedCapacity": null,
             "itemCollectionMetrics": null
           }

@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.dynamodbv2.document.DeleteItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.DeleteItemResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,7 +20,6 @@ import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.DeleteItem;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,19 +58,20 @@ class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
   /**
    * Golden-JSON shape test: pins the exact JSON the v1 deleteItem operation writes to process
    * variables today, so the AWS SDK v2 migration must reproduce it unchanged (migration contract
-   * for #7973). Demonstrates the "attributes ARE populated" quirk: a caller that requests {@code
-   * ReturnValues=ALL_OLD} gets back the deleted item's raw v1 {@link AttributeValue}s -- lowercase
-   * field names, all-null padding around whichever member is actually set.
+   * for #7973). Models the response the production overload actually returns: {@link
+   * DeleteItemOperation} calls {@code Table.deleteItem(KeyAttribute...)}, which never sets {@code
+   * ReturnValues}, so a live call gets {@code NONE} and comes back with no attributes -- but the
+   * SDK always attaches request-id and HTTP metadata to every successful call (see
+   * AddItemOperationTest for the same shape).
    */
   @Test
   public void deleteItemOutcome_serializesToDocumentedV1JsonShape() throws Exception {
-    // Given a DeleteItem response with returned attributes (ReturnValues=ALL_OLD) and consumed
-    // capacity, as a live call with those options would return.
-    Map<String, AttributeValue> attributes = new LinkedHashMap<>();
-    attributes.put("id", new AttributeValue().withS("1234"));
-    attributes.put("age", new AttributeValue().withN("30"));
+    // Given a realistic DeleteItem response. DeleteItemOperation never requests ReturnValues, so
+    // a live call returns no attributes -- but the SDK always attaches request-id and HTTP
+    // metadata to every successful call.
     DeleteItemResult deleteItemResult = new DeleteItemResult();
-    deleteItemResult.setAttributes(attributes);
+    deleteItemResult.setSdkResponseMetadata(buildSdkResponseMetadata("929bf054-193b-48e6-req"));
+    deleteItemResult.setSdkHttpMetadata(buildSdkHttpMetadata(200));
     DeleteItemOutcome realOutcome = new DeleteItemOutcome(deleteItemResult);
 
     Map<String, Object> primaryKeyComponents = new HashMap<>();
@@ -85,9 +84,11 @@ class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
     // When
     Object result = operation.invoke(dynamoDB);
 
-    // Then: attributes came back non-null, so DeleteItemOutcome#getItem() (which wraps
-    // DeleteItemResult#getAttributes()) is a non-null (but getter-less) Item -- serializing as
-    // {}, not null (contrast with AddItemOperationTest, where no attributes come back at all).
+    // Then: no ReturnValues means the response carries no attributes, so
+    // DeleteItemOutcome#getItem() (which wraps DeleteItemResult#getAttributes()) returns null
+    // here, not {} (contrast with the exhaustive raw-AttributeValue shape pinned directly against
+    // the model classes in AttributeValueSerializationTest, which this operation can never
+    // actually surface since it never sets ReturnValues).
     // Built via readTree(writeValueAsString(...)), not valueToTree(): see AddItemOperationTest
     // for why (valueToTree() strips trailing zeroes off BigDecimal values -- not relevant to
     // *this* fixture's values, but kept consistent with the other golden tests in this module).
@@ -95,16 +96,15 @@ class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
     String expectedJson =
         """
         {
-          "item": { },
+          "item": null,
           "deleteItemResult": {
-            "sdkResponseMetadata": null,
-            "sdkHttpMetadata": null,
-            "attributes": {
-              "id": { "s": "1234", "n": null, "b": null, "m": null, "l": null,
-                      "ss": null, "ns": null, "bs": null, "null": null, "bool": null },
-              "age": { "s": null, "n": "30", "b": null, "m": null, "l": null,
-                       "ss": null, "ns": null, "bs": null, "null": null, "bool": null }
+            "sdkResponseMetadata": { "requestId": "929bf054-193b-48e6-req" },
+            "sdkHttpMetadata": {
+              "httpHeaders": { "Content-Length": "85" },
+              "httpStatusCode": 200,
+              "allHttpHeaders": { "Content-Length": ["85"] }
             },
+            "attributes": null,
             "consumedCapacity": null,
             "itemCollectionMetrics": null
           }
