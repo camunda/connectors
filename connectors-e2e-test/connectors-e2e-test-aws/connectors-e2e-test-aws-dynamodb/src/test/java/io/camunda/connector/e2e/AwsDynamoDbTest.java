@@ -80,8 +80,11 @@ public class AwsDynamoDbTest extends BaseAwsTest {
         Table table = dynamoDb.getTable(tableName);
         table.delete();
         table.waitForDelete();
-      } catch (ResourceNotFoundException | InterruptedException e) {
+      } catch (ResourceNotFoundException e) {
         // table already gone (e.g. deleteTable was the operation under test) - nothing to do
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new AssertionError("Interrupted while waiting for DynamoDB table deletion", e);
       }
     }
   }
