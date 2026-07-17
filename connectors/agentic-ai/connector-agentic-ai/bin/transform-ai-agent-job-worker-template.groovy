@@ -139,6 +139,17 @@ def updatedProperties = []
             value: "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult,\n  completedAt: now()\n}",
             type: "Hidden"
         ])
+
+        // Mark the ad-hoc sub-process as an agentic tool container so linting rules
+        // (e.g. fromAi() validation) can detect it.
+        updatedProperties.add([
+            value: "true",
+            binding: [
+                name: "io.camunda.agenticai.toolContainer",
+                type: "zeebe:property"
+            ],
+            type: "Hidden"
+        ])
     } else if (property.id == "id") {
         property.value = "io.camunda.connectors.agenticai.aiagent.jobworker.v1"
         updatedProperties.add(property)
