@@ -343,10 +343,13 @@ public class AwsDynamoDbTest extends BaseAwsTest {
           assertEquals(2, result.size());
           java.util.Map<String, String> merged = new java.util.HashMap<>();
           result.forEach(
-              entry ->
-                  entry
-                      .fields()
-                      .forEachRemaining(e -> merged.put(e.getKey(), e.getValue().asText())));
+              entry -> {
+                assertTrue(entry.isObject(), "Each getItem entry should be a JSON object: " + entry);
+                assertEquals(1, entry.size(), "Each getItem entry should contain exactly one field");
+                entry
+                    .fields()
+                    .forEachRemaining(e -> merged.put(e.getKey(), e.getValue().asText()));
+              });
           assertEquals(java.util.Map.of("id", "item-1", "color", "yellow"), merged);
         });
   }
